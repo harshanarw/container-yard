@@ -41,6 +41,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Container Inquiries
     Route::resource('inquiries', InquiryController::class);
+    Route::delete('inquiries/{inquiry}/photos/{photo}', [InquiryController::class, 'destroyPhoto'])->name('inquiries.photos.destroy');
 
     // Repair Estimates
     Route::resource('estimates', EstimateController::class);

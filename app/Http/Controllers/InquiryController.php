@@ -12,6 +12,7 @@ use App\Models\InquiryChecklist;
 use App\Models\InquiryPhoto;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class InquiryController extends Controller
@@ -168,10 +169,23 @@ class InquiryController extends Controller
             ->with('success', 'Inquiry updated successfully.');
     }
 
+    public function destroyPhoto(Inquiry $inquiry, InquiryPhoto $photo)
+    {
+        Storage::disk('public')->delete($photo->photo_path);
+        $photo->delete();
+
+        return back()->with('success', 'Photo removed successfully.');
+    }
+
     public function destroy(Inquiry $inquiry)
     {
         if ($inquiry->estimate()->exists()) {
             return back()->with('error', 'Cannot delete inquiry with an associated estimate.');
+        }
+
+        // Delete all stored photo files
+        foreach ($inquiry->photos as $photo) {
+            Storage::disk('public')->delete($photo->photo_path);
         }
 
         $inquiry->delete();
