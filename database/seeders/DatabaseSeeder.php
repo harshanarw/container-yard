@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             CustomerSeeder::class,
             ContainerSeeder::class,
             YardLocationSeeder::class,
+            InquirySeeder::class,
         ]);
     }
 }
