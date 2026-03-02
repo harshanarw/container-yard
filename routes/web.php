@@ -31,6 +31,7 @@ Route::middleware(['auth'])->group(function () {
 
     // User Management
     Route::resource('users', UserController::class);
+    Route::patch('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
 
     // Customer Management
     Route::resource('customers', CustomerController::class);

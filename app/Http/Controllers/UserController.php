@@ -78,6 +78,19 @@ class UserController extends Controller
             ->with('success', 'User updated successfully.');
     }
 
+    public function resetPassword(Request $request, User $user)
+    {
+        $request->validate([
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user->update([
+            'password' => Hash::make($request->new_password),
+        ]);
+
+        return back()->with('success', "Password for {$user->name} has been reset successfully.");
+    }
+
     public function destroy(User $user)
     {
         if ($user->id === auth()->id()) {
