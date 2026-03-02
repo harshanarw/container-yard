@@ -47,7 +47,7 @@ class InquirySeeder extends Seeder
              'location_row' => 'C', 'location_bay' => 3, 'location_tier' => 1,
              'gate_in_date' => now()->subDays(9)->toDateString(), 'csc_plate_valid' => true],
             ['container_no' => 'PILU4567893', 'size' => '20', 'type_code' => 'GP', 'customer_id' => $pil->id,
-             'condition' => 'good',           'cargo_status' => 'empty', 'status' => 'in_yard',
+             'condition' => 'sound',          'cargo_status' => 'empty', 'status' => 'in_yard',
              'location_row' => 'D', 'location_bay' => 1, 'location_tier' => 1,
              'gate_in_date' => now()->subDays(15)->toDateString(), 'csc_plate_valid' => true],
             ['container_no' => 'CMAU5678904', 'size' => '40', 'type_code' => 'GP', 'customer_id' => $cma->id,
