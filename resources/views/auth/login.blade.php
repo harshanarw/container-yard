@@ -30,19 +30,21 @@
             box-shadow: 0 20px 60px rgba(0,0,0,.3);
             overflow: hidden;
         }
+        .logo-banner {
+            display: flex; justify-content: center; align-items: center;
+            padding: 1.4rem 2rem 1rem;
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .logo-banner img {
+            width: 155px; height: 90px;
+            object-fit: contain;
+        }
         .auth-header {
             background: linear-gradient(135deg, #1a2035, #0d6efd);
             color: #fff;
-            padding: 2rem;
+            padding: 1.4rem 2rem;
             text-align: center;
-        }
-        .auth-header .logo-icon {
-            width: 64px; height: 64px;
-            border-radius: 16px;
-            background: rgba(255,255,255,.15);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.8rem;
-            margin: 0 auto 1rem;
         }
         .auth-body { padding: 2rem; }
         .form-control:focus { border-color: #0d6efd; box-shadow: 0 0 0 .2rem rgba(13,110,253,.15); }
@@ -64,10 +66,10 @@
 <body>
 
 <div class="auth-card">
+    <div class="logo-banner">
+        <img src="/images/demologo.jpg" alt="Company Logo">
+    </div>
     <div class="auth-header">
-        <div class="logo-icon">
-            <i class="bi bi-grid-3x3"></i>
-        </div>
         <h4 class="fw-bold mb-0">CYM System</h4>
         <p class="mb-0 opacity-75 small">Container Yard Management</p>
     </div>
