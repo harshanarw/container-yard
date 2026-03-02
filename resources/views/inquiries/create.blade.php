@@ -7,6 +7,15 @@
     <li class="breadcrumb-item active">New Inquiry</li>
 @endsection
 
+@push('styles')
+<style>
+    #photoDropZone { border-style: dashed !important; }
+    #photoDropZone:hover { background: #f0f4ff; border-color: #0d6efd !important; }
+    .photo-card { transition: transform .15s; }
+    .photo-card:hover { transform: translateY(-2px); }
+</style>
+@endpush
+
 @section('content')
 
 <div class="page-header">
@@ -233,13 +242,42 @@
 
             <!-- Photo Upload -->
             <div class="card content-card mb-3">
-                <div class="card-header">
-                    <i class="bi bi-camera me-2 text-primary"></i>Photo Evidence
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-camera me-2 text-primary"></i>Photo Evidence</span>
+                    <span id="photoCounter" class="badge bg-secondary-subtle text-secondary">0 / 10 photos</span>
                 </div>
                 <div class="card-body">
-                    <input type="file" name="photos[]" class="form-control" multiple accept="image/*">
-                    <div class="form-text">Upload damage photos (max 10 files, 5MB each). JPG, PNG supported.</div>
-                    <div class="row g-2 mt-2" id="photoPreview"></div>
+
+                    {{-- Hidden real file input --}}
+                    <input type="file" id="photoInput" name="photos[]"
+                           multiple accept="image/jpeg,image/png,image/webp,image/gif"
+                           class="d-none">
+
+                    {{-- Drop Zone --}}
+                    <div id="photoDropZone"
+                         class="border border-2 border-dashed rounded-3 text-center p-4 mb-3"
+                         style="border-color:#dee2e6!important;cursor:pointer;transition:background .2s;">
+                        <i class="bi bi-cloud-arrow-up text-primary" style="font-size:2.5rem;"></i>
+                        <div class="fw-semibold mt-2">Drag &amp; drop photos here</div>
+                        <div class="text-muted small mt-1">or click to browse files</div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-3" id="photoBrowseBtn">
+                            <i class="bi bi-folder2-open me-1"></i>Browse Photos
+                        </button>
+                        <div class="text-muted mt-2" style="font-size:.75rem;">
+                            JPG, PNG, WEBP &nbsp;·&nbsp; Max 5 MB per file &nbsp;·&nbsp; Up to 10 files
+                        </div>
+                    </div>
+
+                    {{-- Error alert --}}
+                    <div id="photoError" class="alert alert-danger alert-dismissible py-2 small d-none" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        <span id="photoErrorMsg"></span>
+                        <button type="button" class="btn-close btn-sm" onclick="document.getElementById('photoError').classList.add('d-none')"></button>
+                    </div>
+
+                    {{-- Preview Grid --}}
+                    <div class="row g-2" id="photoPreviewGrid"></div>
+
                 </div>
             </div>
 
@@ -355,23 +393,157 @@
         }
     });
 
-    // Photo preview
-    document.querySelector('input[name="photos[]"]').addEventListener('change', function () {
-        const preview = document.getElementById('photoPreview');
-        preview.innerHTML = '';
-        Array.from(this.files).slice(0, 10).forEach(file => {
+    // ── Photo Uploader ────────────────────────────────────────────────
+    const MAX_FILES     = 10;
+    const MAX_SIZE_MB   = 5;
+    const MAX_SIZE_BYTE = MAX_SIZE_MB * 1024 * 1024;
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+    const photoInput    = document.getElementById('photoInput');
+    const dropZone      = document.getElementById('photoDropZone');
+    const browseBtn     = document.getElementById('photoBrowseBtn');
+    const previewGrid   = document.getElementById('photoPreviewGrid');
+    const counter       = document.getElementById('photoCounter');
+    const errorBox      = document.getElementById('photoError');
+    const errorMsg      = document.getElementById('photoErrorMsg');
+
+    // Accumulated DataTransfer object — holds all selected files
+    let dt = new DataTransfer();
+
+    function showError(msg) {
+        errorMsg.textContent = msg;
+        errorBox.classList.remove('d-none');
+    }
+
+    function updateCounter() {
+        const n = dt.files.length;
+        counter.textContent = `${n} / ${MAX_FILES} photo${n !== 1 ? 's' : ''}`;
+        counter.className = n >= MAX_FILES
+            ? 'badge bg-warning-subtle text-warning'
+            : 'badge bg-secondary-subtle text-secondary';
+    }
+
+    function formatSize(bytes) {
+        return bytes < 1024 * 1024
+            ? (bytes / 1024).toFixed(1) + ' KB'
+            : (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function renderPreviews() {
+        previewGrid.innerHTML = '';
+        Array.from(dt.files).forEach((file, idx) => {
+            const col = document.createElement('div');
+            col.className = 'col-6 col-md-4 col-lg-3';
+            col.dataset.idx = idx;
+
             const reader = new FileReader();
             reader.onload = e => {
-                preview.innerHTML += `
-                    <div class="col-4">
-                        <img src="${e.target.result}" class="img-fluid rounded border" style="height:80px;object-fit:cover;width:100%;">
+                col.innerHTML = `
+                    <div class="card border h-100 shadow-sm position-relative photo-card" style="overflow:hidden;">
+                        <img src="${e.target.result}"
+                             class="card-img-top"
+                             style="height:110px;object-fit:cover;"
+                             alt="${file.name}">
+                        <div class="card-body p-1 pb-2">
+                            <div class="small fw-semibold text-truncate" style="max-width:100%;font-size:.72rem;"
+                                 title="${file.name}">${file.name}</div>
+                            <div class="text-muted" style="font-size:.68rem;">${formatSize(file.size)}</div>
+                        </div>
+                        <button type="button"
+                                class="btn btn-sm btn-danger position-absolute remove-photo"
+                                data-idx="${idx}"
+                                style="top:4px;right:4px;padding:2px 6px;font-size:.7rem;line-height:1.2;border-radius:50%;"
+                                title="Remove">
+                            <i class="bi bi-x"></i>
+                        </button>
                     </div>`;
+                previewGrid.appendChild(col);
             };
             reader.readAsDataURL(file);
         });
+        updateCounter();
+    }
+
+    function addFiles(newFiles) {
+        errorBox.classList.add('d-none');
+        const errors = [];
+
+        Array.from(newFiles).forEach(file => {
+            if (!ALLOWED_TYPES.includes(file.type)) {
+                errors.push(`"${file.name}" is not a supported image type.`);
+                return;
+            }
+            if (file.size > MAX_SIZE_BYTE) {
+                errors.push(`"${file.name}" exceeds ${MAX_SIZE_MB} MB.`);
+                return;
+            }
+            if (dt.files.length >= MAX_FILES) {
+                errors.push(`Maximum ${MAX_FILES} photos allowed. Some files were skipped.`);
+                return;
+            }
+            // Skip duplicates by name + size
+            const duplicate = Array.from(dt.files).some(
+                f => f.name === file.name && f.size === file.size
+            );
+            if (!duplicate) {
+                dt.items.add(file);
+            }
+        });
+
+        if (errors.length) showError(errors[0]);
+
+        // Assign accumulated files back to the hidden input
+        photoInput.files = dt.files;
+        renderPreviews();
+    }
+
+    // Remove a photo by index
+    previewGrid.addEventListener('click', function (e) {
+        const btn = e.target.closest('.remove-photo');
+        if (!btn) return;
+
+        const removeIdx = parseInt(btn.dataset.idx, 10);
+        const newDt = new DataTransfer();
+        Array.from(dt.files).forEach((f, i) => {
+            if (i !== removeIdx) newDt.items.add(f);
+        });
+        dt = newDt;
+        photoInput.files = dt.files;
+        renderPreviews();
     });
 
-    // Auto-format container number
+    // Trigger file picker
+    browseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        photoInput.click();
+    });
+    dropZone.addEventListener('click', () => photoInput.click());
+
+    // File input change (browse)
+    photoInput.addEventListener('change', function () {
+        addFiles(this.files);
+        // Reset so same file can be re-added after removal
+        this.value = '';
+    });
+
+    // Drag & drop
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.background = '#e8f0fe';
+        dropZone.style.borderColor = '#0d6efd';
+    });
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.style.background = '';
+        dropZone.style.borderColor = '';
+    });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.background = '';
+        dropZone.style.borderColor = '';
+        addFiles(e.dataTransfer.files);
+    });
+
+    // ── Auto-format container number ──────────────────────────────────
     document.getElementById('containerNo').addEventListener('input', function () {
         this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     });
