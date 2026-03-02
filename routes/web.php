@@ -1,14 +1,16 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ContainerController;
 use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\InquiryController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimateController;
-use App\Http\Controllers\YardController;
+use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\YardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,6 +34,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Customer Management
     Route::resource('customers', CustomerController::class);
+
+    // Container Management
+    Route::resource('containers', ContainerController::class);
 
     // Container Inquiries
     Route::resource('inquiries', InquiryController::class);
