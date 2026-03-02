@@ -13,6 +13,7 @@ class CustomerController extends Controller
     public function index(Request $request)
     {
         $customers = Customer::query()
+            ->withCount('containers')
             ->when($request->search, fn ($q, $search) =>
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%")
@@ -24,7 +25,11 @@ class CustomerController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('customers.index', compact('customers'));
+        $totalCustomers   = Customer::count();
+        $activeCustomers  = Customer::where('status', 'active')->count();
+        $pendingCustomers = Customer::where('status', 'pending')->count();
+
+        return view('customers.index', compact('customers', 'totalCustomers', 'activeCustomers', 'pendingCustomers'));
     }
 
     public function create()
