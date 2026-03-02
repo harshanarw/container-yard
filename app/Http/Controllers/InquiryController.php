@@ -19,7 +19,7 @@ class InquiryController extends Controller
 {
     public function index(Request $request)
     {
-        $inquiries = Inquiry::with(['container', 'customer', 'inspector'])
+        $inquiries = Inquiry::with(['container', 'customer', 'inspector', 'estimate'])
             ->when($request->search, fn ($q, $s) =>
                 $q->where('inquiry_no', 'like', "%{$s}%")
                   ->orWhere('container_no', 'like', "%{$s}%")
@@ -28,6 +28,8 @@ class InquiryController extends Controller
             ->when($request->priority,     fn ($q, $v) => $q->where('priority', $v))
             ->when($request->customer_id,  fn ($q, $v) => $q->where('customer_id', $v))
             ->when($request->inquiry_type, fn ($q, $v) => $q->where('inquiry_type', $v))
+            ->when($request->date_from,    fn ($q, $v) => $q->whereDate('inspection_date', '>=', $v))
+            ->when($request->date_to,      fn ($q, $v) => $q->whereDate('inspection_date', '<=', $v))
             ->latest()
             ->paginate(15)
             ->withQueryString();
