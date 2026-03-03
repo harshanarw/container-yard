@@ -41,7 +41,7 @@
             object-fit: contain;
         }
         .auth-header {
-            background: linear-gradient(135deg, #1a2035, #2196F3);
+            background: linear-gradient(135deg, #1565C0, #2196F3);
             color: #fff;
             padding: 1.4rem 2rem;
             text-align: center;
