@@ -145,7 +145,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Currency</label>
                             <select name="currency" class="form-select">
-                                <option value="MYR">MYR — Malaysian Ringgit</option>
+                                <option value="LKR">LKR — Sri Lankan Rupee</option>
                                 <option value="USD">USD — US Dollar</option>
                                 <option value="SGD">SGD — Singapore Dollar</option>
                             </select>
@@ -153,7 +153,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Credit Limit</label>
                             <div class="input-group">
-                                <span class="input-group-text">MYR</span>
+                                <span class="input-group-text">LKR</span>
                                 <input type="number" name="credit_limit" class="form-control"
                                        placeholder="0.00" min="0" step="0.01" value="{{ old('credit_limit') }}">
                             </div>
@@ -174,7 +174,7 @@
                         <div class="col-md-3">
                             <label class="form-label small fw-semibold">20' GP</label>
                             <div class="input-group input-group-sm">
-                                <span class="input-group-text">MYR</span>
+                                <span class="input-group-text">LKR</span>
                                 <input type="number" name="rate_20gp" class="form-control"
                                        placeholder="25.00" step="0.01" value="{{ old('rate_20gp') }}">
                             </div>
@@ -182,7 +182,7 @@
                         <div class="col-md-3">
                             <label class="form-label small fw-semibold">40' GP</label>
                             <div class="input-group input-group-sm">
-                                <span class="input-group-text">MYR</span>
+                                <span class="input-group-text">LKR</span>
                                 <input type="number" name="rate_40gp" class="form-control"
                                        placeholder="45.00" step="0.01" value="{{ old('rate_40gp') }}">
                             </div>
@@ -190,7 +190,7 @@
                         <div class="col-md-3">
                             <label class="form-label small fw-semibold">40' HC</label>
                             <div class="input-group input-group-sm">
-                                <span class="input-group-text">MYR</span>
+                                <span class="input-group-text">LKR</span>
                                 <input type="number" name="rate_40hc" class="form-control"
                                        placeholder="50.00" step="0.01" value="{{ old('rate_40hc') }}">
                             </div>

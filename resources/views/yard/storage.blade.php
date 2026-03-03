@@ -96,9 +96,9 @@
 
                 <div class="row g-3 mb-3">
                     <div class="col-6">
-                        <label class="form-label fw-semibold">Daily Rate (MYR)</label>
+                        <label class="form-label fw-semibold">Daily Rate (LKR)</label>
                         <div class="input-group">
-                            <span class="input-group-text">MYR</span>
+                            <span class="input-group-text">LKR</span>
                             <input type="number" id="calcDailyRate" class="form-control"
                                    value="25.00" step="0.01">
                         </div>
@@ -143,8 +143,8 @@
                         <tr>
                             <th>Tier</th>
                             <th>Period</th>
-                            <th>20' (MYR/day)</th>
-                            <th>40' (MYR/day)</th>
+                            <th>20' (LKR/day)</th>
+                            <th>40' (LKR/day)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -198,7 +198,7 @@
                 </div>
                 <div class="col-12 border-top border-white border-opacity-25 pt-3">
                     <div class="label">Total Storage Charge (incl. tax)</div>
-                    <div class="display-5 fw-bold" id="resTotal">MYR 216.00</div>
+                    <div class="display-5 fw-bold" id="resTotal">LKR 216.00</div>
                 </div>
             </div>
         </div>
@@ -232,40 +232,40 @@
                         <tr>
                             <td class="ps-3 text-muted">Day 1 – 7</td>
                             <td>7</td>
-                            <td class="text-success">MYR 0.00</td>
+                            <td class="text-success">LKR 0.00</td>
                             <td>1</td>
-                            <td class="fw-semibold text-success">MYR 0.00</td>
+                            <td class="fw-semibold text-success">LKR 0.00</td>
                             <td><span class="tier-badge bg-success-subtle text-success" style="font-size:.6rem;">FREE</span></td>
                         </tr>
                         <tr>
                             <td class="ps-3 text-muted">Day 8 – 14</td>
                             <td>7</td>
-                            <td>MYR 25.00</td>
+                            <td>LKR 25.00</td>
                             <td>1</td>
-                            <td class="fw-semibold">MYR 175.00</td>
+                            <td class="fw-semibold">LKR 175.00</td>
                             <td><span class="tier-badge bg-primary-subtle text-primary" style="font-size:.6rem;">T2</span></td>
                         </tr>
                         <tr>
                             <td class="ps-3 text-muted">Day 15 (partial)</td>
                             <td>1</td>
-                            <td>MYR 25.00</td>
+                            <td>LKR 25.00</td>
                             <td>1</td>
-                            <td class="fw-semibold">MYR 25.00</td>
+                            <td class="fw-semibold">LKR 25.00</td>
                             <td><span class="tier-badge bg-primary-subtle text-primary" style="font-size:.6rem;">T2</span></td>
                         </tr>
                         <tr class="table-light">
                             <td class="ps-3 fw-semibold" colspan="4">Subtotal</td>
-                            <td class="fw-semibold" id="resSubtotal">MYR 200.00</td>
+                            <td class="fw-semibold" id="resSubtotal">LKR 200.00</td>
                             <td></td>
                         </tr>
                         <tr>
                             <td class="ps-3 text-muted" colspan="4">SST (8%)</td>
-                            <td id="resTaxAmt">MYR 16.00</td>
+                            <td id="resTaxAmt">LKR 16.00</td>
                             <td></td>
                         </tr>
                         <tr class="table-primary">
                             <td class="ps-3 fw-bold" colspan="4">GRAND TOTAL</td>
-                            <td class="fw-bold" id="resGrandTotal">MYR 216.00</td>
+                            <td class="fw-bold" id="resGrandTotal">LKR 216.00</td>
                             <td></td>
                         </tr>
                     </tbody>
@@ -295,11 +295,11 @@
                         <tbody>
                             @php
                             $bulkContainers = [
-                                ['MSCU1234567','20\'','15 Feb 2026',13,7,6,'MYR 150.00'],
-                                ['CMAU9876543','40\' HC','10 Feb 2026',18,7,11,'MYR 495.00'],
-                                ['TGHU5551234','20\'','20 Feb 2026',8,7,1,'MYR 25.00'],
-                                ['HLXU3334455','40\'','05 Feb 2026',23,7,16,'MYR 860.00'],
-                                ['OOLU7778899','20\'','22 Feb 2026',6,7,0,'MYR 0.00'],
+                                ['MSCU1234567','20\'','15 Feb 2026',13,7,6,'LKR 150.00'],
+                                ['CMAU9876543','40\' HC','10 Feb 2026',18,7,11,'LKR 495.00'],
+                                ['TGHU5551234','20\'','20 Feb 2026',8,7,1,'LKR 25.00'],
+                                ['HLXU3334455','40\'','05 Feb 2026',23,7,16,'LKR 860.00'],
+                                ['OOLU7778899','20\'','22 Feb 2026',6,7,0,'LKR 0.00'],
                             ];
                             @endphp
                             @foreach($bulkContainers as $bc)
@@ -317,7 +317,7 @@
                         <tfoot class="table-light">
                             <tr>
                                 <td class="ps-3 fw-bold" colspan="6">Total</td>
-                                <td class="text-end pe-3 fw-bold text-primary">MYR 1,530.00</td>
+                                <td class="text-end pe-3 fw-bold text-primary">LKR 1,530.00</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -368,10 +368,10 @@
         document.getElementById('resTotalDays').textContent  = totalDays;
         document.getElementById('resChargeDays').textContent = chargeableDays;
         document.getElementById('resFreeDays').textContent   = usedFreeDays;
-        document.getElementById('resTotal').textContent      = 'MYR ' + grand.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-        document.getElementById('resSubtotal').textContent   = 'MYR ' + subtotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-        document.getElementById('resTaxAmt').textContent     = 'MYR ' + taxAmt.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
-        document.getElementById('resGrandTotal').textContent = 'MYR ' + grand.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+        document.getElementById('resTotal').textContent      = 'LKR ' + grand.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+        document.getElementById('resSubtotal').textContent   = 'LKR ' + subtotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+        document.getElementById('resTaxAmt').textContent     = 'LKR ' + taxAmt.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+        document.getElementById('resGrandTotal').textContent = 'LKR ' + grand.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
     }
 
     // Run on load with defaults

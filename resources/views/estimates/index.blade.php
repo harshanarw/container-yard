@@ -77,13 +77,13 @@
                 <tbody>
                     @php
                     $estimates = [
-                        ['RE-0044','CMAU9988776','CMA CGM','INQ-0089','26 Feb 2026','27 Mar 2026','MYR 2,340.00','Sent'],
-                        ['RE-0043','TGHU5551234','PIL Shipping','INQ-0088','25 Feb 2026','26 Mar 2026','MYR 920.00','Draft'],
-                        ['RE-0042','MSCU7890123','Maersk Line','INQ-0087','24 Feb 2026','25 Mar 2026','MYR 1,058.40','Approved'],
-                        ['RE-0041','MSKU2223344','MSC','INQ-0086','23 Feb 2026','24 Mar 2026','MYR 410.40','Sent'],
-                        ['RE-0040','EVGU7654321','Evergreen','INQ-0085','22 Feb 2026','23 Mar 2026','MYR 648.00','Approved'],
-                        ['RE-0039','ZIMU5432109','ZIM','INQ-0084','20 Feb 2026','21 Mar 2026','MYR 1,620.00','Completed'],
-                        ['RE-0038','HLXU3334455','Hapag-Lloyd','INQ-0083','18 Feb 2026','19 Mar 2026','MYR 756.00','Rejected'],
+                        ['RE-0044','CMAU9988776','CMA CGM','INQ-0089','26 Feb 2026','27 Mar 2026','LKR 2,340.00','Sent'],
+                        ['RE-0043','TGHU5551234','PIL Shipping','INQ-0088','25 Feb 2026','26 Mar 2026','LKR 920.00','Draft'],
+                        ['RE-0042','MSCU7890123','Maersk Line','INQ-0087','24 Feb 2026','25 Mar 2026','LKR 1,058.40','Approved'],
+                        ['RE-0041','MSKU2223344','MSC','INQ-0086','23 Feb 2026','24 Mar 2026','LKR 410.40','Sent'],
+                        ['RE-0040','EVGU7654321','Evergreen','INQ-0085','22 Feb 2026','23 Mar 2026','LKR 648.00','Approved'],
+                        ['RE-0039','ZIMU5432109','ZIM','INQ-0084','20 Feb 2026','21 Mar 2026','LKR 1,620.00','Completed'],
+                        ['RE-0038','HLXU3334455','Hapag-Lloyd','INQ-0083','18 Feb 2026','19 Mar 2026','LKR 756.00','Rejected'],
                     ];
                     $stColors=['Sent'=>'info','Draft'=>'secondary','Approved'=>'success','Completed'=>'dark','Rejected'=>'danger'];
                     @endphp

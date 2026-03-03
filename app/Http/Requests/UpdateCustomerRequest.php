@@ -31,7 +31,7 @@ class UpdateCustomerRequest extends FormRequest
             'fax'                 => ['nullable', 'string', 'max:20'],
             'email'               => ['nullable', 'email', 'max:255'],
             'website'             => ['nullable', 'url', 'max:255'],
-            'currency'            => ['required', 'in:MYR,USD,SGD'],
+            'currency'            => ['required', 'in:LKR,USD,SGD'],
             'credit_limit'        => ['nullable', 'numeric', 'min:0'],
             'payment_terms'       => ['required', 'in:cod,net15,net30,net45,net60'],
             'rate_20gp'           => ['nullable', 'numeric', 'min:0'],

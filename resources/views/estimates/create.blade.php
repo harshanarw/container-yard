@@ -75,7 +75,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Currency</label>
                             <select name="currency" class="form-select">
-                                <option value="MYR">MYR — Malaysian Ringgit</option>
+                                <option value="LKR">LKR — Sri Lankan Rupee</option>
                                 <option value="USD">USD — US Dollar</option>
                             </select>
                         </div>
@@ -142,7 +142,7 @@
                                         <input type="number" name="lines[0][tax]" class="form-control form-control-sm tax-pct"
                                                value="8" min="0" max="100">
                                     </td>
-                                    <td class="fw-semibold line-amount text-end pe-2">MYR 756.00</td>
+                                    <td class="fw-semibold line-amount text-end pe-2">LKR 756.00</td>
                                     <td class="pe-2">
                                         <button type="button" class="btn btn-sm btn-outline-danger remove-line">
                                             <i class="bi bi-trash"></i>
@@ -172,7 +172,7 @@
                                         <input type="number" name="lines[1][tax]" class="form-control form-control-sm tax-pct"
                                                value="8">
                                     </td>
-                                    <td class="fw-semibold line-amount text-end pe-2">MYR 194.40</td>
+                                    <td class="fw-semibold line-amount text-end pe-2">LKR 194.40</td>
                                     <td class="pe-2">
                                         <button type="button" class="btn btn-sm btn-outline-danger remove-line">
                                             <i class="bi bi-trash"></i>
@@ -184,17 +184,17 @@
                             <tfoot class="table-light">
                                 <tr>
                                     <td colspan="5" class="text-end fw-semibold pe-3">Subtotal:</td>
-                                    <td class="fw-semibold text-end pe-2" id="subtotal">MYR 980.00</td>
+                                    <td class="fw-semibold text-end pe-2" id="subtotal">LKR 980.00</td>
                                     <td></td>
                                 </tr>
                                 <tr>
                                     <td colspan="5" class="text-end fw-semibold pe-3">Tax (SST):</td>
-                                    <td class="fw-semibold text-end pe-2" id="totalTax">MYR 78.40</td>
+                                    <td class="fw-semibold text-end pe-2" id="totalTax">LKR 78.40</td>
                                     <td></td>
                                 </tr>
                                 <tr class="table-primary">
                                     <td colspan="5" class="text-end fw-bold pe-3 fs-6">TOTAL:</td>
-                                    <td class="fw-bold text-end pe-2 fs-6" id="grandTotal">MYR 1,058.40</td>
+                                    <td class="fw-bold text-end pe-2 fs-6" id="grandTotal">LKR 1,058.40</td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -322,12 +322,12 @@
             subtotal  += net;
             taxTotal  += taxAmt;
             const amtEl = row.querySelector('.line-amount');
-            if (amtEl) amtEl.textContent = 'MYR ' + (net + taxAmt).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            if (amtEl) amtEl.textContent = 'LKR ' + (net + taxAmt).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         });
         const grand = subtotal + taxTotal;
-        document.getElementById('subtotal').textContent  = 'MYR ' + subtotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        document.getElementById('totalTax').textContent  = 'MYR ' + taxTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        document.getElementById('grandTotal').textContent = 'MYR ' + grand.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        document.getElementById('subtotal').textContent  = 'LKR ' + subtotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        document.getElementById('totalTax').textContent  = 'LKR ' + taxTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        document.getElementById('grandTotal').textContent = 'LKR ' + grand.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
     document.getElementById('lineTable').addEventListener('input', recalculate);
@@ -347,7 +347,7 @@
                 <td><input type="number" name="lines[${i}][qty]" class="form-control form-control-sm qty" value="1" min="1"></td>
                 <td><input type="number" name="lines[${i}][unit_price]" class="form-control form-control-sm unit-price" value="0.00" step="0.01"></td>
                 <td><input type="number" name="lines[${i}][tax]" class="form-control form-control-sm tax-pct" value="8"></td>
-                <td class="fw-semibold line-amount text-end pe-2">MYR 0.00</td>
+                <td class="fw-semibold line-amount text-end pe-2">LKR 0.00</td>
                 <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button></td>
             </tr>
         `);

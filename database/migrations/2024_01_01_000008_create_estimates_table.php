@@ -19,7 +19,7 @@ return new class extends Migration
             $table->enum('type_code', ['GP', 'HC', 'RF', 'OT', 'FR', 'TK']);
             $table->date('estimate_date');
             $table->date('valid_until');
-            $table->enum('currency', ['MYR', 'USD', 'SGD'])->default('MYR');
+            $table->enum('currency', ['LKR', 'USD', 'SGD'])->default('LKR');
             $table->enum('priority', [
                 'normal',   // 7-14 days
                 'urgent',   // 3-5 days

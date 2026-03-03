@@ -149,7 +149,7 @@
                         <div class="text-muted mb-1">Estimated Repair Cost</div>
                         <div class="fw-semibold">
                             @if($inquiry->estimated_repair_cost)
-                                MYR {{ number_format($inquiry->estimated_repair_cost, 2) }}
+                                LKR {{ number_format($inquiry->estimated_repair_cost, 2) }}
                             @else —
                             @endif
                         </div>

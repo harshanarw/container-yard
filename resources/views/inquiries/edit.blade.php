@@ -147,9 +147,9 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Estimated Repair Cost (MYR)</label>
+                            <label class="form-label fw-semibold">Estimated Repair Cost (LKR)</label>
                             <div class="input-group">
-                                <span class="input-group-text">MYR</span>
+                                <span class="input-group-text">LKR</span>
                                 <input type="number" name="estimated_repair_cost" class="form-control"
                                        step="0.01" min="0" placeholder="0.00"
                                        value="{{ old('estimated_repair_cost', $inquiry->estimated_repair_cost) }}">

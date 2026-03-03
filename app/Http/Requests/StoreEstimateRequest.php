@@ -19,7 +19,7 @@ class StoreEstimateRequest extends FormRequest
             'customer_id'   => ['required', 'exists:customers,id'],
             'estimate_date' => ['required', 'date'],
             'valid_until'   => ['required', 'date', 'after_or_equal:estimate_date'],
-            'currency'      => ['required', 'in:MYR,USD,SGD'],
+            'currency'      => ['required', 'in:LKR,USD,SGD'],
             'priority'      => ['required', 'in:normal,urgent,critical'],
             'scope_of_work' => ['nullable', 'string'],
             'terms'         => ['nullable', 'string'],

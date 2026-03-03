@@ -160,7 +160,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Currency</label>
                             <select name="currency" class="form-select">
-                                <option value="MYR" {{ old('currency', $customer->currency)=='MYR'?'selected':'' }}>MYR — Malaysian Ringgit</option>
+                                <option value="LKR" {{ old('currency', $customer->currency)=='LKR'?'selected':'' }}>LKR — Sri Lankan Rupee</option>
                                 <option value="USD" {{ old('currency', $customer->currency)=='USD'?'selected':'' }}>USD — US Dollar</option>
                                 <option value="SGD" {{ old('currency', $customer->currency)=='SGD'?'selected':'' }}>SGD — Singapore Dollar</option>
                             </select>

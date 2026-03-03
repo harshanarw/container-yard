@@ -31,7 +31,7 @@ return new class extends Migration
             $table->string('fax', 20)->nullable();
             $table->string('email')->nullable();
             $table->string('website')->nullable();
-            $table->enum('currency', ['MYR', 'USD', 'SGD'])->default('MYR');
+            $table->enum('currency', ['LKR', 'USD', 'SGD'])->default('LKR');
             $table->decimal('credit_limit', 15, 2)->default(0);
             $table->enum('payment_terms', ['cod', 'net15', 'net30', 'net45', 'net60'])->default('net30');
             $table->decimal('rate_20gp', 10, 2)->default(0)->comment('Daily storage rate for 20ft GP');
