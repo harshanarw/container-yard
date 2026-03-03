@@ -33,14 +33,15 @@
 
 <!-- Status Tabs -->
 @php
-    $tabColors = ['draft'=>'secondary','sent'=>'info','approved'=>'success','rejected'=>'danger','completed'=>'dark'];
-    $statuses  = ['' => 'All', 'draft' => 'Draft', 'sent' => 'Sent', 'approved' => 'Approved', 'rejected' => 'Rejected', 'completed' => 'Completed'];
+    $tabColors      = ['draft'=>'secondary','sent'=>'info','approved'=>'success','rejected'=>'danger','completed'=>'dark'];
+    $statuses       = ['all' => 'All', 'draft' => 'Draft', 'sent' => 'Sent', 'approved' => 'Approved', 'rejected' => 'Rejected', 'completed' => 'Completed'];
+    $currentStatus  = request('status', 'all');
 @endphp
 <ul class="nav nav-tabs mb-0">
     @foreach($statuses as $key => $label)
     <li class="nav-item">
-        <a class="nav-link {{ request('status') === $key ? 'active' : '' }}"
-           href="{{ route('estimates.index', array_merge(request()->except('status','page'), $key !== '' ? ['status'=>$key] : [])) }}">
+        <a class="nav-link {{ $currentStatus === $key ? 'active' : '' }}"
+           href="{{ route('estimates.index', array_merge(request()->except('status','page'), $key === 'all' ? [] : ['status' => $key])) }}">
             {{ $label }}
         </a>
     </li>
@@ -48,10 +49,10 @@
 </ul>
 
 <!-- Filters -->
-<div class="card content-card filter-panel mb-3">
-    <div class="card-body py-2">
-        <form method="GET" action="{{ route('estimates.index') }}">
-            @if(request('status'))<input type="hidden" name="status" value="{{ request('status') }}">@endif
+<form method="GET" action="{{ route('estimates.index') }}">
+    @if($currentStatus !== 'all')<input type="hidden" name="status" value="{{ $currentStatus }}">@endif
+    <div class="card content-card filter-panel mb-3">
+        <div class="card-body py-2">
             <div class="row g-2 align-items-center">
                 <div class="col-md-3">
                     <div class="input-group input-group-sm">
@@ -71,14 +72,26 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-sm btn-primary">Filter</button>
-                    <a href="{{ route('estimates.index') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+                <div class="col-md-2">
+                    <input type="date" name="date_from" class="form-control form-control-sm"
+                           value="{{ request('date_from') }}" placeholder="From date">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" name="date_to" class="form-control form-control-sm"
+                           value="{{ request('date_to') }}" placeholder="To date">
+                </div>
+                <div class="col-auto ms-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-funnel me-1"></i>Filter
+                    </button>
+                    <a href="{{ route('estimates.index') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i>Clear
+                    </a>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
-</div>
+</form>
 
 <div class="card content-card">
     <div class="card-body p-0">

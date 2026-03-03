@@ -221,15 +221,17 @@
             transition: color .15s, background-color .15s, border-color .15s;
         }
         .nav-tabs .nav-link:hover:not(.active) {
-            color: var(--primary);
-            background-color: #d0e8fd;
-            border-color: #90c8f9 #90c8f9 transparent;
+            color: #1565c0;
+            background-color: #dbeafe;
+            border-color: #90caf9 #90caf9 transparent;
         }
         .nav-tabs .nav-link.active {
-            color: #fff;
-            font-weight: 600;
-            background-color: var(--primary);
-            border-color: var(--primary);
+            color: #0d47a1;
+            font-weight: 700;
+            background-color: #e3f2fd;
+            border-color: #90caf9;
+            border-top: 3px solid var(--primary);
+            padding-top: calc(.45rem - 2px);
         }
 
         /* ── Filter Panel (card that sits directly below status tabs) ── */

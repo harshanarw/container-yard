@@ -20,8 +20,10 @@ class EstimateController extends Controller
                 $q->where('estimate_no', 'like', "%{$s}%")
                   ->orWhere('container_no', 'like', "%{$s}%")
             )
-            ->when($request->status,      fn ($q, $v) => $q->where('status', $v))
+            ->when($request->status && $request->status !== 'all', fn ($q, $v) => $q->where('status', $v))
             ->when($request->customer_id, fn ($q, $v) => $q->where('customer_id', $v))
+            ->when($request->date_from,   fn ($q, $v) => $q->whereDate('estimate_date', '>=', $v))
+            ->when($request->date_to,     fn ($q, $v) => $q->whereDate('estimate_date', '<=', $v))
             ->latest()
             ->paginate(15)
             ->withQueryString();
