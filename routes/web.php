@@ -48,6 +48,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('estimates/{estimate}/send', [EstimateController::class, 'send'])->name('estimates.send');
     Route::patch('estimates/{estimate}/approve', [EstimateController::class, 'approve'])->name('estimates.approve');
     Route::patch('estimates/{estimate}/reject', [EstimateController::class, 'reject'])->name('estimates.reject');
+    Route::get('estimates/{estimate}/pdf', [EstimateController::class, 'pdf'])->name('estimates.pdf');
 
     // Yard Operations
     Route::prefix('yard')->name('yard.')->group(function () {

@@ -236,6 +236,13 @@ class EstimateController extends Controller
         return back()->with('success', 'Estimate rejected.');
     }
 
+    public function pdf(Estimate $estimate)
+    {
+        $estimate->load(['container', 'customer', 'inquiry', 'lineItems', 'createdBy']);
+
+        return view('estimates.pdf', compact('estimate'));
+    }
+
     private function calculateTotals(array $lineItems, float $taxPct): array
     {
         $subtotal = collect($lineItems)->sum(fn ($item) => $item['qty'] * $item['unit_price']);
