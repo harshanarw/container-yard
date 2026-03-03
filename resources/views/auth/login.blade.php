@@ -9,17 +9,9 @@
     <style>
         body {
             min-height: 100vh;
-            background: url('/images/login-bg.jpg') center center / cover no-repeat fixed;
+            background: #fff;
             display: flex; align-items: center; justify-content: center;
             font-family: 'Segoe UI', sans-serif;
-        }
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: rgba(10, 20, 40, 0.65);
-            backdrop-filter: blur(2px);
-            z-index: 0;
         }
         .auth-card { position: relative; z-index: 1; }
         .auth-card {
