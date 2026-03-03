@@ -147,61 +147,32 @@
 
                                 {{-- Mark Approved (sent only) --}}
                                 @if($estimate->status === 'sent')
-                                <form method="POST" action="{{ route('estimates.approve', $estimate) }}" class="d-inline">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="btn btn-outline-success" title="Mark Approved"
-                                            onclick="return confirm('Approve estimate {{ $estimate->estimate_no }}?')">
-                                        <i class="bi bi-check-circle"></i>
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-outline-success" title="Mark Approved"
+                                        data-bs-toggle="modal" data-bs-target="#approveModal"
+                                        data-url="{{ route('estimates.approve', $estimate) }}"
+                                        data-no="{{ $estimate->estimate_no }}">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
                                 <button type="button" class="btn btn-outline-danger" title="Mark Rejected"
-                                        data-bs-toggle="modal" data-bs-target="#rejectModal{{ $estimate->id }}">
+                                        data-bs-toggle="modal" data-bs-target="#rejectModal"
+                                        data-url="{{ route('estimates.reject', $estimate) }}"
+                                        data-no="{{ $estimate->estimate_no }}">
                                     <i class="bi bi-x-circle"></i>
                                 </button>
                                 @endif
 
                                 {{-- Delete (not approved) --}}
                                 @if($estimate->status !== 'approved')
-                                <form method="POST" action="{{ route('estimates.destroy', $estimate) }}" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger" title="Delete"
-                                            onclick="return confirm('Delete estimate {{ $estimate->estimate_no }}? This cannot be undone.')">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-outline-danger" title="Delete"
+                                        data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                        data-url="{{ route('estimates.destroy', $estimate) }}"
+                                        data-no="{{ $estimate->estimate_no }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                                 @endif
                             </div>
                         </td>
                     </tr>
-
-                    {{-- Reject Modal --}}
-                    @if($estimate->status === 'sent')
-                    <div class="modal fade" id="rejectModal{{ $estimate->id }}" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <form method="POST" action="{{ route('estimates.reject', $estimate) }}">
-                                    @csrf
-                                    @method('PATCH')
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Reject Estimate {{ $estimate->estimate_no }}</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <label class="form-label fw-semibold">Rejection Reason <span class="text-danger">*</span></label>
-                                        <textarea name="rejected_reason" class="form-control" rows="3" required
-                                                  placeholder="Enter the reason for rejection…"></textarea>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-danger">Reject Estimate</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
                 @empty
                     <tr>
                         <td colspan="9" class="text-center text-muted py-4">
@@ -222,4 +193,95 @@
     </div>
 </div>
 
+{{-- Approve Confirmation Modal --}}
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title text-success"><i class="bi bi-check-circle me-1"></i>Approve Estimate</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-1">
+                <p class="small mb-0">Approve estimate <strong id="approveEstNo"></strong>?</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="formApprove" method="POST">
+                    @csrf @method('PATCH')
+                    <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Reject Modal --}}
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formReject" method="POST">
+                @csrf @method('PATCH')
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title text-danger"><i class="bi bi-x-circle me-1"></i>Reject Estimate <span id="rejectEstNo"></span></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label fw-semibold">Rejection Reason <span class="text-danger">*</span></label>
+                    <textarea name="rejected_reason" class="form-control" rows="3" required
+                              placeholder="Enter the reason for rejection…"></textarea>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-danger">Reject Estimate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Delete Confirmation Modal --}}
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Delete Estimate</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-1">
+                <p class="small mb-0">Delete estimate <strong id="deleteEstNo"></strong>? This cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="formDelete" method="POST">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
+
+@push('scripts')
+<script>
+document.getElementById('approveModal').addEventListener('show.bs.modal', function (e) {
+    const btn = e.relatedTarget;
+    document.getElementById('approveEstNo').textContent = btn.dataset.no;
+    document.getElementById('formApprove').action = btn.dataset.url;
+});
+
+document.getElementById('rejectModal').addEventListener('show.bs.modal', function (e) {
+    const btn = e.relatedTarget;
+    document.getElementById('rejectEstNo').textContent = btn.dataset.no;
+    document.getElementById('formReject').action = btn.dataset.url;
+    document.querySelector('#formReject textarea').value = '';
+});
+
+document.getElementById('deleteModal').addEventListener('show.bs.modal', function (e) {
+    const btn = e.relatedTarget;
+    document.getElementById('deleteEstNo').textContent = btn.dataset.no;
+    document.getElementById('formDelete').action = btn.dataset.url;
+});
+</script>
+@endpush
