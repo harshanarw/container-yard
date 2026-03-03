@@ -21,8 +21,8 @@
             --sidebar-width: 260px;
             --topbar-height: 60px;
             --primary:   #2196F3;
-            --dark-bg:   #1a2035;
-            --dark-side: #141728;
+            --dark-bg:   #1565C0;
+            --dark-side: #0d47a1;
 
             /* Bootstrap primary colour override — #2196F3 */
             --bs-primary:                  #2196F3;
@@ -87,17 +87,17 @@
         }
         .sidebar-brand .brand-icon { font-size: 1.5rem; color: var(--primary); flex-shrink: 0; }
         .sidebar-brand .brand-text { font-size: .9rem; font-weight: 700; line-height: 1.2; }
-        .sidebar-brand .brand-text small { font-weight: 400; color: #8892b0; font-size: .7rem; }
+        .sidebar-brand .brand-text small { font-weight: 400; color: rgba(255,255,255,.55); font-size: .7rem; }
 
         .sidebar-nav { flex: 1; overflow-y: auto; padding: 8px 0; }
         .sidebar-nav::-webkit-scrollbar { width: 4px; }
-        .sidebar-nav::-webkit-scrollbar-thumb { background: #2d3561; border-radius: 2px; }
+        .sidebar-nav::-webkit-scrollbar-thumb { background: #1976D2; border-radius: 2px; }
 
         .nav-section-label {
             font-size: .65rem;
             font-weight: 700;
             letter-spacing: .1em;
-            color: #4a5568;
+            color: rgba(255,255,255,.45);
             text-transform: uppercase;
             padding: 14px 20px 4px;
             white-space: nowrap;
@@ -106,7 +106,7 @@
         #sidebar.collapsed .nav-section-label { visibility: hidden; }
 
         .nav-item a.nav-link {
-            color: #8892b0;
+            color: rgba(255,255,255,.7);
             display: flex;
             align-items: center;
             gap: 12px;
@@ -124,12 +124,12 @@
             background: rgba(33,150,243,.15);
             border-left: 3px solid var(--primary);
         }
-        .nav-item a.nav-link.active { color: #4dabf7; }
+        .nav-item a.nav-link.active { color: #fff; }
 
         .sidebar-footer {
             padding: 12px 20px;
             background: var(--dark-side);
-            color: #4a5568;
+            color: rgba(255,255,255,.45);
             font-size: .75rem;
             white-space: nowrap;
             overflow: hidden;
@@ -193,7 +193,7 @@
 
         /* ── Page header ── */
         .page-header { margin-bottom: 24px; }
-        .page-header h4 { font-weight: 700; color: #1a2035; margin: 0; }
+        .page-header h4 { font-weight: 700; color: #1565C0; margin: 0; }
         .page-header .breadcrumb { font-size: .8rem; margin: 0; }
 
         /* ── Utility ── */
