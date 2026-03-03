@@ -212,7 +212,7 @@
         .nav-tabs .nav-link {
             font-size: .82rem;
             font-weight: 500;
-            color: #6c757d;
+            color: #495057;
             background-color: #e9ecef;
             border: 1px solid #dee2e6;
             border-bottom: none;
@@ -226,24 +226,19 @@
             border-color: #90c8f9 #90c8f9 transparent;
         }
         .nav-tabs .nav-link.active {
-            color: var(--primary);
+            color: #fff;
             font-weight: 600;
-            background-color: #fff;
-            border-top: 3px solid var(--primary);
-            border-left-color: #dee2e6;
-            border-right-color: #dee2e6;
-            border-bottom-color: #fff;
-            padding-top: calc(.45rem - 2px);
+            background-color: var(--primary);
+            border-color: var(--primary);
         }
 
         /* ── Filter Panel (card that sits directly below status tabs) ── */
         .filter-panel {
             background-color: #fff !important;
-            border: 1px solid #c8e0fa !important;
+            border: 1px solid #dee2e6 !important;
             border-top: 3px solid var(--primary) !important;
             border-radius: 0 12px 12px 12px !important;
-            box-shadow: 0 2px 6px rgba(33, 150, 243, .08) !important;
-            color: #212529 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .07) !important;
         }
         .filter-panel .form-control,
         .filter-panel .form-select,
@@ -252,10 +247,9 @@
             color: #212529;
             border-color: #ced4da;
         }
+        .filter-panel .form-control::placeholder { color: #6c757d; }
         .filter-panel label,
-        .filter-panel .form-label {
-            color: #212529;
-        }
+        .filter-panel .form-label { color: #212529; }
 
         @media (max-width: 768px) {
             #sidebar { width: 0; }
