@@ -207,7 +207,15 @@
                 @if($storageRecords->isNotEmpty())
                 <tfoot class="table-light fw-semibold">
                     <tr>
-                        <td colspan="9" class="text-end ps-3">Grand Total:</td>
+                        <td class="ps-3"></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td class="text-end">Grand Total:</td>
                         <td class="text-end">{{ number_format($storageRecords->sum('subtotal'), 2) }}</td>
                         <td class="text-end">{{ number_format($storageRecords->sum('tax_amount'), 2) }}</td>
                         <td class="text-end pe-3 text-success fs-6">
