@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             ContainerSeeder::class,
             YardLocationSeeder::class,
             InquirySeeder::class,
+            EstimateSeeder::class,
         ]);
     }
 }
