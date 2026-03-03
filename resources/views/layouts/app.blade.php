@@ -204,6 +204,46 @@
             font-size: .85rem; font-weight: 700;
         }
 
+        /* ── Status Nav Tabs ── */
+        .nav-tabs {
+            border-bottom: 2px solid #dee2e6;
+            gap: 2px;
+        }
+        .nav-tabs .nav-link {
+            font-size: .82rem;
+            font-weight: 500;
+            color: #6c757d;
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            padding: .45rem 1rem;
+            transition: color .15s, background-color .15s, border-color .15s;
+        }
+        .nav-tabs .nav-link:hover:not(.active) {
+            color: var(--primary);
+            background-color: #d0e8fd;
+            border-color: #90c8f9 #90c8f9 transparent;
+        }
+        .nav-tabs .nav-link.active {
+            color: var(--primary);
+            font-weight: 600;
+            background-color: #fff;
+            border-top: 3px solid var(--primary);
+            border-left-color: #dee2e6;
+            border-right-color: #dee2e6;
+            border-bottom-color: #fff;
+            padding-top: calc(.45rem - 2px);
+        }
+
+        /* ── Filter Panel (card that sits directly below status tabs) ── */
+        .filter-panel {
+            background-color: #f0f7ff !important;
+            border: 1px solid #c8e0fa !important;
+            border-radius: 0 12px 12px 12px !important;
+            box-shadow: 0 2px 6px rgba(33, 150, 243, .08) !important;
+        }
+
         @media (max-width: 768px) {
             #sidebar { width: 0; }
             #sidebar.mobile-open { width: var(--sidebar-width); }

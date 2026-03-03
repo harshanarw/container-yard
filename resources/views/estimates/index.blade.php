@@ -36,7 +36,7 @@
     $tabColors = ['draft'=>'secondary','sent'=>'info','approved'=>'success','rejected'=>'danger','completed'=>'dark'];
     $statuses  = ['' => 'All', 'draft' => 'Draft', 'sent' => 'Sent', 'approved' => 'Approved', 'rejected' => 'Rejected', 'completed' => 'Completed'];
 @endphp
-<ul class="nav nav-tabs mb-3">
+<ul class="nav nav-tabs mb-0">
     @foreach($statuses as $key => $label)
     <li class="nav-item">
         <a class="nav-link {{ request('status') === $key ? 'active' : '' }}"
@@ -48,7 +48,7 @@
 </ul>
 
 <!-- Filters -->
-<div class="card content-card mb-3">
+<div class="card content-card filter-panel mb-3">
     <div class="card-body py-2">
         <form method="GET" action="{{ route('estimates.index') }}">
             @if(request('status'))<input type="hidden" name="status" value="{{ request('status') }}">@endif

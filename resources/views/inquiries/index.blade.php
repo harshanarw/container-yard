@@ -39,7 +39,7 @@
                   'estimate_sent'=>'info','approved'=>'success','closed'=>'dark'];
     $currentStatus = request('status', 'all');
 @endphp
-<ul class="nav nav-tabs mb-3">
+<ul class="nav nav-tabs mb-0">
     @foreach($statuses as $key => $label)
     <li class="nav-item">
         <a class="nav-link {{ $currentStatus === $key ? 'active' : '' }}"
@@ -53,7 +53,7 @@
 <!-- Filters -->
 <form method="GET" action="{{ route('inquiries.index') }}">
     @if(request('status'))<input type="hidden" name="status" value="{{ request('status') }}">@endif
-    <div class="card content-card mb-3">
+    <div class="card content-card filter-panel mb-3">
         <div class="card-body py-2">
             <div class="row g-2 align-items-center">
                 <div class="col-md-3">
