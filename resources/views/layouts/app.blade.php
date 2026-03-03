@@ -238,10 +238,23 @@
 
         /* ── Filter Panel (card that sits directly below status tabs) ── */
         .filter-panel {
-            background-color: #f0f7ff !important;
+            background-color: #fff !important;
             border: 1px solid #c8e0fa !important;
+            border-top: 3px solid var(--primary) !important;
             border-radius: 0 12px 12px 12px !important;
             box-shadow: 0 2px 6px rgba(33, 150, 243, .08) !important;
+            color: #212529 !important;
+        }
+        .filter-panel .form-control,
+        .filter-panel .form-select,
+        .filter-panel .input-group-text {
+            background-color: #fff;
+            color: #212529;
+            border-color: #ced4da;
+        }
+        .filter-panel label,
+        .filter-panel .form-label {
+            color: #212529;
         }
 
         @media (max-width: 768px) {
