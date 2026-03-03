@@ -160,17 +160,22 @@ $typeLabels = [
                         <td class="text-end pe-3">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ route('customers.show', $customer) }}"
-                                   class="btn btn-outline-info" title="View"><i class="bi bi-eye"></i></a>
+                                   class="btn btn-outline-info" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
                                 <a href="{{ route('customers.edit', $customer) }}"
-                                   class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
-                                <form action="{{ route('customers.destroy', $customer) }}" method="POST"
-                                      onsubmit="return confirm('Delete {{ addslashes($customer->name) }}? This cannot be undone.')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+                                   class="btn btn-outline-primary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-outline-danger btn-delete-customer"
+                                        title="Delete Customer"
+                                        data-name="{{ $customer->name }}"
+                                        data-url="{{ route('customers.destroy', $customer) }}"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalDeleteCustomer">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -197,4 +202,47 @@ $typeLabels = [
     </div>
 </div>
 
+{{-- ══════════════════ MODAL: DELETE CUSTOMER ══════════════════ --}}
+<div class="modal fade" id="modalDeleteCustomer" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form method="POST" id="formDeleteCustomer" action="">
+                @csrf
+                @method('DELETE')
+                <div class="modal-header border-0">
+                    <h5 class="modal-title text-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Delete Customer
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-2">
+                    <i class="bi bi-trash text-danger" style="font-size:3rem;"></i>
+                    <p class="mt-2 mb-0">
+                        Delete <strong id="deleteCustomerName"></strong>?<br>
+                        <span class="small text-muted">This action cannot be undone.</span>
+                    </p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash me-1"></i>Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
+
+@push('scripts')
+<script>
+$(document).ready(function () {
+    $('#modalDeleteCustomer').on('show.bs.modal', function (e) {
+        const btn = $(e.relatedTarget);
+        $('#deleteCustomerName').text(btn.data('name'));
+        $('#formDeleteCustomer').attr('action', btn.data('url'));
+    });
+});
+</script>
+@endpush
