@@ -41,15 +41,15 @@
             object-fit: contain;
         }
         .auth-header {
-            background: linear-gradient(135deg, #1a2035, #0d6efd);
+            background: linear-gradient(135deg, #1a2035, #2196F3);
             color: #fff;
             padding: 1.4rem 2rem;
             text-align: center;
         }
         .auth-body { padding: 2rem; }
-        .form-control:focus { border-color: #0d6efd; box-shadow: 0 0 0 .2rem rgba(13,110,253,.15); }
+        .form-control:focus { border-color: #2196F3; box-shadow: 0 0 0 .2rem rgba(33,150,243,.15); }
         .btn-login {
-            background: linear-gradient(135deg, #0d6efd, #0a58ca);
+            background: linear-gradient(135deg, #2196F3, #1976D2);
             border: none; color: #fff;
             padding: .7rem; font-weight: 600; border-radius: 10px;
             transition: opacity .2s;

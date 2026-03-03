@@ -10,7 +10,7 @@
 @push('styles')
 <style>
     #photoDropZone { border-style: dashed !important; }
-    #photoDropZone:hover { background: #f0f4ff; border-color: #0d6efd !important; }
+    #photoDropZone:hover { background: #f0f4ff; border-color: #2196F3 !important; }
     .photo-card { transition: transform .15s; }
     .photo-card:hover { transform: translateY(-2px); }
 </style>
@@ -530,7 +530,7 @@
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropZone.style.background = '#e8f0fe';
-        dropZone.style.borderColor = '#0d6efd';
+        dropZone.style.borderColor = '#2196F3';
     });
     dropZone.addEventListener('dragleave', () => {
         dropZone.style.background = '';

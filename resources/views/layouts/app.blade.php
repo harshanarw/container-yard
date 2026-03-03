@@ -20,9 +20,40 @@
         :root {
             --sidebar-width: 260px;
             --topbar-height: 60px;
-            --primary:   #0d6efd;
+            --primary:   #2196F3;
             --dark-bg:   #1a2035;
             --dark-side: #141728;
+
+            /* Bootstrap primary colour override — #2196F3 */
+            --bs-primary:                  #2196F3;
+            --bs-primary-rgb:              33, 150, 243;
+            --bs-primary-text-emphasis:    #0a4272;
+            --bs-primary-bg-subtle:        #d0e8fd;
+            --bs-primary-border-subtle:    #90c8f9;
+            --bs-link-color:               #2196F3;
+            --bs-link-color-rgb:           33, 150, 243;
+            --bs-link-hover-color:         #1976D2;
+            --bs-link-hover-color-rgb:     25, 118, 210;
+        }
+
+        .btn-primary {
+            --bs-btn-bg:                   #2196F3;
+            --bs-btn-border-color:         #2196F3;
+            --bs-btn-hover-bg:             #1a88e7;
+            --bs-btn-hover-border-color:   #1981dc;
+            --bs-btn-active-bg:            #1976D2;
+            --bs-btn-active-border-color:  #1976D2;
+            --bs-btn-disabled-bg:          #2196F3;
+            --bs-btn-disabled-border-color:#2196F3;
+            --bs-btn-focus-shadow-rgb:     33, 150, 243;
+        }
+        .btn-outline-primary {
+            --bs-btn-color:                #2196F3;
+            --bs-btn-border-color:         #2196F3;
+            --bs-btn-hover-bg:             #2196F3;
+            --bs-btn-hover-border-color:   #2196F3;
+            --bs-btn-active-bg:            #2196F3;
+            --bs-btn-active-border-color:  #2196F3;
         }
 
         body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
@@ -90,7 +121,7 @@
         .nav-item a.nav-link:hover,
         .nav-item a.nav-link.active {
             color: #fff;
-            background: rgba(13,110,253,.15);
+            background: rgba(33,150,243,.15);
             border-left: 3px solid var(--primary);
         }
         .nav-item a.nav-link.active { color: #4dabf7; }

@@ -22,7 +22,7 @@
         transition: transform .15s;
     }
     .yard-block:hover { transform: scale(1.15); }
-    .yard-block.occupied  { background: #0d6efd22; border: 1.5px solid #0d6efd; color: #0d6efd; }
+    .yard-block.occupied  { background: #2196F322; border: 1.5px solid #2196F3; color: #2196F3; }
     .yard-block.damaged   { background: #dc354522; border: 1.5px solid #dc3545; color: #dc3545; }
     .yard-block.empty     { background: #f8f9fa;   border: 1.5px dashed #ced4da; color: #adb5bd; }
     .yard-block.reserved  { background: #ffc10722; border: 1.5px solid #ffc107; color: #856404; }

@@ -11,7 +11,7 @@
 <style>
     .calc-result-card {
         border-radius: 12px;
-        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
         color: #fff;
     }
     .calc-result-card .label { opacity: .75; font-size: .8rem; }

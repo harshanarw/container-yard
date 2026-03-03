@@ -11,7 +11,7 @@
 @push('styles')
 <style>
     #photoDropZone { border-style: dashed !important; }
-    #photoDropZone:hover { background: #f0f4ff; border-color: #0d6efd !important; }
+    #photoDropZone:hover { background: #f0f4ff; border-color: #2196F3 !important; }
     .photo-card { transition: transform .15s; }
     .photo-card:hover { transform: translateY(-2px); }
     .existing-photo-card { position: relative; overflow: hidden; }
@@ -561,7 +561,7 @@
     dropZone.addEventListener('click', () => photoInput.click());
     photoInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
 
-    dropZone.addEventListener('dragover',  (e) => { e.preventDefault(); dropZone.style.background='#e8f0fe'; dropZone.style.borderColor='#0d6efd'; });
+    dropZone.addEventListener('dragover',  (e) => { e.preventDefault(); dropZone.style.background='#e8f0fe'; dropZone.style.borderColor='#2196F3'; });
     dropZone.addEventListener('dragleave', ()  => { dropZone.style.background=''; dropZone.style.borderColor=''; });
     dropZone.addEventListener('drop',      (e) => { e.preventDefault(); dropZone.style.background=''; dropZone.style.borderColor=''; addFiles(e.dataTransfer.files); });
 </script>
