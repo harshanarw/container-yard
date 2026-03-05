@@ -172,7 +172,7 @@ class EquipmentTypeSeeder extends Seeder
 
         foreach ($items as $item) {
             EquipmentType::updateOrCreate(
-                ['eqt_code' => $item['eqt_code']],
+                ['iso_code' => $item['iso_code']],
                 $item
             );
         }
