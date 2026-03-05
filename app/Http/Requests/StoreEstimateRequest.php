@@ -14,9 +14,10 @@ class StoreEstimateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'inquiry_id'    => ['nullable', 'exists:inquiries,id'],
-            'container_id'  => ['required', 'exists:containers,id'],
-            'customer_id'   => ['required', 'exists:customers,id'],
+            'inquiry_id'        => ['nullable', 'exists:inquiries,id'],
+            'container_id'      => ['required', 'exists:containers,id'],
+            'equipment_type_id' => ['nullable', 'exists:equipment_types,id'],
+            'customer_id'       => ['required', 'exists:customers,id'],
             'estimate_date' => ['required', 'date'],
             'valid_until'   => ['required', 'date', 'after_or_equal:estimate_date'],
             'currency'      => ['required', 'in:LKR,USD,SGD'],

@@ -56,9 +56,16 @@
                                    value="{{ $estimate->container_no }}" readonly>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-semibold">Size / Type</label>
-                            <input type="text" class="form-control"
-                                   value="{{ $estimate->size }}' {{ $estimate->type_code }}" readonly>
+                            <label class="form-label fw-semibold">Equipment Type</label>
+                            <div class="d-flex flex-wrap gap-1 align-items-center" style="padding-top:.4rem;">
+                                @if($estimate->equipmentType)
+                                    <span class="badge bg-primary fw-bold" style="font-size:.8rem;letter-spacing:.5px;">
+                                        {{ $estimate->equipmentType->eqt_code }}
+                                    </span>
+                                @endif
+                                <span class="badge bg-light border text-dark">{{ $estimate->size }}'</span>
+                                <span class="badge bg-info-subtle text-info">{{ $estimate->type_code }}</span>
+                            </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Inquiry Ref.</label>

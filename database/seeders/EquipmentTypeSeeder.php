@@ -149,6 +149,25 @@ class EquipmentTypeSeeder extends Seeder
                 'description' => "40' Tank Container",
                 'sort_order'  => 14,
             ],
+            // ── Reefer High Cube (RH) ────────────────────────────────────────
+            [
+                'eqt_code'    => '20RH',
+                'iso_code'    => '25R1',
+                'size'        => '20',
+                'type_code'   => 'RH',
+                'height'      => 'High Cube',
+                'description' => "20' Reefer High Cube Container",
+                'sort_order'  => 15,
+            ],
+            [
+                'eqt_code'    => '40RH',
+                'iso_code'    => '45R1',
+                'size'        => '40',
+                'type_code'   => 'RH',
+                'height'      => 'High Cube',
+                'description' => "40' Reefer High Cube Container",
+                'sort_order'  => 16,
+            ],
         ];
 
         foreach ($items as $item) {

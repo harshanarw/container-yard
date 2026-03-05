@@ -6,6 +6,7 @@ use App\Http\Requests\StoreEstimateRequest;
 use App\Http\Requests\UpdateEstimateRequest;
 use App\Models\Container;
 use App\Models\Customer;
+use App\Models\EquipmentType;
 use App\Models\Estimate;
 use App\Models\Inquiry;
 use Illuminate\Http\Request;
@@ -35,22 +36,23 @@ class EstimateController extends Controller
 
     public function create(Request $request)
     {
-        $customers  = Customer::where('status', 'active')->orderBy('name')->get();
-        $containers = Container::whereIn('status', ['in_yard', 'in_repair'])
+        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $containers     = Container::whereIn('status', ['in_yard', 'in_repair'])
             ->with('customer')
             ->orderBy('container_no')
             ->get();
+        $equipmentTypes = EquipmentType::active()->get();
 
         $selectedInquiry   = $request->inquiry_id
-            ? Inquiry::with(['container', 'customer', 'damages'])->find($request->inquiry_id)
+            ? Inquiry::with(['container', 'customer', 'damages', 'equipmentType'])->find($request->inquiry_id)
             : null;
 
         $selectedContainer = $request->container_id
-            ? Container::with('customer')->find($request->container_id)
+            ? Container::with(['customer', 'equipmentType'])->find($request->container_id)
             : null;
 
         return view('estimates.create', compact(
-            'customers', 'containers', 'selectedInquiry', 'selectedContainer'
+            'customers', 'containers', 'equipmentTypes', 'selectedInquiry', 'selectedContainer'
         ));
     }
 
@@ -64,13 +66,14 @@ class EstimateController extends Controller
         );
 
         $estimate = Estimate::create([
-            'estimate_no'    => $this->generateEstimateNo(),
-            'inquiry_id'     => $request->inquiry_id,
-            'container_id'   => $container->id,
-            'container_no'   => $container->container_no,
-            'customer_id'    => $request->customer_id,
-            'size'           => $container->size,
-            'type_code'      => $container->type_code,
+            'estimate_no'       => $this->generateEstimateNo(),
+            'inquiry_id'        => $request->inquiry_id,
+            'container_id'      => $container->id,
+            'equipment_type_id' => $request->equipment_type_id ?? $container->equipment_type_id,
+            'container_no'      => $container->container_no,
+            'customer_id'       => $request->customer_id,
+            'size'              => $container->size,
+            'type_code'         => $container->type_code,
             'estimate_date'  => $request->estimate_date,
             'valid_until'    => $request->valid_until,
             'currency'       => $request->currency,
@@ -125,13 +128,14 @@ class EstimateController extends Controller
             return back()->with('error', 'Approved or completed estimates cannot be edited.');
         }
 
-        $customers  = Customer::where('status', 'active')->orderBy('name')->get();
-        $containers = Container::whereIn('status', ['in_yard', 'in_repair'])
+        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $containers     = Container::whereIn('status', ['in_yard', 'in_repair'])
             ->with('customer')->orderBy('container_no')->get();
+        $equipmentTypes = EquipmentType::active()->get();
 
-        $estimate->load('lineItems');
+        $estimate->load(['lineItems', 'equipmentType']);
 
-        return view('estimates.edit', compact('estimate', 'customers', 'containers'));
+        return view('estimates.edit', compact('estimate', 'customers', 'containers', 'equipmentTypes'));
     }
 
     public function update(UpdateEstimateRequest $request, Estimate $estimate)

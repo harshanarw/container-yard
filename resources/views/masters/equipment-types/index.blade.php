@@ -160,6 +160,7 @@
                                 <option value="GP">GP</option>
                                 <option value="HC">HC</option>
                                 <option value="RF">RF</option>
+                                <option value="RH">RH</option>
                                 <option value="OT">OT</option>
                                 <option value="FR">FR</option>
                                 <option value="TK">TK</option>
@@ -226,6 +227,7 @@
                                 <option value="GP">GP</option>
                                 <option value="HC">HC</option>
                                 <option value="RF">RF</option>
+                                <option value="RH">RH</option>
                                 <option value="OT">OT</option>
                                 <option value="FR">FR</option>
                                 <option value="TK">TK</option>
