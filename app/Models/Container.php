@@ -10,7 +10,7 @@ class Container extends Model
     use HasFactory;
 
     protected $fillable = [
-        'container_no', 'size', 'type_code', 'customer_id', 'condition',
+        'container_no', 'equipment_type_id', 'size', 'type_code', 'customer_id', 'condition',
         'cargo_status', 'status', 'location_row', 'location_bay', 'location_tier',
         'seal_no', 'gate_in_date', 'gate_out_date', 'csc_plate_valid',
     ];
@@ -22,6 +22,11 @@ class Container extends Model
     ];
 
     // Relationships
+    public function equipmentType()
+    {
+        return $this->belongsTo(EquipmentType::class);
+    }
+
     public function customer()
     {
         return $this->belongsTo(Customer::class);

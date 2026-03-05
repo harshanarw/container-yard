@@ -342,6 +342,12 @@
         <div class="nav-section-label">Masters</div>
         <ul class="nav flex-column">
             <li class="nav-item">
+                <a href="{{ route('masters.equipment-types.index') }}"
+                   class="nav-link {{ request()->routeIs('masters.equipment-types.*') ? 'active' : '' }}">
+                    <i class="bi bi-box-seam"></i><span>Equipment Types</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{{ route('masters.checklist.index') }}"
                    class="nav-link {{ request()->routeIs('masters.checklist.*') ? 'active' : '' }}">
                     <i class="bi bi-list-check"></i><span>Inspection Checklist</span>

@@ -54,38 +54,33 @@
                     </div>
 
                     <div class="row g-3">
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Size</label>
-                            <select name="size" class="form-select" required>
-                                <option value="">— Size —</option>
-                                <option>20'</option>
-                                <option>40'</option>
-                                <option>45'</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Type</label>
-                            <select name="container_type" class="form-select" required>
-                                <option value="">— Type —</option>
-                                <option value="GP">GP — General Purpose</option>
-                                <option value="HC">HC — High Cube</option>
-                                <option value="RF">RF — Reefer</option>
-                                <option value="OT">OT — Open Top</option>
-                                <option value="FR">FR — Flat Rack</option>
-                                <option value="TK">TK — Tank</option>
-                            </select>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
+                            <div class="d-flex gap-2 align-items-center">
+                                <select name="equipment_type_id" id="gateEqtSelect" class="form-select" required>
+                                    <option value="">— Select Equipment Type —</option>
+                                    @foreach($equipmentTypes as $eqt)
+                                    <option value="{{ $eqt->id }}"
+                                            data-size="{{ $eqt->size }}"
+                                            data-type="{{ $eqt->type_code }}"
+                                            data-eqt="{{ $eqt->eqt_code }}">
+                                        {{ $eqt->eqt_code }} — {{ $eqt->description }}
+                                    </option>
+                                    @endforeach
+                                </select>
+                                <span id="gateEqtSizeBadge" class="badge bg-light border text-dark text-nowrap d-none"></span>
+                                <span id="gateEqtTypeBadge" class="badge bg-info-subtle text-info text-nowrap d-none"></span>
+                            </div>
+                            <input type="hidden" name="size" id="gateEqtSize">
+                            <input type="hidden" name="type_code" id="gateEqtTypeCode">
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Customer / Owner <span class="text-danger">*</span></label>
                             <select name="customer_id" class="form-select select2" required>
                                 <option value="">— Select Customer —</option>
-                                <option value="1">Maersk Line</option>
-                                <option value="2">CMA CGM Malaysia</option>
-                                <option value="3">Hapag-Lloyd</option>
-                                <option value="4">PIL Shipping</option>
-                                <option value="5">OOCL Malaysia</option>
-                                <option value="6">Evergreen</option>
-                                <option value="7">MSC Malaysia</option>
+                                @foreach($customers as $customer)
+                                <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-6">
@@ -106,14 +101,24 @@
                         <div class="col-6">
                             <label class="form-label fw-semibold">Yard Location</label>
                             <div class="input-group">
-                                <select name="row" class="form-select form-select-sm">
-                                    <option>Row A</option><option>Row B</option>
-                                    <option>Row C</option><option>Row D</option>
+                                <select name="location_row" class="form-select form-select-sm" required>
+                                    <option value="">Row</option>
+                                    @foreach($emptySlots->pluck('row')->unique() as $row)
+                                    <option value="{{ $row }}">{{ $row }}</option>
+                                    @endforeach
                                 </select>
-                                <input type="text" name="bay" class="form-control form-control-sm"
-                                       placeholder="Bay" style="max-width:70px;">
-                                <input type="number" name="tier" class="form-control form-control-sm"
-                                       placeholder="Tier" min="1" max="5" style="max-width:60px;" value="1">
+                                <select name="location_bay" class="form-select form-select-sm" required>
+                                    <option value="">Bay</option>
+                                    @for($b = 1; $b <= 8; $b++)
+                                    <option value="{{ $b }}">{{ $b }}</option>
+                                    @endfor
+                                </select>
+                                <select name="location_tier" class="form-select form-select-sm" required>
+                                    <option value="">Tier</option>
+                                    @for($t = 1; $t <= 5; $t++)
+                                    <option value="{{ $t }}">{{ $t }}</option>
+                                    @endfor
+                                </select>
                             </div>
                         </div>
                         <div class="col-6">
@@ -210,59 +215,59 @@
         <div class="card content-card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-clock-history me-2 text-primary"></i>Today's Gate Movements</span>
-                <span class="badge bg-primary rounded-pill">41</span>
+                <span class="badge bg-primary rounded-pill">{{ $recentMovements->count() }}</span>
             </div>
             <div class="card-body p-0" style="max-height:600px;overflow-y:auto;">
                 <div class="list-group list-group-flush">
-                    @php
-                    $todayMovements = [
-                        ['11:05','MSKU2223344','40\' HC','MSC','Gate In','Pending','WQR 5432'],
-                        ['10:28','OOLU7778899','20\' GP','OOCL','Gate Out','Done','JTK 9821'],
-                        ['10:02','HLXU3334455','40\' GP','Hapag','Gate In','Done','WBG 3344'],
-                        ['09:34','TGHU5551234','20\' RF','PIL','Gate In','Pending','BCB 1122'],
-                        ['09:12','CMAU9876543','40\' HC','Maersk','Gate Out','Done','WPQ 6677'],
-                        ['08:45','MSCU1234567','20\' GP','Evergreen','Gate In','Done','VCX 9900'],
-                        ['08:30','ZIMU4433221','40\' GP','ZIM','Gate Out','Done','WDF 5544'],
-                        ['08:15','EVGU7654321','20\' GP','Evergreen','Gate In','Done','BCN 3322'],
-                    ];
-                    @endphp
-                    @foreach($todayMovements as $mv)
+                    @forelse($recentMovements as $mv)
                     <div class="list-group-item px-3 py-2">
                         <div class="d-flex align-items-center gap-3">
-                            <div class="text-muted small" style="width:45px;">{{ $mv[0] }}</div>
+                            <div class="text-muted small" style="width:45px;">
+                                {{ ($mv->gate_in_time ?? $mv->gate_out_time)?->format('H:i') }}
+                            </div>
                             <div class="flex-grow-1">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="font-monospace fw-semibold small">{{ $mv[1] }}</span>
-                                    <span class="badge bg-secondary-subtle text-secondary" style="font-size:.65rem;">{{ $mv[2] }}</span>
-                                    @if($mv[4]==='Gate In')
+                                    <span class="font-monospace fw-semibold small">{{ $mv->container_no }}</span>
+                                    <span class="badge bg-secondary-subtle text-secondary" style="font-size:.65rem;">{{ $mv->size }}' {{ $mv->container_type }}</span>
+                                    @if($mv->movement_type === 'in')
                                         <span class="badge bg-primary-subtle text-primary" style="font-size:.65rem;"><i class="bi bi-arrow-down-circle"></i> In</span>
                                     @else
                                         <span class="badge bg-success-subtle text-success" style="font-size:.65rem;"><i class="bi bi-arrow-up-circle"></i> Out</span>
                                     @endif
                                 </div>
-                                <div class="text-muted" style="font-size:.72rem;">{{ $mv[3] }} &nbsp;·&nbsp; {{ $mv[6] }}</div>
+                                <div class="text-muted" style="font-size:.72rem;">
+                                    {{ $mv->customer?->name }} &nbsp;·&nbsp; {{ $mv->vehicle_plate }}
+                                </div>
                             </div>
-                            <span class="badge rounded-pill {{ $mv[5]==='Done'?'bg-success':'bg-warning text-dark' }}" style="font-size:.65rem;">
-                                {{ $mv[5] }}
+                            <span class="badge rounded-pill {{ $mv->movement_status === 'done' ? 'bg-success' : 'bg-warning text-dark' }}" style="font-size:.65rem;">
+                                {{ ucfirst($mv->movement_status) }}
                             </span>
                         </div>
                     </div>
-                    @endforeach
+                    @empty
+                    <div class="list-group-item text-center text-muted small py-4">
+                        No gate movements recorded yet.
+                    </div>
+                    @endforelse
                 </div>
             </div>
+            @php
+                $inCount  = $recentMovements->where('movement_type', 'in')->count();
+                $outCount = $recentMovements->where('movement_type', 'out')->count();
+            @endphp
             <div class="card-footer bg-white">
                 <div class="row text-center small">
                     <div class="col">
                         <div class="text-muted">Gate-In</div>
-                        <strong class="text-primary">23</strong>
+                        <strong class="text-primary">{{ $inCount }}</strong>
                     </div>
                     <div class="col border-start border-end">
                         <div class="text-muted">Gate-Out</div>
-                        <strong class="text-success">18</strong>
+                        <strong class="text-success">{{ $outCount }}</strong>
                     </div>
                     <div class="col">
                         <div class="text-muted">Total</div>
-                        <strong>41</strong>
+                        <strong>{{ $recentMovements->count() }}</strong>
                     </div>
                 </div>
             </div>
@@ -298,5 +303,33 @@
     document.getElementById('containerNoIn').addEventListener('input', function () {
         this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     });
+
+    // Equipment Type auto-fill
+    (function () {
+        const sel       = document.getElementById('gateEqtSelect');
+        const sizeHid   = document.getElementById('gateEqtSize');
+        const typeHid   = document.getElementById('gateEqtTypeCode');
+        const sizeBadge = document.getElementById('gateEqtSizeBadge');
+        const typeBadge = document.getElementById('gateEqtTypeBadge');
+
+        function applyEqt(opt) {
+            if (!opt || !opt.value) {
+                sizeHid.value = '';
+                typeHid.value = '';
+                sizeBadge.classList.add('d-none');
+                typeBadge.classList.add('d-none');
+                return;
+            }
+            sizeHid.value = opt.dataset.size;
+            typeHid.value = opt.dataset.type;
+            sizeBadge.textContent = opt.dataset.size + "'";
+            typeBadge.textContent = opt.dataset.type;
+            sizeBadge.classList.remove('d-none');
+            typeBadge.classList.remove('d-none');
+        }
+
+        sel.addEventListener('change', () => applyEqt(sel.selectedOptions[0]));
+        if (sel.value) applyEqt(sel.selectedOptions[0]);
+    })();
 </script>
 @endpush

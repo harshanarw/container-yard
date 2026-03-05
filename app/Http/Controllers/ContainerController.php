@@ -6,6 +6,7 @@ use App\Http\Requests\StoreContainerRequest;
 use App\Http\Requests\UpdateContainerRequest;
 use App\Models\Container;
 use App\Models\Customer;
+use App\Models\EquipmentType;
 use App\Models\YardLocation;
 use Illuminate\Http\Request;
 
@@ -32,16 +33,26 @@ class ContainerController extends Controller
 
     public function create()
     {
-        $customers     = Customer::where('status', 'active')->orderBy('name')->get();
-        $emptySlots    = YardLocation::where('status', 'empty')->orderBy('row')->orderBy('bay')->orderBy('tier')->get();
+        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $emptySlots     = YardLocation::where('status', 'empty')->orderBy('row')->orderBy('bay')->orderBy('tier')->get();
+        $equipmentTypes = EquipmentType::active()->get();
 
-        return view('containers.create', compact('customers', 'emptySlots'));
+        return view('containers.create', compact('customers', 'emptySlots', 'equipmentTypes'));
     }
 
     public function store(StoreContainerRequest $request)
     {
         $data = $request->validated();
         $data['csc_plate_valid'] = $request->boolean('csc_plate_valid');
+
+        // Derive size and type_code from the selected equipment type
+        if (!empty($data['equipment_type_id'])) {
+            $eqt = EquipmentType::find($data['equipment_type_id']);
+            if ($eqt) {
+                $data['size']      = $eqt->size;
+                $data['type_code'] = $eqt->type_code;
+            }
+        }
 
         $container = Container::create($data);
 
@@ -71,19 +82,29 @@ class ContainerController extends Controller
 
     public function edit(Container $container)
     {
-        $customers  = Customer::where('status', 'active')->orderBy('name')->get();
-        $emptySlots = YardLocation::where('status', 'empty')
+        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $equipmentTypes = EquipmentType::active()->get();
+        $emptySlots     = YardLocation::where('status', 'empty')
             ->orWhere('container_id', $container->id)
             ->orderBy('row')->orderBy('bay')->orderBy('tier')
             ->get();
 
-        return view('containers.edit', compact('container', 'customers', 'emptySlots'));
+        return view('containers.edit', compact('container', 'customers', 'emptySlots', 'equipmentTypes'));
     }
 
     public function update(UpdateContainerRequest $request, Container $container)
     {
         $data = $request->validated();
         $data['csc_plate_valid'] = $request->boolean('csc_plate_valid');
+
+        // Derive size and type_code from the selected equipment type
+        if (!empty($data['equipment_type_id'])) {
+            $eqt = EquipmentType::find($data['equipment_type_id']);
+            if ($eqt) {
+                $data['size']      = $eqt->size;
+                $data['type_code'] = $eqt->type_code;
+            }
+        }
 
         // Release old yard slot
         YardLocation::where('container_id', $container->id)->update([

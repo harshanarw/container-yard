@@ -46,26 +46,26 @@
                                    maxlength="12" required>
                             <div class="form-text">Format: XXXX NNNNNN C (ISO 6346)</div>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold">Container Size <span class="text-danger">*</span></label>
-                            <select name="size" class="form-select" required>
-                                <option value="">— Size —</option>
-                                <option>20'</option>
-                                <option>40'</option>
-                                <option>45'</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Container Type <span class="text-danger">*</span></label>
-                            <select name="type_code" class="form-select" required>
-                                <option value="">— Type —</option>
-                                <option value="GP">GP — General Purpose</option>
-                                <option value="HC">HC — High Cube</option>
-                                <option value="RF">RF — Reefer</option>
-                                <option value="OT">OT — Open Top</option>
-                                <option value="FR">FR — Flat Rack</option>
-                                <option value="TK">TK — Tank</option>
-                            </select>
+                        <div class="col-md-7">
+                            <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
+                            <div class="d-flex gap-2 align-items-center">
+                                <select name="equipment_type_id" id="eqtSelect" class="form-select" required>
+                                    <option value="">— Select Equipment Type —</option>
+                                    @foreach($equipmentTypes as $eqt)
+                                    <option value="{{ $eqt->id }}"
+                                            data-size="{{ $eqt->size }}"
+                                            data-type="{{ $eqt->type_code }}"
+                                            data-eqt="{{ $eqt->eqt_code }}"
+                                            {{ old('equipment_type_id') == $eqt->id ? 'selected' : '' }}>
+                                        {{ $eqt->eqt_code }} — {{ $eqt->description }}
+                                    </option>
+                                    @endforeach
+                                </select>
+                                <span id="eqtSizeBadge" class="badge bg-light border text-dark text-nowrap d-none"></span>
+                                <span id="eqtTypeBadge" class="badge bg-info-subtle text-info text-nowrap d-none"></span>
+                            </div>
+                            <input type="hidden" name="size" id="eqtSize">
+                            <input type="hidden" name="type_code" id="eqtTypeCode">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Customer / Owner <span class="text-danger">*</span></label>
@@ -345,6 +345,34 @@
 
 @push('scripts')
 <script>
+    // ── Equipment Type auto-fill ──────────────────────────────────────────────
+    (function () {
+        const sel       = document.getElementById('eqtSelect');
+        const sizeHid   = document.getElementById('eqtSize');
+        const typeHid   = document.getElementById('eqtTypeCode');
+        const sizeBadge = document.getElementById('eqtSizeBadge');
+        const typeBadge = document.getElementById('eqtTypeBadge');
+
+        function applyEqt(opt) {
+            if (!opt || !opt.value) {
+                sizeHid.value = typeHid.value = '';
+                sizeBadge.classList.add('d-none');
+                typeBadge.classList.add('d-none');
+                return;
+            }
+            sizeHid.value = opt.dataset.size;
+            typeHid.value = opt.dataset.type;
+            sizeBadge.textContent = opt.dataset.size + "'";
+            typeBadge.textContent = opt.dataset.type;
+            sizeBadge.classList.remove('d-none');
+            typeBadge.classList.remove('d-none');
+        }
+
+        sel.addEventListener('change', () => applyEqt(sel.selectedOptions[0]));
+        // Apply on page load if old() value is set
+        if (sel.value) applyEqt(sel.selectedOptions[0]);
+    })();
+
     let damageRowIndex = 1;
 
     document.getElementById('addDamageRow').addEventListener('click', function () {

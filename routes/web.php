@@ -6,6 +6,7 @@ use App\Http\Controllers\ChecklistMasterItemController;
 use App\Http\Controllers\ContainerController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\ReportController;
@@ -77,6 +78,14 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{checklistMasterItem}/toggle', [ChecklistMasterItemController::class, 'toggleActive'])->name('toggle');
             Route::delete('{checklistMasterItem}',       [ChecklistMasterItemController::class, 'destroy'])->name('destroy');
             Route::post('reorder',                       [ChecklistMasterItemController::class, 'reorder'])->name('reorder');
+        });
+        Route::prefix('equipment-types')->name('equipment-types.')->group(function () {
+            Route::get('/',                           [EquipmentTypeController::class, 'index'])->name('index');
+            Route::post('/',                          [EquipmentTypeController::class, 'store'])->name('store');
+            Route::patch('{equipmentType}',           [EquipmentTypeController::class, 'update'])->name('update');
+            Route::patch('{equipmentType}/toggle',    [EquipmentTypeController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{equipmentType}',          [EquipmentTypeController::class, 'destroy'])->name('destroy');
+            Route::post('reorder',                    [EquipmentTypeController::class, 'reorder'])->name('reorder');
         });
     });
 

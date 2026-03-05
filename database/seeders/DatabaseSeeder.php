@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             CustomerSeeder::class,
             ContainerSeeder::class,
             YardLocationSeeder::class,
+            EquipmentTypeSeeder::class,
             ChecklistMasterItemSeeder::class,
             InquirySeeder::class,
             EstimateSeeder::class,

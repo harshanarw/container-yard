@@ -80,9 +80,14 @@
                             <div class="font-monospace fw-bold fs-6">{{ $inquiry->container_no }}</div>
                         </div>
                         <div class="col-md-4">
-                            <div class="text-muted mb-1">Size / Type</div>
-                            <div>
-                                <span class="badge bg-light border text-dark me-1">{{ $inquiry->size }}ft</span>
+                            <div class="text-muted mb-1">Equipment Type</div>
+                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                @if($inquiry->equipmentType)
+                                    <span class="badge bg-primary fw-bold" style="font-size:.8rem;">
+                                        {{ $inquiry->equipmentType->eqt_code }}
+                                    </span>
+                                @endif
+                                <span class="badge bg-light border text-dark">{{ $inquiry->size }}'</span>
                                 <span class="badge bg-info-subtle text-info">{{ $inquiry->type_code }}</span>
                             </div>
                         </div>

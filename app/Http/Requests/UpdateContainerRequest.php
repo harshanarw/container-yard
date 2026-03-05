@@ -17,8 +17,9 @@ class UpdateContainerRequest extends FormRequest
 
         return [
             'container_no'   => ['required', 'string', 'max:12', "unique:containers,container_no,{$containerId}", 'regex:/^[A-Z]{4}[0-9]{7}$/'],
-            'size'           => ['required', 'in:20,40,45'],
-            'type_code'      => ['required', 'in:GP,HC,RF,OT,FR,TK'],
+            'equipment_type_id' => ['nullable', 'exists:equipment_types,id'],
+            'size'              => ['required', 'string', 'max:5'],
+            'type_code'         => ['required', 'string', 'max:5'],
             'customer_id'    => ['required', 'exists:customers,id'],
             'condition'      => ['required', 'in:sound,damaged,require_repair'],
             'cargo_status'   => ['required', 'in:empty,full'],

@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateInquiryRequest;
 use App\Models\ChecklistMasterItem;
 use App\Models\Container;
 use App\Models\Customer;
+use App\Models\EquipmentType;
 use App\Models\Damage;
 use App\Models\Inquiry;
 use App\Models\InquiryChecklist;
@@ -48,14 +49,18 @@ class InquiryController extends Controller
             ->with('customer')
             ->orderBy('container_no')
             ->get();
-        $checklistItems = ChecklistMasterItem::active()->get();
+        $checklistItems  = ChecklistMasterItem::active()->get();
+        $equipmentTypes  = EquipmentType::active()->get();
 
         // Pre-select container if passed from yard/container view
         $selectedContainer = $request->container_id
-            ? Container::with('customer')->find($request->container_id)
+            ? Container::with(['customer', 'equipmentType'])->find($request->container_id)
             : null;
 
-        return view('inquiries.create', compact('customers', 'inspectors', 'containers', 'selectedContainer', 'checklistItems'));
+        return view('inquiries.create', compact(
+            'customers', 'inspectors', 'containers', 'selectedContainer',
+            'checklistItems', 'equipmentTypes'
+        ));
     }
 
     public function store(StoreInquiryRequest $request)
@@ -66,6 +71,7 @@ class InquiryController extends Controller
             'inquiry_no'            => $this->generateInquiryNo(),
             'container_id'          => $container->id,
             'container_no'          => $container->container_no,
+            'equipment_type_id'     => $container->equipment_type_id,
             'size'                  => $container->size,
             'type_code'             => $container->type_code,
             'customer_id'           => $request->customer_id,

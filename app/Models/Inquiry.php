@@ -10,7 +10,7 @@ class Inquiry extends Model
     use HasFactory;
 
     protected $fillable = [
-        'inquiry_no', 'container_id', 'container_no', 'size', 'type_code',
+        'inquiry_no', 'container_id', 'container_no', 'equipment_type_id', 'size', 'type_code',
         'customer_id', 'inquiry_type', 'inspector_id', 'inspection_date',
         'gate_in_ref', 'priority', 'overall_condition', 'findings',
         'recommended_action', 'status', 'estimated_repair_cost',
@@ -22,6 +22,11 @@ class Inquiry extends Model
     ];
 
     // Relationships
+    public function equipmentType()
+    {
+        return $this->belongsTo(EquipmentType::class);
+    }
+
     public function container()
     {
         return $this->belongsTo(Container::class);

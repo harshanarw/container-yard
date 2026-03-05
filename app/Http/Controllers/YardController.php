@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Container;
 use App\Models\Customer;
+use App\Models\EquipmentType;
 use App\Models\GateMovement;
 use App\Models\YardLocation;
 use App\Models\YardStorage;
@@ -44,47 +45,50 @@ class YardController extends Controller
             ->take(20)
             ->get();
 
-        $customers  = Customer::where('status', 'active')->orderBy('name')->get();
-        $emptySlots = YardLocation::where('status', 'empty')
+        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $equipmentTypes = EquipmentType::active()->get();
+        $emptySlots     = YardLocation::where('status', 'empty')
             ->orderBy('row')->orderBy('bay')->orderBy('tier')
             ->get();
 
-        return view('yard.gate', compact('recentMovements', 'customers', 'emptySlots'));
+        return view('yard.gate', compact('recentMovements', 'customers', 'emptySlots', 'equipmentTypes'));
     }
 
     public function gateIn(Request $request)
     {
         $validated = $request->validate([
-            'container_no'  => ['required', 'string', 'max:12', 'regex:/^[A-Z]{4}[0-9]{7}$/'],
-            'size'          => ['required', 'in:20,40,45'],
-            'container_type' => ['required', 'in:GP,HC,RF,OT,FR,TK'],
-            'customer_id'   => ['required', 'exists:customers,id'],
-            'condition'     => ['required', 'in:sound,damaged,require_repair'],
-            'cargo_status'  => ['required', 'in:empty,full'],
-            'location_row'  => ['required', 'string', 'max:5'],
-            'location_bay'  => ['required', 'integer', 'min:1', 'max:8'],
-            'location_tier' => ['required', 'integer', 'min:1', 'max:5'],
-            'seal_no'       => ['nullable', 'string', 'max:20'],
-            'vehicle_plate' => ['nullable', 'string', 'max:20'],
-            'remarks'       => ['nullable', 'string'],
+            'container_no'      => ['required', 'string', 'max:12', 'regex:/^[A-Z]{4}[0-9]{7}$/'],
+            'equipment_type_id' => ['required', 'exists:equipment_types,id'],
+            'customer_id'       => ['required', 'exists:customers,id'],
+            'condition'         => ['required', 'in:sound,damaged,require_repair'],
+            'cargo_status'      => ['required', 'in:empty,full'],
+            'location_row'      => ['required', 'string', 'max:5'],
+            'location_bay'      => ['required', 'integer', 'min:1', 'max:8'],
+            'location_tier'     => ['required', 'integer', 'min:1', 'max:5'],
+            'seal_no'           => ['nullable', 'string', 'max:20'],
+            'vehicle_plate'     => ['nullable', 'string', 'max:20'],
+            'remarks'           => ['nullable', 'string'],
         ]);
+
+        $eqt = EquipmentType::findOrFail($validated['equipment_type_id']);
 
         // Create or update container record
         $container = Container::updateOrCreate(
             ['container_no' => $validated['container_no']],
             [
-                'size'          => $validated['size'],
-                'type_code'     => $validated['container_type'],
-                'customer_id'   => $validated['customer_id'],
-                'condition'     => $validated['condition'],
-                'cargo_status'  => $validated['cargo_status'],
-                'status'        => 'in_yard',
-                'location_row'  => $validated['location_row'],
-                'location_bay'  => $validated['location_bay'],
-                'location_tier' => $validated['location_tier'],
-                'seal_no'       => $validated['seal_no'],
-                'gate_in_date'  => today(),
-                'gate_out_date' => null,
+                'equipment_type_id' => $eqt->id,
+                'size'              => $eqt->size,
+                'type_code'         => $eqt->type_code,
+                'customer_id'       => $validated['customer_id'],
+                'condition'         => $validated['condition'],
+                'cargo_status'      => $validated['cargo_status'],
+                'status'            => 'in_yard',
+                'location_row'      => $validated['location_row'],
+                'location_bay'      => $validated['location_bay'],
+                'location_tier'     => $validated['location_tier'],
+                'seal_no'           => $validated['seal_no'],
+                'gate_in_date'      => today(),
+                'gate_out_date'     => null,
             ]
         );
 
@@ -94,8 +98,8 @@ class YardController extends Controller
             'container_no'    => $container->container_no,
             'customer_id'     => $validated['customer_id'],
             'movement_type'   => 'in',
-            'size'            => $validated['size'],
-            'container_type'  => $validated['container_type'],
+            'size'            => $eqt->size,
+            'container_type'  => $eqt->type_code,
             'location_row'    => $validated['location_row'],
             'location_bay'    => $validated['location_bay'],
             'location_tier'   => $validated['location_tier'],
@@ -278,19 +282,24 @@ class YardController extends Controller
             return response()->json(['found' => false]);
         }
 
+        $container->load('equipmentType');
+
         return response()->json([
-            'found'         => true,
-            'id'            => $container->id,
-            'container_no'  => $container->container_no,
-            'size'          => $container->size,
-            'type_code'     => $container->type_code,
-            'condition'     => $container->condition,
-            'cargo_status'  => $container->cargo_status,
-            'status'        => $container->status,
-            'customer_id'   => $container->customer_id,
-            'customer_name' => $container->customer->name,
-            'location'      => "{$container->location_row}{$container->location_bay}-T{$container->location_tier}",
-            'gate_in_date'  => $container->gate_in_date?->toDateString(),
+            'found'              => true,
+            'id'                 => $container->id,
+            'container_no'       => $container->container_no,
+            'equipment_type_id'  => $container->equipment_type_id,
+            'eqt_code'           => $container->equipmentType?->eqt_code,
+            'eqt_description'    => $container->equipmentType?->description,
+            'size'               => $container->size,
+            'type_code'          => $container->type_code,
+            'condition'          => $container->condition,
+            'cargo_status'       => $container->cargo_status,
+            'status'             => $container->status,
+            'customer_id'        => $container->customer_id,
+            'customer_name'      => $container->customer->name,
+            'location'           => "{$container->location_row}{$container->location_bay}-T{$container->location_tier}",
+            'gate_in_date'       => $container->gate_in_date?->toDateString(),
         ]);
     }
 }
