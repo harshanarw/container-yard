@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChecklistMasterItemController;
 use App\Http\Controllers\ContainerController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -65,6 +66,18 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/inventory', [ReportController::class, 'inventory'])->name('inventory');
         Route::get('/billing',   [ReportController::class, 'billing'])->name('billing');
+    });
+
+    // Masters
+    Route::prefix('masters')->name('masters.')->group(function () {
+        Route::prefix('checklist')->name('checklist.')->group(function () {
+            Route::get('/',                              [ChecklistMasterItemController::class, 'index'])->name('index');
+            Route::post('/',                             [ChecklistMasterItemController::class, 'store'])->name('store');
+            Route::patch('{checklistMasterItem}',        [ChecklistMasterItemController::class, 'update'])->name('update');
+            Route::patch('{checklistMasterItem}/toggle', [ChecklistMasterItemController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{checklistMasterItem}',       [ChecklistMasterItemController::class, 'destroy'])->name('destroy');
+            Route::post('reorder',                       [ChecklistMasterItemController::class, 'reorder'])->name('reorder');
+        });
     });
 
     // Settings

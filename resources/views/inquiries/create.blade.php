@@ -307,24 +307,18 @@
                     <i class="bi bi-check2-square me-2 text-primary"></i>Inspection Checklist
                 </div>
                 <div class="card-body">
-                    @foreach([
-                        'Exterior panels inspected',
-                        'Floor board condition checked',
-                        'Door mechanism tested',
-                        'Door seals/gaskets checked',
-                        'Roof integrity verified',
-                        'Corner castings inspected',
-                        'Base rails & cross members',
-                        'Forklift pockets checked',
-                        'CSC plate visible & valid',
-                        'Photos documented',
-                    ] as $item)
+                    @forelse($checklistItems as $item)
                     <div class="form-check mb-1">
                         <input class="form-check-input" type="checkbox" name="checklist[]"
-                               value="{{ Str::slug($item) }}" id="chk_{{ Str::slug($item) }}">
-                        <label class="form-check-label small" for="chk_{{ Str::slug($item) }}">{{ $item }}</label>
+                               value="{{ $item->code }}" id="chk_{{ $item->code }}">
+                        <label class="form-check-label small" for="chk_{{ $item->code }}"
+                               @if($item->description) title="{{ $item->description }}" @endif>
+                            {{ $item->label }}
+                        </label>
                     </div>
-                    @endforeach
+                    @empty
+                    <p class="text-muted small mb-0">No checklist items configured. Add items via Masters → Inspection Checklist.</p>
+                    @endforelse
                 </div>
             </div>
 

@@ -382,30 +382,21 @@
                     <i class="bi bi-check2-square me-2 text-primary"></i>Inspection Checklist
                 </div>
                 <div class="card-body">
-                    @php
-                        $checklistMap = $inquiry->checklists->keyBy('checklist_item');
-                        $checklistItems = [
-                            'exterior_panels_inspected'    => 'Exterior panels inspected',
-                            'floor_board_condition_checked' => 'Floor board condition checked',
-                            'door_mechanism_tested'        => 'Door mechanism tested',
-                            'door_seals_gaskets_checked'   => 'Door seals/gaskets checked',
-                            'roof_integrity_verified'      => 'Roof integrity verified',
-                            'corner_castings_inspected'    => 'Corner castings inspected',
-                            'base_rails_cross_members'     => 'Base rails & cross members',
-                            'forklift_pockets_checked'     => 'Forklift pockets checked',
-                            'csc_plate_visible_valid'      => 'CSC plate visible & valid',
-                            'photos_documented'            => 'Photos documented',
-                        ];
-                    @endphp
-                    @foreach($checklistItems as $key => $label)
+                    @php $checklistMap = $inquiry->checklists->keyBy('checklist_item'); @endphp
+                    @forelse($checklistItems as $item)
                     <div class="form-check mb-1">
                         <input class="form-check-input" type="checkbox"
-                               name="checklist[]" value="{{ $key }}"
-                               id="chk_{{ $key }}"
-                               {{ optional($checklistMap->get($key))->is_checked ? 'checked' : '' }}>
-                        <label class="form-check-label small" for="chk_{{ $key }}">{{ $label }}</label>
+                               name="checklist[]" value="{{ $item->code }}"
+                               id="chk_{{ $item->code }}"
+                               {{ optional($checklistMap->get($item->code))->is_checked ? 'checked' : '' }}>
+                        <label class="form-check-label small" for="chk_{{ $item->code }}"
+                               @if($item->description) title="{{ $item->description }}" @endif>
+                            {{ $item->label }}
+                        </label>
                     </div>
-                    @endforeach
+                    @empty
+                    <p class="text-muted small mb-0">No checklist items configured. Add items via Masters → Inspection Checklist.</p>
+                    @endforelse
                 </div>
             </div>
 

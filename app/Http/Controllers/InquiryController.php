@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreInquiryRequest;
 use App\Http\Requests\UpdateInquiryRequest;
+use App\Models\ChecklistMasterItem;
 use App\Models\Container;
 use App\Models\Customer;
 use App\Models\Damage;
@@ -41,19 +42,20 @@ class InquiryController extends Controller
 
     public function create(Request $request)
     {
-        $customers  = Customer::where('status', 'active')->orderBy('name')->get();
-        $inspectors = User::where('role', 'inspector')->where('status', 'active')->get();
-        $containers = Container::whereIn('status', ['in_yard', 'in_repair'])
+        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $inspectors     = User::where('role', 'inspector')->where('status', 'active')->get();
+        $containers     = Container::whereIn('status', ['in_yard', 'in_repair'])
             ->with('customer')
             ->orderBy('container_no')
             ->get();
+        $checklistItems = ChecklistMasterItem::active()->get();
 
         // Pre-select container if passed from yard/container view
         $selectedContainer = $request->container_id
             ? Container::with('customer')->find($request->container_id)
             : null;
 
-        return view('inquiries.create', compact('customers', 'inspectors', 'containers', 'selectedContainer'));
+        return view('inquiries.create', compact('customers', 'inspectors', 'containers', 'selectedContainer', 'checklistItems'));
     }
 
     public function store(StoreInquiryRequest $request)
@@ -86,19 +88,13 @@ class InquiryController extends Controller
             }
         }
 
-        // Save checklist
-        $allItems = [
-            'exterior_panels_inspected', 'floor_board_condition_checked',
-            'door_mechanism_tested', 'door_seals_gaskets_checked',
-            'roof_integrity_verified', 'corner_castings_inspected',
-            'base_rails_cross_members', 'forklift_pockets_checked',
-            'csc_plate_visible_valid', 'photos_documented',
-        ];
-        $checked = $request->checklist ?? [];
-        foreach ($allItems as $item) {
+        // Save checklist from master items
+        $masterItems = ChecklistMasterItem::active()->get();
+        $checked     = $request->checklist ?? [];
+        foreach ($masterItems as $master) {
             $inquiry->checklists()->create([
-                'checklist_item' => $item,
-                'is_checked'     => in_array($item, $checked),
+                'checklist_item' => $master->code,
+                'is_checked'     => in_array($master->code, $checked),
             ]);
         }
 
@@ -127,9 +123,10 @@ class InquiryController extends Controller
     public function edit(Inquiry $inquiry)
     {
         $inquiry->load(['damages', 'checklists']);
-        $inspectors = User::where('role', 'inspector')->where('status', 'active')->get();
+        $inspectors     = User::where('role', 'inspector')->where('status', 'active')->get();
+        $checklistItems = ChecklistMasterItem::active()->get();
 
-        return view('inquiries.edit', compact('inquiry', 'inspectors'));
+        return view('inquiries.edit', compact('inquiry', 'inspectors', 'checklistItems'));
     }
 
     public function update(UpdateInquiryRequest $request, Inquiry $inquiry)
@@ -148,12 +145,15 @@ class InquiryController extends Controller
             }
         }
 
-        // Update checklist
-        if ($request->has('checklist')) {
-            $checked = $request->checklist ?? [];
-            foreach ($inquiry->checklists as $item) {
-                $item->update(['is_checked' => in_array($item->checklist_item, $checked)]);
-            }
+        // Rebuild checklist from current master items so additions/removals are reflected
+        $masterItems = ChecklistMasterItem::active()->get();
+        $checked     = $request->checklist ?? [];
+        $inquiry->checklists()->delete();
+        foreach ($masterItems as $master) {
+            $inquiry->checklists()->create([
+                'checklist_item' => $master->code,
+                'is_checked'     => in_array($master->code, $checked),
+            ]);
         }
 
         // Append new photos
