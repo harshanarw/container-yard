@@ -11,8 +11,9 @@ use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\StorageBillingController;
 use App\Http\Controllers\StorageTariffController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\YardController;
 
 /*
@@ -104,6 +105,21 @@ Route::middleware(['auth'])->group(function () {
                 Route::delete('{detail}', [StorageTariffController::class, 'destroyDetail'])->name('destroy');
             });
         });
+    });
+
+    // Billing — Storage Invoice generation and management
+    Route::prefix('billing')->name('billing.')->group(function () {
+        Route::get('/',                                  [StorageBillingController::class, 'index'])->name('index');
+        Route::get('/create',                            [StorageBillingController::class, 'create'])->name('create');
+        Route::post('/preview',                          [StorageBillingController::class, 'preview'])->name('preview');
+        Route::post('/',                                 [StorageBillingController::class, 'store'])->name('store');
+        Route::get('/{invoice}',                         [StorageBillingController::class, 'show'])->name('show');
+        Route::delete('/{invoice}',                      [StorageBillingController::class, 'destroy'])->name('destroy');
+        Route::patch('/{invoice}/issue',                 [StorageBillingController::class, 'markIssued'])->name('issue');
+        Route::patch('/{invoice}/pay',                   [StorageBillingController::class, 'markPaid'])->name('pay');
+        Route::patch('/{invoice}/cancel',                [StorageBillingController::class, 'cancel'])->name('cancel');
+        Route::get('/{invoice}/pdf',                     [StorageBillingController::class, 'pdf'])->name('pdf');
+        Route::post('/{invoice}/email',                  [StorageBillingController::class, 'sendEmail'])->name('email');
     });
 
     // Settings

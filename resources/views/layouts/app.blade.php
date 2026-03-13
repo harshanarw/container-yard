@@ -361,6 +361,16 @@
             </li>
         </ul>
 
+        <div class="nav-section-label">Billing</div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="{{ route('billing.index') }}"
+                   class="nav-link {{ request()->routeIs('billing.*') ? 'active' : '' }}">
+                    <i class="bi bi-receipt-cutoff"></i><span>Storage Invoices</span>
+                </a>
+            </li>
+        </ul>
+
         <div class="nav-section-label">Reports</div>
         <ul class="nav flex-column">
             <li class="nav-item">
