@@ -12,6 +12,7 @@ use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\StorageTariffController;
 use App\Http\Controllers\YardController;
 
 /*
@@ -86,6 +87,21 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{equipmentType}/toggle',    [EquipmentTypeController::class, 'toggleActive'])->name('toggle');
             Route::delete('{equipmentType}',          [EquipmentTypeController::class, 'destroy'])->name('destroy');
             Route::post('reorder',                    [EquipmentTypeController::class, 'reorder'])->name('reorder');
+        });
+        // Storage Rate Tariff
+        Route::prefix('storage-tariff')->name('storage-tariff.')->group(function () {
+            Route::get('/',                              [StorageTariffController::class, 'index'])->name('index');
+            Route::post('/',                             [StorageTariffController::class, 'store'])->name('store');
+            Route::get('{storageTariff}',                [StorageTariffController::class, 'show'])->name('show');
+            Route::patch('{storageTariff}',              [StorageTariffController::class, 'update'])->name('update');
+            Route::patch('{storageTariff}/toggle',       [StorageTariffController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{storageTariff}',             [StorageTariffController::class, 'destroy'])->name('destroy');
+            // Detail (rate line) routes — nested under header
+            Route::prefix('{storageTariff}/details')->name('details.')->group(function () {
+                Route::post('/',          [StorageTariffController::class, 'storeDetail'])->name('store');
+                Route::patch('{detail}',  [StorageTariffController::class, 'updateDetail'])->name('update');
+                Route::delete('{detail}', [StorageTariffController::class, 'destroyDetail'])->name('destroy');
+            });
         });
     });
 

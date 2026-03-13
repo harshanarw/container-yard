@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             ChecklistMasterItemSeeder::class,
             InquirySeeder::class,
             EstimateSeeder::class,
+            StorageTariffSeeder::class,
         ]);
     }
 }

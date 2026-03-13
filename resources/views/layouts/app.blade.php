@@ -348,6 +348,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a href="{{ route('masters.storage-tariff.index') }}"
+                   class="nav-link {{ request()->routeIs('masters.storage-tariff.*') ? 'active' : '' }}">
+                    <i class="bi bi-calendar2-range"></i><span>Storage Tariff</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{{ route('masters.checklist.index') }}"
                    class="nav-link {{ request()->routeIs('masters.checklist.*') ? 'active' : '' }}">
                     <i class="bi bi-list-check"></i><span>Inspection Checklist</span>
