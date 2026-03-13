@@ -62,6 +62,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/storage',  [YardController::class, 'storage'])->name('storage');
         Route::post('/storage/calculate', [YardController::class, 'calculate'])->name('storage.calculate');
         Route::get('/container/{containerNo}', [YardController::class, 'lookup'])->name('container.lookup');
+        Route::get('/tariff/{customerId}', [YardController::class, 'tariffLookup'])->name('tariff.lookup');
     });
 
     // Reports

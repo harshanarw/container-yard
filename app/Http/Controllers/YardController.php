@@ -242,9 +242,44 @@ class YardController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $equipmentTypes = EquipmentType::active()->orderBy('sort_order')->get();
 
-        return view('yard.storage', compact('storageRecords', 'customers'));
+        return view('yard.storage', compact('storageRecords', 'customers', 'equipmentTypes'));
+    }
+
+    // -------------------------------------------------------------------------
+    // Tariff Lookup (AJAX) — returns active tariff details for a customer
+    // -------------------------------------------------------------------------
+    public function tariffLookup(int $customerId)
+    {
+        $header = StorageMasterHeader::with('details.equipmentType')
+            ->where('customer_id', $customerId)
+            ->where('is_active', true)
+            ->where('valid_from', '<=', today())
+            ->where(function ($q) {
+                $q->whereNull('valid_to')->orWhere('valid_to', '>=', today());
+            })
+            ->latest('valid_from')
+            ->first();
+
+        if (! $header) {
+            return response()->json(['found' => false]);
+        }
+
+        return response()->json([
+            'found'         => true,
+            'free_days'     => $header->default_free_days,
+            'valid_from'    => $header->valid_from->toDateString(),
+            'valid_to'      => $header->valid_to?->toDateString(),
+            'rates'         => $header->details->map(fn ($d) => [
+                'equipment_type_id' => $d->equipment_type_id,
+                'eqt_code'          => $d->equipmentType?->eqt_code,
+                'description'       => $d->equipmentType?->description,
+                'storage_rate'      => (float) $d->storage_rate,
+                'currency'          => $d->currency,
+            ])->values(),
+        ]);
     }
 
     public function calculate(Request $request)
