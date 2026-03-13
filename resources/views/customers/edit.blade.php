@@ -185,41 +185,6 @@
                             </select>
                         </div>
 
-                        <div class="col-12"><hr class="my-1"><strong class="small text-muted">Storage Rates (per day)</strong></div>
-
-                        <div class="col-md-3">
-                            <label class="form-label small fw-semibold">20' GP</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text">{{ $customer->currency }}</span>
-                                <input type="number" name="rate_20gp" class="form-control"
-                                       placeholder="25.00" step="0.01"
-                                       value="{{ old('rate_20gp', $customer->rate_20gp) }}">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-semibold">40' GP</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text">{{ $customer->currency }}</span>
-                                <input type="number" name="rate_40gp" class="form-control"
-                                       placeholder="45.00" step="0.01"
-                                       value="{{ old('rate_40gp', $customer->rate_40gp) }}">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-semibold">40' HC</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text">{{ $customer->currency }}</span>
-                                <input type="number" name="rate_40hc" class="form-control"
-                                       placeholder="50.00" step="0.01"
-                                       value="{{ old('rate_40hc', $customer->rate_40hc) }}">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-semibold">Free Days</label>
-                            <input type="number" name="free_days" class="form-control form-control-sm"
-                                   placeholder="7" min="0"
-                                   value="{{ old('free_days', $customer->free_days) }}">
-                        </div>
                     </div>
                 </div>
             </div>

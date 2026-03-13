@@ -13,16 +13,13 @@ class Customer extends Model
         'code', 'name', 'type', 'registration_no', 'address', 'city', 'state',
         'country', 'contact_person', 'designation', 'phone_office', 'phone_mobile',
         'fax', 'email', 'website', 'currency', 'credit_limit', 'payment_terms',
-        'rate_20gp', 'rate_40gp', 'rate_40hc', 'free_days', 'status',
+        'status',
         'contract_start', 'contract_end', 'email_notifications', 'auto_invoice',
         'logo', 'notes',
     ];
 
     protected $casts = [
         'credit_limit'        => 'decimal:2',
-        'rate_20gp'           => 'decimal:2',
-        'rate_40gp'           => 'decimal:2',
-        'rate_40hc'           => 'decimal:2',
         'contract_start'      => 'date',
         'contract_end'        => 'date',
         'email_notifications' => 'boolean',
@@ -55,14 +52,15 @@ class Customer extends Model
         return $this->hasMany(YardStorage::class);
     }
 
-    // Helpers
-    public function getStorageRate(string $size): float
+    // Storage tariff for this customer (active, currently valid)
+    public function activeTariff()
     {
-        return match ($size) {
-            '20'    => (float) $this->rate_20gp,
-            '40'    => (float) $this->rate_40gp,
-            '45'    => (float) $this->rate_40hc,
-            default => 0.0,
-        };
+        return $this->hasOne(StorageMasterHeader::class)
+            ->where('is_active', true)
+            ->where('valid_from', '<=', now())
+            ->where(function ($q) {
+                $q->whereNull('valid_to')->orWhere('valid_to', '>=', now());
+            })
+            ->latestOfMany('valid_from');
     }
 }

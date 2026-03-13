@@ -57,6 +57,7 @@ class CustomerController extends Controller
     public function show(Customer $customer)
     {
         $customer->loadCount(['containers', 'inquiries', 'estimates', 'gateMovements']);
+        $customer->load(['activeTariff.details']);
         $recentContainers = $customer->containers()->latest()->take(5)->get();
         $recentEstimates  = $customer->estimates()->latest()->take(5)->get();
 

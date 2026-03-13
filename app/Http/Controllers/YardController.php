@@ -6,6 +6,7 @@ use App\Models\Container;
 use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\GateMovement;
+use App\Models\StorageMasterHeader;
 use App\Models\YardLocation;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
@@ -124,13 +125,28 @@ class YardController extends Controller
             'last_updated_at' => now(),
         ]);
 
+        // Resolve storage tariff for this customer + equipment type
+        $tariffHeader = StorageMasterHeader::where('customer_id', $validated['customer_id'])
+            ->where('is_active', true)
+            ->where('valid_from', '<=', today())
+            ->where(function ($q) {
+                $q->whereNull('valid_to')->orWhere('valid_to', '>=', today());
+            })
+            ->latest('valid_from')
+            ->first();
+
+        $freeDays  = $tariffHeader?->default_free_days ?? 0;
+        $dailyRate = $tariffHeader
+            ? ($tariffHeader->details()->where('equipment_type_id', $validated['equipment_type_id'])->value('storage_rate') ?? 0)
+            : 0;
+
         // Create storage record
         YardStorage::create([
             'container_id' => $container->id,
             'customer_id'  => $validated['customer_id'],
             'gate_in_date' => today(),
-            'free_days'    => Customer::find($validated['customer_id'])->free_days,
-            'daily_rate'   => Customer::find($validated['customer_id'])->getStorageRate($validated['size']),
+            'free_days'    => $freeDays,
+            'daily_rate'   => $dailyRate,
         ]);
 
         return redirect()->route('yard.gate')

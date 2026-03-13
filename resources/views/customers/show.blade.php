@@ -214,23 +214,45 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                     <div>{{ $paymentLabels[$customer->payment_terms] ?? $customer->payment_terms }}</div>
                 </div>
                 <hr class="my-2">
-                <div class="text-muted small mb-2">Storage Rates (per day)</div>
-                <div class="d-flex justify-content-between small mb-1">
-                    <span>20' GP</span>
-                    <span class="fw-semibold">{{ $customer->currency }} {{ number_format($customer->rate_20gp, 2) }}</span>
+                @php $tariff = $customer->activeTariff; @endphp
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small">Storage Tariff</span>
+                    <a href="{{ route('masters.storage-tariff.index') }}"
+                       class="btn btn-xs btn-outline-primary btn-sm py-0 px-2"
+                       style="font-size:.72rem;" title="Manage Storage Tariffs">
+                        <i class="bi bi-calendar2-range me-1"></i>Manage
+                    </a>
                 </div>
-                <div class="d-flex justify-content-between small mb-1">
-                    <span>40' GP</span>
-                    <span class="fw-semibold">{{ $customer->currency }} {{ number_format($customer->rate_40gp, 2) }}</span>
-                </div>
-                <div class="d-flex justify-content-between small mb-1">
-                    <span>40' HC</span>
-                    <span class="fw-semibold">{{ $customer->currency }} {{ number_format($customer->rate_40hc, 2) }}</span>
-                </div>
-                <div class="d-flex justify-content-between small">
-                    <span>Free Days</span>
-                    <span class="fw-semibold">{{ $customer->free_days }} days</span>
-                </div>
+                @if($tariff)
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Free Days</span>
+                        <span class="fw-semibold">{{ $tariff->default_free_days }} days</span>
+                    </div>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Validity</span>
+                        <span>{{ $tariff->valid_from->format('d M Y') }}
+                            @if($tariff->valid_to) — {{ $tariff->valid_to->format('d M Y') }}
+                            @else <span class="text-muted">open-ended</span>
+                            @endif
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-muted">Rate Lines</span>
+                        <a href="{{ route('masters.storage-tariff.show', $tariff) }}"
+                           class="fw-semibold text-decoration-none">
+                            {{ $tariff->details->count() }} type(s)
+                            <i class="bi bi-arrow-right-short"></i>
+                        </a>
+                    </div>
+                @else
+                    <div class="text-muted small fst-italic">
+                        <i class="bi bi-exclamation-circle me-1 text-warning"></i>
+                        No active storage tariff defined.
+                        <a href="{{ route('masters.storage-tariff.index') }}" class="text-decoration-none">
+                            Add one &rarr;
+                        </a>
+                    </div>
+                @endif
             </div>
         </div>
 
