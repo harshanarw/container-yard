@@ -345,13 +345,13 @@
 <script>
     // ── Container selection → auto-fill Equipment Type, Customer, Gate-In Ref ──
     (function () {
-        const containerSel  = document.getElementById('containerSelect');
-        const eqtSelect     = document.getElementById('eqtSelect');
+        const containerSel   = document.getElementById('containerSelect');
+        const eqtSelect      = document.getElementById('eqtSelect');
         const customerSelect = document.getElementById('customerSelect');
-        const gateRefInput  = document.querySelector('[name="gate_in_ref"]');
-        const gateInfoBox   = document.getElementById('containerGateInfo');
-        const gateDateSpan  = document.getElementById('containerGateDate');
-        const gateRefSpan   = document.getElementById('containerGateRef');
+        const gateRefInput   = document.querySelector('[name="gate_in_ref"]');
+        const gateInfoBox    = document.getElementById('containerGateInfo');
+        const gateDateSpan   = document.getElementById('containerGateDate');
+        const gateRefSpan    = document.getElementById('containerGateRef');
 
         function applyEqtBadges(opt) {
             const sizeHid   = document.getElementById('eqtSize');
@@ -366,8 +366,10 @@
             }
             sizeHid.value = opt.dataset.size || '';
             typeHid.value = opt.dataset.type || '';
-            if (opt.dataset.size) { sizeBadge.textContent = opt.dataset.size + "'"; sizeBadge.classList.remove('d-none'); }
-            if (opt.dataset.type) { typeBadge.textContent = opt.dataset.type; typeBadge.classList.remove('d-none'); }
+            sizeBadge.textContent = opt.dataset.size ? opt.dataset.size + "'" : '';
+            typeBadge.textContent = opt.dataset.type || '';
+            sizeBadge.classList.toggle('d-none', !opt.dataset.size);
+            typeBadge.classList.toggle('d-none', !opt.dataset.type);
         }
 
         function fillFromContainer(opt) {
@@ -376,34 +378,53 @@
                 return;
             }
 
-            // Equipment Type
+            // 1. Equipment Type (plain select — native API works fine)
             if (eqtSelect && opt.dataset.eqtId) {
                 eqtSelect.value = opt.dataset.eqtId;
                 applyEqtBadges(eqtSelect.selectedOptions[0]);
             }
 
-            // Customer
+            // 2. Customer (Select2 — must use jQuery val().trigger('change'))
             if (customerSelect && opt.dataset.customerId) {
-                customerSelect.value = opt.dataset.customerId;
-                if (typeof $ !== 'undefined') $(customerSelect).trigger('change');
+                if (typeof $ !== 'undefined') {
+                    $(customerSelect).val(opt.dataset.customerId).trigger('change');
+                } else {
+                    customerSelect.value = opt.dataset.customerId;
+                }
             }
 
-            // Gate-In Reference
-            if (gateRefInput && opt.dataset.gateRef) {
-                gateRefInput.value = opt.dataset.gateRef;
+            // 3. Gate-In Reference
+            if (gateRefInput) {
+                gateRefInput.value = opt.dataset.gateRef || '';
             }
 
-            // Show gate-in info banner
-            if (opt.dataset.gateDate || opt.dataset.gateRef) {
-                gateDateSpan.textContent = opt.dataset.gateDate || '—';
-                gateRefSpan.textContent  = opt.dataset.gateRef  || '—';
-                gateInfoBox.classList.remove('d-none');
+            // 4. Gate-in info strip
+            const hasGateInfo = opt.dataset.gateDate || opt.dataset.gateRef;
+            gateDateSpan.textContent = opt.dataset.gateDate || '—';
+            gateRefSpan.textContent  = opt.dataset.gateRef  || '—';
+            gateInfoBox.classList.toggle('d-none', !hasGateInfo);
+        }
+
+        // Select2 fires the native 'change' event — but binding via jQuery is
+        // more reliable when Select2 is initialised after this script runs.
+        function bindChange() {
+            if (typeof $ !== 'undefined') {
+                $(containerSel).on('change', function () {
+                    fillFromContainer(this.selectedOptions[0]);
+                });
+            } else {
+                containerSel.addEventListener('change', function () {
+                    fillFromContainer(this.selectedOptions[0]);
+                });
             }
         }
 
-        containerSel.addEventListener('change', function () {
-            fillFromContainer(this.selectedOptions[0]);
-        });
+        // Wait for Select2 init if jQuery is present, else bind immediately
+        if (typeof $ !== 'undefined') {
+            $(function () { bindChange(); });
+        } else {
+            bindChange();
+        }
 
         // Apply on page load if a container is pre-selected (e.g. ?container_id=X)
         if (containerSel.value) fillFromContainer(containerSel.selectedOptions[0]);
