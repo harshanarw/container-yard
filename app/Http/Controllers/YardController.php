@@ -53,13 +53,7 @@ class YardController extends Controller
             ->orderBy('row')->orderBy('bay')->orderBy('tier')
             ->get();
 
-        // Open surveys available for gate-in linking
-        $openSurveys = Inquiry::with(['container', 'equipmentType', 'customer'])
-            ->whereIn('status', ['open', 'in_progress'])
-            ->latest()
-            ->get();
-
-        return view('yard.gate', compact('recentMovements', 'customers', 'emptySlots', 'equipmentTypes', 'openSurveys'));
+        return view('yard.gate', compact('recentMovements', 'customers', 'emptySlots', 'equipmentTypes'));
     }
 
     public function gateIn(Request $request)
@@ -76,7 +70,6 @@ class YardController extends Controller
             'seal_no'           => ['nullable', 'string', 'max:20'],
             'vehicle_plate'     => ['nullable', 'string', 'max:20'],
             'remarks'           => ['nullable', 'string'],
-            'survey_id'         => ['nullable', 'exists:inquiries,id'],
         ]);
 
         $eqt = EquipmentType::findOrFail($validated['equipment_type_id']);
@@ -104,7 +97,6 @@ class YardController extends Controller
         // Record gate movement
         GateMovement::create([
             'container_id'    => $container->id,
-            'survey_id'       => $validated['survey_id'] ?? null,
             'container_no'    => $container->container_no,
             'customer_id'     => $validated['customer_id'],
             'movement_type'   => 'in',

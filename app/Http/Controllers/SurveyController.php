@@ -8,7 +8,7 @@ use App\Models\ChecklistMasterItem;
 use App\Models\Container;
 use App\Models\Customer;
 use App\Models\EquipmentType;
-use App\Models\Damage;
+use App\Models\GateMovement;
 use App\Models\Inquiry;
 use App\Models\InquiryChecklist;
 use App\Models\InquiryPhoto;
@@ -45,12 +45,26 @@ class SurveyController extends Controller
     {
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
         $inspectors     = User::where('role', 'inspector')->where('status', 'active')->get();
-        $containers     = Container::whereIn('status', ['in_yard', 'in_repair'])
-            ->with('customer')
+        $checklistItems = ChecklistMasterItem::active()->get();
+        $equipmentTypes = EquipmentType::active()->get();
+
+        // Load in-yard containers with their latest gate-in movement for auto-fill
+        $containers = Container::whereIn('status', ['in_yard', 'in_repair'])
+            ->with(['customer', 'equipmentType'])
             ->orderBy('container_no')
-            ->get();
-        $checklistItems  = ChecklistMasterItem::active()->get();
-        $equipmentTypes  = EquipmentType::active()->get();
+            ->get()
+            ->map(function ($c) {
+                $latestGateIn = GateMovement::where('container_id', $c->id)
+                    ->where('movement_type', 'in')
+                    ->latest()
+                    ->first();
+                $c->gate_movement_ref = $latestGateIn
+                    ? 'GI-' . str_pad($latestGateIn->id, 5, '0', STR_PAD_LEFT)
+                    : null;
+                $c->gate_movement_date = $latestGateIn?->gate_in_time?->toDateString()
+                    ?? $c->gate_in_date?->toDateString();
+                return $c;
+            });
 
         // Pre-select container if passed from yard/container view
         $selectedContainer = $request->container_id

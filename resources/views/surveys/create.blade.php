@@ -39,7 +39,7 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-5">
-                            <label class="form-label fw-semibold">Container <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Container (in yard) <span class="text-danger">*</span></label>
                             <select name="container_id" id="containerSelect" class="form-select select2" required>
                                 <option value="">— Select Container —</option>
                                 @foreach($containers as $c)
@@ -47,12 +47,20 @@
                                         data-container-no="{{ $c->container_no }}"
                                         data-eqt-id="{{ $c->equipment_type_id }}"
                                         data-customer-id="{{ $c->customer_id }}"
+                                        data-gate-ref="{{ $c->gate_movement_ref }}"
+                                        data-gate-date="{{ $c->gate_movement_date }}"
                                         {{ (old('container_id') ?? $selectedContainer?->id) == $c->id ? 'selected' : '' }}>
                                     {{ $c->container_no }}
                                     @if($c->customer) — {{ $c->customer->name }} @endif
+                                    @if($c->gate_movement_date) [GI: {{ $c->gate_movement_date }}] @endif
                                 </option>
                                 @endforeach
                             </select>
+                            <div id="containerGateInfo" class="mt-1 small text-muted d-none">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Gate-in: <span id="containerGateDate" class="fw-semibold"></span>
+                                &nbsp;·&nbsp; Ref: <span id="containerGateRef" class="font-monospace fw-semibold"></span>
+                            </div>
                         </div>
                         <div class="col-md-7">
                             <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
@@ -335,7 +343,73 @@
 
 @push('scripts')
 <script>
-    // ── Equipment Type auto-fill ──────────────────────────────────────────────
+    // ── Container selection → auto-fill Equipment Type, Customer, Gate-In Ref ──
+    (function () {
+        const containerSel  = document.getElementById('containerSelect');
+        const eqtSelect     = document.getElementById('eqtSelect');
+        const customerSelect = document.getElementById('customerSelect');
+        const gateRefInput  = document.querySelector('[name="gate_in_ref"]');
+        const gateInfoBox   = document.getElementById('containerGateInfo');
+        const gateDateSpan  = document.getElementById('containerGateDate');
+        const gateRefSpan   = document.getElementById('containerGateRef');
+
+        function applyEqtBadges(opt) {
+            const sizeHid   = document.getElementById('eqtSize');
+            const typeHid   = document.getElementById('eqtTypeCode');
+            const sizeBadge = document.getElementById('eqtSizeBadge');
+            const typeBadge = document.getElementById('eqtTypeBadge');
+            if (!opt || !opt.value) {
+                sizeHid.value = typeHid.value = '';
+                sizeBadge.classList.add('d-none');
+                typeBadge.classList.add('d-none');
+                return;
+            }
+            sizeHid.value = opt.dataset.size || '';
+            typeHid.value = opt.dataset.type || '';
+            if (opt.dataset.size) { sizeBadge.textContent = opt.dataset.size + "'"; sizeBadge.classList.remove('d-none'); }
+            if (opt.dataset.type) { typeBadge.textContent = opt.dataset.type; typeBadge.classList.remove('d-none'); }
+        }
+
+        function fillFromContainer(opt) {
+            if (!opt || !opt.value) {
+                gateInfoBox.classList.add('d-none');
+                return;
+            }
+
+            // Equipment Type
+            if (eqtSelect && opt.dataset.eqtId) {
+                eqtSelect.value = opt.dataset.eqtId;
+                applyEqtBadges(eqtSelect.selectedOptions[0]);
+            }
+
+            // Customer
+            if (customerSelect && opt.dataset.customerId) {
+                customerSelect.value = opt.dataset.customerId;
+                if (typeof $ !== 'undefined') $(customerSelect).trigger('change');
+            }
+
+            // Gate-In Reference
+            if (gateRefInput && opt.dataset.gateRef) {
+                gateRefInput.value = opt.dataset.gateRef;
+            }
+
+            // Show gate-in info banner
+            if (opt.dataset.gateDate || opt.dataset.gateRef) {
+                gateDateSpan.textContent = opt.dataset.gateDate || '—';
+                gateRefSpan.textContent  = opt.dataset.gateRef  || '—';
+                gateInfoBox.classList.remove('d-none');
+            }
+        }
+
+        containerSel.addEventListener('change', function () {
+            fillFromContainer(this.selectedOptions[0]);
+        });
+
+        // Apply on page load if a container is pre-selected (e.g. ?container_id=X)
+        if (containerSel.value) fillFromContainer(containerSel.selectedOptions[0]);
+    })();
+
+    // ── Equipment Type manual override (size/type badges) ─────────────────────
     (function () {
         const sel       = document.getElementById('eqtSelect');
         const sizeHid   = document.getElementById('eqtSize');
