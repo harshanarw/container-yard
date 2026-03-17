@@ -6,11 +6,13 @@ use App\Models\Container;
 use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\GateMovement;
+use App\Models\GateMovementPhoto;
 use App\Models\Inquiry;
 use App\Models\StorageMasterHeader;
 use App\Models\YardLocation;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class YardController extends Controller
 {
@@ -70,6 +72,8 @@ class YardController extends Controller
             'seal_no'           => ['nullable', 'string', 'max:20'],
             'vehicle_plate'     => ['nullable', 'string', 'max:20'],
             'remarks'           => ['nullable', 'string'],
+            'photos'            => ['nullable', 'array', 'max:5'],
+            'photos.*'          => ['image', 'max:5120'],
         ]);
 
         $eqt = EquipmentType::findOrFail($validated['equipment_type_id']);
@@ -95,7 +99,7 @@ class YardController extends Controller
         );
 
         // Record gate movement
-        GateMovement::create([
+        $movement = GateMovement::create([
             'container_id'    => $container->id,
             'container_no'    => $container->container_no,
             'customer_id'     => $validated['customer_id'],
@@ -114,6 +118,19 @@ class YardController extends Controller
             'remarks'         => $validated['remarks'],
             'created_by'      => auth()->id(),
         ]);
+
+        // Save gate-in photos
+        if (isset($validated['photos'])) {
+            foreach ($validated['photos'] as $photo) {
+                $path = $photo->store("gate-movements/in/{$movement->id}", 'public');
+                GateMovementPhoto::create([
+                    'gate_movement_id' => $movement->id,
+                    'photo_path'       => $path,
+                    'movement_type'    => 'in',
+                    'uploaded_by'      => auth()->id(),
+                ]);
+            }
+        }
 
         // Update yard slot
         YardLocation::where([
@@ -163,12 +180,14 @@ class YardController extends Controller
             'driver_ic'     => ['required', 'string', 'max:30'],
             'release_order' => ['required', 'string', 'max:50'],
             'remarks'       => ['nullable', 'string'],
+            'photos'        => ['nullable', 'array', 'max:5'],
+            'photos.*'      => ['image', 'max:5120'],
         ]);
 
         $container = Container::where('container_no', $validated['container_no'])->firstOrFail();
 
         // Record gate movement
-        GateMovement::create([
+        $movement = GateMovement::create([
             'container_id'    => $container->id,
             'container_no'    => $container->container_no,
             'customer_id'     => $container->customer_id,
@@ -189,6 +208,19 @@ class YardController extends Controller
             'remarks'         => $validated['remarks'],
             'created_by'      => auth()->id(),
         ]);
+
+        // Save gate-out photos
+        if (isset($validated['photos'])) {
+            foreach ($validated['photos'] as $photo) {
+                $path = $photo->store("gate-movements/out/{$movement->id}", 'public');
+                GateMovementPhoto::create([
+                    'gate_movement_id' => $movement->id,
+                    'photo_path'       => $path,
+                    'movement_type'    => 'out',
+                    'uploaded_by'      => auth()->id(),
+                ]);
+            }
+        }
 
         // Finalise storage record
         $storage = YardStorage::where('container_id', $container->id)

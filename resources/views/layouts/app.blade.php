@@ -308,6 +308,12 @@
         <div class="nav-section-label">Operations</div>
         <ul class="nav flex-column">
             <li class="nav-item">
+                <a href="{{ route('yard.gate') }}"
+                   class="nav-link {{ request()->routeIs('yard.gate*') ? 'active' : '' }}">
+                    <i class="bi bi-box-arrow-in-right"></i><span>Gate In / Gate Out</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{{ route('surveys.index') }}"
                    class="nav-link {{ request()->routeIs('surveys.*') ? 'active' : '' }}">
                     <i class="bi bi-card-checklist"></i><span>Container Surveys</span>
@@ -317,12 +323,6 @@
                 <a href="{{ route('estimates.index') }}"
                    class="nav-link {{ request()->routeIs('estimates.*') ? 'active' : '' }}">
                     <i class="bi bi-tools"></i><span>Repair Estimates</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('yard.gate') }}"
-                   class="nav-link {{ request()->routeIs('yard.gate*') ? 'active' : '' }}">
-                    <i class="bi bi-box-arrow-in-right"></i><span>Gate In / Gate Out</span>
                 </a>
             </li>
             <li class="nav-item">

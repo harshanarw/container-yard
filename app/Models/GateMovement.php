@@ -42,4 +42,9 @@ class GateMovement extends Model
     {
         return $this->belongsTo(\App\Models\Inquiry::class, 'survey_id');
     }
+
+    public function photos()
+    {
+        return $this->hasMany(GateMovementPhoto::class);
+    }
 }

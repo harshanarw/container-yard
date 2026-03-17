@@ -37,7 +37,7 @@
                 <i class="bi bi-box-arrow-in-right me-2"></i>Gate In — Container Arrival
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('yard.gate.in') }}" id="gateInForm">
+                <form method="POST" action="{{ route('yard.gate.in') }}" id="gateInForm" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="movement_type" value="in">
 
@@ -137,6 +137,41 @@
                         </div>
                     </div>
 
+                    <!-- Photo Evidence -->
+                    <div class="mt-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-camera me-1 text-primary"></i>Photo Evidence
+                            <span class="text-muted fw-normal small">(optional, max 5)</span>
+                            <span id="inPhotoCounter" class="badge bg-secondary-subtle text-secondary ms-1">0 / 5</span>
+                        </label>
+
+                        {{-- Hidden inputs --}}
+                        <input type="file" id="inPhotoInput" name="photos[]"
+                               multiple accept="image/*" class="d-none">
+                        <input type="file" id="inCameraInput" accept="image/*"
+                               capture="environment" class="d-none">
+
+                        {{-- Drop zone --}}
+                        <div id="inDropZone"
+                             class="border border-2 rounded-3 text-center p-3 mb-2"
+                             style="border-color:#dee2e6!important;border-style:dashed!important;cursor:pointer;transition:background .2s;">
+                            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="inBrowseBtn">
+                                    <i class="bi bi-folder2-open me-1"></i>Browse
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success" id="inCameraBtn">
+                                    <i class="bi bi-camera me-1"></i>Camera
+                                </button>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size:.72rem;">
+                                or drag &amp; drop images here &nbsp;·&nbsp; JPG/PNG/WEBP &nbsp;·&nbsp; max 5 MB each
+                            </div>
+                        </div>
+
+                        <div id="inPhotoError" class="alert alert-danger py-1 small d-none mb-2"></div>
+                        <div class="row g-1" id="inPhotoPreview"></div>
+                    </div>
+
                     <div class="mt-3 d-grid">
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="bi bi-box-arrow-in-right me-2"></i>Record Gate In
@@ -152,7 +187,7 @@
                 <i class="bi bi-box-arrow-right me-2"></i>Gate Out — Container Departure
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('yard.gate.out') }}" id="gateOutForm">
+                <form method="POST" action="{{ route('yard.gate.out') }}" id="gateOutForm" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="movement_type" value="out">
 
@@ -198,6 +233,41 @@
                             <textarea name="remarks" class="form-control" rows="2"
                                       placeholder="Any remarks…"></textarea>
                         </div>
+                    </div>
+
+                    <!-- Photo Evidence -->
+                    <div class="mt-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-camera me-1 text-success"></i>Photo Evidence
+                            <span class="text-muted fw-normal small">(optional, max 5)</span>
+                            <span id="outPhotoCounter" class="badge bg-secondary-subtle text-secondary ms-1">0 / 5</span>
+                        </label>
+
+                        {{-- Hidden inputs --}}
+                        <input type="file" id="outPhotoInput" name="photos[]"
+                               multiple accept="image/*" class="d-none">
+                        <input type="file" id="outCameraInput" accept="image/*"
+                               capture="environment" class="d-none">
+
+                        {{-- Drop zone --}}
+                        <div id="outDropZone"
+                             class="border border-2 rounded-3 text-center p-3 mb-2"
+                             style="border-color:#dee2e6!important;border-style:dashed!important;cursor:pointer;transition:background .2s;">
+                            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="outBrowseBtn">
+                                    <i class="bi bi-folder2-open me-1"></i>Browse
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success" id="outCameraBtn">
+                                    <i class="bi bi-camera me-1"></i>Camera
+                                </button>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size:.72rem;">
+                                or drag &amp; drop images here &nbsp;·&nbsp; JPG/PNG/WEBP &nbsp;·&nbsp; max 5 MB each
+                            </div>
+                        </div>
+
+                        <div id="outPhotoError" class="alert alert-danger py-1 small d-none mb-2"></div>
+                        <div class="row g-1" id="outPhotoPreview"></div>
                     </div>
 
                     <div class="mt-3 d-grid">
@@ -331,5 +401,123 @@
         sel.addEventListener('change', () => applyEqt(sel.selectedOptions[0]));
         if (sel.value) applyEqt(sel.selectedOptions[0]);
     })();
+
+    // ── Photo uploader factory (used for both Gate In and Gate Out) ──────────
+    function initPhotoUploader(cfg) {
+        // cfg: { fileInput, cameraInput, browseBtn, cameraBtn, dropZone,
+        //        errorEl, previewGrid, counterEl, max }
+        const MAX       = cfg.max || 5;
+        const MAX_BYTES = 5 * 1024 * 1024;
+        const ALLOWED   = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        let dt = new DataTransfer();
+
+        function updateCounter() {
+            const n = dt.files.length;
+            cfg.counterEl.textContent = n + ' / ' + MAX;
+            cfg.counterEl.className = n >= MAX
+                ? 'badge bg-warning-subtle text-warning ms-1'
+                : 'badge bg-secondary-subtle text-secondary ms-1';
+        }
+
+        function showError(msg) {
+            cfg.errorEl.textContent = msg;
+            cfg.errorEl.classList.remove('d-none');
+            setTimeout(() => cfg.errorEl.classList.add('d-none'), 4000);
+        }
+
+        function renderPreviews() {
+            cfg.previewGrid.innerHTML = '';
+            Array.from(dt.files).forEach((file, idx) => {
+                const col = document.createElement('div');
+                col.className = 'col-4 col-md-3';
+                const reader = new FileReader();
+                reader.onload = e => {
+                    col.innerHTML =
+                        '<div class="position-relative" style="border-radius:6px;overflow:hidden;">' +
+                            '<img src="' + e.target.result + '" style="width:100%;height:70px;object-fit:cover;" alt="">' +
+                            '<button type="button" class="btn btn-danger btn-sm rm-photo position-absolute" ' +
+                                    'data-idx="' + idx + '" ' +
+                                    'style="top:2px;right:2px;padding:1px 5px;font-size:.7rem;line-height:1.2;border-radius:50%;">' +
+                                '<i class="bi bi-x"></i>' +
+                            '</button>' +
+                        '</div>';
+                    cfg.previewGrid.appendChild(col);
+                };
+                reader.readAsDataURL(file);
+            });
+            updateCounter();
+        }
+
+        function addFiles(files) {
+            Array.from(files).forEach(file => {
+                if (!ALLOWED.includes(file.type)) { showError('"' + file.name + '" is not a supported image type.'); return; }
+                if (file.size > MAX_BYTES)         { showError('"' + file.name + '" exceeds 5 MB.'); return; }
+                if (dt.files.length >= MAX)        { showError('Maximum ' + MAX + ' photos allowed.'); return; }
+                const dup = Array.from(dt.files).some(f => f.name === file.name && f.size === file.size);
+                if (!dup) dt.items.add(file);
+            });
+            cfg.fileInput.files = dt.files;
+            renderPreviews();
+        }
+
+        cfg.previewGrid.addEventListener('click', function (e) {
+            const btn = e.target.closest('.rm-photo');
+            if (!btn) return;
+            const idx = parseInt(btn.dataset.idx, 10);
+            const nd = new DataTransfer();
+            Array.from(dt.files).forEach((f, i) => { if (i !== idx) nd.items.add(f); });
+            dt = nd;
+            cfg.fileInput.files = dt.files;
+            renderPreviews();
+        });
+
+        // Browse button
+        cfg.browseBtn.addEventListener('click', e => { e.stopPropagation(); cfg.fileInput.click(); });
+        cfg.dropZone.addEventListener('click',  () => cfg.fileInput.click());
+
+        // Camera button — opens device camera directly
+        cfg.cameraBtn.addEventListener('click', e => { e.stopPropagation(); cfg.cameraInput.click(); });
+
+        // File input change
+        cfg.fileInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
+
+        // Camera input change — single capture, add to accumulator
+        cfg.cameraInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
+
+        // Drag & drop
+        cfg.dropZone.addEventListener('dragover',  e => { e.preventDefault(); cfg.dropZone.style.background = '#e8f0fe'; });
+        cfg.dropZone.addEventListener('dragleave', () => { cfg.dropZone.style.background = ''; });
+        cfg.dropZone.addEventListener('drop',      e => {
+            e.preventDefault();
+            cfg.dropZone.style.background = '';
+            addFiles(e.dataTransfer.files);
+        });
+    }
+
+    // Initialise for Gate In
+    initPhotoUploader({
+        fileInput:   document.getElementById('inPhotoInput'),
+        cameraInput: document.getElementById('inCameraInput'),
+        browseBtn:   document.getElementById('inBrowseBtn'),
+        cameraBtn:   document.getElementById('inCameraBtn'),
+        dropZone:    document.getElementById('inDropZone'),
+        errorEl:     document.getElementById('inPhotoError'),
+        previewGrid: document.getElementById('inPhotoPreview'),
+        counterEl:   document.getElementById('inPhotoCounter'),
+        max: 5,
+    });
+
+    // Initialise for Gate Out
+    initPhotoUploader({
+        fileInput:   document.getElementById('outPhotoInput'),
+        cameraInput: document.getElementById('outCameraInput'),
+        browseBtn:   document.getElementById('outBrowseBtn'),
+        cameraBtn:   document.getElementById('outCameraBtn'),
+        dropZone:    document.getElementById('outDropZone'),
+        errorEl:     document.getElementById('outPhotoError'),
+        previewGrid: document.getElementById('outPhotoPreview'),
+        counterEl:   document.getElementById('outPhotoCounter'),
+        max: 5,
+    });
 </script>
 @endpush
