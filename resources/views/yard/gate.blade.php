@@ -613,6 +613,13 @@
         // Camera input change — single capture, add to accumulator
         cfg.cameraInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
 
+        // Re-sync dt → fileInput right before the form submits so that
+        // this.value='' (needed to allow re-selecting the same file) does not
+        // leave an empty FileList in the input at submission time.
+        cfg.fileInput.form.addEventListener('submit', function () {
+            cfg.fileInput.files = dt.files;
+        }, { capture: true });
+
         // Drag & drop
         cfg.dropZone.addEventListener('dragover',  e => { e.preventDefault(); cfg.dropZone.style.background = '#e8f0fe'; });
         cfg.dropZone.addEventListener('dragleave', () => { cfg.dropZone.style.background = ''; });
