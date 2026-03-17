@@ -135,6 +135,25 @@
                             <textarea name="remarks" class="form-control" rows="2"
                                       placeholder="Any remarks about this container…"></textarea>
                         </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Gate In Date &amp; Time
+                                @if(!auth()->user()->isAdmin())
+                                    <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">
+                                        <i class="bi bi-lock me-1"></i>Auto
+                                    </span>
+                                @endif
+                            </label>
+                            <input type="datetime-local" name="gate_in_time"
+                                   id="gateInTime"
+                                   class="form-control"
+                                   value="{{ now()->format('Y-m-d\TH:i') }}"
+                                   {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
+                            @if(!auth()->user()->isAdmin())
+                                <div class="form-text text-muted" style="font-size:.72rem;">
+                                    <i class="bi bi-info-circle me-1"></i>Date/time is set automatically. Only administrators can change it.
+                                </div>
+                            @endif
+                        </div>
                     </div>
 
                     <!-- Photo Evidence -->
@@ -233,6 +252,25 @@
                             <textarea name="remarks" class="form-control" rows="2"
                                       placeholder="Any remarks…"></textarea>
                         </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Gate Out Date &amp; Time
+                                @if(!auth()->user()->isAdmin())
+                                    <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">
+                                        <i class="bi bi-lock me-1"></i>Auto
+                                    </span>
+                                @endif
+                            </label>
+                            <input type="datetime-local" name="gate_out_time"
+                                   id="gateOutTime"
+                                   class="form-control"
+                                   value="{{ now()->format('Y-m-d\TH:i') }}"
+                                   {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
+                            @if(!auth()->user()->isAdmin())
+                                <div class="form-text text-muted" style="font-size:.72rem;">
+                                    <i class="bi bi-info-circle me-1"></i>Date/time is set automatically. Only administrators can change it.
+                                </div>
+                            @endif
+                        </div>
                     </div>
 
                     <!-- Photo Evidence -->
@@ -309,9 +347,16 @@
                                     {{ $mv->customer?->name }} &nbsp;·&nbsp; {{ $mv->vehicle_plate }}
                                 </div>
                             </div>
-                            <span class="badge rounded-pill {{ $mv->movement_status === 'done' ? 'bg-success' : 'bg-warning text-dark' }}" style="font-size:.65rem;">
-                                {{ ucfirst($mv->movement_status) }}
-                            </span>
+                            <div class="d-flex flex-column align-items-end gap-1">
+                                <span class="badge rounded-pill {{ $mv->movement_status === 'done' ? 'bg-success' : 'bg-warning text-dark' }}" style="font-size:.65rem;">
+                                    {{ ucfirst($mv->movement_status) }}
+                                </span>
+                                <a href="{{ route('yard.movements.edit', $mv) }}"
+                                   class="btn btn-outline-secondary btn-sm py-0 px-1"
+                                   style="font-size:.65rem;line-height:1.5;" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                     @empty

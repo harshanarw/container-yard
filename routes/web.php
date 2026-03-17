@@ -70,6 +70,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/container/{containerNo}', [YardController::class, 'lookup'])->name('container.lookup');
         Route::get('/tariff/{customerId}', [YardController::class, 'tariffLookup'])->name('tariff.lookup');
         Route::get('/survey/{survey}', [YardController::class, 'surveyLookup'])->name('survey.lookup');
+        Route::get('/movements/{movement}/edit',            [YardController::class, 'editMovement'])->name('movements.edit');
+        Route::patch('/movements/{movement}',             [YardController::class, 'updateMovement'])->name('movements.update');
+        Route::delete('/movements/{movement}/photos/{photo}', [YardController::class, 'destroyMovementPhoto'])->name('movements.photo.destroy');
     });
 
     // Reports

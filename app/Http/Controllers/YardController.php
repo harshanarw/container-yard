@@ -72,6 +72,7 @@ class YardController extends Controller
             'seal_no'           => ['nullable', 'string', 'max:20'],
             'vehicle_plate'     => ['nullable', 'string', 'max:20'],
             'remarks'           => ['nullable', 'string'],
+            'gate_in_time'      => ['nullable', 'date'],
             'photos'            => ['nullable', 'array', 'max:5'],
             'photos.*'          => ['image', 'max:5120'],
         ]);
@@ -113,7 +114,9 @@ class YardController extends Controller
             'cargo_status'    => $validated['cargo_status'],
             'seal_no'         => $validated['seal_no'],
             'vehicle_plate'   => $validated['vehicle_plate'],
-            'gate_in_time'    => now(),
+            'gate_in_time'    => (auth()->user()->isAdmin() && !empty($validated['gate_in_time']))
+                                      ? now()->parse($validated['gate_in_time'])
+                                      : now(),
             'movement_status' => 'done',
             'remarks'         => $validated['remarks'],
             'created_by'      => auth()->id(),
@@ -175,13 +178,14 @@ class YardController extends Controller
     {
         $validated = $request->validate([
             'container_no'  => ['required', 'string', 'exists:containers,container_no'],
-            'vehicle_plate' => ['required', 'string', 'max:20'],
-            'driver_name'   => ['required', 'string', 'max:255'],
-            'driver_ic'     => ['required', 'string', 'max:30'],
-            'release_order' => ['required', 'string', 'max:50'],
-            'remarks'       => ['nullable', 'string'],
-            'photos'        => ['nullable', 'array', 'max:5'],
-            'photos.*'      => ['image', 'max:5120'],
+            'vehicle_plate'  => ['required', 'string', 'max:20'],
+            'driver_name'    => ['required', 'string', 'max:255'],
+            'driver_ic'      => ['required', 'string', 'max:30'],
+            'release_order'  => ['required', 'string', 'max:50'],
+            'remarks'        => ['nullable', 'string'],
+            'gate_out_time'  => ['nullable', 'date'],
+            'photos'         => ['nullable', 'array', 'max:5'],
+            'photos.*'       => ['image', 'max:5120'],
         ]);
 
         $container = Container::where('container_no', $validated['container_no'])->firstOrFail();
@@ -203,7 +207,9 @@ class YardController extends Controller
             'driver_name'     => $validated['driver_name'],
             'driver_ic'       => $validated['driver_ic'],
             'release_order'   => $validated['release_order'],
-            'gate_out_time'   => now(),
+            'gate_out_time'   => (auth()->user()->isAdmin() && !empty($validated['gate_out_time']))
+                                       ? now()->parse($validated['gate_out_time'])
+                                       : now(),
             'movement_status' => 'done',
             'remarks'         => $validated['remarks'],
             'created_by'      => auth()->id(),
@@ -260,6 +266,116 @@ class YardController extends Controller
 
         return redirect()->route('yard.gate')
             ->with('success', "Gate OUT recorded for {$container->container_no}.");
+    }
+
+    // -------------------------------------------------------------------------
+    // Gate Movement Edit
+    // -------------------------------------------------------------------------
+    public function editMovement(GateMovement $movement)
+    {
+        $movement->load(['container', 'customer', 'photos']);
+        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $equipmentTypes = EquipmentType::active()->get();
+
+        return view('yard.movement-edit', compact('movement', 'customers', 'equipmentTypes'));
+    }
+
+    public function updateMovement(Request $request, GateMovement $movement)
+    {
+        $isAdmin = auth()->user()->isAdmin();
+
+        $rules = [
+            'vehicle_plate' => ['nullable', 'string', 'max:20'],
+            'remarks'       => ['nullable', 'string'],
+            'condition'     => ['nullable', 'in:sound,damaged,require_repair'],
+            'cargo_status'  => ['nullable', 'in:empty,full'],
+            'seal_no'       => ['nullable', 'string', 'max:20'],
+            'photos'        => ['nullable', 'array', 'max:5'],
+            'photos.*'      => ['image', 'max:5120'],
+        ];
+
+        if ($movement->movement_type === 'in') {
+            $rules['equipment_type_id'] = ['nullable', 'exists:equipment_types,id'];
+            $rules['customer_id']       = ['nullable', 'exists:customers,id'];
+            $rules['location_row']      = ['nullable', 'string', 'max:5'];
+            $rules['location_bay']      = ['nullable', 'integer', 'min:1', 'max:8'];
+            $rules['location_tier']     = ['nullable', 'integer', 'min:1', 'max:5'];
+            if ($isAdmin) {
+                $rules['gate_in_time']  = ['nullable', 'date'];
+            }
+        } else {
+            $rules['driver_name']    = ['nullable', 'string', 'max:255'];
+            $rules['driver_ic']      = ['nullable', 'string', 'max:30'];
+            $rules['release_order']  = ['nullable', 'string', 'max:50'];
+            if ($isAdmin) {
+                $rules['gate_out_time'] = ['nullable', 'date'];
+            }
+        }
+
+        $validated = $request->validate($rules);
+
+        $updateData = array_filter([
+            'vehicle_plate' => $validated['vehicle_plate'] ?? null,
+            'remarks'       => $validated['remarks'] ?? null,
+            'condition'     => $validated['condition'] ?? null,
+            'cargo_status'  => $validated['cargo_status'] ?? null,
+            'seal_no'       => $validated['seal_no'] ?? null,
+        ], fn ($v) => $v !== null);
+
+        if ($movement->movement_type === 'in') {
+            if (!empty($validated['equipment_type_id'])) {
+                $eqt = EquipmentType::find($validated['equipment_type_id']);
+                $updateData['size']            = $eqt->size;
+                $updateData['container_type']  = $eqt->type_code;
+            }
+            foreach (['customer_id', 'location_row', 'location_bay', 'location_tier'] as $field) {
+                if (!empty($validated[$field])) {
+                    $updateData[$field] = $validated[$field];
+                }
+            }
+            if ($isAdmin && !empty($validated['gate_in_time'])) {
+                $updateData['gate_in_time'] = now()->parse($validated['gate_in_time']);
+            }
+        } else {
+            foreach (['driver_name', 'driver_ic', 'release_order'] as $field) {
+                if (!empty($validated[$field])) {
+                    $updateData[$field] = $validated[$field];
+                }
+            }
+            if ($isAdmin && !empty($validated['gate_out_time'])) {
+                $updateData['gate_out_time'] = now()->parse($validated['gate_out_time']);
+            }
+        }
+
+        $movement->update($updateData);
+
+        // Save additional photos
+        if (!empty($validated['photos'])) {
+            foreach ($validated['photos'] as $photo) {
+                $dir  = "gate-movements/{$movement->movement_type}/{$movement->id}";
+                $path = $photo->store($dir, 'public');
+                GateMovementPhoto::create([
+                    'gate_movement_id' => $movement->id,
+                    'photo_path'       => $path,
+                    'movement_type'    => $movement->movement_type,
+                    'uploaded_by'      => auth()->id(),
+                ]);
+            }
+        }
+
+        return redirect()->route('yard.gate')
+            ->with('success', "Gate movement #{$movement->id} updated successfully.");
+    }
+
+    public function destroyMovementPhoto(GateMovement $movement, GateMovementPhoto $photo)
+    {
+        if ($photo->gate_movement_id !== $movement->id) {
+            abort(403);
+        }
+        Storage::disk('public')->delete($photo->photo_path);
+        $photo->delete();
+
+        return back()->with('success', 'Photo removed.');
     }
 
     // -------------------------------------------------------------------------
