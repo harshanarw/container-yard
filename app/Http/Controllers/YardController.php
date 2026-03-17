@@ -6,6 +6,7 @@ use App\Models\Container;
 use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\GateMovement;
+use App\Models\Inquiry;
 use App\Models\StorageMasterHeader;
 use App\Models\YardLocation;
 use App\Models\YardStorage;
@@ -52,7 +53,13 @@ class YardController extends Controller
             ->orderBy('row')->orderBy('bay')->orderBy('tier')
             ->get();
 
-        return view('yard.gate', compact('recentMovements', 'customers', 'emptySlots', 'equipmentTypes'));
+        // Open surveys available for gate-in linking
+        $openSurveys = Inquiry::with(['container', 'equipmentType', 'customer'])
+            ->whereIn('status', ['open', 'in_progress'])
+            ->latest()
+            ->get();
+
+        return view('yard.gate', compact('recentMovements', 'customers', 'emptySlots', 'equipmentTypes', 'openSurveys'));
     }
 
     public function gateIn(Request $request)
@@ -69,6 +76,7 @@ class YardController extends Controller
             'seal_no'           => ['nullable', 'string', 'max:20'],
             'vehicle_plate'     => ['nullable', 'string', 'max:20'],
             'remarks'           => ['nullable', 'string'],
+            'survey_id'         => ['nullable', 'exists:inquiries,id'],
         ]);
 
         $eqt = EquipmentType::findOrFail($validated['equipment_type_id']);
@@ -96,6 +104,7 @@ class YardController extends Controller
         // Record gate movement
         GateMovement::create([
             'container_id'    => $container->id,
+            'survey_id'       => $validated['survey_id'] ?? null,
             'container_no'    => $container->container_no,
             'customer_id'     => $validated['customer_id'],
             'movement_type'   => 'in',
@@ -317,6 +326,27 @@ class YardController extends Controller
             'chargeable_days' => $chargeableDays,
             'daily_rate'      => $storage->daily_rate,
             'subtotal'        => round($subtotal, 2),
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Survey Lookup (AJAX) — returns survey data for gate-in auto-fill
+    // -------------------------------------------------------------------------
+    public function surveyLookup(Inquiry $survey)
+    {
+        $survey->load(['container', 'equipmentType', 'customer']);
+
+        return response()->json([
+            'id'                => $survey->id,
+            'survey_no'         => $survey->inquiry_no,
+            'container_no'      => $survey->container_no,
+            'equipment_type_id' => $survey->equipment_type_id,
+            'eqt_code'          => $survey->equipmentType?->eqt_code,
+            'size'              => $survey->size,
+            'type_code'         => $survey->type_code,
+            'customer_id'       => $survey->customer_id,
+            'customer_name'     => $survey->customer?->name,
+            'condition'         => $survey->overall_condition,
         ]);
     }
 

@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\InquiryController;
+use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StorageBillingController;
@@ -43,7 +44,11 @@ Route::middleware(['auth'])->group(function () {
     // Container Management
     Route::resource('containers', ContainerController::class);
 
-    // Container Inquiries
+    // Container Surveys (formerly Inquiries)
+    Route::resource('surveys', SurveyController::class);
+    Route::delete('surveys/{survey}/photos/{photo}', [SurveyController::class, 'destroyPhoto'])->name('surveys.photos.destroy');
+
+    // Container Inquiries (legacy — kept for backward compatibility with estimates)
     Route::resource('inquiries', InquiryController::class);
     Route::delete('inquiries/{inquiry}/photos/{photo}', [InquiryController::class, 'destroyPhoto'])->name('inquiries.photos.destroy');
 
@@ -64,6 +69,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/storage/calculate', [YardController::class, 'calculate'])->name('storage.calculate');
         Route::get('/container/{containerNo}', [YardController::class, 'lookup'])->name('container.lookup');
         Route::get('/tariff/{customerId}', [YardController::class, 'tariffLookup'])->name('tariff.lookup');
+        Route::get('/survey/{survey}', [YardController::class, 'surveyLookup'])->name('survey.lookup');
     });
 
     // Reports

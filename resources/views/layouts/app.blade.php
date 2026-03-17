@@ -308,9 +308,9 @@
         <div class="nav-section-label">Operations</div>
         <ul class="nav flex-column">
             <li class="nav-item">
-                <a href="{{ route('inquiries.index') }}"
-                   class="nav-link {{ request()->routeIs('inquiries.*') ? 'active' : '' }}">
-                    <i class="bi bi-card-checklist"></i><span>Container Inquiries</span>
+                <a href="{{ route('surveys.index') }}"
+                   class="nav-link {{ request()->routeIs('surveys.*') ? 'active' : '' }}">
+                    <i class="bi bi-card-checklist"></i><span>Container Surveys</span>
                 </a>
             </li>
             <li class="nav-item">

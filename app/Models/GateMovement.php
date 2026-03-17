@@ -10,7 +10,7 @@ class GateMovement extends Model
     use HasFactory;
 
     protected $fillable = [
-        'container_id', 'container_no', 'customer_id', 'movement_type', 'size',
+        'container_id', 'survey_id', 'container_no', 'customer_id', 'movement_type', 'size',
         'container_type', 'location_row', 'location_bay', 'location_tier',
         'condition', 'cargo_status', 'seal_no', 'vehicle_plate', 'driver_name',
         'driver_ic', 'release_order', 'gate_in_time', 'gate_out_time',
@@ -36,5 +36,10 @@ class GateMovement extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function survey()
+    {
+        return $this->belongsTo(\App\Models\Inquiry::class, 'survey_id');
     }
 }

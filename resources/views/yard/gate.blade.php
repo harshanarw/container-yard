@@ -40,6 +40,36 @@
                 <form method="POST" action="{{ route('yard.gate.in') }}" id="gateInForm">
                     @csrf
                     <input type="hidden" name="movement_type" value="in">
+                    <input type="hidden" name="survey_id" id="gateInSurveyId">
+
+                    <!-- Optional: Link to existing survey -->
+                    @if($openSurveys->isNotEmpty())
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-card-checklist me-1 text-primary"></i>Link to Survey
+                            <span class="text-muted fw-normal small">(optional — auto-fills container data)</span>
+                        </label>
+                        <select id="surveySelectIn" class="form-select select2">
+                            <option value="">— Select Survey to auto-fill —</option>
+                            @foreach($openSurveys as $srv)
+                            <option value="{{ $srv->id }}"
+                                    data-survey-no="{{ $srv->inquiry_no }}"
+                                    data-container-no="{{ $srv->container_no }}"
+                                    data-eqt-id="{{ $srv->equipment_type_id }}"
+                                    data-customer-id="{{ $srv->customer_id }}"
+                                    data-condition="{{ $srv->overall_condition }}">
+                                {{ $srv->inquiry_no }} — {{ $srv->container_no }}
+                                @if($srv->customer) ({{ $srv->customer->name }}) @endif
+                            </option>
+                            @endforeach
+                        </select>
+                        <div id="surveyLinkedAlert" class="alert alert-success py-1 small mt-1 d-none">
+                            <i class="bi bi-check-circle me-1"></i>
+                            Survey <strong id="surveyLinkedNo"></strong> linked — form auto-filled.
+                            <button type="button" class="btn-close btn-sm float-end" id="clearSurveyLink"></button>
+                        </div>
+                    </div>
+                    @endif
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Container Number <span class="text-danger">*</span></label>
@@ -303,6 +333,69 @@
     document.getElementById('containerNoIn').addEventListener('input', function () {
         this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     });
+
+    // Survey auto-fill for Gate In
+    (function () {
+        const surveySelect = document.getElementById('surveySelectIn');
+        if (!surveySelect) return;
+
+        const surveyIdHidden = document.getElementById('gateInSurveyId');
+        const containerNoIn  = document.getElementById('containerNoIn');
+        const eqtSelect      = document.getElementById('gateEqtSelect');
+        const customerSelect = document.querySelector('[name="customer_id"]');
+        const alertBox       = document.getElementById('surveyLinkedAlert');
+        const alertNo        = document.getElementById('surveyLinkedNo');
+        const clearBtn       = document.getElementById('clearSurveyLink');
+
+        function applyEqtBadges(opt) {
+            const sizeHid   = document.getElementById('gateEqtSize');
+            const typeHid   = document.getElementById('gateEqtTypeCode');
+            const sizeBadge = document.getElementById('gateEqtSizeBadge');
+            const typeBadge = document.getElementById('gateEqtTypeBadge');
+            if (!opt || !opt.value) return;
+            sizeHid.value = opt.dataset.size || '';
+            typeHid.value = opt.dataset.type || '';
+            if (opt.dataset.size) { sizeBadge.textContent = opt.dataset.size + "'"; sizeBadge.classList.remove('d-none'); }
+            if (opt.dataset.type) { typeBadge.textContent = opt.dataset.type; typeBadge.classList.remove('d-none'); }
+        }
+
+        surveySelect.addEventListener('change', function () {
+            const opt = this.selectedOptions[0];
+            if (!opt || !opt.value) {
+                clearSurvey();
+                return;
+            }
+
+            // Auto-fill form fields
+            if (containerNoIn && opt.dataset.containerNo) {
+                containerNoIn.value = opt.dataset.containerNo;
+            }
+
+            if (eqtSelect && opt.dataset.eqtId) {
+                eqtSelect.value = opt.dataset.eqtId;
+                applyEqtBadges(eqtSelect.selectedOptions[0]);
+            }
+
+            if (customerSelect && opt.dataset.customerId) {
+                customerSelect.value = opt.dataset.customerId;
+                // Trigger change for Select2 if used
+                if (typeof $ !== 'undefined') $(customerSelect).trigger('change');
+            }
+
+            surveyIdHidden.value = opt.value;
+            alertNo.textContent  = opt.dataset.surveyNo;
+            alertBox.classList.remove('d-none');
+        });
+
+        function clearSurvey() {
+            surveyIdHidden.value = '';
+            alertBox.classList.add('d-none');
+            surveySelect.value = '';
+            if (typeof $ !== 'undefined') $(surveySelect).trigger('change');
+        }
+
+        clearBtn.addEventListener('click', clearSurvey);
+    })();
 
     // Equipment Type auto-fill
     (function () {
