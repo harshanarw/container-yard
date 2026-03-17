@@ -613,18 +613,6 @@
         // Camera input change — single capture, add to accumulator
         cfg.cameraInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
 
-        // Inject accumulated files into the outgoing request.
-        // The `formdata` event fires during form serialisation (Chrome 77+,
-        // Edge 79+, Firefox 72+), giving direct access to the FormData that
-        // the browser is about to send — more reliable than input.files= which
-        // gets wiped by value='' on Windows Chrome/Edge.
-        const form = cfg.fileInput.closest('form');
-        form.addEventListener('formdata', function (e) {
-            Array.from(dt.files).forEach(function (file) {
-                e.formData.append('photos[]', file);
-            });
-        });
-
         // Drag & drop
         cfg.dropZone.addEventListener('dragover',  e => { e.preventDefault(); cfg.dropZone.style.background = '#e8f0fe'; });
         cfg.dropZone.addEventListener('dragleave', () => { cfg.dropZone.style.background = ''; });
@@ -632,6 +620,43 @@
             e.preventDefault();
             cfg.dropZone.style.background = '';
             addFiles(e.dataTransfer.files);
+        });
+
+        // Submit via fetch so we control exactly what goes into the request body.
+        // Native form submission + DataTransfer does not reliably send files on
+        // Windows Chrome/Edge because input.files assignments are discarded and
+        // the formdata event does not fire for native submits in all builds.
+        const form = cfg.fileInput.closest('form');
+        const submitBtn = form.querySelector('[type="submit"]');
+        const origBtnHtml = submitBtn.innerHTML;
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…';
+
+            const fd = new FormData(form);
+            // Attach accumulated photos directly into the FormData
+            Array.from(dt.files).forEach(function (file) {
+                fd.append('photos[]', file);
+            });
+
+            fetch(form.action, {
+                method: 'POST',
+                body: fd,
+                redirect: 'manual',   // stop at the 302; don't let fetch consume the session flash
+            })
+            .then(function () {
+                // Server always redirects (success → gate page, failure → back).
+                // Reload the current page so Laravel's session flash is read once
+                // by the browser's GET request and displayed correctly.
+                window.location.reload();
+            })
+            .catch(function () {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origBtnHtml;
+            });
         });
     }
 
