@@ -1,0 +1,6 @@
+*
+!in/
+!out/
+!in/.gitkeep
+!out/.gitkeep
+!.gitignore

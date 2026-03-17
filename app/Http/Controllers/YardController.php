@@ -24,9 +24,13 @@ class YardController extends Controller
     private function saveMovementPhoto($file, string $type, int $movementId): string
     {
         $dir = public_path("images/gate-movements/{$type}/{$movementId}");
-        File::ensureDirectoryExists($dir);
 
-        $filename = Str::random(16) . '.' . $file->getClientOriginalExtension();
+        if (!File::isDirectory($dir)) {
+            File::makeDirectory($dir, 0775, true, true);
+        }
+
+        $ext      = $file->getClientOriginalExtension() ?: 'jpg';
+        $filename = Str::random(16) . '.' . $ext;
         $file->move($dir, $filename);
 
         return "images/gate-movements/{$type}/{$movementId}/{$filename}";
@@ -139,15 +143,20 @@ class YardController extends Controller
         ]);
 
         // Save gate-in photos
+        $photoError = null;
         if (!empty($validated['photos'])) {
-            foreach ($validated['photos'] as $photo) {
-                $path = $this->saveMovementPhoto($photo, 'in', $movement->id);
-                GateMovementPhoto::create([
-                    'gate_movement_id' => $movement->id,
-                    'photo_path'       => $path,
-                    'movement_type'    => 'in',
-                    'uploaded_by'      => auth()->id(),
-                ]);
+            try {
+                foreach ($validated['photos'] as $photo) {
+                    $path = $this->saveMovementPhoto($photo, 'in', $movement->id);
+                    GateMovementPhoto::create([
+                        'gate_movement_id' => $movement->id,
+                        'photo_path'       => $path,
+                        'movement_type'    => 'in',
+                        'uploaded_by'      => auth()->id(),
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                $photoError = 'Movement saved, but photo upload failed: ' . $e->getMessage();
             }
         }
 
@@ -186,8 +195,14 @@ class YardController extends Controller
             'daily_rate'   => $dailyRate,
         ]);
 
-        return redirect()->route('yard.gate')
+        $redirect = redirect()->route('yard.gate')
             ->with('success', "Gate IN recorded for {$container->container_no}.");
+
+        if ($photoError) {
+            $redirect->with('warning', $photoError);
+        }
+
+        return $redirect;
     }
 
     public function gateOut(Request $request)
@@ -232,15 +247,20 @@ class YardController extends Controller
         ]);
 
         // Save gate-out photos
+        $photoError = null;
         if (!empty($validated['photos'])) {
-            foreach ($validated['photos'] as $photo) {
-                $path = $this->saveMovementPhoto($photo, 'out', $movement->id);
-                GateMovementPhoto::create([
-                    'gate_movement_id' => $movement->id,
-                    'photo_path'       => $path,
-                    'movement_type'    => 'out',
-                    'uploaded_by'      => auth()->id(),
-                ]);
+            try {
+                foreach ($validated['photos'] as $photo) {
+                    $path = $this->saveMovementPhoto($photo, 'out', $movement->id);
+                    GateMovementPhoto::create([
+                        'gate_movement_id' => $movement->id,
+                        'photo_path'       => $path,
+                        'movement_type'    => 'out',
+                        'uploaded_by'      => auth()->id(),
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                $photoError = 'Movement saved, but photo upload failed: ' . $e->getMessage();
             }
         }
 
@@ -280,8 +300,14 @@ class YardController extends Controller
             'location_tier' => null,
         ]);
 
-        return redirect()->route('yard.gate')
+        $redirect = redirect()->route('yard.gate')
             ->with('success', "Gate OUT recorded for {$container->container_no}.");
+
+        if ($photoError) {
+            $redirect->with('warning', $photoError);
+        }
+
+        return $redirect;
     }
 
     // -------------------------------------------------------------------------
@@ -366,20 +392,31 @@ class YardController extends Controller
         $movement->update($updateData);
 
         // Save additional photos
+        $photoError = null;
         if (!empty($validated['photos'])) {
-            foreach ($validated['photos'] as $photo) {
-                $path = $this->saveMovementPhoto($photo, $movement->movement_type, $movement->id);
-                GateMovementPhoto::create([
-                    'gate_movement_id' => $movement->id,
-                    'photo_path'       => $path,
-                    'movement_type'    => $movement->movement_type,
-                    'uploaded_by'      => auth()->id(),
-                ]);
+            try {
+                foreach ($validated['photos'] as $photo) {
+                    $path = $this->saveMovementPhoto($photo, $movement->movement_type, $movement->id);
+                    GateMovementPhoto::create([
+                        'gate_movement_id' => $movement->id,
+                        'photo_path'       => $path,
+                        'movement_type'    => $movement->movement_type,
+                        'uploaded_by'      => auth()->id(),
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                $photoError = 'Changes saved, but photo upload failed: ' . $e->getMessage();
             }
         }
 
-        return redirect()->route('yard.gate')
+        $redirect = redirect()->route('yard.movements.edit', $movement)
             ->with('success', "Gate movement #{$movement->id} updated successfully.");
+
+        if ($photoError) {
+            $redirect->with('warning', $photoError);
+        }
+
+        return $redirect;
     }
 
     public function destroyMovementPhoto(GateMovement $movement, GateMovementPhoto $photo)
