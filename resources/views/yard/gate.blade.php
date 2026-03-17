@@ -55,7 +55,8 @@
                         <div class="input-group">
                             <input type="text" name="container_no" id="containerNoIn"
                                    class="form-control font-monospace text-uppercase"
-                                   placeholder="XXXX0000000" required autocomplete="off">
+                                   placeholder="XXXX0000000" required autocomplete="off"
+                                   maxlength="11">
                             <button type="button" class="btn btn-outline-secondary" id="scanBtn" title="Scan">
                                 <i class="bi bi-upc-scan"></i>
                             </button>
@@ -432,10 +433,75 @@
         btnIn.classList.replace('btn-primary','btn-outline-primary');
     });
 
-    // Auto-format container number
-    document.getElementById('containerNoIn').addEventListener('input', function () {
-        this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    });
+    // Container number: 4 letters then 7 digits, max 11 chars
+    (function () {
+        const inp = document.getElementById('containerNoIn');
+
+        // Enforce positional rules on keydown (blocks wrong key before it appears)
+        inp.addEventListener('keydown', function (e) {
+            const ctrl = e.ctrlKey || e.metaKey;
+            const nav  = ['Backspace','Delete','ArrowLeft','ArrowRight',
+                          'Home','End','Tab','Enter'].includes(e.key);
+            if (ctrl || nav) return;               // always allow control keys
+
+            const pos = this.selectionStart;
+            const sel = this.selectionEnd;
+            const atEnd = pos === sel;             // no text selected
+
+            // Block if already at 11 chars and nothing is selected
+            if (this.value.length >= 11 && atEnd) { e.preventDefault(); return; }
+
+            // Position 0-3 → letters only; position 4-10 → digits only
+            if (pos < 4) {
+                if (!/^[A-Za-z]$/.test(e.key)) { e.preventDefault(); return; }
+            } else {
+                if (!/^[0-9]$/.test(e.key)) { e.preventDefault(); return; }
+            }
+        });
+
+        // Sanitise pasted / auto-filled values
+        inp.addEventListener('input', function () {
+            const cursor = this.selectionStart;
+            const raw    = this.value.toUpperCase();
+            let out = '', letters = 0, digits = 0;
+
+            for (let i = 0; i < raw.length; i++) {
+                if (letters < 4 && /[A-Z]/.test(raw[i]))        { out += raw[i]; letters++; }
+                else if (letters === 4 && digits < 7 && /[0-9]/.test(raw[i])) { out += raw[i]; digits++; }
+                if (out.length >= 11) break;
+            }
+
+            this.value = out;
+            // Restore cursor position so it doesn't jump to end
+            const newCursor = Math.min(cursor, out.length);
+            this.setSelectionRange(newCursor, newCursor);
+        });
+
+        // Live hint: show how many letters / digits still needed
+        const hint = document.createElement('div');
+        hint.className = 'form-text text-muted mt-1';
+        hint.id = 'containerNoHint';
+        inp.closest('.input-group').insertAdjacentElement('afterend', hint);
+
+        function updateHint() {
+            const v = inp.value;
+            const l = Math.min(v.length, 4);
+            const d = Math.max(v.length - 4, 0);
+            if (v.length === 0) {
+                hint.textContent = '4 letters + 7 digits required';
+            } else if (l < 4) {
+                hint.textContent = (4 - l) + ' more letter' + (4 - l > 1 ? 's' : '') + ' needed, then 7 digits';
+            } else if (d < 7) {
+                hint.textContent = (7 - d) + ' more digit' + (7 - d > 1 ? 's' : '') + ' needed';
+            } else {
+                hint.textContent = '';
+            }
+        }
+
+        inp.addEventListener('input', updateHint);
+        inp.addEventListener('focus', updateHint);
+        inp.addEventListener('blur',  function () { hint.textContent = ''; });
+    }());
 
     // Equipment Type auto-fill
     (function () {
