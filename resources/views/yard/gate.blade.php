@@ -175,7 +175,7 @@
                         </label>
 
                         {{-- Hidden inputs --}}
-                        <input type="file" id="inPhotoInput" name="photos[]"
+                        <input type="file" id="inPhotoInput"
                                multiple accept="image/*" class="d-none">
                         <input type="file" id="inCameraInput" accept="image/*"
                                capture="environment" class="d-none">
@@ -301,7 +301,7 @@
                         </label>
 
                         {{-- Hidden inputs --}}
-                        <input type="file" id="outPhotoInput" name="photos[]"
+                        <input type="file" id="outPhotoInput"
                                multiple accept="image/*" class="d-none">
                         <input type="file" id="outCameraInput" accept="image/*"
                                capture="environment" class="d-none">
@@ -613,12 +613,17 @@
         // Camera input change — single capture, add to accumulator
         cfg.cameraInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
 
-        // Re-sync dt → fileInput right before the form submits so that
-        // this.value='' (needed to allow re-selecting the same file) does not
-        // leave an empty FileList in the input at submission time.
-        cfg.fileInput.form.addEventListener('submit', function () {
-            cfg.fileInput.files = dt.files;
-        }, { capture: true });
+        // Inject accumulated files into the outgoing request.
+        // The `formdata` event fires during form serialisation (Chrome 77+,
+        // Edge 79+, Firefox 72+), giving direct access to the FormData that
+        // the browser is about to send — more reliable than input.files= which
+        // gets wiped by value='' on Windows Chrome/Edge.
+        const form = cfg.fileInput.closest('form');
+        form.addEventListener('formdata', function (e) {
+            Array.from(dt.files).forEach(function (file) {
+                e.formData.append('photos[]', file);
+            });
+        });
 
         // Drag & drop
         cfg.dropZone.addEventListener('dragover',  e => { e.preventDefault(); cfg.dropZone.style.background = '#e8f0fe'; });
