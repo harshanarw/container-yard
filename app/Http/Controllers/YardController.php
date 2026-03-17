@@ -13,6 +13,7 @@ use App\Models\YardLocation;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class YardController extends Controller
@@ -90,7 +91,19 @@ class YardController extends Controller
 
     public function gateIn(Request $request)
     {
-        $validated = $request->validate([
+        // ── Deep upload diagnostics ──────────────────────────────────────────
+        \Log::debug('[GateIn-PRE] PHP upload_max_filesize=' . ini_get('upload_max_filesize')
+                    . ' post_max_size=' . ini_get('post_max_size')
+                    . ' file_uploads=' . ini_get('file_uploads'));
+        \Log::debug('[GateIn-PRE] $_FILES keys: ' . json_encode(array_keys($_FILES)));
+        \Log::debug('[GateIn-PRE] request->allFiles(): ' . json_encode(
+            collect($request->allFiles())->map(fn($v) => is_array($v)
+                ? array_map(fn($f) => ['name'=>$f->getClientOriginalName(),'size'=>$f->getSize(),'err'=>$f->getError()], $v)
+                : ['name'=>$v->getClientOriginalName(),'size'=>$v->getSize(),'err'=>$v->getError()]
+            )->toArray()
+        ));
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all() + ['_files' => $request->allFiles()], [
             'container_no'      => ['required', 'string', 'max:12', 'regex:/^[A-Z]{4}[0-9]{7}$/'],
             'equipment_type_id' => ['required', 'exists:equipment_types,id'],
             'customer_id'       => ['required', 'exists:customers,id'],
@@ -106,6 +119,13 @@ class YardController extends Controller
             'photos'            => ['nullable', 'array', 'max:5'],
             'photos.*'          => ['image', 'max:5120'],
         ]);
+
+        if ($validator->fails()) {
+            \Log::debug('[GateIn-VALIDATION] failed: ' . json_encode($validator->errors()->toArray()));
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $validated = $validator->validated();
 
         $eqt = EquipmentType::findOrFail($validated['equipment_type_id']);
 
