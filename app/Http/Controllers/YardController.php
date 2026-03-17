@@ -25,13 +25,23 @@ class YardController extends Controller
     {
         $dir = public_path("images/gate-movements/{$type}/{$movementId}");
 
+        \Log::debug("[Photo] dir={$dir}");
+        \Log::debug("[Photo] file valid=" . ($file->isValid() ? 'yes' : 'no') .
+                    " size=" . $file->getSize() .
+                    " mime=" . $file->getMimeType() .
+                    " ext=" . $file->getClientOriginalExtension());
+
         if (!File::isDirectory($dir)) {
+            \Log::debug("[Photo] creating directory");
             File::makeDirectory($dir, 0775, true, true);
         }
 
         $ext      = $file->getClientOriginalExtension() ?: 'jpg';
         $filename = Str::random(16) . '.' . $ext;
+
+        \Log::debug("[Photo] moving to {$dir}/{$filename}");
         $file->move($dir, $filename);
+        \Log::debug("[Photo] saved ok");
 
         return "images/gate-movements/{$type}/{$movementId}/{$filename}";
     }
@@ -143,6 +153,7 @@ class YardController extends Controller
         ]);
 
         // Save gate-in photos
+        \Log::debug('[GateIn] photos count=' . count($validated['photos'] ?? []));
         $photoError = null;
         if (!empty($validated['photos'])) {
             try {
