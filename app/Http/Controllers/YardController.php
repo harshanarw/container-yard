@@ -12,10 +12,26 @@ use App\Models\StorageMasterHeader;
 use App\Models\YardLocation;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class YardController extends Controller
 {
+    // -------------------------------------------------------------------------
+    // Internal helper — save an uploaded photo to public/images/gate-movements/
+    // Returns the path relative to public/ (used as photo_path in DB).
+    // -------------------------------------------------------------------------
+    private function saveMovementPhoto($file, string $type, int $movementId): string
+    {
+        $dir = public_path("images/gate-movements/{$type}/{$movementId}");
+        File::ensureDirectoryExists($dir);
+
+        $filename = Str::random(16) . '.' . $file->getClientOriginalExtension();
+        $file->move($dir, $filename);
+
+        return "images/gate-movements/{$type}/{$movementId}/{$filename}";
+    }
+
     // -------------------------------------------------------------------------
     // Yard Overview (visual grid map)
     // -------------------------------------------------------------------------
@@ -123,9 +139,9 @@ class YardController extends Controller
         ]);
 
         // Save gate-in photos
-        if (isset($validated['photos'])) {
+        if (!empty($validated['photos'])) {
             foreach ($validated['photos'] as $photo) {
-                $path = $photo->store("gate-movements/in/{$movement->id}", 'public');
+                $path = $this->saveMovementPhoto($photo, 'in', $movement->id);
                 GateMovementPhoto::create([
                     'gate_movement_id' => $movement->id,
                     'photo_path'       => $path,
@@ -216,9 +232,9 @@ class YardController extends Controller
         ]);
 
         // Save gate-out photos
-        if (isset($validated['photos'])) {
+        if (!empty($validated['photos'])) {
             foreach ($validated['photos'] as $photo) {
-                $path = $photo->store("gate-movements/out/{$movement->id}", 'public');
+                $path = $this->saveMovementPhoto($photo, 'out', $movement->id);
                 GateMovementPhoto::create([
                     'gate_movement_id' => $movement->id,
                     'photo_path'       => $path,
@@ -352,8 +368,7 @@ class YardController extends Controller
         // Save additional photos
         if (!empty($validated['photos'])) {
             foreach ($validated['photos'] as $photo) {
-                $dir  = "gate-movements/{$movement->movement_type}/{$movement->id}";
-                $path = $photo->store($dir, 'public');
+                $path = $this->saveMovementPhoto($photo, $movement->movement_type, $movement->id);
                 GateMovementPhoto::create([
                     'gate_movement_id' => $movement->id,
                     'photo_path'       => $path,
@@ -372,7 +387,7 @@ class YardController extends Controller
         if ($photo->gate_movement_id !== $movement->id) {
             abort(403);
         }
-        Storage::disk('public')->delete($photo->photo_path);
+        @unlink(public_path($photo->photo_path));
         $photo->delete();
 
         return back()->with('success', 'Photo removed.');

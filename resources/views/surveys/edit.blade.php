@@ -321,7 +321,7 @@
                         @foreach($inquiry->photos as $photo)
                         <div class="col-6 col-md-4 col-lg-3" id="photo-col-{{ $photo->id }}">
                             <div class="card border shadow-sm existing-photo-card" style="overflow:hidden;">
-                                <img src="{{ asset('storage/' . $photo->photo_path) }}"
+                                <img src="{{ asset($photo->photo_path) }}"
                                      class="card-img-top"
                                      style="height:110px;object-fit:cover;"
                                      alt="photo"

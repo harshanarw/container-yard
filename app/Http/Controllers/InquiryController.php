@@ -14,7 +14,7 @@ use App\Models\InquiryChecklist;
 use App\Models\InquiryPhoto;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class InquiryController extends Controller
@@ -107,7 +107,7 @@ class InquiryController extends Controller
         // Save photos
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
-                $path = $photo->store("inquiries/{$inquiry->id}/photos", 'public');
+                $path = $this->saveInquiryPhoto($photo, $inquiry->id);
                 $inquiry->photos()->create([
                     'photo_path'  => $path,
                     'uploaded_by' => auth()->id(),
@@ -165,7 +165,7 @@ class InquiryController extends Controller
         // Append new photos
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
-                $path = $photo->store("inquiries/{$inquiry->id}/photos", 'public');
+                $path = $this->saveInquiryPhoto($photo, $inquiry->id);
                 $inquiry->photos()->create([
                     'photo_path'  => $path,
                     'uploaded_by' => auth()->id(),
@@ -179,7 +179,7 @@ class InquiryController extends Controller
 
     public function destroyPhoto(Inquiry $inquiry, InquiryPhoto $photo)
     {
-        Storage::disk('public')->delete($photo->photo_path);
+        @unlink(public_path($photo->photo_path));
         $photo->delete();
 
         return back()->with('success', 'Photo removed successfully.');
@@ -193,13 +193,24 @@ class InquiryController extends Controller
 
         // Delete all stored photo files
         foreach ($inquiry->photos as $photo) {
-            Storage::disk('public')->delete($photo->photo_path);
+            @unlink(public_path($photo->photo_path));
         }
 
         $inquiry->delete();
 
         return redirect()->route('inquiries.index')
             ->with('success', 'Inquiry deleted successfully.');
+    }
+
+    private function saveInquiryPhoto($file, int $inquiryId): string
+    {
+        $dir = public_path("images/inquiries/{$inquiryId}/photos");
+        File::ensureDirectoryExists($dir);
+
+        $filename = Str::random(16) . '.' . $file->getClientOriginalExtension();
+        $file->move($dir, $filename);
+
+        return "images/inquiries/{$inquiryId}/photos/{$filename}";
     }
 
     private function generateInquiryNo(): string

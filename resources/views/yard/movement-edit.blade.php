@@ -247,8 +247,8 @@
                         @foreach($movement->photos as $photo)
                         <div class="col-6" id="photo-col-{{ $photo->id }}">
                             <div class="position-relative" style="border-radius:6px;overflow:hidden;">
-                                <a href="{{ Storage::url($photo->photo_path) }}" target="_blank">
-                                    <img src="{{ Storage::url($photo->photo_path) }}"
+                                <a href="{{ asset($photo->photo_path) }}" target="_blank">
+                                    <img src="{{ asset($photo->photo_path) }}"
                                          style="width:100%;height:100px;object-fit:cover;" alt="">
                                 </a>
                                 <form method="POST"

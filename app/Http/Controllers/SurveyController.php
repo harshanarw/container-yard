@@ -14,7 +14,7 @@ use App\Models\InquiryChecklist;
 use App\Models\InquiryPhoto;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class SurveyController extends Controller
@@ -121,7 +121,7 @@ class SurveyController extends Controller
         // Save photos
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
-                $path = $photo->store("surveys/{$inquiry->id}/photos", 'public');
+                $path = $this->saveSurveyPhoto($photo, $inquiry->id);
                 $inquiry->photos()->create([
                     'photo_path'  => $path,
                     'uploaded_by' => auth()->id(),
@@ -179,7 +179,7 @@ class SurveyController extends Controller
         // Append new photos
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
-                $path = $photo->store("surveys/{$survey->id}/photos", 'public');
+                $path = $this->saveSurveyPhoto($photo, $survey->id);
                 $survey->photos()->create([
                     'photo_path'  => $path,
                     'uploaded_by' => auth()->id(),
@@ -193,7 +193,7 @@ class SurveyController extends Controller
 
     public function destroyPhoto(Inquiry $survey, InquiryPhoto $photo)
     {
-        Storage::disk('public')->delete($photo->photo_path);
+        @unlink(public_path($photo->photo_path));
         $photo->delete();
 
         return back()->with('success', 'Photo removed successfully.');
@@ -207,13 +207,24 @@ class SurveyController extends Controller
 
         // Delete all stored photo files
         foreach ($survey->photos as $photo) {
-            Storage::disk('public')->delete($photo->photo_path);
+            @unlink(public_path($photo->photo_path));
         }
 
         $survey->delete();
 
         return redirect()->route('surveys.index')
             ->with('success', 'Survey deleted successfully.');
+    }
+
+    private function saveSurveyPhoto($file, int $surveyId): string
+    {
+        $dir = public_path("images/surveys/{$surveyId}/photos");
+        File::ensureDirectoryExists($dir);
+
+        $filename = Str::random(16) . '.' . $file->getClientOriginalExtension();
+        $file->move($dir, $filename);
+
+        return "images/surveys/{$surveyId}/photos/{$filename}";
     }
 
     private function generateSurveyNo(): string

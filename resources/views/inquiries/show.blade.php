@@ -268,7 +268,7 @@
                              style="overflow:hidden;"
                              data-idx="{{ $idx }}"
                              onclick="openLightbox({{ $idx }})">
-                            <img src="{{ asset('storage/' . $photo->photo_path) }}"
+                            <img src="{{ asset($photo->photo_path) }}"
                                  class="card-img-top"
                                  style="height:110px;object-fit:cover;"
                                  alt="Photo {{ $idx + 1 }}"
@@ -455,7 +455,7 @@
 @push('scripts')
 <script>
     // ── Lightbox ──────────────────────────────────────────────
-    const photos  = @json($inquiry->photos->map(fn($p) => asset('storage/' . $p->photo_path)));
+    const photos  = @json($inquiry->photos->map(fn($p) => asset($p->photo_path)));
     let lbCurrent = 0;
 
     function openLightbox(idx) {
