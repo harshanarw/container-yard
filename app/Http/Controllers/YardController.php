@@ -88,7 +88,7 @@ class YardController extends Controller
             'seal_no'           => ['nullable', 'string', 'max:20'],
             'vehicle_plate'     => ['nullable', 'string', 'max:20'],
             'remarks'           => ['nullable', 'string'],
-            'gate_in_time'      => ['nullable', 'date'],
+            'gate_in_time'      => ['nullable', 'string', 'max:20'],
             'photos'            => ['nullable', 'array', 'max:5'],
             'photos.*'          => ['image', 'max:5120'],
         ]);
@@ -131,7 +131,7 @@ class YardController extends Controller
             'seal_no'         => $validated['seal_no'],
             'vehicle_plate'   => $validated['vehicle_plate'],
             'gate_in_time'    => (auth()->user()->isAdmin() && !empty($validated['gate_in_time']))
-                                      ? now()->parse($validated['gate_in_time'])
+                                      ? \Carbon\Carbon::parse($validated['gate_in_time'])
                                       : now(),
             'movement_status' => 'done',
             'remarks'         => $validated['remarks'],
@@ -199,7 +199,7 @@ class YardController extends Controller
             'driver_ic'      => ['required', 'string', 'max:30'],
             'release_order'  => ['required', 'string', 'max:50'],
             'remarks'        => ['nullable', 'string'],
-            'gate_out_time'  => ['nullable', 'date'],
+            'gate_out_time'  => ['nullable', 'string', 'max:20'],
             'photos'         => ['nullable', 'array', 'max:5'],
             'photos.*'       => ['image', 'max:5120'],
         ]);
@@ -224,7 +224,7 @@ class YardController extends Controller
             'driver_ic'       => $validated['driver_ic'],
             'release_order'   => $validated['release_order'],
             'gate_out_time'   => (auth()->user()->isAdmin() && !empty($validated['gate_out_time']))
-                                       ? now()->parse($validated['gate_out_time'])
+                                       ? \Carbon\Carbon::parse($validated['gate_out_time'])
                                        : now(),
             'movement_status' => 'done',
             'remarks'         => $validated['remarks'],
@@ -317,14 +317,14 @@ class YardController extends Controller
             $rules['location_bay']      = ['nullable', 'integer', 'min:1', 'max:8'];
             $rules['location_tier']     = ['nullable', 'integer', 'min:1', 'max:5'];
             if ($isAdmin) {
-                $rules['gate_in_time']  = ['nullable', 'date'];
+                $rules['gate_in_time']  = ['nullable', 'string', 'max:20'];
             }
         } else {
             $rules['driver_name']    = ['nullable', 'string', 'max:255'];
             $rules['driver_ic']      = ['nullable', 'string', 'max:30'];
             $rules['release_order']  = ['nullable', 'string', 'max:50'];
             if ($isAdmin) {
-                $rules['gate_out_time'] = ['nullable', 'date'];
+                $rules['gate_out_time'] = ['nullable', 'string', 'max:20'];
             }
         }
 
@@ -350,7 +350,7 @@ class YardController extends Controller
                 }
             }
             if ($isAdmin && !empty($validated['gate_in_time'])) {
-                $updateData['gate_in_time'] = now()->parse($validated['gate_in_time']);
+                $updateData['gate_in_time'] = \Carbon\Carbon::parse($validated['gate_in_time']);
             }
         } else {
             foreach (['driver_name', 'driver_ic', 'release_order'] as $field) {
@@ -359,7 +359,7 @@ class YardController extends Controller
                 }
             }
             if ($isAdmin && !empty($validated['gate_out_time'])) {
-                $updateData['gate_out_time'] = now()->parse($validated['gate_out_time']);
+                $updateData['gate_out_time'] = \Carbon\Carbon::parse($validated['gate_out_time']);
             }
         }
 

@@ -41,6 +41,15 @@
                     @csrf
                     <input type="hidden" name="movement_type" value="in">
 
+                    @if($errors->any())
+                    <div class="alert alert-danger py-2 small">
+                        <strong><i class="bi bi-exclamation-triangle me-1"></i>Please fix the following:</strong>
+                        <ul class="mb-0 mt-1 ps-3">
+                            @foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach
+                        </ul>
+                    </div>
+                    @endif
+
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Container Number <span class="text-danger">*</span></label>
                         <div class="input-group">
@@ -209,6 +218,15 @@
                 <form method="POST" action="{{ route('yard.gate.out') }}" id="gateOutForm" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="movement_type" value="out">
+
+                    @if($errors->any())
+                    <div class="alert alert-danger py-2 small">
+                        <strong><i class="bi bi-exclamation-triangle me-1"></i>Please fix the following:</strong>
+                        <ul class="mb-0 mt-1 ps-3">
+                            @foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach
+                        </ul>
+                    </div>
+                    @endif
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Container Number <span class="text-danger">*</span></label>
