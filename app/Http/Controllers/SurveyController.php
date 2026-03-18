@@ -172,7 +172,7 @@ class SurveyController extends Controller
 
     public function edit(Inquiry $survey)
     {
-        $survey->load(['damages', 'checklists']);
+        $survey->load(['damages', 'checklists', 'photos']);
         $inspectors     = User::where('role', 'inspector')->where('status', 'active')->get();
         $checklistItems = ChecklistMasterItem::active()->get();
 
@@ -181,47 +181,75 @@ class SurveyController extends Controller
 
     public function update(UpdateSurveyRequest $request, Inquiry $survey)
     {
-        $survey->update($request->only([
-            'inspector_id', 'inspection_date', 'priority',
-            'overall_condition', 'findings', 'recommended_action',
-            'status', 'estimated_repair_cost',
-        ]));
+        \Log::debug('[UpdateSurvey] update() reached — validation passed', [
+            'survey_id'  => $survey->id,
+            'wants_json' => $request->wantsJson(),
+            'accept'     => $request->header('Accept'),
+            'method'     => $request->method(),
+            '_method'    => $request->input('_method'),
+            'priority'   => $request->priority,
+            'status'     => $request->status,
+        ]);
 
-        // Replace damages
-        if ($request->has('damages')) {
-            $survey->damages()->delete();
-            foreach ($request->damages as $damage) {
-                $survey->damages()->create($damage);
+        try {
+            $survey->update($request->only([
+                'inspector_id', 'inspection_date', 'priority',
+                'overall_condition', 'findings', 'recommended_action',
+                'status', 'estimated_repair_cost',
+            ]));
+            \Log::debug('[UpdateSurvey] Survey fields updated');
+
+            // Replace damages
+            if ($request->has('damages')) {
+                $survey->damages()->delete();
+                foreach ($request->damages as $damage) {
+                    $survey->damages()->create($damage);
+                }
             }
-        }
+            \Log::debug('[UpdateSurvey] Damages replaced');
 
-        // Rebuild checklist from current master items so additions/removals are reflected
-        $masterItems = ChecklistMasterItem::active()->get();
-        $checked     = $request->checklist ?? [];
-        $survey->checklists()->delete();
-        foreach ($masterItems as $master) {
-            $survey->checklists()->create([
-                'checklist_item' => $master->code,
-                'is_checked'     => in_array($master->code, $checked),
-            ]);
-        }
-
-        // Append new photos
-        if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $photo) {
-                $path = $this->saveSurveyPhoto($photo, $survey->id);
-                $survey->photos()->create([
-                    'photo_path'  => $path,
-                    'uploaded_by' => auth()->id(),
+            // Rebuild checklist from current master items so additions/removals are reflected
+            $masterItems = ChecklistMasterItem::active()->get();
+            $checked     = $request->checklist ?? [];
+            $survey->checklists()->delete();
+            foreach ($masterItems as $master) {
+                $survey->checklists()->create([
+                    'checklist_item' => $master->code,
+                    'is_checked'     => in_array($master->code, $checked),
                 ]);
             }
-        }
+            \Log::debug('[UpdateSurvey] Checklist rebuilt');
 
-        if ($request->wantsJson()) {
-            return response()->json(['redirect' => route('surveys.show', $survey)]);
+            // Append new photos
+            $photoCount = $request->hasFile('photos') ? count($request->file('photos')) : 0;
+            \Log::debug('[UpdateSurvey] New photos count=' . $photoCount);
+            if ($request->hasFile('photos')) {
+                foreach ($request->file('photos') as $photo) {
+                    $path = $this->saveSurveyPhoto($photo, $survey->id);
+                    $survey->photos()->create([
+                        'photo_path'  => $path,
+                        'uploaded_by' => auth()->id(),
+                    ]);
+                }
+            }
+
+            $redirectUrl = route('surveys.show', $survey);
+            \Log::debug('[UpdateSurvey] Success — redirect=' . $redirectUrl . ' wants_json=' . ($request->wantsJson() ? 'yes' : 'no'));
+
+            if ($request->wantsJson()) {
+                return response()->json(['redirect' => $redirectUrl]);
+            }
+            return redirect()->route('surveys.show', $survey)
+                ->with('success', 'Survey updated successfully.');
+
+        } catch (\Exception $e) {
+            \Log::error('[UpdateSurvey] EXCEPTION: ' . $e->getMessage(), [
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
         }
-        return redirect()->route('surveys.show', $survey)
-            ->with('success', 'Survey updated successfully.');
     }
 
     public function destroyPhoto(Inquiry $survey, InquiryPhoto $photo)

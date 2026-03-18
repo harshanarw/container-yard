@@ -569,7 +569,7 @@
         if (_submitBtn) { _submitBtn.disabled = true; _submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…'; }
         const fd = new FormData(_form);
         files.forEach(function (file) { fd.append('photos[]', file); });
-        fetch(_form.action, { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } })
+        fetch(_form.getAttribute('action'), { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } })
             .then(function (response) {
                 return response.json().then(function (data) {
                     if (response.status === 422 && data.errors) {

@@ -3,12 +3,36 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
 
 class UpdateSurveyRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        \Log::debug('[UpdateSurvey-REQ] Incoming request', [
+            'wants_json'   => $this->wantsJson(),
+            'accept'       => $this->header('Accept'),
+            'method'       => $this->method(),
+            '_method'      => $this->input('_method'),
+            'survey_id'    => $this->route('survey')?->id,
+            'priority'     => $this->priority,
+            'status'       => $this->status,
+        ]);
+    }
+
+    protected function failedValidation(Validator $validator): void
+    {
+        \Log::debug('[UpdateSurvey-REQ] Validation FAILED', [
+            'errors'     => $validator->errors()->all(),
+            'wants_json' => $this->wantsJson(),
+            'accept'     => $this->header('Accept'),
+        ]);
+        parent::failedValidation($validator);
     }
 
     public function rules(): array
