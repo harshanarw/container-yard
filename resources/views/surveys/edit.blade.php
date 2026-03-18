@@ -331,14 +331,11 @@
                                      alt="photo"
                                      onerror="this.src='https://via.placeholder.com/200x110?text=Photo'">
                                 <div class="delete-overlay">
-                                    <form method="POST"
-                                          action="{{ route('surveys.photos.destroy', [$inquiry, $photo]) }}"
-                                          onsubmit="return confirm('Remove this photo?');">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm">
-                                            <i class="bi bi-trash me-1"></i>Remove
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-danger btn-sm remove-existing-photo"
+                                            data-url="{{ route('surveys.photos.destroy', [$inquiry, $photo]) }}"
+                                            data-col="photo-col-{{ $photo->id }}">
+                                        <i class="bi bi-trash me-1"></i>Remove
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -471,6 +468,28 @@
             const rows = document.querySelectorAll('.damage-row');
             if (rows.length > 1) e.target.closest('.damage-row').remove();
         }
+    });
+
+    // ── Existing photo removal (AJAX — avoids nested-form _method=DELETE conflict) ──
+    const _csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    document.getElementById('existingPhotos') && document.getElementById('existingPhotos').addEventListener('click', function (e) {
+        const btn = e.target.closest('.remove-existing-photo');
+        if (!btn) return;
+        if (!confirm('Remove this photo?')) return;
+        btn.disabled = true;
+        fetch(btn.dataset.url, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': _csrfToken },
+            body: new URLSearchParams({ '_method': 'DELETE' }),
+        }).then(function (r) {
+            if (r.ok) {
+                const col = document.getElementById(btn.dataset.col);
+                if (col) col.remove();
+            } else {
+                btn.disabled = false;
+                alert('Failed to remove photo. Please try again.');
+            }
+        }).catch(function () { btn.disabled = false; alert('Network error. Please try again.'); });
     });
 
     // ── Photo Uploader ────────────────────────────────────────

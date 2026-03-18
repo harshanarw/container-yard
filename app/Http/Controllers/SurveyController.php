@@ -260,6 +260,10 @@ class SurveyController extends Controller
         @unlink(public_path($photo->photo_path));
         $photo->delete();
 
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'Photo removed successfully.');
     }
 
