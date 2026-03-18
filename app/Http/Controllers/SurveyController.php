@@ -23,8 +23,11 @@ class SurveyController extends Controller
     {
         $inquiries = Inquiry::with(['container', 'customer', 'inspector', 'estimate'])
             ->when($request->search, fn ($q, $s) =>
-                $q->where('inquiry_no', 'like', "%{$s}%")
-                  ->orWhere('container_no', 'like', "%{$s}%")
+                $q->where(fn ($sub) =>
+                    $sub->where('inquiry_no', 'like', "%{$s}%")
+                        ->orWhere('container_no', 'like', "%{$s}%")
+                        ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$s}%"))
+                )
             )
             ->when($request->status,       fn ($q, $v) => $q->where('status', $v))
             ->when($request->priority,     fn ($q, $v) => $q->where('priority', $v))

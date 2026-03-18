@@ -60,7 +60,7 @@
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" name="search" class="form-control"
-                               placeholder="Survey no., container no.…"
+                               placeholder="Survey no., container, customer…"
                                value="{{ request('search') }}">
                     </div>
                 </div>
@@ -77,19 +77,29 @@
                 <div class="col-md-2">
                     <select name="inquiry_type" class="form-select form-select-sm">
                         <option value="">All Types</option>
-                        <option value="damage_survey"       {{ request('inquiry_type') === 'damage_survey'       ? 'selected' : '' }}>Damage Survey</option>
-                        <option value="pre_trip_inspection" {{ request('inquiry_type') === 'pre_trip_inspection' ? 'selected' : '' }}>Pre-trip Inspection</option>
-                        <option value="repair_assessment"   {{ request('inquiry_type') === 'repair_assessment'   ? 'selected' : '' }}>Repair Assessment</option>
-                        <option value="condition_survey"    {{ request('inquiry_type') === 'condition_survey'    ? 'selected' : '' }}>Condition Survey</option>
+                        <option value="damage_survey"           {{ request('inquiry_type') === 'damage_survey'           ? 'selected' : '' }}>Damage Survey</option>
+                        <option value="pre_trip_inspection"     {{ request('inquiry_type') === 'pre_trip_inspection'     ? 'selected' : '' }}>Pre-trip Inspection</option>
+                        <option value="repair_assessment"       {{ request('inquiry_type') === 'repair_assessment'       ? 'selected' : '' }}>Repair Assessment</option>
+                        <option value="condition_survey"        {{ request('inquiry_type') === 'condition_survey'        ? 'selected' : '' }}>Condition Survey</option>
+                        <option value="pre_delivery_inspection" {{ request('inquiry_type') === 'pre_delivery_inspection' ? 'selected' : '' }}>Pre-delivery Inspection</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <select name="priority" class="form-select form-select-sm">
+                        <option value="">All Priority</option>
+                        <option value="normal"   {{ request('priority') === 'normal'   ? 'selected' : '' }}>Normal</option>
+                        <option value="urgent"   {{ request('priority') === 'urgent'   ? 'selected' : '' }}>Urgent</option>
+                        <option value="critical" {{ request('priority') === 'critical' ? 'selected' : '' }}>Critical</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <input type="date" name="date_from" class="form-control form-control-sm"
-                           value="{{ request('date_from') }}" placeholder="From date">
-                </div>
-                <div class="col-md-2">
-                    <input type="date" name="date_to" class="form-control form-control-sm"
-                           value="{{ request('date_to') }}" placeholder="To date">
+                    <div class="input-group input-group-sm">
+                        <input type="date" name="date_from" class="form-control form-control-sm"
+                               value="{{ request('date_from') }}" title="From date">
+                        <span class="input-group-text px-1 text-muted" style="font-size:.75rem;">–</span>
+                        <input type="date" name="date_to" class="form-control form-control-sm"
+                               value="{{ request('date_to') }}" title="To date">
+                    </div>
                 </div>
                 <div class="col-auto ms-auto d-flex gap-2">
                     <button type="submit" class="btn btn-sm btn-primary">
@@ -134,10 +144,11 @@
                             'closed'        => 'dark',
                         ];
                         $typeLabels = [
-                            'damage_survey'       => 'Damage Survey',
-                            'pre_trip_inspection' => 'Pre-trip Inspection',
-                            'repair_assessment'   => 'Repair Assessment',
-                            'condition_survey'    => 'Condition Survey',
+                            'damage_survey'          => 'Damage Survey',
+                            'pre_trip_inspection'    => 'Pre-trip Inspection',
+                            'repair_assessment'      => 'Repair Assessment',
+                            'condition_survey'       => 'Condition Survey',
+                            'pre_delivery_inspection'=> 'Pre-delivery Inspection',
                         ];
                         $statusLabel = ucwords(str_replace('_', ' ', $inquiry->status));
                         $color = $statusColors[$inquiry->status] ?? 'secondary';
@@ -179,12 +190,17 @@
                                    class="btn btn-outline-info" title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                @unless($inquiry->estimate)
+                                @if($inquiry->estimate)
+                                <a href="{{ route('estimates.show', $inquiry->estimate) }}"
+                                   class="btn btn-outline-warning" title="View Estimate ({{ $inquiry->estimate->estimate_no }})">
+                                    <i class="bi bi-receipt"></i>
+                                </a>
+                                @else
                                 <a href="{{ route('estimates.create', ['inquiry_id' => $inquiry->id]) }}"
                                    class="btn btn-outline-warning" title="Create Estimate">
                                     <i class="bi bi-tools"></i>
                                 </a>
-                                @endunless
+                                @endif
                                 <a href="{{ route('surveys.edit', $inquiry) }}"
                                    class="btn btn-outline-primary" title="Edit">
                                     <i class="bi bi-pencil"></i>
