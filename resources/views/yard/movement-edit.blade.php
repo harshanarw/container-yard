@@ -195,7 +195,7 @@
                                 <span id="editPhotoCounter" class="badge bg-secondary-subtle text-secondary ms-1">0 / 5</span>
                             </label>
 
-                            <input type="file" id="editPhotoInput" name="photos[]"
+                            <input type="file" id="editPhotoInput"
                                    multiple accept="image/*" class="d-none">
                             <input type="file" id="editCameraInput" accept="image/*"
                                    capture="environment" class="d-none">
@@ -281,20 +281,27 @@
 (function () {
     const MAX       = 5;
     const MAX_BYTES = 5 * 1024 * 1024;
-    const ALLOWED   = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    let dt = new DataTransfer();
+    let files = [];
 
-    const fileInput  = document.getElementById('editPhotoInput');
-    const cameraInput= document.getElementById('editCameraInput');
-    const browseBtn  = document.getElementById('editBrowseBtn');
-    const cameraBtn  = document.getElementById('editCameraBtn');
-    const dropZone   = document.getElementById('editDropZone');
-    const errorEl    = document.getElementById('editPhotoError');
-    const previewGrid= document.getElementById('editPhotoPreview');
-    const counterEl  = document.getElementById('editPhotoCounter');
+    const fileInput   = document.getElementById('editPhotoInput');
+    const cameraInput = document.getElementById('editCameraInput');
+    const browseBtn   = document.getElementById('editBrowseBtn');
+    const cameraBtn   = document.getElementById('editCameraBtn');
+    const dropZone    = document.getElementById('editDropZone');
+    const errorEl     = document.getElementById('editPhotoError');
+    const previewGrid = document.getElementById('editPhotoPreview');
+    const counterEl   = document.getElementById('editPhotoCounter');
+    const form        = fileInput.closest('form');
+    const submitBtn   = form.querySelector('[type="submit"]');
+    const origHtml    = submitBtn.innerHTML;
+
+    function isImage(file) {
+        if (/^image\/(jpeg|png|webp|gif)$/i.test(file.type)) return true;
+        return /\.(jpe?g|png|webp|gif)$/i.test(file.name);
+    }
 
     function updateCounter() {
-        const n = dt.files.length;
+        const n = files.length;
         counterEl.textContent = n + ' / ' + MAX;
         counterEl.className = n >= MAX
             ? 'badge bg-warning-subtle text-warning ms-1'
@@ -304,16 +311,16 @@
     function showError(msg) {
         errorEl.textContent = msg;
         errorEl.classList.remove('d-none');
-        setTimeout(() => errorEl.classList.add('d-none'), 4000);
+        setTimeout(function () { errorEl.classList.add('d-none'); }, 4000);
     }
 
     function renderPreviews() {
         previewGrid.innerHTML = '';
-        Array.from(dt.files).forEach((file, idx) => {
+        files.forEach(function (file, idx) {
             const col = document.createElement('div');
             col.className = 'col-4 col-md-3';
             const reader = new FileReader();
-            reader.onload = e => {
+            reader.onload = function (e) {
                 col.innerHTML =
                     '<div class="position-relative" style="border-radius:6px;overflow:hidden;">' +
                         '<img src="' + e.target.result + '" style="width:100%;height:70px;object-fit:cover;" alt="">' +
@@ -330,15 +337,14 @@
         updateCounter();
     }
 
-    function addFiles(files) {
-        Array.from(files).forEach(file => {
-            if (!ALLOWED.includes(file.type)) { showError('"' + file.name + '" is not a supported image type.'); return; }
-            if (file.size > MAX_BYTES)         { showError('"' + file.name + '" exceeds 5 MB.'); return; }
-            if (dt.files.length >= MAX)        { showError('Maximum ' + MAX + ' photos allowed.'); return; }
-            const dup = Array.from(dt.files).some(f => f.name === file.name && f.size === file.size);
-            if (!dup) dt.items.add(file);
+    function addFiles(incoming) {
+        Array.from(incoming).forEach(function (file) {
+            if (!isImage(file))          { showError('"' + file.name + '" is not a supported image type.'); return; }
+            if (file.size > MAX_BYTES)   { showError('"' + file.name + '" exceeds 5 MB.'); return; }
+            if (files.length >= MAX)     { showError('Maximum ' + MAX + ' photos allowed.'); return; }
+            const dup = files.some(function (f) { return f.name === file.name && f.size === file.size; });
+            if (!dup) files.push(file);
         });
-        fileInput.files = dt.files;
         renderPreviews();
     }
 
@@ -346,25 +352,33 @@
         const btn = e.target.closest('.rm-photo');
         if (!btn) return;
         const idx = parseInt(btn.dataset.idx, 10);
-        const nd = new DataTransfer();
-        Array.from(dt.files).forEach((f, i) => { if (i !== idx) nd.items.add(f); });
-        dt = nd;
-        fileInput.files = dt.files;
+        files.splice(idx, 1);
         renderPreviews();
     });
 
-    browseBtn.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
-    dropZone.addEventListener('click',  () => fileInput.click());
-    cameraBtn.addEventListener('click', e => { e.stopPropagation(); cameraInput.click(); });
+    browseBtn.addEventListener('click', function (e) { e.stopPropagation(); fileInput.click(); });
+    dropZone.addEventListener('click',  function () { fileInput.click(); });
+    cameraBtn.addEventListener('click', function (e) { e.stopPropagation(); cameraInput.click(); });
     fileInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
     cameraInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
 
-    dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.style.background = '#e8f0fe'; });
-    dropZone.addEventListener('dragleave', () => { dropZone.style.background = ''; });
-    dropZone.addEventListener('drop',      e => {
+    dropZone.addEventListener('dragover',  function (e) { e.preventDefault(); dropZone.style.background = '#e8f0fe'; });
+    dropZone.addEventListener('dragleave', function ()  { dropZone.style.background = ''; });
+    dropZone.addEventListener('drop',      function (e) {
         e.preventDefault();
         dropZone.style.background = '';
         addFiles(e.dataTransfer.files);
+    });
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…';
+        const fd = new FormData(form);
+        files.forEach(function (file) { fd.append('photos[]', file); });
+        fetch(form.action, { method: 'POST', body: fd, redirect: 'manual' })
+            .then(function () { window.location.reload(); })
+            .catch(function () { submitBtn.disabled = false; submitBtn.innerHTML = origHtml; });
     });
 })();
 </script>

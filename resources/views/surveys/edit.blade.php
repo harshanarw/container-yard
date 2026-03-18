@@ -473,7 +473,6 @@
     const MAX_FILES     = 10;
     const MAX_SIZE_MB   = 5;
     const MAX_SIZE_BYTE = MAX_SIZE_MB * 1024 * 1024;
-    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
     const photoInput  = document.getElementById('photoInput');
     const dropZone    = document.getElementById('photoDropZone');
@@ -483,42 +482,42 @@
     const errorBox    = document.getElementById('photoError');
     const errorMsg    = document.getElementById('photoErrorMsg');
 
-    let dt = new DataTransfer();
+    // Plain array — no DataTransfer; works reliably on Windows Chrome/Edge
+    let files = [];
+
+    function isImage(file) {
+        if (/^image\//i.test(file.type || '')) return true;
+        return /\.(jpe?g|png|webp|gif|bmp|tiff?)$/i.test(file.name || '');
+    }
 
     function showError(msg) { errorMsg.textContent = msg; errorBox.classList.remove('d-none'); }
 
     function updateCounter() {
-        const n = dt.files.length;
+        const n = files.length;
         counter.textContent = `+${n} new`;
-        counter.className = n > 0
-            ? 'badge bg-primary-subtle text-primary'
-            : 'badge bg-secondary-subtle text-secondary';
+        counter.className = n > 0 ? 'badge bg-primary-subtle text-primary' : 'badge bg-secondary-subtle text-secondary';
     }
 
     function formatSize(bytes) {
-        return bytes < 1024 * 1024
-            ? (bytes / 1024).toFixed(1) + ' KB'
-            : (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        return bytes < 1024 * 1024 ? (bytes / 1024).toFixed(1) + ' KB' : (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     }
 
     function renderPreviews() {
         previewGrid.innerHTML = '';
-        Array.from(dt.files).forEach((file, idx) => {
+        files.forEach(function (file, idx) {
             const col = document.createElement('div');
             col.className = 'col-6 col-md-4 col-lg-3';
             const reader = new FileReader();
-            reader.onload = e => {
+            reader.onload = function (e) {
                 col.innerHTML = `
                     <div class="card border h-100 shadow-sm position-relative photo-card" style="overflow:hidden;">
-                        <img src="${e.target.result}" class="card-img-top"
-                             style="height:110px;object-fit:cover;" alt="${file.name}">
+                        <img src="${e.target.result}" class="card-img-top" style="height:110px;object-fit:cover;" alt="${file.name}">
                         <div class="card-body p-1 pb-2">
                             <div class="small fw-semibold text-truncate" style="font-size:.72rem;" title="${file.name}">${file.name}</div>
                             <div class="text-muted" style="font-size:.68rem;">${formatSize(file.size)}</div>
                         </div>
                         <button type="button" class="btn btn-sm btn-danger position-absolute remove-photo"
-                                data-idx="${idx}"
-                                style="top:4px;right:4px;padding:2px 6px;font-size:.7rem;line-height:1.2;border-radius:50%;">
+                                data-idx="${idx}" style="top:4px;right:4px;padding:2px 6px;font-size:.7rem;line-height:1.2;border-radius:50%;">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>`;
@@ -531,34 +530,42 @@
 
     function addFiles(newFiles) {
         errorBox.classList.add('d-none');
-        Array.from(newFiles).forEach(file => {
-            if (!ALLOWED_TYPES.includes(file.type)) { showError(`"${file.name}" is not a supported type.`); return; }
-            if (file.size > MAX_SIZE_BYTE) { showError(`"${file.name}" exceeds ${MAX_SIZE_MB} MB.`); return; }
-            if (dt.files.length >= MAX_FILES) { showError(`Maximum ${MAX_FILES} new photos allowed.`); return; }
-            const dup = Array.from(dt.files).some(f => f.name === file.name && f.size === file.size);
-            if (!dup) dt.items.add(file);
+        Array.from(newFiles).forEach(function (file) {
+            if (!isImage(file))            { showError('"' + file.name + '" is not a supported image.'); return; }
+            if (file.size > MAX_SIZE_BYTE) { showError('"' + file.name + '" exceeds ' + MAX_SIZE_MB + ' MB.'); return; }
+            if (files.length >= MAX_FILES) { showError('Maximum ' + MAX_FILES + ' new photos allowed.'); return; }
+            if (!files.some(function (f) { return f.name === file.name && f.size === file.size; })) files.push(file);
         });
-        photoInput.files = dt.files;
         renderPreviews();
     }
 
     previewGrid.addEventListener('click', function (e) {
         const btn = e.target.closest('.remove-photo');
         if (!btn) return;
-        const idx = parseInt(btn.dataset.idx, 10);
-        const newDt = new DataTransfer();
-        Array.from(dt.files).forEach((f, i) => { if (i !== idx) newDt.items.add(f); });
-        dt = newDt;
-        photoInput.files = dt.files;
+        files.splice(parseInt(btn.dataset.idx, 10), 1);
         renderPreviews();
     });
 
-    browseBtn.addEventListener('click', (e) => { e.stopPropagation(); photoInput.click(); });
-    dropZone.addEventListener('click', () => photoInput.click());
+    browseBtn.addEventListener('click', function (e) { e.stopPropagation(); photoInput.click(); });
+    dropZone.addEventListener('click', function () { photoInput.click(); });
     photoInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
 
-    dropZone.addEventListener('dragover',  (e) => { e.preventDefault(); dropZone.style.background='#e8f0fe'; dropZone.style.borderColor='#2196F3'; });
-    dropZone.addEventListener('dragleave', ()  => { dropZone.style.background=''; dropZone.style.borderColor=''; });
-    dropZone.addEventListener('drop',      (e) => { e.preventDefault(); dropZone.style.background=''; dropZone.style.borderColor=''; addFiles(e.dataTransfer.files); });
+    dropZone.addEventListener('dragover',  function (e) { e.preventDefault(); dropZone.style.background='#e8f0fe'; dropZone.style.borderColor='#2196F3'; });
+    dropZone.addEventListener('dragleave', function ()  { dropZone.style.background=''; dropZone.style.borderColor=''; });
+    dropZone.addEventListener('drop',      function (e) { e.preventDefault(); dropZone.style.background=''; dropZone.style.borderColor=''; addFiles(e.dataTransfer.files); });
+
+    // Submit via fetch — appends File objects from plain array directly into FormData
+    const _form      = photoInput.closest('form');
+    const _submitBtn = _form.querySelector('[type="submit"]');
+    const _origHtml  = _submitBtn ? _submitBtn.innerHTML : '';
+    _form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (_submitBtn) { _submitBtn.disabled = true; _submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…'; }
+        const fd = new FormData(_form);
+        files.forEach(function (file) { fd.append('photos[]', file); });
+        fetch(_form.action, { method: 'POST', body: fd, redirect: 'manual' })
+            .then(function () { window.location.reload(); })
+            .catch(function () { if (_submitBtn) { _submitBtn.disabled = false; _submitBtn.innerHTML = _origHtml; } });
+    });
 </script>
 @endpush
