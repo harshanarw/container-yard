@@ -26,6 +26,18 @@
 <form method="POST" action="{{ route('surveys.store') }}" enctype="multipart/form-data" id="surveyForm">
     @csrf
 
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Please fix the following errors:</strong>
+            <ul class="mb-0 mt-1 ps-3">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="row g-3">
 
         <!-- Main Form -->
@@ -598,8 +610,8 @@
         if (_submitBtn) { _submitBtn.disabled = true; _submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…'; }
         const fd = new FormData(_form);
         files.forEach(function (file) { fd.append('photos[]', file); });
-        fetch(_form.action, { method: 'POST', body: fd, redirect: 'manual' })
-            .then(function () { window.location.reload(); })
+        fetch(_form.action, { method: 'POST', body: fd, redirect: 'follow' })
+            .then(function (response) { window.location.href = response.url; })
             .catch(function () { if (_submitBtn) { _submitBtn.disabled = false; _submitBtn.innerHTML = _origHtml; } });
     });
 </script>

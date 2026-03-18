@@ -563,8 +563,8 @@
         if (_submitBtn) { _submitBtn.disabled = true; _submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…'; }
         const fd = new FormData(_form);
         files.forEach(function (file) { fd.append('photos[]', file); });
-        fetch(_form.action, { method: 'POST', body: fd, redirect: 'manual' })
-            .then(function () { window.location.reload(); })
+        fetch(_form.action, { method: 'POST', body: fd, redirect: 'follow' })
+            .then(function (response) { window.location.href = response.url; })
             .catch(function () { if (_submitBtn) { _submitBtn.disabled = false; _submitBtn.innerHTML = _origHtml; } });
     });
 </script>
