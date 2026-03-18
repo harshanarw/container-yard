@@ -3,12 +3,37 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
 
 class StoreSurveyRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        \Log::debug('[StoreSurvey-REQ] Incoming request', [
+            'wants_json'   => $this->wantsJson(),
+            'accept'       => $this->header('Accept'),
+            'content_type' => $this->header('Content-Type'),
+            'method'       => $this->method(),
+            'container_id' => $this->container_id,
+            'customer_id'  => $this->customer_id,
+            'inquiry_type' => $this->inquiry_type,
+            'priority'     => $this->priority,
+        ]);
+    }
+
+    protected function failedValidation(Validator $validator): void
+    {
+        \Log::debug('[StoreSurvey-REQ] Validation FAILED', [
+            'errors'     => $validator->errors()->all(),
+            'wants_json' => $this->wantsJson(),
+            'accept'     => $this->header('Accept'),
+        ]);
+        parent::failedValidation($validator);
     }
 
     public function rules(): array

@@ -79,61 +79,88 @@ class SurveyController extends Controller
 
     public function store(StoreSurveyRequest $request)
     {
-        $container = Container::findOrFail($request->container_id);
-
-        $inquiry = Inquiry::create([
-            'inquiry_no'            => $this->generateSurveyNo(),
-            'container_id'          => $container->id,
-            'container_no'          => $container->container_no,
-            'equipment_type_id'     => $container->equipment_type_id,
-            'size'                  => $container->size,
-            'type_code'             => $container->type_code,
-            'customer_id'           => $request->customer_id,
-            'inquiry_type'          => $request->inquiry_type,
-            'inspector_id'          => $request->inspector_id,
-            'inspection_date'       => $request->inspection_date,
-            'gate_in_ref'           => $request->gate_in_ref,
-            'priority'              => $request->priority,
-            'overall_condition'     => $request->overall_condition,
-            'findings'              => $request->findings,
-            'recommended_action'    => $request->recommended_action,
-            'estimated_repair_cost' => $request->estimated_repair_cost,
-            'status'                => 'open',
+        \Log::debug('[StoreSurvey] store() reached — validation passed', [
+            'wants_json'   => $request->wantsJson(),
+            'accept'       => $request->header('Accept'),
+            'container_id' => $request->container_id,
+            'inquiry_type' => $request->inquiry_type,
+            'priority'     => $request->priority,
         ]);
 
-        // Save damages
-        if ($request->damages) {
-            foreach ($request->damages as $damage) {
-                $inquiry->damages()->create($damage);
-            }
-        }
+        try {
+            $container = Container::findOrFail($request->container_id);
+            \Log::debug('[StoreSurvey] Container found: ' . $container->container_no);
 
-        // Save checklist from master items
-        $masterItems = ChecklistMasterItem::active()->get();
-        $checked     = $request->checklist ?? [];
-        foreach ($masterItems as $master) {
-            $inquiry->checklists()->create([
-                'checklist_item' => $master->code,
-                'is_checked'     => in_array($master->code, $checked),
+            $inquiry = Inquiry::create([
+                'inquiry_no'            => $this->generateSurveyNo(),
+                'container_id'          => $container->id,
+                'container_no'          => $container->container_no,
+                'equipment_type_id'     => $container->equipment_type_id,
+                'size'                  => $container->size,
+                'type_code'             => $container->type_code,
+                'customer_id'           => $request->customer_id,
+                'inquiry_type'          => $request->inquiry_type,
+                'inspector_id'          => $request->inspector_id,
+                'inspection_date'       => $request->inspection_date,
+                'gate_in_ref'           => $request->gate_in_ref,
+                'priority'              => $request->priority,
+                'overall_condition'     => $request->overall_condition,
+                'findings'              => $request->findings,
+                'recommended_action'    => $request->recommended_action,
+                'estimated_repair_cost' => $request->estimated_repair_cost,
+                'status'                => 'open',
             ]);
-        }
+            \Log::debug('[StoreSurvey] Inquiry created: id=' . $inquiry->id . ' no=' . $inquiry->inquiry_no);
 
-        // Save photos
-        if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $photo) {
-                $path = $this->saveSurveyPhoto($photo, $inquiry->id);
-                $inquiry->photos()->create([
-                    'photo_path'  => $path,
-                    'uploaded_by' => auth()->id(),
+            // Save damages
+            if ($request->damages) {
+                foreach ($request->damages as $damage) {
+                    $inquiry->damages()->create($damage);
+                }
+            }
+            \Log::debug('[StoreSurvey] Damages saved');
+
+            // Save checklist from master items
+            $masterItems = ChecklistMasterItem::active()->get();
+            $checked     = $request->checklist ?? [];
+            foreach ($masterItems as $master) {
+                $inquiry->checklists()->create([
+                    'checklist_item' => $master->code,
+                    'is_checked'     => in_array($master->code, $checked),
                 ]);
             }
-        }
+            \Log::debug('[StoreSurvey] Checklist saved');
 
-        if ($request->wantsJson()) {
-            return response()->json(['redirect' => route('surveys.show', $inquiry)]);
+            // Save photos
+            $photoCount = $request->hasFile('photos') ? count($request->file('photos')) : 0;
+            \Log::debug('[StoreSurvey] Photos count=' . $photoCount);
+            if ($request->hasFile('photos')) {
+                foreach ($request->file('photos') as $photo) {
+                    $path = $this->saveSurveyPhoto($photo, $inquiry->id);
+                    $inquiry->photos()->create([
+                        'photo_path'  => $path,
+                        'uploaded_by' => auth()->id(),
+                    ]);
+                }
+            }
+
+            $redirectUrl = route('surveys.show', $inquiry);
+            \Log::debug('[StoreSurvey] Success — redirect=' . $redirectUrl . ' wants_json=' . ($request->wantsJson() ? 'yes' : 'no'));
+
+            if ($request->wantsJson()) {
+                return response()->json(['redirect' => $redirectUrl]);
+            }
+            return redirect()->route('surveys.show', $inquiry)
+                ->with('success', "Survey {$inquiry->inquiry_no} created successfully.");
+
+        } catch (\Exception $e) {
+            \Log::error('[StoreSurvey] EXCEPTION: ' . $e->getMessage(), [
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
         }
-        return redirect()->route('surveys.show', $inquiry)
-            ->with('success', "Survey {$inquiry->inquiry_no} created successfully.");
     }
 
     public function show(Inquiry $survey)
