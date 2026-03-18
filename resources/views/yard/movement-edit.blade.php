@@ -376,8 +376,8 @@
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…';
         const fd = new FormData(form);
         files.forEach(function (file) { fd.append('photos[]', file); });
-        fetch(form.action, { method: 'POST', body: fd, redirect: 'follow' })
-            .then(function (response) { window.location.href = response.url; })
+        fetch(form.action, { method: 'POST', body: fd, redirect: 'manual' })
+            .then(function () { window.location.reload(); })
             .catch(function () { submitBtn.disabled = false; submitBtn.innerHTML = origHtml; });
     });
 })();

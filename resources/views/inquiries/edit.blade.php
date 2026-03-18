@@ -58,6 +58,10 @@
 </div>
 @endif
 
+<div id="jsErrorBag" class="alert alert-danger alert-dismissible fade show mb-3 d-none" role="alert">
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
 <form method="POST" action="{{ route('inquiries.update', $inquiry) }}"
       enctype="multipart/form-data" id="editInquiryForm">
     @csrf
@@ -558,13 +562,32 @@
     const _form      = photoInput.closest('form');
     const _submitBtn = _form.querySelector('[type="submit"]');
     const _origHtml  = _submitBtn ? _submitBtn.innerHTML : '';
+    const _errBag    = document.getElementById('jsErrorBag');
     _form.addEventListener('submit', function (e) {
         e.preventDefault();
+        if (_errBag) _errBag.classList.add('d-none');
         if (_submitBtn) { _submitBtn.disabled = true; _submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…'; }
         const fd = new FormData(_form);
         files.forEach(function (file) { fd.append('photos[]', file); });
-        fetch(_form.action, { method: 'POST', body: fd, redirect: 'follow' })
-            .then(function (response) { window.location.href = response.url; })
+        fetch(_form.action, { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } })
+            .then(function (response) {
+                return response.json().then(function (data) {
+                    if (response.status === 422 && data.errors) {
+                        var msgs = Object.values(data.errors).flat();
+                        if (_errBag) {
+                            _errBag.innerHTML = '<strong>Please fix the following errors:</strong><ul class="mb-0 mt-1 ps-3">' +
+                                msgs.map(function (m) { return '<li>' + m + '</li>'; }).join('') + '</ul>';
+                            _errBag.classList.remove('d-none');
+                            _errBag.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                        if (_submitBtn) { _submitBtn.disabled = false; _submitBtn.innerHTML = _origHtml; }
+                    } else if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        if (_submitBtn) { _submitBtn.disabled = false; _submitBtn.innerHTML = _origHtml; }
+                    }
+                });
+            })
             .catch(function () { if (_submitBtn) { _submitBtn.disabled = false; _submitBtn.innerHTML = _origHtml; } });
     });
 </script>

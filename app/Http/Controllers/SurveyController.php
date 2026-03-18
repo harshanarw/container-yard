@@ -129,6 +129,9 @@ class SurveyController extends Controller
             }
         }
 
+        if ($request->wantsJson()) {
+            return response()->json(['redirect' => route('surveys.show', $inquiry)]);
+        }
         return redirect()->route('surveys.show', $inquiry)
             ->with('success', "Survey {$inquiry->inquiry_no} created successfully.");
     }
@@ -187,6 +190,9 @@ class SurveyController extends Controller
             }
         }
 
+        if ($request->wantsJson()) {
+            return response()->json(['redirect' => route('surveys.show', $survey)]);
+        }
         return redirect()->route('surveys.show', $survey)
             ->with('success', 'Survey updated successfully.');
     }

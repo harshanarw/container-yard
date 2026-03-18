@@ -115,6 +115,9 @@ class InquiryController extends Controller
             }
         }
 
+        if ($request->wantsJson()) {
+            return response()->json(['redirect' => route('inquiries.show', $inquiry)]);
+        }
         return redirect()->route('inquiries.show', $inquiry)
             ->with('success', "Inquiry {$inquiry->inquiry_no} created successfully.");
     }
@@ -173,6 +176,9 @@ class InquiryController extends Controller
             }
         }
 
+        if ($request->wantsJson()) {
+            return response()->json(['redirect' => route('inquiries.show', $inquiry)]);
+        }
         return redirect()->route('inquiries.show', $inquiry)
             ->with('success', 'Inquiry updated successfully.');
     }
