@@ -533,15 +533,24 @@
 
     // ── Photo uploader factory (used for both Gate In and Gate Out) ──────────
     function initPhotoUploader(cfg) {
-        // cfg: { fileInput, cameraInput, browseBtn, cameraBtn, dropZone,
-        //        errorEl, previewGrid, counterEl, max }
         const MAX       = cfg.max || 5;
         const MAX_BYTES = 5 * 1024 * 1024;
-        const ALLOWED   = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        let dt = new DataTransfer();
+
+        // Plain array — no DataTransfer dependency, works reliably on all
+        // browsers including Windows Chrome/Edge.
+        let files = [];
+
+        function isImage(file) {
+            // Check MIME type first; fall back to extension because Windows
+            // Chrome/Edge sometimes returns an empty file.type string.
+            const type = (file.type || '').toLowerCase();
+            const name = (file.name || '').toLowerCase();
+            if (/^image\//.test(type)) return true;
+            return /\.(jpe?g|png|webp|gif|bmp|tiff?)$/i.test(name);
+        }
 
         function updateCounter() {
-            const n = dt.files.length;
+            const n = files.length;
             cfg.counterEl.textContent = n + ' / ' + MAX;
             cfg.counterEl.className = n >= MAX
                 ? 'badge bg-warning-subtle text-warning ms-1'
@@ -556,11 +565,11 @@
 
         function renderPreviews() {
             cfg.previewGrid.innerHTML = '';
-            Array.from(dt.files).forEach((file, idx) => {
+            files.forEach(function (file, idx) {
                 const col = document.createElement('div');
                 col.className = 'col-4 col-md-3';
                 const reader = new FileReader();
-                reader.onload = e => {
+                reader.onload = function (e) {
                     col.innerHTML =
                         '<div class="position-relative" style="border-radius:6px;overflow:hidden;">' +
                             '<img src="' + e.target.result + '" style="width:100%;height:70px;object-fit:cover;" alt="">' +
@@ -577,58 +586,47 @@
             updateCounter();
         }
 
-        function addFiles(files) {
-            Array.from(files).forEach(file => {
-                if (!ALLOWED.includes(file.type)) { showError('"' + file.name + '" is not a supported image type.'); return; }
-                if (file.size > MAX_BYTES)         { showError('"' + file.name + '" exceeds 5 MB.'); return; }
-                if (dt.files.length >= MAX)        { showError('Maximum ' + MAX + ' photos allowed.'); return; }
-                const dup = Array.from(dt.files).some(f => f.name === file.name && f.size === file.size);
-                if (!dup) dt.items.add(file);
+        function addFiles(incoming) {
+            Array.from(incoming).forEach(function (file) {
+                if (!isImage(file))            { showError('"' + file.name + '" is not a supported image.'); return; }
+                if (file.size > MAX_BYTES)     { showError('"' + file.name + '" exceeds 5 MB.'); return; }
+                if (files.length >= MAX)       { showError('Maximum ' + MAX + ' photos allowed.'); return; }
+                const dup = files.some(function (f) { return f.name === file.name && f.size === file.size; });
+                if (!dup) files.push(file);
             });
-            cfg.fileInput.files = dt.files;
             renderPreviews();
         }
 
+        // Remove individual photo
         cfg.previewGrid.addEventListener('click', function (e) {
             const btn = e.target.closest('.rm-photo');
             if (!btn) return;
-            const idx = parseInt(btn.dataset.idx, 10);
-            const nd = new DataTransfer();
-            Array.from(dt.files).forEach((f, i) => { if (i !== idx) nd.items.add(f); });
-            dt = nd;
-            cfg.fileInput.files = dt.files;
+            files.splice(parseInt(btn.dataset.idx, 10), 1);
             renderPreviews();
         });
 
-        // Browse button
-        cfg.browseBtn.addEventListener('click', e => { e.stopPropagation(); cfg.fileInput.click(); });
-        cfg.dropZone.addEventListener('click',  () => cfg.fileInput.click());
+        // Browse / camera buttons
+        cfg.browseBtn.addEventListener('click', function (e) { e.stopPropagation(); cfg.fileInput.click(); });
+        cfg.dropZone.addEventListener('click',  function ()  { cfg.fileInput.click(); });
+        cfg.cameraBtn.addEventListener('click', function (e) { e.stopPropagation(); cfg.cameraInput.click(); });
 
-        // Camera button — opens device camera directly
-        cfg.cameraBtn.addEventListener('click', e => { e.stopPropagation(); cfg.cameraInput.click(); });
-
-        // File input change
-        cfg.fileInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
-
-        // Camera input change — single capture, add to accumulator
+        cfg.fileInput.addEventListener('change',  function () { addFiles(this.files); this.value = ''; });
         cfg.cameraInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
 
         // Drag & drop
-        cfg.dropZone.addEventListener('dragover',  e => { e.preventDefault(); cfg.dropZone.style.background = '#e8f0fe'; });
-        cfg.dropZone.addEventListener('dragleave', () => { cfg.dropZone.style.background = ''; });
-        cfg.dropZone.addEventListener('drop',      e => {
+        cfg.dropZone.addEventListener('dragover',  function (e) { e.preventDefault(); cfg.dropZone.style.background = '#e8f0fe'; });
+        cfg.dropZone.addEventListener('dragleave', function ()  { cfg.dropZone.style.background = ''; });
+        cfg.dropZone.addEventListener('drop',      function (e) {
             e.preventDefault();
             cfg.dropZone.style.background = '';
             addFiles(e.dataTransfer.files);
         });
 
-        // Submit via fetch so we control exactly what goes into the request body.
-        // Native form submission + DataTransfer does not reliably send files on
-        // Windows Chrome/Edge because input.files assignments are discarded and
-        // the formdata event does not fire for native submits in all builds.
-        const form = cfg.fileInput.closest('form');
+        // Submit via fetch, appending File objects straight from the plain array.
+        // This bypasses every browser-specific file-input quirk.
+        const form      = cfg.fileInput.closest('form');
         const submitBtn = form.querySelector('[type="submit"]');
-        const origBtnHtml = submitBtn.innerHTML;
+        const origHtml  = submitBtn.innerHTML;
 
         form.addEventListener('submit', function (e) {
             e.preventDefault();
@@ -637,26 +635,11 @@
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…';
 
             const fd = new FormData(form);
-            // Attach accumulated photos directly into the FormData
-            Array.from(dt.files).forEach(function (file) {
-                fd.append('photos[]', file);
-            });
+            files.forEach(function (file) { fd.append('photos[]', file); });
 
-            fetch(form.action, {
-                method: 'POST',
-                body: fd,
-                redirect: 'manual',   // stop at the 302; don't let fetch consume the session flash
-            })
-            .then(function () {
-                // Server always redirects (success → gate page, failure → back).
-                // Reload the current page so Laravel's session flash is read once
-                // by the browser's GET request and displayed correctly.
-                window.location.reload();
-            })
-            .catch(function () {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = origBtnHtml;
-            });
+            fetch(form.action, { method: 'POST', body: fd, redirect: 'manual' })
+                .then(function ()  { window.location.reload(); })
+                .catch(function () { submitBtn.disabled = false; submitBtn.innerHTML = origHtml; });
         });
     }
 
