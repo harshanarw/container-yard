@@ -67,6 +67,28 @@
                 </div>
 
                 <div class="row g-2 mb-3">
+                    <div class="col-5">
+                        <label class="form-label fw-semibold">Invoice Currency <span class="text-danger">*</span></label>
+                        <select id="invoiceCurrency" class="form-select">
+                            <option value="USD">USD — US Dollar</option>
+                            <option value="LKR">LKR — Sri Lankan Rupee</option>
+                            <option value="EUR">EUR — Euro</option>
+                            <option value="GBP">GBP — British Pound</option>
+                            <option value="SGD">SGD — Singapore Dollar</option>
+                            <option value="AUD">AUD — Australian Dollar</option>
+                        </select>
+                    </div>
+                    <div class="col-7" id="exchangeRateWrap">
+                        <label class="form-label fw-semibold">Exchange Rate <small class="text-muted fw-normal">(1 USD =)</small></label>
+                        <div class="input-group">
+                            <input type="number" id="exchangeRate" class="form-control"
+                                   value="1.0000" min="0.0001" step="0.0001">
+                            <span class="input-group-text" id="rateLabel">USD</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3">
                     <div class="col-6">
                         <label class="form-label fw-semibold">Period From <span class="text-danger">*</span></label>
                         <input type="date" name="period_from" id="periodFrom" class="form-control"
@@ -228,6 +250,15 @@ let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
 
+// Currency selector — update exchange rate label and reset to 1 when USD
+document.getElementById('invoiceCurrency').addEventListener('change', function () {
+    const cur = this.value;
+    document.getElementById('rateLabel').textContent = cur;
+    if (cur === 'USD') {
+        document.getElementById('exchangeRate').value = '1.0000';
+    }
+});
+
 // Toggle SSCL/VAT input availability
 document.getElementById('applySscl').addEventListener('change', function () {
     document.getElementById('ssclPct').disabled = !this.checked;
@@ -237,13 +268,15 @@ document.getElementById('applyVat').addEventListener('change', function () {
 });
 
 async function runPreview() {
-    const customerId = document.getElementById('customerId').value;
-    const periodFrom = document.getElementById('periodFrom').value;
-    const periodTo   = document.getElementById('periodTo').value;
-    const ssclPct    = document.getElementById('applySscl').checked
-                       ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
-    const vatPct     = document.getElementById('applyVat').checked
-                       ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
+    const customerId      = document.getElementById('customerId').value;
+    const periodFrom      = document.getElementById('periodFrom').value;
+    const periodTo        = document.getElementById('periodTo').value;
+    const invoiceCurrency = document.getElementById('invoiceCurrency').value;
+    const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
+    const ssclPct         = document.getElementById('applySscl').checked
+                            ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
+    const vatPct          = document.getElementById('applyVat').checked
+                            ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
 
     if (!customerId) { alert('Please select a customer.'); return; }
     if (!periodFrom || !periodTo) { alert('Please enter the billing period dates.'); return; }
@@ -261,11 +294,13 @@ async function runPreview() {
                 'Accept': 'application/json',
             },
             body: JSON.stringify({
-                customer_id: customerId,
-                period_from: periodFrom,
-                period_to: periodTo,
-                sscl_pct: ssclPct,
-                vat_pct: vatPct,
+                customer_id:      customerId,
+                period_from:      periodFrom,
+                period_to:        periodTo,
+                invoice_currency: invoiceCurrency,
+                exchange_rate:    exchangeRate,
+                sscl_pct:         ssclPct,
+                vat_pct:          vatPct,
             }),
         });
 
@@ -315,7 +350,7 @@ function renderPreview(data) {
     const fmtC = (n, cur) => (cur || 'LKR') + '\u00a0' + fmt(n);
 
     // Summary card
-    const currency = previewLines[0]?.currency || 'LKR';
+    const currency = data.invoice_currency || previewLines[0]?.currency || 'USD';
     document.getElementById('sumContainers').textContent = previewLines.length;
     document.getElementById('sumSubtotal').textContent   = fmtC(data.subtotal, currency);
     document.getElementById('sumSscl').textContent       = fmtC(data.sscl_amount, currency);
@@ -390,20 +425,23 @@ document.getElementById('billingForm').addEventListener('submit', function (e) {
     }
 
     // Remove any stale inputs
-    this.querySelectorAll('[name^="lines["], [name="sscl_percentage"], [name="vat_percentage"]')
+    this.querySelectorAll('[name^="lines["], [name="sscl_percentage"], [name="vat_percentage"], [name="invoice_currency"], [name="exchange_rate"]')
         .forEach(el => el.remove());
 
-    // Inject tax percentages
-    const ssclPct = document.getElementById('applySscl').checked
-                    ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
-    const vatPct  = document.getElementById('applyVat').checked
-                    ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
+    const ssclPct        = document.getElementById('applySscl').checked
+                           ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
+    const vatPct         = document.getElementById('applyVat').checked
+                           ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
+    const invoiceCurrency = document.getElementById('invoiceCurrency').value;
+    const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
 
     const mkHidden = (name, val) => {
         const i = document.createElement('input');
         i.type = 'hidden'; i.name = name; i.value = val;
         this.appendChild(i);
     };
+    mkHidden('invoice_currency', invoiceCurrency);
+    mkHidden('exchange_rate', exchangeRate);
     mkHidden('sscl_percentage', ssclPct);
     mkHidden('vat_percentage', vatPct);
 

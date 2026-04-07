@@ -80,6 +80,28 @@
                 </div>
 
                 <div class="row g-2 mb-3">
+                    <div class="col-5">
+                        <label class="form-label fw-semibold">Invoice Currency <span class="text-danger">*</span></label>
+                        <select id="invoiceCurrency" class="form-select">
+                            <option value="USD">USD — US Dollar</option>
+                            <option value="LKR">LKR — Sri Lankan Rupee</option>
+                            <option value="EUR">EUR — Euro</option>
+                            <option value="GBP">GBP — British Pound</option>
+                            <option value="SGD">SGD — Singapore Dollar</option>
+                            <option value="AUD">AUD — Australian Dollar</option>
+                        </select>
+                    </div>
+                    <div class="col-7" id="exchangeRateWrap">
+                        <label class="form-label fw-semibold">Exchange Rate <small class="text-muted fw-normal">(1 USD =)</small></label>
+                        <div class="input-group">
+                            <input type="number" id="exchangeRate" class="form-control"
+                                   value="1.0000" min="0.0001" step="0.0001">
+                            <span class="input-group-text" id="rateLabel">USD</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3">
                     <div class="col-6">
                         <label class="form-label fw-semibold">
                             Period From <span class="text-danger">*</span>
@@ -296,6 +318,15 @@ let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
 
+// Currency selector — update label and reset to 1 for USD
+document.getElementById('invoiceCurrency').addEventListener('change', function () {
+    const cur = this.value;
+    document.getElementById('rateLabel').textContent = cur;
+    if (cur === 'USD') {
+        document.getElementById('exchangeRate').value = '1.0000';
+    }
+});
+
 // Toggle SSCL/VAT input availability
 document.getElementById('applySscl').addEventListener('change', function () {
     document.getElementById('ssclPct').disabled = !this.checked;
@@ -305,13 +336,15 @@ document.getElementById('applyVat').addEventListener('change', function () {
 });
 
 async function runPreview() {
-    const shippingLineId = document.getElementById('shippingLineId').value;
-    const periodFrom     = document.getElementById('periodFrom').value;
-    const periodTo       = document.getElementById('periodTo').value;
-    const ssclPct        = document.getElementById('applySscl').checked
-                           ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
-    const vatPct         = document.getElementById('applyVat').checked
-                           ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
+    const shippingLineId  = document.getElementById('shippingLineId').value;
+    const periodFrom      = document.getElementById('periodFrom').value;
+    const periodTo        = document.getElementById('periodTo').value;
+    const invoiceCurrency = document.getElementById('invoiceCurrency').value;
+    const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
+    const ssclPct         = document.getElementById('applySscl').checked
+                            ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
+    const vatPct          = document.getElementById('applyVat').checked
+                            ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
 
     if (!shippingLineId) { alert('Please select a shipping line.'); return; }
     if (!periodFrom || !periodTo) { alert('Please enter the billing period dates.'); return; }
@@ -330,10 +363,12 @@ async function runPreview() {
             },
             body: JSON.stringify({
                 shipping_line_id: shippingLineId,
-                period_from: periodFrom,
-                period_to:   periodTo,
-                sscl_pct:    ssclPct,
-                vat_pct:     vatPct,
+                period_from:      periodFrom,
+                period_to:        periodTo,
+                invoice_currency: invoiceCurrency,
+                exchange_rate:    exchangeRate,
+                sscl_pct:         ssclPct,
+                vat_pct:          vatPct,
             }),
         });
 
@@ -393,13 +428,15 @@ function renderPreview(data) {
     const icon = ok => ok ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<span class="text-muted">—</span>';
 
     // Summary card
+    const cur = data.invoice_currency || 'USD';
+    const fmtCur = n => cur + '\u00a0' + fmt(n);
     document.getElementById('sumContainers').textContent = previewLines.length;
-    document.getElementById('sumStorage').textContent    = fmt(data.storage_subtotal);
-    document.getElementById('sumHandling').textContent   = fmt(data.handling_subtotal);
-    document.getElementById('sumSubtotal').textContent   = fmt(data.subtotal);
-    document.getElementById('sumSscl').textContent       = fmt(data.sscl_amount);
-    document.getElementById('sumVat').textContent        = fmt(data.vat_amount);
-    document.getElementById('sumTotal').textContent      = fmt(data.total_amount);
+    document.getElementById('sumStorage').textContent    = fmtCur(data.storage_subtotal);
+    document.getElementById('sumHandling').textContent   = fmtCur(data.handling_subtotal);
+    document.getElementById('sumSubtotal').textContent   = fmtCur(data.subtotal);
+    document.getElementById('sumSscl').textContent       = fmtCur(data.sscl_amount);
+    document.getElementById('sumVat').textContent        = fmtCur(data.vat_amount);
+    document.getElementById('sumTotal').textContent      = fmtCur(data.total_amount);
     document.getElementById('lineCount').textContent     = previewLines.length + ' containers';
 
     // Lines table
@@ -435,23 +472,23 @@ function renderPreview(data) {
     tfoot.innerHTML = `
         <tr>
             <td class="ps-2" colspan="7" style="text-align:right">Storage Subtotal</td>
-            <td class="text-end bg-warning-subtle">${fmt(data.storage_subtotal)}</td>
+            <td class="text-end bg-warning-subtle">${fmtCur(data.storage_subtotal)}</td>
             <td colspan="2"></td>
-            <td class="text-end bg-info-subtle">${fmt(data.handling_subtotal)}</td>
+            <td class="text-end bg-info-subtle">${fmtCur(data.handling_subtotal)}</td>
             <td class="text-end" colspan="3" style="text-align:right">Subtotal</td>
-            <td class="text-end pe-2">${fmt(data.subtotal)}</td>
+            <td class="text-end pe-2">${fmtCur(data.subtotal)}</td>
         </tr>
         <tr class="fw-normal text-muted">
             <td class="ps-2" colspan="14" style="text-align:right">${ssclLabel}</td>
-            <td class="text-end pe-2">${fmt(data.sscl_amount)}</td>
+            <td class="text-end pe-2">${fmtCur(data.sscl_amount)}</td>
         </tr>
         <tr class="fw-normal text-muted">
             <td class="ps-2" colspan="14" style="text-align:right">${vatLabel}</td>
-            <td class="text-end pe-2">${fmt(data.vat_amount)}</td>
+            <td class="text-end pe-2">${fmtCur(data.vat_amount)}</td>
         </tr>
         <tr class="table-success fw-bold">
             <td class="ps-2" colspan="14" style="text-align:right">TOTAL</td>
-            <td class="text-end pe-2 fs-6">${fmt(data.total_amount)}</td>
+            <td class="text-end pe-2 fs-6">${fmtCur(data.total_amount)}</td>
         </tr>
     `;
 }
@@ -478,19 +515,23 @@ document.getElementById('billingForm').addEventListener('submit', function (e) {
         return;
     }
 
-    this.querySelectorAll('[name^="lines["], [name="sscl_percentage"], [name="vat_percentage"]')
+    this.querySelectorAll('[name^="lines["], [name="sscl_percentage"], [name="vat_percentage"], [name="invoice_currency"], [name="exchange_rate"]')
         .forEach(el => el.remove());
 
-    const ssclPct = document.getElementById('applySscl').checked
-                    ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
-    const vatPct  = document.getElementById('applyVat').checked
-                    ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
+    const ssclPct         = document.getElementById('applySscl').checked
+                            ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
+    const vatPct          = document.getElementById('applyVat').checked
+                            ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
+    const invoiceCurrency = document.getElementById('invoiceCurrency').value;
+    const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
 
     const mkHidden = (name, val) => {
         const inp = document.createElement('input');
         inp.type = 'hidden'; inp.name = name; inp.value = val ?? '';
         this.appendChild(inp);
     };
+    mkHidden('invoice_currency', invoiceCurrency);
+    mkHidden('exchange_rate', exchangeRate);
     mkHidden('sscl_percentage', ssclPct);
     mkHidden('vat_percentage', vatPct);
 

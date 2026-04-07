@@ -11,6 +11,7 @@ class StorageInvoice extends Model
 
     protected $fillable = [
         'invoice_no', 'customer_id', 'invoice_date',
+        'invoice_currency', 'exchange_rate',
         'billing_period_from', 'billing_period_to',
         'subtotal', 'tax_percentage', 'tax_amount',
         'sscl_percentage', 'sscl_amount', 'vat_percentage', 'vat_amount',
@@ -21,6 +22,7 @@ class StorageInvoice extends Model
         'invoice_date'        => 'date',
         'billing_period_from' => 'date',
         'billing_period_to'   => 'date',
+        'exchange_rate'       => 'decimal:4',
         'subtotal'            => 'decimal:2',
         'tax_percentage'      => 'decimal:2',
         'tax_amount'          => 'decimal:2',

@@ -53,18 +53,22 @@ class StorageBillingController extends Controller
     public function preview(Request $request)
     {
         $validated = $request->validate([
-            'customer_id' => ['required', 'exists:customers,id'],
-            'period_from' => ['required', 'date'],
-            'period_to'   => ['required', 'date', 'after_or_equal:period_from'],
-            'sscl_pct'    => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'vat_pct'     => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'customer_id'      => ['required', 'exists:customers,id'],
+            'period_from'      => ['required', 'date'],
+            'period_to'        => ['required', 'date', 'after_or_equal:period_from'],
+            'invoice_currency' => ['nullable', 'string', 'size:3'],
+            'exchange_rate'    => ['nullable', 'numeric', 'min:0.0001'],
+            'sscl_pct'         => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'vat_pct'          => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
-        $customer   = Customer::findOrFail($validated['customer_id']);
-        $periodFrom = now()->parse($validated['period_from'])->startOfDay();
-        $periodTo   = now()->parse($validated['period_to'])->startOfDay();
-        $ssclPct    = (float) ($validated['sscl_pct'] ?? 0);
-        $vatPct     = (float) ($validated['vat_pct'] ?? 0);
+        $customer        = Customer::findOrFail($validated['customer_id']);
+        $periodFrom      = now()->parse($validated['period_from'])->startOfDay();
+        $periodTo        = now()->parse($validated['period_to'])->startOfDay();
+        $invoiceCurrency = strtoupper($validated['invoice_currency'] ?? 'USD');
+        $exchangeRate    = (float) ($validated['exchange_rate'] ?? 1.0);
+        $ssclPct         = (float) ($validated['sscl_pct'] ?? 0);
+        $vatPct          = (float) ($validated['vat_pct'] ?? 0);
 
         // All active yard storage records for this customer whose gate-in is on or before period end
         $storageRecords = YardStorage::with(['container.equipmentType'])
@@ -77,6 +81,8 @@ class StorageBillingController extends Controller
         if ($storageRecords->isEmpty()) {
             return response()->json([
                 'lines'            => [],
+                'invoice_currency' => $invoiceCurrency,
+                'exchange_rate'    => $exchangeRate,
                 'subtotal'         => 0,
                 'sscl_percentage'  => $ssclPct,
                 'sscl_amount'      => 0,
@@ -139,7 +145,10 @@ class StorageBillingController extends Controller
             $freeDaysRemaining = max(0, $freeDays - $daysBeforePeriod);
             $freeDaysInPeriod  = min($totalDays, $freeDaysRemaining);
             $chargeableDays    = max(0, $totalDays - $freeDaysInPeriod);
-            $lineSubtotal      = round($chargeableDays * $dailyRate, 2);
+
+            // Convert to invoice currency before tax calculation
+            $dailyRateConverted = round($dailyRate * $exchangeRate, 2);
+            $lineSubtotal       = round($chargeableDays * $dailyRateConverted, 2);
 
             $lineSscl  = round($lineSubtotal * $ssclPct / 100, 2);
             $lineVat   = round(($lineSubtotal + $lineSscl) * $vatPct / 100, 2);
@@ -159,8 +168,8 @@ class StorageBillingController extends Controller
                 'total_days'      => $totalDays,
                 'free_days'       => $freeDaysInPeriod,
                 'chargeable_days' => $chargeableDays,
-                'daily_rate'      => $dailyRate,
-                'currency'        => $currency,
+                'daily_rate'      => $dailyRateConverted,
+                'currency'        => $invoiceCurrency,
                 'subtotal'        => $lineSubtotal,
                 'line_sscl'       => $lineSscl,
                 'line_vat'        => $lineVat,
@@ -177,6 +186,8 @@ class StorageBillingController extends Controller
         return response()->json([
             'customer'         => $customer->name,
             'lines'            => $lines,
+            'invoice_currency' => $invoiceCurrency,
+            'exchange_rate'    => $exchangeRate,
             'subtotal'         => $subtotal,
             'sscl_percentage'  => $ssclPct,
             'sscl_amount'      => $ssclAmount,
@@ -195,6 +206,8 @@ class StorageBillingController extends Controller
         $validated = $request->validate([
             'customer_id'              => ['required', 'exists:customers,id'],
             'invoice_date'             => ['required', 'date'],
+            'invoice_currency'         => ['nullable', 'string', 'size:3'],
+            'exchange_rate'            => ['nullable', 'numeric', 'min:0.0001'],
             'period_from'              => ['required', 'date'],
             'period_to'                => ['required', 'date', 'after_or_equal:period_from'],
             'sscl_percentage'          => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -218,12 +231,14 @@ class StorageBillingController extends Controller
             'lines.*.line_total'       => ['required', 'numeric', 'min:0'],
         ]);
 
-        $ssclPct     = (float) ($validated['sscl_percentage'] ?? 0);
-        $vatPct      = (float) ($validated['vat_percentage'] ?? 0);
-        $subtotal    = round(array_sum(array_column($validated['lines'], 'subtotal')), 2);
-        $ssclAmount  = round(array_sum(array_column($validated['lines'], 'line_sscl')), 2);
-        $vatAmount   = round(array_sum(array_column($validated['lines'], 'line_vat')), 2);
-        $totalAmount = round(array_sum(array_column($validated['lines'], 'line_total')), 2);
+        $invoiceCurrency = strtoupper($validated['invoice_currency'] ?? 'USD');
+        $exchangeRate    = (float) ($validated['exchange_rate'] ?? 1.0);
+        $ssclPct         = (float) ($validated['sscl_percentage'] ?? 0);
+        $vatPct          = (float) ($validated['vat_percentage'] ?? 0);
+        $subtotal        = round(array_sum(array_column($validated['lines'], 'subtotal')), 2);
+        $ssclAmount      = round(array_sum(array_column($validated['lines'], 'line_sscl')), 2);
+        $vatAmount       = round(array_sum(array_column($validated['lines'], 'line_vat')), 2);
+        $totalAmount     = round(array_sum(array_column($validated['lines'], 'line_total')), 2);
 
         // Generate sequential invoice number: SBI-YYYYMM-XXXX
         $prefix    = 'SBI-' . now()->format('Ym') . '-';
@@ -234,11 +249,13 @@ class StorageBillingController extends Controller
 
         $invoice = null;
 
-        DB::transaction(function () use ($validated, $invoiceNo, $ssclPct, $vatPct, $subtotal, $ssclAmount, $vatAmount, $totalAmount, &$invoice) {
+        DB::transaction(function () use ($validated, $invoiceNo, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $subtotal, $ssclAmount, $vatAmount, $totalAmount, &$invoice) {
             $invoice = StorageInvoice::create([
                 'invoice_no'          => $invoiceNo,
                 'customer_id'         => $validated['customer_id'],
                 'invoice_date'        => $validated['invoice_date'],
+                'invoice_currency'    => $invoiceCurrency,
+                'exchange_rate'       => $exchangeRate,
                 'billing_period_from' => $validated['period_from'],
                 'billing_period_to'   => $validated['period_to'],
                 'subtotal'            => $subtotal,

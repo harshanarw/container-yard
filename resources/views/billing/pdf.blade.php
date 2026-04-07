@@ -148,6 +148,16 @@
                 <span class="info-label">Containers</span>
                 <span class="info-value">{{ $invoice->details->count() }}</span>
             </div>
+            <div class="info-row">
+                <span class="info-label">Invoice Currency</span>
+                <span class="info-value" style="font-weight:bold;">{{ $invoice->invoice_currency ?? 'USD' }}</span>
+            </div>
+            @if(($invoice->invoice_currency ?? 'USD') !== 'USD')
+            <div class="info-row">
+                <span class="info-label">Exchange Rate</span>
+                <span class="info-value">1 USD = {{ number_format($invoice->exchange_rate, 4) }} {{ $invoice->invoice_currency }}</span>
+            </div>
+            @endif
             @if($invoice->sent_at)
             <div class="info-row">
                 <span class="info-label">Issued On</span>
@@ -244,17 +254,35 @@
         <tfoot>
             <tr class="sub-row">
                 <td colspan="10" class="text-right" style="padding-right:10px;">Subtotal:</td>
-                <td class="text-right">{{ number_format($invoice->subtotal, 2) }}</td>
+                <td class="text-right">{{ $invoice->invoice_currency ?? 'USD' }} {{ number_format($invoice->subtotal, 2) }}</td>
             </tr>
+            @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
+            <tr class="tax-row">
+                <td colspan="10" class="text-right" style="padding-right:10px;">
+                    SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%):
+                </td>
+                <td class="text-right">{{ $invoice->invoice_currency ?? 'USD' }} {{ number_format($invoice->sscl_amount, 2) }}</td>
+            </tr>
+            @endif
+            @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
+            <tr class="tax-row">
+                <td colspan="10" class="text-right" style="padding-right:10px;">
+                    VAT ({{ number_format($invoice->vat_percentage, 2) }}%):
+                </td>
+                <td class="text-right">{{ $invoice->invoice_currency ?? 'USD' }} {{ number_format($invoice->vat_amount, 2) }}</td>
+            </tr>
+            @endif
+            @if($invoice->tax_amount > 0)
             <tr class="tax-row">
                 <td colspan="10" class="text-right" style="padding-right:10px;">
                     Tax ({{ number_format($invoice->tax_percentage, 2) }}%):
                 </td>
-                <td class="text-right">{{ number_format($invoice->tax_amount, 2) }}</td>
+                <td class="text-right">{{ $invoice->invoice_currency ?? 'USD' }} {{ number_format($invoice->tax_amount, 2) }}</td>
             </tr>
+            @endif
             <tr class="total-row">
                 <td colspan="10" class="text-right" style="padding-right:10px;">GRAND TOTAL:</td>
-                <td class="text-right">{{ number_format($invoice->total_amount, 2) }}</td>
+                <td class="text-right">{{ $invoice->invoice_currency ?? 'USD' }} {{ number_format($invoice->total_amount, 2) }}</td>
             </tr>
         </tfoot>
     </table>

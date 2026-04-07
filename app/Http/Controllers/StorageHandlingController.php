@@ -67,16 +67,20 @@ class StorageHandlingController extends Controller
             'shipping_line_id' => 'required|exists:customers,id',
             'period_from'      => 'required|date',
             'period_to'        => 'required|date|after_or_equal:period_from',
+            'invoice_currency' => 'nullable|string|size:3',
+            'exchange_rate'    => 'nullable|numeric|min:0.0001',
             'sscl_pct'         => 'nullable|numeric|min:0|max:100',
             'vat_pct'          => 'nullable|numeric|min:0|max:100',
         ]);
 
-        $shippingLine = Customer::findOrFail($v['shipping_line_id']);
-        $periodFrom   = now()->parse($v['period_from'])->startOfDay();
-        $periodTo     = now()->parse($v['period_to'])->startOfDay();
-        $periodToEod  = now()->parse($v['period_to'])->endOfDay();   // for movement timestamps
-        $ssclPct      = (float) ($v['sscl_pct'] ?? 0);
-        $vatPct       = (float) ($v['vat_pct'] ?? 0);
+        $shippingLine    = Customer::findOrFail($v['shipping_line_id']);
+        $periodFrom      = now()->parse($v['period_from'])->startOfDay();
+        $periodTo        = now()->parse($v['period_to'])->startOfDay();
+        $periodToEod     = now()->parse($v['period_to'])->endOfDay();   // for movement timestamps
+        $invoiceCurrency = strtoupper($v['invoice_currency'] ?? 'USD');
+        $exchangeRate    = (float) ($v['exchange_rate'] ?? 1.0);
+        $ssclPct         = (float) ($v['sscl_pct'] ?? 0);
+        $vatPct          = (float) ($v['vat_pct'] ?? 0);
 
         // ── Storage records active during period ─────────────────────────────
         $storageRecords = YardStorage::with(['container.equipmentType'])
@@ -104,6 +108,8 @@ class StorageHandlingController extends Controller
         if ($storageRecords->isEmpty() && $liftOffByContainer->isEmpty() && $liftOnByContainer->isEmpty()) {
             return response()->json([
                 'lines'                  => [],
+                'invoice_currency'       => $invoiceCurrency,
+                'exchange_rate'          => $exchangeRate,
                 'storage_subtotal'       => 0,
                 'handling_subtotal'      => 0,
                 'subtotal'               => 0,
@@ -169,23 +175,25 @@ class StorageHandlingController extends Controller
             $freeDaysRemaining = max(0, $freeDays - $daysBeforePeriod);
             $freeDaysInPeriod  = min($totalDays, $freeDaysRemaining);
             $chargeableDays    = max(0, $totalDays - $freeDaysInPeriod);
-            $storageSubtotal   = round($chargeableDays * $storageRate, 2);
+
+            // Convert storage rate to invoice currency
+            $storageDailyConverted = round($storageRate * $exchangeRate, 2);
+            $storageSubtotal       = round($chargeableDays * $storageDailyConverted, 2);
 
             // ── Handling calculation ──────────────────────────────────────────
             $containerSize = $this->normalizeSize($container->size ?? '');
             $hasLiftOff    = isset($liftOffByContainer[$container->id]);
             $hasLiftOn     = isset($liftOnByContainer[$container->id]);
 
-            $liftOffRate    = 0.0;
-            $liftOnRate     = 0.0;
-            $handlingCur    = 'USD';
+            $liftOffRate = 0.0;
+            $liftOnRate  = 0.0;
 
             if ($handlingTariff && $containerSize) {
                 $hRate = $handlingTariff->rates->firstWhere('container_size', $containerSize);
                 if ($hRate) {
-                    $liftOffRate = (float) $hRate->lift_off_rate;
-                    $liftOnRate  = (float) $hRate->lift_on_rate;
-                    $handlingCur = $hRate->currency;
+                    // Convert handling rates to invoice currency
+                    $liftOffRate = round((float) $hRate->lift_off_rate * $exchangeRate, 2);
+                    $liftOnRate  = round((float) $hRate->lift_on_rate  * $exchangeRate, 2);
                 }
             }
 
@@ -193,10 +201,10 @@ class StorageHandlingController extends Controller
                 ($hasLiftOff ? $liftOffRate : 0.0) + ($hasLiftOn ? $liftOnRate : 0.0),
                 2
             );
-            $lineTotal       = round($storageSubtotal + $handlingSubtotal, 2);
-            $lineSscl        = round($lineTotal * $ssclPct / 100, 2);
-            $lineVat         = round(($lineTotal + $lineSscl) * $vatPct / 100, 2);
-            $lineGrandTotal  = round($lineTotal + $lineSscl + $lineVat, 2);
+            $lineTotal      = round($storageSubtotal + $handlingSubtotal, 2);
+            $lineSscl       = round($lineTotal * $ssclPct / 100, 2);
+            $lineVat        = round(($lineTotal + $lineSscl) * $vatPct / 100, 2);
+            $lineGrandTotal = round($lineTotal + $lineSscl + $lineVat, 2);
 
             $eqtLabel = $container->equipmentType
                 ? $container->equipmentType->eqt_code . ' — ' . $container->equipmentType->description
@@ -214,14 +222,14 @@ class StorageHandlingController extends Controller
                 'storage_total_days'       => $totalDays,
                 'storage_free_days'        => $freeDaysInPeriod,
                 'storage_chargeable_days'  => $chargeableDays,
-                'storage_daily_rate'       => $storageRate,
-                'storage_currency'         => $storageCur,
+                'storage_daily_rate'       => $storageDailyConverted,
+                'storage_currency'         => $invoiceCurrency,
                 'storage_subtotal'         => $storageSubtotal,
                 'has_lift_off'             => $hasLiftOff ? 1 : 0,
                 'lift_off_rate'            => $liftOffRate,
                 'has_lift_on'              => $hasLiftOn ? 1 : 0,
                 'lift_on_rate'             => $liftOnRate,
-                'handling_currency'        => $handlingCur,
+                'handling_currency'        => $invoiceCurrency,
                 'handling_subtotal'        => $handlingSubtotal,
                 'line_total'               => $lineTotal,
                 'line_sscl'                => $lineSscl,
@@ -240,6 +248,8 @@ class StorageHandlingController extends Controller
         return response()->json([
             'shipping_line'          => $shippingLine->name,
             'lines'                  => $lines,
+            'invoice_currency'       => $invoiceCurrency,
+            'exchange_rate'          => $exchangeRate,
             'storage_subtotal'       => $storageTotalAmt,
             'handling_subtotal'      => $handlingTotalAmt,
             'subtotal'               => $subtotal,
@@ -261,6 +271,8 @@ class StorageHandlingController extends Controller
         $v = $request->validate([
             'shipping_line_id'                   => 'required|exists:customers,id',
             'invoice_date'                        => 'required|date',
+            'invoice_currency'                    => 'nullable|string|size:3',
+            'exchange_rate'                       => 'nullable|numeric|min:0.0001',
             'period_from'                         => 'required|date',
             'period_to'                           => 'required|date|after_or_equal:period_from',
             'sscl_percentage'                     => 'nullable|numeric|min:0|max:100',
@@ -293,6 +305,8 @@ class StorageHandlingController extends Controller
             'lines.*.line_grand_total'            => 'required|numeric|min:0',
         ]);
 
+        $invoiceCurrency  = strtoupper($v['invoice_currency'] ?? 'USD');
+        $exchangeRate     = (float) ($v['exchange_rate'] ?? 1.0);
         $ssclPct          = (float) ($v['sscl_percentage'] ?? 0);
         $vatPct           = (float) ($v['vat_percentage'] ?? 0);
         $storageTotalAmt  = round(array_sum(array_column($v['lines'], 'storage_subtotal')),  2);
@@ -311,11 +325,13 @@ class StorageHandlingController extends Controller
 
         $invoice = null;
 
-        DB::transaction(function () use ($v, $invoiceNo, $ssclPct, $vatPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $ssclAmount, $vatAmount, $totalAmount, &$invoice) {
+        DB::transaction(function () use ($v, $invoiceNo, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $ssclAmount, $vatAmount, $totalAmount, &$invoice) {
             $invoice = StorageHandlingInvoice::create([
                 'invoice_no'          => $invoiceNo,
                 'shipping_line_id'    => $v['shipping_line_id'],
                 'invoice_date'        => $v['invoice_date'],
+                'invoice_currency'    => $invoiceCurrency,
+                'exchange_rate'       => $exchangeRate,
                 'billing_period_from' => $v['period_from'],
                 'billing_period_to'   => $v['period_to'],
                 'storage_subtotal'    => $storageTotalAmt,

@@ -8,6 +8,7 @@ class StorageHandlingInvoice extends Model
 {
     protected $fillable = [
         'invoice_no', 'shipping_line_id', 'invoice_date',
+        'invoice_currency', 'exchange_rate',
         'billing_period_from', 'billing_period_to',
         'storage_subtotal', 'handling_subtotal', 'subtotal',
         'tax_percentage', 'tax_amount',
@@ -19,6 +20,7 @@ class StorageHandlingInvoice extends Model
         'invoice_date'        => 'date',
         'billing_period_from' => 'date',
         'billing_period_to'   => 'date',
+        'exchange_rate'       => 'decimal:4',
         'storage_subtotal'    => 'decimal:2',
         'handling_subtotal'   => 'decimal:2',
         'subtotal'            => 'decimal:2',

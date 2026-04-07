@@ -105,6 +105,24 @@
                     <div class="text-muted">Invoice Date</div>
                     <div>{{ $invoice->invoice_date->format('d M Y') }}</div>
                 </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <div class="text-muted">Invoice Currency</div>
+                        <div class="fw-semibold">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6">
+                                {{ $invoice->invoice_currency ?? 'USD' }}
+                            </span>
+                        </div>
+                    </div>
+                    @if(($invoice->invoice_currency ?? 'USD') !== 'USD')
+                    <div class="col-6">
+                        <div class="text-muted">Exchange Rate</div>
+                        <div class="fw-semibold" style="font-size:.8rem;">
+                            1 USD = {{ number_format($invoice->exchange_rate, 4) }} {{ $invoice->invoice_currency }}
+                        </div>
+                    </div>
+                    @endif
+                </div>
                 <div class="mb-2">
                     <div class="text-muted">Billing Period</div>
                     <div>
