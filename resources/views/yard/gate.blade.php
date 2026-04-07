@@ -233,17 +233,19 @@
                         <label class="form-label fw-semibold">Container Number <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <input type="text" name="container_no" class="form-control font-monospace text-uppercase"
-                                   placeholder="Search container in yard…" required id="containerSearch">
-                            <button type="button" class="btn btn-outline-secondary">
+                                   placeholder="XXXX0000000" required id="containerSearch"
+                                   maxlength="11" autocomplete="off">
+                            <button type="button" class="btn btn-outline-primary" id="containerSearchBtn">
                                 <i class="bi bi-search"></i>
                             </button>
                         </div>
+                        <div class="form-text text-muted" style="font-size:.72rem;">
+                            Enter container number and click Search (or press Enter) to verify it is in the yard.
+                        </div>
                     </div>
 
-                    <!-- Container Info Card (populated via JS/AJAX) -->
-                    <div class="alert alert-info small p-2 mb-3" id="containerInfoBox">
-                        <i class="bi bi-info-circle me-1"></i>Enter a container number above to view details.
-                    </div>
+                    <!-- Container Info Card (populated via AJAX) -->
+                    <div id="containerInfoBox" class="mb-3 d-none"></div>
 
                     <div class="row g-3">
                         <div class="col-6">
@@ -668,5 +670,95 @@
         counterEl:   document.getElementById('outPhotoCounter'),
         max: 5,
     });
+
+    // ── Gate Out: Container search / AJAX lookup ──────────────────────────────
+    (function () {
+        const inp       = document.getElementById('containerSearch');
+        const searchBtn = document.getElementById('containerSearchBtn');
+        const infoBox   = document.getElementById('containerInfoBox');
+        const lookupUrl = '{{ route("yard.container-lookup") }}';
+
+        let lookupDone = false;
+
+        function setInfoBox(type, html) {
+            infoBox.className = 'mb-3 alert alert-' + type + ' small p-2';
+            infoBox.innerHTML = html;
+            infoBox.classList.remove('d-none');
+        }
+
+        async function doLookup() {
+            const val = inp.value.trim().toUpperCase();
+            if (val.length < 11) {
+                setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Enter a full 11-character container number first.');
+                return;
+            }
+
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            try {
+                const res  = await fetch(lookupUrl + '?container_no=' + encodeURIComponent(val));
+                const data = await res.json();
+
+                if (!data.found) {
+                    lookupDone = false;
+                    setInfoBox('danger',
+                        '<i class="bi bi-x-circle me-1"></i><strong>Not found:</strong> ' + (data.message || 'Container not in yard.'));
+                } else {
+                    lookupDone = true;
+                    const condMap  = { sound: 'Sound', damaged: 'Damaged', require_repair: 'Requires Repair' };
+                    const cargoMap = { empty: 'Empty', full: 'Full' };
+                    const daysBadge = data.days_in_yard !== null
+                        ? '<span class="badge bg-warning-subtle text-warning border ms-1">' + data.days_in_yard + ' day(s) in yard</span>'
+                        : '';
+
+                    setInfoBox('success',
+                        '<div class="d-flex align-items-center gap-2 mb-1">' +
+                            '<i class="bi bi-check-circle-fill text-success fs-5"></i>' +
+                            '<strong class="font-monospace fs-6">' + data.container_no + '</strong>' +
+                            daysBadge +
+                        '</div>' +
+                        '<div class="row g-1 small">' +
+                            '<div class="col-6"><span class="text-muted">Equipment:</span> ' + data.equipment_label + '</div>' +
+                            '<div class="col-6"><span class="text-muted">Customer:</span> ' + data.customer + '</div>' +
+                            '<div class="col-6"><span class="text-muted">Condition:</span> ' + (condMap[data.condition] || data.condition) + '</div>' +
+                            '<div class="col-6"><span class="text-muted">Cargo:</span> ' + (cargoMap[data.cargo_status] || data.cargo_status) + '</div>' +
+                            '<div class="col-6"><span class="text-muted">Location:</span> ' + (data.location || '—') + '</div>' +
+                            '<div class="col-6"><span class="text-muted">Gate In:</span> ' + (data.gate_in_time || data.gate_in_date || '—') + '</div>' +
+                        '</div>'
+                    );
+                }
+            } catch (e) {
+                lookupDone = false;
+                setInfoBox('danger', '<i class="bi bi-wifi-off me-1"></i>Network error. Please try again.');
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = '<i class="bi bi-search"></i>';
+            }
+        }
+
+        searchBtn.addEventListener('click', doLookup);
+
+        inp.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); doLookup(); }
+        });
+
+        // Reset info box when container number is changed after a lookup
+        inp.addEventListener('input', function () {
+            if (lookupDone) {
+                lookupDone = false;
+                setInfoBox('info', '<i class="bi bi-info-circle me-1"></i>Container number changed — click Search to verify.');
+            }
+        });
+
+        // Prevent Gate Out form submission if lookup hasn't confirmed the container is in yard
+        document.getElementById('gateOutForm').addEventListener('submit', function (e) {
+            if (!lookupDone) {
+                e.preventDefault();
+                setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please search and confirm the container is in the yard before submitting.');
+                inp.focus();
+            }
+        }, true); // capture phase so it fires before the photo uploader's handler
+    })();
 </script>
 @endpush

@@ -56,13 +56,15 @@ class StorageBillingController extends Controller
             'customer_id' => ['required', 'exists:customers,id'],
             'period_from' => ['required', 'date'],
             'period_to'   => ['required', 'date', 'after_or_equal:period_from'],
-            'tax_pct'     => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'sscl_pct'    => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'vat_pct'     => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $customer   = Customer::findOrFail($validated['customer_id']);
         $periodFrom = now()->parse($validated['period_from'])->startOfDay();
         $periodTo   = now()->parse($validated['period_to'])->startOfDay();
-        $taxPct     = (float) ($validated['tax_pct'] ?? 0);
+        $ssclPct    = (float) ($validated['sscl_pct'] ?? 0);
+        $vatPct     = (float) ($validated['vat_pct'] ?? 0);
 
         // All active yard storage records for this customer whose gate-in is on or before period end
         $storageRecords = YardStorage::with(['container.equipmentType'])
@@ -74,13 +76,15 @@ class StorageBillingController extends Controller
 
         if ($storageRecords->isEmpty()) {
             return response()->json([
-                'lines'          => [],
-                'subtotal'       => 0,
-                'tax_percentage' => $taxPct,
-                'tax_amount'     => 0,
-                'total_amount'   => 0,
-                'tariff_found'   => false,
-                'no_containers'  => true,
+                'lines'            => [],
+                'subtotal'         => 0,
+                'sscl_percentage'  => $ssclPct,
+                'sscl_amount'      => 0,
+                'vat_percentage'   => $vatPct,
+                'vat_amount'       => 0,
+                'total_amount'     => 0,
+                'tariff_found'     => false,
+                'no_containers'    => true,
             ]);
         }
 
@@ -137,6 +141,10 @@ class StorageBillingController extends Controller
             $chargeableDays    = max(0, $totalDays - $freeDaysInPeriod);
             $lineSubtotal      = round($chargeableDays * $dailyRate, 2);
 
+            $lineSscl  = round($lineSubtotal * $ssclPct / 100, 2);
+            $lineVat   = round(($lineSubtotal + $lineSscl) * $vatPct / 100, 2);
+            $lineTotal = round($lineSubtotal + $lineSscl + $lineVat, 2);
+
             $eqtLabel = $container->equipmentType
                 ? $container->equipmentType->eqt_code . ' — ' . $container->equipmentType->description
                 : ($container->size . "' " . $container->type_code);
@@ -154,23 +162,29 @@ class StorageBillingController extends Controller
                 'daily_rate'      => $dailyRate,
                 'currency'        => $currency,
                 'subtotal'        => $lineSubtotal,
+                'line_sscl'       => $lineSscl,
+                'line_vat'        => $lineVat,
+                'line_total'      => $lineTotal,
                 'tariff_found'    => (bool) $tariffHeader,
             ];
         }
 
         $subtotal    = round(array_sum(array_column($lines, 'subtotal')), 2);
-        $taxAmount   = round($subtotal * $taxPct / 100, 2);
-        $totalAmount = round($subtotal + $taxAmount, 2);
+        $ssclAmount  = round(array_sum(array_column($lines, 'line_sscl')), 2);
+        $vatAmount   = round(array_sum(array_column($lines, 'line_vat')), 2);
+        $totalAmount = round(array_sum(array_column($lines, 'line_total')), 2);
 
         return response()->json([
-            'customer'       => $customer->name,
-            'lines'          => $lines,
-            'subtotal'       => $subtotal,
-            'tax_percentage' => $taxPct,
-            'tax_amount'     => $taxAmount,
-            'total_amount'   => $totalAmount,
-            'tariff_found'   => (bool) $tariffHeader,
-            'no_containers'  => false,
+            'customer'         => $customer->name,
+            'lines'            => $lines,
+            'subtotal'         => $subtotal,
+            'sscl_percentage'  => $ssclPct,
+            'sscl_amount'      => $ssclAmount,
+            'vat_percentage'   => $vatPct,
+            'vat_amount'       => $vatAmount,
+            'total_amount'     => $totalAmount,
+            'tariff_found'     => (bool) $tariffHeader,
+            'no_containers'    => false,
         ]);
     }
 
@@ -183,7 +197,8 @@ class StorageBillingController extends Controller
             'invoice_date'             => ['required', 'date'],
             'period_from'              => ['required', 'date'],
             'period_to'                => ['required', 'date', 'after_or_equal:period_from'],
-            'tax_percentage'           => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'sscl_percentage'          => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'vat_percentage'           => ['nullable', 'numeric', 'min:0', 'max:100'],
             'notes'                    => ['nullable', 'string', 'max:1000'],
             'lines'                    => ['required', 'array', 'min:1'],
             'lines.*.container_id'     => ['required', 'integer'],
@@ -198,12 +213,17 @@ class StorageBillingController extends Controller
             'lines.*.daily_rate'       => ['required', 'numeric', 'min:0'],
             'lines.*.currency'         => ['required', 'string', 'max:3'],
             'lines.*.subtotal'         => ['required', 'numeric', 'min:0'],
+            'lines.*.line_sscl'        => ['required', 'numeric', 'min:0'],
+            'lines.*.line_vat'         => ['required', 'numeric', 'min:0'],
+            'lines.*.line_total'       => ['required', 'numeric', 'min:0'],
         ]);
 
-        $taxPct      = (float) ($validated['tax_percentage'] ?? 0);
+        $ssclPct     = (float) ($validated['sscl_percentage'] ?? 0);
+        $vatPct      = (float) ($validated['vat_percentage'] ?? 0);
         $subtotal    = round(array_sum(array_column($validated['lines'], 'subtotal')), 2);
-        $taxAmount   = round($subtotal * $taxPct / 100, 2);
-        $totalAmount = round($subtotal + $taxAmount, 2);
+        $ssclAmount  = round(array_sum(array_column($validated['lines'], 'line_sscl')), 2);
+        $vatAmount   = round(array_sum(array_column($validated['lines'], 'line_vat')), 2);
+        $totalAmount = round(array_sum(array_column($validated['lines'], 'line_total')), 2);
 
         // Generate sequential invoice number: SBI-YYYYMM-XXXX
         $prefix    = 'SBI-' . now()->format('Ym') . '-';
@@ -214,7 +234,7 @@ class StorageBillingController extends Controller
 
         $invoice = null;
 
-        DB::transaction(function () use ($validated, $invoiceNo, $taxPct, $subtotal, $taxAmount, $totalAmount, &$invoice) {
+        DB::transaction(function () use ($validated, $invoiceNo, $ssclPct, $vatPct, $subtotal, $ssclAmount, $vatAmount, $totalAmount, &$invoice) {
             $invoice = StorageInvoice::create([
                 'invoice_no'          => $invoiceNo,
                 'customer_id'         => $validated['customer_id'],
@@ -222,8 +242,10 @@ class StorageBillingController extends Controller
                 'billing_period_from' => $validated['period_from'],
                 'billing_period_to'   => $validated['period_to'],
                 'subtotal'            => $subtotal,
-                'tax_percentage'      => $taxPct,
-                'tax_amount'          => $taxAmount,
+                'sscl_percentage'     => $ssclPct,
+                'sscl_amount'         => $ssclAmount,
+                'vat_percentage'      => $vatPct,
+                'vat_amount'          => $vatAmount,
                 'total_amount'        => $totalAmount,
                 'status'              => 'draft',
                 'notes'               => $validated['notes'] ?? null,
@@ -245,6 +267,9 @@ class StorageBillingController extends Controller
                     'daily_rate'         => $line['daily_rate'],
                     'currency'           => $line['currency'],
                     'subtotal'           => $line['subtotal'],
+                    'line_sscl'          => $line['line_sscl'],
+                    'line_vat'           => $line['line_vat'],
+                    'line_total'         => $line['line_total'],
                 ]);
             }
         });

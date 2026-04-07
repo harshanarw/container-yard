@@ -79,10 +79,32 @@
                     </div>
                 </div>
 
+                <div class="mb-2">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="form-label fw-semibold mb-0">SSCL</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="applySscl" checked>
+                        </div>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="ssclPct" class="form-control"
+                               value="2.5" min="0" max="100" step="0.01">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Tax / SST (%)</label>
-                    <input type="number" name="tax_percentage" id="taxPct" class="form-control"
-                           value="0" min="0" max="100" step="0.01">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="form-label fw-semibold mb-0">VAT</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="applyVat" checked>
+                        </div>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="vatPct" class="form-control"
+                               value="18" min="0" max="100" step="0.01">
+                        <span class="input-group-text">%</span>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -117,16 +139,16 @@
                         <div class="fs-3 fw-bold" id="sumContainers">0</div>
                     </div>
                     <div class="col-3">
-                        <div class="label">Chargeable</div>
-                        <div class="fs-3 fw-bold" id="sumChargeable">0</div>
-                    </div>
-                    <div class="col-3">
                         <div class="label">Subtotal</div>
-                        <div class="fs-3 fw-bold" id="sumSubtotal">0.00</div>
+                        <div class="fs-4 fw-bold" id="sumSubtotal">0.00</div>
                     </div>
                     <div class="col-3">
-                        <div class="label">Tax</div>
-                        <div class="fs-3 fw-bold" id="sumTax">0.00</div>
+                        <div class="label">SSCL</div>
+                        <div class="fs-4 fw-bold" id="sumSscl">0.00</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="label">VAT</div>
+                        <div class="fs-4 fw-bold" id="sumVat">0.00</div>
                     </div>
                     <div class="col-12 border-top border-white border-opacity-25 pt-2">
                         <div class="label">Total Invoice Amount</div>
@@ -155,7 +177,10 @@
                                     <th class="text-center">Free</th>
                                     <th class="text-center">Chargeable</th>
                                     <th class="text-end">Rate/Day</th>
-                                    <th class="text-end pe-3">Amount</th>
+                                    <th class="text-end">Subtotal</th>
+                                    <th class="text-end">SSCL</th>
+                                    <th class="text-end">VAT</th>
+                                    <th class="text-end pe-3">Line Total</th>
                                 </tr>
                             </thead>
                             <tbody id="previewBody"></tbody>
@@ -203,11 +228,22 @@ let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
 
+// Toggle SSCL/VAT input availability
+document.getElementById('applySscl').addEventListener('change', function () {
+    document.getElementById('ssclPct').disabled = !this.checked;
+});
+document.getElementById('applyVat').addEventListener('change', function () {
+    document.getElementById('vatPct').disabled = !this.checked;
+});
+
 async function runPreview() {
     const customerId = document.getElementById('customerId').value;
     const periodFrom = document.getElementById('periodFrom').value;
     const periodTo   = document.getElementById('periodTo').value;
-    const taxPct     = document.getElementById('taxPct').value;
+    const ssclPct    = document.getElementById('applySscl').checked
+                       ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
+    const vatPct     = document.getElementById('applyVat').checked
+                       ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
 
     if (!customerId) { alert('Please select a customer.'); return; }
     if (!periodFrom || !periodTo) { alert('Please enter the billing period dates.'); return; }
@@ -224,7 +260,13 @@ async function runPreview() {
                 'X-CSRF-TOKEN': csrfToken,
                 'Accept': 'application/json',
             },
-            body: JSON.stringify({ customer_id: customerId, period_from: periodFrom, period_to: periodTo, tax_pct: taxPct }),
+            body: JSON.stringify({
+                customer_id: customerId,
+                period_from: periodFrom,
+                period_to: periodTo,
+                sscl_pct: ssclPct,
+                vat_pct: vatPct,
+            }),
         });
 
         const data = await res.json();
@@ -273,14 +315,13 @@ function renderPreview(data) {
     const fmtC = (n, cur) => (cur || 'LKR') + '\u00a0' + fmt(n);
 
     // Summary card
-    const chargeableCount = previewLines.filter(l => l.chargeable_days > 0).length;
     const currency = previewLines[0]?.currency || 'LKR';
-    document.getElementById('sumContainers').textContent  = previewLines.length;
-    document.getElementById('sumChargeable').textContent  = chargeableCount;
-    document.getElementById('sumSubtotal').textContent    = fmtC(data.subtotal, currency);
-    document.getElementById('sumTax').textContent         = fmtC(data.tax_amount, currency);
-    document.getElementById('sumTotal').textContent       = fmtC(data.total_amount, currency);
-    document.getElementById('lineCount').textContent      = previewLines.length + ' containers';
+    document.getElementById('sumContainers').textContent = previewLines.length;
+    document.getElementById('sumSubtotal').textContent   = fmtC(data.subtotal, currency);
+    document.getElementById('sumSscl').textContent       = fmtC(data.sscl_amount, currency);
+    document.getElementById('sumVat').textContent        = fmtC(data.vat_amount, currency);
+    document.getElementById('sumTotal').textContent      = fmtC(data.total_amount, currency);
+    document.getElementById('lineCount').textContent     = previewLines.length + ' containers';
 
     // Lines table
     const tbody = document.getElementById('previewBody');
@@ -295,23 +336,32 @@ function renderPreview(data) {
             <td class="text-center text-success small">${l.free_days}d</td>
             <td class="text-center ${l.chargeable_days > 0 ? 'text-danger fw-semibold' : 'text-success'}">${l.chargeable_days}d</td>
             <td class="text-end small">${fmtC(l.daily_rate, l.currency)}</td>
-            <td class="text-end pe-3 fw-semibold ${l.subtotal == 0 ? 'text-success' : ''}">${fmtC(l.subtotal, l.currency)}</td>
+            <td class="text-end fw-semibold ${l.subtotal == 0 ? 'text-success' : ''}">${fmtC(l.subtotal, l.currency)}</td>
+            <td class="text-end small text-secondary">${fmtC(l.line_sscl, l.currency)}</td>
+            <td class="text-end small text-secondary">${fmtC(l.line_vat, l.currency)}</td>
+            <td class="text-end pe-3 fw-bold">${fmtC(l.line_total, l.currency)}</td>
         </tr>
     `).join('');
 
     // Footer
+    const ssclLabel = data.sscl_percentage > 0 ? `SSCL (${parseFloat(data.sscl_percentage).toFixed(2)}%)` : 'SSCL';
+    const vatLabel  = data.vat_percentage  > 0 ? `VAT (${parseFloat(data.vat_percentage).toFixed(2)}%)`   : 'VAT';
     const tfoot = document.getElementById('previewFoot');
     tfoot.innerHTML = `
         <tr>
-            <td class="ps-3" colspan="9" style="text-align:right">Subtotal</td>
+            <td class="ps-3" colspan="12" style="text-align:right">Subtotal</td>
             <td class="text-end pe-3">${fmtC(data.subtotal, currency)}</td>
         </tr>
         <tr class="text-muted" style="font-weight:400">
-            <td class="ps-3" colspan="9" style="text-align:right">Tax (${parseFloat(data.tax_percentage).toFixed(2)}%)</td>
-            <td class="text-end pe-3">${fmtC(data.tax_amount, currency)}</td>
+            <td class="ps-3" colspan="12" style="text-align:right">${ssclLabel}</td>
+            <td class="text-end pe-3">${fmtC(data.sscl_amount, currency)}</td>
+        </tr>
+        <tr class="text-muted" style="font-weight:400">
+            <td class="ps-3" colspan="12" style="text-align:right">${vatLabel}</td>
+            <td class="text-end pe-3">${fmtC(data.vat_amount, currency)}</td>
         </tr>
         <tr class="table-primary">
-            <td class="ps-3" colspan="9" style="text-align:right">TOTAL</td>
+            <td class="ps-3" colspan="12" style="text-align:right">TOTAL</td>
             <td class="text-end pe-3">${fmtC(data.total_amount, currency)}</td>
         </tr>
     `;
@@ -340,18 +390,29 @@ document.getElementById('billingForm').addEventListener('submit', function (e) {
     }
 
     // Remove any stale inputs
-    this.querySelectorAll('[name^="lines["]').forEach(el => el.remove());
+    this.querySelectorAll('[name^="lines["], [name="sscl_percentage"], [name="vat_percentage"]')
+        .forEach(el => el.remove());
+
+    // Inject tax percentages
+    const ssclPct = document.getElementById('applySscl').checked
+                    ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
+    const vatPct  = document.getElementById('applyVat').checked
+                    ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
+
+    const mkHidden = (name, val) => {
+        const i = document.createElement('input');
+        i.type = 'hidden'; i.name = name; i.value = val;
+        this.appendChild(i);
+    };
+    mkHidden('sscl_percentage', ssclPct);
+    mkHidden('vat_percentage', vatPct);
 
     // Add hidden inputs for each line
     previewLines.forEach((line, i) => {
         Object.entries(line).forEach(([key, val]) => {
             // Skip frontend-only keys
             if (key === 'tariff_found') return;
-            const input = document.createElement('input');
-            input.type  = 'hidden';
-            input.name  = `lines[${i}][${key}]`;
-            input.value = val;
-            this.appendChild(input);
+            mkHidden(`lines[${i}][${key}]`, val);
         });
     });
 });

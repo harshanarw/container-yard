@@ -96,10 +96,32 @@
                     </div>
                 </div>
 
+                <div class="mb-2">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="form-label fw-semibold mb-0">SSCL</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="applySscl" checked>
+                        </div>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="ssclPct" class="form-control"
+                               value="2.5" min="0" max="100" step="0.01">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Tax / SST (%)</label>
-                    <input type="number" name="tax_percentage" id="taxPct" class="form-control"
-                           value="0" min="0" max="100" step="0.01">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="form-label fw-semibold mb-0">VAT</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="applyVat" checked>
+                        </div>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="vatPct" class="form-control"
+                               value="18" min="0" max="100" step="0.01">
+                        <span class="input-group-text">%</span>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -149,27 +171,31 @@
 
             <div class="summary-card p-4 mb-3">
                 <div class="row g-2 text-center">
-                    <div class="col-4">
+                    <div class="col-3">
                         <div class="label">Containers</div>
                         <div class="fs-3 fw-bold" id="sumContainers">0</div>
                     </div>
-                    <div class="col-4">
-                        <div class="label">Storage Total</div>
-                        <div class="fs-4 fw-bold" id="sumStorage">0.00</div>
+                    <div class="col-3">
+                        <div class="label">Storage</div>
+                        <div class="fs-5 fw-bold" id="sumStorage">0.00</div>
                     </div>
-                    <div class="col-4">
-                        <div class="label">Handling Total</div>
-                        <div class="fs-4 fw-bold" id="sumHandling">0.00</div>
+                    <div class="col-3">
+                        <div class="label">Handling</div>
+                        <div class="fs-5 fw-bold" id="sumHandling">0.00</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="label">Subtotal</div>
+                        <div class="fs-5 fw-bold" id="sumSubtotal">0.00</div>
                     </div>
                     <div class="col-12 border-top border-white border-opacity-25 pt-2 mt-1">
                         <div class="row">
                             <div class="col-6">
-                                <div class="label">Subtotal</div>
-                                <div class="fs-5 fw-bold" id="sumSubtotal">0.00</div>
+                                <div class="label">SSCL</div>
+                                <div class="fs-5 fw-bold" id="sumSscl">0.00</div>
                             </div>
                             <div class="col-6">
-                                <div class="label">Tax</div>
-                                <div class="fs-5 fw-bold" id="sumTax">0.00</div>
+                                <div class="label">VAT</div>
+                                <div class="fs-5 fw-bold" id="sumVat">0.00</div>
                             </div>
                         </div>
                     </div>
@@ -201,20 +227,23 @@
                                     <th colspan="3" class="text-center bg-info-subtle" style="border-bottom:1px solid #dee2e6;">
                                         Handling
                                     </th>
-                                    <th rowspan="2" class="text-end pe-2" style="vertical-align:middle;">Line Total</th>
+                                    <th rowspan="2" class="text-end" style="vertical-align:middle;">Subtotal</th>
+                                    <th rowspan="2" class="text-end" style="vertical-align:middle;">SSCL</th>
+                                    <th rowspan="2" class="text-end" style="vertical-align:middle;">VAT</th>
+                                    <th rowspan="2" class="text-end pe-2" style="vertical-align:middle;">Grand Total</th>
                                 </tr>
                                 <tr>
                                     <th class="text-center bg-warning-subtle">Days</th>
                                     <th class="text-center bg-warning-subtle">Free</th>
                                     <th class="text-center bg-warning-subtle">Chgbl</th>
-                                    <th class="text-end bg-warning-subtle">Amount</th>
+                                    <th class="text-end bg-warning-subtle">Amt</th>
                                     <th class="text-center bg-info-subtle">
                                         <i class="bi bi-arrow-down-circle text-success" title="Lift Off"></i>
                                     </th>
                                     <th class="text-center bg-info-subtle">
                                         <i class="bi bi-arrow-up-circle text-primary" title="Lift On"></i>
                                     </th>
-                                    <th class="text-end bg-info-subtle">Amount</th>
+                                    <th class="text-end bg-info-subtle">Amt</th>
                                 </tr>
                             </thead>
                             <tbody id="previewBody"></tbody>
@@ -267,11 +296,22 @@ let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
 
+// Toggle SSCL/VAT input availability
+document.getElementById('applySscl').addEventListener('change', function () {
+    document.getElementById('ssclPct').disabled = !this.checked;
+});
+document.getElementById('applyVat').addEventListener('change', function () {
+    document.getElementById('vatPct').disabled = !this.checked;
+});
+
 async function runPreview() {
     const shippingLineId = document.getElementById('shippingLineId').value;
     const periodFrom     = document.getElementById('periodFrom').value;
     const periodTo       = document.getElementById('periodTo').value;
-    const taxPct         = document.getElementById('taxPct').value;
+    const ssclPct        = document.getElementById('applySscl').checked
+                           ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
+    const vatPct         = document.getElementById('applyVat').checked
+                           ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
 
     if (!shippingLineId) { alert('Please select a shipping line.'); return; }
     if (!periodFrom || !periodTo) { alert('Please enter the billing period dates.'); return; }
@@ -292,7 +332,8 @@ async function runPreview() {
                 shipping_line_id: shippingLineId,
                 period_from: periodFrom,
                 period_to:   periodTo,
-                tax_pct:     taxPct,
+                sscl_pct:    ssclPct,
+                vat_pct:     vatPct,
             }),
         });
 
@@ -356,7 +397,8 @@ function renderPreview(data) {
     document.getElementById('sumStorage').textContent    = fmt(data.storage_subtotal);
     document.getElementById('sumHandling').textContent   = fmt(data.handling_subtotal);
     document.getElementById('sumSubtotal').textContent   = fmt(data.subtotal);
-    document.getElementById('sumTax').textContent        = fmt(data.tax_amount);
+    document.getElementById('sumSscl').textContent       = fmt(data.sscl_amount);
+    document.getElementById('sumVat').textContent        = fmt(data.vat_amount);
     document.getElementById('sumTotal').textContent      = fmt(data.total_amount);
     document.getElementById('lineCount').textContent     = previewLines.length + ' containers';
 
@@ -379,11 +421,16 @@ function renderPreview(data) {
             <td class="text-center bg-info-subtle">${icon(l.has_lift_off)}</td>
             <td class="text-center bg-info-subtle">${icon(l.has_lift_on)}</td>
             <td class="text-end bg-info-subtle fw-semibold">${fmt(l.handling_subtotal)}</td>
-            <td class="text-end pe-2 fw-bold">${fmt(l.line_total)}</td>
+            <td class="text-end fw-semibold">${fmt(l.line_total)}</td>
+            <td class="text-end small text-secondary">${fmt(l.line_sscl)}</td>
+            <td class="text-end small text-secondary">${fmt(l.line_vat)}</td>
+            <td class="text-end pe-2 fw-bold">${fmt(l.line_grand_total)}</td>
         </tr>
     `).join('');
 
     // Footer totals
+    const ssclLabel = data.sscl_percentage > 0 ? `SSCL (${parseFloat(data.sscl_percentage).toFixed(2)}%)` : 'SSCL';
+    const vatLabel  = data.vat_percentage  > 0 ? `VAT (${parseFloat(data.vat_percentage).toFixed(2)}%)`   : 'VAT';
     const tfoot = document.getElementById('previewFoot');
     tfoot.innerHTML = `
         <tr>
@@ -391,14 +438,19 @@ function renderPreview(data) {
             <td class="text-end bg-warning-subtle">${fmt(data.storage_subtotal)}</td>
             <td colspan="2"></td>
             <td class="text-end bg-info-subtle">${fmt(data.handling_subtotal)}</td>
+            <td class="text-end" colspan="3" style="text-align:right">Subtotal</td>
             <td class="text-end pe-2">${fmt(data.subtotal)}</td>
         </tr>
         <tr class="fw-normal text-muted">
-            <td class="ps-2" colspan="11" style="text-align:right">Tax (${parseFloat(data.tax_percentage).toFixed(2)}%)</td>
-            <td class="text-end pe-2">${fmt(data.tax_amount)}</td>
+            <td class="ps-2" colspan="14" style="text-align:right">${ssclLabel}</td>
+            <td class="text-end pe-2">${fmt(data.sscl_amount)}</td>
+        </tr>
+        <tr class="fw-normal text-muted">
+            <td class="ps-2" colspan="14" style="text-align:right">${vatLabel}</td>
+            <td class="text-end pe-2">${fmt(data.vat_amount)}</td>
         </tr>
         <tr class="table-success fw-bold">
-            <td class="ps-2" colspan="11" style="text-align:right">TOTAL</td>
+            <td class="ps-2" colspan="14" style="text-align:right">TOTAL</td>
             <td class="text-end pe-2 fs-6">${fmt(data.total_amount)}</td>
         </tr>
     `;
@@ -426,15 +478,25 @@ document.getElementById('billingForm').addEventListener('submit', function (e) {
         return;
     }
 
-    this.querySelectorAll('[name^="lines["]').forEach(el => el.remove());
+    this.querySelectorAll('[name^="lines["], [name="sscl_percentage"], [name="vat_percentage"]')
+        .forEach(el => el.remove());
+
+    const ssclPct = document.getElementById('applySscl').checked
+                    ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
+    const vatPct  = document.getElementById('applyVat').checked
+                    ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
+
+    const mkHidden = (name, val) => {
+        const inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = name; inp.value = val ?? '';
+        this.appendChild(inp);
+    };
+    mkHidden('sscl_percentage', ssclPct);
+    mkHidden('vat_percentage', vatPct);
 
     previewLines.forEach((line, i) => {
         Object.entries(line).forEach(([key, val]) => {
-            const input = document.createElement('input');
-            input.type  = 'hidden';
-            input.name  = `lines[${i}][${key}]`;
-            input.value = val ?? '';
-            this.appendChild(input);
+            mkHidden(`lines[${i}][${key}]`, val);
         });
     });
 });

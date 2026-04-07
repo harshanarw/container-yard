@@ -243,7 +243,16 @@ class YardController extends Controller
     public function gateOut(Request $request)
     {
         $validated = $request->validate([
-            'container_no'  => ['required', 'string', 'exists:containers,container_no'],
+            'container_no'  => [
+                'required', 'string',
+                'exists:containers,container_no',
+                function ($attr, $val, $fail) {
+                    $c = Container::where('container_no', $val)->first();
+                    if ($c && $c->status !== 'in_yard') {
+                        $fail("Container {$val} is not currently in the yard (status: {$c->status}).");
+                    }
+                },
+            ],
             'vehicle_plate'  => ['required', 'string', 'max:20'],
             'driver_name'    => ['required', 'string', 'max:255'],
             'driver_ic'      => ['required', 'string', 'max:30'],
@@ -255,6 +264,12 @@ class YardController extends Controller
         ]);
 
         $container = Container::where('container_no', $validated['container_no'])->firstOrFail();
+
+        // Resolve actual gate-out datetime — admin can override, others use now()
+        $gateOutTime = (auth()->user()->isAdmin() && !empty($validated['gate_out_time']))
+            ? \Carbon\Carbon::parse($validated['gate_out_time'])
+            : now();
+        $gateOutDate = $gateOutTime->toDateString();
 
         // Record gate movement
         $movement = GateMovement::create([
@@ -273,9 +288,7 @@ class YardController extends Controller
             'driver_name'     => $validated['driver_name'],
             'driver_ic'       => $validated['driver_ic'],
             'release_order'   => $validated['release_order'],
-            'gate_out_time'   => (auth()->user()->isAdmin() && !empty($validated['gate_out_time']))
-                                       ? \Carbon\Carbon::parse($validated['gate_out_time'])
-                                       : now(),
+            'gate_out_time'   => $gateOutTime,
             'movement_status' => 'done',
             'remarks'         => $validated['remarks'],
             'created_by'      => auth()->id(),
@@ -299,19 +312,20 @@ class YardController extends Controller
             }
         }
 
-        // Finalise storage record
+        // Finalise open storage record — use actual gate-out date
         $storage = YardStorage::where('container_id', $container->id)
             ->whereNull('gate_out_date')
             ->latest()
             ->first();
 
         if ($storage) {
-            $totalDays      = max(1, $storage->gate_in_date->diffInDays(today()));
+            $gateOutCarbon  = \Carbon\Carbon::parse($gateOutDate);
+            $totalDays      = max(1, $storage->gate_in_date->diffInDays($gateOutCarbon));
             $chargeableDays = max(0, $totalDays - $storage->free_days);
             $subtotal       = $chargeableDays * $storage->daily_rate;
 
             $storage->update([
-                'gate_out_date'   => today(),
+                'gate_out_date'   => $gateOutDate,
                 'total_days'      => $totalDays,
                 'chargeable_days' => $chargeableDays,
                 'subtotal'        => $subtotal,
@@ -326,10 +340,10 @@ class YardController extends Controller
             'last_updated_at' => now(),
         ]);
 
-        // Update container
+        // Update container status
         $container->update([
             'status'        => 'released',
-            'gate_out_date' => today(),
+            'gate_out_date' => $gateOutDate,
             'location_row'  => null,
             'location_bay'  => null,
             'location_tier' => null,
@@ -491,6 +505,72 @@ class YardController extends Controller
         $equipmentTypes = EquipmentType::active()->orderBy('sort_order')->get();
 
         return view('yard.storage', compact('storageRecords', 'customers', 'equipmentTypes'));
+    }
+
+    // -------------------------------------------------------------------------
+    // Container Lookup for Gate Out (AJAX)
+    // Returns in-yard container details including Gate In info and days in yard
+    // -------------------------------------------------------------------------
+    public function containerLookup(Request $request)
+    {
+        $no = strtoupper(trim($request->query('container_no', '')));
+
+        if (! $no) {
+            return response()->json(['found' => false, 'message' => 'Container number is required.']);
+        }
+
+        $container = Container::with(['customer', 'equipmentType'])
+            ->where('container_no', $no)
+            ->first();
+
+        if (! $container) {
+            return response()->json(['found' => false, 'message' => "Container {$no} not found."]);
+        }
+
+        if ($container->status !== 'in_yard') {
+            return response()->json([
+                'found'   => false,
+                'message' => "Container {$no} is not in the yard (status: {$container->status}).",
+            ]);
+        }
+
+        // Get the open storage record for days-in-yard calculation
+        $storage = YardStorage::where('container_id', $container->id)
+            ->whereNull('gate_out_date')
+            ->latest()
+            ->first();
+
+        // Get the linked Gate In movement
+        $gateInMovement = GateMovement::where('container_id', $container->id)
+            ->where('movement_type', 'in')
+            ->latest('gate_in_time')
+            ->first();
+
+        $daysInYard = $storage
+            ? max(0, $storage->gate_in_date->diffInDays(today()))
+            : ($container->gate_in_date ? $container->gate_in_date->diffInDays(today()) : null);
+
+        return response()->json([
+            'found'            => true,
+            'container_no'     => $container->container_no,
+            'size'             => $container->size,
+            'type_code'        => $container->type_code,
+            'equipment_label'  => $container->equipmentType
+                ? $container->equipmentType->eqt_code . ' — ' . $container->equipmentType->description
+                : ($container->size . "' " . $container->type_code),
+            'customer'         => $container->customer?->name ?? '—',
+            'condition'        => $container->condition,
+            'cargo_status'     => $container->cargo_status,
+            'location'         => implode('-', array_filter([
+                $container->location_row,
+                $container->location_bay ? 'Bay ' . $container->location_bay : null,
+                $container->location_tier ? 'Tier ' . $container->location_tier : null,
+            ])),
+            'gate_in_date'     => $container->gate_in_date?->format('d M Y'),
+            'gate_in_time'     => $gateInMovement?->gate_in_time?->format('d M Y, H:i'),
+            'days_in_yard'     => $daysInYard,
+            'gate_in_movement_id' => $gateInMovement?->id,
+        ]);
     }
 
     // -------------------------------------------------------------------------

@@ -15,7 +15,7 @@ class StorageHandlingInvoiceLine extends Model
         'has_lift_off', 'lift_off_rate',
         'has_lift_on', 'lift_on_rate',
         'handling_currency', 'handling_subtotal',
-        'line_total',
+        'line_total', 'line_sscl', 'line_vat', 'line_grand_total',
     ];
 
     protected $casts = [
@@ -31,6 +31,9 @@ class StorageHandlingInvoiceLine extends Model
         'lift_on_rate'            => 'decimal:2',
         'handling_subtotal'       => 'decimal:2',
         'line_total'              => 'decimal:2',
+        'line_sscl'               => 'decimal:2',
+        'line_vat'                => 'decimal:2',
+        'line_grand_total'        => 'decimal:2',
     ];
 
     public function invoice()

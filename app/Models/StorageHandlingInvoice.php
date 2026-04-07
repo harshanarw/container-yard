@@ -10,8 +10,9 @@ class StorageHandlingInvoice extends Model
         'invoice_no', 'shipping_line_id', 'invoice_date',
         'billing_period_from', 'billing_period_to',
         'storage_subtotal', 'handling_subtotal', 'subtotal',
-        'tax_percentage', 'tax_amount', 'total_amount',
-        'status', 'notes', 'sent_at', 'created_by',
+        'tax_percentage', 'tax_amount',
+        'sscl_percentage', 'sscl_amount', 'vat_percentage', 'vat_amount',
+        'total_amount', 'status', 'notes', 'sent_at', 'created_by',
     ];
 
     protected $casts = [
@@ -23,6 +24,10 @@ class StorageHandlingInvoice extends Model
         'subtotal'            => 'decimal:2',
         'tax_percentage'      => 'decimal:2',
         'tax_amount'          => 'decimal:2',
+        'sscl_percentage'     => 'decimal:2',
+        'sscl_amount'         => 'decimal:2',
+        'vat_percentage'      => 'decimal:2',
+        'vat_amount'          => 'decimal:2',
         'total_amount'        => 'decimal:2',
         'sent_at'             => 'datetime',
     ];

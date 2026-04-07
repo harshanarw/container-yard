@@ -67,14 +67,16 @@ class StorageHandlingController extends Controller
             'shipping_line_id' => 'required|exists:customers,id',
             'period_from'      => 'required|date',
             'period_to'        => 'required|date|after_or_equal:period_from',
-            'tax_pct'          => 'nullable|numeric|min:0|max:100',
+            'sscl_pct'         => 'nullable|numeric|min:0|max:100',
+            'vat_pct'          => 'nullable|numeric|min:0|max:100',
         ]);
 
         $shippingLine = Customer::findOrFail($v['shipping_line_id']);
         $periodFrom   = now()->parse($v['period_from'])->startOfDay();
         $periodTo     = now()->parse($v['period_to'])->startOfDay();
         $periodToEod  = now()->parse($v['period_to'])->endOfDay();   // for movement timestamps
-        $taxPct       = (float) ($v['tax_pct'] ?? 0);
+        $ssclPct      = (float) ($v['sscl_pct'] ?? 0);
+        $vatPct       = (float) ($v['vat_pct'] ?? 0);
 
         // ── Storage records active during period ─────────────────────────────
         $storageRecords = YardStorage::with(['container.equipmentType'])
@@ -105,8 +107,10 @@ class StorageHandlingController extends Controller
                 'storage_subtotal'       => 0,
                 'handling_subtotal'      => 0,
                 'subtotal'               => 0,
-                'tax_percentage'         => $taxPct,
-                'tax_amount'             => 0,
+                'sscl_percentage'        => $ssclPct,
+                'sscl_amount'            => 0,
+                'vat_percentage'         => $vatPct,
+                'vat_amount'             => 0,
                 'total_amount'           => 0,
                 'storage_tariff_found'   => false,
                 'handling_tariff_found'  => false,
@@ -189,7 +193,10 @@ class StorageHandlingController extends Controller
                 ($hasLiftOff ? $liftOffRate : 0.0) + ($hasLiftOn ? $liftOnRate : 0.0),
                 2
             );
-            $lineTotal = round($storageSubtotal + $handlingSubtotal, 2);
+            $lineTotal       = round($storageSubtotal + $handlingSubtotal, 2);
+            $lineSscl        = round($lineTotal * $ssclPct / 100, 2);
+            $lineVat         = round(($lineTotal + $lineSscl) * $vatPct / 100, 2);
+            $lineGrandTotal  = round($lineTotal + $lineSscl + $lineVat, 2);
 
             $eqtLabel = $container->equipmentType
                 ? $container->equipmentType->eqt_code . ' — ' . $container->equipmentType->description
@@ -217,14 +224,18 @@ class StorageHandlingController extends Controller
                 'handling_currency'        => $handlingCur,
                 'handling_subtotal'        => $handlingSubtotal,
                 'line_total'               => $lineTotal,
+                'line_sscl'                => $lineSscl,
+                'line_vat'                 => $lineVat,
+                'line_grand_total'         => $lineGrandTotal,
             ];
         }
 
         $storageTotalAmt  = round(array_sum(array_column($lines, 'storage_subtotal')), 2);
         $handlingTotalAmt = round(array_sum(array_column($lines, 'handling_subtotal')), 2);
         $subtotal         = round($storageTotalAmt + $handlingTotalAmt, 2);
-        $taxAmount        = round($subtotal * $taxPct / 100, 2);
-        $totalAmount      = round($subtotal + $taxAmount, 2);
+        $ssclAmount       = round(array_sum(array_column($lines, 'line_sscl')), 2);
+        $vatAmount        = round(array_sum(array_column($lines, 'line_vat')), 2);
+        $totalAmount      = round($subtotal + $ssclAmount + $vatAmount, 2);
 
         return response()->json([
             'shipping_line'          => $shippingLine->name,
@@ -232,8 +243,10 @@ class StorageHandlingController extends Controller
             'storage_subtotal'       => $storageTotalAmt,
             'handling_subtotal'      => $handlingTotalAmt,
             'subtotal'               => $subtotal,
-            'tax_percentage'         => $taxPct,
-            'tax_amount'             => $taxAmount,
+            'sscl_percentage'        => $ssclPct,
+            'sscl_amount'            => $ssclAmount,
+            'vat_percentage'         => $vatPct,
+            'vat_amount'             => $vatAmount,
             'total_amount'           => $totalAmount,
             'storage_tariff_found'   => (bool) $storageTariff,
             'handling_tariff_found'  => (bool) $handlingTariff,
@@ -250,7 +263,8 @@ class StorageHandlingController extends Controller
             'invoice_date'                        => 'required|date',
             'period_from'                         => 'required|date',
             'period_to'                           => 'required|date|after_or_equal:period_from',
-            'tax_percentage'                      => 'nullable|numeric|min:0|max:100',
+            'sscl_percentage'                     => 'nullable|numeric|min:0|max:100',
+            'vat_percentage'                      => 'nullable|numeric|min:0|max:100',
             'notes'                               => 'nullable|string|max:1000',
             'lines'                               => 'required|array|min:1',
             'lines.*.container_id'                => 'required|integer',
@@ -274,14 +288,19 @@ class StorageHandlingController extends Controller
             'lines.*.handling_currency'           => 'required|string|max:3',
             'lines.*.handling_subtotal'           => 'required|numeric|min:0',
             'lines.*.line_total'                  => 'required|numeric|min:0',
+            'lines.*.line_sscl'                   => 'required|numeric|min:0',
+            'lines.*.line_vat'                    => 'required|numeric|min:0',
+            'lines.*.line_grand_total'            => 'required|numeric|min:0',
         ]);
 
-        $taxPct           = (float) ($v['tax_percentage'] ?? 0);
+        $ssclPct          = (float) ($v['sscl_percentage'] ?? 0);
+        $vatPct           = (float) ($v['vat_percentage'] ?? 0);
         $storageTotalAmt  = round(array_sum(array_column($v['lines'], 'storage_subtotal')),  2);
         $handlingTotalAmt = round(array_sum(array_column($v['lines'], 'handling_subtotal')), 2);
         $subtotal         = round($storageTotalAmt + $handlingTotalAmt, 2);
-        $taxAmount        = round($subtotal * $taxPct / 100, 2);
-        $totalAmount      = round($subtotal + $taxAmount, 2);
+        $ssclAmount       = round(array_sum(array_column($v['lines'], 'line_sscl')), 2);
+        $vatAmount        = round(array_sum(array_column($v['lines'], 'line_vat')), 2);
+        $totalAmount      = round($subtotal + $ssclAmount + $vatAmount, 2);
 
         // Sequential invoice number: SHI-YYYYMM-XXXX
         $prefix    = 'SHI-' . now()->format('Ym') . '-';
@@ -292,7 +311,7 @@ class StorageHandlingController extends Controller
 
         $invoice = null;
 
-        DB::transaction(function () use ($v, $invoiceNo, $taxPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $taxAmount, $totalAmount, &$invoice) {
+        DB::transaction(function () use ($v, $invoiceNo, $ssclPct, $vatPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $ssclAmount, $vatAmount, $totalAmount, &$invoice) {
             $invoice = StorageHandlingInvoice::create([
                 'invoice_no'          => $invoiceNo,
                 'shipping_line_id'    => $v['shipping_line_id'],
@@ -302,8 +321,10 @@ class StorageHandlingController extends Controller
                 'storage_subtotal'    => $storageTotalAmt,
                 'handling_subtotal'   => $handlingTotalAmt,
                 'subtotal'            => $subtotal,
-                'tax_percentage'      => $taxPct,
-                'tax_amount'          => $taxAmount,
+                'sscl_percentage'     => $ssclPct,
+                'sscl_amount'         => $ssclAmount,
+                'vat_percentage'      => $vatPct,
+                'vat_amount'          => $vatAmount,
                 'total_amount'        => $totalAmount,
                 'status'              => 'draft',
                 'notes'               => $v['notes'] ?? null,
@@ -334,6 +355,9 @@ class StorageHandlingController extends Controller
                     'handling_currency'        => $line['handling_currency'],
                     'handling_subtotal'        => $line['handling_subtotal'],
                     'line_total'               => $line['line_total'],
+                    'line_sscl'                => $line['line_sscl'],
+                    'line_vat'                 => $line['line_vat'],
+                    'line_grand_total'         => $line['line_grand_total'],
                 ]);
             }
         });

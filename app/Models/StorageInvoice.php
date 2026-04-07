@@ -12,8 +12,9 @@ class StorageInvoice extends Model
     protected $fillable = [
         'invoice_no', 'customer_id', 'invoice_date',
         'billing_period_from', 'billing_period_to',
-        'subtotal', 'tax_percentage', 'tax_amount', 'total_amount',
-        'status', 'notes', 'sent_at', 'created_by',
+        'subtotal', 'tax_percentage', 'tax_amount',
+        'sscl_percentage', 'sscl_amount', 'vat_percentage', 'vat_amount',
+        'total_amount', 'status', 'notes', 'sent_at', 'created_by',
     ];
 
     protected $casts = [
@@ -23,6 +24,10 @@ class StorageInvoice extends Model
         'subtotal'            => 'decimal:2',
         'tax_percentage'      => 'decimal:2',
         'tax_amount'          => 'decimal:2',
+        'sscl_percentage'     => 'decimal:2',
+        'sscl_amount'         => 'decimal:2',
+        'vat_percentage'      => 'decimal:2',
+        'vat_amount'          => 'decimal:2',
         'total_amount'        => 'decimal:2',
         'sent_at'             => 'datetime',
     ];

@@ -71,6 +71,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/storage/calculate', [YardController::class, 'calculate'])->name('storage.calculate');
         Route::get('/container/{containerNo}', [YardController::class, 'lookup'])->name('container.lookup');
         Route::get('/tariff/{customerId}', [YardController::class, 'tariffLookup'])->name('tariff.lookup');
+        Route::get('/container-lookup',    [YardController::class, 'containerLookup'])->name('container-lookup');
         Route::get('/survey/{survey}', [YardController::class, 'surveyLookup'])->name('survey.lookup');
         Route::get('/movements/{movement}/edit',            [YardController::class, 'editMovement'])->name('movements.edit');
         Route::patch('/movements/{movement}',             [YardController::class, 'updateMovement'])->name('movements.update');

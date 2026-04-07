@@ -176,10 +176,24 @@
                     <span class="text-muted">Subtotal</span>
                     <span class="fw-semibold">{{ number_format($invoice->subtotal, 2) }}</span>
                 </div>
+                @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</span>
+                    <span>{{ number_format($invoice->sscl_amount, 2) }}</span>
+                </div>
+                @endif
+                @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">VAT ({{ number_format($invoice->vat_percentage, 2) }}%)</span>
+                    <span>{{ number_format($invoice->vat_amount, 2) }}</span>
+                </div>
+                @endif
+                @if($invoice->tax_amount > 0)
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Tax ({{ number_format($invoice->tax_percentage, 2) }}%)</span>
                     <span>{{ number_format($invoice->tax_amount, 2) }}</span>
                 </div>
+                @endif
                 <hr class="my-2">
                 <div class="d-flex justify-content-between">
                     <span class="fw-bold fs-6">Total Amount</span>
@@ -220,7 +234,10 @@
                                     style="border-bottom:1px solid #dee2e6;">Storage</th>
                                 <th colspan="3" class="text-center bg-info-subtle charge-section-header"
                                     style="border-bottom:1px solid #dee2e6;">Handling</th>
-                                <th rowspan="2" class="text-end pe-2" style="vertical-align:middle;">Line Total</th>
+                                <th rowspan="2" class="text-end" style="vertical-align:middle;">Subtotal</th>
+                                <th rowspan="2" class="text-end" style="vertical-align:middle;">SSCL</th>
+                                <th rowspan="2" class="text-end" style="vertical-align:middle;">VAT</th>
+                                <th rowspan="2" class="text-end pe-2" style="vertical-align:middle;">Grand Total</th>
                             </tr>
                             <tr>
                                 <th class="text-center bg-warning-subtle">Days</th>
@@ -282,8 +299,17 @@
                                     {{ $line->handling_currency }}
                                     {{ number_format($line->handling_subtotal, 2) }}
                                 </td>
-                                <td class="text-end pe-2 fw-bold">
+                                <td class="text-end fw-semibold">
                                     {{ number_format($line->line_total, 2) }}
+                                </td>
+                                <td class="text-end small text-secondary">
+                                    {{ number_format($line->line_sscl, 2) }}
+                                </td>
+                                <td class="text-end small text-secondary">
+                                    {{ number_format($line->line_vat, 2) }}
+                                </td>
+                                <td class="text-end pe-2 fw-bold">
+                                    {{ number_format($line->line_grand_total, 2) }}
                                 </td>
                             </tr>
                         @endforeach
@@ -294,16 +320,35 @@
                                 <td class="text-end bg-warning-subtle">{{ number_format($invoice->storage_subtotal, 2) }}</td>
                                 <td colspan="2"></td>
                                 <td class="text-end bg-info-subtle">{{ number_format($invoice->handling_subtotal, 2) }}</td>
+                                <td class="text-end" colspan="3" style="text-align:right">Subtotal</td>
                                 <td class="text-end pe-2">{{ number_format($invoice->subtotal, 2) }}</td>
                             </tr>
+                            @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
                             <tr class="fw-normal text-muted">
-                                <td class="ps-2" colspan="11" style="text-align:right">
+                                <td class="ps-2" colspan="14" style="text-align:right">
+                                    SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)
+                                </td>
+                                <td class="text-end pe-2">{{ number_format($invoice->sscl_amount, 2) }}</td>
+                            </tr>
+                            @endif
+                            @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
+                            <tr class="fw-normal text-muted">
+                                <td class="ps-2" colspan="14" style="text-align:right">
+                                    VAT ({{ number_format($invoice->vat_percentage, 2) }}%)
+                                </td>
+                                <td class="text-end pe-2">{{ number_format($invoice->vat_amount, 2) }}</td>
+                            </tr>
+                            @endif
+                            @if($invoice->tax_amount > 0)
+                            <tr class="fw-normal text-muted">
+                                <td class="ps-2" colspan="14" style="text-align:right">
                                     Tax ({{ number_format($invoice->tax_percentage, 2) }}%)
                                 </td>
                                 <td class="text-end pe-2">{{ number_format($invoice->tax_amount, 2) }}</td>
                             </tr>
+                            @endif
                             <tr class="table-success fw-bold">
-                                <td class="ps-2" colspan="11" style="text-align:right">TOTAL</td>
+                                <td class="ps-2" colspan="14" style="text-align:right">TOTAL</td>
                                 <td class="text-end pe-2 fs-6">{{ number_format($invoice->total_amount, 2) }}</td>
                             </tr>
                         </tfoot>
