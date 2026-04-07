@@ -371,8 +371,14 @@
         <ul class="nav flex-column">
             <li class="nav-item">
                 <a href="{{ route('billing.index') }}"
-                   class="nav-link {{ request()->routeIs('billing.*') ? 'active' : '' }}">
+                   class="nav-link {{ request()->routeIs('billing.index') || (request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*')) ? 'active' : '' }}">
                     <i class="bi bi-receipt-cutoff"></i><span>Storage Invoices</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('billing.storage-handling.index') }}"
+                   class="nav-link {{ request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
+                    <i class="bi bi-file-earmark-ruled"></i><span>Storage &amp; Handling</span>
                 </a>
             </li>
         </ul>

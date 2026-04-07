@@ -14,6 +14,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StorageBillingController;
 use App\Http\Controllers\StorageTariffController;
+use App\Http\Controllers\StorageHandlingController;
 use App\Http\Controllers\HandlingTariffController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\YardController;
@@ -145,6 +146,20 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/{invoice}/cancel',                [StorageBillingController::class, 'cancel'])->name('cancel');
         Route::get('/{invoice}/pdf',                     [StorageBillingController::class, 'pdf'])->name('pdf');
         Route::post('/{invoice}/email',                  [StorageBillingController::class, 'sendEmail'])->name('email');
+
+        // Storage & Handling — combined invoice (per shipping line)
+        Route::prefix('storage-handling')->name('storage-handling.')->group(function () {
+            Route::get('/',                [StorageHandlingController::class, 'index'])->name('index');
+            Route::get('/create',          [StorageHandlingController::class, 'create'])->name('create');
+            Route::post('/preview',        [StorageHandlingController::class, 'preview'])->name('preview');
+            Route::post('/',               [StorageHandlingController::class, 'store'])->name('store');
+            Route::get('/{storageHandlingInvoice}',         [StorageHandlingController::class, 'show'])->name('show');
+            Route::delete('/{storageHandlingInvoice}',      [StorageHandlingController::class, 'destroy'])->name('destroy');
+            Route::patch('/{storageHandlingInvoice}/issue', [StorageHandlingController::class, 'markIssued'])->name('issue');
+            Route::patch('/{storageHandlingInvoice}/pay',   [StorageHandlingController::class, 'markPaid'])->name('pay');
+            Route::patch('/{storageHandlingInvoice}/cancel',[StorageHandlingController::class, 'cancel'])->name('cancel');
+            Route::get('/{storageHandlingInvoice}/pdf',     [StorageHandlingController::class, 'pdf'])->name('pdf');
+        });
     });
 
     // Settings
