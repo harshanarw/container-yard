@@ -135,19 +135,12 @@ Route::middleware(['auth'])->group(function () {
 
     // Billing — Storage Invoice generation and management
     Route::prefix('billing')->name('billing.')->group(function () {
-        Route::get('/',                                  [StorageBillingController::class, 'index'])->name('index');
-        Route::get('/create',                            [StorageBillingController::class, 'create'])->name('create');
-        Route::post('/preview',                          [StorageBillingController::class, 'preview'])->name('preview');
-        Route::post('/',                                 [StorageBillingController::class, 'store'])->name('store');
-        Route::get('/{invoice}',                         [StorageBillingController::class, 'show'])->name('show');
-        Route::delete('/{invoice}',                      [StorageBillingController::class, 'destroy'])->name('destroy');
-        Route::patch('/{invoice}/issue',                 [StorageBillingController::class, 'markIssued'])->name('issue');
-        Route::patch('/{invoice}/pay',                   [StorageBillingController::class, 'markPaid'])->name('pay');
-        Route::patch('/{invoice}/cancel',                [StorageBillingController::class, 'cancel'])->name('cancel');
-        Route::get('/{invoice}/pdf',                     [StorageBillingController::class, 'pdf'])->name('pdf');
-        Route::post('/{invoice}/email',                  [StorageBillingController::class, 'sendEmail'])->name('email');
+        Route::get('/',       [StorageBillingController::class, 'index'])->name('index');
+        Route::get('/create', [StorageBillingController::class, 'create'])->name('create');
+        Route::post('/preview',[StorageBillingController::class, 'preview'])->name('preview');
+        Route::post('/',      [StorageBillingController::class, 'store'])->name('store');
 
-        // Storage & Handling — combined invoice (per shipping line)
+        // Storage & Handling — must come BEFORE the /{invoice} wildcard
         Route::prefix('storage-handling')->name('storage-handling.')->group(function () {
             Route::get('/',                [StorageHandlingController::class, 'index'])->name('index');
             Route::get('/create',          [StorageHandlingController::class, 'create'])->name('create');
@@ -160,6 +153,15 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('/{storageHandlingInvoice}/cancel',[StorageHandlingController::class, 'cancel'])->name('cancel');
             Route::get('/{storageHandlingInvoice}/pdf',     [StorageHandlingController::class, 'pdf'])->name('pdf');
         });
+
+        // Wildcard /{invoice} routes — must come AFTER all named sub-paths
+        Route::get('/{invoice}',         [StorageBillingController::class, 'show'])->name('show');
+        Route::delete('/{invoice}',      [StorageBillingController::class, 'destroy'])->name('destroy');
+        Route::patch('/{invoice}/issue', [StorageBillingController::class, 'markIssued'])->name('issue');
+        Route::patch('/{invoice}/pay',   [StorageBillingController::class, 'markPaid'])->name('pay');
+        Route::patch('/{invoice}/cancel',[StorageBillingController::class, 'cancel'])->name('cancel');
+        Route::get('/{invoice}/pdf',     [StorageBillingController::class, 'pdf'])->name('pdf');
+        Route::post('/{invoice}/email',  [StorageBillingController::class, 'sendEmail'])->name('email');
     });
 
     // Settings
