@@ -14,6 +14,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StorageBillingController;
 use App\Http\Controllers\StorageTariffController;
+use App\Http\Controllers\HandlingTariffController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\YardController;
 
@@ -98,6 +99,21 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{equipmentType}/toggle',    [EquipmentTypeController::class, 'toggleActive'])->name('toggle');
             Route::delete('{equipmentType}',          [EquipmentTypeController::class, 'destroy'])->name('destroy');
             Route::post('reorder',                    [EquipmentTypeController::class, 'reorder'])->name('reorder');
+        });
+        // Handling Charges Tariff
+        Route::prefix('handling-tariff')->name('handling-tariff.')->group(function () {
+            Route::get('/',                                [HandlingTariffController::class, 'index'])->name('index');
+            Route::post('/',                               [HandlingTariffController::class, 'store'])->name('store');
+            Route::get('{handlingTariff}',                 [HandlingTariffController::class, 'show'])->name('show');
+            Route::patch('{handlingTariff}',               [HandlingTariffController::class, 'update'])->name('update');
+            Route::patch('{handlingTariff}/toggle',        [HandlingTariffController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{handlingTariff}',              [HandlingTariffController::class, 'destroy'])->name('destroy');
+            // Rate line routes — nested under header
+            Route::prefix('{handlingTariff}/rates')->name('rates.')->group(function () {
+                Route::post('/',        [HandlingTariffController::class, 'storeRate'])->name('store');
+                Route::patch('{rate}',  [HandlingTariffController::class, 'updateRate'])->name('update');
+                Route::delete('{rate}', [HandlingTariffController::class, 'destroyRate'])->name('destroy');
+            });
         });
         // Storage Rate Tariff
         Route::prefix('storage-tariff')->name('storage-tariff.')->group(function () {

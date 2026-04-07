@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             InquirySeeder::class,
             EstimateSeeder::class,
             StorageTariffSeeder::class,
+            HandlingTariffSeeder::class,
         ]);
     }
 }

@@ -354,6 +354,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a href="{{ route('masters.handling-tariff.index') }}"
+                   class="nav-link {{ request()->routeIs('masters.handling-tariff.*') ? 'active' : '' }}">
+                    <i class="bi bi-truck"></i><span>Handling Tariff</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{{ route('masters.checklist.index') }}"
                    class="nav-link {{ request()->routeIs('masters.checklist.*') ? 'active' : '' }}">
                     <i class="bi bi-list-check"></i><span>Inspection Checklist</span>
