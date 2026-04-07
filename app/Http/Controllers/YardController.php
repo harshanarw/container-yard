@@ -129,6 +129,12 @@ class YardController extends Controller
 
         $eqt = EquipmentType::findOrFail($validated['equipment_type_id']);
 
+        // Resolve actual gate-in datetime (admin can override; everyone else uses now())
+        $gateInTime = (auth()->user()->isAdmin() && !empty($validated['gate_in_time']))
+            ? \Carbon\Carbon::parse($validated['gate_in_time'])
+            : now();
+        $gateInDate = $gateInTime->toDateString(); // date portion used for storage billing
+
         // Create or update container record
         $container = Container::updateOrCreate(
             ['container_no' => $validated['container_no']],
@@ -144,7 +150,7 @@ class YardController extends Controller
                 'location_bay'      => $validated['location_bay'],
                 'location_tier'     => $validated['location_tier'],
                 'seal_no'           => $validated['seal_no'],
-                'gate_in_date'      => today(),
+                'gate_in_date'      => $gateInDate,
                 'gate_out_date'     => null,
             ]
         );
@@ -164,9 +170,7 @@ class YardController extends Controller
             'cargo_status'    => $validated['cargo_status'],
             'seal_no'         => $validated['seal_no'],
             'vehicle_plate'   => $validated['vehicle_plate'],
-            'gate_in_time'    => (auth()->user()->isAdmin() && !empty($validated['gate_in_time']))
-                                      ? \Carbon\Carbon::parse($validated['gate_in_time'])
-                                      : now(),
+            'gate_in_time'    => $gateInTime,
             'movement_status' => 'done',
             'remarks'         => $validated['remarks'],
             'created_by'      => auth()->id(),
@@ -217,11 +221,11 @@ class YardController extends Controller
             ? ($tariffHeader->details()->where('equipment_type_id', $validated['equipment_type_id'])->value('storage_rate') ?? 0)
             : 0;
 
-        // Create storage record
+        // Create storage record — use actual gate-in date so billing calculations are correct
         YardStorage::create([
             'container_id' => $container->id,
             'customer_id'  => $validated['customer_id'],
-            'gate_in_date' => today(),
+            'gate_in_date' => $gateInDate,
             'free_days'    => $freeDays,
             'daily_rate'   => $dailyRate,
         ]);
@@ -407,7 +411,16 @@ class YardController extends Controller
                 }
             }
             if ($isAdmin && !empty($validated['gate_in_time'])) {
-                $updateData['gate_in_time'] = \Carbon\Carbon::parse($validated['gate_in_time']);
+                $newGateInTime = \Carbon\Carbon::parse($validated['gate_in_time']);
+                $updateData['gate_in_time'] = $newGateInTime;
+
+                // Sync the date-only fields on Container and YardStorage so billing stays accurate
+                $newGateInDate = $newGateInTime->toDateString();
+                Container::where('id', $movement->container_id)
+                    ->update(['gate_in_date' => $newGateInDate]);
+                YardStorage::where('container_id', $movement->container_id)
+                    ->whereNull('gate_out_date')
+                    ->update(['gate_in_date' => $newGateInDate]);
             }
         } else {
             foreach (['driver_name', 'driver_ic', 'release_order'] as $field) {
