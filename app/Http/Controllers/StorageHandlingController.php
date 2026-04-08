@@ -186,15 +186,21 @@ class StorageHandlingController extends Controller
             $hasLiftOff    = isset($liftOffByContainer[$container->id]);
             $hasLiftOn     = isset($liftOnByContainer[$container->id]);
 
-            $liftOffRate = 0.0;
-            $liftOnRate  = 0.0;
+            $liftOffRate    = 0.0;
+            $liftOnRate     = 0.0;
+            $liftOffRateUsd = 0.0;
+            $liftOnRateUsd  = 0.0;
+            $handlingCur    = 'USD';
 
             if ($handlingTariff && $containerSize) {
                 $hRate = $handlingTariff->rates->firstWhere('container_size', $containerSize);
                 if ($hRate) {
-                    // Convert handling rates to invoice currency
-                    $liftOffRate = round((float) $hRate->lift_off_rate * $exchangeRate, 2);
-                    $liftOnRate  = round((float) $hRate->lift_on_rate  * $exchangeRate, 2);
+                    $liftOffRateUsd = (float) $hRate->lift_off_rate;
+                    $liftOnRateUsd  = (float) $hRate->lift_on_rate;
+                    $handlingCur    = $hRate->currency ?? 'USD';
+                    // Convert handling rates to LKR (base currency)
+                    $liftOffRate = round($liftOffRateUsd * $exchangeRate, 2);
+                    $liftOnRate  = round($liftOnRateUsd  * $exchangeRate, 2);
                 }
             }
 
@@ -224,12 +230,18 @@ class StorageHandlingController extends Controller
                 'storage_free_days'        => $freeDaysInPeriod,
                 'storage_chargeable_days'  => $chargeableDays,
                 'storage_daily_rate'       => $storageDailyConverted,
+                'storage_daily_rate_usd'   => $storageRate,       // original tariff rate (pre-conversion)
+                'storage_tariff_currency'  => $storageCur,        // tariff rate currency (e.g. USD)
+                'exchange_rate'            => $exchangeRate,       // 1 USD = X LKR
                 'storage_currency'         => 'LKR',   // amounts always stored in LKR
                 'storage_subtotal'         => $storageSubtotal,
                 'has_lift_off'             => $hasLiftOff ? 1 : 0,
                 'lift_off_rate'            => $liftOffRate,
+                'lift_off_rate_usd'        => $liftOffRateUsd,    // original tariff rate
                 'has_lift_on'              => $hasLiftOn ? 1 : 0,
                 'lift_on_rate'             => $liftOnRate,
+                'lift_on_rate_usd'         => $liftOnRateUsd,     // original tariff rate
+                'handling_tariff_currency' => $handlingCur,       // tariff rate currency
                 'handling_currency'        => 'LKR',   // amounts always stored in LKR
                 'handling_subtotal'        => $handlingSubtotal,
                 'line_total'               => $lineTotal,

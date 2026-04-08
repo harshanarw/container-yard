@@ -245,18 +245,26 @@
                         <table class="table table-sm table-hover mb-0" id="storageTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-2">#</th>
-                                    <th>Container</th>
-                                    <th class="text-center">Size</th>
-                                    <th>Equipment</th>
-                                    <th>Gate In</th>
-                                    <th class="text-center">From</th>
-                                    <th class="text-center">To</th>
-                                    <th class="text-center">Days</th>
-                                    <th class="text-center">Free</th>
-                                    <th class="text-center">Chgbl</th>
-                                    <th class="text-end">Rate/Day</th>
-                                    <th class="text-end pe-2">Amount</th>
+                                    <th class="ps-2" rowspan="2" style="vertical-align:middle;">#</th>
+                                    <th rowspan="2" style="vertical-align:middle;">Container</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">Size</th>
+                                    <th rowspan="2" style="vertical-align:middle;">Equipment</th>
+                                    <th rowspan="2" style="vertical-align:middle;">Gate In</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">From</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">To</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">Days</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">Free</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">Chgbl</th>
+                                    <th colspan="4" class="text-center bg-warning-subtle" style="border-bottom:1px solid #dee2e6;font-size:.7rem;letter-spacing:.04em;">
+                                        Daily Rate Breakdown
+                                    </th>
+                                    <th class="text-end pe-2" rowspan="2" style="vertical-align:middle;">Amount</th>
+                                </tr>
+                                <tr>
+                                    <th class="text-end bg-warning-subtle" style="font-size:.7rem;">Tariff Rate</th>
+                                    <th class="text-center bg-warning-subtle" style="font-size:.7rem;">Cur</th>
+                                    <th class="text-end bg-warning-subtle" style="font-size:.7rem;">× Exch. Rate</th>
+                                    <th class="text-end bg-warning-subtle" style="font-size:.7rem;">Rate / Day</th>
                                 </tr>
                             </thead>
                             <tbody id="storageBody"></tbody>
@@ -484,13 +492,16 @@ function renderPreview(data) {
             <td class="text-center">${l.storage_total_days}d</td>
             <td class="text-center text-success">${l.storage_free_days}d</td>
             <td class="text-center ${l.storage_chargeable_days > 0 ? 'text-danger fw-semibold' : 'text-success'}">${l.storage_chargeable_days}d</td>
-            <td class="text-end small">${fmt(l.storage_daily_rate)}</td>
-            <td class="text-end pe-2 fw-semibold ${l.storage_subtotal == 0 ? 'text-success' : ''}">${fmt(l.storage_subtotal)}</td>
+            <td class="text-end bg-warning-subtle small">${fmt(l.storage_daily_rate_usd ?? 0)}</td>
+            <td class="text-center bg-warning-subtle small text-muted">${l.storage_tariff_currency || 'USD'}</td>
+            <td class="text-end bg-warning-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
+            <td class="text-end bg-warning-subtle fw-semibold small">${fmt(l.storage_daily_rate)}</td>
+            <td class="text-end pe-2 fw-semibold ${l.storage_subtotal == 0 ? 'text-success' : ''}">${fmtCur(l.storage_subtotal)}</td>
         </tr>
     `).join('');
     document.getElementById('storageFoot').innerHTML = `
         <tr>
-            <td colspan="11" class="text-end">Storage Subtotal</td>
+            <td colspan="14" class="text-end">Storage Subtotal</td>
             <td class="text-end pe-2">${fmtCur(data.storage_subtotal)}</td>
         </tr>`;
 
@@ -500,17 +511,21 @@ function renderPreview(data) {
     document.getElementById('handlingCount').textContent =
         `${liftOffLines.length} lift-off · ${liftOnLines.length} lift-on`;
 
-    const handlingTableTpl = (rows, cols) => rows.length === 0
+    // rowsHtml = pre-built <tr> string; count = number of rows
+    const handlingTableTpl = (rowsHtml, cols, count) => count === 0
         ? '<div class="px-3 py-2 text-muted small fst-italic">No events during this period.</div>'
         : `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
             <thead class="table-light"><tr>${cols}</tr></thead>
-            <tbody>${rows}</tbody>
+            <tbody>${rowsHtml}</tbody>
            </table></div>`;
 
     const liftOffCols = `
         <th class="ps-2">#</th><th>Container</th><th class="text-center">Size</th>
         <th>Equipment</th><th>Gate In Date</th>
-        <th class="text-end pe-2">Rate / Unit</th><th class="text-end pe-2">Amount</th>`;
+        <th class="text-end bg-success-subtle" style="font-size:.7rem;">Tariff Rate</th>
+        <th class="text-center bg-success-subtle" style="font-size:.7rem;">Cur</th>
+        <th class="text-end bg-success-subtle" style="font-size:.7rem;">× Exch. Rate</th>
+        <th class="text-end pe-2">Amount</th>`;
     const liftOffRows = liftOffLines.map((l, i) => `
         <tr>
             <td class="ps-2 text-muted">${i + 1}</td>
@@ -518,17 +533,22 @@ function renderPreview(data) {
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
             <td class="small">${l.equipment_type || '—'}</td>
             <td class="small">${fmtDate(l.gate_in_date)}</td>
-            <td class="text-end pe-2">${fmt(l.lift_off_rate)}</td>
-            <td class="text-end pe-2 fw-semibold">${fmt(l.lift_off_rate)}</td>
+            <td class="text-end bg-success-subtle small">${fmt(l.lift_off_rate_usd ?? 0)}</td>
+            <td class="text-center bg-success-subtle small text-muted">${l.handling_tariff_currency || 'USD'}</td>
+            <td class="text-end bg-success-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
+            <td class="text-end pe-2 fw-semibold">${fmtCur(l.lift_off_rate)}</td>
         </tr>`).join('');
-    document.getElementById('liftOffSection').innerHTML = handlingTableTpl(liftOffLines, liftOffCols)
+    document.getElementById('liftOffSection').innerHTML = handlingTableTpl(liftOffRows, liftOffCols, liftOffLines.length)
         + (liftOffLines.length ? `<div class="d-flex justify-content-end px-3 py-1 bg-light border-top small fw-semibold text-muted">
             Lift Off Subtotal: <span class="ms-2 text-dark">${fmtCur(liftOffLines.reduce((s, l) => s + parseFloat(l.lift_off_rate), 0))}</span></div>` : '');
 
     const liftOnCols = `
         <th class="ps-2">#</th><th>Container</th><th class="text-center">Size</th>
         <th>Equipment</th><th>Gate Out Date</th>
-        <th class="text-end pe-2">Rate / Unit</th><th class="text-end pe-2">Amount</th>`;
+        <th class="text-end bg-primary-subtle" style="font-size:.7rem;">Tariff Rate</th>
+        <th class="text-center bg-primary-subtle" style="font-size:.7rem;">Cur</th>
+        <th class="text-end bg-primary-subtle" style="font-size:.7rem;">× Exch. Rate</th>
+        <th class="text-end pe-2">Amount</th>`;
     const liftOnRows = liftOnLines.map((l, i) => `
         <tr>
             <td class="ps-2 text-muted">${i + 1}</td>
@@ -536,10 +556,12 @@ function renderPreview(data) {
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
             <td class="small">${l.equipment_type || '—'}</td>
             <td class="small">${l.gate_out_date ? fmtDate(l.gate_out_date) : '—'}</td>
-            <td class="text-end pe-2">${fmt(l.lift_on_rate)}</td>
-            <td class="text-end pe-2 fw-semibold">${fmt(l.lift_on_rate)}</td>
+            <td class="text-end bg-primary-subtle small">${fmt(l.lift_on_rate_usd ?? 0)}</td>
+            <td class="text-center bg-primary-subtle small text-muted">${l.handling_tariff_currency || 'USD'}</td>
+            <td class="text-end bg-primary-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
+            <td class="text-end pe-2 fw-semibold">${fmtCur(l.lift_on_rate)}</td>
         </tr>`).join('');
-    document.getElementById('liftOnSection').innerHTML = handlingTableTpl(liftOnLines, liftOnCols)
+    document.getElementById('liftOnSection').innerHTML = handlingTableTpl(liftOnRows, liftOnCols, liftOnLines.length)
         + (liftOnLines.length ? `<div class="d-flex justify-content-end px-3 py-1 bg-light border-top small fw-semibold text-muted">
             Lift On Subtotal: <span class="ms-2 text-dark">${fmtCur(liftOnLines.reduce((s, l) => s + parseFloat(l.lift_on_rate), 0))}</span></div>` : '');
 
