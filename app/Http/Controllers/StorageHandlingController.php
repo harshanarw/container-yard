@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\GateMovement;
 use App\Models\HandlingTariff;
 use App\Models\StorageHandlingInvoice;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\StorageHandlingInvoiceLine;
 use App\Models\StorageMasterHeader;
 use App\Models\YardStorage;
@@ -456,7 +457,16 @@ class StorageHandlingController extends Controller
     public function pdf(StorageHandlingInvoice $storageHandlingInvoice)
     {
         $storageHandlingInvoice->load(['shippingLine', 'lines', 'createdBy']);
-        return view('billing.storage-handling.pdf', ['invoice' => $storageHandlingInvoice]);
+
+        $pdf = Pdf::loadView('billing.storage-handling.pdf', ['invoice' => $storageHandlingInvoice])
+            ->setPaper('a4', 'landscape')
+            ->set_option('defaultFont', 'sans-serif')
+            ->set_option('isHtml5ParserEnabled', true)
+            ->set_option('isRemoteEnabled', false);
+
+        $filename = 'Invoice-' . $storageHandlingInvoice->invoice_no . '.pdf';
+
+        return $pdf->stream($filename);
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\StorageInvoice;
 use App\Models\StorageInvoiceDetail;
 use App\Models\StorageMasterHeader;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -362,7 +363,16 @@ class StorageBillingController extends Controller
     public function pdf(StorageInvoice $invoice)
     {
         $invoice->load(['customer', 'details', 'createdBy']);
-        return view('billing.pdf', compact('invoice'));
+
+        $pdf = Pdf::loadView('billing.pdf', compact('invoice'))
+            ->setPaper('a4', 'landscape')
+            ->set_option('defaultFont', 'sans-serif')
+            ->set_option('isHtml5ParserEnabled', true)
+            ->set_option('isRemoteEnabled', false);
+
+        $filename = 'Invoice-' . $invoice->invoice_no . '.pdf';
+
+        return $pdf->stream($filename);
     }
 
     // ── Send by email ─────────────────────────────────────────────────────────

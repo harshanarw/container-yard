@@ -43,9 +43,9 @@
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <a href="{{ route('billing.storage-handling.pdf', $invoice) }}" target="_blank"
+        <a href="{{ route('billing.storage-handling.pdf', $invoice) }}"
            class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-printer me-1"></i>Print / PDF
+            <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
         </a>
 
         @if($invoice->isDraft())
