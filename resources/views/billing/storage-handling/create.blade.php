@@ -231,50 +231,90 @@
                 </div>
             </div>
 
-            {{-- Lines table --}}
+            {{-- Section 1: Storage Charges --}}
             <div class="card content-card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-table me-2 text-primary"></i>Container Charge Lines</span>
-                    <span id="lineCount" class="badge bg-secondary-subtle text-secondary"></span>
+                    <span>
+                        <i class="bi bi-building me-2 text-warning"></i>
+                        <strong>Storage Charges</strong>
+                    </span>
+                    <span id="lineCount" class="badge bg-warning-subtle text-warning border border-warning-subtle"></span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0" id="previewTable">
+                        <table class="table table-sm table-hover mb-0" id="storageTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-2" rowspan="2" style="vertical-align:middle;">#</th>
-                                    <th rowspan="2" style="vertical-align:middle;">Container</th>
-                                    <th rowspan="2" class="text-center" style="vertical-align:middle;">Size</th>
-                                    <th rowspan="2" style="vertical-align:middle;">Gate In</th>
-                                    <th colspan="4" class="text-center bg-warning-subtle" style="border-bottom:1px solid #dee2e6;">
-                                        Storage
-                                    </th>
-                                    <th colspan="3" class="text-center bg-info-subtle" style="border-bottom:1px solid #dee2e6;">
-                                        Handling
-                                    </th>
-                                    <th rowspan="2" class="text-end" style="vertical-align:middle;">Subtotal</th>
-                                    <th rowspan="2" class="text-end" style="vertical-align:middle;">SSCL</th>
-                                    <th rowspan="2" class="text-end" style="vertical-align:middle;">VAT</th>
-                                    <th rowspan="2" class="text-end pe-2" style="vertical-align:middle;">Grand Total</th>
-                                </tr>
-                                <tr>
-                                    <th class="text-center bg-warning-subtle">Days</th>
-                                    <th class="text-center bg-warning-subtle">Free</th>
-                                    <th class="text-center bg-warning-subtle">Chgbl</th>
-                                    <th class="text-end bg-warning-subtle">Amt</th>
-                                    <th class="text-center bg-info-subtle">
-                                        <i class="bi bi-arrow-down-circle text-success" title="Lift Off"></i>
-                                    </th>
-                                    <th class="text-center bg-info-subtle">
-                                        <i class="bi bi-arrow-up-circle text-primary" title="Lift On"></i>
-                                    </th>
-                                    <th class="text-end bg-info-subtle">Amt</th>
+                                    <th class="ps-2">#</th>
+                                    <th>Container</th>
+                                    <th class="text-center">Size</th>
+                                    <th>Equipment</th>
+                                    <th>Gate In</th>
+                                    <th class="text-center">From</th>
+                                    <th class="text-center">To</th>
+                                    <th class="text-center">Days</th>
+                                    <th class="text-center">Free</th>
+                                    <th class="text-center">Chgbl</th>
+                                    <th class="text-end">Rate/Day</th>
+                                    <th class="text-end pe-2">Amount</th>
                                 </tr>
                             </thead>
-                            <tbody id="previewBody"></tbody>
-                            <tfoot id="previewFoot" class="table-light fw-semibold"></tfoot>
+                            <tbody id="storageBody"></tbody>
+                            <tfoot id="storageFoot" class="table-light fw-semibold"></tfoot>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            {{-- Section 2: Handling Charges --}}
+            <div class="card content-card mb-3" id="handlingCard">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-truck me-2 text-info"></i>
+                        <strong>Handling Charges</strong>
+                    </span>
+                    <span id="handlingCount" class="badge bg-info-subtle text-info border border-info-subtle"></span>
+                </div>
+                <div class="card-body p-0">
+
+                    {{-- Lift Off --}}
+                    <div class="px-3 pt-2 pb-1 bg-success-subtle border-bottom">
+                        <span class="small fw-bold text-success">
+                            <i class="bi bi-arrow-down-circle me-1"></i>Lift Off
+                        </span>
+                        <span class="text-muted small ms-1">— Gate In events during billing period</span>
+                    </div>
+                    <div id="liftOffSection">
+                        <div class="px-3 py-2 text-muted small fst-italic">No lift-off events.</div>
+                    </div>
+
+                    {{-- Lift On --}}
+                    <div class="px-3 pt-2 pb-1 bg-primary-subtle border-top border-bottom">
+                        <span class="small fw-bold text-primary">
+                            <i class="bi bi-arrow-up-circle me-1"></i>Lift On
+                        </span>
+                        <span class="text-muted small ms-1">— Gate Out events during billing period</span>
+                    </div>
+                    <div id="liftOnSection">
+                        <div class="px-3 py-2 text-muted small fst-italic">No lift-on events.</div>
+                    </div>
+
+                    <div class="px-3 py-2 bg-info-subtle border-top fw-semibold d-flex justify-content-between">
+                        <span class="text-info small">
+                            <i class="bi bi-truck me-1"></i>Handling Subtotal
+                        </span>
+                        <span id="handlingSubtotalFooter">—</span>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Section 3: Invoice Total --}}
+            <div class="card content-card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-receipt me-2 text-primary"></i><strong>Invoice Total</strong>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0" id="totalTable"></table>
                 </div>
             </div>
 
@@ -418,12 +458,10 @@ function renderPreview(data) {
     document.getElementById('previewPlaceholder').classList.add('d-none');
     document.getElementById('summarySection').classList.remove('d-none');
 
-    const fmt  = n  => parseFloat(n).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const icon = ok => ok ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<span class="text-muted">—</span>';
-
-    // Summary card
-    // Summary card — amounts always in LKR
+    const fmt    = n => parseFloat(n).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtCur = n => 'LKR\u00a0' + fmt(n);
+
+    // Summary card — amounts always in LKR
     document.getElementById('sumContainers').textContent = previewLines.length;
     document.getElementById('sumStorage').textContent    = fmtCur(data.storage_subtotal);
     document.getElementById('sumHandling').textContent   = fmtCur(data.handling_subtotal);
@@ -433,58 +471,107 @@ function renderPreview(data) {
     document.getElementById('sumTotal').textContent      = fmtCur(data.total_amount);
     document.getElementById('lineCount').textContent     = previewLines.length + ' containers';
 
-    // Lines table
-    const tbody = document.getElementById('previewBody');
-    tbody.innerHTML = previewLines.map((l, i) => `
+    // ── Storage table ──────────────────────────────────────────────────────
+    document.getElementById('storageBody').innerHTML = previewLines.map((l, i) => `
+        <tr class="${l.storage_chargeable_days == 0 ? 'text-muted' : ''}">
+            <td class="ps-2 text-muted">${i + 1}</td>
+            <td class="font-monospace fw-semibold">${l.container_no}</td>
+            <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
+            <td class="small">${l.equipment_type || '—'}</td>
+            <td class="small">${fmtDate(l.gate_in_date)}</td>
+            <td class="text-center small">${fmtDate(l.storage_from)}</td>
+            <td class="text-center small">${fmtDate(l.storage_to)}</td>
+            <td class="text-center">${l.storage_total_days}d</td>
+            <td class="text-center text-success">${l.storage_free_days}d</td>
+            <td class="text-center ${l.storage_chargeable_days > 0 ? 'text-danger fw-semibold' : 'text-success'}">${l.storage_chargeable_days}d</td>
+            <td class="text-end small">${fmt(l.storage_daily_rate)}</td>
+            <td class="text-end pe-2 fw-semibold ${l.storage_subtotal == 0 ? 'text-success' : ''}">${fmt(l.storage_subtotal)}</td>
+        </tr>
+    `).join('');
+    document.getElementById('storageFoot').innerHTML = `
+        <tr>
+            <td colspan="11" class="text-end">Storage Subtotal</td>
+            <td class="text-end pe-2">${fmtCur(data.storage_subtotal)}</td>
+        </tr>`;
+
+    // ── Handling: Lift Off ─────────────────────────────────────────────────
+    const liftOffLines = previewLines.filter(l => l.has_lift_off);
+    const liftOnLines  = previewLines.filter(l => l.has_lift_on);
+    document.getElementById('handlingCount').textContent =
+        `${liftOffLines.length} lift-off · ${liftOnLines.length} lift-on`;
+
+    const handlingTableTpl = (rows, cols) => rows.length === 0
+        ? '<div class="px-3 py-2 text-muted small fst-italic">No events during this period.</div>'
+        : `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
+            <thead class="table-light"><tr>${cols}</tr></thead>
+            <tbody>${rows}</tbody>
+           </table></div>`;
+
+    const liftOffCols = `
+        <th class="ps-2">#</th><th>Container</th><th class="text-center">Size</th>
+        <th>Equipment</th><th>Gate In Date</th>
+        <th class="text-end pe-2">Rate / Unit</th><th class="text-end pe-2">Amount</th>`;
+    const liftOffRows = liftOffLines.map((l, i) => `
         <tr>
             <td class="ps-2 text-muted">${i + 1}</td>
             <td class="font-monospace fw-semibold">${l.container_no}</td>
-            <td class="text-center">
-                <span class="badge bg-dark badge-size">${l.container_size || '—'}'</span>
-            </td>
+            <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
+            <td class="small">${l.equipment_type || '—'}</td>
             <td class="small">${fmtDate(l.gate_in_date)}</td>
-            <td class="text-center bg-warning-subtle">
-                <span class="badge bg-light border text-dark">${l.storage_total_days}d</span>
-            </td>
-            <td class="text-center bg-warning-subtle text-success small">${l.storage_free_days}d</td>
-            <td class="text-center bg-warning-subtle ${l.storage_chargeable_days > 0 ? 'text-danger fw-semibold' : 'text-success'}">${l.storage_chargeable_days}d</td>
-            <td class="text-end bg-warning-subtle fw-semibold">${fmt(l.storage_subtotal)}</td>
-            <td class="text-center bg-info-subtle">${icon(l.has_lift_off)}</td>
-            <td class="text-center bg-info-subtle">${icon(l.has_lift_on)}</td>
-            <td class="text-end bg-info-subtle fw-semibold">${fmt(l.handling_subtotal)}</td>
-            <td class="text-end fw-semibold">${fmt(l.line_total)}</td>
-            <td class="text-end small text-secondary">${fmt(l.line_sscl)}</td>
-            <td class="text-end small text-secondary">${fmt(l.line_vat)}</td>
-            <td class="text-end pe-2 fw-bold">${fmt(l.line_grand_total)}</td>
-        </tr>
-    `).join('');
+            <td class="text-end pe-2">${fmt(l.lift_off_rate)}</td>
+            <td class="text-end pe-2 fw-semibold">${fmt(l.lift_off_rate)}</td>
+        </tr>`).join('');
+    document.getElementById('liftOffSection').innerHTML = handlingTableTpl(liftOffLines, liftOffCols)
+        + (liftOffLines.length ? `<div class="d-flex justify-content-end px-3 py-1 bg-light border-top small fw-semibold text-muted">
+            Lift Off Subtotal: <span class="ms-2 text-dark">${fmtCur(liftOffLines.reduce((s, l) => s + parseFloat(l.lift_off_rate), 0))}</span></div>` : '');
 
-    // Footer totals
+    const liftOnCols = `
+        <th class="ps-2">#</th><th>Container</th><th class="text-center">Size</th>
+        <th>Equipment</th><th>Gate Out Date</th>
+        <th class="text-end pe-2">Rate / Unit</th><th class="text-end pe-2">Amount</th>`;
+    const liftOnRows = liftOnLines.map((l, i) => `
+        <tr>
+            <td class="ps-2 text-muted">${i + 1}</td>
+            <td class="font-monospace fw-semibold">${l.container_no}</td>
+            <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
+            <td class="small">${l.equipment_type || '—'}</td>
+            <td class="small">${l.gate_out_date ? fmtDate(l.gate_out_date) : '—'}</td>
+            <td class="text-end pe-2">${fmt(l.lift_on_rate)}</td>
+            <td class="text-end pe-2 fw-semibold">${fmt(l.lift_on_rate)}</td>
+        </tr>`).join('');
+    document.getElementById('liftOnSection').innerHTML = handlingTableTpl(liftOnLines, liftOnCols)
+        + (liftOnLines.length ? `<div class="d-flex justify-content-end px-3 py-1 bg-light border-top small fw-semibold text-muted">
+            Lift On Subtotal: <span class="ms-2 text-dark">${fmtCur(liftOnLines.reduce((s, l) => s + parseFloat(l.lift_on_rate), 0))}</span></div>` : '');
+
+    document.getElementById('handlingSubtotalFooter').textContent = fmtCur(data.handling_subtotal);
+
+    // ── Invoice Total table ────────────────────────────────────────────────
     const ssclLabel = data.sscl_percentage > 0 ? `SSCL (${parseFloat(data.sscl_percentage).toFixed(2)}%)` : 'SSCL';
     const vatLabel  = data.vat_percentage  > 0 ? `VAT (${parseFloat(data.vat_percentage).toFixed(2)}%)`   : 'VAT';
-    const tfoot = document.getElementById('previewFoot');
-    tfoot.innerHTML = `
-        <tr>
-            <td class="ps-2" colspan="7" style="text-align:right">Storage Subtotal</td>
-            <td class="text-end bg-warning-subtle">LKR ${fmt(data.storage_subtotal)}</td>
-            <td colspan="2"></td>
-            <td class="text-end bg-info-subtle">LKR ${fmt(data.handling_subtotal)}</td>
-            <td class="text-end" colspan="3" style="text-align:right">Subtotal</td>
-            <td class="text-end pe-2">${fmtCur(data.subtotal)}</td>
-        </tr>
-        <tr class="fw-normal text-muted">
-            <td class="ps-2" colspan="14" style="text-align:right">${ssclLabel}</td>
-            <td class="text-end pe-2">${fmtCur(data.sscl_amount)}</td>
-        </tr>
-        <tr class="fw-normal text-muted">
-            <td class="ps-2" colspan="14" style="text-align:right">${vatLabel}</td>
-            <td class="text-end pe-2">${fmtCur(data.vat_amount)}</td>
-        </tr>
-        <tr class="table-success fw-bold">
-            <td class="ps-2" colspan="14" style="text-align:right">TOTAL</td>
-            <td class="text-end pe-2 fs-6">${fmtCur(data.total_amount)}</td>
-        </tr>
-    `;
+    const ssclRow   = parseFloat(data.sscl_amount) > 0
+        ? `<tr><td class="ps-3 text-muted">${ssclLabel}</td><td class="text-end pe-3">${fmtCur(data.sscl_amount)}</td></tr>` : '';
+    const vatRow    = parseFloat(data.vat_amount) > 0
+        ? `<tr><td class="ps-3 text-muted">${vatLabel}</td><td class="text-end pe-3">${fmtCur(data.vat_amount)}</td></tr>` : '';
+    document.getElementById('totalTable').innerHTML = `
+        <tbody>
+            <tr>
+                <td class="ps-3 text-muted"><i class="bi bi-building text-warning me-1"></i>Storage Subtotal</td>
+                <td class="text-end pe-3 fw-semibold">${fmtCur(data.storage_subtotal)}</td>
+            </tr>
+            <tr>
+                <td class="ps-3 text-muted"><i class="bi bi-truck text-info me-1"></i>Handling Subtotal</td>
+                <td class="text-end pe-3 fw-semibold">${fmtCur(data.handling_subtotal)}</td>
+            </tr>
+            <tr class="table-light">
+                <td class="ps-3 fw-semibold">Combined Subtotal</td>
+                <td class="text-end pe-3 fw-semibold">${fmtCur(data.subtotal)}</td>
+            </tr>
+            ${ssclRow}${vatRow}
+            <tr class="table-success fw-bold">
+                <td class="ps-3 fs-6">GRAND TOTAL</td>
+                <td class="text-end pe-3 fs-5">${fmtCur(data.total_amount)}</td>
+            </tr>
+        </tbody>`;
 }
 
 function fmtDate(d) {

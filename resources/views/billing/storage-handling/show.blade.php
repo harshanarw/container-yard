@@ -11,13 +11,7 @@
 
 @push('styles')
 <style>
-    .charge-section-header {
-        font-size: .72rem;
-        letter-spacing: .06em;
-        text-transform: uppercase;
-        font-weight: 700;
-    }
-    #linesTable th, #linesTable td { font-size: .8rem; padding: .35rem .5rem; }
+    #storageTable th, #storageTable td { font-size: .8rem; padding: .3rem .5rem; }
 </style>
 @endpush
 
@@ -233,147 +227,64 @@
     {{-- ── Right: Charge lines ── --}}
     <div class="col-lg-8">
 
-        {{-- Handling legend --}}
-        <div class="alert alert-light border small py-2 mb-3">
-            <i class="bi bi-info-circle me-1 text-info"></i>
-            <i class="bi bi-arrow-down-circle text-success me-1"></i><strong>Lift Off</strong> = Gate In during period &nbsp;|&nbsp;
-            <i class="bi bi-arrow-up-circle text-primary me-1"></i><strong>Lift On</strong> = Gate Out during period
-        </div>
-
-        <div class="card content-card">
+        {{-- ── 1. Storage Charges ── --}}
+        <div class="card content-card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-table me-2 text-primary"></i>Container Charge Lines</span>
-                <span class="badge bg-secondary-subtle text-secondary">
+                <span>
+                    <i class="bi bi-building me-2 text-warning"></i>
+                    <strong>Storage Charges</strong>
+                </span>
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
                     {{ $invoice->lines->count() }} containers
                 </span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0" id="linesTable">
+                    <table class="table table-sm table-hover mb-0" id="storageTable">
                         <thead class="table-light">
                             <tr>
-                                <th class="ps-2" rowspan="2" style="vertical-align:middle;">#</th>
-                                <th rowspan="2" style="vertical-align:middle;">Container</th>
-                                <th rowspan="2" class="text-center" style="vertical-align:middle;">Size</th>
-                                <th rowspan="2" style="vertical-align:middle;">Gate In</th>
-                                <th colspan="4" class="text-center bg-warning-subtle charge-section-header"
-                                    style="border-bottom:1px solid #dee2e6;">Storage</th>
-                                <th colspan="3" class="text-center bg-info-subtle charge-section-header"
-                                    style="border-bottom:1px solid #dee2e6;">Handling</th>
-                                <th rowspan="2" class="text-end" style="vertical-align:middle;">Subtotal</th>
-                                <th rowspan="2" class="text-end" style="vertical-align:middle;">SSCL</th>
-                                <th rowspan="2" class="text-end" style="vertical-align:middle;">VAT</th>
-                                <th rowspan="2" class="text-end pe-2" style="vertical-align:middle;">Grand Total</th>
-                            </tr>
-                            <tr>
-                                <th class="text-center bg-warning-subtle">Days</th>
-                                <th class="text-center bg-warning-subtle">Free</th>
-                                <th class="text-center bg-warning-subtle">Chgbl</th>
-                                <th class="text-end bg-warning-subtle">Amt</th>
-                                <th class="text-center bg-info-subtle" title="Lift Off (Gate In)">
-                                    <i class="bi bi-arrow-down-circle text-success"></i>
-                                </th>
-                                <th class="text-center bg-info-subtle" title="Lift On (Gate Out)">
-                                    <i class="bi bi-arrow-up-circle text-primary"></i>
-                                </th>
-                                <th class="text-end bg-info-subtle">Amt</th>
+                                <th class="ps-2">#</th>
+                                <th>Container</th>
+                                <th class="text-center">Size</th>
+                                <th>Equipment</th>
+                                <th>Gate In</th>
+                                <th class="text-center">From</th>
+                                <th class="text-center">To</th>
+                                <th class="text-center">Days</th>
+                                <th class="text-center">Free</th>
+                                <th class="text-center">Chgbl</th>
+                                <th class="text-end">Rate/Day</th>
+                                <th class="text-end pe-2">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
                         @foreach($invoice->lines as $i => $line)
-                            <tr>
-                                <td class="ps-2 text-muted">{{ $i + 1 }}</td>
+                            <tr class="{{ $line->storage_chargeable_days == 0 ? 'text-muted' : '' }}">
+                                <td class="ps-2">{{ $i + 1 }}</td>
                                 <td class="font-monospace fw-semibold">{{ $line->container_no }}</td>
                                 <td class="text-center">
-                                    <span class="badge bg-dark" style="font-size:.8rem;">
-                                        {{ $line->container_size }}'
-                                    </span>
+                                    <span class="badge bg-dark" style="font-size:.8rem;">{{ $line->container_size }}'</span>
                                 </td>
-                                <td>{{ $line->gate_in_date->format('d M Y') }}</td>
-                                <td class="text-center bg-warning-subtle">
-                                    <span class="badge bg-light border text-dark">
-                                        {{ $line->storage_total_days }}d
-                                    </span>
-                                </td>
-                                <td class="text-center bg-warning-subtle text-success">{{ $line->storage_free_days }}d</td>
-                                <td class="text-center bg-warning-subtle {{ $line->storage_chargeable_days > 0 ? 'text-danger fw-semibold' : 'text-success' }}">
+                                <td class="small">{{ $line->equipment_type }}</td>
+                                <td class="small">{{ $line->gate_in_date->format('d M Y') }}</td>
+                                <td class="text-center small">{{ $line->storage_from->format('d M Y') }}</td>
+                                <td class="text-center small">{{ $line->storage_to->format('d M Y') }}</td>
+                                <td class="text-center">{{ $line->storage_total_days }}d</td>
+                                <td class="text-center text-success">{{ $line->storage_free_days }}d</td>
+                                <td class="text-center {{ $line->storage_chargeable_days > 0 ? 'text-danger fw-semibold' : 'text-success' }}">
                                     {{ $line->storage_chargeable_days }}d
                                 </td>
-                                <td class="text-end bg-warning-subtle fw-semibold">
+                                <td class="text-end small">{{ $fmtDisp($line->storage_daily_rate) }}</td>
+                                <td class="text-end pe-2 fw-semibold {{ $line->storage_subtotal == 0 ? 'text-success' : '' }}">
                                     {{ $fmtDisp($line->storage_subtotal) }}
-                                </td>
-                                <td class="text-center bg-info-subtle">
-                                    @if($line->has_lift_off)
-                                        <span title="Lift Off: {{ $fmtDisp($line->lift_off_rate) }}">
-                                            <i class="bi bi-check-circle-fill text-success"></i>
-                                        </span>
-                                    @else
-                                        <span class="text-muted">—</span>
-                                    @endif
-                                </td>
-                                <td class="text-center bg-info-subtle">
-                                    @if($line->has_lift_on)
-                                        <span title="Lift On: {{ $fmtDisp($line->lift_on_rate) }}">
-                                            <i class="bi bi-check-circle-fill text-primary"></i>
-                                        </span>
-                                    @else
-                                        <span class="text-muted">—</span>
-                                    @endif
-                                </td>
-                                <td class="text-end bg-info-subtle fw-semibold">
-                                    {{ $fmtDisp($line->handling_subtotal) }}
-                                </td>
-                                <td class="text-end fw-semibold">
-                                    {{ $fmtDisp($line->line_total) }}
-                                </td>
-                                <td class="text-end small text-secondary">
-                                    {{ $fmtDisp($line->line_sscl) }}
-                                </td>
-                                <td class="text-end small text-secondary">
-                                    {{ $fmtDisp($line->line_vat) }}
-                                </td>
-                                <td class="text-end pe-2 fw-bold">
-                                    {{ $fmtDisp($line->line_grand_total) }}
                                 </td>
                             </tr>
                         @endforeach
                         </tbody>
                         <tfoot class="table-light fw-semibold">
                             <tr>
-                                <td class="ps-2" colspan="7" style="text-align:right">Storage Subtotal</td>
-                                <td class="text-end bg-warning-subtle">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
-                                <td colspan="2"></td>
-                                <td class="text-end bg-info-subtle">{{ $fmtDisp($invoice->handling_subtotal) }}</td>
-                                <td class="text-end" colspan="3" style="text-align:right">Subtotal</td>
-                                <td class="text-end pe-2">{{ $fmtDisp($invoice->subtotal) }}</td>
-                            </tr>
-                            @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
-                            <tr class="fw-normal text-muted">
-                                <td class="ps-2" colspan="14" style="text-align:right">
-                                    SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)
-                                </td>
-                                <td class="text-end pe-2">{{ $fmtDisp($invoice->sscl_amount) }}</td>
-                            </tr>
-                            @endif
-                            @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
-                            <tr class="fw-normal text-muted">
-                                <td class="ps-2" colspan="14" style="text-align:right">
-                                    VAT ({{ number_format($invoice->vat_percentage, 2) }}%)
-                                </td>
-                                <td class="text-end pe-2">{{ $fmtDisp($invoice->vat_amount) }}</td>
-                            </tr>
-                            @endif
-                            @if($invoice->tax_amount > 0)
-                            <tr class="fw-normal text-muted">
-                                <td class="ps-2" colspan="14" style="text-align:right">
-                                    Tax ({{ number_format($invoice->tax_percentage, 2) }}%)
-                                </td>
-                                <td class="text-end pe-2">{{ $fmtDisp($invoice->tax_amount) }}</td>
-                            </tr>
-                            @endif
-                            <tr class="table-success fw-bold">
-                                <td class="ps-2" colspan="14" style="text-align:right">TOTAL</td>
-                                <td class="text-end pe-2 fs-6">{{ $fmtDisp($invoice->total_amount) }}</td>
+                                <td colspan="11" class="text-end">Storage Subtotal</td>
+                                <td class="text-end pe-2">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -381,52 +292,184 @@
             </div>
         </div>
 
-        {{-- Handling rate detail breakdown --}}
+        {{-- ── 2. Handling Charges ── --}}
         @php
-            $liftOffLines = $invoice->lines->where('has_lift_off', true);
-            $liftOnLines  = $invoice->lines->where('has_lift_on', true);
+            $liftOffLines = $invoice->lines->where('has_lift_off', true)->values();
+            $liftOnLines  = $invoice->lines->where('has_lift_on', true)->values();
         @endphp
-        @if($liftOffLines->isNotEmpty() || $liftOnLines->isNotEmpty())
-        <div class="card content-card mt-3">
-            <div class="card-header py-2">
-                <i class="bi bi-truck me-2 text-primary"></i>Handling Charge Breakdown
+        <div class="card content-card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-truck me-2 text-info"></i>
+                    <strong>Handling Charges</strong>
+                </span>
+                <span class="badge bg-info-subtle text-info border border-info-subtle">
+                    {{ $liftOffLines->count() }} lift-off &middot; {{ $liftOnLines->count() }} lift-on
+                </span>
             </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    @if($liftOffLines->isNotEmpty())
-                    <div class="col-md-6">
-                        <div class="small fw-semibold text-success mb-2">
-                            <i class="bi bi-arrow-down-circle me-1"></i>Lift Off (Gate In)
-                        </div>
-                        @foreach($liftOffLines as $l)
-                        <div class="d-flex justify-content-between border-bottom py-1 small">
-                            <span class="font-monospace">{{ $l->container_no }}
-                                <span class="badge bg-dark ms-1" style="font-size:.68rem;">{{ $l->container_size }}'</span>
-                            </span>
-                            <span class="fw-semibold">{{ $fmtDisp($l->lift_off_rate) }}</span>
-                        </div>
+            <div class="card-body p-0">
+
+                {{-- Lift Off --}}
+                <div class="px-3 pt-2 pb-1 bg-success-subtle border-bottom">
+                    <span class="small fw-bold text-success">
+                        <i class="bi bi-arrow-down-circle me-1"></i>Lift Off
+                    </span>
+                    <span class="text-muted small ms-1">— Gate In events during billing period</span>
+                </div>
+                @if($liftOffLines->isEmpty())
+                <div class="px-3 py-2 text-muted small fst-italic">No lift-off events during this period.</div>
+                @else
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-2">#</th>
+                                <th>Container</th>
+                                <th class="text-center">Size</th>
+                                <th>Equipment</th>
+                                <th>Gate In Date</th>
+                                <th class="text-end pe-2">Rate / Unit</th>
+                                <th class="text-end pe-2">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach($liftOffLines as $i => $l)
+                            <tr>
+                                <td class="ps-2 text-muted">{{ $i + 1 }}</td>
+                                <td class="font-monospace fw-semibold">{{ $l->container_no }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-dark" style="font-size:.8rem;">{{ $l->container_size }}'</span>
+                                </td>
+                                <td class="small">{{ $l->equipment_type }}</td>
+                                <td class="small">{{ $l->gate_in_date->format('d M Y') }}</td>
+                                <td class="text-end pe-2">{{ $fmtDisp($l->lift_off_rate) }}</td>
+                                <td class="text-end pe-2 fw-semibold">{{ $fmtDisp($l->lift_off_rate) }}</td>
+                            </tr>
                         @endforeach
-                    </div>
-                    @endif
-                    @if($liftOnLines->isNotEmpty())
-                    <div class="col-md-6">
-                        <div class="small fw-semibold text-primary mb-2">
-                            <i class="bi bi-arrow-up-circle me-1"></i>Lift On (Gate Out)
-                        </div>
-                        @foreach($liftOnLines as $l)
-                        <div class="d-flex justify-content-between border-bottom py-1 small">
-                            <span class="font-monospace">{{ $l->container_no }}
-                                <span class="badge bg-dark ms-1" style="font-size:.68rem;">{{ $l->container_size }}'</span>
-                            </span>
-                            <span class="fw-semibold">{{ $fmtDisp($l->lift_on_rate) }}</span>
-                        </div>
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="6" class="text-end text-muted small">Lift Off Subtotal</td>
+                                <td class="text-end pe-2 fw-semibold">
+                                    {{ $fmtDisp($liftOffLines->sum('lift_off_rate')) }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                @endif
+
+                {{-- Lift On --}}
+                <div class="px-3 pt-2 pb-1 bg-primary-subtle border-top border-bottom">
+                    <span class="small fw-bold text-primary">
+                        <i class="bi bi-arrow-up-circle me-1"></i>Lift On
+                    </span>
+                    <span class="text-muted small ms-1">— Gate Out events during billing period</span>
+                </div>
+                @if($liftOnLines->isEmpty())
+                <div class="px-3 py-2 text-muted small fst-italic">No lift-on events during this period.</div>
+                @else
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-2">#</th>
+                                <th>Container</th>
+                                <th class="text-center">Size</th>
+                                <th>Equipment</th>
+                                <th>Gate Out Date</th>
+                                <th class="text-end pe-2">Rate / Unit</th>
+                                <th class="text-end pe-2">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach($liftOnLines as $i => $l)
+                            <tr>
+                                <td class="ps-2 text-muted">{{ $i + 1 }}</td>
+                                <td class="font-monospace fw-semibold">{{ $l->container_no }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-dark" style="font-size:.8rem;">{{ $l->container_size }}'</span>
+                                </td>
+                                <td class="small">{{ $l->equipment_type }}</td>
+                                <td class="small">
+                                    {{ $l->gate_out_date ? $l->gate_out_date->format('d M Y') : '—' }}
+                                </td>
+                                <td class="text-end pe-2">{{ $fmtDisp($l->lift_on_rate) }}</td>
+                                <td class="text-end pe-2 fw-semibold">{{ $fmtDisp($l->lift_on_rate) }}</td>
+                            </tr>
                         @endforeach
-                    </div>
-                    @endif
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="6" class="text-end text-muted small">Lift On Subtotal</td>
+                                <td class="text-end pe-2 fw-semibold">
+                                    {{ $fmtDisp($liftOnLines->sum('lift_on_rate')) }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                @endif
+
+                <div class="px-3 py-2 bg-info-subtle border-top fw-semibold d-flex justify-content-between">
+                    <span class="text-info small">
+                        <i class="bi bi-truck me-1"></i>Handling Subtotal
+                    </span>
+                    <span>{{ $fmtDisp($invoice->handling_subtotal) }}</span>
                 </div>
             </div>
         </div>
-        @endif
+
+        {{-- ── 3. Invoice Grand Total ── --}}
+        <div class="card content-card">
+            <div class="card-header">
+                <i class="bi bi-receipt me-2 text-primary"></i><strong>Invoice Total</strong>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="ps-3 text-muted">
+                                <i class="bi bi-building text-warning me-1"></i>Storage Subtotal
+                            </td>
+                            <td class="text-end pe-3 fw-semibold">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3 text-muted">
+                                <i class="bi bi-truck text-info me-1"></i>Handling Subtotal
+                            </td>
+                            <td class="text-end pe-3 fw-semibold">{{ $fmtDisp($invoice->handling_subtotal) }}</td>
+                        </tr>
+                        <tr class="table-light">
+                            <td class="ps-3 fw-semibold">Combined Subtotal</td>
+                            <td class="text-end pe-3 fw-semibold">{{ $fmtDisp($invoice->subtotal) }}</td>
+                        </tr>
+                        @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
+                        <tr>
+                            <td class="ps-3 text-muted">SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</td>
+                            <td class="text-end pe-3">{{ $fmtDisp($invoice->sscl_amount) }}</td>
+                        </tr>
+                        @endif
+                        @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
+                        <tr>
+                            <td class="ps-3 text-muted">VAT ({{ number_format($invoice->vat_percentage, 2) }}%)</td>
+                            <td class="text-end pe-3">{{ $fmtDisp($invoice->vat_amount) }}</td>
+                        </tr>
+                        @endif
+                        @if($invoice->tax_amount > 0)
+                        <tr>
+                            <td class="ps-3 text-muted">Tax ({{ number_format($invoice->tax_percentage, 2) }}%)</td>
+                            <td class="text-end pe-3">{{ $fmtDisp($invoice->tax_amount) }}</td>
+                        </tr>
+                        @endif
+                        <tr class="table-success fw-bold">
+                            <td class="ps-3 fs-6">GRAND TOTAL</td>
+                            <td class="text-end pe-3 fs-5">{{ $fmtDisp($invoice->total_amount) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
     </div>
 </div>

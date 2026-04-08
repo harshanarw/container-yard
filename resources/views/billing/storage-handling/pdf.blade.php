@@ -22,13 +22,26 @@
         .badge-status { display: inline-block; padding: 2px 8px; border-radius: 20px;
                         font-size: 9px; font-weight: 700; letter-spacing: .06em;
                         background: #d1e7dd; color: #0a3622; text-transform: uppercase; }
-        .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase;
-                         letter-spacing: .06em; color: #666; margin: 18px 0 6px; }
-        .totals     { width: 280px; margin-left: auto; margin-top: 16px; }
+        .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase;
+                         letter-spacing: .06em; margin: 16px 0 4px; padding: 4px 8px;
+                         border-left: 3px solid #666; color: #444; }
+        .section-title.storage { border-color: #f59e0b; color: #92400e; background: #fffbeb; }
+        .section-title.handling { border-color: #0ea5e9; color: #0c4a6e; background: #f0f9ff; }
+        .section-title.lift-off { font-size: 9px; font-weight: 700; text-transform: uppercase;
+                                  color: #166534; background: #f0fdf4; padding: 3px 8px;
+                                  margin: 0; border-bottom: 1px solid #dee2e6; }
+        .section-title.lift-on  { font-size: 9px; font-weight: 700; text-transform: uppercase;
+                                  color: #1e3a8a; background: #eff6ff; padding: 3px 8px;
+                                  margin: 0; border-bottom: 1px solid #dee2e6; }
+        .totals     { width: 300px; margin-left: auto; margin-top: 16px; }
         .totals td  { border: none; padding: 3px 8px; }
+        .totals .sub-row td  { color: #888; font-size: 10px; }
+        .totals .combined td { font-weight: 600; border-top: 1px solid #dee2e6; }
         .totals .grand td { font-weight: 700; font-size: 13px; border-top: 2px solid #0d6efd; color: #0d6efd; }
-        .bg-warn    { background: #fff3cd; }
-        .bg-info    { background: #cff4fc; }
+        .bg-warn    { background: #fffbeb; }
+        .bg-info    { background: #f0f9ff; }
+        .subtotal-bar { text-align: right; font-size: 10px; font-weight: 600; padding: 4px 8px;
+                        background: #f8fafc; border-top: 1px solid #dee2e6; color: #555; }
         .footer     { margin-top: 40px; border-top: 1px solid #dee2e6; padding-top: 12px;
                       font-size: 9px; color: #888; text-align: center; }
         @media print { body { padding: 0; } }
@@ -121,83 +134,178 @@
     </div>
 </div>
 
-{{-- Charge lines --}}
-<div class="section-title">Container Charge Lines</div>
+{{-- ── Section 1: Storage Charges ── --}}
+<div class="section-title storage">&#9632; Storage Charges</div>
 <table>
     <thead>
         <tr>
-            <th rowspan="2" style="vertical-align:middle;">#</th>
-            <th rowspan="2" style="vertical-align:middle;">Container No.</th>
-            <th rowspan="2" class="text-center" style="vertical-align:middle;">Size</th>
-            <th rowspan="2" style="vertical-align:middle;">Gate In</th>
-            <th colspan="4" class="text-center bg-warn">Storage</th>
-            <th colspan="3" class="text-center bg-info">Handling</th>
-            <th rowspan="2" class="text-end" style="vertical-align:middle;">Line Total</th>
-        </tr>
-        <tr>
-            <th class="text-center bg-warn">Days</th>
-            <th class="text-center bg-warn">Free</th>
-            <th class="text-center bg-warn">Chgbl</th>
-            <th class="text-end bg-warn">Amt</th>
-            <th class="text-center bg-info">Lift Off</th>
-            <th class="text-center bg-info">Lift On</th>
-            <th class="text-end bg-info">Amt</th>
+            <th style="width:3%">#</th>
+            <th style="width:12%">Container No.</th>
+            <th class="text-center" style="width:5%">Size</th>
+            <th style="width:18%">Equipment Type</th>
+            <th style="width:9%">Gate In</th>
+            <th style="width:9%">From</th>
+            <th style="width:9%">To</th>
+            <th class="text-center" style="width:6%">Days</th>
+            <th class="text-center" style="width:6%">Free</th>
+            <th class="text-center" style="width:6%">Chgbl</th>
+            <th class="text-end" style="width:9%">Rate/Day</th>
+            <th class="text-end" style="width:10%">Amount</th>
         </tr>
     </thead>
     <tbody>
     @foreach($invoice->lines as $i => $line)
-        <tr>
+        <tr style="{{ $line->storage_chargeable_days == 0 ? 'color:#888;' : '' }}">
             <td class="text-center">{{ $i + 1 }}</td>
             <td style="font-family:monospace;font-weight:700;">{{ $line->container_no }}</td>
             <td class="text-center">{{ $line->container_size }}'</td>
+            <td>{{ $line->equipment_type }}</td>
             <td>{{ $line->gate_in_date->format('d M Y') }}</td>
-            <td class="text-center bg-warn">{{ $line->storage_total_days }}d</td>
-            <td class="text-center bg-warn">{{ $line->storage_free_days }}d</td>
-            <td class="text-center bg-warn">{{ $line->storage_chargeable_days }}d</td>
-            <td class="text-end bg-warn">{{ $fmtDisp($line->storage_subtotal) }}</td>
-            <td class="text-center bg-info">{{ $line->has_lift_off ? '✓ ' . $fmtDisp($line->lift_off_rate) : '—' }}</td>
-            <td class="text-center bg-info">{{ $line->has_lift_on  ? '✓ ' . $fmtDisp($line->lift_on_rate)  : '—' }}</td>
-            <td class="text-end bg-info">{{ $fmtDisp($line->handling_subtotal) }}</td>
-            <td class="text-end" style="font-weight:700;">{{ $fmtDisp($line->line_total) }}</td>
+            <td>{{ $line->storage_from->format('d M Y') }}</td>
+            <td>{{ $line->storage_to->format('d M Y') }}</td>
+            <td class="text-center">{{ $line->storage_total_days }}d</td>
+            <td class="text-center" style="color:#16a34a;">{{ $line->storage_free_days }}d</td>
+            <td class="text-center" style="{{ $line->storage_chargeable_days > 0 ? 'color:#dc2626;font-weight:700;' : 'color:#16a34a;' }}">
+                {{ $line->storage_chargeable_days }}d
+            </td>
+            <td class="text-end">{{ $fmtDisp($line->storage_daily_rate) }}</td>
+            <td class="text-end" style="{{ $line->storage_subtotal == 0 ? 'color:#16a34a;' : 'font-weight:700;' }}">
+                {{ $fmtDisp($line->storage_subtotal) }}
+            </td>
         </tr>
     @endforeach
     </tbody>
+    <tfoot>
+        <tr style="font-weight:700;background:#f8f9fa;">
+            <td colspan="11" class="text-end">Storage Subtotal</td>
+            <td class="text-end">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
+        </tr>
+    </tfoot>
 </table>
 
-{{-- Totals --}}
+{{-- ── Section 2: Handling Charges ── --}}
+@php
+    $liftOffLines = $invoice->lines->where('has_lift_off', true)->values();
+    $liftOnLines  = $invoice->lines->where('has_lift_on', true)->values();
+@endphp
+<div class="section-title handling">&#9632; Handling Charges</div>
+
+{{-- Lift Off --}}
+<div class="section-title lift-off">&#9660; Lift Off — Gate In events during billing period</div>
+@if($liftOffLines->isEmpty())
+<div style="padding:6px 8px;color:#888;font-style:italic;font-size:10px;">No lift-off events during this period.</div>
+@else
+<table>
+    <thead>
+        <tr>
+            <th style="width:4%">#</th>
+            <th style="width:14%">Container No.</th>
+            <th class="text-center" style="width:6%">Size</th>
+            <th style="width:30%">Equipment Type</th>
+            <th style="width:16%">Gate In Date</th>
+            <th class="text-end" style="width:15%">Rate / Unit</th>
+            <th class="text-end" style="width:15%">Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach($liftOffLines as $i => $l)
+        <tr>
+            <td class="text-center">{{ $i + 1 }}</td>
+            <td style="font-family:monospace;font-weight:700;">{{ $l->container_no }}</td>
+            <td class="text-center">{{ $l->container_size }}'</td>
+            <td>{{ $l->equipment_type }}</td>
+            <td>{{ $l->gate_in_date->format('d M Y') }}</td>
+            <td class="text-end">{{ $fmtDisp($l->lift_off_rate) }}</td>
+            <td class="text-end" style="font-weight:700;">{{ $fmtDisp($l->lift_off_rate) }}</td>
+        </tr>
+    @endforeach
+    </tbody>
+    <tfoot>
+        <tr style="font-weight:700;background:#f0fdf4;">
+            <td colspan="6" class="text-end">Lift Off Subtotal</td>
+            <td class="text-end">{{ $fmtDisp($liftOffLines->sum('lift_off_rate')) }}</td>
+        </tr>
+    </tfoot>
+</table>
+@endif
+
+{{-- Lift On --}}
+<div class="section-title lift-on" style="margin-top:10px;">&#9650; Lift On — Gate Out events during billing period</div>
+@if($liftOnLines->isEmpty())
+<div style="padding:6px 8px;color:#888;font-style:italic;font-size:10px;">No lift-on events during this period.</div>
+@else
+<table>
+    <thead>
+        <tr>
+            <th style="width:4%">#</th>
+            <th style="width:14%">Container No.</th>
+            <th class="text-center" style="width:6%">Size</th>
+            <th style="width:30%">Equipment Type</th>
+            <th style="width:16%">Gate Out Date</th>
+            <th class="text-end" style="width:15%">Rate / Unit</th>
+            <th class="text-end" style="width:15%">Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach($liftOnLines as $i => $l)
+        <tr>
+            <td class="text-center">{{ $i + 1 }}</td>
+            <td style="font-family:monospace;font-weight:700;">{{ $l->container_no }}</td>
+            <td class="text-center">{{ $l->container_size }}'</td>
+            <td>{{ $l->equipment_type }}</td>
+            <td>{{ $l->gate_out_date ? $l->gate_out_date->format('d M Y') : '—' }}</td>
+            <td class="text-end">{{ $fmtDisp($l->lift_on_rate) }}</td>
+            <td class="text-end" style="font-weight:700;">{{ $fmtDisp($l->lift_on_rate) }}</td>
+        </tr>
+    @endforeach
+    </tbody>
+    <tfoot>
+        <tr style="font-weight:700;background:#eff6ff;">
+            <td colspan="6" class="text-end">Lift On Subtotal</td>
+            <td class="text-end">{{ $fmtDisp($liftOnLines->sum('lift_on_rate')) }}</td>
+        </tr>
+    </tfoot>
+</table>
+@endif
+
+<div style="text-align:right;font-size:10px;font-weight:700;padding:5px 8px;background:#f0f9ff;border:1px solid #dee2e6;border-top:none;">
+    Handling Subtotal: {{ $fmtDisp($invoice->handling_subtotal) }}
+</div>
+
+{{-- ── Invoice Grand Total ── --}}
 <table class="totals">
-    <tr>
-        <td class="text-muted">Storage Subtotal</td>
+    <tr class="sub-row">
+        <td>Storage Subtotal</td>
         <td class="text-end">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
     </tr>
-    <tr>
-        <td class="text-muted">Handling Subtotal</td>
+    <tr class="sub-row">
+        <td>Handling Subtotal</td>
         <td class="text-end">{{ $fmtDisp($invoice->handling_subtotal) }}</td>
     </tr>
-    <tr>
-        <td class="text-muted">Subtotal</td>
+    <tr class="combined">
+        <td>Combined Subtotal</td>
         <td class="text-end">{{ $fmtDisp($invoice->subtotal) }}</td>
     </tr>
     @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
-    <tr>
-        <td class="text-muted">SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</td>
+    <tr class="sub-row">
+        <td>SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</td>
         <td class="text-end">{{ $fmtDisp($invoice->sscl_amount) }}</td>
     </tr>
     @endif
     @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
-    <tr>
-        <td class="text-muted">VAT ({{ number_format($invoice->vat_percentage, 2) }}%)</td>
+    <tr class="sub-row">
+        <td>VAT ({{ number_format($invoice->vat_percentage, 2) }}%)</td>
         <td class="text-end">{{ $fmtDisp($invoice->vat_amount) }}</td>
     </tr>
     @endif
     @if($invoice->tax_amount > 0)
-    <tr>
-        <td class="text-muted">Tax ({{ number_format($invoice->tax_percentage, 2) }}%)</td>
+    <tr class="sub-row">
+        <td>Tax ({{ number_format($invoice->tax_percentage, 2) }}%)</td>
         <td class="text-end">{{ $fmtDisp($invoice->tax_amount) }}</td>
     </tr>
     @endif
     <tr class="grand">
-        <td>TOTAL</td>
+        <td>GRAND TOTAL</td>
         <td class="text-end">{{ $fmtDisp($invoice->total_amount) }}</td>
     </tr>
 </table>
