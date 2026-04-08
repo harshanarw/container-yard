@@ -65,7 +65,8 @@ class StorageBillingController extends Controller
         $customer        = Customer::findOrFail($validated['customer_id']);
         $periodFrom      = now()->parse($validated['period_from'])->startOfDay();
         $periodTo        = now()->parse($validated['period_to'])->startOfDay();
-        $invoiceCurrency = strtoupper($validated['invoice_currency'] ?? 'USD');
+        // exchange_rate is always "1 USD = X LKR" — LKR is the base/reporting currency
+        $invoiceCurrency = strtoupper($validated['invoice_currency'] ?? 'LKR');
         $exchangeRate    = (float) ($validated['exchange_rate'] ?? 1.0);
         $ssclPct         = (float) ($validated['sscl_pct'] ?? 0);
         $vatPct          = (float) ($validated['vat_pct'] ?? 0);
@@ -146,7 +147,7 @@ class StorageBillingController extends Controller
             $freeDaysInPeriod  = min($totalDays, $freeDaysRemaining);
             $chargeableDays    = max(0, $totalDays - $freeDaysInPeriod);
 
-            // Convert to invoice currency before tax calculation
+            // Convert USD tariff rate to LKR (base currency) using exchange_rate (1 USD = X LKR)
             $dailyRateConverted = round($dailyRate * $exchangeRate, 2);
             $lineSubtotal       = round($chargeableDays * $dailyRateConverted, 2);
 
@@ -169,7 +170,7 @@ class StorageBillingController extends Controller
                 'free_days'       => $freeDaysInPeriod,
                 'chargeable_days' => $chargeableDays,
                 'daily_rate'      => $dailyRateConverted,
-                'currency'        => $invoiceCurrency,
+                'currency'        => 'LKR',   // amounts always stored in LKR
                 'subtotal'        => $lineSubtotal,
                 'line_sscl'       => $lineSscl,
                 'line_vat'        => $lineVat,
@@ -231,7 +232,8 @@ class StorageBillingController extends Controller
             'lines.*.line_total'       => ['required', 'numeric', 'min:0'],
         ]);
 
-        $invoiceCurrency = strtoupper($validated['invoice_currency'] ?? 'USD');
+        // exchange_rate always = "1 USD = X LKR"; all stored amounts are in LKR
+        $invoiceCurrency = strtoupper($validated['invoice_currency'] ?? 'LKR');
         $exchangeRate    = (float) ($validated['exchange_rate'] ?? 1.0);
         $ssclPct         = (float) ($validated['sscl_percentage'] ?? 0);
         $vatPct          = (float) ($validated['vat_percentage'] ?? 0);

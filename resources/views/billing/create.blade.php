@@ -70,21 +70,24 @@
                     <div class="col-5">
                         <label class="form-label fw-semibold">Invoice Currency <span class="text-danger">*</span></label>
                         <select id="invoiceCurrency" class="form-select">
+                            <option value="LKR" selected>LKR — Sri Lankan Rupee</option>
                             <option value="USD">USD — US Dollar</option>
-                            <option value="LKR">LKR — Sri Lankan Rupee</option>
                             <option value="EUR">EUR — Euro</option>
                             <option value="GBP">GBP — British Pound</option>
                             <option value="SGD">SGD — Singapore Dollar</option>
                             <option value="AUD">AUD — Australian Dollar</option>
                         </select>
+                        <div class="form-text">All amounts saved in LKR</div>
                     </div>
-                    <div class="col-7" id="exchangeRateWrap">
-                        <label class="form-label fw-semibold">Exchange Rate <small class="text-muted fw-normal">(1 USD =)</small></label>
+                    <div class="col-7">
+                        <label class="form-label fw-semibold">USD → LKR Rate <span class="text-danger">*</span></label>
                         <div class="input-group">
+                            <span class="input-group-text small">1 USD =</span>
                             <input type="number" id="exchangeRate" class="form-control"
-                                   value="1.0000" min="0.0001" step="0.0001">
-                            <span class="input-group-text" id="rateLabel">USD</span>
+                                   value="300.0000" min="0.0001" step="0.0001" placeholder="e.g. 300">
+                            <span class="input-group-text">LKR</span>
                         </div>
+                        <div class="form-text">Tariff rates are in USD; this converts them to LKR</div>
                     </div>
                 </div>
 
@@ -250,15 +253,6 @@ let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
 
-// Currency selector — update exchange rate label and reset to 1 when USD
-document.getElementById('invoiceCurrency').addEventListener('change', function () {
-    const cur = this.value;
-    document.getElementById('rateLabel').textContent = cur;
-    if (cur === 'USD') {
-        document.getElementById('exchangeRate').value = '1.0000';
-    }
-});
-
 // Toggle SSCL/VAT input availability
 document.getElementById('applySscl').addEventListener('change', function () {
     document.getElementById('ssclPct').disabled = !this.checked;
@@ -349,13 +343,12 @@ function renderPreview(data) {
     const fmt  = n => parseFloat(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     const fmtC = (n, cur) => (cur || 'LKR') + '\u00a0' + fmt(n);
 
-    // Summary card
-    const currency = data.invoice_currency || previewLines[0]?.currency || 'USD';
+    // Summary card — amounts always in LKR
     document.getElementById('sumContainers').textContent = previewLines.length;
-    document.getElementById('sumSubtotal').textContent   = fmtC(data.subtotal, currency);
-    document.getElementById('sumSscl').textContent       = fmtC(data.sscl_amount, currency);
-    document.getElementById('sumVat').textContent        = fmtC(data.vat_amount, currency);
-    document.getElementById('sumTotal').textContent      = fmtC(data.total_amount, currency);
+    document.getElementById('sumSubtotal').textContent   = fmtC(data.subtotal, 'LKR');
+    document.getElementById('sumSscl').textContent       = fmtC(data.sscl_amount, 'LKR');
+    document.getElementById('sumVat').textContent        = fmtC(data.vat_amount, 'LKR');
+    document.getElementById('sumTotal').textContent      = fmtC(data.total_amount, 'LKR');
     document.getElementById('lineCount').textContent     = previewLines.length + ' containers';
 
     // Lines table

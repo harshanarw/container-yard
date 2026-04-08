@@ -83,21 +83,24 @@
                     <div class="col-5">
                         <label class="form-label fw-semibold">Invoice Currency <span class="text-danger">*</span></label>
                         <select id="invoiceCurrency" class="form-select">
+                            <option value="LKR" selected>LKR — Sri Lankan Rupee</option>
                             <option value="USD">USD — US Dollar</option>
-                            <option value="LKR">LKR — Sri Lankan Rupee</option>
                             <option value="EUR">EUR — Euro</option>
                             <option value="GBP">GBP — British Pound</option>
                             <option value="SGD">SGD — Singapore Dollar</option>
                             <option value="AUD">AUD — Australian Dollar</option>
                         </select>
+                        <div class="form-text">All amounts saved in LKR</div>
                     </div>
-                    <div class="col-7" id="exchangeRateWrap">
-                        <label class="form-label fw-semibold">Exchange Rate <small class="text-muted fw-normal">(1 USD =)</small></label>
+                    <div class="col-7">
+                        <label class="form-label fw-semibold">USD → LKR Rate <span class="text-danger">*</span></label>
                         <div class="input-group">
+                            <span class="input-group-text small">1 USD =</span>
                             <input type="number" id="exchangeRate" class="form-control"
-                                   value="1.0000" min="0.0001" step="0.0001">
-                            <span class="input-group-text" id="rateLabel">USD</span>
+                                   value="300.0000" min="0.0001" step="0.0001" placeholder="e.g. 300">
+                            <span class="input-group-text">LKR</span>
                         </div>
+                        <div class="form-text">Tariff rates are in USD; this converts them to LKR</div>
                     </div>
                 </div>
 
@@ -318,15 +321,6 @@ let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
 
-// Currency selector — update label and reset to 1 for USD
-document.getElementById('invoiceCurrency').addEventListener('change', function () {
-    const cur = this.value;
-    document.getElementById('rateLabel').textContent = cur;
-    if (cur === 'USD') {
-        document.getElementById('exchangeRate').value = '1.0000';
-    }
-});
-
 // Toggle SSCL/VAT input availability
 document.getElementById('applySscl').addEventListener('change', function () {
     document.getElementById('ssclPct').disabled = !this.checked;
@@ -428,8 +422,8 @@ function renderPreview(data) {
     const icon = ok => ok ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<span class="text-muted">—</span>';
 
     // Summary card
-    const cur = data.invoice_currency || 'USD';
-    const fmtCur = n => cur + '\u00a0' + fmt(n);
+    // Summary card — amounts always in LKR
+    const fmtCur = n => 'LKR\u00a0' + fmt(n);
     document.getElementById('sumContainers').textContent = previewLines.length;
     document.getElementById('sumStorage').textContent    = fmtCur(data.storage_subtotal);
     document.getElementById('sumHandling').textContent   = fmtCur(data.handling_subtotal);
@@ -472,9 +466,9 @@ function renderPreview(data) {
     tfoot.innerHTML = `
         <tr>
             <td class="ps-2" colspan="7" style="text-align:right">Storage Subtotal</td>
-            <td class="text-end bg-warning-subtle">${fmtCur(data.storage_subtotal)}</td>
+            <td class="text-end bg-warning-subtle">LKR ${fmt(data.storage_subtotal)}</td>
             <td colspan="2"></td>
-            <td class="text-end bg-info-subtle">${fmtCur(data.handling_subtotal)}</td>
+            <td class="text-end bg-info-subtle">LKR ${fmt(data.handling_subtotal)}</td>
             <td class="text-end" colspan="3" style="text-align:right">Subtotal</td>
             <td class="text-end pe-2">${fmtCur(data.subtotal)}</td>
         </tr>

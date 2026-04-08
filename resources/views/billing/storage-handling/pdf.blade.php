@@ -36,6 +36,15 @@
 </head>
 <body>
 
+@php
+    // LKR is the base currency; all stored amounts are in LKR.
+    // If invoice_currency ≠ LKR, convert for display: display = lkr / exchange_rate
+    $dispCur  = $invoice->invoice_currency ?? 'LKR';
+    $dispRate = (float) ($invoice->exchange_rate ?? 1.0);
+    $disp     = fn($lkr) => $dispCur === 'LKR' ? $lkr : round($lkr / $dispRate, 2);
+    $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
+@endphp
+
 {{-- Header --}}
 <div class="header-bar">
     <div>
@@ -57,12 +66,12 @@
         <div class="label" style="margin-top:8px;">Billing Period</div>
         <div class="val">{{ $invoice->billing_period_from->format('d M Y') }} – {{ $invoice->billing_period_to->format('d M Y') }}</div>
         <div class="label" style="margin-top:8px;">Invoice Currency</div>
-        <div class="val" style="font-size:14px;color:#0d6efd;">{{ $invoice->invoice_currency ?? 'USD' }}</div>
-        @if(($invoice->invoice_currency ?? 'USD') !== 'USD')
-        <div style="font-size:9px;color:#888;margin-top:2px;">
-            1 USD = {{ number_format($invoice->exchange_rate, 4) }} {{ $invoice->invoice_currency }}
+        <div class="val" style="font-size:14px;color:#0d6efd;">{{ $dispCur }}
+            <span style="font-size:9px;font-weight:400;color:#888;">(Base: LKR)</span>
         </div>
-        @endif
+        <div style="font-size:9px;color:#888;margin-top:2px;">
+            1 USD = {{ number_format($invoice->exchange_rate, 4) }} LKR
+        </div>
     </div>
 </div>
 
@@ -81,32 +90,31 @@
         @endif
     </div>
     <div class="info-block">
-        @php $cur = $invoice->invoice_currency ?? 'USD'; @endphp
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <div>
                 <div class="label">Storage Total</div>
-                <div class="val">{{ $cur }} {{ number_format($invoice->storage_subtotal, 2) }}</div>
+                <div class="val">{{ $fmtDisp($invoice->storage_subtotal) }}</div>
             </div>
             <div>
                 <div class="label">Handling Total</div>
-                <div class="val">{{ $cur }} {{ number_format($invoice->handling_subtotal, 2) }}</div>
+                <div class="val">{{ $fmtDisp($invoice->handling_subtotal) }}</div>
             </div>
             @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
             <div>
                 <div class="label">SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</div>
-                <div class="val">{{ $cur }} {{ number_format($invoice->sscl_amount, 2) }}</div>
+                <div class="val">{{ $fmtDisp($invoice->sscl_amount) }}</div>
             </div>
             @endif
             @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
             <div>
                 <div class="label">VAT ({{ number_format($invoice->vat_percentage, 2) }}%)</div>
-                <div class="val">{{ $cur }} {{ number_format($invoice->vat_amount, 2) }}</div>
+                <div class="val">{{ $fmtDisp($invoice->vat_amount) }}</div>
             </div>
             @endif
             <div style="grid-column:1/-1;">
                 <div class="label">Total Amount</div>
                 <div style="font-size:15px;font-weight:700;color:#0d6efd;">
-                    {{ $cur }} {{ number_format($invoice->total_amount, 2) }}
+                    {{ $fmtDisp($invoice->total_amount) }}
                 </div>
             </div>
         </div>
@@ -146,52 +154,51 @@
             <td class="text-center bg-warn">{{ $line->storage_total_days }}d</td>
             <td class="text-center bg-warn">{{ $line->storage_free_days }}d</td>
             <td class="text-center bg-warn">{{ $line->storage_chargeable_days }}d</td>
-            <td class="text-end bg-warn">{{ number_format($line->storage_subtotal, 2) }}</td>
-            <td class="text-center bg-info">{{ $line->has_lift_off ? '✓ ' . number_format($line->lift_off_rate, 2) : '—' }}</td>
-            <td class="text-center bg-info">{{ $line->has_lift_on  ? '✓ ' . number_format($line->lift_on_rate, 2)  : '—' }}</td>
-            <td class="text-end bg-info">{{ number_format($line->handling_subtotal, 2) }}</td>
-            <td class="text-end" style="font-weight:700;">{{ number_format($line->line_total, 2) }}</td>
+            <td class="text-end bg-warn">{{ $fmtDisp($line->storage_subtotal) }}</td>
+            <td class="text-center bg-info">{{ $line->has_lift_off ? '✓ ' . $fmtDisp($line->lift_off_rate) : '—' }}</td>
+            <td class="text-center bg-info">{{ $line->has_lift_on  ? '✓ ' . $fmtDisp($line->lift_on_rate)  : '—' }}</td>
+            <td class="text-end bg-info">{{ $fmtDisp($line->handling_subtotal) }}</td>
+            <td class="text-end" style="font-weight:700;">{{ $fmtDisp($line->line_total) }}</td>
         </tr>
     @endforeach
     </tbody>
 </table>
 
 {{-- Totals --}}
-@php $cur = $invoice->invoice_currency ?? 'USD'; @endphp
 <table class="totals">
     <tr>
         <td class="text-muted">Storage Subtotal</td>
-        <td class="text-end">{{ $cur }} {{ number_format($invoice->storage_subtotal, 2) }}</td>
+        <td class="text-end">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
     </tr>
     <tr>
         <td class="text-muted">Handling Subtotal</td>
-        <td class="text-end">{{ $cur }} {{ number_format($invoice->handling_subtotal, 2) }}</td>
+        <td class="text-end">{{ $fmtDisp($invoice->handling_subtotal) }}</td>
     </tr>
     <tr>
         <td class="text-muted">Subtotal</td>
-        <td class="text-end">{{ $cur }} {{ number_format($invoice->subtotal, 2) }}</td>
+        <td class="text-end">{{ $fmtDisp($invoice->subtotal) }}</td>
     </tr>
     @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
     <tr>
         <td class="text-muted">SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</td>
-        <td class="text-end">{{ $cur }} {{ number_format($invoice->sscl_amount, 2) }}</td>
+        <td class="text-end">{{ $fmtDisp($invoice->sscl_amount) }}</td>
     </tr>
     @endif
     @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
     <tr>
         <td class="text-muted">VAT ({{ number_format($invoice->vat_percentage, 2) }}%)</td>
-        <td class="text-end">{{ $cur }} {{ number_format($invoice->vat_amount, 2) }}</td>
+        <td class="text-end">{{ $fmtDisp($invoice->vat_amount) }}</td>
     </tr>
     @endif
     @if($invoice->tax_amount > 0)
     <tr>
         <td class="text-muted">Tax ({{ number_format($invoice->tax_percentage, 2) }}%)</td>
-        <td class="text-end">{{ $cur }} {{ number_format($invoice->tax_amount, 2) }}</td>
+        <td class="text-end">{{ $fmtDisp($invoice->tax_amount) }}</td>
     </tr>
     @endif
     <tr class="grand">
         <td>TOTAL</td>
-        <td class="text-end">{{ $cur }} {{ number_format($invoice->total_amount, 2) }}</td>
+        <td class="text-end">{{ $fmtDisp($invoice->total_amount) }}</td>
     </tr>
 </table>
 

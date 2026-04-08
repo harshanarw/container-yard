@@ -23,6 +23,15 @@
 
 @section('content')
 
+@php
+    // LKR is the base currency; all stored amounts are in LKR.
+    // If invoice_currency ≠ LKR, convert for display: display = lkr / exchange_rate
+    $dispCur  = $invoice->invoice_currency ?? 'LKR';
+    $dispRate = (float) ($invoice->exchange_rate ?? 1.0);
+    $disp     = fn($lkr) => $dispCur === 'LKR' ? $lkr : round($lkr / $dispRate, 2);
+    $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
+@endphp
+
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
         <h4 class="mb-1">
@@ -110,18 +119,17 @@
                         <div class="text-muted">Invoice Currency</div>
                         <div class="fw-semibold">
                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6">
-                                {{ $invoice->invoice_currency ?? 'USD' }}
+                                {{ $dispCur }}
                             </span>
+                            <div class="form-text mt-0">Base: LKR</div>
                         </div>
                     </div>
-                    @if(($invoice->invoice_currency ?? 'USD') !== 'USD')
                     <div class="col-6">
-                        <div class="text-muted">Exchange Rate</div>
+                        <div class="text-muted">USD → LKR Rate</div>
                         <div class="fw-semibold" style="font-size:.8rem;">
-                            1 USD = {{ number_format($invoice->exchange_rate, 4) }} {{ $invoice->invoice_currency }}
+                            1 USD = {{ number_format($invoice->exchange_rate, 4) }} LKR
                         </div>
                     </div>
-                    @endif
                 </div>
                 <div class="mb-2">
                     <div class="text-muted">Billing Period</div>
@@ -182,40 +190,40 @@
                     <span class="text-muted">
                         <i class="bi bi-building text-warning me-1"></i>Storage
                     </span>
-                    <span class="fw-semibold">{{ number_format($invoice->storage_subtotal, 2) }}</span>
+                    <span class="fw-semibold">{{ $fmtDisp($invoice->storage_subtotal) }}</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">
                         <i class="bi bi-truck text-info me-1"></i>Handling
                     </span>
-                    <span class="fw-semibold">{{ number_format($invoice->handling_subtotal, 2) }}</span>
+                    <span class="fw-semibold">{{ $fmtDisp($invoice->handling_subtotal) }}</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Subtotal</span>
-                    <span class="fw-semibold">{{ number_format($invoice->subtotal, 2) }}</span>
+                    <span class="fw-semibold">{{ $fmtDisp($invoice->subtotal) }}</span>
                 </div>
                 @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</span>
-                    <span>{{ number_format($invoice->sscl_amount, 2) }}</span>
+                    <span>{{ $fmtDisp($invoice->sscl_amount) }}</span>
                 </div>
                 @endif
                 @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">VAT ({{ number_format($invoice->vat_percentage, 2) }}%)</span>
-                    <span>{{ number_format($invoice->vat_amount, 2) }}</span>
+                    <span>{{ $fmtDisp($invoice->vat_amount) }}</span>
                 </div>
                 @endif
                 @if($invoice->tax_amount > 0)
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Tax ({{ number_format($invoice->tax_percentage, 2) }}%)</span>
-                    <span>{{ number_format($invoice->tax_amount, 2) }}</span>
+                    <span>{{ $fmtDisp($invoice->tax_amount) }}</span>
                 </div>
                 @endif
                 <hr class="my-2">
                 <div class="d-flex justify-content-between">
                     <span class="fw-bold fs-6">Total Amount</span>
-                    <span class="fw-bold fs-5 text-primary">{{ number_format($invoice->total_amount, 2) }}</span>
+                    <span class="fw-bold fs-5 text-primary">{{ $fmtDisp($invoice->total_amount) }}</span>
                 </div>
             </div>
         </div>
@@ -292,12 +300,11 @@
                                     {{ $line->storage_chargeable_days }}d
                                 </td>
                                 <td class="text-end bg-warning-subtle fw-semibold">
-                                    {{ $line->storage_currency }}
-                                    {{ number_format($line->storage_subtotal, 2) }}
+                                    {{ $fmtDisp($line->storage_subtotal) }}
                                 </td>
                                 <td class="text-center bg-info-subtle">
                                     @if($line->has_lift_off)
-                                        <span title="Lift Off: {{ $line->handling_currency }} {{ number_format($line->lift_off_rate, 2) }}">
+                                        <span title="Lift Off: {{ $fmtDisp($line->lift_off_rate) }}">
                                             <i class="bi bi-check-circle-fill text-success"></i>
                                         </span>
                                     @else
@@ -306,7 +313,7 @@
                                 </td>
                                 <td class="text-center bg-info-subtle">
                                     @if($line->has_lift_on)
-                                        <span title="Lift On: {{ $line->handling_currency }} {{ number_format($line->lift_on_rate, 2) }}">
+                                        <span title="Lift On: {{ $fmtDisp($line->lift_on_rate) }}">
                                             <i class="bi bi-check-circle-fill text-primary"></i>
                                         </span>
                                     @else
@@ -314,20 +321,19 @@
                                     @endif
                                 </td>
                                 <td class="text-end bg-info-subtle fw-semibold">
-                                    {{ $line->handling_currency }}
-                                    {{ number_format($line->handling_subtotal, 2) }}
+                                    {{ $fmtDisp($line->handling_subtotal) }}
                                 </td>
                                 <td class="text-end fw-semibold">
-                                    {{ number_format($line->line_total, 2) }}
+                                    {{ $fmtDisp($line->line_total) }}
                                 </td>
                                 <td class="text-end small text-secondary">
-                                    {{ number_format($line->line_sscl, 2) }}
+                                    {{ $fmtDisp($line->line_sscl) }}
                                 </td>
                                 <td class="text-end small text-secondary">
-                                    {{ number_format($line->line_vat, 2) }}
+                                    {{ $fmtDisp($line->line_vat) }}
                                 </td>
                                 <td class="text-end pe-2 fw-bold">
-                                    {{ number_format($line->line_grand_total, 2) }}
+                                    {{ $fmtDisp($line->line_grand_total) }}
                                 </td>
                             </tr>
                         @endforeach
@@ -335,18 +341,18 @@
                         <tfoot class="table-light fw-semibold">
                             <tr>
                                 <td class="ps-2" colspan="7" style="text-align:right">Storage Subtotal</td>
-                                <td class="text-end bg-warning-subtle">{{ number_format($invoice->storage_subtotal, 2) }}</td>
+                                <td class="text-end bg-warning-subtle">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
                                 <td colspan="2"></td>
-                                <td class="text-end bg-info-subtle">{{ number_format($invoice->handling_subtotal, 2) }}</td>
+                                <td class="text-end bg-info-subtle">{{ $fmtDisp($invoice->handling_subtotal) }}</td>
                                 <td class="text-end" colspan="3" style="text-align:right">Subtotal</td>
-                                <td class="text-end pe-2">{{ number_format($invoice->subtotal, 2) }}</td>
+                                <td class="text-end pe-2">{{ $fmtDisp($invoice->subtotal) }}</td>
                             </tr>
                             @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
                             <tr class="fw-normal text-muted">
                                 <td class="ps-2" colspan="14" style="text-align:right">
                                     SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)
                                 </td>
-                                <td class="text-end pe-2">{{ number_format($invoice->sscl_amount, 2) }}</td>
+                                <td class="text-end pe-2">{{ $fmtDisp($invoice->sscl_amount) }}</td>
                             </tr>
                             @endif
                             @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
@@ -354,7 +360,7 @@
                                 <td class="ps-2" colspan="14" style="text-align:right">
                                     VAT ({{ number_format($invoice->vat_percentage, 2) }}%)
                                 </td>
-                                <td class="text-end pe-2">{{ number_format($invoice->vat_amount, 2) }}</td>
+                                <td class="text-end pe-2">{{ $fmtDisp($invoice->vat_amount) }}</td>
                             </tr>
                             @endif
                             @if($invoice->tax_amount > 0)
@@ -362,12 +368,12 @@
                                 <td class="ps-2" colspan="14" style="text-align:right">
                                     Tax ({{ number_format($invoice->tax_percentage, 2) }}%)
                                 </td>
-                                <td class="text-end pe-2">{{ number_format($invoice->tax_amount, 2) }}</td>
+                                <td class="text-end pe-2">{{ $fmtDisp($invoice->tax_amount) }}</td>
                             </tr>
                             @endif
                             <tr class="table-success fw-bold">
                                 <td class="ps-2" colspan="14" style="text-align:right">TOTAL</td>
-                                <td class="text-end pe-2 fs-6">{{ number_format($invoice->total_amount, 2) }}</td>
+                                <td class="text-end pe-2 fs-6">{{ $fmtDisp($invoice->total_amount) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -397,7 +403,7 @@
                             <span class="font-monospace">{{ $l->container_no }}
                                 <span class="badge bg-dark ms-1" style="font-size:.68rem;">{{ $l->container_size }}'</span>
                             </span>
-                            <span class="fw-semibold">{{ $l->handling_currency }} {{ number_format($l->lift_off_rate, 2) }}</span>
+                            <span class="fw-semibold">{{ $fmtDisp($l->lift_off_rate) }}</span>
                         </div>
                         @endforeach
                     </div>
@@ -412,7 +418,7 @@
                             <span class="font-monospace">{{ $l->container_no }}
                                 <span class="badge bg-dark ms-1" style="font-size:.68rem;">{{ $l->container_size }}'</span>
                             </span>
-                            <span class="fw-semibold">{{ $l->handling_currency }} {{ number_format($l->lift_on_rate, 2) }}</span>
+                            <span class="fw-semibold">{{ $fmtDisp($l->lift_on_rate) }}</span>
                         </div>
                         @endforeach
                     </div>

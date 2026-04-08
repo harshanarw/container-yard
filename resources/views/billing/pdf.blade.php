@@ -100,6 +100,15 @@
 
 <div class="page">
 
+@php
+    // LKR is the base currency; all stored amounts are in LKR.
+    // If invoice_currency ≠ LKR, convert for display: display = lkr / exchange_rate
+    $dispCur  = $invoice->invoice_currency ?? 'LKR';
+    $dispRate = (float) ($invoice->exchange_rate ?? 1.0);
+    $disp     = fn($lkr) => $dispCur === 'LKR' ? $lkr : round($lkr / $dispRate, 2);
+    $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
+@endphp
+
     <!-- ── Header ─────────────────────────────────────────────────────────── -->
     <div class="header">
         <div>
@@ -150,14 +159,12 @@
             </div>
             <div class="info-row">
                 <span class="info-label">Invoice Currency</span>
-                <span class="info-value" style="font-weight:bold;">{{ $invoice->invoice_currency ?? 'USD' }}</span>
+                <span class="info-value" style="font-weight:bold;">{{ $dispCur }} <span style="font-weight:normal;color:#888;">(Base: LKR)</span></span>
             </div>
-            @if(($invoice->invoice_currency ?? 'USD') !== 'USD')
             <div class="info-row">
-                <span class="info-label">Exchange Rate</span>
-                <span class="info-value">1 USD = {{ number_format($invoice->exchange_rate, 4) }} {{ $invoice->invoice_currency }}</span>
+                <span class="info-label">USD → LKR Rate</span>
+                <span class="info-value">1 USD = {{ number_format($invoice->exchange_rate, 4) }} LKR</span>
             </div>
-            @endif
             @if($invoice->sent_at)
             <div class="info-row">
                 <span class="info-label">Issued On</span>
@@ -244,9 +251,9 @@
                 <td class="text-center" style="{{ $line->chargeable_days > 0 ? 'color:#dc3545;font-weight:bold;' : 'color:#198754;' }}">
                     {{ $line->chargeable_days }}
                 </td>
-                <td class="text-right">{{ $line->currency }} {{ number_format($line->daily_rate, 2) }}</td>
+                <td class="text-right">{{ $fmtDisp($line->daily_rate) }}</td>
                 <td class="text-right" style="{{ $line->subtotal == 0 ? 'color:#198754;' : 'font-weight:bold;' }}">
-                    {{ $line->currency }} {{ number_format($line->subtotal, 2) }}
+                    {{ $fmtDisp($line->subtotal) }}
                 </td>
             </tr>
             @endforeach
@@ -254,14 +261,14 @@
         <tfoot>
             <tr class="sub-row">
                 <td colspan="10" class="text-right" style="padding-right:10px;">Subtotal:</td>
-                <td class="text-right">{{ $invoice->invoice_currency ?? 'USD' }} {{ number_format($invoice->subtotal, 2) }}</td>
+                <td class="text-right">{{ $fmtDisp($invoice->subtotal) }}</td>
             </tr>
             @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
             <tr class="tax-row">
                 <td colspan="10" class="text-right" style="padding-right:10px;">
                     SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%):
                 </td>
-                <td class="text-right">{{ $invoice->invoice_currency ?? 'USD' }} {{ number_format($invoice->sscl_amount, 2) }}</td>
+                <td class="text-right">{{ $fmtDisp($invoice->sscl_amount) }}</td>
             </tr>
             @endif
             @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
@@ -269,7 +276,7 @@
                 <td colspan="10" class="text-right" style="padding-right:10px;">
                     VAT ({{ number_format($invoice->vat_percentage, 2) }}%):
                 </td>
-                <td class="text-right">{{ $invoice->invoice_currency ?? 'USD' }} {{ number_format($invoice->vat_amount, 2) }}</td>
+                <td class="text-right">{{ $fmtDisp($invoice->vat_amount) }}</td>
             </tr>
             @endif
             @if($invoice->tax_amount > 0)
@@ -277,12 +284,12 @@
                 <td colspan="10" class="text-right" style="padding-right:10px;">
                     Tax ({{ number_format($invoice->tax_percentage, 2) }}%):
                 </td>
-                <td class="text-right">{{ $invoice->invoice_currency ?? 'USD' }} {{ number_format($invoice->tax_amount, 2) }}</td>
+                <td class="text-right">{{ $fmtDisp($invoice->tax_amount) }}</td>
             </tr>
             @endif
             <tr class="total-row">
                 <td colspan="10" class="text-right" style="padding-right:10px;">GRAND TOTAL:</td>
-                <td class="text-right">{{ $invoice->invoice_currency ?? 'USD' }} {{ number_format($invoice->total_amount, 2) }}</td>
+                <td class="text-right">{{ $fmtDisp($invoice->total_amount) }}</td>
             </tr>
         </tfoot>
     </table>

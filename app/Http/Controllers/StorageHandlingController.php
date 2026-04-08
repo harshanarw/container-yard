@@ -77,7 +77,8 @@ class StorageHandlingController extends Controller
         $periodFrom      = now()->parse($v['period_from'])->startOfDay();
         $periodTo        = now()->parse($v['period_to'])->startOfDay();
         $periodToEod     = now()->parse($v['period_to'])->endOfDay();   // for movement timestamps
-        $invoiceCurrency = strtoupper($v['invoice_currency'] ?? 'USD');
+        // exchange_rate is always "1 USD = X LKR" — LKR is the base/reporting currency
+        $invoiceCurrency = strtoupper($v['invoice_currency'] ?? 'LKR');
         $exchangeRate    = (float) ($v['exchange_rate'] ?? 1.0);
         $ssclPct         = (float) ($v['sscl_pct'] ?? 0);
         $vatPct          = (float) ($v['vat_pct'] ?? 0);
@@ -176,7 +177,7 @@ class StorageHandlingController extends Controller
             $freeDaysInPeriod  = min($totalDays, $freeDaysRemaining);
             $chargeableDays    = max(0, $totalDays - $freeDaysInPeriod);
 
-            // Convert storage rate to invoice currency
+            // Convert USD storage rate to LKR (base currency) using exchange_rate (1 USD = X LKR)
             $storageDailyConverted = round($storageRate * $exchangeRate, 2);
             $storageSubtotal       = round($chargeableDays * $storageDailyConverted, 2);
 
@@ -223,13 +224,13 @@ class StorageHandlingController extends Controller
                 'storage_free_days'        => $freeDaysInPeriod,
                 'storage_chargeable_days'  => $chargeableDays,
                 'storage_daily_rate'       => $storageDailyConverted,
-                'storage_currency'         => $invoiceCurrency,
+                'storage_currency'         => 'LKR',   // amounts always stored in LKR
                 'storage_subtotal'         => $storageSubtotal,
                 'has_lift_off'             => $hasLiftOff ? 1 : 0,
                 'lift_off_rate'            => $liftOffRate,
                 'has_lift_on'              => $hasLiftOn ? 1 : 0,
                 'lift_on_rate'             => $liftOnRate,
-                'handling_currency'        => $invoiceCurrency,
+                'handling_currency'        => 'LKR',   // amounts always stored in LKR
                 'handling_subtotal'        => $handlingSubtotal,
                 'line_total'               => $lineTotal,
                 'line_sscl'                => $lineSscl,
@@ -305,7 +306,7 @@ class StorageHandlingController extends Controller
             'lines.*.line_grand_total'            => 'required|numeric|min:0',
         ]);
 
-        $invoiceCurrency  = strtoupper($v['invoice_currency'] ?? 'USD');
+        $invoiceCurrency  = strtoupper($v['invoice_currency'] ?? 'LKR');
         $exchangeRate     = (float) ($v['exchange_rate'] ?? 1.0);
         $ssclPct          = (float) ($v['sscl_percentage'] ?? 0);
         $vatPct           = (float) ($v['vat_percentage'] ?? 0);
