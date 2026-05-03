@@ -95,11 +95,13 @@ class ReportController extends Controller
 
         // Export status filter
         if ($exportFilter === 'pending') {
-            $query->where(function ($q) {
-                $q->whereNull('codeco_exported_at')->orWhereNull('csv_exported_at');
-            });
+            // Pending = never exported in any format (both null)
+            $query->whereNull('codeco_exported_at')->whereNull('csv_exported_at');
         } elseif ($exportFilter === 'exported') {
-            $query->whereNotNull('codeco_exported_at')->whereNotNull('csv_exported_at');
+            // Exported = at least one format has been exported
+            $query->where(function ($q) {
+                $q->whereNotNull('codeco_exported_at')->orWhereNotNull('csv_exported_at');
+            });
         }
         // 'all' → no filter
 

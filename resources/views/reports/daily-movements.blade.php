@@ -373,7 +373,12 @@ function submitExport(type) {
         codeco: '{{ route('reports.daily-movements.export.codeco') }}',
     };
     form.action = routes[type];
+    // Open download in a new tab so the current page stays alive,
+    // then reload current page after a short delay to reflect updated export status.
+    form.target = '_blank';
     form.submit();
+    form.target = '';
+    setTimeout(() => window.location.reload(), 1500);
 }
 </script>
 @endpush
