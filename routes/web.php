@@ -80,8 +80,11 @@ Route::middleware(['auth'])->group(function () {
 
     // Reports
     Route::prefix('reports')->name('reports.')->group(function () {
-        Route::get('/inventory', [ReportController::class, 'inventory'])->name('inventory');
-        Route::get('/billing',   [ReportController::class, 'billing'])->name('billing');
+        Route::get('/inventory',                        [ReportController::class, 'inventory'])->name('inventory');
+        Route::get('/billing',                          [ReportController::class, 'billing'])->name('billing');
+        Route::get('/daily-movements',                  [ReportController::class, 'dailyMovements'])->name('daily-movements');
+        Route::post('/daily-movements/export/csv',      [ReportController::class, 'exportMovementsCsv'])->name('daily-movements.export.csv');
+        Route::post('/daily-movements/export/codeco',   [ReportController::class, 'exportMovementsCodeco'])->name('daily-movements.export.codeco');
     });
 
     // Masters

@@ -397,6 +397,12 @@
                     <i class="bi bi-receipt"></i><span>Billing Report</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('reports.daily-movements') }}"
+                   class="nav-link {{ request()->routeIs('reports.daily-movements*') ? 'active' : '' }}">
+                    <i class="bi bi-arrow-left-right"></i><span>Daily Movements</span>
+                </a>
+            </li>
         </ul>
 
         <div class="nav-section-label">Settings</div>
