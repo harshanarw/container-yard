@@ -249,45 +249,15 @@
             </div>
         </div>
 
-        {{-- Photo Gallery --}}
-        <div class="card content-card mb-4">
-            <div class="card-header py-2 fw-semibold small d-flex align-items-center justify-content-between">
-                <span><i class="bi bi-images me-2 text-primary"></i>Photo Evidence</span>
-                <span class="badge bg-secondary-subtle text-secondary">{{ $inquiry->photos->count() }} photo(s)</span>
-            </div>
-            <div class="card-body">
-                @if($inquiry->photos->isEmpty())
-                <div class="text-center text-muted py-3 small">
-                    <i class="bi bi-camera fs-3 d-block mb-1"></i>No photos uploaded.
-                </div>
-                @else
-                <div class="row g-2">
-                    @foreach($inquiry->photos as $idx => $photo)
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <div class="card border shadow-sm photo-thumb"
-                             style="overflow:hidden;"
-                             data-idx="{{ $idx }}"
-                             onclick="openLightbox({{ $idx }})">
-                            <img src="{{ asset($photo->photo_path) }}"
-                                 class="card-img-top"
-                                 style="height:110px;object-fit:cover;"
-                                 alt="Photo {{ $idx + 1 }}"
-                                 onerror="this.src='https://via.placeholder.com/200x110?text=Photo'">
-                            <div class="card-body p-1 text-center">
-                                <small class="text-muted" style="font-size:.68rem;">
-                                    Photo {{ $idx + 1 }}
-                                    @if($photo->created_at)
-                                        &nbsp;·&nbsp; {{ $photo->created_at->format('d M') }}
-                                    @endif
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-                @endif
-            </div>
-        </div>
+        {{-- Photos & Documents --}}
+        <x-document-manager
+            model-type="App\Models\Inquiry"
+            :model-id="$inquiry->id"
+            :folder="'surveys/' . $inquiry->id"
+            title="Photos &amp; Documents"
+            accept="image/*,application/pdf,.doc,.docx"
+            :max-files="20"
+        />
 
     </div>{{-- /col-lg-8 --}}
 

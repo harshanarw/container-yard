@@ -3,9 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChecklistMasterItemController;
+use App\Http\Controllers\CloudStorageSettingController;
 use App\Http\Controllers\ContainerController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\InquiryController;
@@ -168,10 +170,27 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{invoice}/email',  [StorageBillingController::class, 'sendEmail'])->name('email');
     });
 
+    // Documents (polymorphic, provider-agnostic)
+    Route::prefix('documents')->name('documents.')->group(function () {
+        Route::post('/',                        [DocumentController::class, 'store'])->name('store');
+        Route::get('/{document}/preview',       [DocumentController::class, 'preview'])->name('preview');
+        Route::get('/{document}/download',      [DocumentController::class, 'download'])->name('download');
+        Route::delete('/{document}',            [DocumentController::class, 'destroy'])->name('destroy');
+    });
+
     // Settings
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/',  [SettingController::class, 'index'])->name('index');
         Route::post('/', [SettingController::class, 'update'])->name('update');
+
+        // Cloud storage
+        Route::prefix('cloud-storage')->name('cloud-storage.')->group(function () {
+            Route::get('/',                  [CloudStorageSettingController::class, 'index'])->name('index');
+            Route::post('/',                 [CloudStorageSettingController::class, 'save'])->name('save');
+            Route::post('/test',             [CloudStorageSettingController::class, 'test'])->name('test');
+            Route::get('/gdrive/auth',       [CloudStorageSettingController::class, 'gdriveAuth'])->name('gdrive.auth');
+            Route::get('/gdrive/callback',   [CloudStorageSettingController::class, 'gdriveCallback'])->name('gdrive.callback');
+        });
     });
 
 });

@@ -232,45 +232,16 @@
         </div>
     </div>
 
-    {{-- Existing Photos --}}
+    {{-- Photos & Documents --}}
     <div class="col-lg-5">
-        <div class="card content-card">
-            <div class="card-header">
-                <i class="bi bi-images me-2 text-primary"></i>Existing Photos
-                <span class="badge bg-secondary-subtle text-secondary ms-1">{{ $movement->photos->count() }}</span>
-            </div>
-            <div class="card-body">
-                @if($movement->photos->isEmpty())
-                    <p class="text-muted small text-center py-3">No photos attached to this movement.</p>
-                @else
-                    <div class="row g-2">
-                        @foreach($movement->photos as $photo)
-                        <div class="col-6" id="photo-col-{{ $photo->id }}">
-                            <div class="position-relative" style="border-radius:6px;overflow:hidden;">
-                                <a href="{{ asset($photo->photo_path) }}" target="_blank">
-                                    <img src="{{ asset($photo->photo_path) }}"
-                                         style="width:100%;height:100px;object-fit:cover;" alt="">
-                                </a>
-                                <form method="POST"
-                                      action="{{ route('yard.movements.photo.destroy', [$movement, $photo]) }}"
-                                      class="position-absolute"
-                                      style="top:4px;right:4px;"
-                                      onsubmit="return confirm('Remove this photo?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit"
-                                            class="btn btn-danger btn-sm py-0 px-1"
-                                            style="font-size:.7rem;line-height:1.5;border-radius:50%;"
-                                            title="Remove">
-                                        <i class="bi bi-x"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-        </div>
+        <x-document-manager
+            model-type="App\Models\GateMovement"
+            :model-id="$movement->id"
+            :folder="'gate-movements/' . $movement->movement_type . '/' . $movement->id"
+            title="Photos &amp; Documents"
+            accept="image/*,application/pdf"
+            :max-files="10"
+        />
     </div>
 </div>
 

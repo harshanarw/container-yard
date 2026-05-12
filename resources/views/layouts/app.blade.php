@@ -409,8 +409,14 @@
         <ul class="nav flex-column">
             <li class="nav-item">
                 <a href="{{ route('settings.index') }}"
-                   class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                   class="nav-link {{ request()->routeIs('settings.index') ? 'active' : '' }}">
                     <i class="bi bi-gear"></i><span>System Settings</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('settings.cloud-storage.index') }}"
+                   class="nav-link {{ request()->routeIs('settings.cloud-storage.*') ? 'active' : '' }}">
+                    <i class="bi bi-cloud"></i><span>Cloud Storage</span>
                 </a>
             </li>
         </ul>
@@ -575,6 +581,7 @@
         }
     });
 </script>
+@stack('modals')
 @stack('scripts')
 </body>
 </html>

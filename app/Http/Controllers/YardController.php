@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Facades\Documents;
 use App\Models\Container;
 use App\Models\Customer;
 use App\Models\EquipmentType;
@@ -18,33 +19,16 @@ use Illuminate\Support\Str;
 
 class YardController extends Controller
 {
-    // -------------------------------------------------------------------------
-    // Internal helper — save an uploaded photo to public/images/gate-movements/
-    // Returns the path relative to public/ (used as photo_path in DB).
-    // -------------------------------------------------------------------------
-    private function saveMovementPhoto($file, string $type, int $movementId): string
+    private function saveMovementPhotos(GateMovement $movement, array $photos): void
     {
-        $dir = public_path("images/gate-movements/{$type}/{$movementId}");
-
-        \Log::debug("[Photo] dir={$dir}");
-        \Log::debug("[Photo] file valid=" . ($file->isValid() ? 'yes' : 'no') .
-                    " size=" . $file->getSize() .
-                    " mime=" . $file->getMimeType() .
-                    " ext=" . $file->getClientOriginalExtension());
-
-        if (!File::isDirectory($dir)) {
-            \Log::debug("[Photo] creating directory");
-            File::makeDirectory($dir, 0775, true, true);
+        foreach ($photos as $photo) {
+            Documents::uploadFor(
+                $movement,
+                $photo,
+                "gate-movements/{$movement->movement_type}/{$movement->id}",
+                ['document_type' => 'photo']
+            );
         }
-
-        $ext      = $file->getClientOriginalExtension() ?: 'jpg';
-        $filename = Str::random(16) . '.' . $ext;
-
-        \Log::debug("[Photo] moving to {$dir}/{$filename}");
-        $file->move($dir, $filename);
-        \Log::debug("[Photo] saved ok");
-
-        return "images/gate-movements/{$type}/{$movementId}/{$filename}";
     }
 
     // -------------------------------------------------------------------------
@@ -176,20 +160,11 @@ class YardController extends Controller
             'created_by'      => auth()->id(),
         ]);
 
-        // Save gate-in photos
-        \Log::debug('[GateIn] photos count=' . count($validated['photos'] ?? []));
+        // Save gate-in photos via DocumentManager
         $photoError = null;
         if (!empty($validated['photos'])) {
             try {
-                foreach ($validated['photos'] as $photo) {
-                    $path = $this->saveMovementPhoto($photo, 'in', $movement->id);
-                    GateMovementPhoto::create([
-                        'gate_movement_id' => $movement->id,
-                        'photo_path'       => $path,
-                        'movement_type'    => 'in',
-                        'uploaded_by'      => auth()->id(),
-                    ]);
-                }
+                $this->saveMovementPhotos($movement, $validated['photos']);
             } catch (\Throwable $e) {
                 $photoError = 'Movement saved, but photo upload failed: ' . $e->getMessage();
             }
@@ -294,19 +269,11 @@ class YardController extends Controller
             'created_by'      => auth()->id(),
         ]);
 
-        // Save gate-out photos
+        // Save gate-out photos via DocumentManager
         $photoError = null;
         if (!empty($validated['photos'])) {
             try {
-                foreach ($validated['photos'] as $photo) {
-                    $path = $this->saveMovementPhoto($photo, 'out', $movement->id);
-                    GateMovementPhoto::create([
-                        'gate_movement_id' => $movement->id,
-                        'photo_path'       => $path,
-                        'movement_type'    => 'out',
-                        'uploaded_by'      => auth()->id(),
-                    ]);
-                }
+                $this->saveMovementPhotos($movement, $validated['photos']);
             } catch (\Throwable $e) {
                 $photoError = 'Movement saved, but photo upload failed: ' . $e->getMessage();
             }
@@ -449,19 +416,11 @@ class YardController extends Controller
 
         $movement->update($updateData);
 
-        // Save additional photos
+        // Save additional photos via DocumentManager
         $photoError = null;
         if (!empty($validated['photos'])) {
             try {
-                foreach ($validated['photos'] as $photo) {
-                    $path = $this->saveMovementPhoto($photo, $movement->movement_type, $movement->id);
-                    GateMovementPhoto::create([
-                        'gate_movement_id' => $movement->id,
-                        'photo_path'       => $path,
-                        'movement_type'    => $movement->movement_type,
-                        'uploaded_by'      => auth()->id(),
-                    ]);
-                }
+                $this->saveMovementPhotos($movement, $validated['photos']);
             } catch (\Throwable $e) {
                 $photoError = 'Changes saved, but photo upload failed: ' . $e->getMessage();
             }
@@ -482,7 +441,10 @@ class YardController extends Controller
         if ($photo->gate_movement_id !== $movement->id) {
             abort(403);
         }
-        @unlink(public_path($photo->photo_path));
+        // Legacy local photos still use public_path — remove if file exists
+        if ($photo->photo_path && file_exists(public_path($photo->photo_path))) {
+            @unlink(public_path($photo->photo_path));
+        }
         $photo->delete();
 
         return back()->with('success', 'Photo removed.');

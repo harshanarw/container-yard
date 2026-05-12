@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasDocuments;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Inquiry extends Model
 {
-    use HasFactory;
+    use HasFactory, HasDocuments;
 
     protected $fillable = [
         'inquiry_no', 'container_id', 'container_no', 'equipment_type_id', 'size', 'type_code',

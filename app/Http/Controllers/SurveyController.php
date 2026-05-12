@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Facades\Documents;
 use App\Http\Requests\StoreSurveyRequest;
 use App\Http\Requests\UpdateSurveyRequest;
 use App\Models\ChecklistMasterItem;
@@ -134,16 +135,12 @@ class SurveyController extends Controller
             }
             \Log::debug('[StoreSurvey] Checklist saved');
 
-            // Save photos
+            // Save photos via DocumentManager
             $photoCount = $request->hasFile('photos') ? count($request->file('photos')) : 0;
             \Log::debug('[StoreSurvey] Photos count=' . $photoCount);
             if ($request->hasFile('photos')) {
                 foreach ($request->file('photos') as $photo) {
-                    $path = $this->saveSurveyPhoto($photo, $inquiry->id);
-                    $inquiry->photos()->create([
-                        'photo_path'  => $path,
-                        'uploaded_by' => auth()->id(),
-                    ]);
+                    Documents::uploadFor($inquiry, $photo, "surveys/{$inquiry->id}", ['document_type' => 'photo']);
                 }
             }
 
@@ -223,16 +220,12 @@ class SurveyController extends Controller
             }
             \Log::debug('[UpdateSurvey] Checklist rebuilt');
 
-            // Append new photos
+            // Append new photos via DocumentManager
             $photoCount = $request->hasFile('photos') ? count($request->file('photos')) : 0;
             \Log::debug('[UpdateSurvey] New photos count=' . $photoCount);
             if ($request->hasFile('photos')) {
                 foreach ($request->file('photos') as $photo) {
-                    $path = $this->saveSurveyPhoto($photo, $survey->id);
-                    $survey->photos()->create([
-                        'photo_path'  => $path,
-                        'uploaded_by' => auth()->id(),
-                    ]);
+                    Documents::uploadFor($survey, $photo, "surveys/{$survey->id}", ['document_type' => 'photo']);
                 }
             }
 
@@ -257,7 +250,10 @@ class SurveyController extends Controller
 
     public function destroyPhoto(Inquiry $survey, InquiryPhoto $photo)
     {
-        @unlink(public_path($photo->photo_path));
+        // Legacy local photos still use public_path
+        if ($photo->photo_path && file_exists(public_path($photo->photo_path))) {
+            @unlink(public_path($photo->photo_path));
+        }
         $photo->delete();
 
         if (request()->wantsJson()) {
@@ -284,16 +280,7 @@ class SurveyController extends Controller
             ->with('success', 'Survey deleted successfully.');
     }
 
-    private function saveSurveyPhoto($file, int $surveyId): string
-    {
-        $dir = public_path("images/surveys/{$surveyId}/photos");
-        File::ensureDirectoryExists($dir);
-
-        $filename = Str::random(16) . '.' . $file->getClientOriginalExtension();
-        $file->move($dir, $filename);
-
-        return "images/surveys/{$surveyId}/photos/{$filename}";
-    }
+    // saveSurveyPhoto removed — uploads now handled by DocumentManager
 
     private function generateSurveyNo(): string
     {
