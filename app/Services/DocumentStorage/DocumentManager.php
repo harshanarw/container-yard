@@ -29,10 +29,11 @@ class DocumentManager
 
         $this->driver = match ($s->provider) {
             'dropbox' => new DropboxDriver([
-                'access_token' => $s->dropbox_access_token,
-                'app_key'      => $s->dropbox_app_key,
-                'app_secret'   => $s->dropbox_app_secret,
-                'root'         => $s->dropbox_root_folder ?: '/container-yard',
+                'access_token'  => $s->dropbox_access_token,   // fallback legacy token
+                'app_key'       => $s->dropbox_app_key,
+                'app_secret'    => $s->dropbox_app_secret,
+                'refresh_token' => $s->dropbox_refresh_token,  // preferred: OAuth2 refresh token
+                'root'          => $s->dropbox_root_folder ?: '/container-yard',
             ]),
             'gdrive'  => new GoogleDriveDriver([
                 'client_id'     => $s->gdrive_client_id,

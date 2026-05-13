@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Facades\Documents;
 use App\Models\CloudStorageSetting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Http;
 
 class CloudStorageSettingController extends Controller
 {
@@ -19,10 +19,10 @@ class CloudStorageSettingController extends Controller
     {
         $request->validate([
             'provider' => ['required', 'in:local,dropbox,gdrive'],
-            // Dropbox
-            'dropbox_access_token' => ['nullable', 'required_if:provider,dropbox', 'string'],
+            // Dropbox — either refresh token (via OAuth) OR legacy access token required
             'dropbox_app_key'      => ['nullable', 'string', 'max:100'],
             'dropbox_app_secret'   => ['nullable', 'string', 'max:100'],
+            'dropbox_access_token' => ['nullable', 'string'],
             'dropbox_root_folder'  => ['nullable', 'string', 'max:200'],
             // Google Drive
             'gdrive_client_id'     => ['nullable', 'required_if:provider,gdrive', 'string', 'max:200'],
@@ -137,5 +137,72 @@ class CloudStorageSettingController extends Controller
 
         return redirect()->route('settings.cloud-storage.index')
             ->with('success', 'Google Drive connected successfully.');
+    }
+
+    // ── Dropbox OAuth2 ────────────────────────────────────────────────────────
+
+    public function dropboxAuth()
+    {
+        $settings = CloudStorageSetting::current();
+
+        if (empty($settings->dropbox_app_key)) {
+            return back()->with('error', 'Please save your Dropbox App Key first before connecting.');
+        }
+
+        $callbackUrl = route('settings.cloud-storage.dropbox.callback');
+
+        $authUrl = 'https://www.dropbox.com/oauth2/authorize?' . http_build_query([
+            'client_id'          => $settings->dropbox_app_key,
+            'response_type'      => 'code',
+            'token_access_type'  => 'offline',   // requests a refresh token
+            'redirect_uri'       => $callbackUrl,
+        ]);
+
+        return redirect($authUrl);
+    }
+
+    public function dropboxCallback(Request $request)
+    {
+        if ($request->has('error')) {
+            return redirect()->route('settings.cloud-storage.index')
+                ->with('error', 'Dropbox authorization denied: ' . $request->get('error_description', $request->error));
+        }
+
+        $code = $request->get('code');
+        if (!$code) {
+            return redirect()->route('settings.cloud-storage.index')
+                ->with('error', 'No authorization code received from Dropbox.');
+        }
+
+        $settings    = CloudStorageSetting::current();
+        $callbackUrl = route('settings.cloud-storage.dropbox.callback');
+
+        // Exchange the code for tokens
+        $response = Http::asForm()->withBasicAuth(
+            $settings->dropbox_app_key,
+            $settings->dropbox_app_secret
+        )->post('https://api.dropboxapi.com/oauth2/token', [
+            'code'         => $code,
+            'grant_type'   => 'authorization_code',
+            'redirect_uri' => $callbackUrl,
+        ]);
+
+        if (!$response->successful() || empty($response->json('refresh_token'))) {
+            return redirect()->route('settings.cloud-storage.index')
+                ->with('error', 'Failed to get Dropbox tokens: '
+                    . ($response->json('error_description') ?? $response->status()));
+        }
+
+        $settings->update([
+            'dropbox_refresh_token'      => $response->json('refresh_token'),
+            'dropbox_access_token_cache' => $response->json('access_token'),
+            'dropbox_token_expires_at'   => now()->addSeconds((int)($response->json('expires_in') ?? 14400) - 60),
+            'updated_by'                 => auth()->id(),
+        ]);
+
+        Documents::flushDriver();
+
+        return redirect()->route('settings.cloud-storage.index')
+            ->with('success', 'Dropbox connected successfully. Tokens saved — access token will auto-refresh.');
     }
 }

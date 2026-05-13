@@ -185,11 +185,13 @@ Route::middleware(['auth'])->group(function () {
 
         // Cloud storage
         Route::prefix('cloud-storage')->name('cloud-storage.')->group(function () {
-            Route::get('/',                  [CloudStorageSettingController::class, 'index'])->name('index');
-            Route::post('/',                 [CloudStorageSettingController::class, 'save'])->name('save');
-            Route::post('/test',             [CloudStorageSettingController::class, 'test'])->name('test');
-            Route::get('/gdrive/auth',       [CloudStorageSettingController::class, 'gdriveAuth'])->name('gdrive.auth');
-            Route::get('/gdrive/callback',   [CloudStorageSettingController::class, 'gdriveCallback'])->name('gdrive.callback');
+            Route::get('/',                    [CloudStorageSettingController::class, 'index'])->name('index');
+            Route::post('/',                   [CloudStorageSettingController::class, 'save'])->name('save');
+            Route::post('/test',               [CloudStorageSettingController::class, 'test'])->name('test');
+            Route::get('/gdrive/auth',         [CloudStorageSettingController::class, 'gdriveAuth'])->name('gdrive.auth');
+            Route::get('/gdrive/callback',     [CloudStorageSettingController::class, 'gdriveCallback'])->name('gdrive.callback');
+            Route::get('/dropbox/auth',        [CloudStorageSettingController::class, 'dropboxAuth'])->name('dropbox.auth');
+            Route::get('/dropbox/callback',    [CloudStorageSettingController::class, 'dropboxCallback'])->name('dropbox.callback');
         });
     });
 

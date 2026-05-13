@@ -81,24 +81,21 @@
                             Requires: <code>composer require spatie/flysystem-dropbox</code>
                         </div>
                         <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Access Token <span class="text-danger">*</span></label>
-                                <input type="password" name="dropbox_access_token" class="form-control"
-                                       placeholder="{{ $settings->dropbox_access_token ? '(saved — leave blank to keep)' : 'Enter long-lived access token' }}">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">App Key <span class="text-danger">*</span></label>
+                                <input type="text" name="dropbox_app_key" class="form-control"
+                                       value="{{ $settings->dropbox_app_key }}"
+                                       placeholder="e.g. abc123xyz456">
                                 <div class="form-text">
-                                    Get from <a href="https://www.dropbox.com/developers/apps" target="_blank">Dropbox App Console</a>
-                                    → your app → Settings → Generated access token.
+                                    From <a href="https://www.dropbox.com/developers/apps" target="_blank">Dropbox App Console</a>
+                                    → your app → Settings → App key.
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">App Key</label>
-                                <input type="text" name="dropbox_app_key" class="form-control"
-                                       value="{{ $settings->dropbox_app_key }}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">App Secret</label>
+                                <label class="form-label fw-semibold">App Secret <span class="text-danger">*</span></label>
                                 <input type="password" name="dropbox_app_secret" class="form-control"
-                                       placeholder="{{ $settings->dropbox_app_secret ? '(saved)' : '' }}">
+                                       placeholder="{{ $settings->dropbox_app_secret ? '(saved — leave blank to keep)' : 'App secret' }}">
+                                <div class="form-text">From App Console → Settings → App secret.</div>
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Root Folder</label>
@@ -106,6 +103,47 @@
                                        value="{{ $settings->dropbox_root_folder ?? '/container-yard' }}"
                                        placeholder="/container-yard">
                                 <div class="form-text">All files will be stored under this folder in your Dropbox.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">OAuth2 Authorization</label>
+                                @if($settings->hasDropboxRefreshToken())
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="bi bi-check-circle me-1"></i>Connected
+                                        </span>
+                                        <a href="{{ route('settings.cloud-storage.dropbox.auth') }}"
+                                           class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-arrow-repeat me-1"></i>Re-authorize
+                                        </a>
+                                    </div>
+                                @else
+                                    <div>
+                                        <div class="text-muted small mb-2">
+                                            Save App Key &amp; Secret first, then authorize to get a long-lived refresh token.
+                                            This avoids the 4-hour expiry on manually generated tokens.
+                                        </div>
+                                        <a href="{{ route('settings.cloud-storage.dropbox.auth') }}"
+                                           class="btn btn-primary btn-sm">
+                                            <i class="bi bi-dropbox me-1"></i>Connect with Dropbox
+                                        </a>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="col-12">
+                                <details class="small">
+                                    <summary class="text-muted" style="cursor:pointer;">
+                                        Legacy access token (fallback, not recommended)
+                                    </summary>
+                                    <div class="mt-2">
+                                        <input type="password" name="dropbox_access_token" class="form-control form-control-sm"
+                                               placeholder="{{ $settings->dropbox_access_token ? '(saved — leave blank to keep)' : 'Long-lived access token from App Console' }}">
+                                        <div class="form-text">
+                                            Only use this if you cannot complete the OAuth2 flow above.
+                                            Tokens generated in the App Console expire after 4 hours unless your app requests
+                                            <code>token_access_type=offline</code>.
+                                        </div>
+                                    </div>
+                                </details>
                             </div>
                         </div>
                     </div>
@@ -228,8 +266,9 @@
             <div class="card-body small text-muted">
                 <p class="mb-2"><strong>Local</strong> — Default. Files saved inside the server's storage folder.
                 Best for single-server setups.</p>
-                <p class="mb-2"><strong>Dropbox</strong> — Files stored in your Dropbox Business account.
-                Good if your team already uses Dropbox. Requires a Dropbox Developer App with a long-lived token.</p>
+                <p class="mb-2"><strong>Dropbox</strong> — Files stored in your Dropbox account (free or paid).
+                Create a Dropbox App in the App Console, enter App Key &amp; Secret, then click
+                <em>Connect with Dropbox</em> to complete OAuth2 and get a permanent refresh token.</p>
                 <p class="mb-0"><strong>Google Drive</strong> — Files stored in a Google Drive folder.
                 Good for G-Suite organizations. Requires OAuth2 setup in Google Cloud Console.</p>
             </div>
