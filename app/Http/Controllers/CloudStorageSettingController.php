@@ -19,23 +19,30 @@ class CloudStorageSettingController extends Controller
     {
         $request->validate([
             'provider' => ['required', 'in:local,dropbox,gdrive'],
-            // Dropbox — either refresh token (via OAuth) OR legacy access token required
+            'activate' => ['nullable', 'boolean'],
+            // Dropbox
             'dropbox_app_key'      => ['nullable', 'string', 'max:100'],
             'dropbox_app_secret'   => ['nullable', 'string', 'max:100'],
             'dropbox_access_token' => ['nullable', 'string'],
             'dropbox_root_folder'  => ['nullable', 'string', 'max:200'],
             // Google Drive
-            'gdrive_client_id'     => ['nullable', 'required_if:provider,gdrive', 'string', 'max:200'],
-            'gdrive_client_secret' => ['nullable', 'required_if:provider,gdrive', 'string', 'max:200'],
+            'gdrive_client_id'     => ['nullable', 'string', 'max:200'],
+            'gdrive_client_secret' => ['nullable', 'string', 'max:200'],
             'gdrive_folder_id'     => ['nullable', 'string', 'max:200'],
         ]);
 
         $settings = CloudStorageSetting::current();
 
-        $data = ['provider' => $request->provider, 'updated_by' => auth()->id()];
+        // activate=1 means switch the active provider; activate=0 means save credentials only
+        $activate = $request->boolean('activate', true);
+
+        $data = ['updated_by' => auth()->id()];
+
+        if ($activate) {
+            $data['provider'] = $request->provider;
+        }
 
         if ($request->provider === 'dropbox') {
-            // Only update token fields if a new value was submitted (blank = keep existing)
             if ($request->filled('dropbox_access_token')) {
                 $data['dropbox_access_token'] = $request->dropbox_access_token;
             }
@@ -61,10 +68,16 @@ class CloudStorageSettingController extends Controller
 
         $settings->update($data);
 
-        // Flush cached driver so next request picks up new settings
         Documents::flushDriver();
 
-        return back()->with('success', 'Cloud storage settings saved.');
+        $labels = ['local' => 'Internal', 'dropbox' => 'Dropbox', 'gdrive' => 'Google Drive'];
+
+        if ($activate) {
+            $label = $labels[$request->provider] ?? $request->provider;
+            return back()->with('success', "{$label} storage is now active.");
+        }
+
+        return back()->with('success', 'External storage configuration saved.');
     }
 
     public function test(Request $request)
