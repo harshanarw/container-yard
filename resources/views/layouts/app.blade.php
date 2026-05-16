@@ -15,6 +15,8 @@
     <!-- Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
+    <!-- Flatpickr — date / datetime / time picker -->
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" rel="stylesheet">
 
     <style>
         :root {
@@ -259,6 +261,42 @@
             #topbar { left: 0 !important; }
             #main-content { margin-left: 0 !important; }
         }
+
+        /* ── Flatpickr — themed to match project primary colour (#2196F3) ── */
+        .flatpickr-calendar {
+            border-radius: 12px;
+            box-shadow: 0 6px 28px rgba(0,0,0,.14);
+            border: 1px solid #dee2e6;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .flatpickr-months .flatpickr-month,
+        .flatpickr-weekdays { background: #2196F3; border-radius: 12px 12px 0 0; }
+        span.flatpickr-weekday { background: #2196F3; color: rgba(255,255,255,.85); font-size:.75rem; }
+        .flatpickr-months .flatpickr-prev-month svg,
+        .flatpickr-months .flatpickr-next-month svg { fill: #fff; }
+        .flatpickr-months .flatpickr-prev-month:hover svg,
+        .flatpickr-months .flatpickr-next-month:hover svg { fill: rgba(255,255,255,.6); }
+        .flatpickr-current-month input.cur-year,
+        .flatpickr-current-month .numInputWrapper,
+        .flatpickr-current-month .flatpickr-monthDropdown-months { color: #fff !important; font-weight:600; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months { background: #2196F3; border:none; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months:hover { background: rgba(255,255,255,.15); }
+        .flatpickr-day { border-radius: 8px; transition: background .12s; }
+        .flatpickr-day:hover:not(.flatpickr-disabled):not(.selected):not(.today) {
+            background: #d0e8fd; border-color: #d0e8fd;
+        }
+        .flatpickr-day.today { border-color: #2196F3; color: #2196F3; font-weight: 700; }
+        .flatpickr-day.today:hover { background: #2196F3; border-color: #2196F3; color: #fff; }
+        .flatpickr-day.selected,
+        .flatpickr-day.selected:hover { background: #2196F3 !important; border-color: #2196F3 !important; color: #fff; }
+        .flatpickr-day.inRange { background: #d0e8fd; border-color: #d0e8fd; color: #0d47a1; box-shadow: -5px 0 0 #d0e8fd, 5px 0 0 #d0e8fd; }
+        .flatpickr-day.startRange, .flatpickr-day.endRange { background: #2196F3 !important; border-color: #2196F3 !important; color: #fff; }
+        .numInputWrapper:hover { background: rgba(33,150,243,.07); }
+        .flatpickr-time { border-top: 1px solid #dee2e6; }
+        .flatpickr-time input:hover, .flatpickr-time input:focus,
+        .flatpickr-time .flatpickr-am-pm:hover, .flatpickr-time .flatpickr-am-pm:focus { background: #d0e8fd; }
+        /* Ensure the alt-input (visible text field) renders block-level like the original */
+        .flatpickr-input[readonly] { cursor: pointer; background: #fff; }
     </style>
     @stack('styles')
 </head>
@@ -560,8 +598,62 @@
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <!-- Select2 -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Flatpickr -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 
 <script>
+    // ── Flatpickr global initializer ─────────────────────────────────────────
+    // Call initFlatpickr(container) after injecting dynamic HTML (modals, AJAX).
+    window.initFlatpickr = function (scope) {
+        var root = scope instanceof Element ? scope : document;
+
+        // ── date ──────────────────────────────────────────────────────────────
+        root.querySelectorAll('input[type="date"]').forEach(function (el) {
+            if (el._flatpickr) return;
+            flatpickr(el, {
+                dateFormat    : 'Y-m-d',
+                altInput      : true,
+                altFormat     : 'j M Y',
+                altInputClass : el.className || 'form-control',
+                allowInput    : true,
+            });
+        });
+
+        // ── datetime-local ────────────────────────────────────────────────────
+        root.querySelectorAll('input[type="datetime-local"]').forEach(function (el) {
+            if (el._flatpickr) return;
+            flatpickr(el, {
+                enableTime    : true,
+                dateFormat    : 'Y-m-d\\TH:i',
+                altInput      : true,
+                altFormat     : 'j M Y  H:i',
+                altInputClass : el.className || 'form-control',
+                time_24hr     : true,
+                allowInput    : true,
+                minuteIncrement: 1,
+                // handle values with or without seconds ("T14:30" and "T14:30:00")
+                parseDate: function (dateStr) {
+                    return new Date(dateStr.replace(' ', 'T'));
+                },
+            });
+        });
+
+        // ── time ──────────────────────────────────────────────────────────────
+        root.querySelectorAll('input[type="time"]').forEach(function (el) {
+            if (el._flatpickr) return;
+            flatpickr(el, {
+                enableTime    : true,
+                noCalendar    : true,
+                dateFormat    : 'H:i',
+                time_24hr     : true,
+                allowInput    : true,
+                minuteIncrement: 5,
+            });
+        });
+    };
+
+    document.addEventListener('DOMContentLoaded', function () { initFlatpickr(); });
+
     // Sidebar toggle
     const sidebar      = document.getElementById('sidebar');
     const topbar       = document.getElementById('topbar');
