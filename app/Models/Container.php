@@ -10,7 +10,7 @@ class Container extends Model
     use HasFactory;
 
     protected $fillable = [
-        'container_no', 'equipment_type_id', 'size', 'type_code', 'customer_id', 'condition',
+        'container_no', 'equipment_type_id', 'size', 'type_code', 'location_zone', 'customer_id', 'condition',
         'cargo_status', 'status', 'location_row', 'location_bay', 'location_tier',
         'seal_no', 'gate_in_date', 'gate_out_date', 'csc_plate_valid',
     ];

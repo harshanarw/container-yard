@@ -12,7 +12,7 @@ class GateMovement extends Model
 
     protected $fillable = [
         'container_id', 'survey_id', 'container_no', 'customer_id', 'movement_type', 'size',
-        'container_type', 'location_row', 'location_bay', 'location_tier',
+        'container_type', 'location_zone', 'location_row', 'location_bay', 'location_tier',
         'condition', 'cargo_status', 'seal_no', 'vehicle_plate', 'driver_name',
         'driver_ic', 'release_order', 'gate_in_time', 'gate_out_time',
         'movement_status', 'remarks', 'created_by',

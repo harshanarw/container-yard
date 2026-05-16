@@ -18,6 +18,7 @@ use App\Http\Controllers\StorageBillingController;
 use App\Http\Controllers\StorageTariffController;
 use App\Http\Controllers\StorageHandlingController;
 use App\Http\Controllers\HandlingTariffController;
+use App\Http\Controllers\StorageZoneController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\YardController;
 
@@ -74,6 +75,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/container/{containerNo}', [YardController::class, 'lookup'])->name('container.lookup');
         Route::get('/tariff/{customerId}', [YardController::class, 'tariffLookup'])->name('tariff.lookup');
         Route::get('/container-lookup',    [YardController::class, 'containerLookup'])->name('container-lookup');
+        Route::get('/zones/{zone}/slots',  [YardController::class, 'slotsByZone'])->name('zones.slots');
         Route::get('/survey/{survey}', [YardController::class, 'surveyLookup'])->name('survey.lookup');
         Route::get('/movements/{movement}/edit',            [YardController::class, 'editMovement'])->name('movements.edit');
         Route::patch('/movements/{movement}',             [YardController::class, 'updateMovement'])->name('movements.update');
@@ -91,6 +93,13 @@ Route::middleware(['auth'])->group(function () {
 
     // Masters
     Route::prefix('masters')->name('masters.')->group(function () {
+        Route::prefix('zones')->name('zones.')->group(function () {
+            Route::get('/',                    [StorageZoneController::class, 'index'])->name('index');
+            Route::post('/',                   [StorageZoneController::class, 'store'])->name('store');
+            Route::patch('{zone}',             [StorageZoneController::class, 'update'])->name('update');
+            Route::patch('{zone}/toggle',      [StorageZoneController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{zone}',            [StorageZoneController::class, 'destroy'])->name('destroy');
+        });
         Route::prefix('checklist')->name('checklist.')->group(function () {
             Route::get('/',                              [ChecklistMasterItemController::class, 'index'])->name('index');
             Route::post('/',                             [ChecklistMasterItemController::class, 'store'])->name('store');

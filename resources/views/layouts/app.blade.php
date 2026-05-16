@@ -380,6 +380,12 @@
         <div class="nav-section-label">Masters</div>
         <ul class="nav flex-column">
             <li class="nav-item">
+                <a href="{{ route('masters.zones.index') }}"
+                   class="nav-link {{ request()->routeIs('masters.zones.*') ? 'active' : '' }}">
+                    <i class="bi bi-diagram-3"></i><span>Storage Zones</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{{ route('masters.equipment-types.index') }}"
                    class="nav-link {{ request()->routeIs('masters.equipment-types.*') ? 'active' : '' }}">
                     <i class="bi bi-box-seam"></i><span>Equipment Types</span>

@@ -10,6 +10,7 @@ use App\Models\GateMovement;
 use App\Models\GateMovementPhoto;
 use App\Models\Inquiry;
 use App\Models\StorageMasterHeader;
+use App\Models\StorageZone;
 use App\Models\YardLocation;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
@@ -36,22 +37,37 @@ class YardController extends Controller
     // -------------------------------------------------------------------------
     public function index()
     {
-        $yardGrid = YardLocation::with('container.customer')
-            ->orderBy('row')
-            ->orderBy('bay')
-            ->orderBy('tier')
+        $zones = StorageZone::active()
+            ->withCount([
+                'yardLocations as total_count',
+                'yardLocations as occupied_count' => fn($q) => $q->where('status', 'occupied'),
+                'yardLocations as empty_count'    => fn($q) => $q->where('status', 'empty'),
+                'yardLocations as reserved_count' => fn($q) => $q->where('status', 'reserved'),
+                'yardLocations as damaged_count'  => fn($q) => $q->whereIn('status', ['damaged', 'in_repair']),
+            ])
+            ->get();
+
+        // All yard locations, grouped by zone then row
+        $allLocations = YardLocation::with('container.customer')
+            ->orderBy('zone')->orderBy('row')->orderBy('bay')->orderBy('tier')
             ->get()
-            ->groupBy('row');
+            ->groupBy('zone');
+
+        // Containers currently in yard
+        $inYardContainers = Container::with(['customer', 'equipmentType'])
+            ->where('status', 'in_yard')
+            ->orderBy('location_zone')->orderBy('location_row')->orderBy('location_bay')
+            ->get();
 
         $summary = [
             'total'     => YardLocation::count(),
             'occupied'  => YardLocation::where('status', 'occupied')->count(),
             'empty'     => YardLocation::where('status', 'empty')->count(),
-            'in_repair' => YardLocation::where('status', 'in_repair')->count(),
+            'in_repair' => YardLocation::whereIn('status', ['damaged', 'in_repair'])->count(),
             'reserved'  => YardLocation::where('status', 'reserved')->count(),
         ];
 
-        return view('yard.index', compact('yardGrid', 'summary'));
+        return view('yard.index', compact('zones', 'allLocations', 'inYardContainers', 'summary'));
     }
 
     // -------------------------------------------------------------------------
@@ -66,11 +82,13 @@ class YardController extends Controller
 
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->get();
-        $emptySlots     = YardLocation::where('status', 'empty')
-            ->orderBy('row')->orderBy('bay')->orderBy('tier')
-            ->get();
+        $zones          = StorageZone::active()->withCount([
+            'yardLocations',
+            'yardLocations as empty_count'    => fn($q) => $q->where('status', 'empty'),
+            'yardLocations as occupied_count' => fn($q) => $q->where('status', 'occupied'),
+        ])->get();
 
-        return view('yard.gate', compact('recentMovements', 'customers', 'emptySlots', 'equipmentTypes'));
+        return view('yard.gate', compact('recentMovements', 'customers', 'equipmentTypes', 'zones'));
     }
 
     public function gateIn(Request $request)
@@ -93,9 +111,10 @@ class YardController extends Controller
             'customer_id'       => ['required', 'exists:customers,id'],
             'condition'         => ['required', 'in:sound,damaged,require_repair'],
             'cargo_status'      => ['required', 'in:empty,full'],
+            'location_zone'     => ['required', 'string', 'max:10', 'exists:storage_zones,code'],
             'location_row'      => ['required', 'string', 'max:5'],
-            'location_bay'      => ['required', 'integer', 'min:1', 'max:8'],
-            'location_tier'     => ['required', 'integer', 'min:1', 'max:5'],
+            'location_bay'      => ['required', 'integer', 'min:1', 'max:99'],
+            'location_tier'     => ['required', 'integer', 'min:1', 'max:10'],
             'seal_no'           => ['nullable', 'string', 'max:20'],
             'vehicle_plate'     => ['nullable', 'string', 'max:20'],
             'remarks'           => ['nullable', 'string'],
@@ -130,6 +149,7 @@ class YardController extends Controller
                 'condition'         => $validated['condition'],
                 'cargo_status'      => $validated['cargo_status'],
                 'status'            => 'in_yard',
+                'location_zone'     => $validated['location_zone'],
                 'location_row'      => $validated['location_row'],
                 'location_bay'      => $validated['location_bay'],
                 'location_tier'     => $validated['location_tier'],
@@ -147,6 +167,7 @@ class YardController extends Controller
             'movement_type'   => 'in',
             'size'            => $eqt->size,
             'container_type'  => $eqt->type_code,
+            'location_zone'   => $validated['location_zone'],
             'location_row'    => $validated['location_row'],
             'location_bay'    => $validated['location_bay'],
             'location_tier'   => $validated['location_tier'],
@@ -172,6 +193,7 @@ class YardController extends Controller
 
         // Update yard slot
         YardLocation::where([
+            'zone' => $validated['location_zone'],
             'row'  => $validated['location_row'],
             'bay'  => $validated['location_bay'],
             'tier' => $validated['location_tier'],
@@ -254,6 +276,7 @@ class YardController extends Controller
             'movement_type'   => 'out',
             'size'            => $container->size,
             'container_type'  => $container->type_code,
+            'location_zone'   => $container->location_zone,
             'location_row'    => $container->location_row,
             'location_bay'    => $container->location_bay,
             'location_tier'   => $container->location_tier,
@@ -310,6 +333,7 @@ class YardController extends Controller
         // Update container status
         $container->update([
             'status'        => 'released',
+            'location_zone' => null,
             'gate_out_date' => $gateOutDate,
             'location_row'  => null,
             'location_bay'  => null,
@@ -334,8 +358,9 @@ class YardController extends Controller
         $movement->load(['container', 'customer', 'photos']);
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->get();
+        $zones          = StorageZone::active()->get();
 
-        return view('yard.movement-edit', compact('movement', 'customers', 'equipmentTypes'));
+        return view('yard.movement-edit', compact('movement', 'customers', 'equipmentTypes', 'zones'));
     }
 
     public function updateMovement(Request $request, GateMovement $movement)
@@ -353,11 +378,12 @@ class YardController extends Controller
         ];
 
         if ($movement->movement_type === 'in') {
-            $rules['equipment_type_id'] = ['nullable', 'exists:equipment_types,id'];
-            $rules['customer_id']       = ['nullable', 'exists:customers,id'];
-            $rules['location_row']      = ['nullable', 'string', 'max:5'];
-            $rules['location_bay']      = ['nullable', 'integer', 'min:1', 'max:8'];
-            $rules['location_tier']     = ['nullable', 'integer', 'min:1', 'max:5'];
+            $rules['equipment_type_id']  = ['nullable', 'exists:equipment_types,id'];
+            $rules['customer_id']        = ['nullable', 'exists:customers,id'];
+            $rules['location_zone']      = ['nullable', 'string', 'max:10', 'exists:storage_zones,code'];
+            $rules['location_row']       = ['nullable', 'string', 'max:5'];
+            $rules['location_bay']       = ['nullable', 'integer', 'min:1', 'max:99'];
+            $rules['location_tier']      = ['nullable', 'integer', 'min:1', 'max:10'];
             if ($isAdmin) {
                 $rules['gate_in_time']  = ['nullable', 'string', 'max:20'];
             }
@@ -386,11 +412,67 @@ class YardController extends Controller
                 $updateData['size']            = $eqt->size;
                 $updateData['container_type']  = $eqt->type_code;
             }
-            foreach (['customer_id', 'location_row', 'location_bay', 'location_tier'] as $field) {
+            foreach (['customer_id'] as $field) {
                 if (!empty($validated[$field])) {
                     $updateData[$field] = $validated[$field];
                 }
             }
+
+            // Handle location change — release old slot, occupy new slot
+            $newZone = $validated['location_zone'] ?? null;
+            $newRow  = $validated['location_row']  ?? null;
+            $newBay  = $validated['location_bay']  ?? null;
+            $newTier = $validated['location_tier'] ?? null;
+
+            if ($newZone && $newRow && $newBay && $newTier) {
+                $oldZone = $movement->location_zone;
+                $oldRow  = $movement->location_row;
+                $oldBay  = $movement->location_bay;
+                $oldTier = $movement->location_tier;
+
+                $locationChanged = ($oldZone !== $newZone || $oldRow !== $newRow
+                    || (int)$oldBay !== (int)$newBay || (int)$oldTier !== (int)$newTier);
+
+                if ($locationChanged) {
+                    // Release the old slot
+                    if ($oldRow) {
+                        YardLocation::where([
+                            'zone' => $oldZone,
+                            'row'  => $oldRow,
+                            'bay'  => $oldBay,
+                            'tier' => $oldTier,
+                        ])->update([
+                            'container_id'    => null,
+                            'status'          => 'empty',
+                            'last_updated_at' => now(),
+                        ]);
+                    }
+                    // Occupy the new slot
+                    YardLocation::where([
+                        'zone' => $newZone,
+                        'row'  => $newRow,
+                        'bay'  => $newBay,
+                        'tier' => $newTier,
+                    ])->update([
+                        'container_id'    => $movement->container_id,
+                        'status'          => 'occupied',
+                        'last_updated_at' => now(),
+                    ]);
+                    // Sync Container location
+                    Container::where('id', $movement->container_id)->update([
+                        'location_zone' => $newZone,
+                        'location_row'  => $newRow,
+                        'location_bay'  => $newBay,
+                        'location_tier' => $newTier,
+                    ]);
+                }
+
+                $updateData['location_zone'] = $newZone;
+                $updateData['location_row']  = $newRow;
+                $updateData['location_bay']  = $newBay;
+                $updateData['location_tier'] = $newTier;
+            }
+
             if ($isAdmin && !empty($validated['gate_in_time'])) {
                 $newGateInTime = \Carbon\Carbon::parse($validated['gate_in_time']);
                 $updateData['gate_in_time'] = $newGateInTime;
@@ -470,6 +552,34 @@ class YardController extends Controller
     }
 
     // -------------------------------------------------------------------------
+    // Slot Grid for Zone (AJAX) — returns all slots in a zone for the picker
+    // -------------------------------------------------------------------------
+    public function slotsByZone(string $zoneCode)
+    {
+        $zone  = StorageZone::where('code', $zoneCode)->firstOrFail();
+        $slots = YardLocation::where('zone', $zoneCode)
+            ->with('container:id,container_no')
+            ->orderBy('row')->orderBy('bay')->orderBy('tier')
+            ->get()
+            ->map(fn($s) => [
+                'id'           => $s->id,
+                'zone'         => $s->zone,
+                'row'          => $s->row,
+                'bay'          => $s->bay,
+                'tier'         => $s->tier,
+                'status'       => $s->status,
+                'slot_code'    => "{$s->row}{$s->bay}-T{$s->tier}",
+                'full_code'    => "{$zoneCode}-{$s->row}{$s->bay}-T{$s->tier}",
+                'container_no' => $s->container?->container_no,
+            ]);
+
+        return response()->json([
+            'zone'  => ['code' => $zone->code, 'name' => $zone->name, 'color' => $zone->color],
+            'slots' => $slots,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
     // Container Lookup for Gate Out (AJAX)
     // Returns in-yard container details including Gate In info and days in yard
     // -------------------------------------------------------------------------
@@ -523,10 +633,11 @@ class YardController extends Controller
             'customer'         => $container->customer?->name ?? '—',
             'condition'        => $container->condition,
             'cargo_status'     => $container->cargo_status,
-            'location'         => implode('-', array_filter([
+            'location'         => implode(' ', array_filter([
+                $container->location_zone ? 'Zone ' . $container->location_zone : null,
                 $container->location_row,
-                $container->location_bay ? 'Bay ' . $container->location_bay : null,
-                $container->location_tier ? 'Tier ' . $container->location_tier : null,
+                $container->location_bay  ? 'Bay ' . $container->location_bay  : null,
+                $container->location_tier ? 'T'    . $container->location_tier : null,
             ])),
             'gate_in_date'     => $container->gate_in_date?->format('d M Y'),
             'gate_in_time'     => $gateInMovement?->gate_in_time?->format('d M Y, H:i'),
@@ -657,7 +768,7 @@ class YardController extends Controller
             'status'             => $container->status,
             'customer_id'        => $container->customer_id,
             'customer_name'      => $container->customer->name,
-            'location'           => "{$container->location_row}{$container->location_bay}-T{$container->location_tier}",
+            'location'           => "{$container->location_zone}-{$container->location_row}{$container->location_bay}-T{$container->location_tier}",
             'gate_in_date'       => $container->gate_in_date?->toDateString(),
         ]);
     }

@@ -10,7 +10,7 @@ class YardLocation extends Model
     use HasFactory;
 
     protected $fillable = [
-        'container_id', 'row', 'bay', 'tier', 'status', 'last_updated_at',
+        'zone', 'container_id', 'row', 'bay', 'tier', 'status', 'last_updated_at',
     ];
 
     protected $casts = [
@@ -23,10 +23,15 @@ class YardLocation extends Model
         return $this->belongsTo(Container::class);
     }
 
+    public function storageZone()
+    {
+        return $this->belongsTo(StorageZone::class, 'zone', 'code');
+    }
+
     // Helpers
     public function getSlotCodeAttribute(): string
     {
-        return "{$this->row}{$this->bay}-T{$this->tier}";
+        return "{$this->zone}-{$this->row}{$this->bay}-T{$this->tier}";
     }
 
     public function isOccupied(): bool
