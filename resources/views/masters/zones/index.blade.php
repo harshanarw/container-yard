@@ -107,6 +107,11 @@
                     {{-- Actions --}}
                     <td class="text-end pe-3">
                         <div class="btn-group btn-group-sm">
+                            {{-- Configure Slots --}}
+                            <a href="{{ route('masters.zones.slots', $zone) }}"
+                               class="btn btn-outline-info" title="Configure Slots">
+                                <i class="bi bi-grid-3x3-gap"></i>
+                            </a>
                             {{-- Edit --}}
                             <button type="button" class="btn btn-outline-primary btn-edit"
                                     data-id="{{ $zone->id }}"
@@ -130,7 +135,7 @@
                             @if(($zone->yard_locations_count ?? 0) > 0)
                                 <button type="button" class="btn btn-outline-danger"
                                         disabled
-                                        title="Cannot delete — zone has {{ $zone->yard_locations_count }} slot(s). Remove all slots first."
+                                        title="Cannot delete — zone has {{ $zone->yard_locations_count }} slot(s). Use Configure Slots to remove them first."
                                         data-bs-toggle="tooltip" data-bs-placement="left">
                                     <i class="bi bi-trash"></i>
                                 </button>

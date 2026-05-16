@@ -96,9 +96,14 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('zones')->name('zones.')->group(function () {
             Route::get('/',                    [StorageZoneController::class, 'index'])->name('index');
             Route::post('/',                   [StorageZoneController::class, 'store'])->name('store');
-            Route::patch('{zone}',             [StorageZoneController::class, 'update'])->name('update');
             Route::patch('{zone}/toggle',      [StorageZoneController::class, 'toggleActive'])->name('toggle');
+            Route::patch('{zone}',             [StorageZoneController::class, 'update'])->name('update');
             Route::delete('{zone}',            [StorageZoneController::class, 'destroy'])->name('destroy');
+            // Slot configuration — sub-resource under each zone
+            Route::get('{zone}/slots',             [StorageZoneController::class, 'slots'])->name('slots');
+            Route::post('{zone}/slots/generate',   [StorageZoneController::class, 'generateSlots'])->name('slots.generate');
+            Route::delete('{zone}/slots/clear',    [StorageZoneController::class, 'clearSlots'])->name('slots.clear');
+            Route::delete('{zone}/slots/{slot}',   [StorageZoneController::class, 'destroySlot'])->name('slots.destroy');
         });
         Route::prefix('checklist')->name('checklist.')->group(function () {
             Route::get('/',                              [ChecklistMasterItemController::class, 'index'])->name('index');
