@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Estimate;
 use App\Models\GateMovement;
 use App\Models\Inquiry;
+use App\Models\StorageZone;
 use App\Models\YardLocation;
 
 class DashboardController extends Controller
@@ -21,34 +22,45 @@ class DashboardController extends Controller
             'open_inquiries'    => Inquiry::whereIn('status', ['open', 'in_progress'])->count(),
             'customers'         => Customer::where('status', 'active')->count(),
             'gate_in_today'     => GateMovement::where('movement_type', 'in')
-                                        ->whereDate('created_at', today())
-                                        ->count(),
+                                        ->whereDate('created_at', today())->count(),
             'gate_out_today'    => GateMovement::where('movement_type', 'out')
-                                        ->whereDate('created_at', today())
-                                        ->count(),
+                                        ->whereDate('created_at', today())->count(),
+            'gate_in_week'      => GateMovement::where('movement_type', 'in')
+                                        ->whereBetween('created_at', [now()->startOfWeek(), now()])->count(),
             'pending_estimates' => Estimate::where('status', 'draft')->count(),
+            'unallocated'       => Container::where('status', 'in_yard')->whereNull('location_row')->count(),
         ];
 
-        $recentGateMovements = GateMovement::with(['container', 'customer'])
+        $recentGateMovements = GateMovement::with(['customer'])
             ->latest()
-            ->take(10)
+            ->take(8)
             ->get();
 
-        $recentInquiries = Inquiry::with(['container', 'customer'])
+        $recentInquiries = Inquiry::with(['customer'])
+            ->whereIn('status', ['open', 'in_progress'])
             ->latest()
             ->take(5)
             ->get();
 
-        $yardOccupancyByRow = YardLocation::selectRaw('row, status, count(*) as total')
-            ->groupBy('row', 'status')
-            ->get()
-            ->groupBy('row');
+        $pendingEstimates = Estimate::with(['customer'])
+            ->where('status', 'draft')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $zones = StorageZone::withCount([
+            'yardLocations',
+            'yardLocations as empty_count'    => fn($q) => $q->where('status', 'empty'),
+            'yardLocations as occupied_count' => fn($q) => $q->where('status', 'occupied'),
+            'yardLocations as reserved_count' => fn($q) => $q->where('status', 'reserved'),
+        ])->orderBy('sort_order')->get();
 
         return view('dashboard.index', compact(
             'stats',
             'recentGateMovements',
             'recentInquiries',
-            'yardOccupancyByRow'
+            'pendingEstimates',
+            'zones'
         ));
     }
 }
