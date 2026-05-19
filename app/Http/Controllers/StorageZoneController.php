@@ -151,15 +151,47 @@ class StorageZoneController extends Controller
         if ($slot->status !== 'empty') {
             return back()->with('error', "Slot {$slot->slot_code} cannot be deleted — it is currently {$slot->status}.");
         }
+
+        $aboveTiers = YardLocation::where('zone', $zone->code)
+            ->where('row',  $slot->row)
+            ->where('bay',  $slot->bay)
+            ->where('tier', '>', $slot->tier)
+            ->orderBy('tier')
+            ->pluck('tier')
+            ->map(fn($t) => "T{$t}")
+            ->implode(', ');
+
+        if ($aboveTiers) {
+            return back()->with('error',
+                "Cannot delete {$slot->slot_code} — slot(s) {$aboveTiers} exist above it in the same stack. Remove top tiers first.");
+        }
+
         $slot->delete();
         return back()->with('success', "Slot {$slot->slot_code} deleted.");
     }
 
     public function clearSlots(Request $request, StorageZone $zone)
     {
-        $deleted = YardLocation::where('zone', $zone->code)
+        // Only delete empty slots that have no other empty slots above them in the same stack.
+        // We iterate from the highest tier downward so stacks are unwound top-first.
+        $deleted = 0;
+        $emptySlots = YardLocation::where('zone', $zone->code)
             ->where('status', 'empty')
-            ->delete();
+            ->orderByDesc('tier')
+            ->get();
+
+        foreach ($emptySlots as $slot) {
+            $blockedByAbove = YardLocation::where('zone', $zone->code)
+                ->where('row',  $slot->row)
+                ->where('bay',  $slot->bay)
+                ->where('tier', '>', $slot->tier)
+                ->exists();
+
+            if (!$blockedByAbove) {
+                $slot->delete();
+                $deleted++;
+            }
+        }
 
         return back()->with('success', "{$deleted} empty slot(s) removed from Zone {$zone->code}.");
     }

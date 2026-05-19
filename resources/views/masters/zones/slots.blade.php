@@ -29,7 +29,12 @@
                         width:14px; height:14px; border-radius:50%; background:#ef4444;
                         color:#fff; font-size:.55rem; line-height:14px; text-align:center;
                         cursor:pointer; border:none; padding:0; }
-.tier-block.empty:hover .del-slot { display:block; }
+.tier-block .del-slot-blocked { display:none; position:absolute; top:-4px; right:-4px;
+                        width:14px; height:14px; border-radius:50%; background:#9ca3af;
+                        color:#fff; font-size:.55rem; line-height:14px; text-align:center;
+                        cursor:not-allowed; border:none; padding:0; }
+.tier-block.empty:hover .del-slot,
+.tier-block.empty:hover .del-slot-blocked { display:block; }
 .legend-dot { display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:middle; }
 </style>
 @endpush
@@ -258,7 +263,9 @@
                     {{-- Small note --}}
                     <p class="text-muted small mb-3">
                         <i class="bi bi-info-circle me-1"></i>
-                        Hover over an <span style="color:#15803d;">empty</span> slot to reveal the delete button (&times;).
+                        Hover over an <span style="color:#15803d;">empty</span> slot to reveal the delete button.
+                        <span class="text-danger fw-semibold">&times;</span> = deletable (topmost empty slot).
+                        <span class="text-secondary fw-semibold">&times;</span> = blocked — a higher tier exists above; remove top tiers first.
                         Occupied/reserved slots cannot be deleted.
                     </p>
 
@@ -279,20 +286,31 @@
                                 @php $cell = $byKey->get($row . '|' . $bay, collect()); @endphp
                                 <div class="slot-cell">
                                     @forelse($cell->sortBy('tier') as $slot)
+                                        @php
+                                            $hasAbove = $cell->contains(fn($s) => $s->tier > $slot->tier);
+                                        @endphp
                                         <div class="tier-block {{ $slot->status }}"
-                                             title="{{ $slot->slot_code }}: {{ $slot->status }}{{ $slot->container ? ' — ' . $slot->container->container_no : '' }}">
+                                             title="{{ $slot->slot_code }}: {{ $slot->status }}{{ $slot->container ? ' — ' . $slot->container->container_no : '' }}{{ ($slot->status === 'empty' && $hasAbove) ? ' (cannot delete — tiers above exist)' : '' }}">
                                             T{{ $slot->tier }}
                                             @if($slot->status === 'empty')
-                                                <form method="POST"
-                                                      action="{{ route('masters.zones.slots.destroy', [$zone, $slot]) }}"
-                                                      class="d-inline del-slot-form">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" class="del-slot"
-                                                            title="Delete slot {{ $slot->slot_code }}"
-                                                            onclick="event.stopPropagation(); return confirm('Delete slot {{ $slot->slot_code }}?');">
+                                                @if($hasAbove)
+                                                    {{-- Blocked: higher tiers exist in this stack --}}
+                                                    <span class="del-slot del-slot-blocked"
+                                                          title="Remove T{{ $slot->tier + 1 }} and above first">
                                                         &times;
-                                                    </button>
-                                                </form>
+                                                    </span>
+                                                @else
+                                                    <form method="POST"
+                                                          action="{{ route('masters.zones.slots.destroy', [$zone, $slot]) }}"
+                                                          class="d-inline del-slot-form">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="del-slot"
+                                                                title="Delete slot {{ $slot->slot_code }}"
+                                                                onclick="event.stopPropagation(); return confirm('Delete slot {{ $slot->slot_code }}?');">
+                                                            &times;
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             @elseif($slot->status === 'occupied' && $slot->container)
                                                 <span style="font-size:.55rem;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                                                     {{ substr($slot->container->container_no, 0, 6) }}
