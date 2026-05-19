@@ -599,19 +599,24 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
             moveFromCode.textContent = fromCode;
             moveToCode.textContent   = toCode;
             moveNotes.value          = '';
-            moveConfirmBtn.dataset.toRow  = this.dataset.dropRow;
-            moveConfirmBtn.dataset.toBay  = this.dataset.dropBay;
-            moveConfirmBtn.dataset.toTier = this.dataset.dropTier;
+            // Store ALL move data on the confirm button so dragData isn't needed after dragend fires
+            moveConfirmBtn.dataset.fromRow      = dragData.row;
+            moveConfirmBtn.dataset.fromBay      = dragData.bay;
+            moveConfirmBtn.dataset.fromTier     = dragData.tier;
+            moveConfirmBtn.dataset.containerNo  = dragData.containerNo;
+            moveConfirmBtn.dataset.toRow        = this.dataset.dropRow;
+            moveConfirmBtn.dataset.toBay        = this.dataset.dropBay;
+            moveConfirmBtn.dataset.toTier       = this.dataset.dropTier;
             modal.show();
         });
     });
 
     // ── Confirm ──
     moveConfirmBtn.addEventListener('click', async function () {
-        if (!dragData) return;
+        // Read all data from dataset (dragData may already be null after dragend fired)
         const payload = {
-            from_row:  dragData.row,  from_bay:  parseInt(dragData.bay),  from_tier: parseInt(dragData.tier),
-            to_row:    this.dataset.toRow, to_bay: parseInt(this.dataset.toBay), to_tier: parseInt(this.dataset.toTier),
+            from_row:  this.dataset.fromRow,  from_bay:  parseInt(this.dataset.fromBay),  from_tier: parseInt(this.dataset.fromTier),
+            to_row:    this.dataset.toRow,     to_bay:    parseInt(this.dataset.toBay),     to_tier:   parseInt(this.dataset.toTier),
             notes: moveNotes.value.trim() || null,
         };
         this.disabled = true;
