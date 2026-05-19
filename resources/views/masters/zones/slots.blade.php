@@ -278,7 +278,7 @@
                             @foreach($bays as $bay)
                                 @php $cell = $byKey->get($row . '|' . $bay, collect()); @endphp
                                 <div class="slot-cell">
-                                    @forelse($cell->sortByDesc('tier') as $slot)
+                                    @forelse($cell->sortBy('tier') as $slot)
                                         <div class="tier-block {{ $slot->status }}"
                                              title="{{ $slot->slot_code }}: {{ $slot->status }}{{ $slot->container ? ' — ' . $slot->container->container_no : '' }}">
                                             T{{ $slot->tier }}

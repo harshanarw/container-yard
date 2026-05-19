@@ -554,8 +554,8 @@
             bays.forEach(bay => {
                 const cell = byKey[row + '|' + bay] || [];
                 html += '<div class="slot-cell">';
-                const tiersDesc = [...cell].sort((a,b) => b.tier - a.tier);
-                tiersDesc.forEach(s => {
+                const tiersAsc = [...cell].sort((a,b) => a.tier - b.tier);
+                tiersAsc.forEach(s => {
                     const cls = s.status === 'empty' ? 'available'
                               : s.status === 'occupied' ? 'occupied'
                               : s.status === 'reserved' ? 'reserved' : 'damaged';

@@ -416,8 +416,8 @@
 .zone-pick-btn.active { box-shadow: 0 0 0 3px rgba(59,130,246,.2); }
 .legend-dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:3px; }
 .slot-cell {
-    display:inline-flex; flex-direction:column; align-items:center; gap:2px;
-    vertical-align: top;
+    display:inline-flex; flex-direction:column-reverse; align-items:center; gap:2px;
+    vertical-align: bottom;
 }
 .tier-block {
     width:58px; height:22px; border-radius:4px; border:1.5px solid transparent;
