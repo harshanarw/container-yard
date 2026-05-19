@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Container;
+use App\Models\LocationAdjustment;
 use App\Models\StorageZone;
 use App\Models\YardLocation;
 use Illuminate\Http\Request;
@@ -81,7 +83,13 @@ class StorageZoneController extends Controller
             'other'    => $slots->whereNotIn('status', ['empty','occupied','reserved'])->count(),
         ];
 
-        return view('masters.zones.slots', compact('zone', 'slots', 'stats'));
+        $recentAdjustments = LocationAdjustment::where('zone', $zone->code)
+            ->with('adjustedBy:id,name')
+            ->latest()
+            ->take(30)
+            ->get();
+
+        return view('masters.zones.slots', compact('zone', 'slots', 'stats', 'recentAdjustments'));
     }
 
     public function generateSlots(Request $request, StorageZone $zone)
@@ -141,6 +149,91 @@ class StorageZoneController extends Controller
         }
 
         return back()->with('success', $msg);
+    }
+
+    public function moveSlot(Request $request, StorageZone $zone)
+    {
+        $validated = $request->validate([
+            'from_row'  => ['required', 'string', 'max:5'],
+            'from_bay'  => ['required', 'integer', 'min:1'],
+            'from_tier' => ['required', 'integer', 'min:1'],
+            'to_row'    => ['required', 'string', 'max:5'],
+            'to_bay'    => ['required', 'integer', 'min:1'],
+            'to_tier'   => ['required', 'integer', 'min:1'],
+            'notes'     => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $fromSlot = YardLocation::where([
+            'zone' => $zone->code,
+            'row'  => $validated['from_row'],
+            'bay'  => $validated['from_bay'],
+            'tier' => $validated['from_tier'],
+        ])->first();
+
+        if (!$fromSlot || $fromSlot->status !== 'occupied' || !$fromSlot->container_id) {
+            return response()->json(['error' => 'Source slot is not occupied or does not exist.'], 422);
+        }
+
+        $toSlot = YardLocation::where([
+            'zone' => $zone->code,
+            'row'  => $validated['to_row'],
+            'bay'  => $validated['to_bay'],
+            'tier' => $validated['to_tier'],
+        ])->first();
+
+        if (!$toSlot) {
+            return response()->json(['error' => 'Target slot does not exist.'], 422);
+        }
+        if ($toSlot->status !== 'empty') {
+            return response()->json(['error' => 'Target slot is not empty.'], 422);
+        }
+
+        $containerId = $fromSlot->container_id;
+        $containerNo = $fromSlot->container?->container_no ?? '';
+
+        // Release old slot
+        $fromSlot->update([
+            'container_id'    => null,
+            'status'          => 'empty',
+            'last_updated_at' => now(),
+        ]);
+
+        // Occupy new slot
+        $toSlot->update([
+            'container_id'    => $containerId,
+            'status'          => 'occupied',
+            'last_updated_at' => now(),
+        ]);
+
+        // Sync Container record
+        Container::where('id', $containerId)->update([
+            'location_zone' => $zone->code,
+            'location_row'  => $validated['to_row'],
+            'location_bay'  => $validated['to_bay'],
+            'location_tier' => $validated['to_tier'],
+        ]);
+
+        // Write audit record
+        LocationAdjustment::create([
+            'container_id' => $containerId,
+            'container_no' => $containerNo,
+            'zone'         => $zone->code,
+            'from_row'     => $validated['from_row'],
+            'from_bay'     => $validated['from_bay'],
+            'from_tier'    => $validated['from_tier'],
+            'to_row'       => $validated['to_row'],
+            'to_bay'       => $validated['to_bay'],
+            'to_tier'      => $validated['to_tier'],
+            'notes'        => $validated['notes'] ?? null,
+            'adjusted_by'  => auth()->id(),
+        ]);
+
+        $toCode = "{$zone->code}-{$validated['to_row']}{$validated['to_bay']}-T{$validated['to_tier']}";
+
+        return response()->json([
+            'success' => true,
+            'message' => "Container {$containerNo} moved to {$toCode}.",
+        ]);
     }
 
     public function destroySlot(StorageZone $zone, YardLocation $slot)

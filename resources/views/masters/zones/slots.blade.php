@@ -19,22 +19,36 @@
 .slot-cell       { display:flex; flex-direction:column-reverse; gap:3px; min-width:64px; }
 .tier-block      { width:60px; height:28px; border-radius:5px; font-size:.65rem; font-weight:600;
                    display:flex; align-items:center; justify-content:center; gap:3px;
-                   position:relative; transition:all .12s; }
+                   position:relative; transition:all .12s; user-select:none; }
 .tier-block.empty    { background:#dcfce7; color:#15803d; border:1px solid #86efac; }
-.tier-block.occupied { background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; cursor:default; }
+.tier-block.occupied { background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; }
 .tier-block.reserved { background:#fef9c3; color:#a16207; border:1px solid #fde047; }
 .tier-block.damaged,
 .tier-block.in_repair{ background:#fce7f3; color:#9d174d; border:1px solid #f9a8d4; }
+
+/* Delete buttons */
 .tier-block .del-slot { display:none; position:absolute; top:-4px; right:-4px;
                         width:14px; height:14px; border-radius:50%; background:#ef4444;
                         color:#fff; font-size:.55rem; line-height:14px; text-align:center;
-                        cursor:pointer; border:none; padding:0; }
+                        cursor:pointer; border:none; padding:0; z-index:2; }
 .tier-block .del-slot-blocked { display:none; position:absolute; top:-4px; right:-4px;
                         width:14px; height:14px; border-radius:50%; background:#9ca3af;
                         color:#fff; font-size:.55rem; line-height:14px; text-align:center;
-                        cursor:not-allowed; border:none; padding:0; }
+                        cursor:not-allowed; border:none; padding:0; z-index:2; }
 .tier-block.empty:hover .del-slot,
 .tier-block.empty:hover .del-slot-blocked { display:block; }
+
+/* Drag & drop */
+.tier-block.occupied[draggable="true"] { cursor: grab; }
+.tier-block.occupied[draggable="true"]:active { cursor: grabbing; }
+.tier-block.dragging  { opacity:.35; border-style:dashed !important; }
+.tier-block.drag-over { background:#dbeafe !important; border:2px dashed #3b82f6 !important;
+                        color:#1d4ed8 !important; transform:scale(1.08); }
+/* Drag mode: highlight all empty slots as potential targets */
+body.dragging-active .tier-block.empty:not(.drag-over) {
+    border-color:#93c5fd !important; background:#eff6ff !important;
+}
+
 .legend-dot { display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:middle; }
 </style>
 @endpush
@@ -290,7 +304,20 @@
                                             $hasAbove = $cell->contains(fn($s) => $s->tier > $slot->tier);
                                         @endphp
                                         <div class="tier-block {{ $slot->status }}"
-                                             title="{{ $slot->slot_code }}: {{ $slot->status }}{{ $slot->container ? ' — ' . $slot->container->container_no : '' }}{{ ($slot->status === 'empty' && $hasAbove) ? ' (cannot delete — tiers above exist)' : '' }}">
+                                             title="{{ $slot->slot_code }}: {{ $slot->status }}{{ $slot->container ? ' — ' . $slot->container->container_no : '' }}{{ ($slot->status === 'empty' && $hasAbove) ? ' (cannot delete — tiers above exist)' : '' }}{{ $slot->status === 'occupied' ? ' — drag to move' : '' }}"
+                                             @if($slot->status === 'occupied')
+                                                 draggable="true"
+                                                 data-drag-zone="{{ $zone->code }}"
+                                                 data-drag-row="{{ $slot->row }}"
+                                                 data-drag-bay="{{ $slot->bay }}"
+                                                 data-drag-tier="{{ $slot->tier }}"
+                                                 data-drag-container="{{ $slot->container?->container_no }}"
+                                             @elseif($slot->status === 'empty')
+                                                 data-drop-zone="{{ $zone->code }}"
+                                                 data-drop-row="{{ $slot->row }}"
+                                                 data-drop-bay="{{ $slot->bay }}"
+                                                 data-drop-tier="{{ $slot->tier }}"
+                                             @endif>
                                             T{{ $slot->tier }}
                                             @if($slot->status === 'empty')
                                                 @if($hasAbove)
@@ -326,12 +353,19 @@
                         @endforeach
                     </div>
 
-                    <div class="mt-3 pt-2 border-top small text-muted">
-                        {{ $stats['total'] }} slots &nbsp;·&nbsp;
-                        {{ $rows->count() }} row(s): {{ $rows->implode(', ') }} &nbsp;·&nbsp;
-                        {{ $bays->count() }} bay(s): {{ $bays->first() }}–{{ $bays->last() }} &nbsp;·&nbsp;
-                        @php $maxTier = $slots->max('tier'); @endphp
-                        Tiers up to {{ $maxTier }}
+                    <div class="mt-3 pt-2 border-top small text-muted d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span>
+                            {{ $stats['total'] }} slots &nbsp;·&nbsp;
+                            {{ $rows->count() }} row(s): {{ $rows->implode(', ') }} &nbsp;·&nbsp;
+                            {{ $bays->count() }} bay(s): {{ $bays->first() }}–{{ $bays->last() }} &nbsp;·&nbsp;
+                            @php $maxTier = $slots->max('tier'); @endphp
+                            Tiers up to {{ $maxTier }}
+                        </span>
+                        @if($stats['occupied'] > 0)
+                        <span class="badge bg-info-subtle text-info">
+                            <i class="bi bi-arrows-move me-1"></i>Drag occupied slots to move containers
+                        </span>
+                        @endif
                     </div>
                 @endif
 
@@ -339,6 +373,102 @@
         </div>
     </div>
 
+</div>
+
+{{-- ── Location Adjustment Activity Log ── --}}
+<div class="card content-card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>
+            <i class="bi bi-clock-history me-2 text-primary"></i>Location Adjustment Log
+            <span class="badge bg-secondary-subtle text-secondary ms-1">Zone {{ $zone->code }}</span>
+        </span>
+        <span class="small text-muted">Last {{ $recentAdjustments->count() }} adjustments</span>
+    </div>
+    <div class="card-body p-0">
+        @if($recentAdjustments->isEmpty())
+            <div class="text-center text-muted py-4 small">
+                <i class="bi bi-check-circle fs-2 d-block mb-2 opacity-25"></i>
+                No location adjustments recorded yet for Zone {{ $zone->code }}.
+            </div>
+        @else
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Container</th>
+                        <th>From</th>
+                        <th></th>
+                        <th>To</th>
+                        <th>Adjusted By</th>
+                        <th>Notes</th>
+                        <th class="pe-3">When</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($recentAdjustments as $adj)
+                    <tr>
+                        <td class="ps-3 font-monospace fw-semibold small">{{ $adj->container_no }}</td>
+                        <td>
+                            <span class="badge bg-danger-subtle text-danger font-monospace" style="font-size:.72rem;">
+                                {{ $adj->from_code }}
+                            </span>
+                        </td>
+                        <td class="text-muted px-0"><i class="bi bi-arrow-right"></i></td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success font-monospace" style="font-size:.72rem;">
+                                {{ $adj->to_code }}
+                            </span>
+                        </td>
+                        <td class="small">
+                            <i class="bi bi-person me-1 text-muted"></i>{{ $adj->adjustedBy?->name ?? '—' }}
+                        </td>
+                        <td class="small text-muted">{{ $adj->notes ?? '—' }}</td>
+                        <td class="pe-3 small text-muted text-nowrap">{{ $adj->created_at->diffForHumans() }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @endif
+    </div>
+</div>
+
+{{-- ── Move confirmation modal ── --}}
+<div class="modal fade" id="moveModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title"><i class="bi bi-arrows-move me-1 text-primary"></i>Move Container</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <div class="bg-light rounded-3 p-2 mb-3 small">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="text-muted">Container:</span>
+                        <strong id="moveContainerNo" class="font-monospace"></strong>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-danger-subtle text-danger font-monospace" id="moveFromCode"></span>
+                        <i class="bi bi-arrow-right text-muted"></i>
+                        <span class="badge bg-success-subtle text-success font-monospace" id="moveToCode"></span>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">
+                        Reason / Notes <span class="text-muted fw-normal">(optional)</span>
+                    </label>
+                    <textarea id="moveNotes" class="form-control form-control-sm" rows="2"
+                              placeholder="e.g. Crane access issue, re-stacking required…"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal" id="moveCancelBtn">Cancel</button>
+                <button type="button" class="btn btn-sm btn-primary" id="moveConfirmBtn">
+                    <i class="bi bi-check-lg me-1"></i>Confirm Move
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 @endsection
@@ -413,6 +543,126 @@
     [rowsInput, baysInput, tiersInput].forEach(function (el) {
         el && el.addEventListener('input', updatePreview);
     });
+})();
+
+// ── Drag-and-drop slot move ──────────────────────────────────────────────────
+(function () {
+    const MOVE_URL = '{{ route('masters.zones.slots.move', $zone) }}';
+    const CSRF     = '{{ csrf_token() }}';
+
+    let dragData = null;
+
+    const modal          = new bootstrap.Modal(document.getElementById('moveModal'));
+    const moveFromCode   = document.getElementById('moveFromCode');
+    const moveToCode     = document.getElementById('moveToCode');
+    const moveContNo     = document.getElementById('moveContainerNo');
+    const moveNotes      = document.getElementById('moveNotes');
+    const moveConfirmBtn = document.getElementById('moveConfirmBtn');
+    const moveCancelBtn  = document.getElementById('moveCancelBtn');
+
+    // ── Drag source (occupied blocks) ──
+    document.querySelectorAll('.tier-block[draggable="true"]').forEach(function (el) {
+        el.addEventListener('dragstart', function (e) {
+            dragData = {
+                zone: this.dataset.dragZone, row: this.dataset.dragRow,
+                bay:  this.dataset.dragBay,  tier: this.dataset.dragTier,
+                containerNo: this.dataset.dragContainer,
+            };
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', dragData.containerNo);
+            setTimeout(() => this.classList.add('dragging'), 0);
+            document.body.classList.add('dragging-active');
+        });
+        el.addEventListener('dragend', function () {
+            this.classList.remove('dragging');
+            document.body.classList.remove('dragging-active');
+            document.querySelectorAll('.drag-over').forEach(e => e.classList.remove('drag-over'));
+            dragData = null;
+        });
+    });
+
+    // ── Drop targets (empty blocks) ──
+    document.querySelectorAll('.tier-block[data-drop-zone]').forEach(function (el) {
+        el.addEventListener('dragover',  function (e) { if (dragData) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } });
+        el.addEventListener('dragenter', function (e) { if (dragData) { e.preventDefault(); document.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over')); this.classList.add('drag-over'); } });
+        el.addEventListener('dragleave', function ()  { this.classList.remove('drag-over'); });
+        el.addEventListener('drop', function (e) {
+            e.preventDefault();
+            if (!dragData) return;
+            this.classList.remove('drag-over');
+
+            const fromCode = dragData.zone + '-' + dragData.row + dragData.bay + '-T' + dragData.tier;
+            const toCode   = this.dataset.dropZone + '-' + this.dataset.dropRow + this.dataset.dropBay + '-T' + this.dataset.dropTier;
+            if (fromCode === toCode) return;
+
+            moveContNo.textContent   = dragData.containerNo || '—';
+            moveFromCode.textContent = fromCode;
+            moveToCode.textContent   = toCode;
+            moveNotes.value          = '';
+            moveConfirmBtn.dataset.toRow  = this.dataset.dropRow;
+            moveConfirmBtn.dataset.toBay  = this.dataset.dropBay;
+            moveConfirmBtn.dataset.toTier = this.dataset.dropTier;
+            modal.show();
+        });
+    });
+
+    // ── Confirm ──
+    moveConfirmBtn.addEventListener('click', async function () {
+        if (!dragData) return;
+        const payload = {
+            from_row:  dragData.row,  from_bay:  parseInt(dragData.bay),  from_tier: parseInt(dragData.tier),
+            to_row:    this.dataset.toRow, to_bay: parseInt(this.dataset.toBay), to_tier: parseInt(this.dataset.toTier),
+            notes: moveNotes.value.trim() || null,
+        };
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Moving…';
+        try {
+            const res  = await fetch(MOVE_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            modal.hide();
+            if (res.ok && data.success) {
+                sessionStorage.setItem('slot_move_success', data.message);
+                window.location.reload();
+            } else {
+                showToast(data.error || 'Move failed.', 'danger');
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-check-lg me-1"></i>Confirm Move';
+            }
+        } catch (err) {
+            modal.hide();
+            showToast('Network error. Please try again.', 'danger');
+            this.disabled = false;
+            this.innerHTML = '<i class="bi bi-check-lg me-1"></i>Confirm Move';
+        }
+    });
+
+    moveCancelBtn.addEventListener('click', function () { dragData = null; });
+
+    // Show success toast after reload
+    const msg = sessionStorage.getItem('slot_move_success');
+    if (msg) { sessionStorage.removeItem('slot_move_success'); showToast(msg, 'success'); }
+
+    function showToast(msg, type) {
+        let c = document.getElementById('toastContainer');
+        if (!c) {
+            c = document.createElement('div');
+            c.id = 'toastContainer';
+            c.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            c.style.zIndex = '1100';
+            document.body.appendChild(c);
+        }
+        const id = 'toast-' + Date.now();
+        c.insertAdjacentHTML('beforeend',
+            `<div id="${id}" class="toast align-items-center text-bg-${type} border-0 show" role="alert" style="min-width:260px;">
+               <div class="d-flex"><div class="toast-body small">${msg}</div>
+               <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>
+             </div>`);
+        setTimeout(() => document.getElementById(id)?.remove(), 4000);
+    }
 })();
 </script>
 @endpush

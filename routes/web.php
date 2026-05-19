@@ -102,6 +102,7 @@ Route::middleware(['auth'])->group(function () {
             // Slot configuration — sub-resource under each zone
             Route::get('{zone}/slots',             [StorageZoneController::class, 'slots'])->name('slots');
             Route::post('{zone}/slots/generate',   [StorageZoneController::class, 'generateSlots'])->name('slots.generate');
+            Route::post('{zone}/slots/move',       [StorageZoneController::class, 'moveSlot'])->name('slots.move');
             Route::delete('{zone}/slots/clear',    [StorageZoneController::class, 'clearSlots'])->name('slots.clear');
             Route::delete('{zone}/slots/{slot}',   [StorageZoneController::class, 'destroySlot'])->name('slots.destroy');
         });
