@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') — {{ $companySetting?->company_name ?? 'CYM' }}</title>
+    @if($companySetting?->icon_url)
+    <link rel="icon" type="image/png" href="{{ $companySetting->icon_url }}">
+    @endif
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -270,12 +273,13 @@
 <nav id="sidebar">
 
     <a href="{{ route('dashboard') }}" class="sidebar-brand">
-        @if($companySetting?->logo_url)
-            <img src="{{ $companySetting->logo_url }}" alt="Logo" style="max-height:36px; max-width:140px; object-fit:contain;">
+        @if($companySetting?->icon_url)
+            <img src="{{ $companySetting->icon_url }}" alt="Icon"
+                 style="width:32px; height:32px; object-fit:contain; border-radius:6px; flex-shrink:0;">
         @else
-            <i class="bi bi-boxes fs-5 me-2"></i>
+            <i class="bi bi-boxes brand-icon"></i>
         @endif
-        <span>{{ $companySetting?->company_name ?? 'CYM System' }}</span>
+        <span class="brand-text">{{ $companySetting?->company_name ?? 'CYM System' }}</span>
     </a>
 
     <div class="sidebar-nav">

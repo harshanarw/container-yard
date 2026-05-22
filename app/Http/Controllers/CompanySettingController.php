@@ -38,16 +38,24 @@ class CompanySettingController extends Controller
             'vat_number'   => ['nullable', 'string', 'max:100'],
             'tin_number'   => ['nullable', 'string', 'max:100'],
             'logo'         => ['nullable', 'image', 'max:2048'],
+            'icon'         => ['nullable', 'image', 'max:512', 'dimensions:max_width=512,max_height=512'],
         ]);
 
         $settings = CompanySetting::current();
-        $data = collect($validated)->except('logo')->toArray();
+        $data = collect($validated)->except(['logo', 'icon'])->toArray();
 
         if ($request->hasFile('logo')) {
             if ($settings->logo_path) {
                 Storage::disk('public')->delete($settings->logo_path);
             }
             $data['logo_path'] = $request->file('logo')->store('company', 'public');
+        }
+
+        if ($request->hasFile('icon')) {
+            if ($settings->icon_path) {
+                Storage::disk('public')->delete($settings->icon_path);
+            }
+            $data['icon_path'] = $request->file('icon')->store('company', 'public');
         }
 
         $settings->update($data);
@@ -68,5 +76,19 @@ class CompanySettingController extends Controller
         }
 
         return back()->with('success', 'Logo removed.');
+    }
+
+    public function deleteIcon()
+    {
+        $this->authorise();
+
+        $settings = CompanySetting::current();
+        if ($settings->icon_path) {
+            Storage::disk('public')->delete($settings->icon_path);
+            $settings->update(['icon_path' => null]);
+            CompanySetting::flushCache();
+        }
+
+        return back()->with('success', 'Icon removed.');
     }
 }

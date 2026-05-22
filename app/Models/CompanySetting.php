@@ -20,6 +20,7 @@ class CompanySetting extends Model
         'vat_number',
         'tin_number',
         'logo_path',
+        'icon_path',
     ];
 
     public static function current(): static
@@ -34,10 +35,11 @@ class CompanySetting extends Model
 
     public function getLogoUrlAttribute(): ?string
     {
-        if ($this->logo_path) {
-            return Storage::url($this->logo_path);
-        }
+        return $this->logo_path ? Storage::url($this->logo_path) : null;
+    }
 
-        return null;
+    public function getIconUrlAttribute(): ?string
+    {
+        return $this->icon_path ? Storage::url($this->icon_path) : null;
     }
 }

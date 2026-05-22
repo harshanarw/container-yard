@@ -199,6 +199,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/',        [CompanySettingController::class, 'index'])->name('index');
         Route::post('/',       [CompanySettingController::class, 'update'])->name('update');
         Route::delete('/logo', [CompanySettingController::class, 'deleteLogo'])->name('logo.delete');
+        Route::delete('/icon', [CompanySettingController::class, 'deleteIcon'])->name('icon.delete');
     });
 
     // Settings

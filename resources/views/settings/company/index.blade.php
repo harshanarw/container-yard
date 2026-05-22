@@ -30,48 +30,44 @@
     </div>
 @endif
 
-{{-- Logo Card (standalone, outside the main form) --}}
-<div class="card content-card mb-4">
-    <div class="card-header py-2">
-        <i class="bi bi-image me-2 text-primary"></i>Company Logo
-    </div>
-    <div class="card-body">
-        <div class="row align-items-center g-4">
-            <div class="col-md-4 text-center">
-                @if($settings->logo_url)
-                    <img id="logoPreview" src="{{ $settings->logo_url }}" alt="Company Logo"
-                         style="max-height:120px; max-width:100%; object-fit:contain; border:1px solid #dee2e6; border-radius:8px; padding:8px; background:#f8f9fa;">
-                @else
-                    <div id="logoPreview" class="d-flex align-items-center justify-content-center bg-light border rounded"
-                         style="height:120px; max-width:240px; margin:0 auto;">
-                        <span class="text-muted small">No logo uploaded</span>
-                    </div>
-                @endif
+{{-- Branding row: Logo + Icon side by side --}}
+<div class="row g-4 mb-4">
+
+    {{-- Logo Card --}}
+    <div class="col-md-6">
+        <div class="card content-card h-100">
+            <div class="card-header py-2">
+                <i class="bi bi-image me-2 text-primary"></i>Company Logo
+                <small class="text-muted fw-normal ms-1">— shown on login screen</small>
             </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    @if($settings->logo_url)
+                        <img id="logoPreview" src="{{ $settings->logo_url }}" alt="Company Logo"
+                             style="max-height:100px; max-width:100%; object-fit:contain; border:1px solid #dee2e6; border-radius:8px; padding:8px; background:#f8f9fa;">
+                    @else
+                        <div id="logoPreview" class="d-flex align-items-center justify-content-center bg-light border rounded mx-auto"
+                             style="height:100px; max-width:220px;">
+                            <span class="text-muted small">No logo uploaded</span>
+                        </div>
+                    @endif
+                </div>
 
-            <div class="col-md-8">
-                {{-- Upload logo form --}}
-                <form method="POST" action="{{ route('settings.company.update') }}" enctype="multipart/form-data" id="logoUploadForm">
+                <form method="POST" action="{{ route('settings.company.update') }}" enctype="multipart/form-data">
                     @csrf
-                    {{-- Hidden field to preserve required company_name --}}
                     <input type="hidden" name="company_name" value="{{ $settings->company_name }}">
-
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Upload New Logo</label>
-                        <input type="file" name="logo" id="logoInput" class="form-control @error('logo') is-invalid @enderror"
-                               accept="image/*" onchange="previewLogo(this)">
+                        <label class="form-label fw-semibold small">Upload New Logo</label>
+                        <input type="file" name="logo" id="logoInput" class="form-control form-control-sm @error('logo') is-invalid @enderror"
+                               accept="image/*" onchange="previewImage(this,'logoPreview')">
                         @error('logo')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        <div class="form-text">Accepted: JPG, PNG, GIF, SVG. Max 2 MB.</div>
+                        <div class="form-text">JPG, PNG, SVG. Max 2 MB.</div>
                     </div>
-
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="bi bi-upload me-1"></i>Upload Logo
-                        </button>
-                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-upload me-1"></i>Upload Logo
+                    </button>
                 </form>
 
-                {{-- Remove logo form — kept outside upload form; nested forms are invalid HTML --}}
                 @if($settings->logo_path)
                 <form method="POST" action="{{ route('settings.company.logo.delete') }}" class="mt-2"
                       onsubmit="return confirm('Remove the current logo?')">
@@ -85,6 +81,57 @@
             </div>
         </div>
     </div>
+
+    {{-- Icon Card --}}
+    <div class="col-md-6">
+        <div class="card content-card h-100">
+            <div class="card-header py-2">
+                <i class="bi bi-badge me-2 text-primary"></i>Company Icon
+                <small class="text-muted fw-normal ms-1">— sidebar &amp; browser tab</small>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    @if($settings->icon_url)
+                        <img id="iconPreview" src="{{ $settings->icon_url }}" alt="Company Icon"
+                             style="width:80px; height:80px; object-fit:contain; border:1px solid #dee2e6; border-radius:8px; padding:6px; background:#f8f9fa;">
+                    @else
+                        <div id="iconPreview" class="d-flex align-items-center justify-content-center bg-light border rounded mx-auto"
+                             style="width:80px; height:80px;">
+                            <i class="bi bi-boxes text-muted fs-3"></i>
+                        </div>
+                    @endif
+                    <div class="text-muted mt-2" style="font-size:.75rem;">Use a square image (recommended: 64×64 or 128×128 px)</div>
+                </div>
+
+                <form method="POST" action="{{ route('settings.company.update') }}" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" name="company_name" value="{{ $settings->company_name }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Upload New Icon</label>
+                        <input type="file" name="icon" id="iconInput" class="form-control form-control-sm @error('icon') is-invalid @enderror"
+                               accept="image/*" onchange="previewImage(this,'iconPreview')">
+                        @error('icon')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="form-text">JPG, PNG, ICO, SVG. Max 512 KB. Square images work best.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-upload me-1"></i>Upload Icon
+                    </button>
+                </form>
+
+                @if($settings->icon_path)
+                <form method="POST" action="{{ route('settings.company.icon.delete') }}" class="mt-2"
+                      onsubmit="return confirm('Remove the current icon?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-trash me-1"></i>Remove Icon
+                    </button>
+                </form>
+                @endif
+            </div>
+        </div>
+    </div>
+
 </div>
 
 {{-- Main Details + Contact Form --}}
@@ -210,25 +257,23 @@
 
 @push('scripts')
 <script>
-function previewLogo(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const preview = document.getElementById('logoPreview');
-            if (preview.tagName === 'IMG') {
-                preview.src = e.target.result;
-            } else {
-                // Replace placeholder div with an img
-                const img = document.createElement('img');
-                img.id = 'logoPreview';
-                img.src = e.target.result;
-                img.alt = 'Logo preview';
-                img.style.cssText = 'max-height:120px; max-width:100%; object-fit:contain; border:1px solid #dee2e6; border-radius:8px; padding:8px; background:#f8f9fa;';
-                preview.replaceWith(img);
-            }
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
+function previewImage(input, previewId) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const el = document.getElementById(previewId);
+        if (el.tagName === 'IMG') {
+            el.src = e.target.result;
+        } else {
+            const img = document.createElement('img');
+            img.id = previewId;
+            img.src = e.target.result;
+            img.alt = 'Preview';
+            img.style.cssText = el.style.cssText;
+            el.replaceWith(img);
+        }
+    };
+    reader.readAsDataURL(input.files[0]);
 }
 </script>
 @endpush
