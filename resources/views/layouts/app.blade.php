@@ -97,28 +97,34 @@
         .sidebar-nav::-webkit-scrollbar-thumb { background: #1976D2; border-radius: 2px; }
 
         .nav-section-label {
-            font-size: .65rem;
+            font-size: .75rem;
             font-weight: 700;
-            letter-spacing: .1em;
-            color: rgba(255,255,255,.45);
+            letter-spacing: .08em;
+            color: rgba(255,255,255,.65);
             text-transform: uppercase;
-            padding: 14px 20px 4px;
+            padding: 10px 20px;
             white-space: nowrap;
             overflow: hidden;
+            border-top: 1px solid rgba(255,255,255,.07);
             /* button reset */
             display: flex;
             align-items: center;
             width: 100%;
             background: none;
-            border: none;
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
             text-align: left;
             cursor: pointer;
-            transition: color .15s;
+            transition: color .15s, background .15s;
         }
-        .nav-section-label:hover { color: rgba(255,255,255,.7); }
+        .nav-section-label:hover {
+            color: #fff;
+            background: rgba(255,255,255,.05);
+        }
         .nav-section-label .section-chevron {
             margin-left: auto;
-            font-size: .6rem;
+            font-size: .7rem;
             transition: transform .2s;
             flex-shrink: 0;
         }
@@ -322,10 +328,10 @@
         {{-- Overview --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-overview"
-                aria-expanded="true" aria-controls="nav-section-overview">
+                aria-expanded="false" aria-controls="nav-section-overview">
             Overview <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse show" id="nav-section-overview"
+        <div class="collapse" id="nav-section-overview"
              data-active="{{ $activeSection === 'overview' ? '1' : '0' }}">
             <ul class="nav flex-column">
                 <li class="nav-item">
@@ -340,10 +346,10 @@
         {{-- Administration --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-admin"
-                aria-expanded="true" aria-controls="nav-section-admin">
+                aria-expanded="false" aria-controls="nav-section-admin">
             Administration <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse show" id="nav-section-admin"
+        <div class="collapse" id="nav-section-admin"
              data-active="{{ $activeSection === 'admin' ? '1' : '0' }}">
             <ul class="nav flex-column">
                 <li class="nav-item">
@@ -364,10 +370,10 @@
         {{-- Operations --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-operations"
-                aria-expanded="true" aria-controls="nav-section-operations">
+                aria-expanded="false" aria-controls="nav-section-operations">
             Operations <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse show" id="nav-section-operations"
+        <div class="collapse" id="nav-section-operations"
              data-active="{{ $activeSection === 'operations' ? '1' : '0' }}">
             <ul class="nav flex-column">
                 <li class="nav-item">
@@ -406,10 +412,10 @@
         {{-- Setup (formerly Masters) --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-setup"
-                aria-expanded="true" aria-controls="nav-section-setup">
+                aria-expanded="false" aria-controls="nav-section-setup">
             Setup <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse show" id="nav-section-setup"
+        <div class="collapse" id="nav-section-setup"
              data-active="{{ $activeSection === 'setup' ? '1' : '0' }}">
             <ul class="nav flex-column">
                 <li class="nav-item">
@@ -448,10 +454,10 @@
         {{-- Reports --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-reports"
-                aria-expanded="true" aria-controls="nav-section-reports">
+                aria-expanded="false" aria-controls="nav-section-reports">
             Reports <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse show" id="nav-section-reports"
+        <div class="collapse" id="nav-section-reports"
              data-active="{{ $activeSection === 'reports' ? '1' : '0' }}">
             <ul class="nav flex-column">
                 <li class="nav-item">
@@ -478,10 +484,10 @@
         {{-- Settings --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-settings"
-                aria-expanded="true" aria-controls="nav-section-settings">
+                aria-expanded="false" aria-controls="nav-section-settings">
             Settings <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse show" id="nav-section-settings"
+        <div class="collapse" id="nav-section-settings"
              data-active="{{ $activeSection === 'settings' ? '1' : '0' }}">
             <ul class="nav flex-column">
                 <li class="nav-item">
@@ -683,8 +689,8 @@
                 btn && (btn.setAttribute('aria-expanded', 'true'));
                 return;
             }
-            // Apply saved preference; default = open (true) if not yet stored
-            const isOpen = saved.hasOwnProperty(el.id) ? saved[el.id] : true;
+            // Apply saved preference; default = closed if not yet stored
+            const isOpen = saved.hasOwnProperty(el.id) ? saved[el.id] : false;
             el.classList.toggle('show', isOpen);
             btn && btn.setAttribute('aria-expanded', String(isOpen));
         });
