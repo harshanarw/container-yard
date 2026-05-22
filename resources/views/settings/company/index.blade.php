@@ -53,8 +53,7 @@
                 {{-- Upload logo form --}}
                 <form method="POST" action="{{ route('settings.company.update') }}" enctype="multipart/form-data" id="logoUploadForm">
                     @csrf
-                    @method('POST')
-                    {{-- Hidden fields to preserve required company_name --}}
+                    {{-- Hidden field to preserve required company_name --}}
                     <input type="hidden" name="company_name" value="{{ $settings->company_name }}">
 
                     <div class="mb-3">
@@ -69,19 +68,20 @@
                         <button type="submit" class="btn btn-primary btn-sm">
                             <i class="bi bi-upload me-1"></i>Upload Logo
                         </button>
-
-                        @if($settings->logo_path)
-                        <form method="POST" action="{{ route('settings.company.logo.delete') }}" class="d-inline"
-                              onsubmit="return confirm('Remove the current logo?')">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-outline-danger btn-sm">
-                                <i class="bi bi-trash me-1"></i>Remove Logo
-                            </button>
-                        </form>
-                        @endif
                     </div>
                 </form>
+
+                {{-- Remove logo form — kept outside upload form; nested forms are invalid HTML --}}
+                @if($settings->logo_path)
+                <form method="POST" action="{{ route('settings.company.logo.delete') }}" class="mt-2"
+                      onsubmit="return confirm('Remove the current logo?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-trash me-1"></i>Remove Logo
+                    </button>
+                </form>
+                @endif
             </div>
         </div>
     </div>
