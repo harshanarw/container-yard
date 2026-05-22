@@ -96,22 +96,25 @@
         .sidebar-nav::-webkit-scrollbar { width: 4px; }
         .sidebar-nav::-webkit-scrollbar-thumb { background: #1976D2; border-radius: 2px; }
 
+        /* ══ Level 1 — Section headers ══════════════════════════════════
+           Darkest background + near-white text + coloured icon.
+           These act as "chapter" dividers, most visually prominent.     */
         .nav-section-label {
-            font-size: .75rem;
+            font-size: .72rem;
             font-weight: 700;
-            letter-spacing: .08em;
-            color: rgba(255,255,255,.65);
+            letter-spacing: .09em;
+            color: rgba(255,255,255,.88);
             text-transform: uppercase;
-            padding: 10px 20px;
+            padding: 11px 20px;
             gap: 10px;
             white-space: nowrap;
             overflow: hidden;
-            border-top: 1px solid rgba(255,255,255,.07);
+            background: rgba(0,0,0,.28);
+            border-top: 1px solid rgba(0,0,0,.18);
             /* button reset */
             display: flex;
             align-items: center;
             width: 100%;
-            background: none;
             border-left: none;
             border-right: none;
             border-bottom: none;
@@ -121,63 +124,43 @@
         }
         .nav-section-label:hover {
             color: #fff;
-            background: rgba(255,255,255,.05);
+            background: rgba(0,0,0,.35);
         }
         .nav-section-label .section-icon {
             font-size: 1rem;
             flex-shrink: 0;
-            color: rgba(144,202,249,.85);
+            color: #64b5f6;
             transition: color .15s;
         }
-        .nav-section-label:hover .section-icon { color: #90caf9; }
-        #sidebar.collapsed .nav-section-label .section-icon { margin: 0 auto; }
+        .nav-section-label:hover .section-icon,
+        .nav-section-label[aria-expanded="true"] .section-icon { color: #90caf9; }
         .nav-section-label .section-chevron {
             margin-left: auto;
-            font-size: .7rem;
+            font-size: .65rem;
             transition: transform .2s;
             flex-shrink: 0;
+            color: rgba(255,255,255,.4);
         }
-        .nav-section-label[aria-expanded="false"] .section-chevron {
-            transform: rotate(-90deg);
-        }
+        .nav-section-label[aria-expanded="false"] .section-chevron { transform: rotate(-90deg); }
         #sidebar.collapsed .nav-section-label {
             visibility: hidden;
             pointer-events: none;
         }
 
-        .nav-item a.nav-link {
-            color: rgba(255,255,255,.7);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 20px;
-            border-radius: 0;
-            transition: all .2s;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        .nav-item a.nav-link i { font-size: 1.1rem; flex-shrink: 0; min-width: 24px; text-align: center; }
-        .nav-item a.nav-link span { font-size: .84rem; }
-        .nav-item a.nav-link:hover,
-        .nav-item a.nav-link.active {
-            color: #fff;
-            background: rgba(33,150,243,.15);
-            border-left: 3px solid var(--primary);
-        }
-        .nav-item a.nav-link.active { color: #fff; }
-
-        /* ── Nested collapsible sub-group toggles ── */
+        /* ══ Level 2 — Sub-group toggles ════════════════════════════════
+           Medium-dark background + dimmer text + left-border accent.
+           Clearly inside a section, clearly above leaf items.           */
         .nav-sub-toggle {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 8px 16px 8px 16px;
-            color: rgba(255,255,255,.5);
+            padding: 8px 16px;
+            color: rgba(255,255,255,.52);
             font-size: .8rem;
             font-weight: 600;
-            background: rgba(0,0,0,.12);
+            background: rgba(0,0,0,.14);
             border: none;
-            border-left: 2px solid rgba(255,255,255,.1);
+            border-left: 3px solid rgba(255,255,255,.1);
             width: 100%;
             text-align: left;
             cursor: pointer;
@@ -186,32 +169,63 @@
             overflow: hidden;
         }
         .nav-sub-toggle:hover {
-            color: rgba(255,255,255,.85);
-            background: rgba(255,255,255,.06);
-            border-left-color: rgba(255,255,255,.3);
+            color: rgba(255,255,255,.8);
+            background: rgba(255,255,255,.05);
+            border-left-color: rgba(255,255,255,.28);
         }
         .nav-sub-toggle[aria-expanded="true"] {
-            color: rgba(255,255,255,.85);
-            border-left-color: var(--primary);
+            color: rgba(255,255,255,.82);
+            background: rgba(33,150,243,.08);
+            border-left-color: #42a5f5;
         }
         .nav-sub-toggle i.nav-sub-icon {
-            font-size: .95rem;
+            font-size: .9rem;
             flex-shrink: 0;
             min-width: 20px;
             text-align: center;
+            color: rgba(255,255,255,.38);
+            transition: color .15s;
         }
+        .nav-sub-toggle:hover i.nav-sub-icon,
+        .nav-sub-toggle[aria-expanded="true"] i.nav-sub-icon { color: rgba(255,255,255,.7); }
         .nav-sub-toggle .sub-chevron {
             margin-left: auto;
-            font-size: .6rem;
+            font-size: .58rem;
             transition: transform .2s;
             flex-shrink: 0;
+            color: rgba(255,255,255,.3);
         }
-        .nav-sub-toggle[aria-expanded="false"] .sub-chevron {
-            transform: rotate(-90deg);
+        .nav-sub-toggle[aria-expanded="false"] .sub-chevron { transform: rotate(-90deg); }
+
+        /* ══ Level 3 — Leaf nav items ════════════════════════════════════
+           Transparent background + readable grey-white text.
+           The actual clickable destinations.                             */
+        .nav-item a.nav-link {
+            color: rgba(255,255,255,.62);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 9px 20px;
+            border-left: 3px solid transparent;
+            transition: all .18s;
+            white-space: nowrap;
+            overflow: hidden;
         }
-        .nav-item.sub-item a.nav-link {
-            padding-left: 42px;
+        .nav-item a.nav-link i { font-size: 1rem; flex-shrink: 0; min-width: 22px; text-align: center; }
+        .nav-item a.nav-link span { font-size: .83rem; }
+        .nav-item a.nav-link:hover {
+            color: rgba(255,255,255,.9);
+            background: rgba(255,255,255,.06);
+            border-left-color: rgba(255,255,255,.2);
         }
+        .nav-item a.nav-link.active {
+            color: #fff;
+            background: rgba(33,150,243,.18);
+            border-left-color: var(--primary);
+            font-weight: 600;
+        }
+
+        .nav-item.sub-item a.nav-link { padding-left: 42px; }
         #sidebar.collapsed .nav-sub-toggle { display: none; }
         #sidebar.collapsed .nav-item.sub-item a.nav-link { padding-left: 20px; }
 
@@ -814,7 +828,7 @@
     });
 
     // ── Collapsible sidebar (sections + sub-groups) with localStorage ───────
-    const SIDEBAR_KEY = 'cym_sidebar_state';
+    const SIDEBAR_KEY = 'cym_sidebar_v2';
 
     function saveSidebarState() {
         const state = {};
