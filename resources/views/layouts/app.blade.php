@@ -109,8 +109,8 @@
             gap: 10px;
             white-space: nowrap;
             overflow: hidden;
-            background: rgba(0,0,0,.28);
-            border-top: 1px solid rgba(0,0,0,.18);
+            background: rgba(0,0,0,.12);
+            border-top: 1px solid rgba(0,0,0,.1);
             /* button reset */
             display: flex;
             align-items: center;
