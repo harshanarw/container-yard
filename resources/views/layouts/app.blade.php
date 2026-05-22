@@ -105,7 +105,7 @@
             letter-spacing: .09em;
             color: rgba(255,255,255,.88);
             text-transform: uppercase;
-            padding: 11px 20px;
+            padding: 9px 20px;
             gap: 10px;
             white-space: nowrap;
             overflow: hidden;
@@ -154,7 +154,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 8px 16px;
+            padding: 9px 20px;
             color: rgba(255,255,255,.52);
             font-size: .8rem;
             font-weight: 600;
