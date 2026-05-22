@@ -812,50 +812,24 @@
         mainContent.classList.toggle('expanded');
     });
 
-    // ── Collapsible sidebar (sections + sub-groups) with localStorage ───────
-    const SIDEBAR_KEY = 'cym_sidebar_v2';
-
-    function saveSidebarState() {
-        const state = {};
-        document.querySelectorAll('#sidebar .collapse[id]').forEach(el => {
-            state[el.id] = el.classList.contains('show');
-        });
-        localStorage.setItem(SIDEBAR_KEY, JSON.stringify(state));
-    }
-
-    function restoreSidebarState() {
-        let saved = {};
-        try { saved = JSON.parse(localStorage.getItem(SIDEBAR_KEY) || '{}'); } catch(e) {}
-
-        // Force-open every collapse that contains (or is an ancestor of) the active link
+    // ── Sidebar: open only the active path on every page load ───────────────
+    // No localStorage persistence — each full page load starts with everything
+    // closed, then opens only the section/sub-group containing the active link.
+    // Users can manually expand others; those stay open for that page session only.
+    function openActivePath() {
         const activeLink = document.querySelector('#sidebar .nav-link.active');
-        if (activeLink) {
-            let node = activeLink.closest('.collapse');
-            while (node && node.id) {
-                node.classList.add('show');
-                const btn = document.querySelector(`[data-bs-target="#${node.id}"]`);
-                btn?.setAttribute('aria-expanded', 'true');
-                node = node.parentElement?.closest('.collapse');
-            }
+        if (!activeLink) return;
+        let node = activeLink.closest('.collapse');
+        while (node && node.id) {
+            node.classList.add('show');
+            const btn = document.querySelector(`[data-bs-target="#${node.id}"]`);
+            btn?.setAttribute('aria-expanded', 'true');
+            node = node.parentElement?.closest('.collapse');
         }
-
-        // Apply saved state for everything else (default: closed)
-        document.querySelectorAll('#sidebar .collapse[id]').forEach(el => {
-            if (el.classList.contains('show')) return; // already opened by active link
-            const isOpen = saved.hasOwnProperty(el.id) ? saved[el.id] : false;
-            el.classList.toggle('show', isOpen);
-            const btn = document.querySelector(`[data-bs-target="#${el.id}"]`);
-            btn?.setAttribute('aria-expanded', String(isOpen));
-        });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        restoreSidebarState();
-
-        document.querySelectorAll('#sidebar .collapse[id]').forEach(el => {
-            el.addEventListener('hidden.bs.collapse', saveSidebarState);
-            el.addEventListener('shown.bs.collapse',  saveSidebarState);
-        });
+        openActivePath();
 
         // Init Select2
         if (typeof $.fn.select2 !== 'undefined') {
