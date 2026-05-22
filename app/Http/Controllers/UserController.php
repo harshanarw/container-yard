@@ -19,9 +19,14 @@ class UserController extends Controller
             )
             ->when($request->role,   fn ($q, $role)   => $q->where('role', $role))
             ->when($request->status, fn ($q, $status) => $q->where('status', $status))
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            ->latest();
+
+        // Hide system_administrator accounts from non-system-admins
+        if (!auth()->user()->isSystemAdmin()) {
+            $users->where('role', '!=', 'system_administrator');
+        }
+
+        $users = $users->paginate(15)->withQueryString();
 
         return view('users.index', compact('users'));
     }
@@ -33,6 +38,10 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request)
     {
+        if ($request->role === 'system_administrator' && !auth()->user()->isSystemAdmin()) {
+            return back()->with('error', 'You do not have permission to create System Administrator accounts.');
+        }
+
         User::create([
             'name'     => $request->name,
             'email'    => $request->email,
@@ -60,6 +69,13 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user)
     {
+        if ($user->role === 'system_administrator' && !auth()->user()->isSystemAdmin()) {
+            abort(403);
+        }
+        if (isset($request->role) && $request->role === 'system_administrator' && !auth()->user()->isSystemAdmin()) {
+            abort(403);
+        }
+
         $data = [
             'name'   => $request->name,
             'email'  => $request->email,
@@ -95,6 +111,10 @@ class UserController extends Controller
     {
         if ($user->id === auth()->id()) {
             return back()->with('error', 'You cannot delete your own account.');
+        }
+
+        if ($user->role === 'system_administrator' && !auth()->user()->isSystemAdmin()) {
+            abort(403);
         }
 
         $user->delete();

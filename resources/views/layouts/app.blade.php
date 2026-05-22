@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'CYM') — Container Yard Management</title>
+    <title>@yield('title', 'Dashboard') — {{ $companySetting?->company_name ?? 'CYM' }}</title>
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -15,8 +15,6 @@
     <!-- Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
-    <!-- Flatpickr — date / datetime / time picker -->
-    <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" rel="stylesheet">
 
     <style>
         :root {
@@ -261,42 +259,6 @@
             #topbar { left: 0 !important; }
             #main-content { margin-left: 0 !important; }
         }
-
-        /* ── Flatpickr — themed to match project primary colour (#2196F3) ── */
-        .flatpickr-calendar {
-            border-radius: 12px;
-            box-shadow: 0 6px 28px rgba(0,0,0,.14);
-            border: 1px solid #dee2e6;
-            font-family: 'Segoe UI', sans-serif;
-        }
-        .flatpickr-months .flatpickr-month,
-        .flatpickr-weekdays { background: #2196F3; border-radius: 12px 12px 0 0; }
-        span.flatpickr-weekday { background: #2196F3; color: rgba(255,255,255,.85); font-size:.75rem; }
-        .flatpickr-months .flatpickr-prev-month svg,
-        .flatpickr-months .flatpickr-next-month svg { fill: #fff; }
-        .flatpickr-months .flatpickr-prev-month:hover svg,
-        .flatpickr-months .flatpickr-next-month:hover svg { fill: rgba(255,255,255,.6); }
-        .flatpickr-current-month input.cur-year,
-        .flatpickr-current-month .numInputWrapper,
-        .flatpickr-current-month .flatpickr-monthDropdown-months { color: #fff !important; font-weight:600; }
-        .flatpickr-current-month .flatpickr-monthDropdown-months { background: #2196F3; border:none; }
-        .flatpickr-current-month .flatpickr-monthDropdown-months:hover { background: rgba(255,255,255,.15); }
-        .flatpickr-day { border-radius: 8px; transition: background .12s; }
-        .flatpickr-day:hover:not(.flatpickr-disabled):not(.selected):not(.today) {
-            background: #d0e8fd; border-color: #d0e8fd;
-        }
-        .flatpickr-day.today { border-color: #2196F3; color: #2196F3; font-weight: 700; }
-        .flatpickr-day.today:hover { background: #2196F3; border-color: #2196F3; color: #fff; }
-        .flatpickr-day.selected,
-        .flatpickr-day.selected:hover { background: #2196F3 !important; border-color: #2196F3 !important; color: #fff; }
-        .flatpickr-day.inRange { background: #d0e8fd; border-color: #d0e8fd; color: #0d47a1; box-shadow: -5px 0 0 #d0e8fd, 5px 0 0 #d0e8fd; }
-        .flatpickr-day.startRange, .flatpickr-day.endRange { background: #2196F3 !important; border-color: #2196F3 !important; color: #fff; }
-        .numInputWrapper:hover { background: rgba(33,150,243,.07); }
-        .flatpickr-time { border-top: 1px solid #dee2e6; }
-        .flatpickr-time input:hover, .flatpickr-time input:focus,
-        .flatpickr-time .flatpickr-am-pm:hover, .flatpickr-time .flatpickr-am-pm:focus { background: #d0e8fd; }
-        /* Ensure the alt-input (visible text field) renders block-level like the original */
-        .flatpickr-input[readonly] { cursor: pointer; background: #fff; }
     </style>
     @stack('styles')
 </head>
@@ -308,11 +270,12 @@
 <nav id="sidebar">
 
     <a href="{{ route('dashboard') }}" class="sidebar-brand">
-        <i class="bi bi-grid-3x3 brand-icon"></i>
-        <div class="brand-text">
-            CYM System<br>
-            <small>Container Yard Mgmt</small>
-        </div>
+        @if($companySetting?->logo_url)
+            <img src="{{ $companySetting->logo_url }}" alt="Logo" style="max-height:36px; max-width:140px; object-fit:contain;">
+        @else
+            <i class="bi bi-boxes fs-5 me-2"></i>
+        @endif
+        <span>{{ $companySetting?->company_name ?? 'CYM System' }}</span>
     </a>
 
     <div class="sidebar-nav">
@@ -346,21 +309,21 @@
         <div class="nav-section-label">Operations</div>
         <ul class="nav flex-column">
             <li class="nav-item">
-                <a href="{{ route('yard.gate') }}"
-                   class="nav-link {{ request()->routeIs('yard.gate*') ? 'active' : '' }}">
-                    <i class="bi bi-box-arrow-in-right"></i><span>Gate In / Gate Out</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('surveys.index') }}"
-                   class="nav-link {{ request()->routeIs('surveys.*') ? 'active' : '' }}">
-                    <i class="bi bi-card-checklist"></i><span>Container Surveys</span>
+                <a href="{{ route('inquiries.index') }}"
+                   class="nav-link {{ request()->routeIs('inquiries.*') ? 'active' : '' }}">
+                    <i class="bi bi-card-checklist"></i><span>Container Inquiries</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a href="{{ route('estimates.index') }}"
                    class="nav-link {{ request()->routeIs('estimates.*') ? 'active' : '' }}">
                     <i class="bi bi-tools"></i><span>Repair Estimates</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('yard.gate') }}"
+                   class="nav-link {{ request()->routeIs('yard.gate*') ? 'active' : '' }}">
+                    <i class="bi bi-box-arrow-in-right"></i><span>Gate In / Gate Out</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -380,49 +343,15 @@
         <div class="nav-section-label">Masters</div>
         <ul class="nav flex-column">
             <li class="nav-item">
-                <a href="{{ route('masters.zones.index') }}"
-                   class="nav-link {{ request()->routeIs('masters.zones.*') ? 'active' : '' }}">
-                    <i class="bi bi-diagram-3"></i><span>Storage Zones</span>
-                </a>
-            </li>
-            <li class="nav-item">
                 <a href="{{ route('masters.equipment-types.index') }}"
                    class="nav-link {{ request()->routeIs('masters.equipment-types.*') ? 'active' : '' }}">
                     <i class="bi bi-box-seam"></i><span>Equipment Types</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('masters.storage-tariff.index') }}"
-                   class="nav-link {{ request()->routeIs('masters.storage-tariff.*') ? 'active' : '' }}">
-                    <i class="bi bi-calendar2-range"></i><span>Storage Tariff</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('masters.handling-tariff.index') }}"
-                   class="nav-link {{ request()->routeIs('masters.handling-tariff.*') ? 'active' : '' }}">
-                    <i class="bi bi-truck"></i><span>Handling Tariff</span>
-                </a>
-            </li>
-            <li class="nav-item">
                 <a href="{{ route('masters.checklist.index') }}"
                    class="nav-link {{ request()->routeIs('masters.checklist.*') ? 'active' : '' }}">
                     <i class="bi bi-list-check"></i><span>Inspection Checklist</span>
-                </a>
-            </li>
-        </ul>
-
-        <div class="nav-section-label">Billing</div>
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a href="{{ route('billing.index') }}"
-                   class="nav-link {{ request()->routeIs('billing.index') || (request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*')) ? 'active' : '' }}">
-                    <i class="bi bi-receipt-cutoff"></i><span>Storage Invoices</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('billing.storage-handling.index') }}"
-                   class="nav-link {{ request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
-                    <i class="bi bi-file-earmark-ruled"></i><span>Storage &amp; Handling</span>
                 </a>
             </li>
         </ul>
@@ -441,35 +370,31 @@
                     <i class="bi bi-receipt"></i><span>Billing Report</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="{{ route('reports.daily-movements') }}"
-                   class="nav-link {{ request()->routeIs('reports.daily-movements*') ? 'active' : '' }}">
-                    <i class="bi bi-arrow-left-right"></i><span>Daily Movements</span>
-                </a>
-            </li>
         </ul>
 
         <div class="nav-section-label">Settings</div>
         <ul class="nav flex-column">
             <li class="nav-item">
                 <a href="{{ route('settings.index') }}"
-                   class="nav-link {{ request()->routeIs('settings.index') ? 'active' : '' }}">
+                   class="nav-link {{ request()->routeIs('settings.index') || request()->routeIs('settings.update') ? 'active' : '' }}">
                     <i class="bi bi-gear"></i><span>System Settings</span>
                 </a>
             </li>
+            @if(auth()->user()->isSystemAdmin())
             <li class="nav-item">
-                <a href="{{ route('settings.cloud-storage.index') }}"
-                   class="nav-link {{ request()->routeIs('settings.cloud-storage.*') ? 'active' : '' }}">
-                    <i class="bi bi-cloud"></i><span>Cloud Storage</span>
+                <a class="nav-link {{ request()->routeIs('settings.company.*') ? 'active' : '' }}"
+                   href="{{ route('settings.company.index') }}">
+                    <i class="bi bi-building me-2"></i>Company Settings
                 </a>
             </li>
+            @endif
         </ul>
 
     </div><!-- /sidebar-nav -->
 
     <div class="sidebar-footer">
         <i class="bi bi-circle-fill text-success me-1" style="font-size:.5rem;"></i>
-        v1.0.0 &nbsp;·&nbsp; CYM &copy; {{ date('Y') }}
+        v1.0.0 &nbsp;·&nbsp; {{ $companySetting?->company_name ?? 'CYM' }} &copy; {{ date('Y') }}
     </div>
 
 </nav>
@@ -584,12 +509,6 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
-    @if(session('warning'))
-        <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
-            <i class="bi bi-exclamation-circle-fill me-2"></i>{{ session('warning') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
 
     @yield('content')
 
@@ -604,62 +523,8 @@
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <!-- Select2 -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<!-- Flatpickr -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 
 <script>
-    // ── Flatpickr global initializer ─────────────────────────────────────────
-    // Call initFlatpickr(container) after injecting dynamic HTML (modals, AJAX).
-    window.initFlatpickr = function (scope) {
-        var root = scope instanceof Element ? scope : document;
-
-        // ── date ──────────────────────────────────────────────────────────────
-        root.querySelectorAll('input[type="date"]').forEach(function (el) {
-            if (el._flatpickr) return;
-            flatpickr(el, {
-                dateFormat    : 'Y-m-d',
-                altInput      : true,
-                altFormat     : 'j M Y',
-                altInputClass : el.className || 'form-control',
-                allowInput    : true,
-            });
-        });
-
-        // ── datetime-local ────────────────────────────────────────────────────
-        root.querySelectorAll('input[type="datetime-local"]').forEach(function (el) {
-            if (el._flatpickr) return;
-            flatpickr(el, {
-                enableTime    : true,
-                dateFormat    : 'Y-m-d\\TH:i',
-                altInput      : true,
-                altFormat     : 'j M Y  H:i',
-                altInputClass : el.className || 'form-control',
-                time_24hr     : true,
-                allowInput    : true,
-                minuteIncrement: 1,
-                // handle values with or without seconds ("T14:30" and "T14:30:00")
-                parseDate: function (dateStr) {
-                    return new Date(dateStr.replace(' ', 'T'));
-                },
-            });
-        });
-
-        // ── time ──────────────────────────────────────────────────────────────
-        root.querySelectorAll('input[type="time"]').forEach(function (el) {
-            if (el._flatpickr) return;
-            flatpickr(el, {
-                enableTime    : true,
-                noCalendar    : true,
-                dateFormat    : 'H:i',
-                time_24hr     : true,
-                allowInput    : true,
-                minuteIncrement: 5,
-            });
-        });
-    };
-
-    document.addEventListener('DOMContentLoaded', function () { initFlatpickr(); });
-
     // Sidebar toggle
     const sidebar      = document.getElementById('sidebar');
     const topbar       = document.getElementById('topbar');
@@ -679,7 +544,6 @@
         }
     });
 </script>
-@stack('modals')
 @stack('scripts')
 </body>
 </html>

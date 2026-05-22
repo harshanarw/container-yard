@@ -46,9 +46,19 @@ class User extends Authenticatable
     }
 
     // Helpers
+    public function isSystemAdmin(): bool
+    {
+        return $this->role === 'system_administrator';
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'administrator';
+    }
+
+    public function isSuperUser(): bool
+    {
+        return $this->isAdmin() || $this->isSystemAdmin();
     }
 
     public function isActive(): bool

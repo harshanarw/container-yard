@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChecklistMasterItemController;
 use App\Http\Controllers\CloudStorageSettingController;
+use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\ContainerController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -191,6 +192,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{document}/preview',       [DocumentController::class, 'preview'])->name('preview');
         Route::get('/{document}/download',      [DocumentController::class, 'download'])->name('download');
         Route::delete('/{document}',            [DocumentController::class, 'destroy'])->name('destroy');
+    });
+
+    // Company Settings — System Administrator only
+    Route::prefix('settings/company')->name('settings.company.')->group(function () {
+        Route::get('/',        [CompanySettingController::class, 'index'])->name('index');
+        Route::post('/',       [CompanySettingController::class, 'update'])->name('update');
+        Route::delete('/logo', [CompanySettingController::class, 'deleteLogo'])->name('logo.delete');
     });
 
     // Settings

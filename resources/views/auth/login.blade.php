@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login — CYM System</title>
+    <title>Login — {{ $companySetting?->company_name ?? 'CYM System' }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -62,8 +62,13 @@
         <img src="/images/demologo.jpg" alt="Company Logo">
     </div>
     <div class="auth-header">
-        <h4 class="fw-bold mb-0">CYM System</h4>
-        <p class="mb-0 opacity-75 small">Container Yard Management</p>
+        @if($companySetting?->logo_url)
+            <img src="{{ $companySetting->logo_url }}" alt="Logo" class="mb-2" style="max-height:60px; max-width:200px; object-fit:contain;">
+            <h4 class="fw-bold mb-0">{{ $companySetting?->company_name ?? 'CYM System' }}</h4>
+        @else
+            <h4 class="fw-bold mb-0">{{ $companySetting?->company_name ?? 'CYM System' }}</h4>
+        @endif
+        <p class="mb-0 opacity-75 small">{{ $companySetting?->tagline ?? 'Container Yard Management' }}</p>
     </div>
 
     <div class="auth-body">
@@ -140,7 +145,7 @@
         <hr class="my-3">
 
         <div class="text-center text-muted" style="font-size:.75rem;">
-            &copy; {{ date('Y') }} CYM System. All rights reserved.
+            &copy; {{ date('Y') }} {{ $companySetting?->company_name ?? 'CYM System' }}. All rights reserved.
         </div>
     </div>
 </div>

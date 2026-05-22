@@ -93,6 +93,11 @@
                         <label class="form-label fw-semibold">System Role <span class="text-danger">*</span></label>
                         <select name="role" class="form-select @error('role') is-invalid @enderror" required>
                             <option value="">— Select Role —</option>
+                            @if(auth()->user()->isSystemAdmin())
+                            <option value="system_administrator" {{ old('role', $user->role) === 'system_administrator' ? 'selected' : '' }}>
+                                System Administrator
+                            </option>
+                            @endif
                             @foreach([
                                 'administrator'   => 'Administrator',
                                 'yard_supervisor' => 'Yard Supervisor',
