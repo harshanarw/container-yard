@@ -109,8 +109,8 @@
             gap: 10px;
             white-space: nowrap;
             overflow: hidden;
-            background: rgba(0,0,0,.12);
-            border-top: 1px solid rgba(0,0,0,.1);
+            background: rgba(255,255,255,.05);
+            border-top: 1px solid rgba(255,255,255,.06);
             /* button reset */
             display: flex;
             align-items: center;
@@ -382,19 +382,6 @@
         <span class="brand-text">{{ $companySetting?->company_name ?? 'CYM System' }}</span>
     </a>
 
-    @php
-        $activeSection = match(true) {
-            request()->routeIs('dashboard')                                                        => 'overview',
-            request()->routeIs('users.*') || request()->routeIs('customers.*')                    => 'admin',
-            request()->routeIs('inquiries.*') || request()->routeIs('surveys.*')
-                || request()->routeIs('estimates.*') || request()->routeIs('yard.*')              => 'operations',
-            request()->routeIs('masters.*')                                                        => 'setup',
-            request()->routeIs('reports.*')                                                        => 'reports',
-            request()->routeIs('settings.*') || request()->routeIs('billing.*')                   => 'settings',
-            default                                                                                => 'overview',
-        };
-    @endphp
-
     <div class="sidebar-nav">
 
         {{-- ── OVERVIEW ── --}}
@@ -444,31 +431,6 @@
             <i class="bi bi-lightning-charge section-icon"></i><span>Operations</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
         <div class="collapse" id="nav-section-operations">
-            {{-- Containers sub-group --}}
-            <button class="nav-sub-toggle"
-                    data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-containers"
-                    aria-expanded="false" aria-controls="nav-sub-ops-containers">
-                <i class="bi bi-boxes nav-sub-icon"></i>
-                <span>Containers</span>
-                <i class="bi bi-chevron-down sub-chevron"></i>
-            </button>
-            <div class="collapse" id="nav-sub-ops-containers">
-                <ul class="nav flex-column">
-                    <li class="nav-item sub-item">
-                        <a href="{{ route('inquiries.index') }}"
-                           class="nav-link {{ request()->routeIs('inquiries.*') ? 'active' : '' }}">
-                            <i class="bi bi-card-checklist"></i><span>Inquiries</span>
-                        </a>
-                    </li>
-                    <li class="nav-item sub-item">
-                        <a href="{{ route('estimates.index') }}"
-                           class="nav-link {{ request()->routeIs('estimates.*') ? 'active' : '' }}">
-                            <i class="bi bi-tools"></i><span>Repair Estimates</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
             {{-- Yard sub-group --}}
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-yard"
@@ -499,6 +461,61 @@
                     </li>
                 </ul>
             </div>
+
+            {{-- Containers sub-group --}}
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-containers"
+                    aria-expanded="false" aria-controls="nav-sub-ops-containers">
+                <i class="bi bi-boxes nav-sub-icon"></i>
+                <span>Containers</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse" id="nav-sub-ops-containers">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('inquiries.index') }}"
+                           class="nav-link {{ request()->routeIs('inquiries.*') ? 'active' : '' }}">
+                            <i class="bi bi-card-checklist"></i><span>Inquiries</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('estimates.index') }}"
+                           class="nav-link {{ request()->routeIs('estimates.*') ? 'active' : '' }}">
+                            <i class="bi bi-tools"></i><span>Repair Estimates</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        {{-- ── BILLING ── --}}
+        <button class="nav-section-label"
+                data-bs-toggle="collapse" data-bs-target="#nav-section-billing"
+                aria-expanded="false" aria-controls="nav-section-billing">
+            <i class="bi bi-receipt-cutoff section-icon"></i><span>Billing</span><i class="bi bi-chevron-down section-chevron"></i>
+        </button>
+        <div class="collapse" id="nav-section-billing">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a href="{{ route('billing.index') }}"
+                       class="nav-link {{ request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
+                        <i class="bi bi-file-earmark-text"></i><span>Storage Invoices</span>
+                    </a>
+                </li>
+                {{-- Handling-only invoices: module not yet implemented — placeholder --}}
+                <li class="nav-item">
+                    <span class="nav-link disabled" style="opacity:.35; cursor:not-allowed;"
+                          title="Handling-only invoice module coming soon">
+                        <i class="bi bi-file-earmark-minus"></i><span>Handling Invoices</span>
+                    </span>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('billing.storage-handling.index') }}"
+                       class="nav-link {{ request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
+                        <i class="bi bi-file-earmark-richtext"></i><span>Storage &amp; Handling</span>
+                    </a>
+                </li>
+            </ul>
         </div>
 
         {{-- ── SETUP ── --}}
@@ -627,31 +644,6 @@
             <i class="bi bi-gear-wide section-icon"></i><span>Settings</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
         <div class="collapse" id="nav-section-settings">
-            {{-- Billing sub-group --}}
-            <button class="nav-sub-toggle"
-                    data-bs-toggle="collapse" data-bs-target="#nav-sub-settings-billing"
-                    aria-expanded="false" aria-controls="nav-sub-settings-billing">
-                <i class="bi bi-receipt-cutoff nav-sub-icon"></i>
-                <span>Billing</span>
-                <i class="bi bi-chevron-down sub-chevron"></i>
-            </button>
-            <div class="collapse" id="nav-sub-settings-billing">
-                <ul class="nav flex-column">
-                    <li class="nav-item sub-item">
-                        <a href="{{ route('billing.index') }}"
-                           class="nav-link {{ request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
-                            <i class="bi bi-file-earmark-text"></i><span>Storage Invoices</span>
-                        </a>
-                    </li>
-                    <li class="nav-item sub-item">
-                        <a href="{{ route('billing.storage-handling.index') }}"
-                           class="nav-link {{ request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
-                            <i class="bi bi-file-earmark-richtext"></i><span>Handling Invoices</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
             {{-- Configuration sub-group --}}
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-settings-config"
