@@ -157,6 +157,34 @@
         }
         .nav-item a.nav-link.active { color: #fff; }
 
+        /* ── Sub-group labels inside sections ── */
+        .nav-sub-label {
+            list-style: none;
+            font-size: .6rem;
+            font-weight: 700;
+            letter-spacing: .09em;
+            color: rgba(255,255,255,.3);
+            text-transform: uppercase;
+            padding: 10px 20px 2px 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .nav-sub-label::before {
+            content: '';
+            width: 16px;
+            height: 1px;
+            background: rgba(255,255,255,.15);
+            flex-shrink: 0;
+        }
+        .nav-item.sub-item a.nav-link {
+            padding-left: 36px;
+        }
+        #sidebar.collapsed .nav-sub-label { display: none; }
+        #sidebar.collapsed .nav-item.sub-item a.nav-link { padding-left: 20px; }
+
         .sidebar-footer {
             padding: 12px 20px;
             background: var(--dark-side);
@@ -376,40 +404,43 @@
         <div class="collapse" id="nav-section-operations"
              data-active="{{ $activeSection === 'operations' ? '1' : '0' }}">
             <ul class="nav flex-column">
-                <li class="nav-item">
+                <li class="nav-sub-label">Containers</li>
+                <li class="nav-item sub-item">
                     <a href="{{ route('inquiries.index') }}"
                        class="nav-link {{ request()->routeIs('inquiries.*') ? 'active' : '' }}">
-                        <i class="bi bi-card-checklist"></i><span>Container Inquiries</span>
+                        <i class="bi bi-card-checklist"></i><span>Inquiries</span>
                     </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item sub-item">
                     <a href="{{ route('estimates.index') }}"
                        class="nav-link {{ request()->routeIs('estimates.*') ? 'active' : '' }}">
                         <i class="bi bi-tools"></i><span>Repair Estimates</span>
                     </a>
                 </li>
-                <li class="nav-item">
+
+                <li class="nav-sub-label">Yard</li>
+                <li class="nav-item sub-item">
                     <a href="{{ route('yard.gate') }}"
                        class="nav-link {{ request()->routeIs('yard.gate*') ? 'active' : '' }}">
                         <i class="bi bi-box-arrow-in-right"></i><span>Gate In / Gate Out</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('yard.storage') }}"
-                       class="nav-link {{ request()->routeIs('yard.storage*') ? 'active' : '' }}">
-                        <i class="bi bi-calculator"></i><span>Storage Calculator</span>
-                    </a>
-                </li>
-                <li class="nav-item">
+                <li class="nav-item sub-item">
                     <a href="{{ route('yard.index') }}"
                        class="nav-link {{ request()->routeIs('yard.index') ? 'active' : '' }}">
                         <i class="bi bi-map"></i><span>Yard Overview</span>
                     </a>
                 </li>
+                <li class="nav-item sub-item">
+                    <a href="{{ route('yard.storage') }}"
+                       class="nav-link {{ request()->routeIs('yard.storage*') ? 'active' : '' }}">
+                        <i class="bi bi-calculator"></i><span>Storage Calculator</span>
+                    </a>
+                </li>
             </ul>
         </div>
 
-        {{-- Setup (formerly Masters) --}}
+        {{-- Setup --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-setup"
                 aria-expanded="false" aria-controls="nav-section-setup">
@@ -418,34 +449,39 @@
         <div class="collapse" id="nav-section-setup"
              data-active="{{ $activeSection === 'setup' ? '1' : '0' }}">
             <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a href="{{ route('masters.equipment-types.index') }}"
-                       class="nav-link {{ request()->routeIs('masters.equipment-types.*') ? 'active' : '' }}">
-                        <i class="bi bi-box-seam"></i><span>Equipment Types</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('masters.checklist.index') }}"
-                       class="nav-link {{ request()->routeIs('masters.checklist.*') ? 'active' : '' }}">
-                        <i class="bi bi-list-check"></i><span>Inspection Checklist</span>
-                    </a>
-                </li>
-                <li class="nav-item">
+                <li class="nav-sub-label">Yard Configuration</li>
+                <li class="nav-item sub-item">
                     <a href="{{ route('masters.zones.index') }}"
                        class="nav-link {{ request()->routeIs('masters.zones.*') ? 'active' : '' }}">
                         <i class="bi bi-grid-3x3-gap"></i><span>Storage Zones</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('masters.handling-tariff.index') }}"
-                       class="nav-link {{ request()->routeIs('masters.handling-tariff.*') ? 'active' : '' }}">
-                        <i class="bi bi-tag"></i><span>Handling Tariff</span>
+                <li class="nav-item sub-item">
+                    <a href="{{ route('masters.equipment-types.index') }}"
+                       class="nav-link {{ request()->routeIs('masters.equipment-types.*') ? 'active' : '' }}">
+                        <i class="bi bi-box-seam"></i><span>Equipment Types</span>
                     </a>
                 </li>
-                <li class="nav-item">
+
+                <li class="nav-sub-label">Inspection</li>
+                <li class="nav-item sub-item">
+                    <a href="{{ route('masters.checklist.index') }}"
+                       class="nav-link {{ request()->routeIs('masters.checklist.*') ? 'active' : '' }}">
+                        <i class="bi bi-list-check"></i><span>Checklist Items</span>
+                    </a>
+                </li>
+
+                <li class="nav-sub-label">Tariffs</li>
+                <li class="nav-item sub-item">
                     <a href="{{ route('masters.storage-tariff.index') }}"
                        class="nav-link {{ request()->routeIs('masters.storage-tariff.*') ? 'active' : '' }}">
-                        <i class="bi bi-tags"></i><span>Storage Tariff</span>
+                        <i class="bi bi-tags"></i><span>Storage</span>
+                    </a>
+                </li>
+                <li class="nav-item sub-item">
+                    <a href="{{ route('masters.handling-tariff.index') }}"
+                       class="nav-link {{ request()->routeIs('masters.handling-tariff.*') ? 'active' : '' }}">
+                        <i class="bi bi-tag"></i><span>Handling</span>
                     </a>
                 </li>
             </ul>
@@ -463,19 +499,19 @@
                 <li class="nav-item">
                     <a href="{{ route('reports.inventory') }}"
                        class="nav-link {{ request()->routeIs('reports.inventory') ? 'active' : '' }}">
-                        <i class="bi bi-bar-chart-line"></i><span>Inventory Report</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('reports.billing') }}"
-                       class="nav-link {{ request()->routeIs('reports.billing') ? 'active' : '' }}">
-                        <i class="bi bi-receipt"></i><span>Billing Report</span>
+                        <i class="bi bi-bar-chart-line"></i><span>Inventory</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="{{ route('reports.daily-movements') }}"
                        class="nav-link {{ request()->routeIs('reports.daily-movements') ? 'active' : '' }}">
                         <i class="bi bi-calendar-week"></i><span>Daily Movements</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('reports.billing') }}"
+                       class="nav-link {{ request()->routeIs('reports.billing') ? 'active' : '' }}">
+                        <i class="bi bi-receipt"></i><span>Billing</span>
                     </a>
                 </li>
             </ul>
@@ -490,26 +526,29 @@
         <div class="collapse" id="nav-section-settings"
              data-active="{{ $activeSection === 'settings' ? '1' : '0' }}">
             <ul class="nav flex-column">
-                <li class="nav-item">
+                <li class="nav-sub-label">Billing</li>
+                <li class="nav-item sub-item">
                     <a href="{{ route('billing.index') }}"
                        class="nav-link {{ request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
-                        <i class="bi bi-file-earmark-text"></i><span>Storage Billing</span>
+                        <i class="bi bi-file-earmark-text"></i><span>Storage Invoices</span>
                     </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item sub-item">
                     <a href="{{ route('billing.storage-handling.index') }}"
                        class="nav-link {{ request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
-                        <i class="bi bi-file-earmark-richtext"></i><span>Handling Billing</span>
+                        <i class="bi bi-file-earmark-richtext"></i><span>Handling Invoices</span>
                     </a>
                 </li>
-                <li class="nav-item">
+
+                <li class="nav-sub-label">Configuration</li>
+                <li class="nav-item sub-item">
                     <a href="{{ route('settings.index') }}"
                        class="nav-link {{ request()->routeIs('settings.index') || request()->routeIs('settings.update') ? 'active' : '' }}">
                         <i class="bi bi-gear"></i><span>System Settings</span>
                     </a>
                 </li>
                 @if(auth()->user()->isSystemAdmin())
-                <li class="nav-item">
+                <li class="nav-item sub-item">
                     <a href="{{ route('settings.company.index') }}"
                        class="nav-link {{ request()->routeIs('settings.company.*') ? 'active' : '' }}">
                         <i class="bi bi-building"></i><span>Company Settings</span>
