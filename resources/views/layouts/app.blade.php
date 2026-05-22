@@ -502,13 +502,6 @@
                         <i class="bi bi-file-earmark-text"></i><span>Storage Invoices</span>
                     </a>
                 </li>
-                {{-- Handling-only invoices: module not yet implemented — placeholder --}}
-                <li class="nav-item">
-                    <span class="nav-link disabled" style="opacity:.35; cursor:not-allowed;"
-                          title="Handling-only invoice module coming soon">
-                        <i class="bi bi-file-earmark-minus"></i><span>Handling Invoices</span>
-                    </span>
-                </li>
                 <li class="nav-item">
                     <a href="{{ route('billing.storage-handling.index') }}"
                        class="nav-link {{ request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
