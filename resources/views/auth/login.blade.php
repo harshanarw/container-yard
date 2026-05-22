@@ -29,7 +29,7 @@
             border-bottom: 1px solid #e9ecef;
         }
         .logo-banner img {
-            width: 155px; height: 90px;
+            max-width: 200px; max-height: 90px;
             object-fit: contain;
         }
         .auth-header {
@@ -58,16 +58,13 @@
 <body>
 
 <div class="auth-card">
+    @if($companySetting?->logo_url)
     <div class="logo-banner">
-        <img src="/images/demologo.jpg" alt="Company Logo">
+        <img src="{{ $companySetting->logo_url }}" alt="{{ $companySetting->company_name }} Logo">
     </div>
+    @endif
     <div class="auth-header">
-        @if($companySetting?->logo_url)
-            <img src="{{ $companySetting->logo_url }}" alt="Logo" class="mb-2" style="max-height:60px; max-width:200px; object-fit:contain;">
-            <h4 class="fw-bold mb-0">{{ $companySetting?->company_name ?? 'CYM System' }}</h4>
-        @else
-            <h4 class="fw-bold mb-0">{{ $companySetting?->company_name ?? 'CYM System' }}</h4>
-        @endif
+        <h4 class="fw-bold mb-0">{{ $companySetting?->company_name ?? 'CYM System' }}</h4>
         <p class="mb-0 opacity-75 small">{{ $companySetting?->tagline ?? 'Container Yard Management' }}</p>
     </div>
 
