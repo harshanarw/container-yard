@@ -103,6 +103,7 @@
             color: rgba(255,255,255,.65);
             text-transform: uppercase;
             padding: 10px 20px;
+            gap: 10px;
             white-space: nowrap;
             overflow: hidden;
             border-top: 1px solid rgba(255,255,255,.07);
@@ -122,6 +123,14 @@
             color: #fff;
             background: rgba(255,255,255,.05);
         }
+        .nav-section-label .section-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+            color: rgba(144,202,249,.85);
+            transition: color .15s;
+        }
+        .nav-section-label:hover .section-icon { color: #90caf9; }
+        #sidebar.collapsed .nav-section-label .section-icon { margin: 0 auto; }
         .nav-section-label .section-chevron {
             margin-left: auto;
             font-size: .7rem;
@@ -378,7 +387,7 @@
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-overview"
                 aria-expanded="false" aria-controls="nav-section-overview">
-            Overview <i class="bi bi-chevron-down section-chevron"></i>
+            <i class="bi bi-speedometer2 section-icon"></i><span>Overview</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
         <div class="collapse" id="nav-section-overview">
             <ul class="nav flex-column">
@@ -395,7 +404,7 @@
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-admin"
                 aria-expanded="false" aria-controls="nav-section-admin">
-            Administration <i class="bi bi-chevron-down section-chevron"></i>
+            <i class="bi bi-shield-person section-icon"></i><span>Administration</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
         <div class="collapse" id="nav-section-admin">
             <ul class="nav flex-column">
@@ -418,7 +427,7 @@
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-operations"
                 aria-expanded="false" aria-controls="nav-section-operations">
-            Operations <i class="bi bi-chevron-down section-chevron"></i>
+            <i class="bi bi-lightning-charge section-icon"></i><span>Operations</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
         <div class="collapse" id="nav-section-operations">
             {{-- Containers sub-group --}}
@@ -482,7 +491,7 @@
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-setup"
                 aria-expanded="false" aria-controls="nav-section-setup">
-            Setup <i class="bi bi-chevron-down section-chevron"></i>
+            <i class="bi bi-tools section-icon"></i><span>Setup</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
         <div class="collapse" id="nav-section-setup">
             {{-- Containers (Equipment) sub-group --}}
@@ -572,7 +581,7 @@
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-reports"
                 aria-expanded="false" aria-controls="nav-section-reports">
-            Reports <i class="bi bi-chevron-down section-chevron"></i>
+            <i class="bi bi-graph-up-arrow section-icon"></i><span>Reports</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
         <div class="collapse" id="nav-section-reports">
             <ul class="nav flex-column">
@@ -601,7 +610,7 @@
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-settings"
                 aria-expanded="false" aria-controls="nav-section-settings">
-            Settings <i class="bi bi-chevron-down section-chevron"></i>
+            <i class="bi bi-gear-wide section-icon"></i><span>Settings</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
         <div class="collapse" id="nav-section-settings">
             {{-- Billing sub-group --}}
