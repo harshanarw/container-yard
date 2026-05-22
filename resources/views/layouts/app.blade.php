@@ -157,32 +157,53 @@
         }
         .nav-item a.nav-link.active { color: #fff; }
 
-        /* ── Sub-group labels inside sections ── */
-        .nav-sub-label {
-            list-style: none;
-            font-size: .6rem;
-            font-weight: 700;
-            letter-spacing: .09em;
-            color: rgba(255,255,255,.3);
-            text-transform: uppercase;
-            padding: 10px 20px 2px 24px;
+        /* ── Nested collapsible sub-group toggles ── */
+        .nav-sub-toggle {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            padding: 8px 16px 8px 16px;
+            color: rgba(255,255,255,.5);
+            font-size: .8rem;
+            font-weight: 600;
+            background: rgba(0,0,0,.12);
+            border: none;
+            border-left: 2px solid rgba(255,255,255,.1);
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            transition: color .15s, background .15s, border-color .15s;
             white-space: nowrap;
-            pointer-events: none;
+            overflow: hidden;
         }
-        .nav-sub-label::before {
-            content: '';
-            width: 16px;
-            height: 1px;
-            background: rgba(255,255,255,.15);
+        .nav-sub-toggle:hover {
+            color: rgba(255,255,255,.85);
+            background: rgba(255,255,255,.06);
+            border-left-color: rgba(255,255,255,.3);
+        }
+        .nav-sub-toggle[aria-expanded="true"] {
+            color: rgba(255,255,255,.85);
+            border-left-color: var(--primary);
+        }
+        .nav-sub-toggle i.nav-sub-icon {
+            font-size: .95rem;
+            flex-shrink: 0;
+            min-width: 20px;
+            text-align: center;
+        }
+        .nav-sub-toggle .sub-chevron {
+            margin-left: auto;
+            font-size: .6rem;
+            transition: transform .2s;
             flex-shrink: 0;
         }
-        .nav-item.sub-item a.nav-link {
-            padding-left: 36px;
+        .nav-sub-toggle[aria-expanded="false"] .sub-chevron {
+            transform: rotate(-90deg);
         }
-        #sidebar.collapsed .nav-sub-label { display: none; }
+        .nav-item.sub-item a.nav-link {
+            padding-left: 42px;
+        }
+        #sidebar.collapsed .nav-sub-toggle { display: none; }
         #sidebar.collapsed .nav-item.sub-item a.nav-link { padding-left: 20px; }
 
         .sidebar-footer {
@@ -353,14 +374,13 @@
 
     <div class="sidebar-nav">
 
-        {{-- Overview --}}
+        {{-- ── OVERVIEW ── --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-overview"
                 aria-expanded="false" aria-controls="nav-section-overview">
             Overview <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse" id="nav-section-overview"
-             data-active="{{ $activeSection === 'overview' ? '1' : '0' }}">
+        <div class="collapse" id="nav-section-overview">
             <ul class="nav flex-column">
                 <li class="nav-item">
                     <a href="{{ route('dashboard') }}"
@@ -371,14 +391,13 @@
             </ul>
         </div>
 
-        {{-- Administration --}}
+        {{-- ── ADMINISTRATION ── --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-admin"
                 aria-expanded="false" aria-controls="nav-section-admin">
             Administration <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse" id="nav-section-admin"
-             data-active="{{ $activeSection === 'admin' ? '1' : '0' }}">
+        <div class="collapse" id="nav-section-admin">
             <ul class="nav flex-column">
                 <li class="nav-item">
                     <a href="{{ route('users.index') }}"
@@ -395,106 +414,167 @@
             </ul>
         </div>
 
-        {{-- Operations --}}
+        {{-- ── OPERATIONS ── --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-operations"
                 aria-expanded="false" aria-controls="nav-section-operations">
             Operations <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse" id="nav-section-operations"
-             data-active="{{ $activeSection === 'operations' ? '1' : '0' }}">
-            <ul class="nav flex-column">
-                <li class="nav-sub-label">Containers</li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('inquiries.index') }}"
-                       class="nav-link {{ request()->routeIs('inquiries.*') ? 'active' : '' }}">
-                        <i class="bi bi-card-checklist"></i><span>Inquiries</span>
-                    </a>
-                </li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('estimates.index') }}"
-                       class="nav-link {{ request()->routeIs('estimates.*') ? 'active' : '' }}">
-                        <i class="bi bi-tools"></i><span>Repair Estimates</span>
-                    </a>
-                </li>
+        <div class="collapse" id="nav-section-operations">
+            {{-- Containers sub-group --}}
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-containers"
+                    aria-expanded="false" aria-controls="nav-sub-ops-containers">
+                <i class="bi bi-boxes nav-sub-icon"></i>
+                <span>Containers</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse" id="nav-sub-ops-containers">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('inquiries.index') }}"
+                           class="nav-link {{ request()->routeIs('inquiries.*') ? 'active' : '' }}">
+                            <i class="bi bi-card-checklist"></i><span>Inquiries</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('estimates.index') }}"
+                           class="nav-link {{ request()->routeIs('estimates.*') ? 'active' : '' }}">
+                            <i class="bi bi-tools"></i><span>Repair Estimates</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
-                <li class="nav-sub-label">Yard</li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('yard.gate') }}"
-                       class="nav-link {{ request()->routeIs('yard.gate*') ? 'active' : '' }}">
-                        <i class="bi bi-box-arrow-in-right"></i><span>Gate In / Gate Out</span>
-                    </a>
-                </li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('yard.index') }}"
-                       class="nav-link {{ request()->routeIs('yard.index') ? 'active' : '' }}">
-                        <i class="bi bi-map"></i><span>Yard Overview</span>
-                    </a>
-                </li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('yard.storage') }}"
-                       class="nav-link {{ request()->routeIs('yard.storage*') ? 'active' : '' }}">
-                        <i class="bi bi-calculator"></i><span>Storage Calculator</span>
-                    </a>
-                </li>
-            </ul>
+            {{-- Yard sub-group --}}
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-yard"
+                    aria-expanded="false" aria-controls="nav-sub-ops-yard">
+                <i class="bi bi-geo nav-sub-icon"></i>
+                <span>Yard</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse" id="nav-sub-ops-yard">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('yard.gate') }}"
+                           class="nav-link {{ request()->routeIs('yard.gate*') ? 'active' : '' }}">
+                            <i class="bi bi-box-arrow-in-right"></i><span>Gate In / Gate Out</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('yard.index') }}"
+                           class="nav-link {{ request()->routeIs('yard.index') ? 'active' : '' }}">
+                            <i class="bi bi-map"></i><span>Yard Overview</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('yard.storage') }}"
+                           class="nav-link {{ request()->routeIs('yard.storage*') ? 'active' : '' }}">
+                            <i class="bi bi-calculator"></i><span>Storage Calculator</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
 
-        {{-- Setup --}}
+        {{-- ── SETUP ── --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-setup"
                 aria-expanded="false" aria-controls="nav-section-setup">
             Setup <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse" id="nav-section-setup"
-             data-active="{{ $activeSection === 'setup' ? '1' : '0' }}">
-            <ul class="nav flex-column">
-                <li class="nav-sub-label">Yard Configuration</li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('masters.zones.index') }}"
-                       class="nav-link {{ request()->routeIs('masters.zones.*') ? 'active' : '' }}">
-                        <i class="bi bi-grid-3x3-gap"></i><span>Storage Zones</span>
-                    </a>
-                </li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('masters.equipment-types.index') }}"
-                       class="nav-link {{ request()->routeIs('masters.equipment-types.*') ? 'active' : '' }}">
-                        <i class="bi bi-box-seam"></i><span>Equipment Types</span>
-                    </a>
-                </li>
+        <div class="collapse" id="nav-section-setup">
+            {{-- Containers (Equipment) sub-group --}}
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-containers"
+                    aria-expanded="false" aria-controls="nav-sub-setup-containers">
+                <i class="bi bi-box-seam nav-sub-icon"></i>
+                <span>Containers</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse" id="nav-sub-setup-containers">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.equipment-types.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.equipment-types.*') ? 'active' : '' }}">
+                            <i class="bi bi-box-seam"></i><span>Equipment Types</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
-                <li class="nav-sub-label">Inspection</li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('masters.checklist.index') }}"
-                       class="nav-link {{ request()->routeIs('masters.checklist.*') ? 'active' : '' }}">
-                        <i class="bi bi-list-check"></i><span>Checklist Items</span>
-                    </a>
-                </li>
+            {{-- Yard Configuration sub-group --}}
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-yard"
+                    aria-expanded="false" aria-controls="nav-sub-setup-yard">
+                <i class="bi bi-grid-3x3-gap nav-sub-icon"></i>
+                <span>Yard Configuration</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse" id="nav-sub-setup-yard">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.zones.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.zones.*') ? 'active' : '' }}">
+                            <i class="bi bi-grid-3x3-gap"></i><span>Storage Zones</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
-                <li class="nav-sub-label">Tariffs</li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('masters.storage-tariff.index') }}"
-                       class="nav-link {{ request()->routeIs('masters.storage-tariff.*') ? 'active' : '' }}">
-                        <i class="bi bi-tags"></i><span>Storage</span>
-                    </a>
-                </li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('masters.handling-tariff.index') }}"
-                       class="nav-link {{ request()->routeIs('masters.handling-tariff.*') ? 'active' : '' }}">
-                        <i class="bi bi-tag"></i><span>Handling</span>
-                    </a>
-                </li>
-            </ul>
+            {{-- Inspection sub-group --}}
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-inspection"
+                    aria-expanded="false" aria-controls="nav-sub-setup-inspection">
+                <i class="bi bi-clipboard-check nav-sub-icon"></i>
+                <span>Inspection</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse" id="nav-sub-setup-inspection">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.checklist.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.checklist.*') ? 'active' : '' }}">
+                            <i class="bi bi-list-check"></i><span>Checklist Items</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            {{-- Tariffs sub-group --}}
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-tariffs"
+                    aria-expanded="false" aria-controls="nav-sub-setup-tariffs">
+                <i class="bi bi-tags nav-sub-icon"></i>
+                <span>Tariffs</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse" id="nav-sub-setup-tariffs">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.storage-tariff.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.storage-tariff.*') ? 'active' : '' }}">
+                            <i class="bi bi-hdd-stack"></i><span>Storage</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.handling-tariff.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.handling-tariff.*') ? 'active' : '' }}">
+                            <i class="bi bi-wrench"></i><span>Handling</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
 
-        {{-- Reports --}}
+        {{-- ── REPORTS ── --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-reports"
                 aria-expanded="false" aria-controls="nav-section-reports">
             Reports <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse" id="nav-section-reports"
-             data-active="{{ $activeSection === 'reports' ? '1' : '0' }}">
+        <div class="collapse" id="nav-section-reports">
             <ul class="nav flex-column">
                 <li class="nav-item">
                     <a href="{{ route('reports.inventory') }}"
@@ -517,45 +597,64 @@
             </ul>
         </div>
 
-        {{-- Settings --}}
+        {{-- ── SETTINGS ── --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-settings"
                 aria-expanded="false" aria-controls="nav-section-settings">
             Settings <i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse" id="nav-section-settings"
-             data-active="{{ $activeSection === 'settings' ? '1' : '0' }}">
-            <ul class="nav flex-column">
-                <li class="nav-sub-label">Billing</li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('billing.index') }}"
-                       class="nav-link {{ request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
-                        <i class="bi bi-file-earmark-text"></i><span>Storage Invoices</span>
-                    </a>
-                </li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('billing.storage-handling.index') }}"
-                       class="nav-link {{ request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
-                        <i class="bi bi-file-earmark-richtext"></i><span>Handling Invoices</span>
-                    </a>
-                </li>
+        <div class="collapse" id="nav-section-settings">
+            {{-- Billing sub-group --}}
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-settings-billing"
+                    aria-expanded="false" aria-controls="nav-sub-settings-billing">
+                <i class="bi bi-receipt-cutoff nav-sub-icon"></i>
+                <span>Billing</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse" id="nav-sub-settings-billing">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('billing.index') }}"
+                           class="nav-link {{ request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
+                            <i class="bi bi-file-earmark-text"></i><span>Storage Invoices</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('billing.storage-handling.index') }}"
+                           class="nav-link {{ request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
+                            <i class="bi bi-file-earmark-richtext"></i><span>Handling Invoices</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
-                <li class="nav-sub-label">Configuration</li>
-                <li class="nav-item sub-item">
-                    <a href="{{ route('settings.index') }}"
-                       class="nav-link {{ request()->routeIs('settings.index') || request()->routeIs('settings.update') ? 'active' : '' }}">
-                        <i class="bi bi-gear"></i><span>System Settings</span>
-                    </a>
-                </li>
-                @if(auth()->user()->isSystemAdmin())
-                <li class="nav-item sub-item">
-                    <a href="{{ route('settings.company.index') }}"
-                       class="nav-link {{ request()->routeIs('settings.company.*') ? 'active' : '' }}">
-                        <i class="bi bi-building"></i><span>Company Settings</span>
-                    </a>
-                </li>
-                @endif
-            </ul>
+            {{-- Configuration sub-group --}}
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-settings-config"
+                    aria-expanded="false" aria-controls="nav-sub-settings-config">
+                <i class="bi bi-sliders nav-sub-icon"></i>
+                <span>Configuration</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse" id="nav-sub-settings-config">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('settings.index') }}"
+                           class="nav-link {{ request()->routeIs('settings.index') || request()->routeIs('settings.update') ? 'active' : '' }}">
+                            <i class="bi bi-gear"></i><span>System Settings</span>
+                        </a>
+                    </li>
+                    @if(auth()->user()->isSystemAdmin())
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('settings.company.index') }}"
+                           class="nav-link {{ request()->routeIs('settings.company.*') ? 'active' : '' }}">
+                            <i class="bi bi-building"></i><span>Company Settings</span>
+                        </a>
+                    </li>
+                    @endif
+                </ul>
+            </div>
         </div>
 
     </div><!-- /sidebar-nav -->
@@ -705,42 +804,49 @@
         mainContent.classList.toggle('expanded');
     });
 
-    // ── Collapsible sidebar sections with localStorage persistence ──────────
-    const SECTIONS_KEY = 'cym_sidebar_sections';
+    // ── Collapsible sidebar (sections + sub-groups) with localStorage ───────
+    const SIDEBAR_KEY = 'cym_sidebar_state';
 
-    function saveSectionStates() {
+    function saveSidebarState() {
         const state = {};
-        document.querySelectorAll('.collapse[id^="nav-section-"]').forEach(el => {
+        document.querySelectorAll('#sidebar .collapse[id]').forEach(el => {
             state[el.id] = el.classList.contains('show');
         });
-        localStorage.setItem(SECTIONS_KEY, JSON.stringify(state));
+        localStorage.setItem(SIDEBAR_KEY, JSON.stringify(state));
     }
 
-    function restoreSectionStates() {
+    function restoreSidebarState() {
         let saved = {};
-        try { saved = JSON.parse(localStorage.getItem(SECTIONS_KEY) || '{}'); } catch(e) {}
+        try { saved = JSON.parse(localStorage.getItem(SIDEBAR_KEY) || '{}'); } catch(e) {}
 
-        document.querySelectorAll('.collapse[id^="nav-section-"]').forEach(el => {
-            const btn = document.querySelector(`[data-bs-target="#${el.id}"]`);
-            // Always keep the section containing the active link expanded
-            if (el.dataset.active === '1') {
-                el.classList.add('show');
-                btn && (btn.setAttribute('aria-expanded', 'true'));
-                return;
+        // Force-open every collapse that contains (or is an ancestor of) the active link
+        const activeLink = document.querySelector('#sidebar .nav-link.active');
+        if (activeLink) {
+            let node = activeLink.closest('.collapse');
+            while (node && node.id) {
+                node.classList.add('show');
+                const btn = document.querySelector(`[data-bs-target="#${node.id}"]`);
+                btn?.setAttribute('aria-expanded', 'true');
+                node = node.parentElement?.closest('.collapse');
             }
-            // Apply saved preference; default = closed if not yet stored
+        }
+
+        // Apply saved state for everything else (default: closed)
+        document.querySelectorAll('#sidebar .collapse[id]').forEach(el => {
+            if (el.classList.contains('show')) return; // already opened by active link
             const isOpen = saved.hasOwnProperty(el.id) ? saved[el.id] : false;
             el.classList.toggle('show', isOpen);
-            btn && btn.setAttribute('aria-expanded', String(isOpen));
+            const btn = document.querySelector(`[data-bs-target="#${el.id}"]`);
+            btn?.setAttribute('aria-expanded', String(isOpen));
         });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        restoreSectionStates();
+        restoreSidebarState();
 
-        document.querySelectorAll('.collapse[id^="nav-section-"]').forEach(el => {
-            el.addEventListener('hidden.bs.collapse', saveSectionStates);
-            el.addEventListener('shown.bs.collapse',  saveSectionStates);
+        document.querySelectorAll('#sidebar .collapse[id]').forEach(el => {
+            el.addEventListener('hidden.bs.collapse', saveSidebarState);
+            el.addEventListener('shown.bs.collapse',  saveSidebarState);
         });
 
         // Init Select2
