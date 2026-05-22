@@ -220,7 +220,7 @@
         }
         .nav-item a.nav-link.active {
             color: #fff;
-            background: rgba(33,150,243,.18);
+            background: rgba(255,255,255,.1);
             border-left-color: var(--primary);
             font-weight: 600;
         }
@@ -418,7 +418,7 @@
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-admin"
                 aria-expanded="false" aria-controls="nav-section-admin">
-            <i class="bi bi-shield-person section-icon"></i><span>Administration</span><i class="bi bi-chevron-down section-chevron"></i>
+            <i class="bi bi-person-lock section-icon"></i><span>Administration</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
         <div class="collapse" id="nav-section-admin">
             <ul class="nav flex-column">
