@@ -38,7 +38,7 @@ class CompanySettingController extends Controller
             'vat_number'   => ['nullable', 'string', 'max:100'],
             'tin_number'   => ['nullable', 'string', 'max:100'],
             'logo'         => ['nullable', 'image', 'max:2048'],
-            'icon'         => ['nullable', 'mimes:jpg,jpeg,png,svg,webp', 'max:512', 'dimensions:max_width=512,max_height=512'],
+            'icon'         => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
         ]);
 
         $settings = CompanySetting::current();

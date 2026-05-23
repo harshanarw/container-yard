@@ -109,9 +109,9 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Upload New Icon</label>
                         <input type="file" name="icon" id="iconInput" class="form-control form-control-sm @error('icon') is-invalid @enderror"
-                               accept=".jpg,.jpeg,.png,.svg,.webp" onchange="previewImage(this,'iconPreview')">
+                               accept=".jpg,.jpeg,.png,.ico,.svg,.webp" onchange="previewImage(this,'iconPreview')">
                         @error('icon')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        <div class="form-text">JPG, PNG, SVG, WebP. Max 512 KB. Square images work best.</div>
+                        <div class="form-text">JPG, PNG, ICO, SVG, WebP. Max 512 KB. Square images work best.</div>
                     </div>
                     <button type="submit" class="btn btn-primary btn-sm">
                         <i class="bi bi-upload me-1"></i>Upload Icon
