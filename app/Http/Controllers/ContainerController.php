@@ -138,20 +138,31 @@ class ContainerController extends Controller
         $uniqueRule = 'unique:containers,container_no' . ($exceptId ? ",{$exceptId}" : '');
 
         return [
+            // ── Identity ─────────────────────────────────────────────────
             'container_no'      => ['required', 'string', 'max:12', $uniqueRule, 'regex:/^[A-Z]{4}[0-9]{7}$/'],
             'category'          => ['required', 'in:consignee,owned,leased'],
             'equipment_type_id' => ['nullable', 'exists:equipment_types,id'],
             'manufacture_year'  => ['nullable', 'integer', 'min:1970', 'max:' . (date('Y') + 1)],
             'manufacturer'      => ['nullable', 'string', 'max:100'],
+            // ── Ownership ────────────────────────────────────────────────
             'owner_code'        => ['nullable', 'string', 'max:20'],
             'owner_name'        => ['nullable', 'string', 'max:100'],
+            'customer_id'       => ['nullable', 'exists:customers,id'],
+            // ── Leasing (only relevant when category = 'leased') ─────────
+            'lessor_name'       => ['nullable', 'string', 'max:150'],
+            'lessor_code'       => ['nullable', 'string', 'max:30'],
+            'lease_reference'   => ['nullable', 'string', 'max:100'],
+            'lease_start_date'  => ['nullable', 'date'],
+            'lease_end_date'    => ['nullable', 'date', 'after_or_equal:lease_start_date'],
+            // ── Weight specs ─────────────────────────────────────────────
             'gross_weight_kg'   => ['nullable', 'numeric', 'min:0', 'max:99999'],
             'tare_weight_kg'    => ['nullable', 'numeric', 'min:0', 'max:99999'],
             'max_payload_kg'    => ['nullable', 'numeric', 'min:0', 'max:99999'],
+            // ── CSC ──────────────────────────────────────────────────────
             'csc_plate_no'      => ['nullable', 'string', 'max:50'],
             'csc_expiry_date'   => ['nullable', 'date'],
+            // ── Notes ────────────────────────────────────────────────────
             'notes'             => ['nullable', 'string'],
-            'customer_id'       => ['nullable', 'exists:customers,id'],
         ];
     }
 

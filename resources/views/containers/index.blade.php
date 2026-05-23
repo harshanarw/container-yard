@@ -130,7 +130,7 @@
                         <th>Category</th>
                         <th>Size / Type</th>
                         <th>Year / Mfr</th>
-                        <th>Owner</th>
+                        <th>Owner / Lessor</th>
                         <th>Customer</th>
                         <th>Status</th>
                         <th>Location</th>
@@ -155,7 +155,19 @@
                     </td>
                     <td>{{ $c->size ? $c->size.'ft '.$c->type_code : '—' }}</td>
                     <td class="text-muted small">{{ $c->manufacture_year ?? '—' }}{{ $c->manufacturer ? ' / '.$c->manufacturer : '' }}</td>
-                    <td class="small">{{ $c->owner_name ?? $c->owner_code ?? '—' }}</td>
+                    <td class="small">
+                        @if($c->category === 'leased' && $c->lessor_name)
+                            {{ $c->lessor_name }}
+                            @php $le = $c->lease_end_date; @endphp
+                            @if($le && $le->isPast())
+                                <span class="badge bg-danger ms-1" style="font-size:.6rem;">Expired</span>
+                            @elseif($le && $le->lt(\Carbon\Carbon::today()->addDays(30)))
+                                <span class="badge bg-warning text-dark ms-1" style="font-size:.6rem;">Exp. Soon</span>
+                            @endif
+                        @else
+                            {{ $c->owner_name ?? $c->owner_code ?? '—' }}
+                        @endif
+                    </td>
                     <td class="small">{{ $c->customer?->name ?? '—' }}</td>
                     <td>
                         @php

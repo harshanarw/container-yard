@@ -98,6 +98,53 @@
             </div>
         </div>
 
+        {{-- Leasing Details (only for leased containers) --}}
+        @if($container->category === 'leased')
+        @php
+            $leaseExpired = $container->lease_end_date && $container->lease_end_date->lt($today);
+            $leaseSoon    = $container->lease_end_date && !$leaseExpired && $container->lease_end_date->lt($today->copy()->addDays(30));
+        @endphp
+        <div class="card content-card mb-4 border-warning">
+            <div class="card-header py-2 bg-warning-subtle">
+                <i class="bi bi-file-earmark-text me-2 text-warning"></i>Leasing Details
+                @if($leaseExpired)
+                    <span class="badge bg-danger ms-2">Lease Expired</span>
+                @elseif($leaseSoon)
+                    <span class="badge bg-warning text-dark ms-2">Expiring Soon</span>
+                @endif
+            </div>
+            <div class="card-body">
+                <div class="row g-0 small">
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr><th class="text-muted fw-normal" style="width:40%">Lessor Code</th><td>{{ $container->lessor_code ?? '—' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Lessor Name</th><td class="fw-semibold">{{ $container->lessor_name ?? '—' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Contract Ref.</th><td>{{ $container->lease_reference ?? '—' }}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr><th class="text-muted fw-normal" style="width:40%">Lease Start</th><td>{{ $container->lease_start_date?->format('d M Y') ?? '—' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Lease End</th>
+                                <td class="{{ $leaseExpired ? 'text-danger fw-semibold' : ($leaseSoon ? 'text-warning fw-semibold' : '') }}">
+                                    {{ $container->lease_end_date?->format('d M Y') ?? '—' }}
+                                </td>
+                            </tr>
+                            <tr><th class="text-muted fw-normal">Duration</th>
+                                <td>
+                                    @if($container->lease_start_date && $container->lease_end_date)
+                                        {{ $container->lease_start_date->diffInMonths($container->lease_end_date) }} months
+                                    @else —
+                                    @endif
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- CSC Plate --}}
         <div class="card content-card mb-4">
             <div class="card-header py-2">
