@@ -30,11 +30,11 @@
     </div>
 @endif
 
-{{-- Branding row: Logo + Icon side by side --}}
+{{-- Branding row: Logo + Icon + Product Icon --}}
 <div class="row g-4 mb-4">
 
     {{-- Logo Card --}}
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card content-card h-100">
             <div class="card-header py-2">
                 <i class="bi bi-image me-2 text-primary"></i>Company Logo
@@ -83,11 +83,11 @@
     </div>
 
     {{-- Icon Card --}}
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card content-card h-100">
             <div class="card-header py-2">
                 <i class="bi bi-badge me-2 text-primary"></i>Company Icon
-                <small class="text-muted fw-normal ms-1">— sidebar &amp; browser tab</small>
+                <small class="text-muted fw-normal ms-1">— browser tab favicon</small>
             </div>
             <div class="card-body">
                 <div class="text-center mb-3">
@@ -100,7 +100,7 @@
                             <i class="bi bi-boxes text-muted fs-3"></i>
                         </div>
                     @endif
-                    <div class="text-muted mt-2" style="font-size:.75rem;">Use a square image (recommended: 64×64 or 128×128 px)</div>
+                    <div class="text-muted mt-2" style="font-size:.75rem;">Recommended: 64×64 or 128×128 px</div>
                 </div>
 
                 <form method="POST" action="{{ route('settings.company.update') }}" enctype="multipart/form-data">
@@ -111,7 +111,7 @@
                         <input type="file" name="icon" id="iconInput" class="form-control form-control-sm @error('icon') is-invalid @enderror"
                                accept=".jpg,.jpeg,.png,.ico,.svg,.webp" onchange="previewImage(this,'iconPreview')">
                         @error('icon')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        <div class="form-text">JPG, PNG, ICO, SVG, WebP. Max 512 KB. Square images work best.</div>
+                        <div class="form-text">JPG, PNG, ICO, SVG, WebP. Max 512 KB.</div>
                     </div>
                     <button type="submit" class="btn btn-primary btn-sm">
                         <i class="bi bi-upload me-1"></i>Upload Icon
@@ -125,6 +125,58 @@
                     @method('DELETE')
                     <button type="submit" class="btn btn-outline-danger btn-sm">
                         <i class="bi bi-trash me-1"></i>Remove Icon
+                    </button>
+                </form>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    {{-- Product Icon Card --}}
+    <div class="col-md-4">
+        <div class="card content-card h-100">
+            <div class="card-header py-2">
+                <i class="bi bi-grid me-2 text-primary"></i>Product Icon
+                <small class="text-muted fw-normal ms-1">— sidebar brand area</small>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    @if($settings->product_icon_url)
+                        <img id="productIconPreview" src="{{ $settings->product_icon_url }}" alt="Product Icon"
+                             style="width:80px; height:80px; object-fit:contain; border:1px solid #dee2e6; border-radius:8px; padding:6px; background:#f8f9fa;">
+                    @else
+                        <div id="productIconPreview" class="d-flex align-items-center justify-content-center bg-light border rounded mx-auto"
+                             style="width:80px; height:80px;">
+                            <i class="bi bi-grid text-muted fs-3"></i>
+                        </div>
+                    @endif
+                    <div class="text-muted mt-2" style="font-size:.75rem;">Shown next to company name in the left sidebar</div>
+                </div>
+
+                <form method="POST" action="{{ route('settings.company.update') }}" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" name="company_name" value="{{ $settings->company_name }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Upload Product Icon</label>
+                        <input type="file" name="product_icon" id="productIconInput"
+                               class="form-control form-control-sm @error('product_icon') is-invalid @enderror"
+                               accept=".jpg,.jpeg,.png,.ico,.svg,.webp"
+                               onchange="previewImage(this,'productIconPreview')">
+                        @error('product_icon')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="form-text">JPG, PNG, ICO, SVG, WebP. Max 512 KB. Square works best.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-upload me-1"></i>Upload Product Icon
+                    </button>
+                </form>
+
+                @if($settings->product_icon_path)
+                <form method="POST" action="{{ route('settings.company.product-icon.delete') }}" class="mt-2"
+                      onsubmit="return confirm('Remove the current product icon?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-trash me-1"></i>Remove Product Icon
                     </button>
                 </form>
                 @endif

@@ -21,6 +21,7 @@ class CompanySetting extends Model
         'tin_number',
         'logo_path',
         'icon_path',
+        'product_icon_path',
     ];
 
     public static function current(): static
@@ -41,5 +42,10 @@ class CompanySetting extends Model
     public function getIconUrlAttribute(): ?string
     {
         return $this->icon_path ? Storage::url($this->icon_path) : null;
+    }
+
+    public function getProductIconUrlAttribute(): ?string
+    {
+        return $this->product_icon_path ? Storage::url($this->product_icon_path) : null;
     }
 }

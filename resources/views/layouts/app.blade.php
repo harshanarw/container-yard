@@ -376,8 +376,8 @@
 <nav id="sidebar">
 
     <a href="{{ route('dashboard') }}" class="sidebar-brand">
-        @if($companySetting?->icon_url)
-            <img src="{{ $companySetting->icon_url }}" alt="Icon"
+        @if($companySetting?->product_icon_url)
+            <img src="{{ $companySetting->product_icon_url }}" alt="Product Icon"
                  style="width:32px; height:32px; object-fit:contain; border-radius:6px; flex-shrink:0;">
         @else
             <i class="bi bi-boxes brand-icon"></i>

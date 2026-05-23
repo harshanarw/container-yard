@@ -37,12 +37,13 @@ class CompanySettingController extends Controller
             'website'      => ['nullable', 'string', 'max:200'],
             'vat_number'   => ['nullable', 'string', 'max:100'],
             'tin_number'   => ['nullable', 'string', 'max:100'],
-            'logo'         => ['nullable', 'image', 'max:2048'],
-            'icon'         => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
+            'logo'            => ['nullable', 'image', 'max:2048'],
+            'icon'            => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
+            'product_icon'    => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
         ]);
 
         $settings = CompanySetting::current();
-        $data = collect($validated)->except(['logo', 'icon'])->toArray();
+        $data = collect($validated)->except(['logo', 'icon', 'product_icon'])->toArray();
 
         if ($request->hasFile('logo')) {
             if ($settings->logo_path) {
@@ -56,6 +57,13 @@ class CompanySettingController extends Controller
                 Storage::disk('public')->delete($settings->icon_path);
             }
             $data['icon_path'] = $request->file('icon')->store('company', 'public');
+        }
+
+        if ($request->hasFile('product_icon')) {
+            if ($settings->product_icon_path) {
+                Storage::disk('public')->delete($settings->product_icon_path);
+            }
+            $data['product_icon_path'] = $request->file('product_icon')->store('company', 'public');
         }
 
         $settings->update($data);
@@ -90,5 +98,19 @@ class CompanySettingController extends Controller
         }
 
         return back()->with('success', 'Icon removed.');
+    }
+
+    public function deleteProductIcon()
+    {
+        $this->authorise();
+
+        $settings = CompanySetting::current();
+        if ($settings->product_icon_path) {
+            Storage::disk('public')->delete($settings->product_icon_path);
+            $settings->update(['product_icon_path' => null]);
+            CompanySetting::flushCache();
+        }
+
+        return back()->with('success', 'Product icon removed.');
     }
 }
