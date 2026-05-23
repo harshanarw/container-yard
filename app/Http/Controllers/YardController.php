@@ -138,25 +138,31 @@ class YardController extends Controller
             : now();
         $gateInDate = $gateInTime->toDateString(); // date portion used for storage billing
 
-        // Create or update container record
+        // Create or update container record — preserve existing master profile fields on update
+        $existing = Container::where('container_no', $validated['container_no'])->first();
+        $containerData = [
+            'equipment_type_id' => $eqt->id,
+            'size'              => $eqt->size,
+            'type_code'         => $eqt->type_code,
+            'customer_id'       => $validated['customer_id'],
+            'condition'         => $validated['condition'],
+            'cargo_status'      => $validated['cargo_status'],
+            'status'            => 'in_yard',
+            'location_zone'     => $validated['location_zone'],
+            'location_row'      => $validated['location_row'],
+            'location_bay'      => $validated['location_bay'],
+            'location_tier'     => $validated['location_tier'],
+            'seal_no'           => $validated['seal_no'],
+            'gate_in_date'      => $gateInDate,
+            'gate_out_date'     => null,
+        ];
+        // Only set category on first creation (new container gets consignee default)
+        if (!$existing) {
+            $containerData['category'] = 'consignee';
+        }
         $container = Container::updateOrCreate(
             ['container_no' => $validated['container_no']],
-            [
-                'equipment_type_id' => $eqt->id,
-                'size'              => $eqt->size,
-                'type_code'         => $eqt->type_code,
-                'customer_id'       => $validated['customer_id'],
-                'condition'         => $validated['condition'],
-                'cargo_status'      => $validated['cargo_status'],
-                'status'            => 'in_yard',
-                'location_zone'     => $validated['location_zone'],
-                'location_row'      => $validated['location_row'],
-                'location_bay'      => $validated['location_bay'],
-                'location_tier'     => $validated['location_tier'],
-                'seal_no'           => $validated['seal_no'],
-                'gate_in_date'      => $gateInDate,
-                'gate_out_date'     => null,
-            ]
+            $containerData
         );
 
         // Record gate movement

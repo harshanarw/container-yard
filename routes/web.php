@@ -47,7 +47,8 @@ Route::middleware(['auth'])->group(function () {
     // Customer Management
     Route::resource('customers', CustomerController::class);
 
-    // Container Management
+    // Container Master
+    Route::get('containers/master-lookup', [ContainerController::class, 'masterLookup'])->name('containers.master-lookup');
     Route::resource('containers', ContainerController::class);
 
     // Container Surveys (formerly Inquiries)

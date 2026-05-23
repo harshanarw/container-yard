@@ -66,6 +66,7 @@
                                 <i class="bi bi-upc-scan"></i>
                             </button>
                         </div>
+                        <div id="masterLookupInfo" class="mt-1 small d-none"></div>
                     </div>
 
                     <div class="row g-3">
@@ -482,6 +483,48 @@ btnOut.addEventListener('click', () => {
         }
         this.value = out;
     });
+})();
+
+// ── Container Master lookup on Gate-In ──────────────────────────────────────
+(function () {
+    const inp     = document.getElementById('containerNoIn');
+    const infoBox = document.getElementById('masterLookupInfo');
+    const eqtSel  = document.getElementById('gateEqtSelect');
+    let lastVal   = '';
+
+    async function lookupMaster(val) {
+        if (val.length !== 11 || val === lastVal) return;
+        lastVal = val;
+        try {
+            const res  = await fetch('{{ route("containers.master-lookup") }}?container_no=' + encodeURIComponent(val));
+            const data = await res.json();
+            if (data.found) {
+                infoBox.className = 'mt-1 small text-success';
+                infoBox.innerHTML = '<i class="bi bi-check-circle me-1"></i>Found in Container Master — profile pre-filled.';
+                // Pre-select equipment type if available
+                if (data.equipment_type_id) {
+                    for (const opt of eqtSel.options) {
+                        if (opt.value == data.equipment_type_id) {
+                            eqtSel.value = data.equipment_type_id;
+                            eqtSel.dispatchEvent(new Event('change'));
+                            break;
+                        }
+                    }
+                }
+            } else {
+                infoBox.className = 'mt-1 small text-muted';
+                infoBox.innerHTML = '<i class="bi bi-info-circle me-1"></i>New container — a master record will be created automatically.';
+            }
+        } catch (e) {
+            infoBox.className = 'd-none';
+        }
+    }
+
+    inp.addEventListener('input', function () {
+        if (this.value.length < 11) { infoBox.className = 'd-none'; lastVal = ''; }
+    });
+    inp.addEventListener('blur', function () { lookupMaster(this.value); });
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') lookupMaster(this.value); });
 })();
 
 // ── Equipment Type badges ───────────────────────────────────────────────────

@@ -529,6 +529,12 @@
             <div class="collapse" id="nav-sub-setup-containers">
                 <ul class="nav flex-column">
                     <li class="nav-item sub-item">
+                        <a href="{{ route('containers.index') }}"
+                           class="nav-link {{ request()->routeIs('containers.*') ? 'active' : '' }}">
+                            <i class="bi bi-boxes"></i><span>Container Master</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
                         <a href="{{ route('masters.equipment-types.index') }}"
                            class="nav-link {{ request()->routeIs('masters.equipment-types.*') ? 'active' : '' }}">
                             <i class="bi bi-box-seam"></i><span>Equipment Types</span>

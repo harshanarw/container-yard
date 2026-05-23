@@ -9,16 +9,34 @@ class Container extends Model
 {
     use HasFactory;
 
+    const CATEGORY_CONSIGNEE = 'consignee';
+    const CATEGORY_OWNED     = 'owned';
+    const CATEGORY_LEASED    = 'leased';
+
+    const CATEGORIES = [
+        self::CATEGORY_CONSIGNEE => 'Consignee',
+        self::CATEGORY_OWNED     => 'Owned',
+        self::CATEGORY_LEASED    => 'Leased',
+    ];
+
     protected $fillable = [
-        'container_no', 'equipment_type_id', 'size', 'type_code', 'location_zone', 'customer_id', 'condition',
+        'container_no', 'category', 'equipment_type_id', 'size', 'type_code',
+        'manufacture_year', 'manufacturer', 'owner_code', 'owner_name',
+        'gross_weight_kg', 'tare_weight_kg', 'max_payload_kg',
+        'csc_plate_no', 'csc_expiry_date', 'notes',
+        'location_zone', 'customer_id', 'condition',
         'cargo_status', 'status', 'location_row', 'location_bay', 'location_tier',
         'seal_no', 'gate_in_date', 'gate_out_date', 'csc_plate_valid',
     ];
 
     protected $casts = [
-        'gate_in_date'   => 'date',
-        'gate_out_date'  => 'date',
+        'gate_in_date'    => 'date',
+        'gate_out_date'   => 'date',
+        'csc_expiry_date' => 'date',
         'csc_plate_valid' => 'boolean',
+        'gross_weight_kg' => 'decimal:2',
+        'tare_weight_kg'  => 'decimal:2',
+        'max_payload_kg'  => 'decimal:2',
     ];
 
     // Relationships
