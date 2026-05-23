@@ -97,20 +97,20 @@
         .sidebar-nav::-webkit-scrollbar-thumb { background: #1976D2; border-radius: 2px; }
 
         /* ══ Level 1 — Section headers ══════════════════════════════════
-           Darkest background + near-white text + coloured icon.
-           These act as "chapter" dividers, most visually prominent.     */
+           Strongest dark overlay → most visually distinct "chapter" dividers.
+           Hover lightens slightly (consistent direction across all levels).  */
         .nav-section-label {
             font-size: .72rem;
             font-weight: 700;
             letter-spacing: .09em;
-            color: rgba(255,255,255,.88);
+            color: rgba(255,255,255,.92);
             text-transform: uppercase;
             padding: 9px 20px;
             gap: 10px;
             white-space: nowrap;
             overflow: hidden;
-            background: rgba(255,255,255,.05);
-            border-top: 1px solid rgba(255,255,255,.06);
+            background: rgba(0,0,0,.24);
+            border-top: 1px solid rgba(255,255,255,.07);
             /* button reset */
             display: flex;
             align-items: center;
@@ -124,22 +124,25 @@
         }
         .nav-section-label:hover {
             color: #fff;
-            background: rgba(0,0,0,.35);
+            background: rgba(0,0,0,.15);
+        }
+        .nav-section-label[aria-expanded="true"] {
+            background: rgba(0,0,0,.24);
         }
         .nav-section-label .section-icon {
             font-size: 1rem;
             flex-shrink: 0;
-            color: #64b5f6;
+            color: #90caf9;
             transition: color .15s;
         }
         .nav-section-label:hover .section-icon,
-        .nav-section-label[aria-expanded="true"] .section-icon { color: #90caf9; }
+        .nav-section-label[aria-expanded="true"] .section-icon { color: #bbdefb; }
         .nav-section-label .section-chevron {
             margin-left: auto;
             font-size: .65rem;
             transition: transform .2s;
             flex-shrink: 0;
-            color: rgba(255,255,255,.4);
+            color: rgba(255,255,255,.45);
         }
         .nav-section-label[aria-expanded="false"] .section-chevron { transform: rotate(-90deg); }
         #sidebar.collapsed .nav-section-label {
@@ -148,19 +151,19 @@
         }
 
         /* ══ Level 2 — Sub-group toggles ════════════════════════════════
-           Medium-dark background + dimmer text + left-border accent.
-           Clearly inside a section, clearly above leaf items.           */
+           Medium dark overlay → clearly inside a section, above leaf items.
+           Hover lightens (same direction as L1 and L3).                    */
         .nav-sub-toggle {
             display: flex;
             align-items: center;
             gap: 10px;
             padding: 9px 20px;
-            color: rgba(255,255,255,.52);
+            color: rgba(255,255,255,.65);
             font-size: .8rem;
             font-weight: 600;
-            background: rgba(0,0,0,.14);
+            background: rgba(0,0,0,.12);
             border: none;
-            border-left: 3px solid rgba(255,255,255,.1);
+            border-left: 3px solid rgba(255,255,255,.12);
             width: 100%;
             text-align: left;
             cursor: pointer;
@@ -169,37 +172,37 @@
             overflow: hidden;
         }
         .nav-sub-toggle:hover {
-            color: rgba(255,255,255,.8);
-            background: rgba(255,255,255,.05);
-            border-left-color: rgba(255,255,255,.28);
+            color: rgba(255,255,255,.88);
+            background: rgba(0,0,0,.05);
+            border-left-color: rgba(255,255,255,.30);
         }
         .nav-sub-toggle[aria-expanded="true"] {
-            color: rgba(255,255,255,.82);
-            background: rgba(33,150,243,.08);
-            border-left-color: #42a5f5;
+            color: rgba(255,255,255,.92);
+            background: rgba(33,150,243,.10);
+            border-left-color: #64b5f6;
         }
         .nav-sub-toggle i.nav-sub-icon {
             font-size: .9rem;
             flex-shrink: 0;
             min-width: 20px;
             text-align: center;
-            color: rgba(255,255,255,.38);
+            color: rgba(255,255,255,.40);
             transition: color .15s;
         }
         .nav-sub-toggle:hover i.nav-sub-icon,
-        .nav-sub-toggle[aria-expanded="true"] i.nav-sub-icon { color: rgba(255,255,255,.7); }
+        .nav-sub-toggle[aria-expanded="true"] i.nav-sub-icon { color: rgba(255,255,255,.75); }
         .nav-sub-toggle .sub-chevron {
             margin-left: auto;
             font-size: .58rem;
             transition: transform .2s;
             flex-shrink: 0;
-            color: rgba(255,255,255,.3);
+            color: rgba(255,255,255,.35);
         }
         .nav-sub-toggle[aria-expanded="false"] .sub-chevron { transform: rotate(-90deg); }
 
         /* ══ Level 3 — Leaf nav items ════════════════════════════════════
-           Transparent background + readable grey-white text.
-           The actual clickable destinations.                             */
+           Transparent background → most recessed, the bare sidebar base.
+           Hover adds a subtle white tint (consistent lightening direction). */
         .nav-item a.nav-link {
             color: rgba(255,255,255,.62);
             display: flex;
@@ -214,13 +217,13 @@
         .nav-item a.nav-link i { font-size: 1rem; flex-shrink: 0; min-width: 22px; text-align: center; }
         .nav-item a.nav-link span { font-size: .83rem; }
         .nav-item a.nav-link:hover {
-            color: rgba(255,255,255,.9);
-            background: rgba(255,255,255,.06);
-            border-left-color: rgba(255,255,255,.2);
+            color: rgba(255,255,255,.92);
+            background: rgba(255,255,255,.07);
+            border-left-color: rgba(255,255,255,.22);
         }
         .nav-item a.nav-link.active {
             color: #fff;
-            background: rgba(255,255,255,.1);
+            background: rgba(255,255,255,.12);
             border-left-color: var(--primary);
             font-weight: 600;
         }
