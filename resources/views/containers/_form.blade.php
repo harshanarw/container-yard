@@ -158,7 +158,7 @@
 
             {{-- Leasing Details — shown only when category = leased --}}
             <div class="card content-card mb-4 border-warning" id="leasingSection"
-                 style="{{ $cat === 'leased' ? '' : 'display:none;' }}">
+                 style="display:{{ $cat === 'leased' ? 'block' : 'none' }}">
                 <div class="card-header py-2 bg-warning-subtle">
                     <i class="bi bi-file-earmark-text me-2 text-warning"></i>Leasing Details
                     <span class="badge bg-warning text-dark ms-2 small">Required for Leased containers</span>
@@ -385,20 +385,22 @@
 
 @push('scripts')
 <script>
-(function () {
-    const catSel     = document.getElementById('categorySelect');
-    const leaseBlock = document.getElementById('leasingSection');
+document.addEventListener('DOMContentLoaded', function () {
+    var catSel     = document.getElementById('categorySelect');
+    var leaseBlock = document.getElementById('leasingSection');
+
+    if (!catSel || !leaseBlock) return;
 
     function toggleLease() {
         if (catSel.value === 'leased') {
-            leaseBlock.style.display = '';
+            leaseBlock.style.display = 'block';
         } else {
             leaseBlock.style.display = 'none';
         }
     }
 
     catSel.addEventListener('change', toggleLease);
-    toggleLease(); // run on load in case of old() repopulation
-})();
+    toggleLease(); // apply correct state on first load (handles old() repopulation)
+});
 </script>
 @endpush
