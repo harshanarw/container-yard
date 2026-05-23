@@ -97,20 +97,20 @@
         .sidebar-nav::-webkit-scrollbar-thumb { background: #1976D2; border-radius: 2px; }
 
         /* ══ Level 1 — Section headers ══════════════════════════════════
-           Strongest dark overlay → most visually distinct "chapter" dividers.
-           Hover lightens slightly (consistent direction across all levels).  */
+           Light white overlay → clear chapter divider, stays bright.
+           Hover adds a little more white (consistent lightening).       */
         .nav-section-label {
             font-size: .72rem;
             font-weight: 700;
             letter-spacing: .09em;
-            color: rgba(255,255,255,.92);
+            color: rgba(255,255,255,.95);
             text-transform: uppercase;
             padding: 9px 20px;
             gap: 10px;
             white-space: nowrap;
             overflow: hidden;
-            background: rgba(0,0,0,.24);
-            border-top: 1px solid rgba(255,255,255,.07);
+            background: rgba(255,255,255,.10);
+            border-top: 1px solid rgba(255,255,255,.08);
             /* button reset */
             display: flex;
             align-items: center;
@@ -124,10 +124,10 @@
         }
         .nav-section-label:hover {
             color: #fff;
-            background: rgba(0,0,0,.15);
+            background: rgba(255,255,255,.17);
         }
         .nav-section-label[aria-expanded="true"] {
-            background: rgba(0,0,0,.24);
+            background: rgba(255,255,255,.10);
         }
         .nav-section-label .section-icon {
             font-size: 1rem;
@@ -142,7 +142,7 @@
             font-size: .65rem;
             transition: transform .2s;
             flex-shrink: 0;
-            color: rgba(255,255,255,.45);
+            color: rgba(255,255,255,.50);
         }
         .nav-section-label[aria-expanded="false"] .section-chevron { transform: rotate(-90deg); }
         #sidebar.collapsed .nav-section-label {
@@ -151,19 +151,19 @@
         }
 
         /* ══ Level 2 — Sub-group toggles ════════════════════════════════
-           Medium dark overlay → clearly inside a section, above leaf items.
-           Hover lightens (same direction as L1 and L3).                    */
+           Smaller white overlay → sits between L1 and the bare sidebar.
+           Hover adds a little white (consistent with L1 and L3).       */
         .nav-sub-toggle {
             display: flex;
             align-items: center;
             gap: 10px;
             padding: 9px 20px;
-            color: rgba(255,255,255,.65);
+            color: rgba(255,255,255,.72);
             font-size: .8rem;
             font-weight: 600;
-            background: rgba(0,0,0,.12);
+            background: rgba(255,255,255,.05);
             border: none;
-            border-left: 3px solid rgba(255,255,255,.12);
+            border-left: 3px solid rgba(255,255,255,.14);
             width: 100%;
             text-align: left;
             cursor: pointer;
@@ -172,13 +172,13 @@
             overflow: hidden;
         }
         .nav-sub-toggle:hover {
-            color: rgba(255,255,255,.88);
-            background: rgba(0,0,0,.05);
-            border-left-color: rgba(255,255,255,.30);
+            color: rgba(255,255,255,.92);
+            background: rgba(255,255,255,.11);
+            border-left-color: rgba(255,255,255,.35);
         }
         .nav-sub-toggle[aria-expanded="true"] {
-            color: rgba(255,255,255,.92);
-            background: rgba(33,150,243,.10);
+            color: rgba(255,255,255,.95);
+            background: rgba(33,150,243,.15);
             border-left-color: #64b5f6;
         }
         .nav-sub-toggle i.nav-sub-icon {
@@ -186,11 +186,11 @@
             flex-shrink: 0;
             min-width: 20px;
             text-align: center;
-            color: rgba(255,255,255,.40);
+            color: rgba(255,255,255,.45);
             transition: color .15s;
         }
         .nav-sub-toggle:hover i.nav-sub-icon,
-        .nav-sub-toggle[aria-expanded="true"] i.nav-sub-icon { color: rgba(255,255,255,.75); }
+        .nav-sub-toggle[aria-expanded="true"] i.nav-sub-icon { color: rgba(255,255,255,.80); }
         .nav-sub-toggle .sub-chevron {
             margin-left: auto;
             font-size: .58rem;
@@ -217,13 +217,13 @@
         .nav-item a.nav-link i { font-size: 1rem; flex-shrink: 0; min-width: 22px; text-align: center; }
         .nav-item a.nav-link span { font-size: .83rem; }
         .nav-item a.nav-link:hover {
-            color: rgba(255,255,255,.92);
-            background: rgba(255,255,255,.07);
-            border-left-color: rgba(255,255,255,.22);
+            color: rgba(255,255,255,.95);
+            background: rgba(255,255,255,.10);
+            border-left-color: rgba(255,255,255,.28);
         }
         .nav-item a.nav-link.active {
             color: #fff;
-            background: rgba(255,255,255,.12);
+            background: rgba(255,255,255,.16);
             border-left-color: var(--primary);
             font-weight: 600;
         }
