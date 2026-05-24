@@ -53,7 +53,8 @@
                         @foreach($customers as $c)
                             <option value="{{ $c->id }}"
                                     data-email="{{ $c->email }}"
-                                    data-currency="{{ $c->currency }}">
+                                    data-currency="{{ $c->currency }}"
+                                    data-tax-exempt="{{ $c->tax_exempt ? '1' : '0' }}">
                                 {{ $c->name }}
                             </option>
                         @endforeach
@@ -104,9 +105,17 @@
                     </div>
                 </div>
 
+                <div id="taxExemptAlert" class="alert alert-warning py-2 small d-none mb-2">
+                    <i class="bi bi-shield-check me-1"></i>
+                    <strong>Tax Exempt Customer</strong> — all tax rates will be applied as 0%.
+                </div>
+
                 <div class="mb-2">
                     <div class="d-flex align-items-center justify-content-between mb-1">
-                        <label class="form-label fw-semibold mb-0">SSCL</label>
+                        <label class="form-label fw-semibold mb-0">
+                            SSCL
+                            <span class="text-muted fw-normal small ms-1" title="Fallback: used when no charge code is linked to the tariff rate">(fallback)</span>
+                        </label>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" id="applySscl" checked>
                         </div>
@@ -120,7 +129,10 @@
 
                 <div class="mb-3">
                     <div class="d-flex align-items-center justify-content-between mb-1">
-                        <label class="form-label fw-semibold mb-0">VAT</label>
+                        <label class="form-label fw-semibold mb-0">
+                            VAT
+                            <span class="text-muted fw-normal small ms-1" title="Fallback: used when no charge code is linked to the tariff rate">(fallback)</span>
+                        </label>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" id="applyVat" checked>
                         </div>
@@ -130,6 +142,7 @@
                                value="18" min="0" max="100" step="0.01">
                         <span class="input-group-text">%</span>
                     </div>
+                    <div class="form-text">Tax rates auto-derive from charge code mapping.</div>
                 </div>
 
                 <div class="mb-3">
@@ -200,10 +213,12 @@
                                     <th class="text-center">Period</th>
                                     <th class="text-center">Days</th>
                                     <th class="text-center">Free</th>
-                                    <th class="text-center">Chargeable</th>
+                                    <th class="text-center">Chgbl</th>
                                     <th class="text-end">Rate/Day</th>
                                     <th class="text-end">Subtotal</th>
+                                    <th class="text-end">Tax1%</th>
                                     <th class="text-end">SSCL</th>
+                                    <th class="text-end">Tax2%</th>
                                     <th class="text-end">VAT</th>
                                     <th class="text-end pe-3">Line Total</th>
                                 </tr>
@@ -252,6 +267,13 @@ const previewUrl = '{{ route("billing.preview") }}';
 let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
+
+// Show/hide tax exempt warning when customer changes
+document.getElementById('customerId').addEventListener('change', function () {
+    const opt = this.options[this.selectedIndex];
+    const exempt = opt && opt.dataset.taxExempt === '1';
+    document.getElementById('taxExemptAlert').classList.toggle('d-none', !exempt);
+});
 
 // Toggle SSCL/VAT input availability
 document.getElementById('applySscl').addEventListener('change', function () {
@@ -318,6 +340,9 @@ async function runPreview() {
 function renderPreview(data) {
     previewLines = data.lines || [];
 
+    // Tax exempt alert
+    document.getElementById('taxExemptAlert').classList.toggle('d-none', !data.tax_exempt);
+
     // Tariff alert
     const alertBox = document.getElementById('tariffAlert');
     if (!data.tariff_found) {
@@ -365,32 +390,32 @@ function renderPreview(data) {
             <td class="text-center ${l.chargeable_days > 0 ? 'text-danger fw-semibold' : 'text-success'}">${l.chargeable_days}d</td>
             <td class="text-end small">${fmtC(l.daily_rate, l.currency)}</td>
             <td class="text-end fw-semibold ${l.subtotal == 0 ? 'text-success' : ''}">${fmtC(l.subtotal, l.currency)}</td>
+            <td class="text-end small text-muted">${parseFloat(l.tax1_rate||0).toFixed(2)}%</td>
             <td class="text-end small text-secondary">${fmtC(l.line_sscl, l.currency)}</td>
+            <td class="text-end small text-muted">${parseFloat(l.tax2_rate||0).toFixed(2)}%</td>
             <td class="text-end small text-secondary">${fmtC(l.line_vat, l.currency)}</td>
             <td class="text-end pe-3 fw-bold">${fmtC(l.line_total, l.currency)}</td>
         </tr>
     `).join('');
 
     // Footer
-    const ssclLabel = data.sscl_percentage > 0 ? `SSCL (${parseFloat(data.sscl_percentage).toFixed(2)}%)` : 'SSCL';
-    const vatLabel  = data.vat_percentage  > 0 ? `VAT (${parseFloat(data.vat_percentage).toFixed(2)}%)`   : 'VAT';
     const tfoot = document.getElementById('previewFoot');
     tfoot.innerHTML = `
         <tr>
-            <td class="ps-3" colspan="12" style="text-align:right">Subtotal</td>
-            <td class="text-end pe-3">${fmtC(data.subtotal, currency)}</td>
+            <td class="ps-3" colspan="14" style="text-align:right">Subtotal</td>
+            <td class="text-end pe-3">${fmtC(data.subtotal, 'LKR')}</td>
         </tr>
         <tr class="text-muted" style="font-weight:400">
-            <td class="ps-3" colspan="12" style="text-align:right">${ssclLabel}</td>
-            <td class="text-end pe-3">${fmtC(data.sscl_amount, currency)}</td>
+            <td class="ps-3" colspan="14" style="text-align:right">SSCL</td>
+            <td class="text-end pe-3">${fmtC(data.sscl_amount, 'LKR')}</td>
         </tr>
         <tr class="text-muted" style="font-weight:400">
-            <td class="ps-3" colspan="12" style="text-align:right">${vatLabel}</td>
-            <td class="text-end pe-3">${fmtC(data.vat_amount, currency)}</td>
+            <td class="ps-3" colspan="14" style="text-align:right">VAT</td>
+            <td class="text-end pe-3">${fmtC(data.vat_amount, 'LKR')}</td>
         </tr>
         <tr class="table-primary">
-            <td class="ps-3" colspan="12" style="text-align:right">TOTAL</td>
-            <td class="text-end pe-3">${fmtC(data.total_amount, currency)}</td>
+            <td class="ps-3" colspan="14" style="text-align:right">TOTAL</td>
+            <td class="text-end pe-3">${fmtC(data.total_amount, 'LKR')}</td>
         </tr>
     `;
 }

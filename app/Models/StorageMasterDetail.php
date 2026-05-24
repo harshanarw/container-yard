@@ -14,6 +14,7 @@ class StorageMasterDetail extends Model
         'equipment_type_id',
         'storage_rate',
         'currency',
+        'charge_code_id',
     ];
 
     protected $casts = [
@@ -30,5 +31,10 @@ class StorageMasterDetail extends Model
     public function equipmentType()
     {
         return $this->belongsTo(EquipmentType::class);
+    }
+
+    public function chargeCode()
+    {
+        return $this->belongsTo(ChargeCode::class);
     }
 }

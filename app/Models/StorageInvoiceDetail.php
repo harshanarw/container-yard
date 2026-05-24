@@ -14,6 +14,7 @@ class StorageInvoiceDetail extends Model
         'gate_in_date', 'from_date', 'to_date',
         'total_days', 'free_days', 'chargeable_days',
         'daily_rate', 'currency', 'subtotal',
+        'charge_code_id', 'tax1_rate', 'tax2_rate',
         'line_sscl', 'line_vat', 'line_total',
     ];
 
@@ -23,6 +24,8 @@ class StorageInvoiceDetail extends Model
         'to_date'      => 'date',
         'daily_rate'   => 'decimal:2',
         'subtotal'     => 'decimal:2',
+        'tax1_rate'    => 'float',
+        'tax2_rate'    => 'float',
         'line_sscl'    => 'decimal:2',
         'line_vat'     => 'decimal:2',
         'line_total'   => 'decimal:2',
@@ -38,5 +41,10 @@ class StorageInvoiceDetail extends Model
     public function container()
     {
         return $this->belongsTo(Container::class);
+    }
+
+    public function chargeCode()
+    {
+        return $this->belongsTo(\App\Models\ChargeCode::class);
     }
 }

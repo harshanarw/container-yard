@@ -9,6 +9,7 @@ class HandlingTariffRate extends Model
     protected $fillable = [
         'handling_tariff_id', 'container_size',
         'lift_off_rate', 'lift_on_rate', 'currency',
+        'charge_code_id',
     ];
 
     protected $casts = [
@@ -19,6 +20,11 @@ class HandlingTariffRate extends Model
     public function tariff()
     {
         return $this->belongsTo(HandlingTariff::class, 'handling_tariff_id');
+    }
+
+    public function chargeCode()
+    {
+        return $this->belongsTo(ChargeCode::class);
     }
 
     public function getSizeLabelAttribute(): string

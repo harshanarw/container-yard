@@ -15,6 +15,7 @@ class StorageHandlingInvoiceLine extends Model
         'has_lift_off', 'lift_off_rate',
         'has_lift_on', 'lift_on_rate',
         'handling_currency', 'handling_subtotal',
+        'charge_code_id', 'tax1_rate', 'tax2_rate',
         'line_total', 'line_sscl', 'line_vat', 'line_grand_total',
     ];
 
@@ -30,6 +31,8 @@ class StorageHandlingInvoiceLine extends Model
         'has_lift_on'             => 'boolean',
         'lift_on_rate'            => 'decimal:2',
         'handling_subtotal'       => 'decimal:2',
+        'tax1_rate'               => 'float',
+        'tax2_rate'               => 'float',
         'line_total'              => 'decimal:2',
         'line_sscl'               => 'decimal:2',
         'line_vat'                => 'decimal:2',
@@ -39,5 +42,10 @@ class StorageHandlingInvoiceLine extends Model
     public function invoice()
     {
         return $this->belongsTo(StorageHandlingInvoice::class, 'invoice_id');
+    }
+
+    public function chargeCode()
+    {
+        return $this->belongsTo(\App\Models\ChargeCode::class);
     }
 }

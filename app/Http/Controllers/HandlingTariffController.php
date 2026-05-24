@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChargeCode;
 use App\Models\Customer;
 use App\Models\HandlingTariff;
 use App\Models\HandlingTariffRate;
@@ -57,7 +58,7 @@ class HandlingTariffController extends Controller
 
     public function show(HandlingTariff $handlingTariff)
     {
-        $handlingTariff->load(['shippingLine', 'rates', 'createdBy', 'updatedBy']);
+        $handlingTariff->load(['shippingLine', 'rates.chargeCode.taxCode', 'createdBy', 'updatedBy']);
 
         $usedSizes       = $handlingTariff->rates->pluck('container_size')->toArray();
         $availableSizes  = array_diff(self::SIZES, $usedSizes);
@@ -67,8 +68,10 @@ class HandlingTariffController extends Controller
             ->orderBy('name')
             ->get();
 
+        $chargeCodes = ChargeCode::with('taxCode')->where('is_active', true)->orderBy('sort_order')->get();
+
         return view('masters.handling-tariff.show',
-            compact('handlingTariff', 'availableSizes', 'shippingLines'));
+            compact('handlingTariff', 'availableSizes', 'shippingLines', 'chargeCodes'));
     }
 
     // ── Update header ────────────────────────────────────────────────────────
@@ -132,9 +135,10 @@ class HandlingTariffController extends Controller
                     }
                 },
             ],
-            'lift_off_rate' => 'required|numeric|min:0|max:99999.99',
-            'lift_on_rate'  => 'required|numeric|min:0|max:99999.99',
-            'currency'      => 'required|string|size:3',
+            'lift_off_rate'  => 'required|numeric|min:0|max:99999.99',
+            'lift_on_rate'   => 'required|numeric|min:0|max:99999.99',
+            'currency'       => 'required|string|size:3',
+            'charge_code_id' => 'nullable|exists:charge_codes,id',
         ]);
 
         $data['handling_tariff_id'] = $handlingTariff->id;
@@ -150,9 +154,10 @@ class HandlingTariffController extends Controller
         abort_if($rate->handling_tariff_id !== $handlingTariff->id, 403);
 
         $data = $request->validate([
-            'lift_off_rate' => 'required|numeric|min:0|max:99999.99',
-            'lift_on_rate'  => 'required|numeric|min:0|max:99999.99',
-            'currency'      => 'required|string|size:3',
+            'lift_off_rate'  => 'required|numeric|min:0|max:99999.99',
+            'lift_on_rate'   => 'required|numeric|min:0|max:99999.99',
+            'currency'       => 'required|string|size:3',
+            'charge_code_id' => 'nullable|exists:charge_codes,id',
         ]);
 
         $rate->update($data);

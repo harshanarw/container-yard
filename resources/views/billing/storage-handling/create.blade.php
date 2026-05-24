@@ -59,7 +59,8 @@
                     <select name="shipping_line_id" id="shippingLineId" class="form-select" required>
                         <option value="">— Select Shipping Line —</option>
                         @foreach($shippingLines as $sl)
-                            <option value="{{ $sl->id }}">
+                            <option value="{{ $sl->id }}"
+                                    data-tax-exempt="{{ $sl->tax_exempt ? '1' : '0' }}">
                                 [{{ $sl->code }}] {{ $sl->name }}
                             </option>
                         @endforeach
@@ -121,9 +122,17 @@
                     </div>
                 </div>
 
+                <div id="taxExemptAlert" class="alert alert-warning py-2 small d-none mb-2">
+                    <i class="bi bi-shield-check me-1"></i>
+                    <strong>Tax Exempt Customer</strong> — all tax rates will be applied as 0%.
+                </div>
+
                 <div class="mb-2">
                     <div class="d-flex align-items-center justify-content-between mb-1">
-                        <label class="form-label fw-semibold mb-0">SSCL</label>
+                        <label class="form-label fw-semibold mb-0">
+                            SSCL
+                            <span class="text-muted fw-normal small ms-1" title="Fallback: used when no charge code is linked to the tariff rate">(fallback)</span>
+                        </label>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" id="applySscl" checked>
                         </div>
@@ -137,7 +146,10 @@
 
                 <div class="mb-3">
                     <div class="d-flex align-items-center justify-content-between mb-1">
-                        <label class="form-label fw-semibold mb-0">VAT</label>
+                        <label class="form-label fw-semibold mb-0">
+                            VAT
+                            <span class="text-muted fw-normal small ms-1" title="Fallback: used when no charge code is linked to the tariff rate">(fallback)</span>
+                        </label>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" id="applyVat" checked>
                         </div>
@@ -147,6 +159,7 @@
                                value="18" min="0" max="100" step="0.01">
                         <span class="input-group-text">%</span>
                     </div>
+                    <div class="form-text">Tax rates auto-derive from charge code mapping.</div>
                 </div>
 
                 <div class="mb-3">
@@ -369,6 +382,13 @@ let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
 
+// Show/hide tax exempt warning when shipping line changes
+document.getElementById('shippingLineId').addEventListener('change', function () {
+    const opt = this.options[this.selectedIndex];
+    const exempt = opt && opt.dataset.taxExempt === '1';
+    document.getElementById('taxExemptAlert').classList.toggle('d-none', !exempt);
+});
+
 // Toggle SSCL/VAT input availability
 document.getElementById('applySscl').addEventListener('change', function () {
     document.getElementById('ssclPct').disabled = !this.checked;
@@ -433,6 +453,9 @@ async function runPreview() {
 
 function renderPreview(data) {
     previewLines = data.lines || [];
+
+    // Tax exempt alert
+    document.getElementById('taxExemptAlert').classList.toggle('d-none', !data.tax_exempt);
 
     // Tariff status alerts
     const alertBox = document.getElementById('tariffAlert');

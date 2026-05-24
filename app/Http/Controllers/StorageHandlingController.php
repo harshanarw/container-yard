@@ -75,14 +75,15 @@ class StorageHandlingController extends Controller
         ]);
 
         $shippingLine    = Customer::findOrFail($v['shipping_line_id']);
+        $taxExempt       = (bool) $shippingLine->tax_exempt;
         $periodFrom      = now()->parse($v['period_from'])->startOfDay();
         $periodTo        = now()->parse($v['period_to'])->startOfDay();
         $periodToEod     = now()->parse($v['period_to'])->endOfDay();   // for movement timestamps
         // exchange_rate is always "1 USD = X LKR" — LKR is the base/reporting currency
         $invoiceCurrency = strtoupper($v['invoice_currency'] ?? 'LKR');
         $exchangeRate    = (float) ($v['exchange_rate'] ?? 1.0);
-        $ssclPct         = (float) ($v['sscl_pct'] ?? 0);
-        $vatPct          = (float) ($v['vat_pct'] ?? 0);
+        $ssclPct         = (float) ($v['sscl_pct'] ?? 0);  // fallback rate
+        $vatPct          = (float) ($v['vat_pct'] ?? 0);   // fallback rate
 
         // ── Storage records active during period ─────────────────────────────
         $storageRecords = YardStorage::with(['container.equipmentType'])
@@ -110,6 +111,7 @@ class StorageHandlingController extends Controller
         if ($storageRecords->isEmpty() && $liftOffByContainer->isEmpty() && $liftOnByContainer->isEmpty()) {
             return response()->json([
                 'lines'                  => [],
+                'tax_exempt'             => $taxExempt,
                 'invoice_currency'       => $invoiceCurrency,
                 'exchange_rate'          => $exchangeRate,
                 'storage_subtotal'       => 0,
@@ -127,7 +129,7 @@ class StorageHandlingController extends Controller
         }
 
         // ── Active storage tariff ─────────────────────────────────────────────
-        $storageTariff = StorageMasterHeader::with('details.equipmentType')
+        $storageTariff = StorageMasterHeader::with('details.equipmentType', 'details.chargeCode.taxCode')
             ->where('customer_id', $shippingLine->id)
             ->where('is_active', true)
             ->where('valid_from', '<=', $periodTo)
@@ -136,7 +138,7 @@ class StorageHandlingController extends Controller
             ->first();
 
         // ── Active handling tariff ────────────────────────────────────────────
-        $handlingTariff = HandlingTariff::with('rates')
+        $handlingTariff = HandlingTariff::with('rates.chargeCode.taxCode')
             ->where('shipping_line_id', $shippingLine->id)
             ->where('is_active', true)
             ->where('valid_from', '<=', $periodTo)
@@ -158,20 +160,40 @@ class StorageHandlingController extends Controller
             $totalDays        = max(1, (int) $fromDate->diffInDays($toDate) + 1);
             $daysBeforePeriod = max(0, (int) $gateIn->diffInDays($fromDate));
 
-            $eqtId         = $container->equipment_type_id;
-            $freeDays      = $storageTariff?->default_free_days ?? $storage->free_days ?? 0;
-            $storageRate   = 0.0;
-            $storageCur    = 'USD';
+            $eqtId        = $container->equipment_type_id;
+            $freeDays     = $storageTariff?->default_free_days ?? $storage->free_days ?? 0;
+            $storageRate  = 0.0;
+            $storageCur   = 'USD';
+            $chargeCodeId = null;
+            $tax1Rate     = $taxExempt ? 0.0 : $ssclPct;  // fallback
+            $tax2Rate     = $taxExempt ? 0.0 : $vatPct;   // fallback
 
             if ($storageTariff) {
                 $detail = $storageTariff->details->firstWhere('equipment_type_id', $eqtId);
                 if ($detail) {
-                    $storageRate = (float) $detail->storage_rate;
-                    $storageCur  = $detail->currency;
+                    $storageRate  = (float) $detail->storage_rate;
+                    $storageCur   = $detail->currency;
+                    $chargeCodeId = $detail->charge_code_id;
+
+                    if (! $taxExempt && $detail->chargeCode?->taxCode) {
+                        $tax1Rate = (float) $detail->chargeCode->taxCode->tax1_rate;
+                        $tax2Rate = (float) $detail->chargeCode->taxCode->tax2_rate;
+                    }
                 }
             } else {
                 $storageRate = (float) $storage->daily_rate;
                 $freeDays    = (int)   ($storage->free_days ?? 0);
+            }
+
+            // If storage has no charge code, try the handling tariff's charge code
+            if ($chargeCodeId === null && $handlingTariff && ! $taxExempt) {
+                $containerSize = $this->normalizeSize($container->size ?? '');
+                $hRate = $handlingTariff->rates->firstWhere('container_size', $containerSize);
+                if ($hRate?->chargeCode?->taxCode) {
+                    $chargeCodeId = $hRate->charge_code_id;
+                    $tax1Rate     = (float) $hRate->chargeCode->taxCode->tax1_rate;
+                    $tax2Rate     = (float) $hRate->chargeCode->taxCode->tax2_rate;
+                }
             }
 
             $freeDaysRemaining = max(0, $freeDays - $daysBeforePeriod);
@@ -210,8 +232,8 @@ class StorageHandlingController extends Controller
                 2
             );
             $lineTotal      = round($storageSubtotal + $handlingSubtotal, 2);
-            $lineSscl       = round($lineTotal * $ssclPct / 100, 2);
-            $lineVat        = round(($lineTotal + $lineSscl) * $vatPct / 100, 2);
+            $lineSscl       = round($lineTotal * $tax1Rate / 100, 2);
+            $lineVat        = round(($lineTotal + $lineSscl) * $tax2Rate / 100, 2);
             $lineGrandTotal = round($lineTotal + $lineSscl + $lineVat, 2);
 
             $eqtLabel = $container->equipmentType
@@ -245,6 +267,9 @@ class StorageHandlingController extends Controller
                 'handling_tariff_currency' => $handlingCur,       // tariff rate currency
                 'handling_currency'        => 'LKR',   // amounts always stored in LKR
                 'handling_subtotal'        => $handlingSubtotal,
+                'charge_code_id'           => $chargeCodeId,
+                'tax1_rate'                => $tax1Rate,
+                'tax2_rate'                => $tax2Rate,
                 'line_total'               => $lineTotal,
                 'line_sscl'                => $lineSscl,
                 'line_vat'                 => $lineVat,
@@ -261,6 +286,7 @@ class StorageHandlingController extends Controller
 
         return response()->json([
             'shipping_line'          => $shippingLine->name,
+            'tax_exempt'             => $taxExempt,
             'lines'                  => $lines,
             'invoice_currency'       => $invoiceCurrency,
             'exchange_rate'          => $exchangeRate,
@@ -313,6 +339,9 @@ class StorageHandlingController extends Controller
             'lines.*.lift_on_rate'                => 'required|numeric|min:0',
             'lines.*.handling_currency'           => 'required|string|max:3',
             'lines.*.handling_subtotal'           => 'required|numeric|min:0',
+            'lines.*.charge_code_id'              => 'nullable|integer',
+            'lines.*.tax1_rate'                   => 'nullable|numeric|min:0',
+            'lines.*.tax2_rate'                   => 'nullable|numeric|min:0',
             'lines.*.line_total'                  => 'required|numeric|min:0',
             'lines.*.line_sscl'                   => 'required|numeric|min:0',
             'lines.*.line_vat'                    => 'required|numeric|min:0',
@@ -387,6 +416,9 @@ class StorageHandlingController extends Controller
                     'lift_on_rate'             => $line['lift_on_rate'],
                     'handling_currency'        => $line['handling_currency'],
                     'handling_subtotal'        => $line['handling_subtotal'],
+                    'charge_code_id'           => ($line['charge_code_id'] ?? null) ?: null,
+                    'tax1_rate'                => $line['tax1_rate'] ?? 0,
+                    'tax2_rate'                => $line['tax2_rate'] ?? 0,
                     'line_total'               => $line['line_total'],
                     'line_sscl'                => $line['line_sscl'],
                     'line_vat'                 => $line['line_vat'],

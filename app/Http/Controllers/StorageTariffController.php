@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChargeCode;
 use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\StorageMasterDetail;
@@ -53,16 +54,17 @@ class StorageTariffController extends Controller
 
     public function show(StorageMasterHeader $storageTariff)
     {
-        $storageTariff->load(['customer', 'details.equipmentType', 'createdBy', 'updatedBy']);
+        $storageTariff->load(['customer', 'details.equipmentType', 'details.chargeCode.taxCode', 'createdBy', 'updatedBy']);
 
         $usedTypeIds    = $storageTariff->details->pluck('equipment_type_id')->toArray();
         $availableTypes = EquipmentType::active()
             ->whereNotIn('id', $usedTypeIds)
             ->get();
 
-        $customers = Customer::orderBy('name')->get();
+        $customers   = Customer::orderBy('name')->get();
+        $chargeCodes = ChargeCode::with('taxCode')->where('is_active', true)->orderBy('sort_order')->get();
 
-        return view('masters.storage-tariff.show', compact('storageTariff', 'availableTypes', 'customers'));
+        return view('masters.storage-tariff.show', compact('storageTariff', 'availableTypes', 'customers', 'chargeCodes'));
     }
 
     // ── Update header ────────────────────────────────────────────────────────
@@ -126,8 +128,9 @@ class StorageTariffController extends Controller
                     }
                 },
             ],
-            'storage_rate' => 'required|numeric|min:0|max:99999.99',
-            'currency'     => 'required|string|size:3',
+            'storage_rate'   => 'required|numeric|min:0|max:99999.99',
+            'currency'       => 'required|string|size:3',
+            'charge_code_id' => 'nullable|exists:charge_codes,id',
         ]);
 
         $data['storage_master_header_id'] = $storageTariff->id;
@@ -143,8 +146,9 @@ class StorageTariffController extends Controller
         abort_if($detail->storage_master_header_id !== $storageTariff->id, 403);
 
         $data = $request->validate([
-            'storage_rate' => 'required|numeric|min:0|max:99999.99',
-            'currency'     => 'required|string|size:3',
+            'storage_rate'   => 'required|numeric|min:0|max:99999.99',
+            'currency'       => 'required|string|size:3',
+            'charge_code_id' => 'nullable|exists:charge_codes,id',
         ]);
 
         $detail->update($data);

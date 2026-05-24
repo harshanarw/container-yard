@@ -64,13 +64,14 @@ class StorageBillingController extends Controller
         ]);
 
         $customer        = Customer::findOrFail($validated['customer_id']);
+        $taxExempt       = (bool) $customer->tax_exempt;
         $periodFrom      = now()->parse($validated['period_from'])->startOfDay();
         $periodTo        = now()->parse($validated['period_to'])->startOfDay();
         // exchange_rate is always "1 USD = X LKR" — LKR is the base/reporting currency
         $invoiceCurrency = strtoupper($validated['invoice_currency'] ?? 'LKR');
         $exchangeRate    = (float) ($validated['exchange_rate'] ?? 1.0);
-        $ssclPct         = (float) ($validated['sscl_pct'] ?? 0);
-        $vatPct          = (float) ($validated['vat_pct'] ?? 0);
+        $ssclPct         = (float) ($validated['sscl_pct'] ?? 0);  // fallback rate
+        $vatPct          = (float) ($validated['vat_pct'] ?? 0);    // fallback rate
 
         // All active yard storage records for this customer whose gate-in is on or before period end
         $storageRecords = YardStorage::with(['container.equipmentType'])
@@ -97,7 +98,7 @@ class StorageBillingController extends Controller
         }
 
         // Find active tariff valid during the billing period
-        $tariffHeader = StorageMasterHeader::with('details.equipmentType')
+        $tariffHeader = StorageMasterHeader::with('details.equipmentType', 'details.chargeCode.taxCode')
             ->where('customer_id', $customer->id)
             ->where('is_active', true)
             ->where('valid_from', '<=', $periodTo)
@@ -127,16 +128,25 @@ class StorageBillingController extends Controller
             $daysBeforePeriod = max(0, (int) $gateIn->diffInDays($fromDate));
 
             // Resolve rate from tariff, fall back to stored rate at gate-in
-            $eqtId     = $container->equipment_type_id;
-            $freeDays  = $tariffHeader?->default_free_days ?? $storage->free_days ?? 0;
-            $dailyRate = 0.0;
-            $currency  = 'LKR';
+            $eqtId         = $container->equipment_type_id;
+            $freeDays      = $tariffHeader?->default_free_days ?? $storage->free_days ?? 0;
+            $dailyRate     = 0.0;
+            $currency      = 'LKR';
+            $chargeCodeId  = null;
+            $tax1Rate      = $taxExempt ? 0.0 : $ssclPct;  // fallback
+            $tax2Rate      = $taxExempt ? 0.0 : $vatPct;   // fallback
 
             if ($tariffHeader) {
                 $detail = $tariffHeader->details->firstWhere('equipment_type_id', $eqtId);
                 if ($detail) {
-                    $dailyRate = (float) $detail->storage_rate;
-                    $currency  = $detail->currency;
+                    $dailyRate    = (float) $detail->storage_rate;
+                    $currency     = $detail->currency;
+                    $chargeCodeId = $detail->charge_code_id;
+
+                    if (! $taxExempt && $detail->chargeCode?->taxCode) {
+                        $tax1Rate = (float) $detail->chargeCode->taxCode->tax1_rate;
+                        $tax2Rate = (float) $detail->chargeCode->taxCode->tax2_rate;
+                    }
                 }
             } else {
                 $dailyRate = (float) $storage->daily_rate;
@@ -152,8 +162,8 @@ class StorageBillingController extends Controller
             $dailyRateConverted = round($dailyRate * $exchangeRate, 2);
             $lineSubtotal       = round($chargeableDays * $dailyRateConverted, 2);
 
-            $lineSscl  = round($lineSubtotal * $ssclPct / 100, 2);
-            $lineVat   = round(($lineSubtotal + $lineSscl) * $vatPct / 100, 2);
+            $lineSscl  = round($lineSubtotal * $tax1Rate / 100, 2);
+            $lineVat   = round(($lineSubtotal + $lineSscl) * $tax2Rate / 100, 2);
             $lineTotal = round($lineSubtotal + $lineSscl + $lineVat, 2);
 
             $eqtLabel = $container->equipmentType
@@ -173,6 +183,9 @@ class StorageBillingController extends Controller
                 'daily_rate'      => $dailyRateConverted,
                 'currency'        => 'LKR',   // amounts always stored in LKR
                 'subtotal'        => $lineSubtotal,
+                'charge_code_id'  => $chargeCodeId,
+                'tax1_rate'       => $tax1Rate,
+                'tax2_rate'       => $tax2Rate,
                 'line_sscl'       => $lineSscl,
                 'line_vat'        => $lineVat,
                 'line_total'      => $lineTotal,
@@ -187,6 +200,7 @@ class StorageBillingController extends Controller
 
         return response()->json([
             'customer'         => $customer->name,
+            'tax_exempt'       => $taxExempt,
             'lines'            => $lines,
             'invoice_currency' => $invoiceCurrency,
             'exchange_rate'    => $exchangeRate,
@@ -228,6 +242,9 @@ class StorageBillingController extends Controller
             'lines.*.daily_rate'       => ['required', 'numeric', 'min:0'],
             'lines.*.currency'         => ['required', 'string', 'max:3'],
             'lines.*.subtotal'         => ['required', 'numeric', 'min:0'],
+            'lines.*.charge_code_id'   => ['nullable', 'integer'],
+            'lines.*.tax1_rate'        => ['nullable', 'numeric', 'min:0'],
+            'lines.*.tax2_rate'        => ['nullable', 'numeric', 'min:0'],
             'lines.*.line_sscl'        => ['required', 'numeric', 'min:0'],
             'lines.*.line_vat'         => ['required', 'numeric', 'min:0'],
             'lines.*.line_total'       => ['required', 'numeric', 'min:0'],
@@ -290,6 +307,9 @@ class StorageBillingController extends Controller
                     'daily_rate'         => $line['daily_rate'],
                     'currency'           => $line['currency'],
                     'subtotal'           => $line['subtotal'],
+                    'charge_code_id'     => ($line['charge_code_id'] ?? null) ?: null,
+                    'tax1_rate'          => $line['tax1_rate'] ?? 0,
+                    'tax2_rate'          => $line['tax2_rate'] ?? 0,
                     'line_sscl'          => $line['line_sscl'],
                     'line_vat'           => $line['line_vat'],
                     'line_total'         => $line['line_total'],

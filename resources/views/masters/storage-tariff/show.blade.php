@@ -184,6 +184,7 @@
                             <th style="width:80px;" class="text-center">ISO Code</th>
                             <th style="width:100px;" class="text-end">Daily Rate</th>
                             <th style="width:80px;" class="text-center">Currency</th>
+                            <th style="width:160px;">Charge Code / Tax</th>
                             <th style="width:100px;" class="text-end pe-3">Actions</th>
                         </tr>
                     </thead>
@@ -210,6 +211,20 @@
                                     {{ $detail->currency }}
                                 </span>
                             </td>
+                            <td>
+                                @if($detail->chargeCode)
+                                    <span class="badge bg-primary fw-bold" style="font-size:.75rem;">
+                                        {{ $detail->chargeCode->code }}
+                                    </span>
+                                    @if($detail->chargeCode->taxCode)
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle ms-1" style="font-size:.7rem;">
+                                            {{ $detail->chargeCode->taxCode->code }}
+                                        </span>
+                                    @endif
+                                @else
+                                    <span class="text-muted small">—</span>
+                                @endif
+                            </td>
                             <td class="text-end pe-3">
                                 <div class="btn-group btn-group-sm">
                                     <button type="button" class="btn btn-outline-primary btn-edit-rate"
@@ -218,6 +233,7 @@
                                             data-desc="{{ $detail->equipmentType->description ?? '' }}"
                                             data-rate="{{ $detail->storage_rate }}"
                                             data-currency="{{ $detail->currency }}"
+                                            data-charge_code_id="{{ $detail->charge_code_id ?? '' }}"
                                             title="Edit rate">
                                         <i class="bi bi-pencil"></i>
                                     </button>
@@ -232,7 +248,7 @@
                         </tr>
                     @empty
                         <tr id="emptyRow">
-                            <td colspan="5" class="text-center text-muted py-4">
+                            <td colspan="6" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox fs-4 d-block mb-1"></i>
                                 No rate lines yet. Add one below.
                             </td>
@@ -288,8 +304,22 @@
                             <option value="GBP">GBP</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold mb-1">
+                            <i class="bi bi-tag me-1 text-primary"></i>Charge Code
+                        </label>
+                        <select name="charge_code_id" class="form-select form-select-sm">
+                            <option value="">— None —</option>
+                            @foreach($chargeCodes as $cc)
+                                <option value="{{ $cc->id }}">
+                                    {{ $cc->code }} — {{ $cc->description }}
+                                    @if($cc->taxCode) ({{ $cc->taxCode->code }}) @endif
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary btn-sm w-100 mt-3">
                             <i class="bi bi-plus-circle me-1"></i>Add Rate
                         </button>
                     </div>
@@ -365,6 +395,21 @@
                             <option value="GBP">GBP</option>
                         </select>
                     </div>
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-tag me-1 text-primary"></i>Charge Code
+                        </label>
+                        <select name="charge_code_id" id="editRateChargeCode" class="form-select">
+                            <option value="">— None —</option>
+                            @foreach($chargeCodes as $cc)
+                                <option value="{{ $cc->id }}">
+                                    {{ $cc->code }} — {{ $cc->description }}
+                                    @if($cc->taxCode) ({{ $cc->taxCode->code }}) @endif
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Tax rates derive from the linked charge code.</div>
+                    </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
@@ -424,6 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('editRateDesc').textContent     = btn.dataset.desc || '';
             document.getElementById('editRateValue').value          = btn.dataset.rate;
             document.getElementById('editRateCurrency').value       = btn.dataset.currency;
+            document.getElementById('editRateChargeCode').value     = btn.dataset.charge_code_id || '';
             document.getElementById('editRateForm').action          = baseDetailUrl + '/' + btn.dataset.id;
             new bootstrap.Modal(document.getElementById('editRateModal')).show();
         });
