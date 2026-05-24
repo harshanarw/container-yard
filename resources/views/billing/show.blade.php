@@ -180,28 +180,33 @@
             </div>
         </div>
 
-        @if($invoice->billing_party_id && $invoice->billing_party_id !== $invoice->customer_id)
         <div class="card content-card mb-3">
             <div class="card-header">
                 <i class="bi bi-building me-2 text-primary"></i>Billing Party
             </div>
             <div class="card-body">
-                @php $bp = $invoice->billingParty; @endphp
+                @php $bp = $invoice->billingParty ?? $invoice->customer; @endphp
                 <div class="fw-semibold mb-1">{{ $bp->name ?? '—' }}</div>
                 @if($bp)
                     <div class="text-muted small">{{ $bp->address }}</div>
                     @if($bp->contact_person)
                     <div class="small mt-1">
                         <i class="bi bi-person me-1"></i>{{ $bp->contact_person }}
+                        @if($bp->designation) — {{ $bp->designation }} @endif
                     </div>
+                    @endif
+                    @if($bp->phone_office)
+                    <div class="small"><i class="bi bi-telephone me-1"></i>{{ $bp->phone_office }}</div>
                     @endif
                     @if($bp->email)
                     <div class="small"><i class="bi bi-envelope me-1"></i>{{ $bp->email }}</div>
                     @endif
+                    @if($invoice->billing_party_id === $invoice->customer_id || !$invoice->billing_party_id)
+                    <div class="mt-1 text-muted" style="font-size:.72rem;font-style:italic;">Same as customer</div>
+                    @endif
                 @endif
             </div>
         </div>
-        @endif
 
         <!-- Totals summary -->
         <div class="card content-card">

@@ -64,10 +64,12 @@
                 </div>
 
                 <!-- Billing Party Info (shown after customer selection) -->
-                <div id="billingPartyBox" class="alert alert-light py-2 small mb-2 d-none">
-                    <div class="text-muted mb-1" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Billing Party</div>
-                    <div class="fw-semibold" id="billingPartyName">—</div>
-                    <div class="text-muted" id="billingPartyAddress"></div>
+                <div id="billingPartyBox" class="p-2 rounded small mb-2" style="border-left:3px solid #0d6efd;background:#f8f9ff;">
+                    <div class="text-muted mb-1" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">
+                        <i class="bi bi-building me-1"></i>Billing Party
+                    </div>
+                    <div class="fw-semibold" id="billingPartyName" style="color:#6c757d;font-style:italic;">Select a customer to load billing party</div>
+                    <div class="text-muted" id="billingPartyAddress" style="font-size:.78rem;"></div>
                 </div>
 
                 <div id="taxExemptAlert" class="alert alert-warning py-2 small d-none mb-2">
@@ -262,17 +264,24 @@ document.getElementById('customerId').addEventListener('change', function () {
     // Auto-set invoice type
     document.getElementById('invoiceType').value = exempt ? 'invoice' : 'tax_invoice';
 
-    // Billing party info box
-    const bpId      = opt ? opt.dataset.billingPartyId   : '';
-    const bpName    = opt ? opt.dataset.billingPartyName : '';
-    const bpAddress = opt ? opt.dataset.billingPartyAddress : '';
-    const box = document.getElementById('billingPartyBox');
-    if (bpName) {
-        document.getElementById('billingPartyName').textContent    = bpName;
-        document.getElementById('billingPartyAddress').textContent = bpAddress || '';
-        box.classList.remove('d-none');
+    // Billing party info box — always visible
+    const nameEl    = document.getElementById('billingPartyName');
+    const addrEl    = document.getElementById('billingPartyAddress');
+    const bpName    = opt && this.value ? opt.dataset.billingPartyName    : '';
+    const bpAddress = opt && this.value ? opt.dataset.billingPartyAddress : '';
+    if (!this.value) {
+        nameEl.textContent = 'Select a customer to load billing party';
+        nameEl.style.cssText = 'color:#6c757d;font-style:italic;';
+        addrEl.textContent = '';
+    } else if (bpName) {
+        nameEl.textContent = bpName;
+        nameEl.style.cssText = 'font-weight:600;';
+        addrEl.textContent = bpAddress || '';
     } else {
-        box.classList.add('d-none');
+        nameEl.textContent = opt.text.replace(/^\[[^\]]+\]\s*/, '');
+        nameEl.style.cssText = 'font-weight:600;';
+        addrEl.textContent = '(Same as customer — no separate billing party configured)';
+        addrEl.style.cssText = 'font-size:.75rem;color:#6c757d;font-style:italic;';
     }
 });
 

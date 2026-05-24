@@ -186,13 +186,12 @@
             </div>
         </div>
 
-        @if($invoice->billing_party_id && $invoice->billing_party_id !== $invoice->shipping_line_id)
         <div class="card content-card mb-3">
             <div class="card-header">
                 <i class="bi bi-building-check me-2 text-primary"></i>Billing Party
             </div>
             <div class="card-body small">
-                @php $bp = $invoice->billingParty; @endphp
+                @php $bp = $invoice->billingParty ?? $invoice->shippingLine; @endphp
                 <div class="fw-semibold mb-1">{{ $bp->name ?? '—' }}</div>
                 @if($bp)
                     <div class="text-muted">{{ $bp->address }}</div>
@@ -202,10 +201,12 @@
                     @if($bp->email)
                     <div><i class="bi bi-envelope me-1"></i>{{ $bp->email }}</div>
                     @endif
+                    @if($invoice->billing_party_id === $invoice->shipping_line_id || !$invoice->billing_party_id)
+                    <div class="mt-1 text-muted" style="font-size:.72rem;font-style:italic;">Same as operator</div>
+                    @endif
                 @endif
             </div>
         </div>
-        @endif
 
         <div class="card content-card">
             <div class="card-header">
