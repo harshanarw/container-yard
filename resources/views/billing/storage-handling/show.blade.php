@@ -298,7 +298,14 @@
                                 <td class="text-center">
                                     <span class="badge bg-dark" style="font-size:.8rem;">{{ $line->container_size }}'</span>
                                 </td>
-                                <td class="small">{{ $line->equipment_type }}</td>
+                                <td class="small">
+                                    @if($line->equipmentType)
+                                        <span class="badge bg-dark" style="font-size:.72rem;">{{ $line->equipmentType->eqt_code }}</span>
+                                        <div class="text-muted" style="font-size:.65rem;">{{ $line->equipmentType->description }}</div>
+                                    @else
+                                        {{ $line->equipment_type }}
+                                    @endif
+                                </td>
                                 <td class="small">{{ $line->gate_in_date->format('d M Y') }}</td>
                                 <td class="text-center small">{{ $line->storage_from->format('d M Y') }}</td>
                                 <td class="text-center small">{{ $line->storage_to->format('d M Y') }}</td>
@@ -383,7 +390,13 @@
                                 <td class="text-center">
                                     <span class="badge bg-dark" style="font-size:.8rem;">{{ $l->container_size }}'</span>
                                 </td>
-                                <td class="small">{{ $l->equipment_type }}</td>
+                                <td class="small">
+                                    @if($l->equipmentType)
+                                        <span class="badge bg-dark" style="font-size:.72rem;">{{ $l->equipmentType->eqt_code }}</span>
+                                    @else
+                                        {{ $l->equipment_type }}
+                                    @endif
+                                </td>
                                 <td class="small">{{ $l->gate_in_date->format('d M Y') }}</td>
                                 <td class="text-end pe-2">{{ $fmtDisp($l->lift_off_rate) }}</td>
                                 <td class="text-end pe-2 fw-semibold">{{ $fmtDisp($l->lift_off_rate) }}</td>
@@ -433,7 +446,13 @@
                                 <td class="text-center">
                                     <span class="badge bg-dark" style="font-size:.8rem;">{{ $l->container_size }}'</span>
                                 </td>
-                                <td class="small">{{ $l->equipment_type }}</td>
+                                <td class="small">
+                                    @if($l->equipmentType)
+                                        <span class="badge bg-dark" style="font-size:.72rem;">{{ $l->equipmentType->eqt_code }}</span>
+                                    @else
+                                        {{ $l->equipment_type }}
+                                    @endif
+                                </td>
                                 <td class="small">
                                     {{ $l->gate_out_date ? $l->gate_out_date->format('d M Y') : '—' }}
                                 </td>

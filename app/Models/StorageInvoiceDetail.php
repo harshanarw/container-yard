@@ -10,7 +10,7 @@ class StorageInvoiceDetail extends Model
     use HasFactory;
 
     protected $fillable = [
-        'storage_invoice_id', 'container_id', 'container_no', 'equipment_type',
+        'storage_invoice_id', 'container_id', 'container_no', 'equipment_type_id', 'equipment_type',
         'gate_in_date', 'from_date', 'to_date',
         'total_days', 'free_days', 'chargeable_days',
         'daily_rate', 'currency', 'subtotal',
@@ -41,6 +41,11 @@ class StorageInvoiceDetail extends Model
     public function container()
     {
         return $this->belongsTo(Container::class);
+    }
+
+    public function equipmentType()
+    {
+        return $this->belongsTo(EquipmentType::class);
     }
 
     public function chargeCode()

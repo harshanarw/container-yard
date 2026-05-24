@@ -174,9 +174,10 @@ class StorageBillingController extends Controller
                 : ($container->size . "' " . $container->type_code);
 
             $lines[] = [
-                'container_id'    => $container->id,
-                'container_no'    => $container->container_no,
-                'equipment_type'  => $eqtLabel,
+                'container_id'       => $container->id,
+                'container_no'       => $container->container_no,
+                'equipment_type_id'  => $eqtId ?: null,
+                'equipment_type'     => $eqtLabel,
                 'gate_in_date'    => $gateIn->toDateString(),
                 'from_date'       => $fromDate->toDateString(),
                 'to_date'         => $toDate->toDateString(),
@@ -234,9 +235,10 @@ class StorageBillingController extends Controller
             'vat_percentage'           => ['nullable', 'numeric', 'min:0', 'max:100'],
             'notes'                    => ['nullable', 'string', 'max:1000'],
             'lines'                    => ['required', 'array', 'min:1'],
-            'lines.*.container_id'     => ['required', 'integer'],
-            'lines.*.container_no'     => ['required', 'string'],
-            'lines.*.equipment_type'   => ['required', 'string'],
+            'lines.*.container_id'       => ['required', 'integer'],
+            'lines.*.container_no'       => ['required', 'string'],
+            'lines.*.equipment_type_id'  => ['nullable', 'integer'],
+            'lines.*.equipment_type'     => ['required', 'string'],
             'lines.*.gate_in_date'     => ['required', 'date'],
             'lines.*.from_date'        => ['required', 'date'],
             'lines.*.to_date'          => ['required', 'date'],
@@ -302,6 +304,7 @@ class StorageBillingController extends Controller
                     'storage_invoice_id' => $invoice->id,
                     'container_id'       => $line['container_id'],
                     'container_no'       => $line['container_no'],
+                    'equipment_type_id'  => ($line['equipment_type_id'] ?? null) ?: null,
                     'equipment_type'     => $line['equipment_type'],
                     'gate_in_date'       => $line['gate_in_date'],
                     'from_date'          => $line['from_date'],
@@ -330,7 +333,7 @@ class StorageBillingController extends Controller
 
     public function show(StorageInvoice $invoice)
     {
-        $invoice->load(['customer', 'billingParty', 'details.chargeCode.taxCode', 'createdBy']);
+        $invoice->load(['customer', 'billingParty', 'details.equipmentType', 'details.chargeCode.taxCode', 'createdBy']);
         return view('billing.show', compact('invoice'));
     }
 

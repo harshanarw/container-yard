@@ -247,6 +247,7 @@ class StorageHandlingController extends Controller
                 'container_id'             => $container->id,
                 'container_no'             => $container->container_no,
                 'container_size'           => $containerSize,
+                'equipment_type_id'        => $eqtId ?: null,
                 'equipment_type'           => $eqtLabel,
                 'gate_in_date'             => $gateIn->toDateString(),
                 'gate_out_date'            => $storage->gate_out_date?->toDateString() ?? '',
@@ -326,6 +327,7 @@ class StorageHandlingController extends Controller
             'lines.*.container_id'                => 'required|integer',
             'lines.*.container_no'                => 'required|string',
             'lines.*.container_size'              => 'required|string',
+            'lines.*.equipment_type_id'           => 'nullable|integer',
             'lines.*.equipment_type'              => 'required|string',
             'lines.*.gate_in_date'                => 'required|date',
             'lines.*.gate_out_date'               => 'nullable|date',
@@ -404,6 +406,7 @@ class StorageHandlingController extends Controller
                     'container_id'             => $line['container_id'],
                     'container_no'             => $line['container_no'],
                     'container_size'           => $line['container_size'],
+                    'equipment_type_id'        => ($line['equipment_type_id'] ?? null) ?: null,
                     'equipment_type'           => $line['equipment_type'],
                     'gate_in_date'             => $line['gate_in_date'],
                     'gate_out_date'            => ($line['gate_out_date'] ?? '') ?: null,
@@ -441,7 +444,7 @@ class StorageHandlingController extends Controller
 
     public function show(StorageHandlingInvoice $storageHandlingInvoice)
     {
-        $storageHandlingInvoice->load(['shippingLine', 'billingParty', 'lines.chargeCode.taxCode', 'createdBy']);
+        $storageHandlingInvoice->load(['shippingLine', 'billingParty', 'lines.equipmentType', 'lines.chargeCode.taxCode', 'createdBy']);
         return view('billing.storage-handling.show', ['invoice' => $storageHandlingInvoice]);
     }
 

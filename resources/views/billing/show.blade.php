@@ -274,7 +274,14 @@
                             <tr class="{{ $line->chargeable_days === 0 ? 'text-muted' : '' }}">
                                 <td class="ps-3">{{ $i + 1 }}</td>
                                 <td class="font-monospace fw-semibold">{{ $line->container_no }}</td>
-                                <td class="small">{{ $line->equipment_type }}</td>
+                                <td class="small">
+                                    @if($line->equipmentType)
+                                        <span class="badge bg-dark" style="font-size:.72rem;">{{ $line->equipmentType->eqt_code }}</span>
+                                        <div class="text-muted" style="font-size:.65rem;">{{ $line->equipmentType->description }}</div>
+                                    @else
+                                        {{ $line->equipment_type }}
+                                    @endif
+                                </td>
                                 <td class="small">{{ $line->gate_in_date->format('d M Y') }}</td>
                                 <td class="text-center small">
                                     {{ $line->from_date->format('d M Y') }}<br>

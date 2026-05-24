@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class StorageHandlingInvoiceLine extends Model
 {
     protected $fillable = [
-        'invoice_id', 'container_id', 'container_no', 'container_size', 'equipment_type',
+        'invoice_id', 'container_id', 'container_no', 'container_size', 'equipment_type_id', 'equipment_type',
         'gate_in_date', 'gate_out_date',
         'storage_from', 'storage_to',
         'storage_total_days', 'storage_free_days', 'storage_chargeable_days',
@@ -42,6 +42,11 @@ class StorageHandlingInvoiceLine extends Model
     public function invoice()
     {
         return $this->belongsTo(StorageHandlingInvoice::class, 'invoice_id');
+    }
+
+    public function equipmentType()
+    {
+        return $this->belongsTo(EquipmentType::class);
     }
 
     public function chargeCode()
