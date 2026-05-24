@@ -60,7 +60,9 @@ class StorageHandlingController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('billing.storage-handling.create', compact('shippingLines'));
+        $allCustomers = Customer::where('status', 'active')->orderBy('name')->get();
+
+        return view('billing.storage-handling.create', compact('shippingLines', 'allCustomers'));
     }
 
     // ── AJAX preview ──────────────────────────────────────────────────────────
@@ -314,6 +316,7 @@ class StorageHandlingController extends Controller
     {
         $v = $request->validate([
             'shipping_line_id'                   => 'required|exists:customers,id',
+            'billing_party_id'                   => 'nullable|exists:customers,id',
             'invoice_type'                        => 'nullable|string|in:tax_invoice,invoice,debit_note',
             'invoice_date'                        => 'required|date',
             'invoice_currency'                    => 'nullable|string|size:3',
@@ -375,13 +378,11 @@ class StorageHandlingController extends Controller
         $invoice = null;
 
         DB::transaction(function () use ($v, $invoiceNo, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $ssclAmount, $vatAmount, $totalAmount, &$invoice) {
-            $billingPartyId = Customer::find($v['shipping_line_id'])?->billing_party_id;
-
             $invoice = StorageHandlingInvoice::create([
                 'invoice_no'          => $invoiceNo,
                 'invoice_type'        => $v['invoice_type'] ?? 'invoice',
                 'shipping_line_id'    => $v['shipping_line_id'],
-                'billing_party_id'    => $billingPartyId ?? $v['shipping_line_id'],
+                'billing_party_id'    => $v['billing_party_id'] ?? $v['shipping_line_id'],
                 'invoice_date'        => $v['invoice_date'],
                 'invoice_currency'    => $invoiceCurrency,
                 'exchange_rate'       => $exchangeRate,

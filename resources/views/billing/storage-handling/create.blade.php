@@ -76,13 +76,20 @@
                     @endif
                 </div>
 
-                <!-- Billing Party Info (shown after operator selection) -->
-                <div id="billingPartyBox" class="p-2 rounded small mb-2" style="border-left:3px solid #0d6efd;background:#f8f9ff;">
-                    <div class="text-muted mb-1" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">
-                        <i class="bi bi-building me-1"></i>Billing Party
+                <!-- Billing Party (searchable dropdown, auto-set from Customer master, overridable) -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Billing Party</label>
+                    <select name="billing_party_id" id="billingPartyId" class="form-select select2">
+                        <option value="">— Select Billing Party —</option>
+                        @foreach($allCustomers as $c)
+                            <option value="{{ $c->id }}" data-address="{{ $c->address ?? '' }}">
+                                [{{ $c->code }}] {{ $c->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <div id="billingPartyInfo" class="px-2 py-1 rounded small mt-1 d-none" style="border-left:3px solid #0d6efd;background:#f8f9ff;">
+                        <span class="text-muted" id="billingPartyAddress" style="font-size:.78rem;"></span>
                     </div>
-                    <div class="fw-semibold" id="billingPartyName" style="color:#6c757d;font-style:italic;">Select an operator to load billing party</div>
-                    <div class="text-muted" id="billingPartyAddress" style="font-size:.78rem;"></div>
                 </div>
 
                 <div id="taxExemptAlert" class="alert alert-warning py-2 small d-none mb-2">
@@ -380,25 +387,23 @@ document.getElementById('shippingLineId').addEventListener('change', function ()
     // Auto-set invoice type
     document.getElementById('invoiceType').value = exempt ? 'invoice' : 'tax_invoice';
 
-    // Billing party info box
-    // Billing party info box — always visible
-    const nameEl    = document.getElementById('billingPartyName');
-    const addrEl    = document.getElementById('billingPartyAddress');
-    const bpName    = opt && this.value ? opt.dataset.billingPartyName    : '';
-    const bpAddress = opt && this.value ? opt.dataset.billingPartyAddress : '';
-    if (!this.value) {
-        nameEl.textContent = 'Select an operator to load billing party';
-        nameEl.style.cssText = 'color:#6c757d;font-style:italic;';
-        addrEl.textContent = '';
-    } else if (bpName) {
-        nameEl.textContent = bpName;
-        nameEl.style.cssText = 'font-weight:600;';
-        addrEl.textContent = bpAddress || '';
+    // Auto-set billing party dropdown from Customer master mapping
+    const bpId = opt && this.value ? (opt.dataset.billingPartyId || this.value) : '';
+    $('#billingPartyId').val(bpId).trigger('change');
+});
+
+// Billing party: show address info panel on selection
+$('#billingPartyId').on('change', function () {
+    const opt    = this.options[this.selectedIndex];
+    const addr   = opt && this.value ? (opt.dataset.address || '') : '';
+    const infoEl = document.getElementById('billingPartyInfo');
+    const addrEl = document.getElementById('billingPartyAddress');
+    if (this.value && addr) {
+        addrEl.textContent = addr;
+        infoEl.classList.remove('d-none');
     } else {
-        nameEl.textContent = opt.text.replace(/^\[[^\]]+\]\s*/, '');
-        nameEl.style.cssText = 'font-weight:600;';
-        addrEl.textContent = '(Same as operator — no separate billing party configured)';
-        addrEl.style.cssText = 'font-size:.75rem;color:#6c757d;font-style:italic;';
+        addrEl.textContent = '';
+        infoEl.classList.add('d-none');
     }
 });
 
