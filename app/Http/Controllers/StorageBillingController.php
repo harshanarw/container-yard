@@ -253,9 +253,12 @@ class StorageBillingController extends Controller
         $invoice = null;
 
         DB::transaction(function () use ($validated, $invoiceNo, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $subtotal, $ssclAmount, $vatAmount, $totalAmount, &$invoice) {
+            $billingPartyId = Customer::find($validated['customer_id'])?->billing_party_id;
+
             $invoice = StorageInvoice::create([
                 'invoice_no'          => $invoiceNo,
                 'customer_id'         => $validated['customer_id'],
+                'billing_party_id'    => $billingPartyId ?? $validated['customer_id'],
                 'invoice_date'        => $validated['invoice_date'],
                 'invoice_currency'    => $invoiceCurrency,
                 'exchange_rate'       => $exchangeRate,

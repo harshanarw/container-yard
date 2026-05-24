@@ -109,6 +109,30 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                         <div class="text-muted small">Registration No. (SSM)</div>
                         <div>{{ $customer->registration_no ?: '—' }}</div>
                     </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Local Agent</div>
+                        <div>
+                            @if($customer->localAgent)
+                                <a href="{{ route('customers.show', $customer->localAgent) }}" class="text-decoration-none">
+                                    <span class="badge bg-secondary-subtle text-secondary border me-1">{{ $customer->localAgent->code }}</span>{{ $customer->localAgent->name }}
+                                </a>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Billing Party</div>
+                        <div>
+                            @if($customer->billingParty)
+                                <a href="{{ route('customers.show', $customer->billingParty) }}" class="text-decoration-none">
+                                    <span class="badge bg-secondary-subtle text-secondary border me-1">{{ $customer->billingParty->code }}</span>{{ $customer->billingParty->name }}
+                                </a>
+                            @else
+                                <span class="text-muted small fst-italic">Same as customer</span>
+                            @endif
+                        </div>
+                    </div>
                     <div class="col-12">
                         <div class="text-muted small">Address</div>
                         <div>{{ $customer->address ?: '—' }}</div>

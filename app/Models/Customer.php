@@ -17,6 +17,7 @@ class Customer extends Model
         'status',
         'contract_start', 'contract_end', 'email_notifications', 'auto_invoice',
         'tax_exempt',
+        'local_agent_id', 'billing_party_id',
         'logo', 'notes',
     ];
 
@@ -32,6 +33,16 @@ class Customer extends Model
     public function types()
     {
         return $this->belongsToMany(CustomerType::class)->orderBy('sort_order');
+    }
+
+    public function localAgent()
+    {
+        return $this->belongsTo(Customer::class, 'local_agent_id');
+    }
+
+    public function billingParty()
+    {
+        return $this->belongsTo(Customer::class, 'billing_party_id');
     }
 
     // Relationships

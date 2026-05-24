@@ -11,6 +11,33 @@ use Illuminate\Support\Facades\Storage;
 
 class CustomerController extends Controller
 {
+    public function search(Request $request)
+    {
+        $q           = trim($request->input('q', ''));
+        $localAgents = $request->boolean('local_agents');
+
+        $query = Customer::query()
+            ->when($localAgents, fn ($qb) =>
+                $qb->whereHas('types', fn ($qb2) =>
+                    $qb2->where('name', 'Local Agent')
+                )
+            )
+            ->where(fn ($qb) =>
+                $qb->where('name', 'like', "%{$q}%")
+                   ->orWhere('code', 'like', "%{$q}%")
+            )
+            ->orderBy('name')
+            ->limit(15)
+            ->get(['id', 'code', 'name']);
+
+        return response()->json($query->map(fn ($c) => [
+            'id'    => $c->id,
+            'label' => "{$c->code} — {$c->name}",
+            'name'  => $c->name,
+            'code'  => $c->code,
+        ]));
+    }
+
     public function index(Request $request)
     {
         $customers = Customer::query()
@@ -55,6 +82,8 @@ class CustomerController extends Controller
         $data['email_notifications'] = $request->boolean('email_notifications');
         $data['auto_invoice']        = $request->boolean('auto_invoice');
         $data['tax_exempt']          = $request->boolean('tax_exempt');
+        $data['local_agent_id']      = $request->input('local_agent_id') ?: null;
+        $data['billing_party_id']    = $request->input('billing_party_id') ?: null;
 
         $customer = Customer::create($data);
         $customer->types()->sync($request->input('types', []));
@@ -66,7 +95,7 @@ class CustomerController extends Controller
     public function show(Customer $customer)
     {
         $customer->loadCount(['containers', 'inquiries', 'estimates', 'gateMovements']);
-        $customer->load(['activeTariff.details', 'types']);
+        $customer->load(['activeTariff.details', 'types', 'localAgent', 'billingParty']);
         $recentContainers = $customer->containers()->latest()->take(5)->get();
         $recentEstimates  = $customer->estimates()->latest()->take(5)->get();
 
@@ -75,7 +104,7 @@ class CustomerController extends Controller
 
     public function edit(Customer $customer)
     {
-        $customer->load('types');
+        $customer->load(['types', 'localAgent', 'billingParty']);
         $customerTypes = CustomerType::where('is_active', true)->orderBy('sort_order')->get();
 
         return view('customers.edit', compact('customer', 'customerTypes'));
@@ -95,6 +124,8 @@ class CustomerController extends Controller
         $data['email_notifications'] = $request->boolean('email_notifications');
         $data['auto_invoice']        = $request->boolean('auto_invoice');
         $data['tax_exempt']          = $request->boolean('tax_exempt');
+        $data['local_agent_id']      = $request->input('local_agent_id') ?: null;
+        $data['billing_party_id']    = $request->input('billing_party_id') ?: null;
 
         $customer->update($data);
         $customer->types()->sync($request->input('types', []));

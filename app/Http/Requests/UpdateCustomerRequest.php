@@ -41,6 +41,8 @@ class UpdateCustomerRequest extends FormRequest
             'email_notifications' => ['boolean'],
             'auto_invoice'        => ['boolean'],
             'tax_exempt'          => ['boolean'],
+            'local_agent_id'      => ['nullable', 'integer', 'exists:customers,id'],
+            'billing_party_id'    => ['nullable', 'integer', 'exists:customers,id'],
             'logo'                => ['nullable', 'image', 'max:2048'],
             'notes'               => ['nullable', 'string'],
         ];

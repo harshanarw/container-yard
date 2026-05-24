@@ -47,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
 
     // Customer Management
+    Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search');
     Route::resource('customers', CustomerController::class);
 
     // Container Master

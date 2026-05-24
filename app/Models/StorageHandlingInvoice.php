@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class StorageHandlingInvoice extends Model
 {
     protected $fillable = [
-        'invoice_no', 'shipping_line_id', 'invoice_date',
+        'invoice_no', 'shipping_line_id', 'billing_party_id', 'invoice_date',
         'invoice_currency', 'exchange_rate',
         'billing_period_from', 'billing_period_to',
         'storage_subtotal', 'handling_subtotal', 'subtotal',
@@ -37,6 +37,11 @@ class StorageHandlingInvoice extends Model
     public function shippingLine()
     {
         return $this->belongsTo(Customer::class, 'shipping_line_id');
+    }
+
+    public function billingParty()
+    {
+        return $this->belongsTo(Customer::class, 'billing_party_id');
     }
 
     public function lines()

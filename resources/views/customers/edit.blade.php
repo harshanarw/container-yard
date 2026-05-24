@@ -101,6 +101,34 @@
                             <input type="text" name="country" class="form-control"
                                    value="{{ old('country', $customer->country) }}">
                         </div>
+                        @php
+                            $initLocalAgent   = $customer->localAgent;
+                            $initBillingParty = $customer->billingParty;
+                        @endphp
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Local Agent</label>
+                            <div class="customer-autocomplete" data-local-agents="1">
+                                <input type="hidden" name="local_agent_id" class="ac-id"
+                                       value="{{ old('local_agent_id', $customer->local_agent_id) }}">
+                                <input type="text" class="form-control ac-text" placeholder="Search by name or code…"
+                                       autocomplete="off"
+                                       value="{{ $initLocalAgent ? $initLocalAgent->code.' — '.$initLocalAgent->name : '' }}">
+                                <ul class="ac-dropdown list-group position-absolute shadow-sm" style="z-index:1000;display:none;width:100%;max-height:200px;overflow-y:auto;"></ul>
+                            </div>
+                            <div class="form-text">Only customers tagged as "Local Agent".</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Billing Party</label>
+                            <div class="customer-autocomplete" data-local-agents="0">
+                                <input type="hidden" name="billing_party_id" class="ac-id"
+                                       value="{{ old('billing_party_id', $customer->billing_party_id) }}">
+                                <input type="text" class="form-control ac-text" placeholder="Search by name or code…"
+                                       autocomplete="off"
+                                       value="{{ $initBillingParty ? $initBillingParty->code.' — '.$initBillingParty->name : '' }}">
+                                <ul class="ac-dropdown list-group position-absolute shadow-sm" style="z-index:1000;display:none;width:100%;max-height:200px;overflow-y:auto;"></ul>
+                            </div>
+                            <div class="form-text">Defaults to same customer if not specified.</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -297,3 +325,79 @@
 </form>
 
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const searchUrl = '{{ route("customers.search") }}';
+
+    document.querySelectorAll('.customer-autocomplete').forEach(function (widget) {
+        const localAgents = widget.dataset.localAgents === '1';
+        const idInput     = widget.querySelector('.ac-id');
+        const textInput   = widget.querySelector('.ac-text');
+        const dropdown    = widget.querySelector('.ac-dropdown');
+        let debounce      = null;
+
+        widget.style.position = 'relative';
+
+        textInput.addEventListener('input', function () {
+            clearTimeout(debounce);
+            const q = textInput.value.trim();
+            if (q.length < 1) { closeDropdown(); idInput.value = ''; return; }
+            debounce = setTimeout(function () { fetchResults(q); }, 280);
+        });
+
+        textInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeDropdown();
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!widget.contains(e.target)) closeDropdown();
+        });
+
+        function fetchResults(q) {
+            const url = searchUrl + '?q=' + encodeURIComponent(q) + (localAgents ? '&local_agents=1' : '');
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(renderDropdown);
+        }
+
+        function renderDropdown(items) {
+            dropdown.innerHTML = '';
+            if (!items.length) {
+                dropdown.innerHTML = '<li class="list-group-item py-2 small text-muted">No results found</li>';
+            } else {
+                items.forEach(function (item) {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item list-group-item-action py-2 small';
+                    li.textContent = item.label;
+                    li.style.cursor = 'pointer';
+                    li.addEventListener('click', function () { selectItem(item); });
+                    dropdown.appendChild(li);
+                });
+            }
+            dropdown.style.display = 'block';
+        }
+
+        function selectItem(item) {
+            idInput.value   = item.id;
+            textInput.value = item.label;
+            closeDropdown();
+
+            // Auto-fill billing party when local agent is picked (if billing party is blank)
+            if (localAgents) {
+                const form           = widget.closest('form');
+                const billingIdInput = form.querySelector('[name="billing_party_id"]');
+                const billingText    = form.querySelector('.customer-autocomplete[data-local-agents="0"] .ac-text');
+                if (billingIdInput && !billingIdInput.value) {
+                    billingIdInput.value = item.id;
+                    if (billingText) billingText.value = item.label;
+                }
+            }
+        }
+
+        function closeDropdown() { dropdown.style.display = 'none'; }
+    });
+})();
+</script>
+@endpush

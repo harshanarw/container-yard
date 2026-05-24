@@ -340,9 +340,12 @@ class StorageHandlingController extends Controller
         $invoice = null;
 
         DB::transaction(function () use ($v, $invoiceNo, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $ssclAmount, $vatAmount, $totalAmount, &$invoice) {
+            $billingPartyId = Customer::find($v['shipping_line_id'])?->billing_party_id;
+
             $invoice = StorageHandlingInvoice::create([
                 'invoice_no'          => $invoiceNo,
                 'shipping_line_id'    => $v['shipping_line_id'],
+                'billing_party_id'    => $billingPartyId ?? $v['shipping_line_id'],
                 'invoice_date'        => $v['invoice_date'],
                 'invoice_currency'    => $invoiceCurrency,
                 'exchange_rate'       => $exchangeRate,
