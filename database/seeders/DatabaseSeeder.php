@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             EstimateSeeder::class,
             StorageTariffSeeder::class,
             HandlingTariffSeeder::class,
+            TaxCodeSeeder::class,
         ]);
     }
 }
