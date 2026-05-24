@@ -108,9 +108,9 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Contact Person <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Contact Person</label>
                             <input type="text" name="contact_person" class="form-control"
-                                   placeholder="Full name" value="{{ old('contact_person') }}" required>
+                                   placeholder="Full name" value="{{ old('contact_person') }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Designation</label>
@@ -118,9 +118,9 @@
                                    placeholder="e.g. Operations Manager" value="{{ old('designation') }}">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Office Phone <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Office Phone</label>
                             <input type="text" name="phone_office" class="form-control"
-                                   placeholder="03-XXXXXXXX" value="{{ old('phone_office') }}" required>
+                                   placeholder="03-XXXXXXXX" value="{{ old('phone_office') }}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Mobile Phone</label>
@@ -133,9 +133,9 @@
                                    placeholder="03-XXXXXXXX" value="{{ old('fax') }}">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Email Address</label>
                             <input type="email" name="email" class="form-control"
-                                   placeholder="ops@company.com" value="{{ old('email') }}" required>
+                                   placeholder="ops@company.com" value="{{ old('email') }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Website</label>
