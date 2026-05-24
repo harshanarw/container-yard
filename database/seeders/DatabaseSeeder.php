@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             HandlingTariffSeeder::class,
             TaxCodeSeeder::class,
             ChargeCodeSeeder::class,
+            CurrencySeeder::class,
         ]);
     }
 }

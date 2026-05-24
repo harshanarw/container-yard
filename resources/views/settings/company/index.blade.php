@@ -296,6 +296,54 @@
         </div>
     </div>
 
+    {{-- Default Currency --}}
+    <div class="card content-card mb-4">
+        <div class="card-header py-2 d-flex align-items-center justify-content-between">
+            <span><i class="bi bi-currency-exchange me-2 text-primary"></i>Default Currency</span>
+            <small class="text-muted">The system-wide default currency for invoicing and reporting</small>
+        </div>
+        <div class="card-body">
+            @php $defaultCurrency = $currencies->firstWhere('is_default', true); @endphp
+            <form method="POST" action="{{ route('settings.company.default-currency') }}" class="row g-3 align-items-end">
+                @csrf @method('PATCH')
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Default Currency <span class="text-danger">*</span></label>
+                    <select name="currency_id" class="form-select select2" required>
+                        <option value="">— Select Currency —</option>
+                        @foreach($currencies as $cur)
+                            <option value="{{ $cur->id }}" {{ $defaultCurrency?->id === $cur->id ? 'selected' : '' }}>
+                                [{{ $cur->code }}] {{ $cur->name }}{{ $cur->country ? ' — ' . $cur->country : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="form-text">Applies to all new invoices and financial records</div>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-star me-1"></i>Set as Default
+                    </button>
+                </div>
+                @if($defaultCurrency)
+                    <div class="col-12">
+                        <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded"
+                             style="background:#fffbea;border:1px solid #ffc107;">
+                            <i class="bi bi-star-fill text-warning"></i>
+                            <span class="small">Current default:
+                                <strong>{{ $defaultCurrency->code }}</strong> — {{ $defaultCurrency->name }}
+                                @if($defaultCurrency->country)
+                                    <span class="text-muted">({{ $defaultCurrency->country }})</span>
+                                @endif
+                                @if($defaultCurrency->symbol)
+                                    <span class="badge bg-warning text-dark ms-1">{{ $defaultCurrency->symbol }}</span>
+                                @endif
+                            </span>
+                        </div>
+                    </div>
+                @endif
+            </form>
+        </div>
+    </div>
+
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary">
             <i class="bi bi-check-circle me-1"></i>Save Settings

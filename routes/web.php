@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChecklistMasterItemController;
 use App\Http\Controllers\CloudStorageSettingController;
 use App\Http\Controllers\CompanySettingController;
+use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\TaxCodeController;
 use App\Http\Controllers\ChargeCodeController;
@@ -156,6 +157,16 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{taxCode}/toggle',   [TaxCodeController::class, 'toggleActive'])->name('toggle');
             Route::delete('{taxCode}',         [TaxCodeController::class, 'destroy'])->name('destroy');
         });
+        // Currencies
+        Route::prefix('currencies')->name('currencies.')->group(function () {
+            Route::get('/',                          [CurrencyController::class, 'index'])->name('index');
+            Route::post('/',                         [CurrencyController::class, 'store'])->name('store');
+            Route::post('reorder',                   [CurrencyController::class, 'reorder'])->name('reorder');
+            Route::patch('{currency}/set-default',   [CurrencyController::class, 'setDefault'])->name('set-default');
+            Route::patch('{currency}/toggle',        [CurrencyController::class, 'toggleActive'])->name('toggle');
+            Route::patch('{currency}',               [CurrencyController::class, 'update'])->name('update');
+            Route::delete('{currency}',              [CurrencyController::class, 'destroy'])->name('destroy');
+        });
         // Handling Charges Tariff
         Route::prefix('handling-tariff')->name('handling-tariff.')->group(function () {
             Route::get('/',                                [HandlingTariffController::class, 'index'])->name('index');
@@ -231,6 +242,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('settings/company')->name('settings.company.')->group(function () {
         Route::get('/',        [CompanySettingController::class, 'index'])->name('index');
         Route::post('/',       [CompanySettingController::class, 'update'])->name('update');
+        Route::patch('/default-currency', [CompanySettingController::class, 'setDefaultCurrency'])->name('default-currency');
         Route::delete('/logo',         [CompanySettingController::class, 'deleteLogo'])->name('logo.delete');
         Route::delete('/icon',         [CompanySettingController::class, 'deleteIcon'])->name('icon.delete');
         Route::delete('/product-icon', [CompanySettingController::class, 'deleteProductIcon'])->name('product-icon.delete');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CompanySetting;
+use App\Models\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -18,8 +19,28 @@ class CompanySettingController extends Controller
     public function index()
     {
         $this->authorise();
-        $settings = CompanySetting::current();
-        return view('settings.company.index', compact('settings'));
+        $settings   = CompanySetting::current();
+        $currencies = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
+        return view('settings.company.index', compact('settings', 'currencies'));
+    }
+
+    public function setDefaultCurrency(Request $request)
+    {
+        $this->authorise();
+
+        $validated = $request->validate([
+            'currency_id' => ['required', 'exists:currencies,id'],
+        ]);
+
+        $currency = Currency::findOrFail($validated['currency_id']);
+
+        if (!$currency->is_active) {
+            return back()->with('error', 'Cannot set an inactive currency as the system default.');
+        }
+
+        Currency::setDefault($currency);
+
+        return back()->with('success', "Default currency updated to {$currency->code} — {$currency->name}.");
     }
 
     public function update(Request $request)

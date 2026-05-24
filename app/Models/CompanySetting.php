@@ -19,6 +19,7 @@ class CompanySetting extends Model
         'website',
         'vat_number',
         'tin_number',
+        'default_currency_code',
         'logo_path',
         'icon_path',
         'product_icon_path',
