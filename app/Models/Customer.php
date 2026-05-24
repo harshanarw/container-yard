@@ -4,13 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\CustomerType;
 
 class Customer extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'code', 'name', 'type', 'registration_no', 'address', 'city', 'state',
+        'code', 'name', 'registration_no', 'address', 'city', 'state',
         'country', 'contact_person', 'designation', 'phone_office', 'phone_mobile',
         'fax', 'email', 'website', 'currency', 'credit_limit', 'payment_terms',
         'status',
@@ -27,6 +28,11 @@ class Customer extends Model
         'auto_invoice'        => 'boolean',
         'tax_exempt'          => 'boolean',
     ];
+
+    public function types()
+    {
+        return $this->belongsToMany(CustomerType::class)->orderBy('sort_order');
+    }
 
     // Relationships
     public function containers()

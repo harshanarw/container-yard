@@ -3,17 +3,26 @@
 namespace Database\Seeders;
 
 use App\Models\Customer;
+use App\Models\CustomerType;
 use Illuminate\Database\Seeder;
 
 class CustomerSeeder extends Seeder
 {
+    private array $typeMap = [
+        'shipping_line'     => ['Shipping Line'],
+        'freight_forwarder' => ['Forwarder'],
+        'depot_owner'       => ['Local Yard'],
+        'nvo_carrier'       => ['NVOCC'],
+        'leasing_company'   => ['Container Operator'],
+    ];
+
     public function run(): void
     {
         $customers = [
             [
                 'code'            => 'MSK',
                 'name'            => 'Maersk Line Malaysia Sdn Bhd',
-                'type'            => 'shipping_line',
+                '_types'          => 'shipping_line',
                 'registration_no' => '199301012345',
                 'address'         => 'Level 25, Menara Maxis, Kuala Lumpur City Centre',
                 'city'            => 'Kuala Lumpur',
@@ -40,7 +49,7 @@ class CustomerSeeder extends Seeder
             [
                 'code'            => 'CMA',
                 'name'            => 'CMA CGM (Malaysia) Sdn Bhd',
-                'type'            => 'shipping_line',
+                '_types'          => 'shipping_line',
                 'registration_no' => '200001023456',
                 'address'         => 'Suite 12-1, Menara IGB, Mid Valley City',
                 'city'            => 'Kuala Lumpur',
@@ -67,7 +76,7 @@ class CustomerSeeder extends Seeder
             [
                 'code'            => 'PIL',
                 'name'            => 'Pacific International Lines (M) Sdn Bhd',
-                'type'            => 'shipping_line',
+                '_types'          => 'shipping_line',
                 'registration_no' => '199801034567',
                 'address'         => 'Jalan Tun Abdul Razak, Johor Bahru',
                 'city'            => 'Johor Bahru',
@@ -94,7 +103,7 @@ class CustomerSeeder extends Seeder
             [
                 'code'            => 'HAP',
                 'name'            => 'Hapag-Lloyd Malaysia Sdn Bhd',
-                'type'            => 'shipping_line',
+                '_types'          => 'shipping_line',
                 'registration_no' => '200501045678',
                 'address'         => 'Level 18, Menara AmBank, Jalan Yap Kwan Seng',
                 'city'            => 'Kuala Lumpur',
@@ -121,7 +130,7 @@ class CustomerSeeder extends Seeder
             [
                 'code'            => 'OOC',
                 'name'            => 'OOCL Malaysia Sdn Bhd',
-                'type'            => 'shipping_line',
+                '_types'          => 'shipping_line',
                 'registration_no' => '199901056789',
                 'address'         => 'Wisma Consplant 1, Jalan SS 16/4, Subang Jaya',
                 'city'            => 'Subang Jaya',
@@ -148,7 +157,7 @@ class CustomerSeeder extends Seeder
             [
                 'code'            => 'EVG',
                 'name'            => 'Evergreen Marine (Malaysia) Sdn Bhd',
-                'type'            => 'shipping_line',
+                '_types'          => 'shipping_line',
                 'registration_no' => '200201067890',
                 'address'         => 'Tingkat 12, Menara Shell, Jalan Tun Sambanthan',
                 'city'            => 'Kuala Lumpur',
@@ -175,7 +184,7 @@ class CustomerSeeder extends Seeder
             [
                 'code'            => 'MSC',
                 'name'            => 'MSC Malaysia Sdn Bhd',
-                'type'            => 'shipping_line',
+                '_types'          => 'shipping_line',
                 'registration_no' => '200801078901',
                 'address'         => 'Suite 6-1, Menara Landmark, Jalan Bukit Bintang',
                 'city'            => 'Kuala Lumpur',
@@ -202,7 +211,7 @@ class CustomerSeeder extends Seeder
             [
                 'code'            => 'ZIM',
                 'name'            => 'Zim Integrated Shipping Services (M) Sdn Bhd',
-                'type'            => 'nvo_carrier',
+                '_types'          => 'nvo_carrier',
                 'registration_no' => '201001089012',
                 'address'         => 'Jalan Pelabuhan, Port Klang',
                 'city'            => 'Port Klang',
@@ -229,7 +238,7 @@ class CustomerSeeder extends Seeder
             [
                 'code'            => 'FRX',
                 'name'            => 'Freight Express Sdn Bhd',
-                'type'            => 'freight_forwarder',
+                '_types'          => 'freight_forwarder',
                 'registration_no' => '201501090123',
                 'address'         => 'No. 12, Jalan Perindustrian, Kawasan Perindustrian Pandamaran',
                 'city'            => 'Port Klang',
@@ -256,7 +265,7 @@ class CustomerSeeder extends Seeder
             [
                 'code'            => 'PDB',
                 'name'            => 'Port Depot Berhad',
-                'type'            => 'depot_owner',
+                '_types'          => 'depot_owner',
                 'registration_no' => '201201101234',
                 'address'         => 'Lot 5, Jalan Pelabuhan Barat, Pulau Indah Industrial Park',
                 'city'            => 'Port Klang',
@@ -282,8 +291,16 @@ class CustomerSeeder extends Seeder
             ],
         ];
 
-        foreach ($customers as $customer) {
-            Customer::firstOrCreate(['code' => $customer['code']], $customer);
+        foreach ($customers as $data) {
+            $oldType = $data['_types'] ?? null;
+            unset($data['_types']);
+
+            $customer = Customer::firstOrCreate(['code' => $data['code']], $data);
+
+            if ($oldType && isset($this->typeMap[$oldType])) {
+                $typeIds = CustomerType::whereIn('name', $this->typeMap[$oldType])->pluck('id');
+                $customer->types()->syncWithoutDetaching($typeIds);
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChecklistMasterItemController;
 use App\Http\Controllers\CloudStorageSettingController;
 use App\Http\Controllers\CompanySettingController;
+use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\TaxCodeController;
 use App\Http\Controllers\ContainerController;
 use App\Http\Controllers\CustomerController;
@@ -124,6 +125,15 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{equipmentType}/toggle',    [EquipmentTypeController::class, 'toggleActive'])->name('toggle');
             Route::delete('{equipmentType}',          [EquipmentTypeController::class, 'destroy'])->name('destroy');
             Route::post('reorder',                    [EquipmentTypeController::class, 'reorder'])->name('reorder');
+        });
+        // Customer Types
+        Route::prefix('customer-types')->name('customer-types.')->group(function () {
+            Route::get('/',                       [CustomerTypeController::class, 'index'])->name('index');
+            Route::post('/',                      [CustomerTypeController::class, 'store'])->name('store');
+            Route::post('reorder',                [CustomerTypeController::class, 'reorder'])->name('reorder');
+            Route::patch('{customerType}',        [CustomerTypeController::class, 'update'])->name('update');
+            Route::patch('{customerType}/toggle', [CustomerTypeController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{customerType}',       [CustomerTypeController::class, 'destroy'])->name('destroy');
         });
         // Tax Codes
         Route::prefix('tax-codes')->name('tax-codes.')->group(function () {

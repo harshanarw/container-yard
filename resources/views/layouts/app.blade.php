@@ -609,6 +609,26 @@
                 </ul>
             </div>
 
+            {{-- Customer sub-group --}}
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-customer"
+                    aria-expanded="{{ request()->routeIs('masters.customer-types.*') ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-setup-customer">
+                <i class="bi bi-person-badge nav-sub-icon"></i>
+                <span>Customer</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ request()->routeIs('masters.customer-types.*') ? 'show' : '' }}" id="nav-sub-setup-customer">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.customer-types.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.customer-types.*') ? 'active' : '' }}">
+                            <i class="bi bi-tags"></i><span>Customer Types</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
             {{-- Invoice sub-group --}}
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-invoice"

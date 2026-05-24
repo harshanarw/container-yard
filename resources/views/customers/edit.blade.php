@@ -46,17 +46,28 @@
                                    value="{{ old('name', $customer->name) }}" required>
                             @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Customer Type <span class="text-danger">*</span></label>
-                            <select name="type" class="form-select @error('type') is-invalid @enderror" required>
-                                <option value="">— Select Type —</option>
-                                <option value="shipping_line"     {{ old('type', $customer->type)=='shipping_line'    ?'selected':'' }}>Shipping Line</option>
-                                <option value="freight_forwarder" {{ old('type', $customer->type)=='freight_forwarder'?'selected':'' }}>Freight Forwarder</option>
-                                <option value="depot_owner"       {{ old('type', $customer->type)=='depot_owner'      ?'selected':'' }}>Depot Owner</option>
-                                <option value="nvo_carrier"       {{ old('type', $customer->type)=='nvo_carrier'      ?'selected':'' }}>NVO Carrier</option>
-                                <option value="leasing_company"   {{ old('type', $customer->type)=='leasing_company'  ?'selected':'' }}>Container Leasing Company</option>
-                            </select>
-                            @error('type')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Customer Type(s)</label>
+                            @php $selectedTypes = old('types', $customer->types->pluck('id')->toArray()); @endphp
+                            <div class="border rounded p-3" style="max-height:180px;overflow-y:auto;background:#fafafa;">
+                                @if($customerTypes->isEmpty())
+                                    <span class="text-muted small">No customer types defined yet.</span>
+                                @else
+                                <div class="row g-1">
+                                    @foreach($customerTypes as $ct)
+                                    <div class="col-md-4 col-6">
+                                        <div class="form-check mb-0">
+                                            <input class="form-check-input" type="checkbox"
+                                                   name="types[]" value="{{ $ct->id }}" id="ct_{{ $ct->id }}"
+                                                   {{ in_array($ct->id, $selectedTypes) ? 'checked' : '' }}>
+                                            <label class="form-check-label small" for="ct_{{ $ct->id }}">{{ $ct->name }}</label>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+                                @endif
+                            </div>
+                            <div class="form-text">Select all roles that apply to this customer.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Registration No. (SSM)</label>

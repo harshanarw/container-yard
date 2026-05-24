@@ -18,7 +18,8 @@ class UpdateCustomerRequest extends FormRequest
         return [
             'code'                => ['required', 'string', 'max:10', "unique:customers,code,{$customerId}"],
             'name'                => ['required', 'string', 'max:255'],
-            'type'                => ['required', 'in:shipping_line,freight_forwarder,depot_owner,nvo_carrier,leasing_company'],
+            'types'               => ['nullable', 'array'],
+            'types.*'             => ['integer', 'exists:customer_types,id'],
             'registration_no'     => ['nullable', 'string', 'max:50'],
             'address'             => ['nullable', 'string'],
             'city'                => ['nullable', 'string', 'max:100'],

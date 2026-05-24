@@ -74,13 +74,13 @@
                 </div>
             </div>
             <div class="col-md-2">
-                <select name="type" class="form-select form-select-sm">
+                <select name="type_id" class="form-select form-select-sm">
                     <option value="">All Types</option>
-                    <option value="shipping_line"     {{ request('type')=='shipping_line'    ?'selected':'' }}>Shipping Line</option>
-                    <option value="freight_forwarder" {{ request('type')=='freight_forwarder'?'selected':'' }}>Freight Forwarder</option>
-                    <option value="depot_owner"       {{ request('type')=='depot_owner'      ?'selected':'' }}>Depot Owner</option>
-                    <option value="nvo_carrier"       {{ request('type')=='nvo_carrier'      ?'selected':'' }}>NVO Carrier</option>
-                    <option value="leasing_company"   {{ request('type')=='leasing_company'  ?'selected':'' }}>Leasing Company</option>
+                    @foreach($customerTypes as $ct)
+                        <option value="{{ $ct->id }}" {{ request('type_id') == $ct->id ? 'selected' : '' }}>
+                            {{ $ct->name }}
+                        </option>
+                    @endforeach
                 </select>
             </div>
             <div class="col-md-2">
@@ -107,16 +107,6 @@
     </div>
 </div>
 </form>
-
-@php
-$typeLabels = [
-    'shipping_line'     => 'Shipping Line',
-    'freight_forwarder' => 'Freight Forwarder',
-    'depot_owner'       => 'Depot Owner',
-    'nvo_carrier'       => 'NVO Carrier',
-    'leasing_company'   => 'Leasing Company',
-];
-@endphp
 
 <!-- Customer Table -->
 <div class="card content-card">
@@ -150,7 +140,17 @@ $typeLabels = [
                                 </span>
                             @endif
                         </td>
-                        <td><span class="badge bg-info-subtle text-info badge-status">{{ $typeLabels[$customer->type] ?? $customer->type }}</span></td>
+                        <td>
+                            @foreach($customer->types->take(2) as $t)
+                                <span class="badge bg-info-subtle text-info border border-info-subtle me-1">{{ $t->name }}</span>
+                            @endforeach
+                            @if($customer->types->count() > 2)
+                                <span class="badge bg-secondary">+{{ $customer->types->count() - 2 }}</span>
+                            @endif
+                            @if($customer->types->isEmpty())
+                                <span class="text-muted small">—</span>
+                            @endif
+                        </td>
                         <td class="small">{{ $customer->contact_person }}</td>
                         <td class="small text-muted">
                             {{ $customer->phone_office }}<br>

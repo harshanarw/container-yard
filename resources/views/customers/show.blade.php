@@ -10,13 +10,6 @@
 @section('content')
 
 @php
-$typeLabels = [
-    'shipping_line'     => 'Shipping Line',
-    'freight_forwarder' => 'Freight Forwarder',
-    'depot_owner'       => 'Depot Owner',
-    'nvo_carrier'       => 'NVO Carrier',
-    'leasing_company'   => 'Leasing Company',
-];
 $paymentLabels = [
     'cod'   => 'Cash on Delivery',
     'net15' => 'Net 15 Days',
@@ -32,7 +25,9 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
         <h4><i class="bi bi-person-badge me-2 text-primary"></i>{{ $customer->name }}</h4>
         <p class="text-muted mb-0 small">
             <span class="badge bg-dark font-monospace me-1">{{ $customer->code }}</span>
-            {{ $typeLabels[$customer->type] ?? $customer->type }}
+            @foreach($customer->types as $t)
+                <span class="badge bg-info-subtle text-info border border-info-subtle me-1">{{ $t->name }}</span>
+            @endforeach
         </p>
     </div>
     <div class="d-flex gap-2">
@@ -101,8 +96,14 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                         <div class="fw-semibold">{{ $customer->name }}</div>
                     </div>
                     <div class="col-md-6">
-                        <div class="text-muted small">Type</div>
-                        <div>{{ $typeLabels[$customer->type] ?? $customer->type }}</div>
+                        <div class="text-muted small">Customer Type(s)</div>
+                        <div>
+                            @forelse($customer->types as $t)
+                                <span class="badge bg-info-subtle text-info border border-info-subtle me-1 mb-1">{{ $t->name }}</span>
+                            @empty
+                                <span class="text-muted small">—</span>
+                            @endforelse
+                        </div>
                     </div>
                     <div class="col-md-6">
                         <div class="text-muted small">Registration No. (SSM)</div>
