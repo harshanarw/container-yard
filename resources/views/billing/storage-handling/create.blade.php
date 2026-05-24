@@ -21,6 +21,7 @@
     .badge-size { font-size: .78rem; letter-spacing: .04em; }
     .handling-yes  { color: #0d6efd; font-weight: 600; }
     .handling-no   { color: #adb5bd; }
+    #billingPartyBox { border-left: 3px solid #0d6efd; }
 </style>
 @endpush
 
@@ -54,22 +55,46 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">
-                        Shipping Line <span class="text-danger">*</span>
+                        Shipping Line / Operator <span class="text-danger">*</span>
                     </label>
-                    <select name="shipping_line_id" id="shippingLineId" class="form-select" required>
-                        <option value="">— Select Shipping Line —</option>
+                    <select name="shipping_line_id" id="shippingLineId" class="form-select select2" required>
+                        <option value="">— Select Operator —</option>
                         @foreach($shippingLines as $sl)
                             <option value="{{ $sl->id }}"
-                                    data-tax-exempt="{{ $sl->tax_exempt ? '1' : '0' }}">
+                                    data-tax-exempt="{{ $sl->tax_exempt ? '1' : '0' }}"
+                                    data-billing-party-id="{{ $sl->billing_party_id ?? '' }}"
+                                    data-billing-party-name="{{ $sl->billingParty->name ?? '' }}"
+                                    data-billing-party-address="{{ $sl->billingParty->address ?? '' }}">
                                 [{{ $sl->code }}] {{ $sl->name }}
                             </option>
                         @endforeach
                     </select>
                     @if($shippingLines->isEmpty())
                         <div class="form-text text-warning">
-                            No active shipping-line customers found. Add one under Customers first.
+                            No active shipping line / operator customers found. Add one under Customers first.
                         </div>
                     @endif
+                </div>
+
+                <!-- Billing Party Info (shown after operator selection) -->
+                <div id="billingPartyBox" class="alert alert-light py-2 small mb-2 d-none">
+                    <div class="text-muted mb-1" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Billing Party</div>
+                    <div class="fw-semibold" id="billingPartyName">—</div>
+                    <div class="text-muted" id="billingPartyAddress"></div>
+                </div>
+
+                <div id="taxExemptAlert" class="alert alert-warning py-2 small d-none mb-2">
+                    <i class="bi bi-shield-check me-1"></i>
+                    <strong>Tax Exempt Customer</strong> — all tax rates will be applied as 0%.
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Invoice Type <span class="text-danger">*</span></label>
+                    <select name="invoice_type" id="invoiceType" class="form-select" required>
+                        <option value="tax_invoice">Tax Invoice</option>
+                        <option value="invoice">Invoice</option>
+                        <option value="debit_note">Debit Note</option>
+                    </select>
                 </div>
 
                 <div class="mb-3">
@@ -120,46 +145,6 @@
                         <input type="date" name="period_to" id="periodTo" class="form-control"
                                value="{{ date('Y-m-d') }}" required>
                     </div>
-                </div>
-
-                <div id="taxExemptAlert" class="alert alert-warning py-2 small d-none mb-2">
-                    <i class="bi bi-shield-check me-1"></i>
-                    <strong>Tax Exempt Customer</strong> — all tax rates will be applied as 0%.
-                </div>
-
-                <div class="mb-2">
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                        <label class="form-label fw-semibold mb-0">
-                            SSCL
-                            <span class="text-muted fw-normal small ms-1" title="Fallback: used when no charge code is linked to the tariff rate">(fallback)</span>
-                        </label>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="applySscl" checked>
-                        </div>
-                    </div>
-                    <div class="input-group input-group-sm">
-                        <input type="number" id="ssclPct" class="form-control"
-                               value="2.5" min="0" max="100" step="0.01">
-                        <span class="input-group-text">%</span>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                        <label class="form-label fw-semibold mb-0">
-                            VAT
-                            <span class="text-muted fw-normal small ms-1" title="Fallback: used when no charge code is linked to the tariff rate">(fallback)</span>
-                        </label>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="applyVat" checked>
-                        </div>
-                    </div>
-                    <div class="input-group input-group-sm">
-                        <input type="number" id="vatPct" class="form-control"
-                               value="18" min="0" max="100" step="0.01">
-                        <span class="input-group-text">%</span>
-                    </div>
-                    <div class="form-text">Tax rates auto-derive from charge code mapping.</div>
                 </div>
 
                 <div class="mb-3">
@@ -356,7 +341,7 @@
             <div class="card-body text-center py-5 text-muted">
                 <i class="bi bi-file-earmark-ruled fs-1 d-block mb-3 text-primary opacity-25"></i>
                 <p class="mb-1">
-                    Select a shipping line and billing period,<br>
+                    Select a shipping line / operator and billing period,<br>
                     then click <strong>Preview Charges</strong>.
                 </p>
                 <p class="small">
@@ -382,19 +367,28 @@ let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
 
-// Show/hide tax exempt warning when shipping line changes
+// Operator selection: auto-set invoice type, show billing party, show tax-exempt alert
 document.getElementById('shippingLineId').addEventListener('change', function () {
-    const opt = this.options[this.selectedIndex];
+    const opt    = this.options[this.selectedIndex];
     const exempt = opt && opt.dataset.taxExempt === '1';
-    document.getElementById('taxExemptAlert').classList.toggle('d-none', !exempt);
-});
 
-// Toggle SSCL/VAT input availability
-document.getElementById('applySscl').addEventListener('change', function () {
-    document.getElementById('ssclPct').disabled = !this.checked;
-});
-document.getElementById('applyVat').addEventListener('change', function () {
-    document.getElementById('vatPct').disabled = !this.checked;
+    // Tax exempt alert
+    document.getElementById('taxExemptAlert').classList.toggle('d-none', !exempt);
+
+    // Auto-set invoice type
+    document.getElementById('invoiceType').value = exempt ? 'invoice' : 'tax_invoice';
+
+    // Billing party info box
+    const bpName    = opt ? opt.dataset.billingPartyName    : '';
+    const bpAddress = opt ? opt.dataset.billingPartyAddress : '';
+    const box = document.getElementById('billingPartyBox');
+    if (bpName) {
+        document.getElementById('billingPartyName').textContent    = bpName;
+        document.getElementById('billingPartyAddress').textContent = bpAddress || '';
+        box.classList.remove('d-none');
+    } else {
+        box.classList.add('d-none');
+    }
 });
 
 async function runPreview() {
@@ -403,12 +397,8 @@ async function runPreview() {
     const periodTo        = document.getElementById('periodTo').value;
     const invoiceCurrency = document.getElementById('invoiceCurrency').value;
     const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
-    const ssclPct         = document.getElementById('applySscl').checked
-                            ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
-    const vatPct          = document.getElementById('applyVat').checked
-                            ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
 
-    if (!shippingLineId) { alert('Please select a shipping line.'); return; }
+    if (!shippingLineId) { alert('Please select a shipping line / operator.'); return; }
     if (!periodFrom || !periodTo) { alert('Please enter the billing period dates.'); return; }
 
     const btn = document.getElementById('previewBtn');
@@ -429,8 +419,6 @@ async function runPreview() {
                 period_to:        periodTo,
                 invoice_currency: invoiceCurrency,
                 exchange_rate:    exchangeRate,
-                sscl_pct:         ssclPct,
-                vat_pct:          vatPct,
             }),
         });
 
@@ -490,7 +478,7 @@ function renderPreview(data) {
     document.getElementById('summarySection').classList.remove('d-none');
 
     const fmt    = n => parseFloat(n).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const fmtCur = n => 'LKR\u00a0' + fmt(n);
+    const fmtCur = n => 'LKR ' + fmt(n);
 
     // Summary card — amounts always in LKR
     document.getElementById('sumContainers').textContent = previewLines.length;
@@ -534,7 +522,6 @@ function renderPreview(data) {
     document.getElementById('handlingCount').textContent =
         `${liftOffLines.length} lift-off · ${liftOnLines.length} lift-on`;
 
-    // rowsHtml = pre-built <tr> string; count = number of rows
     const handlingTableTpl = (rowsHtml, cols, count) => count === 0
         ? '<div class="px-3 py-2 text-muted small fst-italic">No events during this period.</div>'
         : `<div class="table-responsive"><table class="table table-sm table-hover mb-0">
@@ -591,12 +578,10 @@ function renderPreview(data) {
     document.getElementById('handlingSubtotalFooter').textContent = fmtCur(data.handling_subtotal);
 
     // ── Invoice Total table ────────────────────────────────────────────────
-    const ssclLabel = data.sscl_percentage > 0 ? `SSCL (${parseFloat(data.sscl_percentage).toFixed(2)}%)` : 'SSCL';
-    const vatLabel  = data.vat_percentage  > 0 ? `VAT (${parseFloat(data.vat_percentage).toFixed(2)}%)`   : 'VAT';
-    const ssclRow   = parseFloat(data.sscl_amount) > 0
-        ? `<tr><td class="ps-3 text-muted">${ssclLabel}</td><td class="text-end pe-3">${fmtCur(data.sscl_amount)}</td></tr>` : '';
-    const vatRow    = parseFloat(data.vat_amount) > 0
-        ? `<tr><td class="ps-3 text-muted">${vatLabel}</td><td class="text-end pe-3">${fmtCur(data.vat_amount)}</td></tr>` : '';
+    const ssclRow = parseFloat(data.sscl_amount) > 0
+        ? `<tr><td class="ps-3 text-muted">SSCL</td><td class="text-end pe-3">${fmtCur(data.sscl_amount)}</td></tr>` : '';
+    const vatRow  = parseFloat(data.vat_amount) > 0
+        ? `<tr><td class="ps-3 text-muted">VAT</td><td class="text-end pe-3">${fmtCur(data.vat_amount)}</td></tr>` : '';
     document.getElementById('totalTable').innerHTML = `
         <tbody>
             <tr>
@@ -641,13 +626,9 @@ document.getElementById('billingForm').addEventListener('submit', function (e) {
         return;
     }
 
-    this.querySelectorAll('[name^="lines["], [name="sscl_percentage"], [name="vat_percentage"], [name="invoice_currency"], [name="exchange_rate"]')
+    this.querySelectorAll('[name^="lines["], [name="invoice_currency"], [name="exchange_rate"]')
         .forEach(el => el.remove());
 
-    const ssclPct         = document.getElementById('applySscl').checked
-                            ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
-    const vatPct          = document.getElementById('applyVat').checked
-                            ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
     const invoiceCurrency = document.getElementById('invoiceCurrency').value;
     const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
 
@@ -658,8 +639,6 @@ document.getElementById('billingForm').addEventListener('submit', function (e) {
     };
     mkHidden('invoice_currency', invoiceCurrency);
     mkHidden('exchange_rate', exchangeRate);
-    mkHidden('sscl_percentage', ssclPct);
-    mkHidden('vat_percentage', vatPct);
 
     previewLines.forEach((line, i) => {
         Object.entries(line).forEach(([key, val]) => {

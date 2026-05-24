@@ -45,7 +45,10 @@ class StorageBillingController extends Controller
 
     public function create()
     {
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::with('billingParty')
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get();
         return view('billing.create', compact('customers'));
     }
 
@@ -221,6 +224,7 @@ class StorageBillingController extends Controller
     {
         $validated = $request->validate([
             'customer_id'              => ['required', 'exists:customers,id'],
+            'invoice_type'             => ['nullable', 'string', 'in:tax_invoice,invoice,debit_note'],
             'invoice_date'             => ['required', 'date'],
             'invoice_currency'         => ['nullable', 'string', 'size:3'],
             'exchange_rate'            => ['nullable', 'numeric', 'min:0.0001'],
@@ -274,6 +278,7 @@ class StorageBillingController extends Controller
 
             $invoice = StorageInvoice::create([
                 'invoice_no'          => $invoiceNo,
+                'invoice_type'        => $validated['invoice_type'] ?? 'invoice',
                 'customer_id'         => $validated['customer_id'],
                 'billing_party_id'    => $billingPartyId ?? $validated['customer_id'],
                 'invoice_date'        => $validated['invoice_date'],
@@ -325,7 +330,7 @@ class StorageBillingController extends Controller
 
     public function show(StorageInvoice $invoice)
     {
-        $invoice->load(['customer', 'details', 'createdBy']);
+        $invoice->load(['customer', 'billingParty', 'details', 'createdBy']);
         return view('billing.show', compact('invoice'));
     }
 

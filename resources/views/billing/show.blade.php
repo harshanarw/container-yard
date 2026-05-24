@@ -96,6 +96,19 @@
                     <div class="fw-bold font-monospace">{{ $invoice->invoice_no }}</div>
                 </div>
                 <div class="mb-2">
+                    <div class="text-muted small">Invoice Type</div>
+                    <div>
+                        @php
+                            $typeLabels = ['tax_invoice' => 'Tax Invoice', 'invoice' => 'Invoice', 'debit_note' => 'Debit Note'];
+                            $typeClasses = ['tax_invoice' => 'bg-primary-subtle text-primary', 'invoice' => 'bg-secondary-subtle text-secondary', 'debit_note' => 'bg-warning-subtle text-warning'];
+                            $it = $invoice->invoice_type ?? 'invoice';
+                        @endphp
+                        <span class="badge {{ $typeClasses[$it] ?? 'bg-light text-muted' }} border">
+                            {{ $typeLabels[$it] ?? ucfirst(str_replace('_', ' ', $it)) }}
+                        </span>
+                    </div>
+                </div>
+                <div class="mb-2">
                     <div class="text-muted small">Invoice Date</div>
                     <div>{{ $invoice->invoice_date->format('d M Y') }}</div>
                 </div>
@@ -166,6 +179,29 @@
                 @endif
             </div>
         </div>
+
+        @if($invoice->billing_party_id && $invoice->billing_party_id !== $invoice->customer_id)
+        <div class="card content-card mb-3">
+            <div class="card-header">
+                <i class="bi bi-building me-2 text-primary"></i>Billing Party
+            </div>
+            <div class="card-body">
+                @php $bp = $invoice->billingParty; @endphp
+                <div class="fw-semibold mb-1">{{ $bp->name ?? '—' }}</div>
+                @if($bp)
+                    <div class="text-muted small">{{ $bp->address }}</div>
+                    @if($bp->contact_person)
+                    <div class="small mt-1">
+                        <i class="bi bi-person me-1"></i>{{ $bp->contact_person }}
+                    </div>
+                    @endif
+                    @if($bp->email)
+                    <div class="small"><i class="bi bi-envelope me-1"></i>{{ $bp->email }}</div>
+                    @endif
+                @endif
+            </div>
+        </div>
+        @endif
 
         <!-- Totals summary -->
         <div class="card content-card">

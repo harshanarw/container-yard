@@ -52,7 +52,10 @@ class StorageHandlingController extends Controller
 
     public function create()
     {
-        $shippingLines = Customer::whereHas('types', fn ($q) => $q->where('name', 'Shipping Line'))
+        $operatorTypes = ['Shipping Line', 'Main Line', 'Feeder Line', 'Container Operator', 'Vessel Operator', 'Slot Operator', 'NVOCC'];
+
+        $shippingLines = Customer::with('billingParty')
+            ->whereHas('types', fn ($q) => $q->whereIn('name', $operatorTypes))
             ->where('status', 'active')
             ->orderBy('name')
             ->get();
@@ -310,6 +313,7 @@ class StorageHandlingController extends Controller
     {
         $v = $request->validate([
             'shipping_line_id'                   => 'required|exists:customers,id',
+            'invoice_type'                        => 'nullable|string|in:tax_invoice,invoice,debit_note',
             'invoice_date'                        => 'required|date',
             'invoice_currency'                    => 'nullable|string|size:3',
             'exchange_rate'                       => 'nullable|numeric|min:0.0001',
@@ -373,6 +377,7 @@ class StorageHandlingController extends Controller
 
             $invoice = StorageHandlingInvoice::create([
                 'invoice_no'          => $invoiceNo,
+                'invoice_type'        => $v['invoice_type'] ?? 'invoice',
                 'shipping_line_id'    => $v['shipping_line_id'],
                 'billing_party_id'    => $billingPartyId ?? $v['shipping_line_id'],
                 'invoice_date'        => $v['invoice_date'],
@@ -436,7 +441,7 @@ class StorageHandlingController extends Controller
 
     public function show(StorageHandlingInvoice $storageHandlingInvoice)
     {
-        $storageHandlingInvoice->load(['shippingLine', 'lines', 'createdBy']);
+        $storageHandlingInvoice->load(['shippingLine', 'billingParty', 'lines', 'createdBy']);
         return view('billing.storage-handling.show', ['invoice' => $storageHandlingInvoice]);
     }
 

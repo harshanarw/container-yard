@@ -10,7 +10,7 @@ class StorageInvoice extends Model
     use HasFactory;
 
     protected $fillable = [
-        'invoice_no', 'customer_id', 'billing_party_id', 'invoice_date',
+        'invoice_no', 'invoice_type', 'customer_id', 'billing_party_id', 'invoice_date',
         'invoice_currency', 'exchange_rate',
         'billing_period_from', 'billing_period_to',
         'subtotal', 'tax_percentage', 'tax_amount',

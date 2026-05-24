@@ -17,6 +17,7 @@
     .summary-card .label { opacity: .75; font-size: .78rem; }
     #previewTable th, #previewTable td { font-size: .82rem; padding: .4rem .65rem; }
     .no-tariff-badge { font-size: .72rem; }
+    #billingPartyBox { border-left: 3px solid #0d6efd; }
 </style>
 @endpush
 
@@ -48,16 +49,38 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Customer / Operator <span class="text-danger">*</span></label>
-                    <select name="customer_id" id="customerId" class="form-select" required>
+                    <select name="customer_id" id="customerId" class="form-select select2" required>
                         <option value="">— Select Customer —</option>
                         @foreach($customers as $c)
                             <option value="{{ $c->id }}"
-                                    data-email="{{ $c->email }}"
-                                    data-currency="{{ $c->currency }}"
-                                    data-tax-exempt="{{ $c->tax_exempt ? '1' : '0' }}">
-                                {{ $c->name }}
+                                    data-tax-exempt="{{ $c->tax_exempt ? '1' : '0' }}"
+                                    data-billing-party-id="{{ $c->billing_party_id ?? '' }}"
+                                    data-billing-party-name="{{ $c->billingParty->name ?? '' }}"
+                                    data-billing-party-address="{{ $c->billingParty->address ?? '' }}">
+                                [{{ $c->code }}] {{ $c->name }}
                             </option>
                         @endforeach
+                    </select>
+                </div>
+
+                <!-- Billing Party Info (shown after customer selection) -->
+                <div id="billingPartyBox" class="alert alert-light py-2 small mb-2 d-none">
+                    <div class="text-muted mb-1" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Billing Party</div>
+                    <div class="fw-semibold" id="billingPartyName">—</div>
+                    <div class="text-muted" id="billingPartyAddress"></div>
+                </div>
+
+                <div id="taxExemptAlert" class="alert alert-warning py-2 small d-none mb-2">
+                    <i class="bi bi-shield-check me-1"></i>
+                    <strong>Tax Exempt Customer</strong> — all tax rates will be applied as 0%.
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Invoice Type <span class="text-danger">*</span></label>
+                    <select name="invoice_type" id="invoiceType" class="form-select" required>
+                        <option value="tax_invoice">Tax Invoice</option>
+                        <option value="invoice">Invoice</option>
+                        <option value="debit_note">Debit Note</option>
                     </select>
                 </div>
 
@@ -103,46 +126,6 @@
                         <input type="date" name="period_to" id="periodTo" class="form-control"
                                value="{{ date('Y-m-d') }}" required>
                     </div>
-                </div>
-
-                <div id="taxExemptAlert" class="alert alert-warning py-2 small d-none mb-2">
-                    <i class="bi bi-shield-check me-1"></i>
-                    <strong>Tax Exempt Customer</strong> — all tax rates will be applied as 0%.
-                </div>
-
-                <div class="mb-2">
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                        <label class="form-label fw-semibold mb-0">
-                            SSCL
-                            <span class="text-muted fw-normal small ms-1" title="Fallback: used when no charge code is linked to the tariff rate">(fallback)</span>
-                        </label>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="applySscl" checked>
-                        </div>
-                    </div>
-                    <div class="input-group input-group-sm">
-                        <input type="number" id="ssclPct" class="form-control"
-                               value="2.5" min="0" max="100" step="0.01">
-                        <span class="input-group-text">%</span>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                        <label class="form-label fw-semibold mb-0">
-                            VAT
-                            <span class="text-muted fw-normal small ms-1" title="Fallback: used when no charge code is linked to the tariff rate">(fallback)</span>
-                        </label>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="applyVat" checked>
-                        </div>
-                    </div>
-                    <div class="input-group input-group-sm">
-                        <input type="number" id="vatPct" class="form-control"
-                               value="18" min="0" max="100" step="0.01">
-                        <span class="input-group-text">%</span>
-                    </div>
-                    <div class="form-text">Tax rates auto-derive from charge code mapping.</div>
                 </div>
 
                 <div class="mb-3">
@@ -268,19 +251,29 @@ let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
 
-// Show/hide tax exempt warning when customer changes
+// Customer selection: auto-set invoice type, show billing party, show tax-exempt alert
 document.getElementById('customerId').addEventListener('change', function () {
-    const opt = this.options[this.selectedIndex];
+    const opt    = this.options[this.selectedIndex];
     const exempt = opt && opt.dataset.taxExempt === '1';
-    document.getElementById('taxExemptAlert').classList.toggle('d-none', !exempt);
-});
 
-// Toggle SSCL/VAT input availability
-document.getElementById('applySscl').addEventListener('change', function () {
-    document.getElementById('ssclPct').disabled = !this.checked;
-});
-document.getElementById('applyVat').addEventListener('change', function () {
-    document.getElementById('vatPct').disabled = !this.checked;
+    // Tax exempt alert
+    document.getElementById('taxExemptAlert').classList.toggle('d-none', !exempt);
+
+    // Auto-set invoice type
+    document.getElementById('invoiceType').value = exempt ? 'invoice' : 'tax_invoice';
+
+    // Billing party info box
+    const bpId      = opt ? opt.dataset.billingPartyId   : '';
+    const bpName    = opt ? opt.dataset.billingPartyName : '';
+    const bpAddress = opt ? opt.dataset.billingPartyAddress : '';
+    const box = document.getElementById('billingPartyBox');
+    if (bpName) {
+        document.getElementById('billingPartyName').textContent    = bpName;
+        document.getElementById('billingPartyAddress').textContent = bpAddress || '';
+        box.classList.remove('d-none');
+    } else {
+        box.classList.add('d-none');
+    }
 });
 
 async function runPreview() {
@@ -289,10 +282,6 @@ async function runPreview() {
     const periodTo        = document.getElementById('periodTo').value;
     const invoiceCurrency = document.getElementById('invoiceCurrency').value;
     const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
-    const ssclPct         = document.getElementById('applySscl').checked
-                            ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
-    const vatPct          = document.getElementById('applyVat').checked
-                            ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
 
     if (!customerId) { alert('Please select a customer.'); return; }
     if (!periodFrom || !periodTo) { alert('Please enter the billing period dates.'); return; }
@@ -315,8 +304,6 @@ async function runPreview() {
                 period_to:        periodTo,
                 invoice_currency: invoiceCurrency,
                 exchange_rate:    exchangeRate,
-                sscl_pct:         ssclPct,
-                vat_pct:          vatPct,
             }),
         });
 
@@ -366,7 +353,7 @@ function renderPreview(data) {
     document.getElementById('summarySection').classList.remove('d-none');
 
     const fmt  = n => parseFloat(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    const fmtC = (n, cur) => (cur || 'LKR') + '\u00a0' + fmt(n);
+    const fmtC = (n, cur) => (cur || 'LKR') + ' ' + fmt(n);
 
     // Summary card — amounts always in LKR
     document.getElementById('sumContainers').textContent = previewLines.length;
@@ -443,13 +430,9 @@ document.getElementById('billingForm').addEventListener('submit', function (e) {
     }
 
     // Remove any stale inputs
-    this.querySelectorAll('[name^="lines["], [name="sscl_percentage"], [name="vat_percentage"], [name="invoice_currency"], [name="exchange_rate"]')
+    this.querySelectorAll('[name^="lines["], [name="invoice_currency"], [name="exchange_rate"]')
         .forEach(el => el.remove());
 
-    const ssclPct        = document.getElementById('applySscl').checked
-                           ? parseFloat(document.getElementById('ssclPct').value || 0) : 0;
-    const vatPct         = document.getElementById('applyVat').checked
-                           ? parseFloat(document.getElementById('vatPct').value || 0) : 0;
     const invoiceCurrency = document.getElementById('invoiceCurrency').value;
     const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
 
@@ -460,13 +443,10 @@ document.getElementById('billingForm').addEventListener('submit', function (e) {
     };
     mkHidden('invoice_currency', invoiceCurrency);
     mkHidden('exchange_rate', exchangeRate);
-    mkHidden('sscl_percentage', ssclPct);
-    mkHidden('vat_percentage', vatPct);
 
     // Add hidden inputs for each line
     previewLines.forEach((line, i) => {
         Object.entries(line).forEach(([key, val]) => {
-            // Skip frontend-only keys
             if (key === 'tariff_found') return;
             mkHidden(`lines[${i}][${key}]`, val);
         });

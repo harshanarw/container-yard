@@ -105,6 +105,17 @@
                     <div class="fw-bold font-monospace fs-6">{{ $invoice->invoice_no }}</div>
                 </div>
                 <div class="mb-2">
+                    <div class="text-muted">Invoice Type</div>
+                    @php
+                        $typeLabels  = ['tax_invoice' => 'Tax Invoice', 'invoice' => 'Invoice', 'debit_note' => 'Debit Note'];
+                        $typeClasses = ['tax_invoice' => 'bg-primary-subtle text-primary', 'invoice' => 'bg-secondary-subtle text-secondary', 'debit_note' => 'bg-warning-subtle text-warning'];
+                        $it = $invoice->invoice_type ?? 'invoice';
+                    @endphp
+                    <span class="badge {{ $typeClasses[$it] ?? 'bg-light text-muted' }} border">
+                        {{ $typeLabels[$it] ?? ucfirst(str_replace('_', ' ', $it)) }}
+                    </span>
+                </div>
+                <div class="mb-2">
                     <div class="text-muted">Invoice Date</div>
                     <div>{{ $invoice->invoice_date->format('d M Y') }}</div>
                 </div>
@@ -153,7 +164,7 @@
 
         <div class="card content-card mb-3">
             <div class="card-header">
-                <i class="bi bi-building me-2 text-primary"></i>Shipping Line
+                <i class="bi bi-building me-2 text-primary"></i>Shipping Line / Operator
             </div>
             <div class="card-body small">
                 @php $sl = $invoice->shippingLine; @endphp
@@ -174,6 +185,27 @@
                 @endif
             </div>
         </div>
+
+        @if($invoice->billing_party_id && $invoice->billing_party_id !== $invoice->shipping_line_id)
+        <div class="card content-card mb-3">
+            <div class="card-header">
+                <i class="bi bi-building-check me-2 text-primary"></i>Billing Party
+            </div>
+            <div class="card-body small">
+                @php $bp = $invoice->billingParty; @endphp
+                <div class="fw-semibold mb-1">{{ $bp->name ?? '—' }}</div>
+                @if($bp)
+                    <div class="text-muted">{{ $bp->address }}</div>
+                    @if($bp->contact_person)
+                    <div class="mt-1"><i class="bi bi-person me-1"></i>{{ $bp->contact_person }}</div>
+                    @endif
+                    @if($bp->email)
+                    <div><i class="bi bi-envelope me-1"></i>{{ $bp->email }}</div>
+                    @endif
+                @endif
+            </div>
+        </div>
+        @endif
 
         <div class="card content-card">
             <div class="card-header">
