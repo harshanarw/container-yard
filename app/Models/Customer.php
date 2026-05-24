@@ -15,6 +15,7 @@ class Customer extends Model
         'fax', 'email', 'website', 'currency', 'credit_limit', 'payment_terms',
         'status',
         'contract_start', 'contract_end', 'email_notifications', 'auto_invoice',
+        'tax_exempt',
         'logo', 'notes',
     ];
 
@@ -24,6 +25,7 @@ class Customer extends Model
         'contract_end'        => 'date',
         'email_notifications' => 'boolean',
         'auto_invoice'        => 'boolean',
+        'tax_exempt'          => 'boolean',
     ];
 
     // Relationships

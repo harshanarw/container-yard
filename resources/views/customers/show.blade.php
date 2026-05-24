@@ -283,6 +283,16 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                         {{ $customer->auto_invoice ? 'On' : 'Off' }}
                     </span>
                 </div>
+                <div class="d-flex justify-content-between small mt-1">
+                    <span>Tax Exempt</span>
+                    @if($customer->tax_exempt)
+                        <span class="badge bg-warning text-dark">
+                            <i class="bi bi-shield-check me-1"></i>Exempt
+                        </span>
+                    @else
+                        <span class="badge bg-secondary">Taxable</span>
+                    @endif
+                </div>
             </div>
         </div>
 

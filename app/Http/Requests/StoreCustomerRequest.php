@@ -37,6 +37,7 @@ class StoreCustomerRequest extends FormRequest
             'contract_end'        => ['nullable', 'date', 'after_or_equal:contract_start'],
             'email_notifications' => ['boolean'],
             'auto_invoice'        => ['boolean'],
+            'tax_exempt'          => ['boolean'],
             'logo'                => ['nullable', 'image', 'max:2048'],
             'notes'               => ['nullable', 'string'],
         ];

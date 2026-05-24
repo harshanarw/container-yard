@@ -142,7 +142,14 @@ $typeLabels = [
                         <td class="ps-3">
                             <span class="badge bg-dark text-white font-monospace">{{ $customer->code }}</span>
                         </td>
-                        <td class="fw-semibold small">{{ $customer->name }}</td>
+                        <td class="fw-semibold small">
+                            {{ $customer->name }}
+                            @if($customer->tax_exempt)
+                                <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem;" title="Tax Exempt">
+                                    <i class="bi bi-shield-check"></i> Exempt
+                                </span>
+                            @endif
+                        </td>
                         <td><span class="badge bg-info-subtle text-info badge-status">{{ $typeLabels[$customer->type] ?? $customer->type }}</span></td>
                         <td class="small">{{ $customer->contact_person }}</td>
                         <td class="small text-muted">

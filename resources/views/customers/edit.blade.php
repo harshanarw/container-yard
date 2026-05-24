@@ -229,6 +229,13 @@
                                    id="autoInvoice" {{ old('auto_invoice', $customer->auto_invoice) ? 'checked' : '' }}>
                             <label class="form-check-label small" for="autoInvoice">Auto Invoice Generation</label>
                         </div>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" name="tax_exempt"
+                                   id="taxExempt" {{ old('tax_exempt', $customer->tax_exempt) ? 'checked' : '' }}>
+                            <label class="form-check-label small fw-semibold text-warning-emphasis" for="taxExempt">
+                                <i class="bi bi-shield-check me-1"></i>Tax Exempt Customer
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>

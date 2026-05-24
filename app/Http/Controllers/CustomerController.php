@@ -47,6 +47,7 @@ class CustomerController extends Controller
 
         $data['email_notifications'] = $request->boolean('email_notifications');
         $data['auto_invoice']        = $request->boolean('auto_invoice');
+        $data['tax_exempt']          = $request->boolean('tax_exempt');
 
         Customer::create($data);
 
@@ -82,6 +83,7 @@ class CustomerController extends Controller
 
         $data['email_notifications'] = $request->boolean('email_notifications');
         $data['auto_invoice']        = $request->boolean('auto_invoice');
+        $data['tax_exempt']          = $request->boolean('tax_exempt');
 
         $customer->update($data);
 
