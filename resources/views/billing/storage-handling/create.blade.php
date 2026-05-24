@@ -376,10 +376,11 @@ let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
 
-// Operator selection: auto-set invoice type, show billing party, show tax-exempt alert
-document.getElementById('shippingLineId').addEventListener('change', function () {
-    const opt    = this.options[this.selectedIndex];
-    const exempt = opt && opt.dataset.taxExempt === '1';
+// Operator selection: auto-set invoice type, billing party, tax-exempt alert
+$('#shippingLineId').on('change', function () {
+    const val    = this.value;
+    const $opt   = $(this).find('option[value="' + val + '"]');
+    const exempt = $opt.attr('data-tax-exempt') === '1';
 
     // Tax exempt alert
     document.getElementById('taxExemptAlert').classList.toggle('d-none', !exempt);
@@ -388,17 +389,18 @@ document.getElementById('shippingLineId').addEventListener('change', function ()
     document.getElementById('invoiceType').value = exempt ? 'invoice' : 'tax_invoice';
 
     // Auto-set billing party dropdown from Customer master mapping
-    const bpId = opt && this.value ? (opt.dataset.billingPartyId || this.value) : '';
+    const bpId = val ? ($opt.attr('data-billing-party-id') || val) : '';
     $('#billingPartyId').val(bpId).trigger('change');
 });
 
 // Billing party: show address info panel on selection
 $('#billingPartyId').on('change', function () {
-    const opt    = this.options[this.selectedIndex];
-    const addr   = opt && this.value ? (opt.dataset.address || '') : '';
+    const val    = this.value;
+    const $opt   = $(this).find('option[value="' + val + '"]');
+    const addr   = val ? ($opt.attr('data-address') || '') : '';
     const infoEl = document.getElementById('billingPartyInfo');
     const addrEl = document.getElementById('billingPartyAddress');
-    if (this.value && addr) {
+    if (val && addr) {
         addrEl.textContent = addr;
         infoEl.classList.remove('d-none');
     } else {
