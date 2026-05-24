@@ -286,7 +286,8 @@
                                 <th class="text-center">Free</th>
                                 <th class="text-center">Chgbl</th>
                                 <th class="text-end">Rate/Day</th>
-                                <th class="text-end pe-2">Amount</th>
+                                <th>Charge Code</th>
+                                <th class="text-end pe-2">Storage Amt</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -307,6 +308,16 @@
                                     {{ $line->storage_chargeable_days }}d
                                 </td>
                                 <td class="text-end small">{{ $fmtDisp($line->storage_daily_rate) }}</td>
+                                <td class="small">
+                                    @if($line->chargeCode)
+                                        <span class="badge bg-primary-subtle text-primary border" style="font-size:.68rem;">{{ $line->chargeCode->code }}</span>
+                                        @if($line->chargeCode->taxCode)
+                                        <div class="text-muted" style="font-size:.65rem;">{{ $line->chargeCode->taxCode->code }}</div>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                                 <td class="text-end pe-2 fw-semibold {{ $line->storage_subtotal == 0 ? 'text-success' : '' }}">
                                     {{ $fmtDisp($line->storage_subtotal) }}
                                 </td>
@@ -315,7 +326,7 @@
                         </tbody>
                         <tfoot class="table-light fw-semibold">
                             <tr>
-                                <td colspan="11" class="text-end">Storage Subtotal</td>
+                                <td colspan="12" class="text-end">Storage Subtotal</td>
                                 <td class="text-end pe-2">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
                             </tr>
                         </tfoot>
@@ -452,7 +463,75 @@
             </div>
         </div>
 
-        {{-- ── 3. Invoice Grand Total ── --}}
+        {{-- ── 3. Per-Container Tax Summary ── --}}
+        <div class="card content-card mb-3">
+            <div class="card-header">
+                <i class="bi bi-receipt-cutoff me-2 text-primary"></i><strong>Per-Container Tax Summary</strong>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-2">Container</th>
+                                <th>Charge Code</th>
+                                <th>Tax Code</th>
+                                <th class="text-end">Storage</th>
+                                <th class="text-end">Handling</th>
+                                <th class="text-end">Combined</th>
+                                <th class="text-end">SSCL</th>
+                                <th class="text-end">VAT</th>
+                                <th class="text-end pe-2">Grand Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($invoice->lines as $line)
+                            <tr>
+                                <td class="ps-2 font-monospace fw-semibold">{{ $line->container_no }}</td>
+                                <td class="small">
+                                    @if($line->chargeCode)
+                                        <span class="badge bg-primary-subtle text-primary border" style="font-size:.68rem;">{{ $line->chargeCode->code }}</span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="small text-muted">{{ $line->chargeCode?->taxCode?->code ?? '—' }}</td>
+                                <td class="text-end small">{{ $fmtDisp($line->storage_subtotal) }}</td>
+                                <td class="text-end small">{{ $fmtDisp($line->handling_subtotal) }}</td>
+                                <td class="text-end small fw-semibold">{{ $fmtDisp($line->line_total) }}</td>
+                                <td class="text-end small text-secondary">
+                                    {{ $fmtDisp($line->line_sscl) }}
+                                    @if($line->tax1_rate > 0)
+                                    <div class="text-muted" style="font-size:.65rem;">{{ number_format($line->tax1_rate, 2) }}%</div>
+                                    @endif
+                                </td>
+                                <td class="text-end small text-secondary">
+                                    {{ $fmtDisp($line->line_vat) }}
+                                    @if($line->tax2_rate > 0)
+                                    <div class="text-muted" style="font-size:.65rem;">{{ number_format($line->tax2_rate, 2) }}%</div>
+                                    @endif
+                                </td>
+                                <td class="text-end pe-2 fw-bold">{{ $fmtDisp($line->line_grand_total) }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot class="table-light fw-semibold">
+                            <tr>
+                                <td class="ps-2" colspan="3" style="text-align:right">Totals</td>
+                                <td class="text-end">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
+                                <td class="text-end">{{ $fmtDisp($invoice->handling_subtotal) }}</td>
+                                <td class="text-end">{{ $fmtDisp($invoice->subtotal) }}</td>
+                                <td class="text-end">{{ $fmtDisp($invoice->sscl_amount) }}</td>
+                                <td class="text-end">{{ $fmtDisp($invoice->vat_amount) }}</td>
+                                <td class="text-end pe-2">{{ $fmtDisp($invoice->total_amount) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {{-- ── 4. Invoice Grand Total ── --}}
         <div class="card content-card">
             <div class="card-header">
                 <i class="bi bi-receipt me-2 text-primary"></i><strong>Invoice Total</strong>

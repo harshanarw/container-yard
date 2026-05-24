@@ -330,7 +330,7 @@ class StorageBillingController extends Controller
 
     public function show(StorageInvoice $invoice)
     {
-        $invoice->load(['customer', 'billingParty', 'details', 'createdBy']);
+        $invoice->load(['customer', 'billingParty', 'details.chargeCode.taxCode', 'createdBy']);
         return view('billing.show', compact('invoice'));
     }
 

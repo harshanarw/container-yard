@@ -441,7 +441,7 @@ class StorageHandlingController extends Controller
 
     public function show(StorageHandlingInvoice $storageHandlingInvoice)
     {
-        $storageHandlingInvoice->load(['shippingLine', 'billingParty', 'lines', 'createdBy']);
+        $storageHandlingInvoice->load(['shippingLine', 'billingParty', 'lines.chargeCode.taxCode', 'createdBy']);
         return view('billing.storage-handling.show', ['invoice' => $storageHandlingInvoice]);
     }
 

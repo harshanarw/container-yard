@@ -263,6 +263,7 @@
                                 <th class="text-center">Chargeable</th>
                                 <th class="text-end">Rate/Day</th>
                                 <th class="text-end">Subtotal</th>
+                                <th>Charge Code</th>
                                 <th class="text-end">SSCL</th>
                                 <th class="text-end">VAT</th>
                                 <th class="text-end pe-3">Line Total</th>
@@ -292,11 +293,27 @@
                                 <td class="text-end fw-semibold {{ $line->subtotal == 0 ? 'text-success' : '' }}">
                                     {{ $fmtDisp($line->subtotal) }}
                                 </td>
+                                <td class="small">
+                                    @if($line->chargeCode)
+                                        <span class="badge bg-primary-subtle text-primary border" style="font-size:.68rem;">{{ $line->chargeCode->code }}</span>
+                                        @if($line->chargeCode->taxCode)
+                                        <div class="text-muted" style="font-size:.65rem;">{{ $line->chargeCode->taxCode->code }}</div>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                                 <td class="text-end small text-secondary">
                                     {{ $fmtDisp($line->line_sscl) }}
+                                    @if($line->tax1_rate > 0)
+                                    <div class="text-muted" style="font-size:.65rem;">{{ number_format($line->tax1_rate, 2) }}%</div>
+                                    @endif
                                 </td>
                                 <td class="text-end small text-secondary">
                                     {{ $fmtDisp($line->line_vat) }}
+                                    @if($line->tax2_rate > 0)
+                                    <div class="text-muted" style="font-size:.65rem;">{{ number_format($line->tax2_rate, 2) }}%</div>
+                                    @endif
                                 </td>
                                 <td class="text-end pe-3 fw-bold">
                                     {{ $fmtDisp($line->line_total) }}
@@ -306,12 +323,12 @@
                         </tbody>
                         <tfoot class="table-light fw-semibold">
                             <tr>
-                                <td class="ps-3" colspan="12" style="text-align:right">Subtotal</td>
+                                <td class="ps-3" colspan="13" style="text-align:right">Subtotal</td>
                                 <td class="text-end pe-3">{{ $fmtDisp($invoice->subtotal) }}</td>
                             </tr>
                             @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
                             <tr class="fw-normal text-muted">
-                                <td class="ps-3" colspan="12" style="text-align:right">
+                                <td class="ps-3" colspan="13" style="text-align:right">
                                     SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)
                                 </td>
                                 <td class="text-end pe-3">{{ $fmtDisp($invoice->sscl_amount) }}</td>
@@ -319,7 +336,7 @@
                             @endif
                             @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
                             <tr class="fw-normal text-muted">
-                                <td class="ps-3" colspan="12" style="text-align:right">
+                                <td class="ps-3" colspan="13" style="text-align:right">
                                     VAT ({{ number_format($invoice->vat_percentage, 2) }}%)
                                 </td>
                                 <td class="text-end pe-3">{{ $fmtDisp($invoice->vat_amount) }}</td>
@@ -327,14 +344,14 @@
                             @endif
                             @if($invoice->tax_amount > 0)
                             <tr class="fw-normal text-muted">
-                                <td class="ps-3" colspan="12" style="text-align:right">
+                                <td class="ps-3" colspan="13" style="text-align:right">
                                     Tax ({{ number_format($invoice->tax_percentage, 2) }}%)
                                 </td>
                                 <td class="text-end pe-3">{{ $fmtDisp($invoice->tax_amount) }}</td>
                             </tr>
                             @endif
                             <tr class="table-primary fw-bold">
-                                <td class="ps-3" colspan="12" style="text-align:right">TOTAL</td>
+                                <td class="ps-3" colspan="13" style="text-align:right">TOTAL</td>
                                 <td class="text-end pe-3 fs-6">{{ $fmtDisp($invoice->total_amount) }}</td>
                             </tr>
                         </tfoot>
