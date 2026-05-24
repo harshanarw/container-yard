@@ -22,7 +22,7 @@ class HandlingTariffController extends Controller
             ->get();
 
         // Only shipping-line customers in the "New Tariff" dropdown
-        $shippingLines = Customer::where('type', 'shipping_line')
+        $shippingLines = Customer::whereHas('types', fn ($q) => $q->where('name', 'Shipping Line'))
             ->where('status', 'active')
             ->orderBy('name')
             ->get();
@@ -62,7 +62,7 @@ class HandlingTariffController extends Controller
         $usedSizes       = $handlingTariff->rates->pluck('container_size')->toArray();
         $availableSizes  = array_diff(self::SIZES, $usedSizes);
 
-        $shippingLines = Customer::where('type', 'shipping_line')
+        $shippingLines = Customer::whereHas('types', fn ($q) => $q->where('name', 'Shipping Line'))
             ->where('status', 'active')
             ->orderBy('name')
             ->get();

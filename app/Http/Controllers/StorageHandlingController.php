@@ -33,7 +33,7 @@ class StorageHandlingController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $shippingLines = Customer::where('type', 'shipping_line')
+        $shippingLines = Customer::whereHas('types', fn ($q) => $q->where('name', 'Shipping Line'))
             ->where('status', 'active')
             ->orderBy('name')
             ->get();
@@ -52,7 +52,7 @@ class StorageHandlingController extends Controller
 
     public function create()
     {
-        $shippingLines = Customer::where('type', 'shipping_line')
+        $shippingLines = Customer::whereHas('types', fn ($q) => $q->where('name', 'Shipping Line'))
             ->where('status', 'active')
             ->orderBy('name')
             ->get();
