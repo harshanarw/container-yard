@@ -71,7 +71,7 @@
                                    value="{{ old('registration_no') }}">
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Registered Address <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Registered Address</label>
                             <textarea name="address" class="form-control" rows="2"
                                       placeholder="Street address, city, postcode, state">{{ old('address') }}</textarea>
                         </div>
