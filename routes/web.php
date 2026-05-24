@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChecklistMasterItemController;
 use App\Http\Controllers\CloudStorageSettingController;
 use App\Http\Controllers\CompanySettingController;
+use App\Http\Controllers\TaxCodeController;
 use App\Http\Controllers\ContainerController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -123,6 +124,16 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{equipmentType}/toggle',    [EquipmentTypeController::class, 'toggleActive'])->name('toggle');
             Route::delete('{equipmentType}',          [EquipmentTypeController::class, 'destroy'])->name('destroy');
             Route::post('reorder',                    [EquipmentTypeController::class, 'reorder'])->name('reorder');
+        });
+        // Tax Codes
+        Route::prefix('tax-codes')->name('tax-codes.')->group(function () {
+            Route::get('/',                    [TaxCodeController::class, 'index'])->name('index');
+            Route::post('/',                   [TaxCodeController::class, 'store'])->name('store');
+            Route::post('reorder',             [TaxCodeController::class, 'reorder'])->name('reorder');
+            Route::post('labels',              [TaxCodeController::class, 'updateLabels'])->name('labels');
+            Route::patch('{taxCode}',          [TaxCodeController::class, 'update'])->name('update');
+            Route::patch('{taxCode}/toggle',   [TaxCodeController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{taxCode}',         [TaxCodeController::class, 'destroy'])->name('destroy');
         });
         // Handling Charges Tariff
         Route::prefix('handling-tariff')->name('handling-tariff.')->group(function () {

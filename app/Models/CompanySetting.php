@@ -22,6 +22,8 @@ class CompanySetting extends Model
         'logo_path',
         'icon_path',
         'product_icon_path',
+        'tax1_label',
+        'tax2_label',
     ];
 
     public static function current(): static

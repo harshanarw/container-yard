@@ -608,6 +608,26 @@
                     </li>
                 </ul>
             </div>
+
+            {{-- Invoice sub-group --}}
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-invoice"
+                    aria-expanded="{{ request()->routeIs('masters.tax-codes.*') ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-setup-invoice">
+                <i class="bi bi-receipt nav-sub-icon"></i>
+                <span>Invoice</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ request()->routeIs('masters.tax-codes.*') ? 'show' : '' }}" id="nav-sub-setup-invoice">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.tax-codes.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.tax-codes.*') ? 'active' : '' }}">
+                            <i class="bi bi-percent"></i><span>Tax Codes</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
 
         {{-- ── REPORTS ── --}}
