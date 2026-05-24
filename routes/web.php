@@ -7,6 +7,7 @@ use App\Http\Controllers\CloudStorageSettingController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\TaxCodeController;
+use App\Http\Controllers\ChargeCodeController;
 use App\Http\Controllers\ContainerController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -135,6 +136,15 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{customerType}',        [CustomerTypeController::class, 'update'])->name('update');
             Route::patch('{customerType}/toggle', [CustomerTypeController::class, 'toggleActive'])->name('toggle');
             Route::delete('{customerType}',       [CustomerTypeController::class, 'destroy'])->name('destroy');
+        });
+        // Charge Codes
+        Route::prefix('charge-codes')->name('charge-codes.')->group(function () {
+            Route::get('/',                       [ChargeCodeController::class, 'index'])->name('index');
+            Route::post('/',                      [ChargeCodeController::class, 'store'])->name('store');
+            Route::post('reorder',                [ChargeCodeController::class, 'reorder'])->name('reorder');
+            Route::patch('{chargeCode}',          [ChargeCodeController::class, 'update'])->name('update');
+            Route::patch('{chargeCode}/toggle',   [ChargeCodeController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{chargeCode}',         [ChargeCodeController::class, 'destroy'])->name('destroy');
         });
         // Tax Codes
         Route::prefix('tax-codes')->name('tax-codes.')->group(function () {

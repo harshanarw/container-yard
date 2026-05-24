@@ -630,16 +630,23 @@
             </div>
 
             {{-- Invoice sub-group --}}
+            @php $invoiceActive = request()->routeIs('masters.tax-codes.*') || request()->routeIs('masters.charge-codes.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-invoice"
-                    aria-expanded="{{ request()->routeIs('masters.tax-codes.*') ? 'true' : 'false' }}"
+                    aria-expanded="{{ $invoiceActive ? 'true' : 'false' }}"
                     aria-controls="nav-sub-setup-invoice">
                 <i class="bi bi-receipt nav-sub-icon"></i>
                 <span>Invoice</span>
                 <i class="bi bi-chevron-down sub-chevron"></i>
             </button>
-            <div class="collapse {{ request()->routeIs('masters.tax-codes.*') ? 'show' : '' }}" id="nav-sub-setup-invoice">
+            <div class="collapse {{ $invoiceActive ? 'show' : '' }}" id="nav-sub-setup-invoice">
                 <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.charge-codes.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.charge-codes.*') ? 'active' : '' }}">
+                            <i class="bi bi-tag"></i><span>Charge Codes</span>
+                        </a>
+                    </li>
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.tax-codes.index') }}"
                            class="nav-link {{ request()->routeIs('masters.tax-codes.*') ? 'active' : '' }}">
