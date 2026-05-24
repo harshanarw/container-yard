@@ -49,7 +49,7 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Customer Type(s)</label>
                             @php $selectedTypes = old('types', $customer->types->pluck('id')->toArray()); @endphp
-                            <div class="border rounded p-3" style="max-height:180px;overflow-y:auto;background:#fafafa;">
+                            <div class="border rounded p-3" style="background:#fafafa;">
                                 @if($customerTypes->isEmpty())
                                     <span class="text-muted small">No customer types defined yet.</span>
                                 @else
@@ -113,10 +113,10 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Contact Person <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Contact Person</label>
                             <input type="text" name="contact_person" class="form-control @error('contact_person') is-invalid @enderror"
                                    placeholder="Full name"
-                                   value="{{ old('contact_person', $customer->contact_person) }}" required>
+                                   value="{{ old('contact_person', $customer->contact_person) }}">
                             @error('contact_person')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
@@ -126,10 +126,10 @@
                                    value="{{ old('designation', $customer->designation) }}">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Office Phone <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Office Phone</label>
                             <input type="text" name="phone_office" class="form-control @error('phone_office') is-invalid @enderror"
                                    placeholder="03-XXXXXXXX"
-                                   value="{{ old('phone_office', $customer->phone_office) }}" required>
+                                   value="{{ old('phone_office', $customer->phone_office) }}">
                             @error('phone_office')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-4">
@@ -145,10 +145,10 @@
                                    value="{{ old('fax', $customer->fax) }}">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Email Address</label>
                             <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
                                    placeholder="ops@company.com"
-                                   value="{{ old('email', $customer->email) }}" required>
+                                   value="{{ old('email', $customer->email) }}">
                             @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">

@@ -44,7 +44,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Customer Type(s)</label>
-                            <div class="border rounded p-3" style="max-height:180px;overflow-y:auto;background:#fafafa;">
+                            <div class="border rounded p-3" style="background:#fafafa;">
                                 @if($customerTypes->isEmpty())
                                     <span class="text-muted small">No customer types defined yet. Add them in Setup → Customer → Customer Types.</span>
                                 @else
