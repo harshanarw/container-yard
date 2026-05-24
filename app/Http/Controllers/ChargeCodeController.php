@@ -8,12 +8,19 @@ use Illuminate\Http\Request;
 
 class ChargeCodeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $chargeCodes = ChargeCode::with('taxCode')->orderBy('sort_order')->orderBy('code')->get();
-        $taxCodes    = TaxCode::where('is_active', true)->orderBy('sort_order')->get();
+        $query = ChargeCode::with('taxCode')->orderBy('sort_order')->orderBy('code');
 
-        return view('masters.charge-codes.index', compact('chargeCodes', 'taxCodes'));
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        $chargeCodes = $query->get();
+        $taxCodes    = TaxCode::where('is_active', true)->orderBy('sort_order')->get();
+        $categories  = ChargeCode::CATEGORIES;
+
+        return view('masters.charge-codes.index', compact('chargeCodes', 'taxCodes', 'categories'));
     }
 
     public function store(Request $request)
@@ -21,6 +28,7 @@ class ChargeCodeController extends Controller
         $data = $request->validate([
             'code'        => ['required', 'string', 'max:20', 'unique:charge_codes,code'],
             'description' => ['required', 'string', 'max:200'],
+            'category'    => ['nullable', 'string', 'in:' . implode(',', array_keys(ChargeCode::CATEGORIES))],
             'tax_code_id' => ['nullable', 'integer', 'exists:tax_codes,id'],
         ]);
 
@@ -36,6 +44,7 @@ class ChargeCodeController extends Controller
         $data = $request->validate([
             'code'        => ['required', 'string', 'max:20', "unique:charge_codes,code,{$chargeCode->id}"],
             'description' => ['required', 'string', 'max:200'],
+            'category'    => ['nullable', 'string', 'in:' . implode(',', array_keys(ChargeCode::CATEGORIES))],
             'tax_code_id' => ['nullable', 'integer', 'exists:tax_codes,id'],
         ]);
 

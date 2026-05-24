@@ -33,6 +33,22 @@
 </div>
 @endif
 
+{{-- Category filter tabs --}}
+<div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+    <a href="{{ route('masters.charge-codes.index') }}"
+       class="btn btn-sm {{ !request('category') ? 'btn-dark' : 'btn-outline-secondary' }}">
+        All <span class="badge bg-white text-dark ms-1">{{ $chargeCodes->count() }}</span>
+    </a>
+    @foreach($categories as $key => $label)
+        @php $count = $chargeCodes->where('category', $key)->count(); @endphp
+        <a href="{{ route('masters.charge-codes.index', ['category' => $key]) }}"
+           class="btn btn-sm {{ request('category') === $key ? 'btn-primary' : 'btn-outline-secondary' }}">
+            {{ $label }}
+            @if($count)<span class="badge {{ request('category') === $key ? 'bg-white text-primary' : 'bg-secondary' }} ms-1">{{ $count }}</span>@endif
+        </a>
+    @endforeach
+</div>
+
 <div class="card content-card">
     <div class="card-body p-0">
         <table class="table table-hover align-middle mb-0" id="chargeTable">
@@ -42,7 +58,8 @@
                     <th style="width:36px;">#</th>
                     <th style="width:110px;">Code</th>
                     <th>Description</th>
-                    <th style="width:200px;">Applicable Tax</th>
+                    <th style="width:170px;">Category</th>
+                    <th style="width:190px;">Applicable Tax</th>
                     <th style="width:90px;" class="text-center">Status</th>
                     <th style="width:100px;" class="text-end pe-3">Actions</th>
                 </tr>
@@ -60,6 +77,15 @@
                         </span>
                     </td>
                     <td class="small fw-semibold">{{ $cc->description }}</td>
+                    <td>
+                        @if($cc->category)
+                            <span class="badge {{ $cc->category_badge }} small">
+                                {{ $cc->category_label }}
+                            </span>
+                        @else
+                            <span class="text-muted small">—</span>
+                        @endif
+                    </td>
                     <td>
                         @if($cc->taxCode)
                             <span class="badge bg-info-subtle text-info border border-info-subtle me-1">
@@ -86,6 +112,7 @@
                                     data-id="{{ $cc->id }}"
                                     data-code="{{ $cc->code }}"
                                     data-description="{{ $cc->description }}"
+                                    data-category="{{ $cc->category ?? '' }}"
                                     data-tax_code_id="{{ $cc->tax_code_id ?? '' }}"
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
@@ -101,9 +128,13 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-5">
+                    <td colspan="8" class="text-center text-muted py-5">
                         <i class="bi bi-tag fs-3 d-block mb-2"></i>
-                        No charge codes yet. Click <strong>Add Charge Code</strong> to get started.
+                        No charge codes found.
+                        @if(request('category'))
+                            <a href="{{ route('masters.charge-codes.index') }}">Clear filter</a> or
+                        @endif
+                        click <strong>Add Charge Code</strong> to get started.
                     </td>
                 </tr>
             @endforelse
@@ -112,7 +143,7 @@
     </div>
     <div class="card-footer bg-white py-2">
         <span class="text-muted small">
-            {{ $chargeCodes->count() }} code(s) total &middot; {{ $chargeCodes->where('is_active', true)->count() }} active
+            {{ $chargeCodes->count() }} code(s) shown &middot; {{ $chargeCodes->where('is_active', true)->count() }} active
         </span>
     </div>
 </div>
@@ -133,24 +164,30 @@
                             <label class="form-label fw-semibold">Code <span class="text-danger">*</span></label>
                             <input type="text" name="code" class="form-control text-uppercase"
                                    maxlength="20" required placeholder="e.g. STC">
-                            <div class="form-text">Short unique code (max 20 chars)</div>
+                            <div class="form-text">Short unique code (max 20)</div>
                         </div>
                         <div class="col-md-8">
                             <label class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
                             <input type="text" name="description" class="form-control"
                                    maxlength="200" required placeholder="e.g. Storage Charges">
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Category</label>
+                            <select name="category" class="form-select">
+                                <option value="">— Select Category —</option>
+                                @foreach($categories as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label fw-semibold">Applicable Tax Code</label>
                             <select name="tax_code_id" class="form-select">
                                 <option value="">— No Tax / Exempt —</option>
                                 @foreach($taxCodes as $tc)
-                                    <option value="{{ $tc->id }}">
-                                        {{ $tc->code }} — {{ $tc->description }}
-                                    </option>
+                                    <option value="{{ $tc->id }}">{{ $tc->code }} — {{ $tc->description }}</option>
                                 @endforeach
                             </select>
-                            <div class="form-text">Select the tax that applies to this charge. Leave blank if no tax.</div>
                         </div>
                     </div>
                 </div>
@@ -187,14 +224,21 @@
                             <input type="text" name="description" id="editDescription"
                                    class="form-control" maxlength="200" required>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Category</label>
+                            <select name="category" id="editCategory" class="form-select">
+                                <option value="">— Select Category —</option>
+                                @foreach($categories as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label fw-semibold">Applicable Tax Code</label>
                             <select name="tax_code_id" id="editTaxCodeId" class="form-select">
                                 <option value="">— No Tax / Exempt —</option>
                                 @foreach($taxCodes as $tc)
-                                    <option value="{{ $tc->id }}">
-                                        {{ $tc->code }} — {{ $tc->description }}
-                                    </option>
+                                    <option value="{{ $tc->id }}">{{ $tc->code }} — {{ $tc->description }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -265,8 +309,8 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
         document.getElementById('editCode').value        = btn.dataset.code;
         document.getElementById('editDescription').value = btn.dataset.description;
-        const sel = document.getElementById('editTaxCodeId');
-        sel.value = btn.dataset.tax_code_id || '';
+        document.getElementById('editCategory').value    = btn.dataset.category || '';
+        document.getElementById('editTaxCodeId').value   = btn.dataset.tax_code_id || '';
         document.getElementById('editForm').action =
             '{{ url("masters/charge-codes") }}/' + btn.dataset.id;
         new bootstrap.Modal(document.getElementById('editModal')).show();
