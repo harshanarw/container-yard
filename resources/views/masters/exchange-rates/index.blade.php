@@ -214,7 +214,7 @@
 
                         <div class="col-6">
                             <label class="form-label fw-semibold">From Currency <span class="text-danger">*</span></label>
-                            <select name="from_currency_code" id="addFromCurrency" class="form-select" required>
+                            <select name="from_currency_code" id="addFromCurrency" class="form-select select2-modal" required>
                                 @foreach($currencies as $cur)
                                     <option value="{{ $cur->code }}"
                                             {{ old('from_currency_code', 'USD') === $cur->code ? 'selected' : '' }}>
@@ -226,7 +226,7 @@
 
                         <div class="col-6">
                             <label class="form-label fw-semibold">To Currency <span class="text-danger">*</span></label>
-                            <select name="to_currency_code" id="addToCurrency" class="form-select" required>
+                            <select name="to_currency_code" id="addToCurrency" class="form-select select2-modal" required>
                                 @foreach($currencies as $cur)
                                     <option value="{{ $cur->code }}"
                                             {{ old('to_currency_code', $defaultCurrency) === $cur->code ? 'selected' : '' }}>
@@ -292,7 +292,7 @@
 
                         <div class="col-6">
                             <label class="form-label fw-semibold">From Currency <span class="text-danger">*</span></label>
-                            <select name="from_currency_code" id="editFromCurrency" class="form-select" required>
+                            <select name="from_currency_code" id="editFromCurrency" class="form-select select2-modal" required>
                                 @foreach($currencies as $cur)
                                     <option value="{{ $cur->code }}">
                                         {{ $cur->code }} — {{ $cur->name }}
@@ -303,7 +303,7 @@
 
                         <div class="col-6">
                             <label class="form-label fw-semibold">To Currency <span class="text-danger">*</span></label>
-                            <select name="to_currency_code" id="editToCurrency" class="form-select" required>
+                            <select name="to_currency_code" id="editToCurrency" class="form-select select2-modal" required>
                                 @foreach($currencies as $cur)
                                     <option value="{{ $cur->code }}">
                                         {{ $cur->code }} — {{ $cur->name }}
@@ -368,39 +368,53 @@
 
 @push('scripts')
 <script>
-const defaultCurrency = '{{ $defaultCurrency }}';
+const s2Opts = { theme: 'bootstrap-5' };
 
-// ── Add modal: update rate label when currency selection changes ──────────────
+// ── Initialize Select2 inside modals with dropdownParent ─────────────────────
+// Must use dropdownParent so the dropdown renders above the modal backdrop.
+$('#addModal').on('shown.bs.modal', function () {
+    $('#addFromCurrency, #addToCurrency', this).each(function () {
+        if (!$(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2({ theme: 'bootstrap-5', dropdownParent: $('#addModal') });
+        }
+    });
+    updateAddLabel();
+});
+
+$('#editModal').on('shown.bs.modal', function () {
+    $('#editFromCurrency, #editToCurrency', this).each(function () {
+        if (!$(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2({ theme: 'bootstrap-5', dropdownParent: $('#editModal') });
+        }
+    });
+    updateEditLabel();
+});
+
+// ── Rate label helpers ────────────────────────────────────────────────────────
 function updateAddLabel() {
-    const from = document.getElementById('addFromCurrency').value;
-    const to   = document.getElementById('addToCurrency').value;
-    document.getElementById('addRatePrefix').textContent = '1 ' + from + ' =';
-    document.getElementById('addRateSuffix').textContent = to;
+    document.getElementById('addRatePrefix').textContent = '1 ' + $('#addFromCurrency').val() + ' =';
+    document.getElementById('addRateSuffix').textContent = $('#addToCurrency').val();
 }
-document.getElementById('addFromCurrency').addEventListener('change', updateAddLabel);
-document.getElementById('addToCurrency').addEventListener('change', updateAddLabel);
-updateAddLabel();
+function updateEditLabel() {
+    document.getElementById('editRatePrefix').textContent = '1 ' + $('#editFromCurrency').val() + ' =';
+    document.getElementById('editRateSuffix').textContent = $('#editToCurrency').val();
+}
+
+// jQuery change events — Select2 fires these reliably
+$('#addFromCurrency, #addToCurrency').on('change', updateAddLabel);
+$('#editFromCurrency, #editToCurrency').on('change', updateEditLabel);
 
 // ── Edit modal ────────────────────────────────────────────────────────────────
-function updateEditLabel() {
-    const from = document.getElementById('editFromCurrency').value;
-    const to   = document.getElementById('editToCurrency').value;
-    document.getElementById('editRatePrefix').textContent = '1 ' + from + ' =';
-    document.getElementById('editRateSuffix').textContent = to;
-}
-document.getElementById('editFromCurrency').addEventListener('change', updateEditLabel);
-document.getElementById('editToCurrency').addEventListener('change', updateEditLabel);
-
 document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.getElementById('editDate').value         = btn.dataset.date;
-        document.getElementById('editFromCurrency').value = btn.dataset.from;
-        document.getElementById('editToCurrency').value   = btn.dataset.to;
-        document.getElementById('editRate').value         = btn.dataset.rate;
-        document.getElementById('editNotes').value        = btn.dataset.notes;
+        document.getElementById('editDate').value  = btn.dataset.date;
+        document.getElementById('editRate').value  = btn.dataset.rate;
+        document.getElementById('editNotes').value = btn.dataset.notes;
         document.getElementById('editForm').action =
             '{{ url("masters/exchange-rates") }}/' + btn.dataset.id;
-        updateEditLabel();
+        // Set Select2 values via jQuery so the display updates correctly
+        $('#editFromCurrency').val(btn.dataset.from).trigger('change');
+        $('#editToCurrency').val(btn.dataset.to).trigger('change');
         new bootstrap.Modal(document.getElementById('editModal')).show();
     });
 });
