@@ -6,6 +6,7 @@ use App\Http\Controllers\ChecklistMasterItemController;
 use App\Http\Controllers\CloudStorageSettingController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\CurrencyController;
+use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\TaxCodeController;
 use App\Http\Controllers\ChargeCodeController;
@@ -166,6 +167,13 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{currency}/toggle',        [CurrencyController::class, 'toggleActive'])->name('toggle');
             Route::patch('{currency}',               [CurrencyController::class, 'update'])->name('update');
             Route::delete('{currency}',              [CurrencyController::class, 'destroy'])->name('destroy');
+        });
+        // Daily Exchange Rates
+        Route::prefix('exchange-rates')->name('exchange-rates.')->group(function () {
+            Route::get('/',                       [ExchangeRateController::class, 'index'])->name('index');
+            Route::post('/',                      [ExchangeRateController::class, 'store'])->name('store');
+            Route::patch('{exchangeRate}',        [ExchangeRateController::class, 'update'])->name('update');
+            Route::delete('{exchangeRate}',       [ExchangeRateController::class, 'destroy'])->name('destroy');
         });
         // Handling Charges Tariff
         Route::prefix('handling-tariff')->name('handling-tariff.')->group(function () {

@@ -630,7 +630,7 @@
             </div>
 
             {{-- Invoice sub-group --}}
-            @php $invoiceActive = request()->routeIs('masters.tax-codes.*') || request()->routeIs('masters.charge-codes.*') || request()->routeIs('masters.currencies.*'); @endphp
+            @php $invoiceActive = request()->routeIs('masters.tax-codes.*') || request()->routeIs('masters.charge-codes.*') || request()->routeIs('masters.currencies.*') || request()->routeIs('masters.exchange-rates.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-invoice"
                     aria-expanded="{{ $invoiceActive ? 'true' : 'false' }}"
@@ -657,6 +657,12 @@
                         <a href="{{ route('masters.currencies.index') }}"
                            class="nav-link {{ request()->routeIs('masters.currencies.*') ? 'active' : '' }}">
                             <i class="bi bi-currency-exchange"></i><span>Currency Types</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.exchange-rates.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.exchange-rates.*') ? 'active' : '' }}">
+                            <i class="bi bi-arrow-left-right"></i><span>Exchange Rates</span>
                         </a>
                     </li>
                 </ul>
