@@ -38,12 +38,13 @@ class ExchangeRateController extends Controller
             'from_currency_code' => ['required', 'string', 'size:3', 'exists:currencies,code'],
             'to_currency_code'   => ['required', 'string', 'size:3', 'exists:currencies,code',
                                      'different:from_currency_code'],
-            'rate'               => ['required', 'numeric', 'min:0.000001'],
+            'rate'               => ['required', 'numeric', 'min:0.0001'],
             'notes'              => ['nullable', 'string', 'max:255'],
         ]);
 
         $data['from_currency_code'] = strtoupper($data['from_currency_code']);
         $data['to_currency_code']   = strtoupper($data['to_currency_code']);
+        $data['rate']               = (float) $data['rate'];
 
         $exists = ExchangeRate::where('rate_date',          $data['rate_date'])
             ->where('from_currency_code', $data['from_currency_code'])
@@ -72,12 +73,13 @@ class ExchangeRateController extends Controller
             'from_currency_code' => ['required', 'string', 'size:3', 'exists:currencies,code'],
             'to_currency_code'   => ['required', 'string', 'size:3', 'exists:currencies,code',
                                      'different:from_currency_code'],
-            'rate'               => ['required', 'numeric', 'min:0.000001'],
+            'rate'               => ['required', 'numeric', 'min:0.0001'],
             'notes'              => ['nullable', 'string', 'max:255'],
         ]);
 
         $data['from_currency_code'] = strtoupper($data['from_currency_code']);
         $data['to_currency_code']   = strtoupper($data['to_currency_code']);
+        $data['rate']               = (float) $data['rate'];
 
         $duplicate = ExchangeRate::where('rate_date',          $data['rate_date'])
             ->where('from_currency_code', $data['from_currency_code'])

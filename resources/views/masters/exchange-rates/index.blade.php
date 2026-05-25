@@ -241,9 +241,9 @@
                             <div class="input-group">
                                 <span class="input-group-text small" id="addRatePrefix">1 USD =</span>
                                 <input type="number" name="rate" class="form-control"
-                                       min="0.000001" step="0.0001"
+                                       min="0" step="any"
                                        value="{{ old('rate') }}"
-                                       placeholder="e.g. 300.0000" required>
+                                       placeholder="e.g. 300" required>
                                 <span class="input-group-text small" id="addRateSuffix">{{ $defaultCurrency }}</span>
                             </div>
                             <div class="form-text">How many units of the <em>To</em> currency equal 1 unit of the <em>From</em> currency</div>
@@ -317,7 +317,7 @@
                             <div class="input-group">
                                 <span class="input-group-text small" id="editRatePrefix">1 — =</span>
                                 <input type="number" name="rate" id="editRate" class="form-control"
-                                       min="0.000001" step="0.0001" required>
+                                       min="0" step="any" required>
                                 <span class="input-group-text small" id="editRateSuffix">—</span>
                             </div>
                         </div>
