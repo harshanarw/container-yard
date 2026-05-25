@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['rate_date', 'from_currency_code', 'to_currency_code'], 'exchange_rates_date_pair_unique');
-            $table->index(['rate_date', 'from_currency_code', 'to_currency_code']);
+            $table->index(['rate_date', 'from_currency_code', 'to_currency_code'], 'er_date_from_to_idx');
         });
     }
 
