@@ -33,7 +33,24 @@ class ChargeCode extends Model
         'miscellaneous' => 'bg-light border text-muted',
     ];
 
-    protected $fillable = ['code', 'description', 'category', 'tax_code_id', 'is_active', 'sort_order'];
+    const RATE_TYPES = [
+        'per_container' => 'Per Container',
+        'per_box'       => 'Per Box',
+        'per_unit'      => 'Per Unit',
+        'per_move'      => 'Per Move',
+        'per_trip'      => 'Per Trip',
+        'per_day'       => 'Per Day',
+        'per_week'      => 'Per Week',
+        'per_month'     => 'Per Month',
+        'per_hour'      => 'Per Hour',
+        'per_shift'     => 'Per Shift',
+        'per_m3'        => 'Per M³',
+        'per_kg'        => 'Per KG',
+        'per_ton'       => 'Per Ton',
+        'flat_rate'     => 'Flat Rate / Lump Sum',
+    ];
+
+    protected $fillable = ['code', 'description', 'category', 'rate_type', 'tax_code_id', 'is_active', 'sort_order'];
 
     protected $casts = [
         'is_active'  => 'boolean',
@@ -53,5 +70,10 @@ class ChargeCode extends Model
     public function getCategoryBadgeAttribute(): string
     {
         return self::CATEGORY_BADGES[$this->category] ?? 'bg-light border text-muted';
+    }
+
+    public function getRateTypeLabelAttribute(): string
+    {
+        return self::RATE_TYPES[$this->rate_type] ?? ($this->rate_type ?? '—');
     }
 }

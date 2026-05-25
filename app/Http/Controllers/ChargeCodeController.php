@@ -19,8 +19,9 @@ class ChargeCodeController extends Controller
         $chargeCodes = $query->get();
         $taxCodes    = TaxCode::where('is_active', true)->orderBy('sort_order')->get();
         $categories  = ChargeCode::CATEGORIES;
+        $rateTypes   = ChargeCode::RATE_TYPES;
 
-        return view('masters.charge-codes.index', compact('chargeCodes', 'taxCodes', 'categories'));
+        return view('masters.charge-codes.index', compact('chargeCodes', 'taxCodes', 'categories', 'rateTypes'));
     }
 
     public function store(Request $request)
@@ -29,6 +30,7 @@ class ChargeCodeController extends Controller
             'code'        => ['required', 'string', 'max:20', 'unique:charge_codes,code'],
             'description' => ['required', 'string', 'max:200'],
             'category'    => ['nullable', 'string', 'in:' . implode(',', array_keys(ChargeCode::CATEGORIES))],
+            'rate_type'   => ['nullable', 'string', 'in:' . implode(',', array_keys(ChargeCode::RATE_TYPES))],
             'tax_code_id' => ['nullable', 'integer', 'exists:tax_codes,id'],
         ]);
 
@@ -45,6 +47,7 @@ class ChargeCodeController extends Controller
             'code'        => ['required', 'string', 'max:20', "unique:charge_codes,code,{$chargeCode->id}"],
             'description' => ['required', 'string', 'max:200'],
             'category'    => ['nullable', 'string', 'in:' . implode(',', array_keys(ChargeCode::CATEGORIES))],
+            'rate_type'   => ['nullable', 'string', 'in:' . implode(',', array_keys(ChargeCode::RATE_TYPES))],
             'tax_code_id' => ['nullable', 'integer', 'exists:tax_codes,id'],
         ]);
 

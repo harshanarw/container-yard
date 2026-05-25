@@ -58,7 +58,8 @@
                     <th style="width:36px;">#</th>
                     <th style="width:110px;">Code</th>
                     <th>Description</th>
-                    <th style="width:170px;">Category</th>
+                    <th style="width:160px;">Category</th>
+                    <th style="width:140px;">Rate Type</th>
                     <th style="width:190px;">Applicable Tax</th>
                     <th style="width:90px;" class="text-center">Status</th>
                     <th style="width:100px;" class="text-end pe-3">Actions</th>
@@ -81,6 +82,15 @@
                         @if($cc->category)
                             <span class="badge {{ $cc->category_badge }} small">
                                 {{ $cc->category_label }}
+                            </span>
+                        @else
+                            <span class="text-muted small">—</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if($cc->rate_type)
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small">
+                                {{ $cc->rate_type_label }}
                             </span>
                         @else
                             <span class="text-muted small">—</span>
@@ -113,6 +123,7 @@
                                     data-code="{{ $cc->code }}"
                                     data-description="{{ $cc->description }}"
                                     data-category="{{ $cc->category ?? '' }}"
+                                    data-rate_type="{{ $cc->rate_type ?? '' }}"
                                     data-tax_code_id="{{ $cc->tax_code_id ?? '' }}"
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
@@ -128,7 +139,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-5">
+                    <td colspan="9" class="text-center text-muted py-5">
                         <i class="bi bi-tag fs-3 d-block mb-2"></i>
                         No charge codes found.
                         @if(request('category'))
@@ -181,6 +192,15 @@
                             </select>
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label fw-semibold">Rate Type</label>
+                            <select name="rate_type" class="form-select">
+                                <option value="">— Select Rate Type —</option>
+                                @foreach($rateTypes as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
                             <label class="form-label fw-semibold">Applicable Tax Code</label>
                             <select name="tax_code_id" class="form-select">
                                 <option value="">— No Tax / Exempt —</option>
@@ -234,6 +254,15 @@
                             </select>
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label fw-semibold">Rate Type</label>
+                            <select name="rate_type" id="editRateType" class="form-select">
+                                <option value="">— Select Rate Type —</option>
+                                @foreach($rateTypes as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
                             <label class="form-label fw-semibold">Applicable Tax Code</label>
                             <select name="tax_code_id" id="editTaxCodeId" class="form-select">
                                 <option value="">— No Tax / Exempt —</option>
@@ -310,6 +339,7 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
         document.getElementById('editCode').value        = btn.dataset.code;
         document.getElementById('editDescription').value = btn.dataset.description;
         document.getElementById('editCategory').value    = btn.dataset.category || '';
+        document.getElementById('editRateType').value    = btn.dataset.rate_type || '';
         document.getElementById('editTaxCodeId').value   = btn.dataset.tax_code_id || '';
         document.getElementById('editForm').action =
             '{{ url("masters/charge-codes") }}/' + btn.dataset.id;
