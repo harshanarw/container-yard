@@ -425,7 +425,8 @@
 @push('scripts')
 <script>
     // ── Lightbox ──────────────────────────────────────────────
-    const photos  = @json($inquiry->photos->map(fn($p) => asset($p->photo_path)));
+    @php $lbDocs = $inquiry->documents()->where('mime_type', 'like', 'image/%')->latest()->get(); @endphp
+    const photos  = @json($lbDocs->map(fn($d) => route('documents.preview', $d))->values());
     let lbCurrent = 0;
 
     function openLightbox(idx) {

@@ -8,24 +8,6 @@
     <li class="breadcrumb-item active">Edit</li>
 @endsection
 
-@push('styles')
-<style>
-    #photoDropZone { border-style: dashed !important; }
-    #photoDropZone:hover { background: #f0f4ff; border-color: #2196F3 !important; }
-    .photo-card { transition: transform .15s; }
-    .photo-card:hover { transform: translateY(-2px); }
-    .existing-photo-card { position: relative; overflow: hidden; }
-    .existing-photo-card .delete-overlay {
-        position: absolute; inset: 0;
-        background: rgba(220,53,69,.75);
-        display: flex; align-items: center; justify-content: center;
-        opacity: 0; transition: opacity .2s;
-        color: #fff; font-size: .8rem; font-weight: 600;
-        flex-direction: column; gap: 4px;
-    }
-    .existing-photo-card:hover .delete-overlay { opacity: 1; }
-</style>
-@endpush
 
 @section('content')
 
@@ -308,74 +290,15 @@
                 </div>
             </div>
 
-            {{-- Photo Management --}}
-            <div class="card content-card mb-3">
-                <div class="card-header d-flex align-items-center justify-content-between py-2">
-                    <span class="small fw-semibold"><i class="bi bi-camera me-2 text-primary"></i>Photo Evidence</span>
-                    <span id="newPhotoCounter" class="badge bg-secondary-subtle text-secondary">+0 new</span>
-                </div>
-                <div class="card-body">
-
-                    {{-- Existing photos --}}
-                    @if($inquiry->photos->isNotEmpty())
-                    <p class="small fw-semibold text-muted mb-2">
-                        Existing Photos ({{ $inquiry->photos->count() }}) — hover to remove
-                    </p>
-                    <div class="row g-2 mb-4" id="existingPhotos">
-                        @foreach($inquiry->photos as $photo)
-                        <div class="col-6 col-md-4 col-lg-3" id="photo-col-{{ $photo->id }}">
-                            <div class="card border shadow-sm existing-photo-card" style="overflow:hidden;">
-                                <img src="{{ asset($photo->photo_path) }}"
-                                     class="card-img-top"
-                                     style="height:110px;object-fit:cover;"
-                                     alt="photo"
-                                     onerror="this.src='https://via.placeholder.com/200x110?text=Photo'">
-                                <div class="delete-overlay">
-                                    <button type="button" class="btn btn-danger btn-sm remove-existing-photo"
-                                            data-url="{{ route('surveys.photos.destroy', [$inquiry, $photo]) }}"
-                                            data-col="photo-col-{{ $photo->id }}">
-                                        <i class="bi bi-trash me-1"></i>Remove
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        @endforeach
-                    </div>
-                    <hr class="my-3">
-                    @endif
-
-                    {{-- New photo upload --}}
-                    <p class="small fw-semibold text-muted mb-2">Add New Photos</p>
-
-                    <input type="file" id="photoInput" name="photos[]"
-                           multiple accept="image/jpeg,image/png,image/webp,image/gif"
-                           class="d-none">
-
-                    <div id="photoDropZone"
-                         class="border border-2 border-dashed rounded-3 text-center p-4 mb-3"
-                         style="border-color:#dee2e6!important;cursor:pointer;transition:background .2s;">
-                        <i class="bi bi-cloud-arrow-up text-primary" style="font-size:2.5rem;"></i>
-                        <div class="fw-semibold mt-2">Drag &amp; drop photos here</div>
-                        <div class="text-muted small mt-1">or click to browse files</div>
-                        <button type="button" class="btn btn-outline-primary btn-sm mt-3" id="photoBrowseBtn">
-                            <i class="bi bi-folder2-open me-1"></i>Browse Photos
-                        </button>
-                        <div class="text-muted mt-2" style="font-size:.75rem;">
-                            JPG, PNG, WEBP &nbsp;·&nbsp; Max 5 MB per file &nbsp;·&nbsp; Up to 10 new files
-                        </div>
-                    </div>
-
-                    <div id="photoError" class="alert alert-danger alert-dismissible py-2 small d-none" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                        <span id="photoErrorMsg"></span>
-                        <button type="button" class="btn-close btn-sm"
-                                onclick="document.getElementById('photoError').classList.add('d-none')"></button>
-                    </div>
-
-                    <div class="row g-2" id="photoPreviewGrid"></div>
-
-                </div>
-            </div>
+            {{-- Photo Evidence --}}
+            <x-document-manager
+                model-type="App\Models\Inquiry"
+                :model-id="$inquiry->id"
+                :folder="'surveys/' . $inquiry->id"
+                title="Photo Evidence"
+                accept="image/*"
+                :max-files="20"
+            />
 
         </div>{{-- /col-lg-8 --}}
 
@@ -470,115 +393,8 @@
         }
     });
 
-    // ── Existing photo removal (AJAX — avoids nested-form _method=DELETE conflict) ──
-    const _csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-    document.getElementById('existingPhotos') && document.getElementById('existingPhotos').addEventListener('click', function (e) {
-        const btn = e.target.closest('.remove-existing-photo');
-        if (!btn) return;
-        if (!confirm('Remove this photo?')) return;
-        btn.disabled = true;
-        fetch(btn.dataset.url, {
-            method: 'POST',
-            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': _csrfToken },
-            body: new URLSearchParams({ '_method': 'DELETE' }),
-        }).then(function (r) {
-            if (r.ok) {
-                const col = document.getElementById(btn.dataset.col);
-                if (col) col.remove();
-            } else {
-                btn.disabled = false;
-                alert('Failed to remove photo. Please try again.');
-            }
-        }).catch(function () { btn.disabled = false; alert('Network error. Please try again.'); });
-    });
-
-    // ── Photo Uploader ────────────────────────────────────────
-    const MAX_FILES     = 10;
-    const MAX_SIZE_MB   = 5;
-    const MAX_SIZE_BYTE = MAX_SIZE_MB * 1024 * 1024;
-
-    const photoInput  = document.getElementById('photoInput');
-    const dropZone    = document.getElementById('photoDropZone');
-    const browseBtn   = document.getElementById('photoBrowseBtn');
-    const previewGrid = document.getElementById('photoPreviewGrid');
-    const counter     = document.getElementById('newPhotoCounter');
-    const errorBox    = document.getElementById('photoError');
-    const errorMsg    = document.getElementById('photoErrorMsg');
-
-    // Plain array — no DataTransfer; works reliably on Windows Chrome/Edge
-    let files = [];
-
-    function isImage(file) {
-        if (/^image\//i.test(file.type || '')) return true;
-        return /\.(jpe?g|png|webp|gif|bmp|tiff?)$/i.test(file.name || '');
-    }
-
-    function showError(msg) { errorMsg.textContent = msg; errorBox.classList.remove('d-none'); }
-
-    function updateCounter() {
-        const n = files.length;
-        counter.textContent = `+${n} new`;
-        counter.className = n > 0 ? 'badge bg-primary-subtle text-primary' : 'badge bg-secondary-subtle text-secondary';
-    }
-
-    function formatSize(bytes) {
-        return bytes < 1024 * 1024 ? (bytes / 1024).toFixed(1) + ' KB' : (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    }
-
-    function renderPreviews() {
-        previewGrid.innerHTML = '';
-        files.forEach(function (file, idx) {
-            const col = document.createElement('div');
-            col.className = 'col-6 col-md-4 col-lg-3';
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                col.innerHTML = `
-                    <div class="card border h-100 shadow-sm position-relative photo-card" style="overflow:hidden;">
-                        <img src="${e.target.result}" class="card-img-top" style="height:110px;object-fit:cover;" alt="${file.name}">
-                        <div class="card-body p-1 pb-2">
-                            <div class="small fw-semibold text-truncate" style="font-size:.72rem;" title="${file.name}">${file.name}</div>
-                            <div class="text-muted" style="font-size:.68rem;">${formatSize(file.size)}</div>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-danger position-absolute remove-photo"
-                                data-idx="${idx}" style="top:4px;right:4px;padding:2px 6px;font-size:.7rem;line-height:1.2;border-radius:50%;">
-                            <i class="bi bi-x"></i>
-                        </button>
-                    </div>`;
-                previewGrid.appendChild(col);
-            };
-            reader.readAsDataURL(file);
-        });
-        updateCounter();
-    }
-
-    function addFiles(newFiles) {
-        errorBox.classList.add('d-none');
-        Array.from(newFiles).forEach(function (file) {
-            if (!isImage(file))            { showError('"' + file.name + '" is not a supported image.'); return; }
-            if (file.size > MAX_SIZE_BYTE) { showError('"' + file.name + '" exceeds ' + MAX_SIZE_MB + ' MB.'); return; }
-            if (files.length >= MAX_FILES) { showError('Maximum ' + MAX_FILES + ' new photos allowed.'); return; }
-            if (!files.some(function (f) { return f.name === file.name && f.size === file.size; })) files.push(file);
-        });
-        renderPreviews();
-    }
-
-    previewGrid.addEventListener('click', function (e) {
-        const btn = e.target.closest('.remove-photo');
-        if (!btn) return;
-        files.splice(parseInt(btn.dataset.idx, 10), 1);
-        renderPreviews();
-    });
-
-    browseBtn.addEventListener('click', function (e) { e.stopPropagation(); photoInput.click(); });
-    dropZone.addEventListener('click', function () { photoInput.click(); });
-    photoInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
-
-    dropZone.addEventListener('dragover',  function (e) { e.preventDefault(); dropZone.style.background='#e8f0fe'; dropZone.style.borderColor='#2196F3'; });
-    dropZone.addEventListener('dragleave', function ()  { dropZone.style.background=''; dropZone.style.borderColor=''; });
-    dropZone.addEventListener('drop',      function (e) { e.preventDefault(); dropZone.style.background=''; dropZone.style.borderColor=''; addFiles(e.dataTransfer.files); });
-
-    // Submit via fetch — appends File objects from plain array directly into FormData
-    const _form      = photoInput.closest('form');
+    // Submit via fetch — handles JSON validation error responses
+    const _form      = document.getElementById('editSurveyForm');
     const _submitBtn = _form.querySelector('[type="submit"]');
     const _origHtml  = _submitBtn ? _submitBtn.innerHTML : '';
     const _errBag    = document.getElementById('jsErrorBag');
@@ -587,7 +403,6 @@
         if (_errBag) _errBag.classList.add('d-none');
         if (_submitBtn) { _submitBtn.disabled = true; _submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…'; }
         const fd = new FormData(_form);
-        files.forEach(function (file) { fd.append('photos[]', file); });
         fetch(_form.getAttribute('action'), { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } })
             .then(function (response) {
                 return response.json().then(function (data) {

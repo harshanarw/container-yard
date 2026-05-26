@@ -165,14 +165,14 @@ class SurveyController extends Controller
 
     public function show(Inquiry $survey)
     {
-        $survey->load(['container', 'customer', 'inspector', 'damages', 'checklists', 'photos', 'estimate']);
+        $survey->load(['container', 'customer', 'inspector', 'damages', 'checklists', 'estimate']);
 
         return view('surveys.show', ['inquiry' => $survey]);
     }
 
     public function edit(Inquiry $survey)
     {
-        $survey->load(['damages', 'checklists', 'photos']);
+        $survey->load(['damages', 'checklists']);
         $inspectors     = User::where('role', 'inspector')->where('status', 'active')->get();
         $checklistItems = ChecklistMasterItem::active()->get();
 
@@ -219,15 +219,6 @@ class SurveyController extends Controller
                 ]);
             }
             \Log::debug('[UpdateSurvey] Checklist rebuilt');
-
-            // Append new photos via DocumentManager
-            $photoCount = $request->hasFile('photos') ? count($request->file('photos')) : 0;
-            \Log::debug('[UpdateSurvey] New photos count=' . $photoCount);
-            if ($request->hasFile('photos')) {
-                foreach ($request->file('photos') as $photo) {
-                    Documents::uploadFor($survey, $photo, "surveys/{$survey->id}", ['document_type' => 'photo']);
-                }
-            }
 
             $redirectUrl = route('surveys.show', $survey);
             \Log::debug('[UpdateSurvey] Success — redirect=' . $redirectUrl . ' wants_json=' . ($request->wantsJson() ? 'yes' : 'no'));
