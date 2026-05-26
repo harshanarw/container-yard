@@ -476,9 +476,9 @@
             <div class="collapse" id="nav-sub-ops-containers">
                 <ul class="nav flex-column">
                     <li class="nav-item sub-item">
-                        <a href="{{ route('inquiries.index') }}"
-                           class="nav-link {{ request()->routeIs('inquiries.*') ? 'active' : '' }}">
-                            <i class="bi bi-card-checklist"></i><span>Inquiries</span>
+                        <a href="{{ route('surveys.index') }}"
+                           class="nav-link {{ request()->routeIs('surveys.*') ? 'active' : '' }}">
+                            <i class="bi bi-card-checklist"></i><span>Surveys</span>
                         </a>
                     </li>
                     <li class="nav-item sub-item">
@@ -726,6 +726,12 @@
                         <a href="{{ route('settings.company.index') }}"
                            class="nav-link {{ request()->routeIs('settings.company.*') ? 'active' : '' }}">
                             <i class="bi bi-building"></i><span>Company Settings</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('cloud-storage.index') }}"
+                           class="nav-link {{ request()->routeIs('cloud-storage.*') ? 'active' : '' }}">
+                            <i class="bi bi-cloud-upload"></i><span>Storage</span>
                         </a>
                     </li>
                     @endif
