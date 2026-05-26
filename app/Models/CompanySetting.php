@@ -26,6 +26,19 @@ class CompanySetting extends Model
         'tax1_label',
         'tax2_label',
         'software_provider',
+        // System Settings
+        'yard_capacity',
+        'free_storage_days',
+        'timezone',
+        'prefix_invoice',
+        'prefix_sh_invoice',
+        'prefix_survey',
+        'prefix_estimate',
+        'prefix_gate_in',
+        'prefix_gate_out',
+        'default_tax_rate',
+        'surcharge_overtime',
+        'surcharge_night',
     ];
 
     public static function current(): static

@@ -2,60 +2,53 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanySetting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 
 class SettingController extends Controller
 {
-    /**
-     * Default settings stored in config or a simple key-value table.
-     * Extend this to use a `settings` DB table if needed.
-     */
-    private array $defaults = [
-        'yard_name'        => 'Container Yard Management System',
-        'yard_address'     => '',
-        'yard_phone'       => '',
-        'yard_email'       => '',
-        'yard_capacity'    => 440,
-        'default_currency' => 'LKR',
-        'default_tax'      => 0,
-        'free_days'        => 7,
-        'invoice_prefix'   => 'INV',
-        'estimate_prefix'  => 'RE',
-        'inquiry_prefix'   => 'INQ',
-        'timezone'         => 'Asia/Kuala_Lumpur',
-    ];
+    private function authorise(): void
+    {
+        if (!auth()->user()->isSystemAdmin()) {
+            abort(403, 'System Administrator access required.');
+        }
+    }
 
     public function index()
     {
-        $settings = collect($this->defaults)->mapWithKeys(
-            fn ($value, $key) => [$key => config("yard.{$key}", $value)]
-        );
-
+        $this->authorise();
+        $settings = CompanySetting::current();
         return view('settings.index', compact('settings'));
     }
 
     public function update(Request $request)
     {
+        $this->authorise();
+
         $validated = $request->validate([
-            'yard_name'        => ['required', 'string', 'max:255'],
-            'yard_address'     => ['nullable', 'string'],
-            'yard_phone'       => ['nullable', 'string', 'max:20'],
-            'yard_email'       => ['nullable', 'email'],
-            'yard_capacity'    => ['required', 'integer', 'min:1'],
-            'default_currency' => ['required', 'in:LKR,USD,SGD'],
-            'default_tax'      => ['required', 'numeric', 'min:0', 'max:100'],
-            'free_days'        => ['required', 'integer', 'min:0'],
-            'timezone'         => ['required', 'string'],
+            // Operational
+            'yard_capacity'     => ['required', 'integer', 'min:1', 'max:99999'],
+            'free_storage_days' => ['required', 'integer', 'min:0', 'max:365'],
+            'timezone'          => ['required', 'string', 'max:100'],
+
+            // Prefixes
+            'prefix_invoice'    => ['required', 'string', 'max:20', 'alpha_num'],
+            'prefix_sh_invoice' => ['required', 'string', 'max:20', 'alpha_num'],
+            'prefix_survey'     => ['required', 'string', 'max:20', 'alpha_num'],
+            'prefix_estimate'   => ['required', 'string', 'max:20', 'alpha_num'],
+            'prefix_gate_in'    => ['required', 'string', 'max:20', 'alpha_num'],
+            'prefix_gate_out'   => ['required', 'string', 'max:20', 'alpha_num'],
+
+            // Billing defaults
+            'default_tax_rate'  => ['required', 'numeric', 'min:0', 'max:100'],
+            'surcharge_overtime' => ['required', 'numeric', 'min:0', 'max:500'],
+            'surcharge_night'   => ['required', 'numeric', 'min:0', 'max:500'],
         ]);
 
-        // Persist to .env or a settings table — here we write to config cache
-        foreach ($validated as $key => $value) {
-            config(["yard.{$key}" => $value]);
-        }
+        $settings = CompanySetting::current();
+        $settings->update($validated);
+        CompanySetting::flushCache();
 
-        Artisan::call('config:cache');
-
-        return back()->with('success', 'Settings saved successfully.');
+        return back()->with('success', 'System settings saved successfully.');
     }
 }
