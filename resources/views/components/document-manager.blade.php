@@ -118,67 +118,104 @@
     zone.addEventListener('drop', e => {
         e.preventDefault();
         zone.style.background = '';
-        handleFiles(e.dataTransfer.files);
+        handleFiles(Array.from(e.dataTransfer.files));
     });
-    input.addEventListener('change', () => handleFiles(input.files));
+    input.addEventListener('change', function () {
+        const snapshot = Array.from(this.files);
+        this.value = '';
+        handleFiles(snapshot);
+    });
 
-    function handleFiles(fileList) {
-        if (!fileList.length) return;
-        const files = Array.from(fileList).slice(0, MAX);
-        uploadBatch(files);
-        input.value = '';
+    // ── Upload: one file per request, sequentially ────────────────────────
+    async function handleFiles(files) {
+        if (!files.length) return;
+        const batch = files.slice(0, MAX);
+
+        zone.style.pointerEvents = 'none';
+        zone.style.opacity = '0.6';
+        try {
+            for (let i = 0; i < batch.length; i++) {
+                await uploadOne(batch[i], i + 1, batch.length);
+            }
+        } finally {
+            zone.style.pointerEvents = '';
+            zone.style.opacity = '';
+            progWrap.classList.add('d-none');
+        }
     }
 
-    // ── Upload ────────────────────────────────────────────────────────────
-    function uploadBatch(files) {
-        const fd = new FormData();
-        fd.append('_token',            csrfToken);
-        fd.append('documentable_type', modelType);
-        fd.append('documentable_id',   modelId);
-        fd.append('document_type',     'photo');
-        if (labelInput) fd.append('label', labelInput.value);
-        files.forEach(f => fd.append('files[]', f));
+    function uploadOne(file, current, total) {
+        return new Promise(resolve => {
+            const fd = new FormData();
+            fd.append('_token',            csrfToken);
+            fd.append('documentable_type', modelType);
+            fd.append('documentable_id',   modelId);
+            fd.append('document_type',     'photo');
+            if (labelInput) fd.append('label', labelInput.value);
+            fd.append('files[]', file);
 
-        progWrap.classList.remove('d-none');
-        progBar.style.width = '0%';
-        progText.textContent = 'Uploading…';
+            progWrap.classList.remove('d-none');
+            progBar.style.width = '0%';
+            progText.textContent = (total > 1 ? `File ${current} of ${total} — ` : '') + file.name;
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', uploadUrl);
-        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-        xhr.setRequestHeader('Accept', 'application/json');
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', uploadUrl);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('Accept', 'application/json');
 
-        xhr.upload.addEventListener('progress', e => {
-            if (e.lengthComputable) {
-                const pct = Math.round(e.loaded / e.total * 100);
-                progBar.style.width = pct + '%';
-                progText.textContent = 'Uploading… ' + pct + '%';
-            }
-        });
-
-        xhr.addEventListener('load', () => {
-            progWrap.classList.add('d-none');
-            if (xhr.status === 200) {
-                const resp = JSON.parse(xhr.responseText);
-                if (resp.success) {
-                    resp.documents.forEach(d => appendCard(d));
-                    updateCount();
-                    if (labelInput) labelInput.value = '';
-                } else {
-                    alert('Upload failed. Please try again.');
+            xhr.upload.addEventListener('progress', e => {
+                if (e.lengthComputable) {
+                    const pct = Math.round(e.loaded / e.total * 100);
+                    progBar.style.width = pct + '%';
+                    progText.textContent = (total > 1 ? `File ${current} of ${total} — ` : '') + file.name + ' (' + pct + '%)';
                 }
-            } else {
-                const err = JSON.parse(xhr.responseText);
-                alert('Upload error: ' + (err.message ?? xhr.status));
-            }
-        });
+            });
 
-        xhr.addEventListener('error', () => {
-            progWrap.classList.add('d-none');
-            alert('Network error during upload.');
-        });
+            xhr.addEventListener('load', () => {
+                if (xhr.status === 200) {
+                    try {
+                        const resp = JSON.parse(xhr.responseText);
+                        if (resp.success) {
+                            resp.documents.forEach(d => appendCard(d));
+                            updateCount();
+                            if (current === total && labelInput) labelInput.value = '';
+                        } else {
+                            showUploadError(file.name, 'Upload failed. Please try again.');
+                        }
+                    } catch (_) {
+                        showUploadError(file.name, 'Unexpected server response.');
+                    }
+                } else {
+                    try {
+                        const err = JSON.parse(xhr.responseText);
+                        const msg = err.errors
+                            ? Object.values(err.errors).flat().join('; ')
+                            : (err.message ?? ('HTTP ' + xhr.status));
+                        showUploadError(file.name, msg);
+                    } catch (_) {
+                        showUploadError(file.name, 'HTTP ' + xhr.status);
+                    }
+                }
+                resolve();
+            });
 
-        xhr.send(fd);
+            xhr.addEventListener('error', () => {
+                showUploadError(file.name, 'Network error. Please try again.');
+                resolve();
+            });
+
+            xhr.send(fd);
+        });
+    }
+
+    function showUploadError(filename, msg) {
+        const errDiv = document.createElement('div');
+        errDiv.className = 'alert alert-danger alert-dismissible py-2 small mt-2';
+        errDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>'
+            + '<strong>' + filename + '</strong>: ' + msg
+            + ' <button type="button" class="btn-close btn-sm" onclick="this.closest(\'.alert\').remove()"></button>';
+        progWrap.insertAdjacentElement('afterend', errDiv);
+        setTimeout(() => { if (errDiv.parentNode) errDiv.remove(); }, 8000);
     }
 
     // ── Append card ───────────────────────────────────────────────────────
