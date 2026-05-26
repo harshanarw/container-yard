@@ -1,21 +1,22 @@
 @extends('layouts.app')
 
-@section('title', 'User Profile — ' . $user->name)
+@section('title', 'User Profile — ' . $user->full_name)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('users.index') }}" class="text-decoration-none">User Management</a></li>
-    <li class="breadcrumb-item active">{{ $user->name }}</li>
+    <li class="breadcrumb-item active">{{ $user->full_name }}</li>
 @endsection
 
 @section('content')
 
 @php
     $roleColors = [
-        'administrator'   => 'danger',
-        'yard_supervisor' => 'primary',
-        'gate_officer'    => 'info',
-        'inspector'       => 'warning',
-        'billing_clerk'   => 'success',
+        'system_administrator' => 'dark',
+        'administrator'        => 'danger',
+        'yard_supervisor'      => 'primary',
+        'gate_officer'         => 'info',
+        'inspector'            => 'warning',
+        'billing_clerk'        => 'success',
     ];
     $roleColor = $roleColors[$user->role] ?? 'secondary';
 @endphp
@@ -23,13 +24,13 @@
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
         <h4><i class="bi bi-person-circle me-2 text-primary"></i>User Profile</h4>
-        <p class="text-muted mb-0 small">Viewing profile for {{ $user->name }}</p>
+        <p class="text-muted mb-0 small">Viewing profile for {{ $user->full_name }}</p>
     </div>
     <div class="d-flex gap-2">
         <button type="button"
                 class="btn btn-outline-warning btn-sm"
                 data-id="{{ $user->id }}"
-                data-name="{{ $user->name }}"
+                data-name="{{ $user->full_name }}"
                 data-url="{{ route('users.reset-password', $user) }}"
                 data-bs-toggle="modal"
                 data-bs-target="#modalResetPassword">
@@ -52,11 +53,24 @@
         {{-- Profile Card --}}
         <div class="card content-card mb-4">
             <div class="card-body text-center py-4">
-                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-{{ $roleColor }} text-white mb-3"
-                     style="width:80px;height:80px;font-size:2rem;font-weight:700;">
-                    {{ strtoupper(substr($user->name, 0, 2)) }}
-                </div>
-                <h5 class="mb-1 fw-bold">{{ $user->name }}</h5>
+                @if($user->profile_photo_url)
+                    <img src="{{ $user->profile_photo_url }}" alt="{{ $user->full_name }}"
+                         class="rounded-circle mb-3"
+                         style="width:90px;height:90px;object-fit:cover;border:3px solid var(--bs-{{ $roleColor }});">
+                @else
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-{{ $roleColor }} text-white mb-3"
+                         style="width:90px;height:90px;font-size:2rem;font-weight:700;">
+                        {{ $user->avatar_initials }}
+                    </div>
+                @endif
+
+                <h5 class="mb-0 fw-bold">
+                    @if($user->title) <span class="text-muted fw-normal">{{ $user->title }}</span> @endif
+                    {{ $user->full_name }}
+                </h5>
+                @if($user->employee_reg_no)
+                    <div class="text-muted small mb-1">{{ $user->employee_reg_no }}</div>
+                @endif
                 <div class="text-muted small mb-2">{{ $user->email }}</div>
                 <span class="badge bg-{{ $roleColor }}-subtle text-{{ $roleColor }} px-3 py-1 rounded-pill">
                     {{ ucwords(str_replace('_', ' ', $user->role)) }}
@@ -65,18 +79,44 @@
                 <hr class="my-3">
 
                 <ul class="list-unstyled text-start small mb-0">
+                    @if($user->phone)
                     <li class="d-flex justify-content-between py-1 border-bottom">
                         <span class="text-muted"><i class="bi bi-telephone me-1"></i>Phone</span>
-                        <span>{{ $user->phone ?? '—' }}</span>
+                        <span>{{ $user->phone }}</span>
                     </li>
+                    @endif
+                    @if($user->department)
+                    <li class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted"><i class="bi bi-building me-1"></i>Department</span>
+                        <span>{{ $user->department }}</span>
+                    </li>
+                    @endif
+                    @if($user->gender)
+                    <li class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted"><i class="bi bi-person me-1"></i>Gender</span>
+                        <span>{{ ucfirst($user->gender) }}</span>
+                    </li>
+                    @endif
+                    @if($user->date_of_birth)
+                    <li class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted"><i class="bi bi-cake me-1"></i>Date of Birth</span>
+                        <span>{{ $user->date_of_birth->format('d M Y') }}</span>
+                    </li>
+                    @endif
                     <li class="d-flex justify-content-between py-1 border-bottom">
                         <span class="text-muted"><i class="bi bi-circle-fill me-1" style="font-size:.5rem;"></i>Status</span>
                         <span class="badge rounded-pill {{ $user->status === 'active' ? 'bg-success' : 'bg-secondary' }}">
                             {{ ucfirst($user->status) }}
                         </span>
                     </li>
+                    @if($user->joined_date)
                     <li class="d-flex justify-content-between py-1 border-bottom">
-                        <span class="text-muted"><i class="bi bi-calendar me-1"></i>Joined</span>
+                        <span class="text-muted"><i class="bi bi-calendar-check me-1"></i>Joined</span>
+                        <span>{{ $user->joined_date->format('d M Y') }}</span>
+                    </li>
+                    @endif
+                    <li class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted"><i class="bi bi-calendar me-1"></i>Registered</span>
                         <span>{{ $user->created_at->format('d M Y') }}</span>
                     </li>
                     <li class="d-flex justify-content-between py-1">
@@ -86,6 +126,31 @@
                 </ul>
             </div>
         </div>
+
+        {{-- Emergency Contact --}}
+        @if($user->emergency_contact || $user->emergency_phone)
+        <div class="card content-card mb-4">
+            <div class="card-header py-2 fw-semibold small">
+                <i class="bi bi-heartbeat me-1 text-danger"></i>Emergency Contact
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush small">
+                    @if($user->emergency_contact)
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">Name</span>
+                        <span>{{ $user->emergency_contact }}</span>
+                    </li>
+                    @endif
+                    @if($user->emergency_phone)
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">Phone</span>
+                        <span>{{ $user->emergency_phone }}</span>
+                    </li>
+                    @endif
+                </ul>
+            </div>
+        </div>
+        @endif
 
         {{-- Activity Stats --}}
         <div class="card content-card">
@@ -121,6 +186,47 @@
     {{-- ── RIGHT COLUMN ── --}}
     <div class="col-lg-8">
 
+        {{-- Identity & Employment Details --}}
+        <div class="card content-card mb-4">
+            <div class="card-header py-2 fw-semibold small">
+                <i class="bi bi-briefcase me-1 text-primary"></i>Employment & Identity
+            </div>
+            <div class="card-body">
+                <div class="row g-3 small">
+                    <div class="col-md-4">
+                        <div class="text-muted mb-1">Employee Reg. No.</div>
+                        <div class="fw-semibold">{{ $user->employee_reg_no ?? '—' }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted mb-1">National ID / NIC</div>
+                        <div class="fw-semibold">{{ $user->national_id ?? '—' }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted mb-1">Department</div>
+                        <div class="fw-semibold">{{ $user->department ?? '—' }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted mb-1">Joined Date</div>
+                        <div class="fw-semibold">{{ $user->joined_date ? $user->joined_date->format('d M Y') : '—' }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted mb-1">Date of Birth</div>
+                        <div class="fw-semibold">
+                            @if($user->date_of_birth)
+                                {{ $user->date_of_birth->format('d M Y') }}
+                                <span class="text-muted">({{ $user->date_of_birth->age }} yrs)</span>
+                            @else —
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted mb-1">Gender</div>
+                        <div class="fw-semibold">{{ $user->gender ? ucfirst($user->gender) : '—' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Permissions Reference --}}
         <div class="card content-card mb-4">
             <div class="card-header py-2 fw-semibold small">
@@ -131,9 +237,10 @@
                 $allPermissions = [
                     'Dashboard'         => ['administrator','yard_supervisor','gate_officer','inspector','billing_clerk'],
                     'Gate In / Out'     => ['administrator','yard_supervisor','gate_officer'],
-                    'Container Inquiry' => ['administrator','yard_supervisor','inspector'],
+                    'Surveys'           => ['administrator','yard_supervisor','inspector'],
                     'Repair Estimate'   => ['administrator','yard_supervisor','inspector','billing_clerk'],
                     'Customer Mgmt'     => ['administrator','yard_supervisor','billing_clerk'],
+                    'Billing'           => ['administrator','billing_clerk'],
                     'Reports'           => ['administrator','yard_supervisor','billing_clerk'],
                     'User Management'   => ['administrator'],
                     'System Settings'   => ['administrator'],
@@ -141,7 +248,7 @@
                 @endphp
                 <ul class="list-group list-group-flush small">
                     @foreach($allPermissions as $perm => $roles)
-                    @php $hasAccess = in_array($user->role, $roles); @endphp
+                    @php $hasAccess = in_array($user->role, $roles) || $user->isSystemAdmin(); @endphp
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <span class="{{ $hasAccess ? '' : 'text-muted' }}">{{ $perm }}</span>
                         @if($hasAccess)
@@ -159,12 +266,11 @@
             </div>
         </div>
 
-        {{-- Recent Inquiries (if inspector) --}}
-        @if(in_array($user->role, ['inspector','administrator','yard_supervisor']))
+        {{-- Recent Inspections --}}
+        @if(in_array($user->role, ['inspector','administrator','yard_supervisor']) || $user->isSystemAdmin())
         <div class="card content-card mb-4">
             <div class="card-header py-2 fw-semibold small d-flex justify-content-between">
                 <span><i class="bi bi-card-checklist me-1 text-warning"></i>Recent Inspections</span>
-                <a href="{{ route('inquiries.index', ['inspector_id' => $user->id]) }}" class="small text-primary text-decoration-none">View all</a>
             </div>
             <div class="card-body p-0">
                 @php $recentInquiries = $user->inspectedInquiries()->with('container','customer')->latest()->take(5)->get(); @endphp
@@ -175,7 +281,7 @@
                     <table class="table table-sm align-middle mb-0 small">
                         <thead class="table-light">
                             <tr>
-                                <th class="ps-3">Inquiry No.</th>
+                                <th class="ps-3">Survey No.</th>
                                 <th>Container</th>
                                 <th>Customer</th>
                                 <th>Date</th>
@@ -205,7 +311,7 @@
                                         };
                                     @endphp
                                     <span class="badge bg-{{ $sc }}-subtle text-{{ $sc }}">
-                                        {{ ucwords(str_replace('_',' ',$inq->status)) }}
+                                        {{ ucwords(str_replace('_', ' ', $inq->status)) }}
                                     </span>
                                 </td>
                             </tr>
@@ -218,8 +324,8 @@
         </div>
         @endif
 
-        {{-- Recent Gate Movements (if gate officer) --}}
-        @if(in_array($user->role, ['gate_officer','administrator','yard_supervisor']))
+        {{-- Recent Gate Movements --}}
+        @if(in_array($user->role, ['gate_officer','administrator','yard_supervisor']) || $user->isSystemAdmin())
         <div class="card content-card">
             <div class="card-header py-2 fw-semibold small">
                 <i class="bi bi-box-arrow-in-right me-1 text-success"></i>Recent Gate Movements
@@ -281,7 +387,7 @@
                 </div>
                 <div class="modal-body">
                     <p class="small text-muted mb-3">
-                        Setting a new password for <strong>{{ $user->name }}</strong>.
+                        Setting a new password for <strong>{{ $user->full_name }}</strong>.
                     </p>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">New Password <span class="text-danger">*</span></label>

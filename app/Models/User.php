@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -12,6 +13,9 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'email', 'password', 'phone', 'role', 'status',
+        'title', 'first_name', 'last_name', 'gender', 'date_of_birth', 'national_id',
+        'employee_reg_no', 'department', 'joined_date', 'profile_photo',
+        'emergency_contact', 'emergency_phone',
     ];
 
     protected $hidden = [
@@ -21,8 +25,34 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'last_login'        => 'datetime',
+        'date_of_birth'     => 'date',
+        'joined_date'       => 'date',
         'password'          => 'hashed',
     ];
+
+    // Accessors
+    public function getFullNameAttribute(): string
+    {
+        if ($this->first_name || $this->last_name) {
+            return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+        }
+        return $this->name;
+    }
+
+    public function getAvatarInitialsAttribute(): string
+    {
+        $name = $this->full_name;
+        $parts = array_filter(explode(' ', trim($name)));
+        if (count($parts) >= 2) {
+            return strtoupper(substr(reset($parts), 0, 1) . substr(end($parts), 0, 1));
+        }
+        return strtoupper(substr($name, 0, 2));
+    }
+
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        return $this->profile_photo ? Storage::url($this->profile_photo) : null;
+    }
 
     // Relationships
     public function inspectedInquiries()

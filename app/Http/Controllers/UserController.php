@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -14,14 +15,19 @@ class UserController extends Controller
     {
         $users = User::query()
             ->when($request->search, fn ($q, $search) =>
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
+                $q->where(function ($q2) use ($search) {
+                    $q2->where('first_name', 'like', "%{$search}%")
+                       ->orWhere('last_name', 'like', "%{$search}%")
+                       ->orWhere('name', 'like', "%{$search}%")
+                       ->orWhere('email', 'like', "%{$search}%")
+                       ->orWhere('employee_reg_no', 'like', "%{$search}%");
+                })
             )
-            ->when($request->role,   fn ($q, $role)   => $q->where('role', $role))
-            ->when($request->status, fn ($q, $status) => $q->where('status', $status))
+            ->when($request->role,       fn ($q, $role)   => $q->where('role', $role))
+            ->when($request->status,     fn ($q, $status) => $q->where('status', $status))
+            ->when($request->department, fn ($q, $dept)   => $q->where('department', $dept))
             ->latest();
 
-        // Hide system_administrator accounts from non-system-admins
         if (!auth()->user()->isSystemAdmin()) {
             $users->where('role', '!=', 'system_administrator');
         }
@@ -42,14 +48,15 @@ class UserController extends Controller
             return back()->with('error', 'You do not have permission to create System Administrator accounts.');
         }
 
-        User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-            'phone'    => $request->phone,
-            'role'     => $request->role,
-            'status'   => $request->status,
-        ]);
+        $data = collect($request->validated())->except(['profile_photo', 'password'])->toArray();
+        $data['name']     = trim(($request->first_name ?? '') . ' ' . ($request->last_name ?? ''));
+        $data['password'] = Hash::make($request->password);
+
+        if ($request->hasFile('profile_photo')) {
+            $data['profile_photo'] = $request->file('profile_photo')->store('users/photos', 'public');
+        }
+
+        User::create($data);
 
         return redirect()->route('users.index')
             ->with('success', 'User created successfully.');
@@ -72,26 +79,33 @@ class UserController extends Controller
         if ($user->role === 'system_administrator' && !auth()->user()->isSystemAdmin()) {
             abort(403);
         }
-        if (isset($request->role) && $request->role === 'system_administrator' && !auth()->user()->isSystemAdmin()) {
+        if ($request->role === 'system_administrator' && !auth()->user()->isSystemAdmin()) {
             abort(403);
         }
 
-        $data = [
-            'name'   => $request->name,
-            'email'  => $request->email,
-            'phone'  => $request->phone,
-            'role'   => $request->role,
-            'status' => $request->status,
-        ];
+        $data = collect($request->validated())->except(['profile_photo', 'password', 'remove_photo'])->toArray();
+        $data['name'] = trim(($request->first_name ?? '') . ' ' . ($request->last_name ?? ''));
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
 
+        if ($request->boolean('remove_photo') && $user->profile_photo) {
+            Storage::disk('public')->delete($user->profile_photo);
+            $data['profile_photo'] = null;
+        }
+
+        if ($request->hasFile('profile_photo')) {
+            if ($user->profile_photo) {
+                Storage::disk('public')->delete($user->profile_photo);
+            }
+            $data['profile_photo'] = $request->file('profile_photo')->store('users/photos', 'public');
+        }
+
         $user->update($data);
 
-        return redirect()->route('users.index')
-            ->with('success', 'User updated successfully.');
+        return redirect()->route('users.show', $user)
+            ->with('success', 'User profile updated successfully.');
     }
 
     public function resetPassword(Request $request, User $user)
@@ -104,7 +118,7 @@ class UserController extends Controller
             'password' => Hash::make($request->new_password),
         ]);
 
-        return back()->with('success', "Password for {$user->name} has been reset successfully.");
+        return back()->with('success', "Password for {$user->full_name} has been reset successfully.");
     }
 
     public function destroy(User $user)
@@ -115,6 +129,10 @@ class UserController extends Controller
 
         if ($user->role === 'system_administrator' && !auth()->user()->isSystemAdmin()) {
             abort(403);
+        }
+
+        if ($user->profile_photo) {
+            Storage::disk('public')->delete($user->profile_photo);
         }
 
         $user->delete();
