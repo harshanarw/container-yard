@@ -729,8 +729,8 @@
                         </a>
                     </li>
                     <li class="nav-item sub-item">
-                        <a href="{{ route('cloud-storage.index') }}"
-                           class="nav-link {{ request()->routeIs('cloud-storage.*') ? 'active' : '' }}">
+                        <a href="{{ route('settings.cloud-storage.index') }}"
+                           class="nav-link {{ request()->routeIs('settings.cloud-storage.*') ? 'active' : '' }}">
                             <i class="bi bi-cloud-upload"></i><span>Storage</span>
                         </a>
                     </li>
