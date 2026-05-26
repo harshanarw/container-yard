@@ -823,18 +823,43 @@
         <!-- User menu -->
         <div class="dropdown">
             <button class="btn btn-sm d-flex align-items-center gap-2 border-0 px-2" data-bs-toggle="dropdown">
-                <span class="avatar-sm bg-primary text-white">
-                    {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 2)) }}
-                </span>
+                @if(auth()->user()->profile_photo_url)
+                    <img src="{{ auth()->user()->profile_photo_url }}"
+                         alt="{{ auth()->user()->full_name }}"
+                         class="rounded-circle"
+                         style="width:34px;height:34px;object-fit:cover;border:2px solid #e3f2fd;">
+                @else
+                    <span class="avatar-sm bg-primary text-white">
+                        {{ auth()->user()->avatar_initials }}
+                    </span>
+                @endif
                 <span class="d-none d-md-block small fw-semibold text-dark">
-                    {{ auth()->user()->name ?? 'User' }}
+                    {{ auth()->user()->full_name }}
                 </span>
                 <i class="bi bi-chevron-down small text-muted"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow">
-                <li><h6 class="dropdown-header">{{ auth()->user()->email ?? '' }}</h6></li>
-                <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                <li><a class="dropdown-item" href="#"><i class="bi bi-shield-lock me-2"></i>Change Password</a></li>
+                <li>
+                    <div class="dropdown-header d-flex align-items-center gap-2 py-2">
+                        @if(auth()->user()->profile_photo_url)
+                            <img src="{{ auth()->user()->profile_photo_url }}"
+                                 alt="{{ auth()->user()->full_name }}"
+                                 class="rounded-circle"
+                                 style="width:36px;height:36px;object-fit:cover;">
+                        @else
+                            <span class="avatar-sm bg-primary text-white" style="flex-shrink:0;">
+                                {{ auth()->user()->avatar_initials }}
+                            </span>
+                        @endif
+                        <div style="line-height:1.3;">
+                            <div class="fw-semibold text-dark" style="font-size:.83rem;">{{ auth()->user()->full_name }}</div>
+                            <div class="text-muted" style="font-size:.72rem;">{{ auth()->user()->email }}</div>
+                        </div>
+                    </div>
+                </li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><a class="dropdown-item" href="{{ route('users.show', auth()->user()) }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                <li><a class="dropdown-item" href="{{ route('users.edit', auth()->user()) }}"><i class="bi bi-pencil me-2"></i>Edit Profile</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
                     <form method="POST" action="{{ route('logout') }}">
