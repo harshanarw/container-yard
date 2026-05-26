@@ -57,7 +57,7 @@ class UpdateSurveyRequest extends FormRequest
 
             'checklist'             => ['nullable', 'array'],
             'photos'                => ['nullable', 'array', 'max:10'],
-            'photos.*'              => ['image', 'max:5120'],
+            'photos.*'              => ['image', 'max:20480'],
         ];
     }
 }

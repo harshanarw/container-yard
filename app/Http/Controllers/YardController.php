@@ -120,7 +120,7 @@ class YardController extends Controller
             'remarks'           => ['nullable', 'string'],
             'gate_in_time'      => ['nullable', 'string', 'max:20'],
             'photos'            => ['nullable', 'array', 'max:5'],
-            'photos.*'          => ['image', 'max:5120'],
+            'photos.*'          => ['image', 'max:20480'],
         ]);
 
         if ($validator->fails()) {
