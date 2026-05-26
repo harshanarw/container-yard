@@ -56,9 +56,10 @@ class CompanySettingController extends Controller
             'telephone'    => ['nullable', 'string', 'max:50'],
             'email'        => ['nullable', 'email', 'max:200'],
             'website'      => ['nullable', 'string', 'max:200'],
-            'vat_number'   => ['nullable', 'string', 'max:100'],
-            'tin_number'   => ['nullable', 'string', 'max:100'],
-            'logo'            => ['nullable', 'image', 'max:2048'],
+            'vat_number'        => ['nullable', 'string', 'max:100'],
+            'tin_number'        => ['nullable', 'string', 'max:100'],
+            'software_provider' => ['nullable', 'string', 'max:200'],
+            'logo'              => ['nullable', 'image', 'max:2048'],
             'icon'            => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
             'product_icon'    => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
         ]);

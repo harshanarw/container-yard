@@ -736,8 +736,15 @@
     </div><!-- /sidebar-nav -->
 
     <div class="sidebar-footer">
-        <i class="bi bi-circle-fill text-success me-1" style="font-size:.5rem;"></i>
-        v1.0.0 &nbsp;·&nbsp; {{ $companySetting?->company_name ?? 'CYM' }} &copy; {{ date('Y') }}
+        <div>
+            <i class="bi bi-circle-fill text-success me-1" style="font-size:.5rem;"></i>
+            v1.0.0 &nbsp;·&nbsp; {{ $companySetting?->company_name ?? 'CYM' }} &copy; {{ date('Y') }}
+        </div>
+        @if($companySetting?->software_provider)
+        <div style="font-size:.65rem; opacity:.55; margin-top:3px; padding-left:1rem;">
+            <i class="bi bi-code-slash me-1"></i>{{ $companySetting->software_provider }}
+        </div>
+        @endif
     </div>
 
 </nav>

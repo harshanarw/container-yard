@@ -144,8 +144,13 @@
 
         <hr class="my-3">
 
-        <div class="text-center text-muted" style="font-size:.75rem;">
+        <div class="text-center text-muted" style="font-size:.75rem; line-height:1.8;">
             &copy; {{ date('Y') }} {{ $companySetting?->company_name ?? 'CYM System' }}. All rights reserved.
+            @if($companySetting?->software_provider)
+            <br><span style="font-size:.7rem; opacity:.75;">
+                <i class="bi bi-code-slash me-1"></i>Powered by {{ $companySetting->software_provider }}
+            </span>
+            @endif
         </div>
     </div>
 </div>

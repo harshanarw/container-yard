@@ -238,6 +238,16 @@
                            maxlength="100">
                     @error('country')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Software Provider</label>
+                    <input type="text" name="software_provider"
+                           class="form-control @error('software_provider') is-invalid @enderror"
+                           value="{{ old('software_provider', $settings->software_provider) }}"
+                           maxlength="200"
+                           placeholder="e.g. GenSoft Solutions (Pvt) Ltd">
+                    <div class="form-text">Shown as copyright credit on the login screen and sidebar footer.</div>
+                    @error('software_provider')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
             </div>
         </div>
     </div>
