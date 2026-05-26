@@ -715,13 +715,15 @@
             </button>
             <div class="collapse" id="nav-sub-settings-config">
                 <ul class="nav flex-column">
-                    @if(auth()->user()->isSystemAdmin())
+                    @if(auth()->user()->isSuperUser())
                     <li class="nav-item sub-item">
                         <a href="{{ route('settings.index') }}"
                            class="nav-link {{ request()->routeIs('settings.index') || request()->routeIs('settings.update') ? 'active' : '' }}">
                             <i class="bi bi-gear"></i><span>System Settings</span>
                         </a>
                     </li>
+                    @endif
+                    @if(auth()->user()->isSystemAdmin())
                     <li class="nav-item sub-item">
                         <a href="{{ route('settings.company.index') }}"
                            class="nav-link {{ request()->routeIs('settings.company.*') ? 'active' : '' }}">

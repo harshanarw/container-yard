@@ -48,8 +48,9 @@ class CompanySettingController extends Controller
         $this->authorise();
 
         $validated = $request->validate([
-            'company_name' => ['required', 'string', 'max:200'],
-            'tagline'      => ['nullable', 'string', 'max:200'],
+            'company_name'   => ['required', 'string', 'max:200'],
+            'company_prefix' => ['nullable', 'string', 'max:10', 'alpha_num'],
+            'tagline'        => ['nullable', 'string', 'max:200'],
             'address'      => ['nullable', 'string'],
             'city'         => ['nullable', 'string', 'max:100'],
             'country'      => ['nullable', 'string', 'max:100'],

@@ -9,8 +9,8 @@ class SettingController extends Controller
 {
     private function authorise(): void
     {
-        if (!auth()->user()->isSystemAdmin()) {
-            abort(403, 'System Administrator access required.');
+        if (!auth()->user()->isSuperUser()) {
+            abort(403, 'Administrator access required.');
         }
     }
 

@@ -197,7 +197,7 @@
         </div>
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-md-5">
                     <label class="form-label fw-semibold">Company Name <span class="text-danger">*</span></label>
                     <input type="text" name="company_name"
                            class="form-control @error('company_name') is-invalid @enderror"
@@ -205,7 +205,20 @@
                            maxlength="200" required>
                     @error('company_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">
+                        Company Prefix
+                        <i class="bi bi-info-circle text-muted ms-1"
+                           title="Short code used in auto-generated reference numbers. Letters and numbers only. e.g. ABC, CY01"></i>
+                    </label>
+                    <input type="text" name="company_prefix"
+                           class="form-control text-uppercase @error('company_prefix') is-invalid @enderror"
+                           value="{{ old('company_prefix', $settings->company_prefix) }}"
+                           maxlength="10" placeholder="e.g. ABC">
+                    <div class="form-text">Max 10 chars. Used in reference numbers.</div>
+                    @error('company_prefix')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-5">
                     <label class="form-label fw-semibold">Tagline</label>
                     <input type="text" name="tagline"
                            class="form-control @error('tagline') is-invalid @enderror"
