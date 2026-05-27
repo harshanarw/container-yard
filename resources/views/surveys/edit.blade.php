@@ -20,7 +20,7 @@
             &nbsp;·&nbsp; {{ $inquiry->customer?->name }}
         </p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <a href="{{ route('surveys.show', $inquiry) }}" class="btn btn-outline-info btn-sm">
             <i class="bi bi-eye me-1"></i>View
         </a>

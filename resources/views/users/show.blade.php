@@ -26,7 +26,7 @@
         <h4><i class="bi bi-person-circle me-2 text-primary"></i>User Profile</h4>
         <p class="text-muted mb-0 small">Viewing profile for {{ $user->full_name }}</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <button type="button"
                 class="btn btn-outline-warning btn-sm"
                 data-id="{{ $user->id }}"

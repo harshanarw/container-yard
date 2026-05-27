@@ -14,7 +14,7 @@
         <h4><i class="bi bi-pencil-square me-2 text-primary"></i>Edit User</h4>
         <p class="text-muted mb-0 small">Update profile details for {{ $user->full_name }}</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <a href="{{ route('users.show', $user) }}" class="btn btn-outline-info btn-sm">
             <i class="bi bi-eye me-1"></i>View Profile
         </a>
