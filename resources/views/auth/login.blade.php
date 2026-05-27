@@ -41,23 +41,24 @@
         .auth-header {
             background: linear-gradient(135deg, #1565C0, #2196F3);
             color: #fff;
-            padding: .9rem 2rem .9rem;
+            padding: .9rem 2rem 1.5rem;
             text-align: center;
         }
 
         /* ── Step progress bar — sits between header and body as its own stripe ── */
         .step-bar {
             display: flex;
-            gap: 0;
-            margin: 0;
+            gap: 6px;
+            margin: 10px 28px 18px;
             padding: 0;
         }
         .step-seg {
-            flex: 1; height: 5px;
-            background: #dee2e6;
+            flex: 1; height: 4px;
+            border-radius: 2px;
+            background: #e5e7eb;
             transition: background .3s;
         }
-        .step-seg.active { background: #1976D2; }
+        .step-seg.active { background: #2196F3; }
 
         /* ── Body ── */
         .auth-body { padding: 1.8rem 2rem 1.8rem; }
@@ -78,10 +79,10 @@
         }
         .auth-input-group .ig-icon {
             padding: 0 .75rem;
-            color: #78909c;
+            color: #6b7280;
             font-size: 1rem;
             flex-shrink: 0;
-            background: #eceff1;
+            background: #f3f4f6;
             align-self: stretch;
             display: flex;
             align-items: center;
@@ -118,18 +119,18 @@
             display: inline-flex;
             align-items: center;
             gap: .4rem;
-            background: #f1f5f9;
-            border: 1px solid #e2e8f0;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
             border-radius: 20px;
             padding: .3rem .75rem .3rem .5rem;
             font-size: .85rem;
             font-weight: 600;
-            color: #334155;
+            color: #1e40af;
             margin-bottom: 1.1rem;
         }
         .user-pill .pill-icon {
             width: 26px; height: 26px; border-radius: 50%;
-            background: #e3f2fd; color: #1565C0;
+            background: #dbeafe; color: #1e40af;
             display: flex; align-items: center; justify-content: center;
             font-size: .8rem;
         }
@@ -148,14 +149,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px dashed #cbd5e1;
-            border-radius: 10px;
-            padding: .5rem 1.2rem;
-            letter-spacing: .35em;
-            font-size: 1.5rem;
+            border: 1px dashed #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 10px;
+            letter-spacing: 4px;
+            font-size: 22px;
             font-weight: 700;
             font-family: 'Courier New', monospace;
-            color: #334155;
+            color: #2196F3;
             background: #f8fafc;
             user-select: none;
             min-width: 110px;
