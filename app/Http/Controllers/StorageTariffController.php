@@ -56,15 +56,12 @@ class StorageTariffController extends Controller
     {
         $storageTariff->load(['customer', 'details.equipmentType', 'details.chargeCode.taxCode', 'createdBy', 'updatedBy']);
 
-        $usedTypeIds    = $storageTariff->details->pluck('equipment_type_id')->toArray();
-        $availableTypes = EquipmentType::active()
-            ->whereNotIn('id', $usedTypeIds)
-            ->get();
-
+        // All active equipment types — same type allowed for both laden and empty
+        $allTypes    = EquipmentType::active()->get();
         $customers   = Customer::orderBy('name')->get();
         $chargeCodes = ChargeCode::with('taxCode')->where('is_active', true)->orderBy('sort_order')->get();
 
-        return view('masters.storage-tariff.show', compact('storageTariff', 'availableTypes', 'customers', 'chargeCodes'));
+        return view('masters.storage-tariff.show', compact('storageTariff', 'allTypes', 'customers', 'chargeCodes'));
     }
 
     // ── Update header ────────────────────────────────────────────────────────
@@ -119,19 +116,20 @@ class StorageTariffController extends Controller
     public function storeDetail(Request $request, StorageMasterHeader $storageTariff)
     {
         $data = $request->validate([
-            'equipment_type_id' => [
-                'required',
-                'exists:equipment_types,id',
-                function ($attr, $val, $fail) use ($storageTariff) {
-                    if ($storageTariff->details()->where('equipment_type_id', $val)->exists()) {
-                        $fail('A rate line for this equipment type already exists on this tariff.');
-                    }
-                },
-            ],
-            'storage_rate'   => 'required|numeric|min:0|max:99999.99',
-            'currency'       => 'required|string|size:3',
-            'charge_code_id' => 'nullable|exists:charge_codes,id',
+            'equipment_type_id' => ['required', 'exists:equipment_types,id'],
+            'cargo_status'      => ['required', 'in:laden,empty'],
+            'storage_rate'      => 'required|numeric|min:0|max:99999.99',
+            'currency'          => 'required|string|size:3',
+            'charge_code_id'    => 'nullable|exists:charge_codes,id',
         ]);
+
+        if ($storageTariff->details()
+            ->where('equipment_type_id', $data['equipment_type_id'])
+            ->where('cargo_status', $data['cargo_status'])
+            ->exists()
+        ) {
+            return back()->withErrors(['equipment_type_id' => 'A rate line for this equipment type and cargo status already exists on this tariff.']);
+        }
 
         $data['storage_master_header_id'] = $storageTariff->id;
         StorageMasterDetail::create($data);

@@ -111,10 +111,10 @@ class YardController extends Controller
             'customer_id'       => ['required', 'exists:customers,id'],
             'condition'         => ['required', 'in:sound,damaged,require_repair'],
             'cargo_status'      => ['required', 'in:empty,full'],
-            'location_zone'     => ['required', 'string', 'max:10', 'exists:storage_zones,code'],
-            'location_row'      => ['required', 'string', 'max:5'],
-            'location_bay'      => ['required', 'integer', 'min:1', 'max:99'],
-            'location_tier'     => ['required', 'integer', 'min:1', 'max:10'],
+            'location_zone'     => ['nullable', 'string', 'max:10', 'exists:storage_zones,code'],
+            'location_row'      => ['nullable', 'string', 'max:5'],
+            'location_bay'      => ['nullable', 'integer', 'min:1', 'max:99'],
+            'location_tier'     => ['nullable', 'integer', 'min:1', 'max:10'],
             'seal_no'           => ['nullable', 'string', 'max:20'],
             'vehicle_plate'     => ['nullable', 'string', 'max:20'],
             'remarks'           => ['nullable', 'string'],
@@ -197,17 +197,19 @@ class YardController extends Controller
             }
         }
 
-        // Update yard slot
-        YardLocation::where([
-            'zone' => $validated['location_zone'],
-            'row'  => $validated['location_row'],
-            'bay'  => $validated['location_bay'],
-            'tier' => $validated['location_tier'],
-        ])->update([
-            'container_id'    => $container->id,
-            'status'          => 'occupied',
-            'last_updated_at' => now(),
-        ]);
+        // Update yard slot only when a slot was selected
+        if (!empty($validated['location_zone'])) {
+            YardLocation::where([
+                'zone' => $validated['location_zone'],
+                'row'  => $validated['location_row'],
+                'bay'  => $validated['location_bay'],
+                'tier' => $validated['location_tier'],
+            ])->update([
+                'container_id'    => $container->id,
+                'status'          => 'occupied',
+                'last_updated_at' => now(),
+            ]);
+        }
 
         // Resolve storage tariff for this customer + equipment type
         $tariffHeader = StorageMasterHeader::where('customer_id', $validated['customer_id'])

@@ -8,7 +8,7 @@ class StorageHandlingInvoiceLine extends Model
 {
     protected $fillable = [
         'invoice_id', 'container_id', 'container_no', 'container_size', 'equipment_type_id', 'equipment_type',
-        'gate_in_date', 'gate_out_date',
+        'gate_in_date', 'cargo_status', 'gate_out_date',
         'storage_from', 'storage_to',
         'storage_total_days', 'storage_free_days', 'storage_chargeable_days',
         'storage_daily_rate', 'storage_currency', 'storage_subtotal',

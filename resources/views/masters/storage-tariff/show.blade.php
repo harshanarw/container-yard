@@ -182,6 +182,7 @@
                         <tr>
                             <th class="ps-3">Equipment Type</th>
                             <th style="width:80px;" class="text-center">ISO Code</th>
+                            <th style="width:90px;" class="text-center">Status</th>
                             <th style="width:100px;" class="text-end">Daily Rate</th>
                             <th style="width:80px;" class="text-center">Currency</th>
                             <th style="width:160px;">Charge Code / Tax</th>
@@ -202,6 +203,13 @@
                             </td>
                             <td class="text-center">
                                 <code class="small">{{ $detail->equipmentType->iso_code ?? '—' }}</code>
+                            </td>
+                            <td class="text-center">
+                                @if($detail->cargo_status === 'laden')
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-semibold" style="font-size:.72rem;">Laden</span>
+                                @else
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle fw-semibold" style="font-size:.72rem;">Empty</span>
+                                @endif
                             </td>
                             <td class="text-end fw-semibold">
                                 {{ number_format($detail->storage_rate, 2) }}
@@ -226,18 +234,19 @@
                                 @endif
                             </td>
                             <td class="text-end pe-3">
-                                <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-outline-primary btn-edit-rate"
+                                <div class="d-flex flex-wrap justify-content-end gap-1">
+                                    <button type="button" class="btn btn-outline-primary btn-sm btn-edit-rate"
                                             data-id="{{ $detail->id }}"
                                             data-eqt="{{ $detail->equipmentType->eqt_code ?? '' }}"
                                             data-desc="{{ $detail->equipmentType->description ?? '' }}"
+                                            data-cargo_status="{{ $detail->cargo_status }}"
                                             data-rate="{{ $detail->storage_rate }}"
                                             data-currency="{{ $detail->currency }}"
                                             data-charge_code_id="{{ $detail->charge_code_id ?? '' }}"
                                             title="Edit rate">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger btn-delete-rate"
+                                    <button type="button" class="btn btn-outline-danger btn-sm btn-delete-rate"
                                             data-id="{{ $detail->id }}"
                                             data-label="{{ $detail->equipmentType->eqt_code ?? 'this line' }}"
                                             title="Remove">
@@ -248,7 +257,7 @@
                         </tr>
                     @empty
                         <tr id="emptyRow">
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox fs-4 d-block mb-1"></i>
                                 No rate lines yet. Add one below.
                             </td>
@@ -262,27 +271,33 @@
             <div class="card-footer bg-light border-top">
                 <p class="small fw-semibold mb-2">
                     <i class="bi bi-plus-circle me-1 text-primary"></i>Add Rate Line
-                    @if($availableTypes->isEmpty())
-                        <span class="text-muted fw-normal ms-2">— all active equipment types already have a rate.</span>
-                    @endif
                 </p>
-                @if($availableTypes->isNotEmpty())
+                @if($allTypes->isNotEmpty())
                 <form method="POST"
                       action="{{ route('masters.storage-tariff.details.store', $storageTariff) }}"
                       class="row g-2 align-items-end">
                     @csrf
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label small fw-semibold mb-1">
                             Equipment Type <span class="text-danger">*</span>
                         </label>
                         <select name="equipment_type_id" class="form-select form-select-sm select2" required>
                             <option value="">— Select —</option>
-                            @foreach($availableTypes as $eqt)
+                            @foreach($allTypes as $eqt)
                                 <option value="{{ $eqt->id }}">
                                     {{ $eqt->eqt_code }}
                                     @if($eqt->description) — {{ $eqt->description }} @endif
                                 </option>
                             @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold mb-1">
+                            Laden / Empty <span class="text-danger">*</span>
+                        </label>
+                        <select name="cargo_status" class="form-select form-select-sm" required>
+                            <option value="empty" selected>Empty</option>
+                            <option value="laden">Laden</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -339,10 +354,14 @@
                     @foreach($storageTariff->details as $detail)
                     <div class="col-6 col-md-3">
                         <div class="border rounded p-2 text-center bg-light">
-                            <div class="badge bg-primary mb-1"
-                                 style="font-size:.75rem;">
+                            <div class="badge bg-primary mb-1" style="font-size:.75rem;">
                                 {{ $detail->equipmentType->eqt_code ?? '—' }}
                             </div>
+                            @if($detail->cargo_status === 'laden')
+                                <div><span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">Laden</span></div>
+                            @else
+                                <div><span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.65rem;">Empty</span></div>
+                            @endif
                             <div class="fw-bold small">
                                 {{ $detail->currency }}
                                 {{ number_format($detail->storage_rate, 2) }}
@@ -371,6 +390,7 @@
                     <h6 class="modal-title">
                         <i class="bi bi-pencil me-1 text-primary"></i>
                         Edit Rate — <span id="editRateEqt"></span>
+                        <span id="editRateStatusBadge" class="ms-1"></span>
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -465,8 +485,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Edit rate modal ──────────────────────────────────────────────────────
     document.querySelectorAll('.btn-edit-rate').forEach(btn => {
         btn.addEventListener('click', () => {
+            const status = btn.dataset.cargo_status || 'empty';
             document.getElementById('editRateEqt').textContent      = btn.dataset.eqt;
             document.getElementById('editRateDesc').textContent     = btn.dataset.desc || '';
+            document.getElementById('editRateStatusBadge').innerHTML =
+                status === 'laden'
+                    ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.7rem;">Laden</span>'
+                    : '<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.7rem;">Empty</span>';
             document.getElementById('editRateValue').value          = btn.dataset.rate;
             document.getElementById('editRateCurrency').value       = btn.dataset.currency;
             document.getElementById('editRateChargeCode').value     = btn.dataset.charge_code_id || '';

@@ -280,6 +280,7 @@
                                 <th>Container</th>
                                 <th class="text-center">Size</th>
                                 <th>Equipment</th>
+                                <th>Status</th>
                                 <th>Gate In</th>
                                 <th class="text-center">From</th>
                                 <th class="text-center">To</th>
@@ -305,6 +306,15 @@
                                         <div class="text-muted" style="font-size:.65rem;">{{ $line->equipmentType->description }}</div>
                                     @else
                                         {{ $line->equipment_type }}
+                                    @endif
+                                </td>
+                                <td class="small">
+                                    @if($line->cargo_status === 'laden')
+                                        <span class="badge bg-warning-subtle text-warning border" style="font-size:.7rem;">Laden</span>
+                                    @elseif($line->cargo_status === 'empty')
+                                        <span class="badge bg-info-subtle text-info border" style="font-size:.7rem;">Empty</span>
+                                    @else
+                                        <span class="text-muted">—</span>
                                     @endif
                                 </td>
                                 <td class="small">{{ $line->gate_in_date->format('d M Y') }}</td>
@@ -334,7 +344,7 @@
                         </tbody>
                         <tfoot class="table-light fw-semibold">
                             <tr>
-                                <td colspan="12" class="text-end">Storage Subtotal</td>
+                                <td colspan="13" class="text-end">Storage Subtotal</td>
                                 <td class="text-end pe-2">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
                             </tr>
                         </tfoot>
@@ -378,6 +388,7 @@
                                 <th>Container</th>
                                 <th class="text-center">Size</th>
                                 <th>Equipment</th>
+                                <th>Status</th>
                                 <th>Gate In Date</th>
                                 <th class="text-end pe-2">Rate / Unit</th>
                                 <th class="text-end pe-2">Amount</th>
@@ -398,6 +409,15 @@
                                         {{ $l->equipment_type }}
                                     @endif
                                 </td>
+                                <td class="small">
+                                    @if($l->cargo_status === 'laden')
+                                        <span class="badge bg-warning-subtle text-warning border" style="font-size:.7rem;">Laden</span>
+                                    @elseif($l->cargo_status === 'empty')
+                                        <span class="badge bg-info-subtle text-info border" style="font-size:.7rem;">Empty</span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                                 <td class="small">{{ $l->gate_in_date->format('d M Y') }}</td>
                                 <td class="text-end pe-2">{{ $fmtDisp($l->lift_off_rate) }}</td>
                                 <td class="text-end pe-2 fw-semibold">{{ $fmtDisp($l->lift_off_rate) }}</td>
@@ -406,7 +426,7 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="6" class="text-end text-muted small">Lift Off Subtotal</td>
+                                <td colspan="7" class="text-end text-muted small">Lift Off Subtotal</td>
                                 <td class="text-end pe-2 fw-semibold">
                                     {{ $fmtDisp($liftOffLines->sum('lift_off_rate')) }}
                                 </td>
@@ -434,6 +454,7 @@
                                 <th>Container</th>
                                 <th class="text-center">Size</th>
                                 <th>Equipment</th>
+                                <th>Status</th>
                                 <th>Gate Out Date</th>
                                 <th class="text-end pe-2">Rate / Unit</th>
                                 <th class="text-end pe-2">Amount</th>
@@ -455,6 +476,15 @@
                                     @endif
                                 </td>
                                 <td class="small">
+                                    @if($l->cargo_status === 'laden')
+                                        <span class="badge bg-warning-subtle text-warning border" style="font-size:.7rem;">Laden</span>
+                                    @elseif($l->cargo_status === 'empty')
+                                        <span class="badge bg-info-subtle text-info border" style="font-size:.7rem;">Empty</span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="small">
                                     {{ $l->gate_out_date ? $l->gate_out_date->format('d M Y') : '—' }}
                                 </td>
                                 <td class="text-end pe-2">{{ $fmtDisp($l->lift_on_rate) }}</td>
@@ -464,7 +494,7 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="6" class="text-end text-muted small">Lift On Subtotal</td>
+                                <td colspan="7" class="text-end text-muted small">Lift On Subtotal</td>
                                 <td class="text-end pe-2 fw-semibold">
                                     {{ $fmtDisp($liftOnLines->sum('lift_on_rate')) }}
                                 </td>

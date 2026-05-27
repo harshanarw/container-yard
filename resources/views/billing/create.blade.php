@@ -201,6 +201,7 @@
                                     <th class="ps-3">#</th>
                                     <th>Container No.</th>
                                     <th>Equipment</th>
+                                    <th class="text-center">Status</th>
                                     <th>Gate-In</th>
                                     <th class="text-center">Period</th>
                                     <th class="text-center">Days</th>
@@ -387,6 +388,7 @@ function renderPreview(data) {
             <td class="ps-3">${i + 1}</td>
             <td class="font-monospace">${l.container_no}</td>
             <td class="small">${l.equipment_type}</td>
+            <td class="text-center">${l.cargo_status === 'laden' ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.7rem;">Laden</span>' : '<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.7rem;">Empty</span>'}</td>
             <td class="small">${formatDate(l.gate_in_date)}</td>
             <td class="text-center small">${formatDate(l.from_date)} – ${formatDate(l.to_date)}</td>
             <td class="text-center"><span class="badge bg-light border text-dark">${l.total_days}d</span></td>
@@ -406,7 +408,7 @@ function renderPreview(data) {
     const tfoot = document.getElementById('previewFoot');
     tfoot.innerHTML = `
         <tr>
-            <td class="ps-3" colspan="14" style="text-align:right">Subtotal</td>
+            <td class="ps-3" colspan="15" style="text-align:right">Subtotal</td>
             <td class="text-end pe-3">${fmtC(data.subtotal, 'LKR')}</td>
         </tr>
         <tr class="text-muted" style="font-weight:400">

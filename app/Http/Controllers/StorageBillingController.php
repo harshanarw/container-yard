@@ -84,6 +84,15 @@ class StorageBillingController extends Controller
             ->orderBy('gate_in_date')
             ->get();
 
+        // Load cargo_status from gate-in movement for each container
+        $containerIds = $storageRecords->pluck('container_id')->filter()->unique()->values();
+        $gateInCargoStatus = \App\Models\GateMovement::whereIn('container_id', $containerIds)
+            ->where('movement_type', 'in')
+            ->orderByDesc('gate_in_time')
+            ->get()
+            ->keyBy('container_id')
+            ->map(fn ($m) => $m->cargo_status === 'full' ? 'laden' : 'empty');
+
         if ($storageRecords->isEmpty()) {
             return response()->json([
                 'lines'            => [],
@@ -132,6 +141,7 @@ class StorageBillingController extends Controller
 
             // Resolve rate from tariff, fall back to stored rate at gate-in
             $eqtId         = $container->equipment_type_id;
+            $cargoStatus   = $gateInCargoStatus[$container->id] ?? 'empty';
             $freeDays      = $tariffHeader?->default_free_days ?? $storage->free_days ?? 0;
             $dailyRate     = 0.0;
             $currency      = 'LKR';
@@ -140,7 +150,10 @@ class StorageBillingController extends Controller
             $tax2Rate      = $taxExempt ? 0.0 : $vatPct;   // fallback
 
             if ($tariffHeader) {
-                $detail = $tariffHeader->details->firstWhere('equipment_type_id', $eqtId);
+                $detail = $tariffHeader->details
+                    ->where('equipment_type_id', $eqtId)
+                    ->where('cargo_status', $cargoStatus)
+                    ->first();
                 if ($detail) {
                     $dailyRate    = (float) $detail->storage_rate;
                     $currency     = $detail->currency;
@@ -178,6 +191,7 @@ class StorageBillingController extends Controller
                 'container_no'       => $container->container_no,
                 'equipment_type_id'  => $eqtId ?: null,
                 'equipment_type'     => $eqtLabel,
+                'cargo_status'    => $cargoStatus,
                 'gate_in_date'    => $gateIn->toDateString(),
                 'from_date'       => $fromDate->toDateString(),
                 'to_date'         => $toDate->toDateString(),
@@ -240,6 +254,7 @@ class StorageBillingController extends Controller
             'lines.*.container_no'       => ['required', 'string'],
             'lines.*.equipment_type_id'  => ['nullable', 'integer'],
             'lines.*.equipment_type'     => ['required', 'string'],
+            'lines.*.cargo_status'     => ['nullable', 'in:laden,empty'],
             'lines.*.gate_in_date'     => ['required', 'date'],
             'lines.*.from_date'        => ['required', 'date'],
             'lines.*.to_date'          => ['required', 'date'],
@@ -305,6 +320,7 @@ class StorageBillingController extends Controller
                     'container_no'       => $line['container_no'],
                     'equipment_type_id'  => ($line['equipment_type_id'] ?? null) ?: null,
                     'equipment_type'     => $line['equipment_type'],
+                    'cargo_status'       => $line['cargo_status'] ?? null,
                     'gate_in_date'       => $line['gate_in_date'],
                     'from_date'          => $line['from_date'],
                     'to_date'            => $line['to_date'],

@@ -22,13 +22,9 @@ class HandlingTariffController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        // Only shipping-line customers in the "New Tariff" dropdown
-        $shippingLines = Customer::whereHas('types', fn ($q) => $q->where('name', 'Shipping Line'))
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get();
+        $customers = Customer::where('status', 'active')->orderBy('name')->get();
 
-        return view('masters.handling-tariff.index', compact('tariffs', 'shippingLines'));
+        return view('masters.handling-tariff.index', compact('tariffs', 'customers'));
     }
 
     // ── Store header ─────────────────────────────────────────────────────────
@@ -60,18 +56,13 @@ class HandlingTariffController extends Controller
     {
         $handlingTariff->load(['shippingLine', 'rates.chargeCode.taxCode', 'createdBy', 'updatedBy']);
 
-        $usedSizes       = $handlingTariff->rates->pluck('container_size')->toArray();
-        $availableSizes  = array_diff(self::SIZES, $usedSizes);
-
-        $shippingLines = Customer::whereHas('types', fn ($q) => $q->where('name', 'Shipping Line'))
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get();
-
+        // All sizes available — same size allowed for both laden and empty
+        $allSizes  = self::SIZES;
+        $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $chargeCodes = ChargeCode::with('taxCode')->where('is_active', true)->orderBy('sort_order')->get();
 
         return view('masters.handling-tariff.show',
-            compact('handlingTariff', 'availableSizes', 'shippingLines', 'chargeCodes'));
+            compact('handlingTariff', 'allSizes', 'customers', 'chargeCodes'));
     }
 
     // ── Update header ────────────────────────────────────────────────────────
@@ -126,25 +117,26 @@ class HandlingTariffController extends Controller
     public function storeRate(Request $request, HandlingTariff $handlingTariff)
     {
         $data = $request->validate([
-            'container_size' => [
-                'required',
-                'in:20,40,45',
-                function ($attr, $val, $fail) use ($handlingTariff) {
-                    if ($handlingTariff->rates()->where('container_size', $val)->exists()) {
-                        $fail("A rate line for {$val}' containers already exists on this tariff.");
-                    }
-                },
-            ],
+            'container_size' => ['required', 'in:20,40,45'],
+            'cargo_status'   => ['required', 'in:laden,empty'],
             'lift_off_rate'  => 'required|numeric|min:0|max:99999.99',
             'lift_on_rate'   => 'required|numeric|min:0|max:99999.99',
             'currency'       => 'required|string|size:3',
             'charge_code_id' => 'nullable|exists:charge_codes,id',
         ]);
 
+        if ($handlingTariff->rates()
+            ->where('container_size', $data['container_size'])
+            ->where('cargo_status', $data['cargo_status'])
+            ->exists()
+        ) {
+            return back()->withErrors(['container_size' => "A rate line for {$data['container_size']}' {$data['cargo_status']} containers already exists on this tariff."]);
+        }
+
         $data['handling_tariff_id'] = $handlingTariff->id;
         HandlingTariffRate::create($data);
 
-        return back()->with('success', "Rate line for {$data['container_size']}' containers added.");
+        return back()->with('success', "Rate line for {$data['container_size']}' {$data['cargo_status']} containers added.");
     }
 
     // ── Update rate line ──────────────────────────────────────────────────────

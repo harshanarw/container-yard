@@ -63,7 +63,7 @@ class StorageMasterHeader extends Model
      * Find the active tariff for a given customer and equipment type.
      * Returns the storage rate or null if none found.
      */
-    public static function getRateFor(int $customerId, int $equipmentTypeId): ?float
+    public static function getRateFor(int $customerId, int $equipmentTypeId, string $cargoStatus = 'empty'): ?float
     {
         $header = static::where('customer_id', $customerId)
             ->where('is_active', true)
@@ -80,6 +80,7 @@ class StorageMasterHeader extends Model
 
         $detail = $header->details()
             ->where('equipment_type_id', $equipmentTypeId)
+            ->where('cargo_status', $cargoStatus)
             ->first();
 
         return $detail ? (float) $detail->storage_rate : null;

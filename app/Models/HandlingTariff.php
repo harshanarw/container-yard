@@ -56,7 +56,7 @@ class HandlingTariff extends Model
      * Find the active tariff for a shipping line and return the rate for a given container size.
      * Returns ['lift_off_rate', 'lift_on_rate', 'currency'] or null.
      */
-    public static function getRatesFor(int $shippingLineId, string $containerSize): ?HandlingTariffRate
+    public static function getRatesFor(int $shippingLineId, string $containerSize, string $cargoStatus = 'empty'): ?HandlingTariffRate
     {
         $tariff = static::where('shipping_line_id', $shippingLineId)
             ->where('is_active', true)
@@ -67,6 +67,9 @@ class HandlingTariff extends Model
             ->latest('valid_from')
             ->first();
 
-        return $tariff?->rates()->where('container_size', $containerSize)->first();
+        return $tariff?->rates()
+            ->where('container_size', $containerSize)
+            ->where('cargo_status', $cargoStatus)
+            ->first();
     }
 }

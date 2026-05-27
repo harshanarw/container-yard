@@ -82,10 +82,10 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
-                            Shipping Line <span class="text-danger">*</span>
+                            Customer <span class="text-danger">*</span>
                         </label>
                         <select name="shipping_line_id" class="form-select select2" required>
-                            @foreach($shippingLines as $line)
+                            @foreach($customers as $line)
                                 <option value="{{ $line->id }}"
                                     {{ $handlingTariff->shipping_line_id == $line->id ? 'selected' : '' }}>
                                     [{{ $line->code }}] {{ $line->name }}
@@ -170,28 +170,29 @@
             <div class="card-header d-flex align-items-center justify-content-between py-2">
                 <span><i class="bi bi-currency-dollar me-2 text-primary"></i>Rate Lines</span>
                 <span class="badge bg-primary-subtle text-primary">
-                    {{ $handlingTariff->rates->count() }} / 3 size(s)
+                    {{ $handlingTariff->rates->count() }} rate line(s)
                 </span>
             </div>
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3" style="width:130px;">Container Size</th>
-                            <th class="text-end" style="width:130px;">
+                            <th class="ps-3" style="width:120px;">Container Size</th>
+                            <th style="width:90px;" class="text-center">Status</th>
+                            <th class="text-end" style="width:120px;">
                                 <span class="text-success">
                                     <i class="bi bi-arrow-down-circle me-1"></i>Lift Off
                                 </span>
                                 <div class="text-muted fw-normal" style="font-size:.68rem;">Gate In</div>
                             </th>
-                            <th class="text-end" style="width:130px;">
+                            <th class="text-end" style="width:120px;">
                                 <span class="text-primary">
                                     <i class="bi bi-arrow-up-circle me-1"></i>Lift On
                                 </span>
                                 <div class="text-muted fw-normal" style="font-size:.68rem;">Gate Out</div>
                             </th>
                             <th class="text-center" style="width:80px;">Currency</th>
-                            <th style="width:160px;">Charge Code / Tax</th>
+                            <th style="width:150px;">Charge Code / Tax</th>
                             <th class="text-end pe-3" style="width:100px;">Actions</th>
                         </tr>
                     </thead>
@@ -200,7 +201,13 @@
                         <tr class="rate-row">
                             <td class="ps-3">
                                 <span class="badge bg-dark fw-bold fs-6 me-1">{{ $rate->container_size }}'</span>
-                                <span class="text-muted small">Container</span>
+                            </td>
+                            <td class="text-center">
+                                @if($rate->cargo_status === 'laden')
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-semibold" style="font-size:.72rem;">Laden</span>
+                                @else
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle fw-semibold" style="font-size:.72rem;">Empty</span>
+                                @endif
                             </td>
                             <td class="text-end fw-semibold text-success">
                                 {{ number_format($rate->lift_off_rate, 2) }}
@@ -232,6 +239,7 @@
                                     <button type="button" class="btn btn-outline-primary btn-sm btn-edit-rate"
                                             data-id="{{ $rate->id }}"
                                             data-size="{{ $rate->container_size }}"
+                                            data-cargo_status="{{ $rate->cargo_status }}"
                                             data-liftoff="{{ $rate->lift_off_rate }}"
                                             data-lifton="{{ $rate->lift_on_rate }}"
                                             data-currency="{{ $rate->currency }}"
@@ -242,6 +250,7 @@
                                     <button type="button" class="btn btn-outline-danger btn-sm btn-delete-rate"
                                             data-id="{{ $rate->id }}"
                                             data-size="{{ $rate->container_size }}"
+                                            data-cargo_status="{{ $rate->cargo_status }}"
                                             title="Remove">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -250,7 +259,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox fs-4 d-block mb-1"></i>
                                 No rate lines yet. Add one below.
                             </td>
@@ -264,11 +273,7 @@
             <div class="card-footer bg-light border-top">
                 <p class="small fw-semibold mb-2">
                     <i class="bi bi-plus-circle me-1 text-primary"></i>Add Rate Line
-                    @if(empty($availableSizes))
-                        <span class="text-muted fw-normal ms-2">— all container sizes already have a rate.</span>
-                    @endif
                 </p>
-                @if(!empty($availableSizes))
                 <form method="POST"
                       action="{{ route('masters.handling-tariff.rates.store', $handlingTariff) }}"
                       class="row g-2 align-items-end">
@@ -279,12 +284,21 @@
                         </label>
                         <select name="container_size" class="form-select form-select-sm" required>
                             <option value="">—</option>
-                            @foreach($availableSizes as $size)
+                            @foreach($allSizes as $size)
                                 <option value="{{ $size }}">{{ $size }}'</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold mb-1">
+                            Laden / Empty <span class="text-danger">*</span>
+                        </label>
+                        <select name="cargo_status" class="form-select form-select-sm" required>
+                            <option value="empty" selected>Empty</option>
+                            <option value="laden">Laden</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label small fw-semibold mb-1">
                             <span class="text-success"><i class="bi bi-arrow-down-circle me-1"></i>Lift Off</span>
                             <span class="text-muted fw-normal">(Gate In)</span>
@@ -334,7 +348,6 @@
                         </button>
                     </div>
                 </form>
-                @endif
             </div>
         </div>
 
@@ -351,9 +364,16 @@
                         <div class="border rounded p-3 bg-light">
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <span class="badge bg-dark fs-6">{{ $rate->container_size }}'</span>
-                                <span class="badge bg-success-subtle text-success fw-bold" style="font-size:.7rem;">
-                                    {{ $rate->currency }}
-                                </span>
+                                <div class="d-flex gap-1">
+                                    @if($rate->cargo_status === 'laden')
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">Laden</span>
+                                    @else
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.65rem;">Empty</span>
+                                    @endif
+                                    <span class="badge bg-success-subtle text-success fw-bold" style="font-size:.7rem;">
+                                        {{ $rate->currency }}
+                                    </span>
+                                </div>
                             </div>
                             <div class="row g-0 text-center">
                                 <div class="col-6 border-end">
@@ -398,6 +418,7 @@
                     <h6 class="modal-title">
                         <i class="bi bi-pencil me-1 text-primary"></i>
                         Edit Rate — <span id="editRateSize"></span>' Container
+                        <span id="editRateStatusBadge" class="ms-1"></span>
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -508,7 +529,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.btn-edit-rate').forEach(btn => {
         btn.addEventListener('click', () => {
+            const status = btn.dataset.cargo_status || 'empty';
             document.getElementById('editRateSize').textContent     = btn.dataset.size;
+            document.getElementById('editRateStatusBadge').innerHTML =
+                status === 'laden'
+                    ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.7rem;">Laden</span>'
+                    : '<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.7rem;">Empty</span>';
             document.getElementById('editLiftOffRate').value        = btn.dataset.liftoff;
             document.getElementById('editLiftOnRate').value         = btn.dataset.lifton;
             document.getElementById('editRateCurrency').value       = btn.dataset.currency;
@@ -520,7 +546,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.btn-delete-rate').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.getElementById('deleteRateSize').textContent = btn.dataset.size;
+            const status = btn.dataset.cargo_status || 'empty';
+            const statusLabel = status === 'laden' ? 'Laden' : 'Empty';
+            document.getElementById('deleteRateSize').textContent = btn.dataset.size + "' " + statusLabel;
             document.getElementById('deleteRateForm').action      = baseRateUrl + '/' + btn.dataset.id;
             new bootstrap.Modal(document.getElementById('deleteRateModal')).show();
         });

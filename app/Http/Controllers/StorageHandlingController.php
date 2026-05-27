@@ -33,10 +33,7 @@ class StorageHandlingController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $shippingLines = Customer::whereHas('types', fn ($q) => $q->where('name', 'Shipping Line'))
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get();
+        $shippingLines = Customer::where('status', 'active')->orderBy('name')->get();
 
         $stats = [
             'total'    => StorageHandlingInvoice::count(),
@@ -52,10 +49,7 @@ class StorageHandlingController extends Controller
 
     public function create()
     {
-        $operatorTypes = ['Shipping Line', 'Main Line', 'Feeder Line', 'Container Operator', 'Vessel Operator', 'Slot Operator', 'NVOCC'];
-
         $shippingLines = Customer::with('billingParty')
-            ->whereHas('types', fn ($q) => $q->whereIn('name', $operatorTypes))
             ->where('status', 'active')
             ->orderBy('name')
             ->get();
@@ -113,6 +107,14 @@ class StorageHandlingController extends Controller
             ->get()
             ->keyBy('container_id');
 
+        // ── Cargo status per container from most recent gate-in movement ──────
+        $cargoStatusByContainer = GateMovement::where('customer_id', $shippingLine->id)
+            ->where('movement_type', 'in')
+            ->orderByDesc('gate_in_time')
+            ->get()
+            ->keyBy('container_id')
+            ->map(fn ($m) => $m->cargo_status === 'full' ? 'laden' : 'empty');
+
         if ($storageRecords->isEmpty() && $liftOffByContainer->isEmpty() && $liftOnByContainer->isEmpty()) {
             return response()->json([
                 'lines'                  => [],
@@ -166,6 +168,7 @@ class StorageHandlingController extends Controller
             $daysBeforePeriod = max(0, (int) $gateIn->diffInDays($fromDate));
 
             $eqtId        = $container->equipment_type_id;
+            $cargoStatus  = $cargoStatusByContainer[$container->id] ?? 'empty';
             $freeDays     = $storageTariff?->default_free_days ?? $storage->free_days ?? 0;
             $storageRate  = 0.0;
             $storageCur   = 'USD';
@@ -174,7 +177,10 @@ class StorageHandlingController extends Controller
             $tax2Rate     = $taxExempt ? 0.0 : $vatPct;   // fallback
 
             if ($storageTariff) {
-                $detail = $storageTariff->details->firstWhere('equipment_type_id', $eqtId);
+                $detail = $storageTariff->details
+                    ->where('equipment_type_id', $eqtId)
+                    ->where('cargo_status', $cargoStatus)
+                    ->first();
                 if ($detail) {
                     $storageRate  = (float) $detail->storage_rate;
                     $storageCur   = $detail->currency;
@@ -193,7 +199,10 @@ class StorageHandlingController extends Controller
             // If storage has no charge code, try the handling tariff's charge code
             if ($chargeCodeId === null && $handlingTariff && ! $taxExempt) {
                 $containerSize = $this->normalizeSize($container->size ?? '');
-                $hRate = $handlingTariff->rates->firstWhere('container_size', $containerSize);
+                $hRate = $handlingTariff->rates
+                    ->where('container_size', $containerSize)
+                    ->where('cargo_status', $cargoStatus)
+                    ->first();
                 if ($hRate?->chargeCode?->taxCode) {
                     $chargeCodeId = $hRate->charge_code_id;
                     $tax1Rate     = (float) $hRate->chargeCode->taxCode->tax1_rate;
@@ -221,7 +230,10 @@ class StorageHandlingController extends Controller
             $handlingCur    = 'USD';
 
             if ($handlingTariff && $containerSize) {
-                $hRate = $handlingTariff->rates->firstWhere('container_size', $containerSize);
+                $hRate = $handlingTariff->rates
+                    ->where('container_size', $containerSize)
+                    ->where('cargo_status', $cargoStatus)
+                    ->first();
                 if ($hRate) {
                     $liftOffRateUsd = (float) $hRate->lift_off_rate;
                     $liftOnRateUsd  = (float) $hRate->lift_on_rate;
@@ -251,6 +263,7 @@ class StorageHandlingController extends Controller
                 'container_size'           => $containerSize,
                 'equipment_type_id'        => $eqtId ?: null,
                 'equipment_type'           => $eqtLabel,
+                'cargo_status'             => $cargoStatus,
                 'gate_in_date'             => $gateIn->toDateString(),
                 'gate_out_date'            => $storage->gate_out_date?->toDateString() ?? '',
                 'storage_from'             => $fromDate->toDateString(),
@@ -332,6 +345,7 @@ class StorageHandlingController extends Controller
             'lines.*.container_size'              => 'required|string',
             'lines.*.equipment_type_id'           => 'nullable|integer',
             'lines.*.equipment_type'              => 'required|string',
+            'lines.*.cargo_status'                => 'nullable|in:laden,empty',
             'lines.*.gate_in_date'                => 'required|date',
             'lines.*.gate_out_date'               => 'nullable|date',
             'lines.*.storage_from'                => 'required|date',
@@ -409,6 +423,7 @@ class StorageHandlingController extends Controller
                     'container_size'           => $line['container_size'],
                     'equipment_type_id'        => ($line['equipment_type_id'] ?? null) ?: null,
                     'equipment_type'           => $line['equipment_type'],
+                    'cargo_status'             => $line['cargo_status'] ?? null,
                     'gate_in_date'             => $line['gate_in_date'],
                     'gate_out_date'            => ($line['gate_out_date'] ?? '') ?: null,
                     'storage_from'             => $line['storage_from'],

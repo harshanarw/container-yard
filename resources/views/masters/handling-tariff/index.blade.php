@@ -57,7 +57,7 @@
     <div class="col-6 col-md-3">
         <div class="card content-card text-center py-3">
             <div class="fs-3 fw-bold text-info">{{ $tariffs->pluck('shipping_line_id')->unique()->count() }}</div>
-            <div class="text-muted small">Shipping Lines</div>
+            <div class="text-muted small">Customers</div>
         </div>
     </div>
 </div>
@@ -74,7 +74,7 @@
                 <thead class="table-light">
                     <tr>
                         <th class="ps-3" style="width:50px;">#</th>
-                        <th>Shipping Line</th>
+                        <th>Customer</th>
                         <th style="width:200px;">Validity Period</th>
                         <th style="width:90px;" class="text-center">Size Rates</th>
                         <th style="width:90px;" class="text-center">Status</th>
@@ -195,27 +195,22 @@
                 </div>
                 <div class="modal-body">
                     <p class="text-muted small mb-3">
-                        Select the shipping line and validity period. After saving you will be taken
-                        to the detail page to add Lift On / Lift Off rates per container size.
+                        Select the customer and validity period. After saving you will be taken
+                        to the detail page to add Lift On / Lift Off rates per container size and status.
                     </p>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">
-                                Shipping Line <span class="text-danger">*</span>
+                                Customer <span class="text-danger">*</span>
                             </label>
                             <select name="shipping_line_id" class="form-select select2" required>
-                                <option value="">— Select Shipping Line —</option>
-                                @foreach($shippingLines as $line)
+                                <option value="">— Select Customer —</option>
+                                @foreach($customers as $line)
                                     <option value="{{ $line->id }}">
                                         [{{ $line->code }}] {{ $line->name }}
                                     </option>
                                 @endforeach
                             </select>
-                            @if($shippingLines->isEmpty())
-                                <div class="form-text text-warning">
-                                    No active shipping-line customers found. Add one under Customers first.
-                                </div>
-                            @endif
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">

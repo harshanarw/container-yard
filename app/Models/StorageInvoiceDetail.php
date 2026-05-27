@@ -11,7 +11,7 @@ class StorageInvoiceDetail extends Model
 
     protected $fillable = [
         'storage_invoice_id', 'container_id', 'container_no', 'equipment_type_id', 'equipment_type',
-        'gate_in_date', 'from_date', 'to_date',
+        'gate_in_date', 'cargo_status', 'from_date', 'to_date',
         'total_days', 'free_days', 'chargeable_days',
         'daily_rate', 'currency', 'subtotal',
         'charge_code_id', 'tax1_rate', 'tax2_rate',

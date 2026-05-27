@@ -12,6 +12,7 @@ class StorageMasterDetail extends Model
     protected $fillable = [
         'storage_master_header_id',
         'equipment_type_id',
+        'cargo_status',
         'storage_rate',
         'currency',
         'charge_code_id',

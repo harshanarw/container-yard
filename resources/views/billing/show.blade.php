@@ -261,6 +261,7 @@
                                 <th class="ps-3">#</th>
                                 <th>Container No.</th>
                                 <th>Equipment Type</th>
+                                <th>Status</th>
                                 <th>Gate-In</th>
                                 <th class="text-center">Billing Period</th>
                                 <th class="text-center">Total Days</th>
@@ -285,6 +286,15 @@
                                         <div class="text-muted" style="font-size:.65rem;">{{ $line->equipmentType->description }}</div>
                                     @else
                                         {{ $line->equipment_type }}
+                                    @endif
+                                </td>
+                                <td class="small">
+                                    @if($line->cargo_status === 'laden')
+                                        <span class="badge bg-warning-subtle text-warning border" style="font-size:.7rem;">Laden</span>
+                                    @elseif($line->cargo_status === 'empty')
+                                        <span class="badge bg-info-subtle text-info border" style="font-size:.7rem;">Empty</span>
+                                    @else
+                                        <span class="text-muted">—</span>
                                     @endif
                                 </td>
                                 <td class="small">{{ $line->gate_in_date->format('d M Y') }}</td>
@@ -335,12 +345,12 @@
                         </tbody>
                         <tfoot class="table-light fw-semibold">
                             <tr>
-                                <td class="ps-3" colspan="13" style="text-align:right">Subtotal</td>
+                                <td class="ps-3" colspan="14" style="text-align:right">Subtotal</td>
                                 <td class="text-end pe-3">{{ $fmtDisp($invoice->subtotal) }}</td>
                             </tr>
                             @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
                             <tr class="fw-normal text-muted">
-                                <td class="ps-3" colspan="13" style="text-align:right">
+                                <td class="ps-3" colspan="14" style="text-align:right">
                                     SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)
                                 </td>
                                 <td class="text-end pe-3">{{ $fmtDisp($invoice->sscl_amount) }}</td>
@@ -348,7 +358,7 @@
                             @endif
                             @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
                             <tr class="fw-normal text-muted">
-                                <td class="ps-3" colspan="13" style="text-align:right">
+                                <td class="ps-3" colspan="14" style="text-align:right">
                                     VAT ({{ number_format($invoice->vat_percentage, 2) }}%)
                                 </td>
                                 <td class="text-end pe-3">{{ $fmtDisp($invoice->vat_amount) }}</td>
@@ -356,14 +366,14 @@
                             @endif
                             @if($invoice->tax_amount > 0)
                             <tr class="fw-normal text-muted">
-                                <td class="ps-3" colspan="13" style="text-align:right">
+                                <td class="ps-3" colspan="14" style="text-align:right">
                                     Tax ({{ number_format($invoice->tax_percentage, 2) }}%)
                                 </td>
                                 <td class="text-end pe-3">{{ $fmtDisp($invoice->tax_amount) }}</td>
                             </tr>
                             @endif
                             <tr class="table-primary fw-bold">
-                                <td class="ps-3" colspan="13" style="text-align:right">TOTAL</td>
+                                <td class="ps-3" colspan="14" style="text-align:right">TOTAL</td>
                                 <td class="text-end pe-3 fs-6">{{ $fmtDisp($invoice->total_amount) }}</td>
                             </tr>
                         </tfoot>

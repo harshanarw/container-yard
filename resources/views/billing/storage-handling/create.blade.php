@@ -256,6 +256,7 @@
                                     <th rowspan="2" style="vertical-align:middle;">Container</th>
                                     <th class="text-center" rowspan="2" style="vertical-align:middle;">Size</th>
                                     <th rowspan="2" style="vertical-align:middle;">Equipment</th>
+                                    <th rowspan="2" style="vertical-align:middle;">Status</th>
                                     <th rowspan="2" style="vertical-align:middle;">Gate In</th>
                                     <th class="text-center" rowspan="2" style="vertical-align:middle;">From</th>
                                     <th class="text-center" rowspan="2" style="vertical-align:middle;">To</th>
@@ -515,6 +516,7 @@ function renderPreview(data) {
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
             <td class="small">${l.equipment_type || '—'}</td>
+            <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
             <td class="small">${fmtDate(l.gate_in_date)}</td>
             <td class="text-center small">${fmtDate(l.storage_from)}</td>
             <td class="text-center small">${fmtDate(l.storage_to)}</td>
@@ -530,7 +532,7 @@ function renderPreview(data) {
     `).join('');
     document.getElementById('storageFoot').innerHTML = `
         <tr>
-            <td colspan="14" class="text-end">Storage Subtotal</td>
+            <td colspan="15" class="text-end">Storage Subtotal</td>
             <td class="text-end pe-2">${fmtCur(data.storage_subtotal)}</td>
         </tr>`;
 
@@ -549,7 +551,7 @@ function renderPreview(data) {
 
     const liftOffCols = `
         <th class="ps-2">#</th><th>Container</th><th class="text-center">Size</th>
-        <th>Equipment</th><th>Gate In Date</th>
+        <th>Equipment</th><th>Status</th><th>Gate In Date</th>
         <th class="text-end bg-success-subtle" style="font-size:.7rem;">Tariff Rate</th>
         <th class="text-center bg-success-subtle" style="font-size:.7rem;">Cur</th>
         <th class="text-end bg-success-subtle" style="font-size:.7rem;">× Exch. Rate</th>
@@ -560,6 +562,7 @@ function renderPreview(data) {
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
             <td class="small">${l.equipment_type || '—'}</td>
+            <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
             <td class="small">${fmtDate(l.gate_in_date)}</td>
             <td class="text-end bg-success-subtle small">${fmt(l.lift_off_rate_usd ?? 0)}</td>
             <td class="text-center bg-success-subtle small text-muted">${l.handling_tariff_currency || 'USD'}</td>
@@ -572,7 +575,7 @@ function renderPreview(data) {
 
     const liftOnCols = `
         <th class="ps-2">#</th><th>Container</th><th class="text-center">Size</th>
-        <th>Equipment</th><th>Gate Out Date</th>
+        <th>Equipment</th><th>Status</th><th>Gate Out Date</th>
         <th class="text-end bg-primary-subtle" style="font-size:.7rem;">Tariff Rate</th>
         <th class="text-center bg-primary-subtle" style="font-size:.7rem;">Cur</th>
         <th class="text-end bg-primary-subtle" style="font-size:.7rem;">× Exch. Rate</th>
@@ -583,6 +586,7 @@ function renderPreview(data) {
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
             <td class="small">${l.equipment_type || '—'}</td>
+            <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
             <td class="small">${l.gate_out_date ? fmtDate(l.gate_out_date) : '—'}</td>
             <td class="text-end bg-primary-subtle small">${fmt(l.lift_on_rate_usd ?? 0)}</td>
             <td class="text-center bg-primary-subtle small text-muted">${l.handling_tariff_currency || 'USD'}</td>

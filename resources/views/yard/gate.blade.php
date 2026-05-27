@@ -116,14 +116,14 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-geo-alt me-1 text-primary"></i>Storage Location
-                                <span class="text-danger">*</span>
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
                             </label>
 
                             {{-- Hidden submission fields --}}
-                            <input type="hidden" name="location_zone" id="loc_zone" required>
-                            <input type="hidden" name="location_row"  id="loc_row"  required>
-                            <input type="hidden" name="location_bay"  id="loc_bay"  required>
-                            <input type="hidden" name="location_tier" id="loc_tier" required>
+                            <input type="hidden" name="location_zone" id="loc_zone">
+                            <input type="hidden" name="location_row"  id="loc_row">
+                            <input type="hidden" name="location_bay"  id="loc_bay">
+                            <input type="hidden" name="location_tier" id="loc_tier">
 
                             {{-- Selected slot display --}}
                             <div id="selectedSlotDisplay" class="alert alert-primary py-2 small d-none mb-2">
@@ -138,7 +138,7 @@
                             <div id="zoneSelectorPanel">
                                 <p class="text-muted small mb-2">
                                     <span class="badge bg-primary-subtle text-primary rounded-pill me-1">Step 1</span>
-                                    Select a storage zone:
+                                    Select a storage zone <span class="text-muted">(optional — can be assigned later)</span>:
                                 </p>
                                 <div class="d-flex gap-2 flex-wrap" id="zoneCards">
                                     @foreach($zones as $zone)
