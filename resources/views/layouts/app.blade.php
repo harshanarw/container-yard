@@ -301,6 +301,13 @@
         .page-header { margin-bottom: 24px; }
         .page-header h4 { font-weight: 700; color: #1565C0; margin: 0; }
         .page-header .breadcrumb { font-size: .8rem; margin: 0; }
+        @media (max-width: 767.98px) {
+            .page-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px;
+            }
+        }
 
         /* ── Utility ── */
         .avatar-sm {
