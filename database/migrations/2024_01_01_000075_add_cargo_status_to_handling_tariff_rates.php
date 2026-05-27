@@ -9,8 +9,8 @@ return new class extends Migration
 {
     // Laravel-generated name for unique(['handling_tariff_id','container_size'])
     private const OLD_IDX = 'handling_tariff_rates_handling_tariff_id_container_size_unique';
-    // Laravel-generated name for unique(['handling_tariff_id','container_size','cargo_status'])
-    private const NEW_IDX = 'handling_tariff_rates_handling_tariff_id_container_size_cargo_status_unique';
+    // Explicit short name (auto-generated would exceed MySQL's 64-char limit)
+    private const NEW_IDX = 'uniq_htr_tariff_size_cargo';
 
     public function up(): void
     {
@@ -33,7 +33,10 @@ return new class extends Migration
             // Add new unique BEFORE dropping old one so MySQL still has an
             // index on handling_tariff_id to back the FK.
             if (empty($hasNew)) {
-                $table->unique(['handling_tariff_id', 'container_size', 'cargo_status']);
+                $table->unique(
+                    ['handling_tariff_id', 'container_size', 'cargo_status'],
+                    self::NEW_IDX
+                );
             }
 
             if (! empty($hasOld)) {
@@ -45,7 +48,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('handling_tariff_rates', function (Blueprint $table) {
-            $table->dropUnique(['handling_tariff_id', 'container_size', 'cargo_status']);
+            $table->dropUnique(self::NEW_IDX);
             $table->dropColumn('cargo_status');
             $table->unique(['handling_tariff_id', 'container_size']);
         });
