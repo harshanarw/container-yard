@@ -21,7 +21,7 @@
         /* ── Card ── */
         .auth-card {
             width: 100%;
-            max-width: 420px;
+            max-width: 460px;
             background: #fff;
             border-radius: 18px;
             box-shadow: 0 20px 60px rgba(0,0,0,.3);
@@ -41,7 +41,7 @@
         .auth-header {
             background: linear-gradient(135deg, #1565C0, #2196F3);
             color: #fff;
-            padding: 1.4rem 2rem 0;
+            padding: .85rem 2rem 0;
             text-align: center;
         }
 
@@ -49,7 +49,7 @@
         .step-bar {
             display: flex;
             gap: 5px;
-            padding: .9rem 0 0;
+            padding: .75rem 0 0;
         }
         .step-seg {
             flex: 1; height: 4px;
@@ -59,7 +59,7 @@
         .step-seg.active { background: #fff; }
 
         /* ── Body ── */
-        .auth-body { padding: 0 2rem 1.6rem; }
+        .auth-body { padding: 1.6rem 2rem 1.6rem; }
 
         /* ── Input groups ── */
         .auth-input-group {
@@ -77,9 +77,14 @@
         }
         .auth-input-group .ig-icon {
             padding: 0 .75rem;
-            color: #94a3b8;
+            color: #78909c;
             font-size: 1rem;
             flex-shrink: 0;
+            background: #eceff1;
+            align-self: stretch;
+            display: flex;
+            align-items: center;
+            border-right: 1px solid #e2e8f0;
         }
         .auth-input-group input {
             flex: 1; border: none; outline: none;
