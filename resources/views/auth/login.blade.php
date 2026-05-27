@@ -12,162 +12,438 @@
     <style>
         body {
             min-height: 100vh;
-            background: #fff;
+            background: linear-gradient(160deg, #dbeafe 0%, #eff6ff 60%, #f1f5f9 100%);
             display: flex; align-items: center; justify-content: center;
             font-family: 'Segoe UI', sans-serif;
+            padding: 1rem;
         }
-        .auth-card { position: relative; z-index: 1; }
+
+        /* ── Card ── */
         .auth-card {
             width: 100%;
             max-width: 420px;
             background: #fff;
-            border-radius: 18px;
-            box-shadow: 0 20px 60px rgba(0,0,0,.3);
+            border-radius: 20px;
+            box-shadow: 0 8px 40px rgba(0,0,0,.13);
             overflow: hidden;
         }
+
+        /* ── Logo banner ── */
         .logo-banner {
             display: flex; justify-content: center; align-items: center;
-            padding: 1.4rem 2rem 1rem;
-            background: #fff;
-            border-bottom: 1px solid #e9ecef;
+            padding: 1.4rem 2rem .8rem;
         }
-        .logo-banner img {
-            max-width: 200px; max-height: 90px;
-            object-fit: contain;
-        }
-        .auth-header {
-            background: linear-gradient(135deg, #1565C0, #2196F3);
-            color: #fff;
-            padding: 1.4rem 2rem;
+        .logo-banner img { max-width: 180px; max-height: 70px; object-fit: contain; }
+
+        /* ── Company title ── */
+        .auth-title {
             text-align: center;
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: .04em;
+            color: #1e293b;
+            padding: 0 2rem .5rem;
         }
-        .auth-body { padding: 2rem; }
-        .form-control:focus { border-color: #2196F3; box-shadow: 0 0 0 .2rem rgba(33,150,243,.15); }
+
+        /* ── Step progress bar ── */
+        .step-bar {
+            display: flex;
+            gap: 5px;
+            padding: 0 2rem;
+            margin-bottom: 1.6rem;
+        }
+        .step-seg {
+            flex: 1; height: 4px; border-radius: 2px;
+            background: #e2e8f0;
+            transition: background .3s;
+        }
+        .step-seg.active { background: #2563eb; }
+
+        /* ── Body ── */
+        .auth-body { padding: 0 2rem 1.6rem; }
+
+        /* ── Input groups ── */
+        .auth-input-group {
+            display: flex;
+            align-items: center;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .auth-input-group:focus-within {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+        }
+        .auth-input-group .ig-icon {
+            padding: 0 .75rem;
+            color: #94a3b8;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .auth-input-group input {
+            flex: 1; border: none; outline: none;
+            padding: .65rem .5rem .65rem 0;
+            font-size: .95rem;
+            background: transparent;
+            color: #1e293b;
+        }
+        .auth-input-group .ig-btn {
+            padding: 0 .75rem;
+            background: none; border: none; outline: none;
+            color: #6366f1; cursor: pointer; font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .auth-input-group .ig-btn:hover { color: #4338ca; }
+
+        /* ── Labels ── */
+        .auth-label {
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .07em;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: .4rem;
+            display: block;
+        }
+
+        /* ── Username pill (step 2) ── */
+        .user-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: .3rem .75rem .3rem .5rem;
+            font-size: .85rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 1.1rem;
+        }
+        .user-pill .pill-icon {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: #e0e7ff; color: #4338ca;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .8rem;
+        }
+        .user-pill .change-link {
+            color: #2563eb;
+            font-size: .78rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            margin-left: .25rem;
+        }
+        .user-pill .change-link:hover { text-decoration: underline; }
+
+        /* ── CAPTCHA box ── */
+        .captcha-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: .5rem 1.2rem;
+            letter-spacing: .35em;
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            color: #334155;
+            background: #f8fafc;
+            user-select: none;
+            min-width: 110px;
+        }
+        .captcha-refresh {
+            background: none; border: none; outline: none;
+            color: #2563eb; font-size: 1.15rem; cursor: pointer;
+            padding: .25rem .4rem;
+            border-radius: 50%;
+            transition: transform .3s;
+        }
+        .captcha-refresh:hover { transform: rotate(180deg); color: #1d4ed8; }
+
+        /* ── Primary button ── */
         .btn-login {
-            background: linear-gradient(135deg, #2196F3, #1976D2);
+            background: #2563eb;
             border: none; color: #fff;
-            padding: .7rem; font-weight: 600; border-radius: 10px;
-            transition: opacity .2s;
+            padding: .75rem; font-weight: 700;
+            font-size: .95rem;
+            border-radius: 10px;
+            width: 100%;
+            letter-spacing: .03em;
+            transition: background .2s, box-shadow .2s;
         }
-        .btn-login:hover { opacity: .9; color: #fff; }
-        .divider { color: #adb5bd; font-size: .8rem; text-align: center; position: relative; margin: 1rem 0; }
-        .divider::before, .divider::after {
-            content:''; position:absolute; top:50%; width:42%; height:1px; background:#dee2e6;
+        .btn-login:hover { background: #1d4ed8; color: #fff; box-shadow: 0 4px 16px rgba(37,99,235,.3); }
+        .btn-login:disabled { opacity: .7; cursor: not-allowed; }
+
+        /* ── Error alert ── */
+        .auth-alert {
+            border-radius: 10px;
+            padding: .55rem .85rem;
+            font-size: .85rem;
+            margin-bottom: 1rem;
         }
-        .divider::before { left:0; }
-        .divider::after  { right:0; }
+
+        /* ── Footer ── */
+        .auth-footer {
+            background: #f8fafc;
+            border-top: 1px solid #f1f5f9;
+            padding: .85rem 2rem;
+            text-align: center;
+            font-size: .72rem;
+            color: #94a3b8;
+        }
+        .auth-footer a { color: #2563eb; text-decoration: none; }
     </style>
 </head>
 <body>
 
 <div class="auth-card">
+
+    {{-- Logo --}}
     @if($companySetting?->logo_url)
     <div class="logo-banner">
-        <img src="{{ $companySetting->logo_url }}" alt="{{ $companySetting->company_name }} Logo">
+        <img src="{{ $companySetting->logo_url }}" alt="{{ $companySetting->company_name }}">
     </div>
+    @else
+    <div style="padding-top:1.4rem;"></div>
     @endif
-    <div class="auth-header">
-        <h4 class="fw-bold mb-0">{{ $companySetting?->company_name ?? 'CYM System' }}</h4>
-        <p class="mb-0 opacity-75 small">{{ $companySetting?->tagline ?? 'Container Yard Management' }}</p>
+
+    {{-- Company name --}}
+    <div class="auth-title">{{ $companySetting?->company_name ?? 'CYM System' }}</div>
+
+    {{-- Step bar --}}
+    <div class="step-bar">
+        <div class="step-seg active" id="seg1"></div>
+        <div class="step-seg"        id="seg2"></div>
     </div>
 
     <div class="auth-body">
-        <h5 class="fw-bold mb-1">Welcome back</h5>
-        <p class="text-muted small mb-4">Sign in to your account to continue</p>
 
+        {{-- Server-side error (shown when page reloads after bad credentials) --}}
         @if($errors->any())
-        <div class="alert alert-danger alert-sm small py-2">
-            <i class="bi bi-exclamation-triangle me-1"></i>
-            {{ $errors->first() }}
+        <div class="alert auth-alert alert-danger" id="serverError">
+            <i class="bi bi-exclamation-triangle me-1"></i>{{ $errors->first() }}
         </div>
         @endif
 
         @if(session('status'))
-        <div class="alert alert-success small py-2">
-            {{ session('status') }}
-        </div>
+        <div class="alert auth-alert alert-success">{{ session('status') }}</div>
         @endif
 
-        <form method="POST" action="{{ route('login') }}">
+        {{-- Client-side error placeholder --}}
+        <div class="alert auth-alert alert-danger d-none" id="clientError"></div>
+
+        {{-- ══ STEP 1: Username ══ --}}
+        <div id="step1">
+            <label class="auth-label">Username</label>
+            <div class="auth-input-group mb-4">
+                <span class="ig-icon"><i class="bi bi-person"></i></span>
+                <input type="email" id="emailInput" placeholder="Enter your email"
+                       value="{{ old('email') }}" autocomplete="username" autofocus>
+            </div>
+
+            <button type="button" class="btn-login" id="continueBtn">
+                Continue
+            </button>
+        </div>
+
+        {{-- ══ STEP 2: Password + CAPTCHA ══ --}}
+        <form method="POST" action="{{ route('login') }}" id="loginForm" class="d-none">
             @csrf
+            <input type="hidden" name="email" id="emailHidden">
+            <input type="hidden" id="captchaAnswer">
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold small">Email Address</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                    <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
-                           placeholder="you@company.com"
-                           value="{{ old('email') }}" required autofocus>
+            {{-- Username pill --}}
+            <div>
+                <div class="user-pill">
+                    <span class="pill-icon"><i class="bi bi-person-fill"></i></span>
+                    <span id="pillEmail"></span>
+                    <a class="change-link" id="changeUser">Change</a>
                 </div>
             </div>
 
-            <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <label class="form-label fw-semibold small mb-0">Password</label>
-                    @if(Route::has('password.request'))
-                        <a href="{{ route('password.request') }}" class="small text-primary text-decoration-none">
-                            Forgot password?
-                        </a>
-                    @endif
-                </div>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                    <input type="password" name="password" id="passwordInput"
-                           class="form-control @error('password') is-invalid @enderror"
-                           placeholder="••••••••" required>
-                    <button type="button" class="btn btn-outline-secondary" id="togglePwd">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="remember" id="remember">
-                    <label class="form-check-label small" for="remember">Remember me</label>
-                </div>
-            </div>
-
-            <div class="d-grid">
-                <button type="submit" class="btn btn-login">
-                    <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+            {{-- Password --}}
+            <label class="auth-label">Password</label>
+            <div class="auth-input-group mb-4">
+                <span class="ig-icon"><i class="bi bi-lock"></i></span>
+                <input type="password" name="password" id="passwordInput"
+                       placeholder="••••••••••" autocomplete="current-password" required>
+                <button type="button" class="ig-btn" id="togglePwd" title="Show/hide password">
+                    <i class="bi bi-eye"></i>
                 </button>
             </div>
+
+            {{-- CAPTCHA --}}
+            <label class="auth-label">Image Text</label>
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="auth-input-group" style="flex:1;">
+                    <span class="ig-icon"><i class="bi bi-shield-check"></i></span>
+                    <input type="text" id="captchaInput" placeholder="Type the digits you see"
+                           inputmode="numeric" maxlength="6" autocomplete="off">
+                </div>
+                <div class="captcha-display" id="captchaDisplay"></div>
+                <button type="button" class="captcha-refresh" id="captchaRefresh" title="Refresh code">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+
+            <button type="submit" class="btn-login mt-1" id="loginBtn">
+                <i class="bi bi-box-arrow-in-right me-2"></i>LOGIN
+            </button>
         </form>
 
-        <div class="divider">OR</div>
+    </div>
 
-        <div class="text-center small text-muted">
-            <i class="bi bi-shield-lock me-1"></i>
-            Protected by enterprise-grade security
-        </div>
-
-        <hr class="my-3">
-
-        <div class="text-center text-muted" style="font-size:.75rem; line-height:1.8;">
-            &copy; {{ date('Y') }} {{ $companySetting?->company_name ?? 'CYM System' }}. All rights reserved.
-            @if($companySetting?->software_provider)
-            <br><span style="font-size:.7rem; opacity:.75;">
-                <i class="bi bi-code-slash me-1"></i>Powered by {{ $companySetting->software_provider }}
-            </span>
-            @endif
-        </div>
+    <div class="auth-footer">
+        &copy; {{ date('Y') }} {{ $companySetting?->company_name ?? 'CYM System' }}
+        @if($companySetting?->software_provider)
+        &nbsp;·&nbsp; {{ $companySetting->software_provider }}
+        @endif
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    document.getElementById('togglePwd').addEventListener('click', function () {
-        const inp = document.getElementById('passwordInput');
+(function () {
+    // ── Elements ──────────────────────────────────────────────────────────────
+    const step1       = document.getElementById('step1');
+    const loginForm   = document.getElementById('loginForm');
+    const seg1        = document.getElementById('seg1');
+    const seg2        = document.getElementById('seg2');
+    const emailInput  = document.getElementById('emailInput');
+    const emailHidden = document.getElementById('emailHidden');
+    const pillEmail   = document.getElementById('pillEmail');
+    const continueBtn = document.getElementById('continueBtn');
+    const changeUser  = document.getElementById('changeUser');
+    const togglePwd   = document.getElementById('togglePwd');
+    const passwordInput  = document.getElementById('passwordInput');
+    const captchaInput   = document.getElementById('captchaInput');
+    const captchaDisplay = document.getElementById('captchaDisplay');
+    const captchaAnswer  = document.getElementById('captchaAnswer');
+    const captchaRefresh = document.getElementById('captchaRefresh');
+    const clientError    = document.getElementById('clientError');
+    const serverError    = document.getElementById('serverError');
+
+    // ── If server returned an error, jump straight to step 2 ─────────────────
+    @if($errors->any())
+    const savedEmail = '{{ old('email') }}';
+    if (savedEmail) {
+        emailInput.value = savedEmail;
+        goToStep2(savedEmail);
+    }
+    @endif
+
+    // ── CAPTCHA ───────────────────────────────────────────────────────────────
+    function generateCaptcha() {
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        captchaAnswer.value = code;
+        // Display with spaces for readability
+        captchaDisplay.textContent = code.split('').join(' ');
+    }
+    generateCaptcha();
+    captchaRefresh.addEventListener('click', function () {
+        generateCaptcha();
+        captchaInput.value = '';
+        captchaInput.focus();
+        // Spin animation
+        this.querySelector('i').style.transition = 'transform .4s';
+    });
+
+    // ── Step 1 → Step 2 ──────────────────────────────────────────────────────
+    function showError(msg) {
+        clientError.textContent = msg;
+        clientError.classList.remove('d-none');
+    }
+    function hideError() {
+        clientError.classList.add('d-none');
+        clientError.textContent = '';
+    }
+
+    function goToStep2(email) {
+        emailHidden.value = email;
+        pillEmail.textContent = email;
+        step1.classList.add('d-none');
+        loginForm.classList.remove('d-none');
+        seg2.classList.add('active');
+        hideError();
+        generateCaptcha();
+        setTimeout(() => passwordInput.focus(), 50);
+    }
+
+    continueBtn.addEventListener('click', function () {
+        const email = emailInput.value.trim();
+        if (!email) {
+            showError('Please enter your username / email.');
+            emailInput.focus();
+            return;
+        }
+        // Basic email format check
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showError('Please enter a valid email address.');
+            emailInput.focus();
+            return;
+        }
+        hideError();
+        goToStep2(email);
+    });
+
+    // Allow Enter key on email field to continue
+    emailInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); continueBtn.click(); }
+    });
+
+    // ── "Change" link → back to step 1 ───────────────────────────────────────
+    changeUser.addEventListener('click', function () {
+        loginForm.classList.add('d-none');
+        step1.classList.remove('d-none');
+        seg2.classList.remove('active');
+        passwordInput.value = '';
+        captchaInput.value = '';
+        hideError();
+        setTimeout(() => emailInput.focus(), 50);
+    });
+
+    // ── Password show/hide ────────────────────────────────────────────────────
+    togglePwd.addEventListener('click', function () {
         const icon = this.querySelector('i');
-        if (inp.type === 'password') {
-            inp.type = 'text';
-            icon.classList.replace('bi-eye','bi-eye-slash');
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.replace('bi-eye', 'bi-eye-slash');
         } else {
-            inp.type = 'password';
-            icon.classList.replace('bi-eye-slash','bi-eye');
+            passwordInput.type = 'password';
+            icon.classList.replace('bi-eye-slash', 'bi-eye');
         }
     });
+
+    // ── Form submit: validate CAPTCHA before sending ──────────────────────────
+    loginForm.addEventListener('submit', function (e) {
+        const entered = captchaInput.value.trim().replace(/\s/g, '');
+        const expected = captchaAnswer.value.trim();
+
+        if (!entered) {
+            e.preventDefault();
+            showError('Please enter the image text (CAPTCHA) to continue.');
+            captchaInput.focus();
+            return;
+        }
+        if (entered !== expected) {
+            e.preventDefault();
+            showError('The image text you entered is incorrect. Please try again.');
+            captchaInput.value = '';
+            generateCaptcha();
+            captchaInput.focus();
+            return;
+        }
+        hideError();
+        // Disable button to prevent double submit
+        document.getElementById('loginBtn').disabled = true;
+        document.getElementById('loginBtn').innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Signing in…';
+    });
+})();
 </script>
 </body>
 </html>
