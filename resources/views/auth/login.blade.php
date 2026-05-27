@@ -12,7 +12,7 @@
     <style>
         body {
             min-height: 100vh;
-            background: linear-gradient(160deg, #dbeafe 0%, #eff6ff 60%, #f1f5f9 100%);
+            background: #fff;
             display: flex; align-items: center; justify-content: center;
             font-family: 'Segoe UI', sans-serif;
             padding: 1rem;
@@ -23,41 +23,40 @@
             width: 100%;
             max-width: 420px;
             background: #fff;
-            border-radius: 20px;
-            box-shadow: 0 8px 40px rgba(0,0,0,.13);
+            border-radius: 18px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.3);
             overflow: hidden;
         }
 
         /* ── Logo banner ── */
         .logo-banner {
             display: flex; justify-content: center; align-items: center;
-            padding: 1.4rem 2rem .8rem;
+            padding: 1.4rem 2rem 1rem;
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
         }
-        .logo-banner img { max-width: 180px; max-height: 70px; object-fit: contain; }
+        .logo-banner img { max-width: 200px; max-height: 90px; object-fit: contain; }
 
-        /* ── Company title ── */
-        .auth-title {
+        /* ── Blue gradient header ── */
+        .auth-header {
+            background: linear-gradient(135deg, #1565C0, #2196F3);
+            color: #fff;
+            padding: 1.4rem 2rem 0;
             text-align: center;
-            font-size: 1.15rem;
-            font-weight: 800;
-            letter-spacing: .04em;
-            color: #1e293b;
-            padding: 0 2rem .5rem;
         }
 
-        /* ── Step progress bar ── */
+        /* ── Step progress bar (inside header, below title) ── */
         .step-bar {
             display: flex;
             gap: 5px;
-            padding: 0 2rem;
-            margin-bottom: 1.6rem;
+            padding: .9rem 0 0;
         }
         .step-seg {
-            flex: 1; height: 4px; border-radius: 2px;
-            background: #e2e8f0;
+            flex: 1; height: 4px;
+            background: rgba(255,255,255,.35);
             transition: background .3s;
         }
-        .step-seg.active { background: #2563eb; }
+        .step-seg.active { background: #fff; }
 
         /* ── Body ── */
         .auth-body { padding: 0 2rem 1.6rem; }
@@ -73,8 +72,8 @@
             transition: border-color .2s, box-shadow .2s;
         }
         .auth-input-group:focus-within {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33,150,243,.15);
         }
         .auth-input-group .ig-icon {
             padding: 0 .75rem;
@@ -92,10 +91,10 @@
         .auth-input-group .ig-btn {
             padding: 0 .75rem;
             background: none; border: none; outline: none;
-            color: #6366f1; cursor: pointer; font-size: 1rem;
+            color: #1565C0; cursor: pointer; font-size: 1rem;
             flex-shrink: 0;
         }
-        .auth-input-group .ig-btn:hover { color: #4338ca; }
+        .auth-input-group .ig-btn:hover { color: #1565C0; }
 
         /* ── Labels ── */
         .auth-label {
@@ -124,12 +123,12 @@
         }
         .user-pill .pill-icon {
             width: 26px; height: 26px; border-radius: 50%;
-            background: #e0e7ff; color: #4338ca;
+            background: #e3f2fd; color: #1565C0;
             display: flex; align-items: center; justify-content: center;
             font-size: .8rem;
         }
         .user-pill .change-link {
-            color: #2563eb;
+            color: #2196F3;
             font-size: .78rem;
             font-weight: 600;
             cursor: pointer;
@@ -157,7 +156,7 @@
         }
         .captcha-refresh {
             background: none; border: none; outline: none;
-            color: #2563eb; font-size: 1.15rem; cursor: pointer;
+            color: #2196F3; font-size: 1.15rem; cursor: pointer;
             padding: .25rem .4rem;
             border-radius: 50%;
             transition: transform .3s;
@@ -166,16 +165,16 @@
 
         /* ── Primary button ── */
         .btn-login {
-            background: #2563eb;
+            background: linear-gradient(135deg, #2196F3, #1976D2);
             border: none; color: #fff;
             padding: .75rem; font-weight: 700;
             font-size: .95rem;
             border-radius: 10px;
             width: 100%;
             letter-spacing: .03em;
-            transition: background .2s, box-shadow .2s;
+            transition: opacity .2s;
         }
-        .btn-login:hover { background: #1d4ed8; color: #fff; box-shadow: 0 4px 16px rgba(37,99,235,.3); }
+        .btn-login:hover { opacity: .9; color: #fff; }
         .btn-login:disabled { opacity: .7; cursor: not-allowed; }
 
         /* ── Error alert ── */
@@ -195,29 +194,28 @@
             font-size: .72rem;
             color: #94a3b8;
         }
-        .auth-footer a { color: #2563eb; text-decoration: none; }
+        .auth-footer a { color: #2196F3; text-decoration: none; }
     </style>
 </head>
 <body>
 
 <div class="auth-card">
 
-    {{-- Logo --}}
+    {{-- Logo banner --}}
     @if($companySetting?->logo_url)
     <div class="logo-banner">
-        <img src="{{ $companySetting->logo_url }}" alt="{{ $companySetting->company_name }}">
+        <img src="{{ $companySetting->logo_url }}" alt="{{ $companySetting->company_name }} Logo">
     </div>
-    @else
-    <div style="padding-top:1.4rem;"></div>
     @endif
 
-    {{-- Company name --}}
-    <div class="auth-title">{{ $companySetting?->company_name ?? 'CYM System' }}</div>
-
-    {{-- Step bar --}}
-    <div class="step-bar">
-        <div class="step-seg active" id="seg1"></div>
-        <div class="step-seg"        id="seg2"></div>
+    {{-- Blue gradient header with company name + step bar --}}
+    <div class="auth-header">
+        <h4 class="fw-bold mb-0">{{ $companySetting?->company_name ?? 'CYM System' }}</h4>
+        <p class="mb-0 opacity-75 small">{{ $companySetting?->tagline ?? 'Container Yard Management' }}</p>
+        <div class="step-bar">
+            <div class="step-seg active" id="seg1"></div>
+            <div class="step-seg"        id="seg2"></div>
+        </div>
     </div>
 
     <div class="auth-body">
