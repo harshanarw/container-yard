@@ -802,7 +802,7 @@
 
     <div class="d-flex align-items-center gap-3 ms-auto">
         <!-- Settings shortcut (admin only) -->
-        @if(auth()->user()->isAdminOrSystemAdmin())
+        @if(auth()->user()->isSuperUser())
         <a href="{{ route('settings.index') }}"
            class="btn btn-sm btn-light border-0 position-relative {{ request()->routeIs('settings.*') ? 'text-primary' : '' }}"
            title="System Settings">
