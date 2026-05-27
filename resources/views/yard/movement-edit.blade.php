@@ -279,37 +279,6 @@
                             <textarea name="remarks" class="form-control" rows="2">{{ old('remarks', $movement->remarks) }}</textarea>
                         </div>
 
-                        {{-- Add more photos --}}
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-camera me-1 text-primary"></i>Add More Photos
-                                <span class="text-muted fw-normal small">(optional, max 5)</span>
-                                <span id="editPhotoCounter" class="badge bg-secondary-subtle text-secondary ms-1">0 / 5</span>
-                            </label>
-
-                            <input type="file" id="editPhotoInput"
-                                   multiple accept="image/*" class="d-none">
-                            <input type="file" id="editCameraInput" accept="image/*"
-                                   capture="environment" class="d-none">
-
-                            <div id="editDropZone"
-                                 class="border border-2 rounded-3 text-center p-3 mb-2"
-                                 style="border-color:#dee2e6!important;border-style:dashed!important;cursor:pointer;transition:background .2s;">
-                                <div class="d-flex justify-content-center gap-2 flex-wrap">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="editBrowseBtn">
-                                        <i class="bi bi-folder2-open me-1"></i>Browse
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-success" id="editCameraBtn">
-                                        <i class="bi bi-camera me-1"></i>Camera
-                                    </button>
-                                </div>
-                                <div class="text-muted mt-1" style="font-size:.72rem;">
-                                    or drag &amp; drop images here &nbsp;·&nbsp; JPG/PNG/WEBP &nbsp;·&nbsp; max 5 MB each
-                                </div>
-                            </div>
-                            <div id="editPhotoError" class="alert alert-danger py-1 small d-none mb-2"></div>
-                            <div class="row g-1" id="editPhotoPreview"></div>
-                        </div>
 
                     </div>
 
@@ -363,103 +332,15 @@
 @push('scripts')
 <script>
 (function () {
-    const MAX       = 5;
-    const MAX_BYTES = 5 * 1024 * 1024;
-    let files = [];
-
-    const fileInput   = document.getElementById('editPhotoInput');
-    const cameraInput = document.getElementById('editCameraInput');
-    const browseBtn   = document.getElementById('editBrowseBtn');
-    const cameraBtn   = document.getElementById('editCameraBtn');
-    const dropZone    = document.getElementById('editDropZone');
-    const errorEl     = document.getElementById('editPhotoError');
-    const previewGrid = document.getElementById('editPhotoPreview');
-    const counterEl   = document.getElementById('editPhotoCounter');
-    const form        = fileInput.closest('form');
-    const submitBtn   = form.querySelector('[type="submit"]');
-    const origHtml    = submitBtn.innerHTML;
-
-    function isImage(file) {
-        if (/^image\/(jpeg|png|webp|gif)$/i.test(file.type)) return true;
-        return /\.(jpe?g|png|webp|gif)$/i.test(file.name);
-    }
-
-    function updateCounter() {
-        const n = files.length;
-        counterEl.textContent = n + ' / ' + MAX;
-        counterEl.className = n >= MAX
-            ? 'badge bg-warning-subtle text-warning ms-1'
-            : 'badge bg-secondary-subtle text-secondary ms-1';
-    }
-
-    function showError(msg) {
-        errorEl.textContent = msg;
-        errorEl.classList.remove('d-none');
-        setTimeout(function () { errorEl.classList.add('d-none'); }, 4000);
-    }
-
-    function renderPreviews() {
-        previewGrid.innerHTML = '';
-        files.forEach(function (file, idx) {
-            const col = document.createElement('div');
-            col.className = 'col-4 col-md-3';
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                col.innerHTML =
-                    '<div class="position-relative" style="border-radius:6px;overflow:hidden;">' +
-                        '<img src="' + e.target.result + '" style="width:100%;height:70px;object-fit:cover;" alt="">' +
-                        '<button type="button" class="btn btn-danger btn-sm rm-photo position-absolute" ' +
-                                'data-idx="' + idx + '" ' +
-                                'style="top:2px;right:2px;padding:1px 5px;font-size:.7rem;line-height:1.2;border-radius:50%;">' +
-                            '<i class="bi bi-x"></i>' +
-                        '</button>' +
-                    '</div>';
-                previewGrid.appendChild(col);
-            };
-            reader.readAsDataURL(file);
-        });
-        updateCounter();
-    }
-
-    function addFiles(incoming) {
-        Array.from(incoming).forEach(function (file) {
-            if (!isImage(file))          { showError('"' + file.name + '" is not a supported image type.'); return; }
-            if (file.size > MAX_BYTES)   { showError('"' + file.name + '" exceeds 5 MB.'); return; }
-            if (files.length >= MAX)     { showError('Maximum ' + MAX + ' photos allowed.'); return; }
-            const dup = files.some(function (f) { return f.name === file.name && f.size === file.size; });
-            if (!dup) files.push(file);
-        });
-        renderPreviews();
-    }
-
-    previewGrid.addEventListener('click', function (e) {
-        const btn = e.target.closest('.rm-photo');
-        if (!btn) return;
-        const idx = parseInt(btn.dataset.idx, 10);
-        files.splice(idx, 1);
-        renderPreviews();
-    });
-
-    browseBtn.addEventListener('click', function (e) { e.stopPropagation(); fileInput.click(); });
-    dropZone.addEventListener('click',  function () { fileInput.click(); });
-    cameraBtn.addEventListener('click', function (e) { e.stopPropagation(); cameraInput.click(); });
-    fileInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
-    cameraInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
-
-    dropZone.addEventListener('dragover',  function (e) { e.preventDefault(); dropZone.style.background = '#e8f0fe'; });
-    dropZone.addEventListener('dragleave', function ()  { dropZone.style.background = ''; });
-    dropZone.addEventListener('drop',      function (e) {
-        e.preventDefault();
-        dropZone.style.background = '';
-        addFiles(e.dataTransfer.files);
-    });
+    const form      = document.querySelector('form');
+    const submitBtn = form.querySelector('[type="submit"]');
+    const origHtml  = submitBtn.innerHTML;
 
     form.addEventListener('submit', function (e) {
         e.preventDefault();
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…';
         const fd = new FormData(form);
-        files.forEach(function (file) { fd.append('photos[]', file); });
         fetch(form.action, { method: 'POST', body: fd, redirect: 'manual' })
             .then(function () { window.location.reload(); })
             .catch(function () { submitBtn.disabled = false; submitBtn.innerHTML = origHtml; });

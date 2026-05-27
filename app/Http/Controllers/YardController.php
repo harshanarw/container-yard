@@ -361,7 +361,7 @@ class YardController extends Controller
     // -------------------------------------------------------------------------
     public function editMovement(GateMovement $movement)
     {
-        $movement->load(['container', 'customer', 'photos']);
+        $movement->load(['container', 'customer']);
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->get();
         $zones          = StorageZone::active()->get();
@@ -379,8 +379,6 @@ class YardController extends Controller
             'condition'     => ['nullable', 'in:sound,damaged,require_repair'],
             'cargo_status'  => ['nullable', 'in:empty,full'],
             'seal_no'       => ['nullable', 'string', 'max:20'],
-            'photos'        => ['nullable', 'array', 'max:5'],
-            'photos.*'      => ['image', 'max:5120'],
         ];
 
         if ($movement->movement_type === 'in') {
@@ -504,24 +502,8 @@ class YardController extends Controller
 
         $movement->update($updateData);
 
-        // Save additional photos via DocumentManager
-        $photoError = null;
-        if (!empty($validated['photos'])) {
-            try {
-                $this->saveMovementPhotos($movement, $validated['photos']);
-            } catch (\Throwable $e) {
-                $photoError = 'Changes saved, but photo upload failed: ' . $e->getMessage();
-            }
-        }
-
-        $redirect = redirect()->route('yard.movements.edit', $movement)
+        return redirect()->route('yard.movements.edit', $movement)
             ->with('success', "Gate movement #{$movement->id} updated successfully.");
-
-        if ($photoError) {
-            $redirect->with('warning', $photoError);
-        }
-
-        return $redirect;
     }
 
     public function destroyMovementPhoto(GateMovement $movement, GateMovementPhoto $photo)
