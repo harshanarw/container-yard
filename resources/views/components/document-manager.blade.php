@@ -21,11 +21,16 @@
              id="{{ $uid }}_zone"
              style="border-color:#adb5bd!important; cursor:pointer; transition:background .2s;">
             <i class="bi bi-cloud-upload fs-3 text-muted d-block mb-1"></i>
-            <div class="text-muted small">
-                Drag &amp; drop files here, or <span class="text-primary fw-semibold">browse</span>
+            <div class="d-flex justify-content-center gap-2 flex-wrap mt-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="{{ $uid }}_browse_btn">
+                    <i class="bi bi-folder2-open me-1"></i>Browse
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-success" id="{{ $uid }}_camera_btn">
+                    <i class="bi bi-camera me-1"></i>Camera
+                </button>
             </div>
-            <div class="text-muted" style="font-size:11px;">
-                Max {{ $maxFiles }} files · 20 MB each
+            <div class="text-muted mt-2" style="font-size:11px;">
+                or drag &amp; drop · max {{ $maxFiles }} files · 20 MB each
                 @if($showLabel)
                     <div class="mt-2">
                         <input type="text" id="{{ $uid }}_label" class="form-control form-control-sm"
@@ -33,8 +38,10 @@
                     </div>
                 @endif
             </div>
-            <input type="file" id="{{ $uid }}_input" multiple accept="{{ $accept }}"
-                   class="d-none">
+            {{-- File picker (gallery / file system) --}}
+            <input type="file" id="{{ $uid }}_input" multiple accept="{{ $accept }}" class="d-none">
+            {{-- Camera capture — opens device camera directly on mobile/tablet --}}
+            <input type="file" id="{{ $uid }}_camera" accept="image/*" capture="environment" class="d-none">
         </div>
 
         {{-- Upload progress ------------------------------------------------}}
@@ -97,6 +104,9 @@
     const uid        = '{{ $uid }}';
     const zone       = document.getElementById(uid + '_zone');
     const input      = document.getElementById(uid + '_input');
+    const camera     = document.getElementById(uid + '_camera');
+    const browseBtn  = document.getElementById(uid + '_browse_btn');
+    const cameraBtn  = document.getElementById(uid + '_camera_btn');
     const grid       = document.getElementById(uid + '_grid');
     const countBadge = document.getElementById(uid + '_count');
     const emptyMsg   = document.getElementById(uid + '_empty');
@@ -112,7 +122,11 @@
     const uploadUrl  = '{{ route('documents.store') }}';
 
     // ── Drop zone interactions ────────────────────────────────────────────
-    zone.addEventListener('click', () => input.click());
+    // Zone click → browse (but not when a button inside it was clicked)
+    zone.addEventListener('click', e => { if (!e.target.closest('button')) input.click(); });
+    browseBtn.addEventListener('click', e => { e.stopPropagation(); input.click(); });
+    cameraBtn.addEventListener('click', e => { e.stopPropagation(); camera.click(); });
+
     zone.addEventListener('dragover',  e => { e.preventDefault(); zone.style.background = '#f0f4ff'; });
     zone.addEventListener('dragleave', () => { zone.style.background = ''; });
     zone.addEventListener('drop', e => {
@@ -121,6 +135,12 @@
         handleFiles(Array.from(e.dataTransfer.files));
     });
     input.addEventListener('change', function () {
+        const snapshot = Array.from(this.files);
+        this.value = '';
+        handleFiles(snapshot);
+    });
+    // Camera capture: single photo taken → upload immediately
+    camera.addEventListener('change', function () {
         const snapshot = Array.from(this.files);
         this.value = '';
         handleFiles(snapshot);
