@@ -801,6 +801,15 @@
     </nav>
 
     <div class="d-flex align-items-center gap-3 ms-auto">
+        <!-- Settings shortcut (admin only) -->
+        @if(auth()->user()->isAdminOrSystemAdmin())
+        <a href="{{ route('settings.index') }}"
+           class="btn btn-sm btn-light border-0 position-relative {{ request()->routeIs('settings.*') ? 'text-primary' : '' }}"
+           title="System Settings">
+            <i class="bi bi-gear fs-5"></i>
+        </a>
+        @endif
+
         <!-- Notifications -->
         <div class="dropdown">
             <button class="btn btn-sm btn-light border-0 position-relative" data-bs-toggle="dropdown">
