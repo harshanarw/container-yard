@@ -53,7 +53,7 @@
         <h4><i class="bi bi-map me-2 text-primary"></i>Yard Occupancy Map</h4>
         <p class="text-muted mb-0 small">Real-time container positions — Zone → Row → Bay → Tier</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <a href="{{ route('yard.gate') }}#gate-in" class="btn btn-primary btn-sm">
             <i class="bi bi-box-arrow-in-right me-1"></i>Gate In
         </a>
@@ -388,11 +388,11 @@
                         <span class="badge rounded-pill bg-primary">In Yard</span>
                     </td>
                     <td class="text-end pe-3">
-                        <div class="btn-group btn-group-sm">
-                            <a href="{{ route('yard.storage') }}" class="btn btn-outline-primary" title="Storage Calc">
+                        <div class="d-flex flex-wrap justify-content-end gap-1">
+                            <a href="{{ route('yard.storage') }}" class="btn btn-outline-primary btn-sm" title="Storage Calc">
                                 <i class="bi bi-calculator"></i>
                             </a>
-                            <a href="{{ route('inquiries.create') }}" class="btn btn-outline-warning" title="New Inquiry">
+                            <a href="{{ route('inquiries.create') }}" class="btn btn-outline-warning btn-sm" title="New Inquiry">
                                 <i class="bi bi-card-checklist"></i>
                             </a>
                         </div>

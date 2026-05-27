@@ -23,11 +23,11 @@
         <h4><i class="bi bi-receipt me-2 text-primary"></i>Billing Report</h4>
         <p class="text-muted mb-0 small">Storage charges and revenue summary</p>
     </div>
-    <div class="btn-group btn-group-sm no-print">
-        <button onclick="window.print()" class="btn btn-outline-secondary">
+    <div class="d-flex flex-wrap gap-2 no-print">
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-printer me-1"></i>Print
         </button>
-        <a href="{{ request()->fullUrlWithQuery(['export' => 'csv']) }}" class="btn btn-outline-success">
+        <a href="{{ request()->fullUrlWithQuery(['export' => 'csv']) }}" class="btn btn-outline-success btn-sm">
             <i class="bi bi-download me-1"></i>Export CSV
         </a>
     </div>
@@ -89,7 +89,7 @@
     <div class="card-body py-2">
         <form method="GET" action="{{ route('reports.billing') }}">
             <div class="row g-2 align-items-end">
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label class="form-label form-label-sm mb-1">Customer</label>
                     <select name="customer_id" class="form-select form-select-sm select2">
                         <option value="">All Customers</option>
@@ -100,12 +100,12 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm mb-1">Gate-In From</label>
                     <input type="date" name="date_from" class="form-control form-control-sm"
                            value="{{ request('date_from') }}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm mb-1">Gate-Out To</label>
                     <input type="date" name="date_to" class="form-control form-control-sm"
                            value="{{ request('date_to') }}">

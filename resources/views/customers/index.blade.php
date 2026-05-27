@@ -65,7 +65,7 @@
 <div class="card content-card mb-3">
     <div class="card-body py-2">
         <div class="row g-2 align-items-center">
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <div class="input-group input-group-sm">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
                     <input type="text" name="search" class="form-control"
@@ -73,7 +73,7 @@
                            value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2">
                 <select name="type_id" class="form-select form-select-sm">
                     <option value="">All Types</option>
                     @foreach($customerTypes as $ct)
@@ -83,7 +83,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2">
                 <select name="status" class="form-select form-select-sm">
                     <option value="">All Status</option>
                     <option value="active"   {{ request('status')=='active'  ?'selected':'' }}>Active</option>
@@ -97,10 +97,10 @@
                 </button>
                 <a href="{{ route('customers.index') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
             </div>
-            <div class="col-auto ms-auto">
-                <div class="btn-group btn-group-sm">
-                    <button type="button" class="btn btn-outline-secondary"><i class="bi bi-download me-1"></i>Export</button>
-                    <button type="button" class="btn btn-outline-secondary"><i class="bi bi-printer me-1"></i>Print</button>
+            <div class="col-auto ms-md-auto">
+                <div class="d-flex flex-wrap gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download me-1"></i>Export</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer me-1"></i>Print</button>
                 </div>
             </div>
         </div>
@@ -165,17 +165,17 @@
                             <span class="badge rounded-pill bg-{{ $sc }}">{{ ucfirst($customer->status) }}</span>
                         </td>
                         <td class="text-end pe-3">
-                            <div class="btn-group btn-group-sm">
+                            <div class="d-flex flex-wrap justify-content-end gap-1">
                                 <a href="{{ route('customers.show', $customer) }}"
-                                   class="btn btn-outline-info" title="View">
+                                   class="btn btn-outline-info btn-sm" title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 <a href="{{ route('customers.edit', $customer) }}"
-                                   class="btn btn-outline-primary" title="Edit">
+                                   class="btn btn-outline-primary btn-sm" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 <button type="button"
-                                        class="btn btn-outline-danger btn-delete-customer"
+                                        class="btn btn-outline-danger btn-sm btn-delete-customer"
                                         title="Delete Customer"
                                         data-name="{{ $customer->name }}"
                                         data-url="{{ route('customers.destroy', $customer) }}"

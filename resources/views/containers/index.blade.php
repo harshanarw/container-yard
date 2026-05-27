@@ -78,7 +78,7 @@
 <div class="card content-card mb-3">
     <div class="card-body py-2">
         <div class="row g-2 align-items-center">
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <div class="input-group input-group-sm">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
                     <input type="text" name="search" class="form-control"
@@ -86,7 +86,7 @@
                            value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2">
                 <select name="category" class="form-select form-select-sm">
                     <option value="">All Categories</option>
                     <option value="consignee" {{ request('category')=='consignee'?'selected':'' }}>Consignee</option>
@@ -94,7 +94,7 @@
                     <option value="leased"    {{ request('category')=='leased'   ?'selected':'' }}>Leased</option>
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2">
                 <select name="size" class="form-select form-select-sm">
                     <option value="">All Sizes</option>
                     <option value="20" {{ request('size')=='20'?'selected':'' }}>20ft</option>
@@ -102,7 +102,7 @@
                     <option value="45" {{ request('size')=='45'?'selected':'' }}>45ft</option>
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2">
                 <select name="status" class="form-select form-select-sm">
                     <option value="">All Statuses</option>
                     <option value="in_yard"   {{ request('status')=='in_yard'  ?'selected':'' }}>In Yard</option>
@@ -111,7 +111,7 @@
                     <option value="released"  {{ request('status')=='released' ?'selected':'' }}>Released</option>
                 </select>
             </div>
-            <div class="col-md-2 d-flex gap-1">
+            <div class="col-auto d-flex gap-1">
                 <button type="submit" class="btn btn-sm btn-primary flex-grow-1">Filter</button>
                 <a href="{{ route('containers.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
             </div>

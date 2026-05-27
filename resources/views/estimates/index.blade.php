@@ -54,7 +54,7 @@
     <div class="card content-card filter-panel mb-3">
         <div class="card-body py-2">
             <div class="row g-2 align-items-center">
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" name="search" class="form-control"
@@ -62,7 +62,7 @@
                                value="{{ request('search') }}">
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <select name="customer_id" class="form-select form-select-sm">
                         <option value="">All Customers</option>
                         @foreach($customers as $c)
@@ -72,11 +72,11 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <input type="date" name="date_from" class="form-control form-control-sm"
                            value="{{ request('date_from') }}" placeholder="From date">
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <input type="date" name="date_to" class="form-control form-control-sm"
                            value="{{ request('date_to') }}" placeholder="To date">
                 </div>
@@ -137,36 +137,36 @@
                             </span>
                         </td>
                         <td class="text-end pe-3">
-                            <div class="btn-group btn-group-sm">
+                            <div class="d-flex flex-wrap justify-content-end gap-1">
                                 {{-- View --}}
                                 <a href="{{ route('estimates.show', $estimate) }}"
-                                   class="btn btn-outline-info" title="View">
+                                   class="btn btn-sm btn-outline-info" title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
 
                                 {{-- Download PDF --}}
                                 <a href="{{ route('estimates.pdf', $estimate) }}"
-                                   class="btn btn-outline-secondary" title="Download PDF" target="_blank">
+                                   class="btn btn-sm btn-outline-secondary" title="Download PDF" target="_blank">
                                     <i class="bi bi-file-pdf"></i>
                                 </a>
 
                                 {{-- Edit (draft or sent only) --}}
                                 @if(in_array($estimate->status, ['draft', 'sent']))
                                 <a href="{{ route('estimates.edit', $estimate) }}"
-                                   class="btn btn-outline-primary" title="Edit">
+                                   class="btn btn-sm btn-outline-primary" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 @endif
 
                                 {{-- Mark Approved (sent only) --}}
                                 @if($estimate->status === 'sent')
-                                <button type="button" class="btn btn-outline-success" title="Mark Approved"
+                                <button type="button" class="btn btn-sm btn-outline-success" title="Mark Approved"
                                         data-bs-toggle="modal" data-bs-target="#approveModal"
                                         data-url="{{ route('estimates.approve', $estimate) }}"
                                         data-no="{{ $estimate->estimate_no }}">
                                     <i class="bi bi-check-circle"></i>
                                 </button>
-                                <button type="button" class="btn btn-outline-danger" title="Mark Rejected"
+                                <button type="button" class="btn btn-sm btn-outline-danger" title="Mark Rejected"
                                         data-bs-toggle="modal" data-bs-target="#rejectModal"
                                         data-url="{{ route('estimates.reject', $estimate) }}"
                                         data-no="{{ $estimate->estimate_no }}">
@@ -176,7 +176,7 @@
 
                                 {{-- Delete (not approved) --}}
                                 @if($estimate->status !== 'approved')
-                                <button type="button" class="btn btn-outline-danger" title="Delete"
+                                <button type="button" class="btn btn-sm btn-outline-danger" title="Delete"
                                         data-bs-toggle="modal" data-bs-target="#deleteModal"
                                         data-url="{{ route('estimates.destroy', $estimate) }}"
                                         data-no="{{ $estimate->estimate_no }}">

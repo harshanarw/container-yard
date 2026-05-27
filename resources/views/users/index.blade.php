@@ -87,14 +87,14 @@
     <div class="card-body py-2">
         <form method="GET" action="{{ route('users.index') }}">
             <div class="row g-2 align-items-center">
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" name="search" class="form-control"
                                placeholder="Search name, email or employee no…" value="{{ request('search') }}">
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <select name="role" class="form-select form-select-sm">
                         <option value="">All Roles</option>
                         @foreach($roleLabels as $val => $label)
@@ -102,7 +102,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <select name="status" class="form-select form-select-sm">
                         <option value="">All Status</option>
                         <option value="active"   {{ request('status') === 'active'   ? 'selected' : '' }}>Active</option>
@@ -181,20 +181,20 @@
                             </span>
                         </td>
                         <td class="text-end pe-3">
-                            <div class="btn-group btn-group-sm">
+                            <div class="d-flex flex-wrap justify-content-end gap-1">
                                 {{-- View --}}
                                 <a href="{{ route('users.show', $user) }}"
-                                   class="btn btn-outline-info" title="View Profile">
+                                   class="btn btn-outline-info btn-sm" title="View Profile">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 {{-- Edit --}}
                                 <a href="{{ route('users.edit', $user) }}"
-                                   class="btn btn-outline-primary" title="Edit User">
+                                   class="btn btn-outline-primary btn-sm" title="Edit User">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 {{-- Reset Password --}}
                                 <button type="button"
-                                        class="btn btn-outline-warning btn-reset-password"
+                                        class="btn btn-outline-warning btn-sm btn-reset-password"
                                         title="Reset Password"
                                         data-id="{{ $user->id }}"
                                         data-name="{{ $user->full_name }}"
@@ -206,7 +206,7 @@
                                 {{-- Delete --}}
                                 @if($user->id !== auth()->id())
                                 <button type="button"
-                                        class="btn btn-outline-danger btn-delete-user"
+                                        class="btn btn-outline-danger btn-sm btn-delete-user"
                                         title="Delete User"
                                         data-id="{{ $user->id }}"
                                         data-name="{{ $user->full_name }}"

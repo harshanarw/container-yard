@@ -70,15 +70,15 @@
                         </form>
                     </td>
                     <td class="text-end pe-3">
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-primary btn-edit"
+                        <div class="d-flex flex-wrap justify-content-end gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $item->id }}"
                                     data-name="{{ $item->name }}"
                                     data-description="{{ $item->description }}"
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button type="button" class="btn btn-outline-danger btn-delete"
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $item->id }}"
                                     data-label="{{ $item->name }}"
                                     title="Delete">

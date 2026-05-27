@@ -23,11 +23,11 @@
         <h4><i class="bi bi-bar-chart-line me-2 text-primary"></i>Inventory Report</h4>
         <p class="text-muted mb-0 small">Container stock by status, size and condition</p>
     </div>
-    <div class="btn-group btn-group-sm no-print">
-        <button onclick="window.print()" class="btn btn-outline-secondary">
+    <div class="d-flex flex-wrap gap-2 no-print">
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-printer me-1"></i>Print
         </button>
-        <a href="{{ request()->fullUrlWithQuery(['export' => 'csv']) }}" class="btn btn-outline-success">
+        <a href="{{ request()->fullUrlWithQuery(['export' => 'csv']) }}" class="btn btn-outline-success btn-sm">
             <i class="bi bi-download me-1"></i>Export CSV
         </a>
     </div>
@@ -83,19 +83,19 @@
 
 {{-- Size breakdown --}}
 <div class="row g-3 mb-3">
-    <div class="col-md-4">
+    <div class="col-4 col-md-4">
         <div class="card content-card text-center py-3">
             <div class="fs-5 fw-bold text-primary">{{ $summary['by_size_20'] }}</div>
             <div class="text-muted small">20ft Containers</div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-4 col-md-4">
         <div class="card content-card text-center py-3">
             <div class="fs-5 fw-bold text-info">{{ $summary['by_size_40'] }}</div>
             <div class="text-muted small">40ft Containers</div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-4 col-md-4">
         <div class="card content-card text-center py-3">
             <div class="fs-5 fw-bold text-success">{{ $summary['by_size_45'] }}</div>
             <div class="text-muted small">45ft Containers</div>
@@ -109,7 +109,7 @@
     <div class="card-body py-2">
         <form method="GET" action="{{ route('reports.inventory') }}">
             <div class="row g-2 align-items-end">
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <label class="form-label form-label-sm mb-1">Customer</label>
                     <select name="customer_id" class="form-select form-select-sm select2">
                         <option value="">All Customers</option>
@@ -120,7 +120,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm mb-1">Status</label>
                     <select name="status" class="form-select form-select-sm">
                         <option value="">All Status</option>
@@ -130,7 +130,7 @@
                         <option value="released"  {{ request('status') === 'released'  ? 'selected' : '' }}>Released</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm mb-1">Size</label>
                     <select name="size" class="form-select form-select-sm">
                         <option value="">All Sizes</option>
@@ -139,7 +139,7 @@
                         <option value="45" {{ request('size') === '45' ? 'selected' : '' }}>45ft</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm mb-1">Condition</label>
                     <select name="condition" class="form-select form-select-sm">
                         <option value="">All Conditions</option>
@@ -148,11 +148,11 @@
                         <option value="require_repair" {{ request('condition') === 'require_repair' ? 'selected' : '' }}>Require Repair</option>
                     </select>
                 </div>
-                <div class="col-md-1">
+                <div class="col-6 col-md-1">
                     <label class="form-label form-label-sm mb-1">From</label>
                     <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}">
                 </div>
-                <div class="col-md-1">
+                <div class="col-6 col-md-1">
                     <label class="form-label form-label-sm mb-1">To</label>
                     <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request('date_to') }}">
                 </div>

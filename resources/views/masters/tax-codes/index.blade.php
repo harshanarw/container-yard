@@ -42,7 +42,7 @@
     <div class="card-body">
         <form method="POST" action="{{ route('masters.tax-codes.labels') }}" class="row g-3 align-items-end">
             @csrf
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label fw-semibold">Tax 1 Label</label>
                 <input type="text" name="tax1_label"
                        class="form-control @error('tax1_label') is-invalid @enderror"
@@ -51,7 +51,7 @@
                 @error('tax1_label')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 <div class="form-text">Name for the first tax column (e.g. SSCL, GST, Levy)</div>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label fw-semibold">Tax 2 Label</label>
                 <input type="text" name="tax2_label"
                        class="form-control @error('tax2_label') is-invalid @enderror"
@@ -60,7 +60,7 @@
                 @error('tax2_label')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 <div class="form-text">Name for the second tax column (e.g. VAT, CGST, SGST)</div>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <button type="submit" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-save me-1"></i>Save Labels
                 </button>
@@ -137,8 +137,8 @@
                         </form>
                     </td>
                     <td class="text-end pe-3">
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-primary btn-edit"
+                        <div class="d-flex flex-wrap justify-content-end gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $tc->id }}"
                                     data-code="{{ $tc->code }}"
                                     data-description="{{ $tc->description }}"
@@ -147,7 +147,7 @@
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button type="button" class="btn btn-outline-danger btn-delete"
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $tc->id }}"
                                     data-label="{{ $tc->code }}"
                                     title="Delete">

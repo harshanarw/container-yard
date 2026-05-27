@@ -13,7 +13,7 @@
         <h4><i class="bi bi-arrow-left-right me-2 text-primary"></i>Gate In / Gate Out</h4>
         <p class="text-muted mb-0 small">Record container arrivals and departures from the yard</p>
     </div>
-    <div class="d-flex gap-2 align-items-center">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
         <a href="{{ route('yard.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-map me-1"></i>Yard Map
         </a>
@@ -22,7 +22,7 @@
 </div>
 
 <!-- Quick Toggle: Gate In / Gate Out -->
-<div class="d-flex gap-3 mb-4">
+<div class="d-flex flex-wrap gap-3 mb-4">
     <button class="btn btn-primary px-4" id="btnGateIn">
         <i class="bi bi-box-arrow-in-right me-2"></i>Gate In
     </button>

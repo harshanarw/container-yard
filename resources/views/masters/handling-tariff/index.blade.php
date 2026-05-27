@@ -143,12 +143,12 @@
                             <div class="text-muted" style="font-size:.7rem;">{{ $tariff->updated_at->format('d M Y') }}</div>
                         </td>
                         <td class="text-end pe-3">
-                            <div class="btn-group btn-group-sm">
+                            <div class="d-flex flex-wrap justify-content-end gap-1">
                                 <a href="{{ route('masters.handling-tariff.show', $tariff) }}"
-                                   class="btn btn-outline-primary" title="View / Edit Rates">
+                                   class="btn btn-sm btn-outline-primary" title="View / Edit Rates">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
-                                <button type="button" class="btn btn-outline-danger btn-delete"
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                         data-id="{{ $tariff->id }}"
                                         data-label="{{ $tariff->shippingLine->name ?? 'this tariff' }}"
                                         data-validity="{{ $tariff->validity_label }}"

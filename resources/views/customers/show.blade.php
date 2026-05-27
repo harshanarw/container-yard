@@ -30,7 +30,7 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
             @endforeach
         </p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <a href="{{ route('customers.edit', $customer) }}" class="btn btn-primary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>

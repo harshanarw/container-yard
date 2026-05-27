@@ -106,14 +106,14 @@
                     </td>
                     {{-- Actions --}}
                     <td class="text-end pe-3">
-                        <div class="btn-group btn-group-sm">
+                        <div class="d-flex flex-wrap justify-content-end gap-1">
                             {{-- Configure Slots --}}
                             <a href="{{ route('masters.zones.slots', $zone) }}"
-                               class="btn btn-outline-info" title="Configure Slots">
+                               class="btn btn-sm btn-outline-info" title="Configure Slots">
                                 <i class="bi bi-grid-3x3-gap"></i>
                             </a>
                             {{-- Edit --}}
-                            <button type="button" class="btn btn-outline-primary btn-edit"
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $zone->id }}"
                                     data-code="{{ $zone->code }}"
                                     data-name="{{ $zone->name }}"
@@ -133,14 +133,14 @@
                             </form>
                             {{-- Delete --}}
                             @if(($zone->yard_locations_count ?? 0) > 0)
-                                <button type="button" class="btn btn-outline-danger"
+                                <button type="button" class="btn btn-sm btn-outline-danger"
                                         disabled
                                         title="Cannot delete — zone has {{ $zone->yard_locations_count }} slot(s). Use Configure Slots to remove them first."
                                         data-bs-toggle="tooltip" data-bs-placement="left">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             @else
-                                <button type="button" class="btn btn-outline-danger btn-delete"
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                         data-id="{{ $zone->id }}"
                                         data-label="{{ $zone->code }} — {{ $zone->name }}"
                                         title="Delete">
@@ -179,7 +179,7 @@
         <form method="POST" action="{{ route('masters.zones.store') }}">
             @csrf
             <div class="row g-3">
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label fw-semibold">Code <span class="text-danger">*</span></label>
                     <input type="text" name="code" class="form-control text-uppercase @error('code') is-invalid @enderror"
                            value="{{ old('code') }}" maxlength="10" required placeholder="e.g. A, B, NORTH">
@@ -188,7 +188,7 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
                     <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
                            value="{{ old('name') }}" maxlength="100" required placeholder="e.g. Zone A — 20ft Section">
@@ -196,7 +196,7 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label class="form-label fw-semibold">Description</label>
                     <input type="text" name="description" class="form-control @error('description') is-invalid @enderror"
                            value="{{ old('description') }}" maxlength="255" placeholder="Optional description of this zone">
@@ -204,7 +204,7 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
-                <div class="col-md-1">
+                <div class="col-6 col-md-1">
                     <label class="form-label fw-semibold">Color</label>
                     <div class="d-flex align-items-center gap-2">
                         <input type="color" name="color" class="form-control form-control-color @error('color') is-invalid @enderror"
@@ -214,7 +214,7 @@
                         <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label fw-semibold">Sort Order</label>
                     <input type="number" name="sort_order" class="form-control @error('sort_order') is-invalid @enderror"
                            value="{{ old('sort_order', $zones->count() + 1) }}" min="1" max="999" placeholder="1">

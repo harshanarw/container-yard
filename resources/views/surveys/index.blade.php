@@ -56,7 +56,7 @@
     <div class="card content-card filter-panel mb-3">
         <div class="card-body py-2">
             <div class="row g-2 align-items-center">
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" name="search" class="form-control"
@@ -64,7 +64,7 @@
                                value="{{ request('search') }}">
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <select name="customer_id" class="form-select form-select-sm">
                         <option value="">All Customers</option>
                         @foreach($customers as $customer)
@@ -74,7 +74,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <select name="inquiry_type" class="form-select form-select-sm">
                         <option value="">All Types</option>
                         <option value="damage_survey"           {{ request('inquiry_type') === 'damage_survey'           ? 'selected' : '' }}>Damage Survey</option>
@@ -84,7 +84,7 @@
                         <option value="pre_delivery_inspection" {{ request('inquiry_type') === 'pre_delivery_inspection' ? 'selected' : '' }}>Pre-delivery Inspection</option>
                     </select>
                 </div>
-                <div class="col-md-1">
+                <div class="col-6 col-md-1">
                     <select name="priority" class="form-select form-select-sm">
                         <option value="">All Priority</option>
                         <option value="normal"   {{ request('priority') === 'normal'   ? 'selected' : '' }}>Normal</option>
@@ -92,7 +92,7 @@
                         <option value="critical" {{ request('priority') === 'critical' ? 'selected' : '' }}>Critical</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <div class="input-group input-group-sm">
                         <input type="date" name="date_from" class="form-control form-control-sm"
                                value="{{ request('date_from') }}" title="From date">
@@ -185,28 +185,28 @@
                             <span class="badge rounded-pill bg-{{ $color }}">{{ $statusLabel }}</span>
                         </td>
                         <td class="text-end pe-3">
-                            <div class="btn-group btn-group-sm">
+                            <div class="d-flex flex-wrap justify-content-end gap-1">
                                 <a href="{{ route('surveys.show', $inquiry) }}"
-                                   class="btn btn-outline-info" title="View">
+                                   class="btn btn-outline-info btn-sm" title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 @if($inquiry->estimate)
                                 <a href="{{ route('estimates.show', $inquiry->estimate) }}"
-                                   class="btn btn-outline-warning" title="View Estimate ({{ $inquiry->estimate->estimate_no }})">
+                                   class="btn btn-outline-warning btn-sm" title="View Estimate ({{ $inquiry->estimate->estimate_no }})">
                                     <i class="bi bi-receipt"></i>
                                 </a>
                                 @else
                                 <a href="{{ route('estimates.create', ['inquiry_id' => $inquiry->id]) }}"
-                                   class="btn btn-outline-warning" title="Create Estimate">
+                                   class="btn btn-outline-warning btn-sm" title="Create Estimate">
                                     <i class="bi bi-tools"></i>
                                 </a>
                                 @endif
                                 <a href="{{ route('surveys.edit', $inquiry) }}"
-                                   class="btn btn-outline-primary" title="Edit">
+                                   class="btn btn-outline-primary btn-sm" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 @if(!$inquiry->estimate)
-                                <button type="button" class="btn btn-outline-danger" title="Delete"
+                                <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
                                         data-bs-toggle="modal" data-bs-target="#modalDelete"
                                         data-url="{{ route('surveys.destroy', $inquiry) }}"
                                         data-no="{{ $inquiry->inquiry_no }}">

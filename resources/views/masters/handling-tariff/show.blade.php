@@ -50,7 +50,7 @@
             {{ $handlingTariff->validity_label }}
         </p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <a href="{{ route('masters.handling-tariff.index') }}"
            class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back
@@ -228,8 +228,8 @@
                                 @endif
                             </td>
                             <td class="text-end pe-3">
-                                <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-outline-primary btn-edit-rate"
+                                <div class="d-flex flex-wrap justify-content-end gap-1">
+                                    <button type="button" class="btn btn-outline-primary btn-sm btn-edit-rate"
                                             data-id="{{ $rate->id }}"
                                             data-size="{{ $rate->container_size }}"
                                             data-liftoff="{{ $rate->lift_off_rate }}"
@@ -239,7 +239,7 @@
                                             title="Edit rate">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger btn-delete-rate"
+                                    <button type="button" class="btn btn-outline-danger btn-sm btn-delete-rate"
                                             data-id="{{ $rate->id }}"
                                             data-size="{{ $rate->container_size }}"
                                             title="Remove">

@@ -56,27 +56,27 @@
     <div class="card-body">
         <form method="GET" action="{{ route('reports.daily-movements') }}">
             <div class="row g-2 align-items-end">
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm fw-semibold">Date From</label>
                     <input type="date" name="date_from" class="form-control form-control-sm"
                            value="{{ request('date_from', now()->toDateString()) }}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm fw-semibold">Date To</label>
                     <input type="date" name="date_to" class="form-control form-control-sm"
                            value="{{ request('date_to', now()->toDateString()) }}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm fw-semibold">Time From</label>
                     <input type="time" name="time_from" class="form-control form-control-sm"
                            value="{{ request('time_from') }}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm fw-semibold">Time To</label>
                     <input type="time" name="time_to" class="form-control form-control-sm"
                            value="{{ request('time_to') }}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-12 col-md-2">
                     <label class="form-label form-label-sm fw-semibold">Operator / Liner</label>
                     <select name="customer_id" class="form-select form-select-sm">
                         <option value="">All Operators</option>
@@ -87,7 +87,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-1">
+                <div class="col-6 col-md-1">
                     <label class="form-label form-label-sm fw-semibold">Movement</label>
                     <select name="movement_type" class="form-select form-select-sm">
                         <option value="">All</option>
@@ -95,7 +95,7 @@
                         <option value="out" {{ request('movement_type') === 'out' ? 'selected' : '' }}>Gate Out</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm fw-semibold">Export Status</label>
                     <select name="export_status" class="form-select form-select-sm">
                         <option value="pending"  {{ $exportFilter === 'pending'  ? 'selected' : '' }}>Pending Export</option>
@@ -103,8 +103,8 @@
                         <option value="all"      {{ $exportFilter === 'all'      ? 'selected' : '' }}>All</option>
                     </select>
                 </div>
-                <div class="col-md-1 d-flex gap-1">
-                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                <div class="col-auto d-flex gap-1">
+                    <button type="submit" class="btn btn-primary btn-sm">
                         <i class="bi bi-search"></i>
                     </button>
                     <a href="{{ route('reports.daily-movements') }}" class="btn btn-outline-secondary btn-sm">

@@ -28,7 +28,7 @@
         <h4><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard</h4>
         <p class="text-muted mb-0 small">Welcome back, {{ auth()->user()->name }} &mdash; {{ now()->format('l, d F Y') }}</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <a href="{{ route('yard.gate') }}" class="btn btn-primary btn-sm">
             <i class="bi bi-box-arrow-in-right me-1"></i>Gate In
         </a>

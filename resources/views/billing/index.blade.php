@@ -51,11 +51,11 @@
 <div class="card content-card mb-3">
     <div class="card-body py-2">
         <form method="GET" class="row g-2 align-items-end">
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <input type="text" name="search" class="form-control form-control-sm"
                        placeholder="Search invoice no. or customer…" value="{{ request('search') }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-6 col-md-3">
                 <select name="customer_id" class="form-select form-select-sm">
                     <option value="">All Customers</option>
                     @foreach($customers as $c)
@@ -65,7 +65,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2">
                 <select name="status" class="form-select form-select-sm">
                     <option value="">All Statuses</option>
                     <option value="draft"     {{ request('status') == 'draft'     ? 'selected' : '' }}>Draft</option>
@@ -135,7 +135,7 @@
                             </span>
                         </td>
                         <td class="text-end pe-3">
-                            <div class="btn-group btn-group-sm">
+                            <div class="d-flex flex-wrap justify-content-end gap-1">
                                 <a href="{{ route('billing.show', $inv) }}"
                                    class="btn btn-outline-primary btn-sm" title="View">
                                     <i class="bi bi-eye"></i>

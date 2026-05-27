@@ -41,17 +41,17 @@
     <div class="card-body py-2">
         <form method="GET" action="{{ route('masters.exchange-rates.index') }}">
             <div class="row g-2 align-items-end">
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm mb-1 fw-semibold">Date From</label>
                     <input type="date" name="date_from" class="form-control form-control-sm"
                            value="{{ request('date_from') }}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2">
                     <label class="form-label form-label-sm mb-1 fw-semibold">Date To</label>
                     <input type="date" name="date_to" class="form-control form-control-sm"
                            value="{{ request('date_to') }}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-12 col-md-2">
                     <label class="form-label form-label-sm mb-1 fw-semibold">From Currency</label>
                     <select name="from_currency" class="form-select form-select-sm">
                         <option value="">All</option>
@@ -63,7 +63,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-12 col-md-2">
                     <label class="form-label form-label-sm mb-1 fw-semibold">To Currency</label>
                     <select name="to_currency" class="form-select form-select-sm">
                         <option value="">All</option>
@@ -141,8 +141,8 @@
                     <td class="small text-muted">{{ $r->notes ?? '—' }}</td>
                     <td class="small text-muted">{{ $r->createdBy?->name ?? '—' }}</td>
                     <td class="text-end pe-3">
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-primary btn-edit"
+                        <div class="d-flex flex-wrap justify-content-end gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $r->id }}"
                                     data-date="{{ $r->rate_date->format('Y-m-d') }}"
                                     data-from="{{ $r->from_currency_code }}"
@@ -152,7 +152,7 @@
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button type="button" class="btn btn-outline-danger btn-delete"
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $r->id }}"
                                     data-label="1 {{ $r->from_currency_code }} = {{ $r->rate }} {{ $r->to_currency_code }} ({{ $r->rate_date->format('d M Y') }})"
                                     title="Delete">
