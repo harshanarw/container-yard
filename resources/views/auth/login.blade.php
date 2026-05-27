@@ -41,25 +41,26 @@
         .auth-header {
             background: linear-gradient(135deg, #1565C0, #2196F3);
             color: #fff;
-            padding: .85rem 2rem 0;
+            padding: .9rem 2rem .9rem;
             text-align: center;
         }
 
-        /* ── Step progress bar (inside header, below title) ── */
+        /* ── Step progress bar — sits between header and body as its own stripe ── */
         .step-bar {
             display: flex;
-            gap: 5px;
-            padding: .75rem 0 0;
+            gap: 0;
+            margin: 0;
+            padding: 0;
         }
         .step-seg {
-            flex: 1; height: 4px;
-            background: rgba(255,255,255,.35);
+            flex: 1; height: 5px;
+            background: #dee2e6;
             transition: background .3s;
         }
-        .step-seg.active { background: #fff; }
+        .step-seg.active { background: #1976D2; }
 
         /* ── Body ── */
-        .auth-body { padding: 1.6rem 2rem 1.6rem; }
+        .auth-body { padding: 1.8rem 2rem 1.8rem; }
 
         /* ── Input groups ── */
         .auth-input-group {
@@ -213,14 +214,16 @@
     </div>
     @endif
 
-    {{-- Blue gradient header with company name + step bar --}}
+    {{-- Blue gradient header ── company name + tagline only --}}
     <div class="auth-header">
         <h4 class="fw-bold mb-0">{{ $companySetting?->company_name ?? 'CYM System' }}</h4>
         <p class="mb-0 opacity-75 small">{{ $companySetting?->tagline ?? 'Container Yard Management' }}</p>
-        <div class="step-bar">
-            <div class="step-seg active" id="seg1"></div>
-            <div class="step-seg"        id="seg2"></div>
-        </div>
+    </div>
+
+    {{-- Step progress bar — sits as its own stripe below the header --}}
+    <div class="step-bar">
+        <div class="step-seg active" id="seg1"></div>
+        <div class="step-seg"        id="seg2"></div>
     </div>
 
     <div class="auth-body">
