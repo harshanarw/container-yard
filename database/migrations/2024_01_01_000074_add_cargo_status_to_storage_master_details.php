@@ -12,15 +12,17 @@ return new class extends Migration
             $table->enum('cargo_status', ['laden', 'empty'])
                   ->default('empty')
                   ->after('equipment_type_id');
+        });
 
-            // Drop old unique that only covered (header, equipment_type)
-            $table->dropUnique('uniq_header_eqt');
-
-            // New unique: one rate per (header, equipment type, cargo status)
+        Schema::table('storage_master_details', function (Blueprint $table) {
+            // Add the new unique BEFORE dropping the old one so MySQL still
+            // has an index on storage_master_header_id to back the FK.
             $table->unique(
                 ['storage_master_header_id', 'equipment_type_id', 'cargo_status'],
                 'uniq_header_eqt_cargo'
             );
+
+            $table->dropUnique('uniq_header_eqt');
         });
     }
 
