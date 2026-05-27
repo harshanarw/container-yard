@@ -277,23 +277,25 @@
                 </div>
                 <div class="card-body">
 
-                    {{-- Hidden real file input --}}
-                    <input type="file" id="photoInput" name="photos[]"
-                           multiple accept="image/jpeg,image/png,image/webp,image/gif"
-                           class="d-none">
+                    {{-- File inputs --}}
+                    <input type="file" id="photoInput" multiple accept="image/*" class="d-none">
+                    <input type="file" id="photoCameraInput" accept="image/*" capture="environment" class="d-none">
 
                     {{-- Drop Zone --}}
                     <div id="photoDropZone"
                          class="border border-2 border-dashed rounded-3 text-center p-4 mb-3"
                          style="border-color:#dee2e6!important;cursor:pointer;transition:background .2s;">
                         <i class="bi bi-cloud-arrow-up text-primary" style="font-size:2.5rem;"></i>
-                        <div class="fw-semibold mt-2">Drag &amp; drop photos here</div>
-                        <div class="text-muted small mt-1">or click to browse files</div>
-                        <button type="button" class="btn btn-outline-primary btn-sm mt-3" id="photoBrowseBtn">
-                            <i class="bi bi-folder2-open me-1"></i>Browse Photos
-                        </button>
+                        <div class="d-flex justify-content-center gap-2 flex-wrap mt-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="photoBrowseBtn">
+                                <i class="bi bi-folder2-open me-1"></i>Browse
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm" id="photoCameraBtn">
+                                <i class="bi bi-camera me-1"></i>Camera
+                            </button>
+                        </div>
                         <div class="text-muted mt-2" style="font-size:.75rem;">
-                            JPG, PNG, WEBP &nbsp;·&nbsp; Max 5 MB per file &nbsp;·&nbsp; Up to 10 files
+                            or drag &amp; drop &nbsp;·&nbsp; Max 20 MB per file &nbsp;·&nbsp; Up to 10 files
                         </div>
                     </div>
 
@@ -521,12 +523,14 @@
 
     // ── Photo Uploader ────────────────────────────────────────────────
     const MAX_FILES     = 10;
-    const MAX_SIZE_MB   = 5;
+    const MAX_SIZE_MB   = 20;
     const MAX_SIZE_BYTE = MAX_SIZE_MB * 1024 * 1024;
 
     const photoInput    = document.getElementById('photoInput');
+    const cameraInput   = document.getElementById('photoCameraInput');
     const dropZone      = document.getElementById('photoDropZone');
     const browseBtn     = document.getElementById('photoBrowseBtn');
+    const cameraBtn     = document.getElementById('photoCameraBtn');
     const previewGrid   = document.getElementById('photoPreviewGrid');
     const counter       = document.getElementById('photoCounter');
     const errorBox      = document.getElementById('photoError');
@@ -598,8 +602,10 @@
     });
 
     browseBtn.addEventListener('click', function (e) { e.stopPropagation(); photoInput.click(); });
-    dropZone.addEventListener('click', function () { photoInput.click(); });
+    cameraBtn.addEventListener('click', function (e) { e.stopPropagation(); cameraInput.click(); });
+    dropZone.addEventListener('click', function (e) { if (!e.target.closest('button')) photoInput.click(); });
     photoInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
+    cameraInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
 
     dropZone.addEventListener('dragover',  function (e) { e.preventDefault(); dropZone.style.background = '#e8f0fe'; dropZone.style.borderColor = '#2196F3'; });
     dropZone.addEventListener('dragleave', function ()  { dropZone.style.background = ''; dropZone.style.borderColor = ''; });
