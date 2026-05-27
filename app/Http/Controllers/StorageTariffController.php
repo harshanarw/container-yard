@@ -144,10 +144,21 @@ class StorageTariffController extends Controller
         abort_if($detail->storage_master_header_id !== $storageTariff->id, 403);
 
         $data = $request->validate([
+            'cargo_status'   => ['required', 'in:laden,empty'],
             'storage_rate'   => 'required|numeric|min:0|max:99999.99',
             'currency'       => 'required|string|size:3',
             'charge_code_id' => 'nullable|exists:charge_codes,id',
         ]);
+
+        $duplicate = $storageTariff->details()
+            ->where('equipment_type_id', $detail->equipment_type_id)
+            ->where('cargo_status', $data['cargo_status'])
+            ->where('id', '!=', $detail->id)
+            ->exists();
+
+        if ($duplicate) {
+            return back()->withErrors(['cargo_status' => 'A rate for this equipment type and cargo status already exists on this tariff.']);
+        }
 
         $detail->update($data);
 

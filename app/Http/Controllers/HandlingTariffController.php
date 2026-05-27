@@ -146,11 +146,22 @@ class HandlingTariffController extends Controller
         abort_if($rate->handling_tariff_id !== $handlingTariff->id, 403);
 
         $data = $request->validate([
+            'cargo_status'   => ['required', 'in:laden,empty'],
             'lift_off_rate'  => 'required|numeric|min:0|max:99999.99',
             'lift_on_rate'   => 'required|numeric|min:0|max:99999.99',
             'currency'       => 'required|string|size:3',
             'charge_code_id' => 'nullable|exists:charge_codes,id',
         ]);
+
+        $duplicate = $handlingTariff->rates()
+            ->where('container_size', $rate->container_size)
+            ->where('cargo_status', $data['cargo_status'])
+            ->where('id', '!=', $rate->id)
+            ->exists();
+
+        if ($duplicate) {
+            return back()->withErrors(['cargo_status' => "A rate for {$rate->container_size}' {$data['cargo_status']} containers already exists on this tariff."]);
+        }
 
         $rate->update($data);
 

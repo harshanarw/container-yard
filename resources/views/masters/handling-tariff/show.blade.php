@@ -332,7 +332,7 @@
                         <label class="form-label small fw-semibold mb-1">
                             <i class="bi bi-tag me-1 text-primary"></i>Charge Code
                         </label>
-                        <select name="charge_code_id" class="form-select form-select-sm">
+                        <select name="charge_code_id" class="form-select form-select-sm select2">
                             <option value="">— None —</option>
                             @foreach($chargeCodes as $cc)
                                 <option value="{{ $cc->id }}">
@@ -431,6 +431,18 @@
                     <div class="row g-3">
                         <div class="col-6">
                             <label class="form-label fw-semibold">
+                                Laden / Empty <span class="text-danger">*</span>
+                            </label>
+                            <select name="cargo_status" id="editRateCargoStatus" class="form-select">
+                                <option value="empty">Empty</option>
+                                <option value="laden">Laden</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            {{-- spacer to keep layout balanced --}}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">
                                 <i class="bi bi-arrow-down-circle text-success me-1"></i>
                                 Lift Off Rate <span class="text-danger">*</span>
                             </label>
@@ -463,7 +475,7 @@
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-tag me-1 text-primary"></i>Charge Code
                             </label>
-                            <select name="charge_code_id" id="editRateChargeCode" class="form-select">
+                            <select name="charge_code_id" id="editRateChargeCode" class="form-select select2-modal">
                                 <option value="">— None —</option>
                                 @foreach($chargeCodes as $cc)
                                     <option value="{{ $cc->id }}">
@@ -530,18 +542,24 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-edit-rate').forEach(btn => {
         btn.addEventListener('click', () => {
             const status = btn.dataset.cargo_status || 'empty';
-            document.getElementById('editRateSize').textContent     = btn.dataset.size;
+            document.getElementById('editRateSize').textContent      = btn.dataset.size;
             document.getElementById('editRateStatusBadge').innerHTML =
                 status === 'laden'
                     ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.7rem;">Laden</span>'
                     : '<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.7rem;">Empty</span>';
-            document.getElementById('editLiftOffRate').value        = btn.dataset.liftoff;
-            document.getElementById('editLiftOnRate').value         = btn.dataset.lifton;
-            document.getElementById('editRateCurrency').value       = btn.dataset.currency;
-            document.getElementById('editRateChargeCode').value     = btn.dataset.charge_code_id || '';
-            document.getElementById('editRateForm').action          = baseRateUrl + '/' + btn.dataset.id;
+            document.getElementById('editRateCargoStatus').value     = status;
+            document.getElementById('editLiftOffRate').value         = btn.dataset.liftoff;
+            document.getElementById('editLiftOnRate').value          = btn.dataset.lifton;
+            document.getElementById('editRateCurrency').value        = btn.dataset.currency;
+            document.getElementById('editRateChargeCode').value      = btn.dataset.charge_code_id || '';
+            document.getElementById('editRateForm').action           = baseRateUrl + '/' + btn.dataset.id;
             new bootstrap.Modal(document.getElementById('editRateModal')).show();
         });
+    });
+
+    // Initialise select2 inside the edit modal after it fully opens
+    $('#editRateModal').on('shown.bs.modal', function () {
+        $(this).find('.select2-modal').select2({ dropdownParent: $(this), width: '100%' });
     });
 
     document.querySelectorAll('.btn-delete-rate').forEach(btn => {
