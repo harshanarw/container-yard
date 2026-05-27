@@ -360,11 +360,30 @@
         .filter-panel .form-label { color: #212529; }
 
         @media (max-width: 768px) {
-            #sidebar { width: 0; }
-            #sidebar.mobile-open { width: var(--sidebar-width); }
+            #sidebar {
+                width: var(--sidebar-width) !important;
+                transform: translateX(-100%);
+                transition: transform .3s !important;
+                box-shadow: none;
+            }
+            #sidebar.mobile-open {
+                transform: translateX(0);
+                box-shadow: 4px 0 24px rgba(0,0,0,.4);
+            }
             #topbar { left: 0 !important; }
-            #main-content { margin-left: 0 !important; }
+            #main-content { margin-left: 0 !important; padding: 16px; }
         }
+
+        /* Backdrop — shown behind the mobile drawer */
+        #sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 1039;
+            cursor: pointer;
+        }
+        #sidebar-backdrop.show { display: block; }
     </style>
     @stack('styles')
 </head>
@@ -756,6 +775,7 @@
     </div>
 
 </nav>
+<div id="sidebar-backdrop"></div>
 
 <!-- ══════════════════════════════════════
      TOPBAR
@@ -908,17 +928,45 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-    // Sidebar toggle (collapse to icon-only)
+    // Sidebar toggle
     const sidebar      = document.getElementById('sidebar');
     const topbar       = document.getElementById('topbar');
     const mainContent  = document.getElementById('main-content');
     const toggleBtn    = document.getElementById('sidebarToggle');
+    const backdrop     = document.getElementById('sidebar-backdrop');
+
+    function isMobile() { return window.innerWidth <= 768; }
+
+    function closeMobileSidebar() {
+        sidebar.classList.remove('mobile-open');
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+    }
 
     toggleBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed');
-        topbar.classList.toggle('expanded');
-        mainContent.classList.toggle('expanded');
+        if (isMobile()) {
+            const opening = !sidebar.classList.contains('mobile-open');
+            sidebar.classList.toggle('mobile-open');
+            backdrop.classList.toggle('show');
+            // Prevent body scroll while drawer is open
+            document.body.style.overflow = opening ? 'hidden' : '';
+        } else {
+            sidebar.classList.toggle('collapsed');
+            topbar.classList.toggle('expanded');
+            mainContent.classList.toggle('expanded');
+        }
     });
+
+    // Tap backdrop to close
+    backdrop.addEventListener('click', closeMobileSidebar);
+
+    // Tap a nav link on mobile → close drawer and navigate
+    sidebar.querySelectorAll('a.nav-link').forEach(link => {
+        link.addEventListener('click', () => { if (isMobile()) closeMobileSidebar(); });
+    });
+
+    // Rotating to landscape → clean up mobile state
+    window.addEventListener('resize', () => { if (!isMobile()) closeMobileSidebar(); });
 
     // ── Sidebar: open only the active path on every page load ───────────────
     // No localStorage persistence — each full page load starts with everything
