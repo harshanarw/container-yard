@@ -90,7 +90,7 @@
         }
         .auth-input-group input {
             flex: 1; border: none; outline: none;
-            padding: .65rem .5rem .65rem 0;
+            padding: .65rem .5rem .65rem .6rem;
             font-size: .95rem;
             background: transparent;
             color: #1e293b;
