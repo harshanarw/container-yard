@@ -357,7 +357,7 @@
                         <dt class="col-6 text-muted fw-normal">Condition</dt>
                         <dd class="col-6">{{ ucfirst(str_replace('_',' ',$container->condition ?? '')) ?: '—' }}</dd>
                         <dt class="col-6 text-muted fw-normal">Cargo</dt>
-                        <dd class="col-6">{{ ucfirst($container->cargo_status ?? '') ?: '—' }}</dd>
+                        <dd class="col-6">{{ $container->cargo_status === 'empty' ? 'Empty' : ($container->cargo_status ? 'Laden' : '—') }}</dd>
                         <dt class="col-6 text-muted fw-normal">Gate In</dt>
                         <dd class="col-6">{{ $container->gate_in_date?->format('d M Y') ?? '—' }}</dd>
                         <dt class="col-6 text-muted fw-normal">Gate Out</dt>

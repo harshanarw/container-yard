@@ -277,8 +277,8 @@
                                 </span>
                             </td>
                             <td>
-                                <span class="badge {{ strtolower($m->cargo_status) === 'laden' ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-light border text-secondary' }} small">
-                                    {{ ucfirst($m->cargo_status) }}
+                                <span class="badge {{ strtolower($m->cargo_status) !== 'empty' ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-light border text-secondary' }} small">
+                                    {{ strtolower($m->cargo_status) === 'empty' ? 'Empty' : 'Laden' }}
                                 </span>
                             </td>
                             <td class="small font-monospace">{{ $m->seal_no ?: '—' }}</td>

@@ -110,7 +110,7 @@
                             <label class="form-label fw-semibold">Empty / Laden</label>
                             <select name="cargo_status" class="form-select">
                                 <option value="empty"  {{ $movement->cargo_status === 'empty'  ? 'selected' : '' }}>Empty</option>
-                                <option value="laden"  {{ $movement->cargo_status === 'laden'  ? 'selected' : '' }}>Laden</option>
+                                <option value="laden"  {{ in_array($movement->cargo_status, ['laden','full']) ? 'selected' : '' }}>Laden</option>
                             </select>
                         </div>
 

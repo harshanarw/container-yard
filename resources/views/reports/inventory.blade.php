@@ -230,7 +230,7 @@
                         </td>
                         <td>
                             <span class="badge {{ $container->cargo_status === 'empty' ? 'bg-secondary-subtle text-secondary' : 'bg-warning-subtle text-warning' }}">
-                                {{ ucfirst($container->cargo_status) }}
+                                {{ $container->cargo_status === 'empty' ? 'Empty' : 'Laden' }}
                             </span>
                         </td>
                         <td class="font-monospace text-muted">
