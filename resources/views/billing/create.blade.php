@@ -497,6 +497,7 @@ function renderPreview(data) {
             <td class="text-end pe-3 small">${fmtVal(data.total_value ?? data.total_amount)}</td>
         </tr>
     `;
+}
 
 function formatDate(d) {
     if (!d) return '—';

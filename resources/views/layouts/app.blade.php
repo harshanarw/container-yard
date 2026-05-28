@@ -83,11 +83,11 @@
             background: #d0e8fd !important;
             color: #1565C0 !important;
         }
-        .air-datepicker--time .air-datepicker--time-current-hours:after,
-        .air-datepicker--time .air-datepicker--time-current-minutes:after {
+        .air-datepicker-time--current-hours:after,
+        .air-datepicker-time--current-minutes:after {
             background: #2196F3 !important;
         }
-        .air-datepicker--navigation-action:hover {
+        .air-datepicker-nav--action:hover {
             background: #e3f2fd !important;
             color: #1565C0 !important;
         }
@@ -1134,10 +1134,14 @@
                         $el.trigger('change');
                     },
                 });
-                // Auto-close when the AM/PM toggle is clicked (last step in 12h selection)
-                $(dp.$datepicker).on('click', '.air-datepicker--time-current-ampm', function () {
-                    setTimeout(function () { dp.hide(); $el.trigger('change'); }, 150);
-                });
+                // Auto-close when the AM/PM toggle is clicked (last step in 12h selection).
+                // Uses capture phase so Air Datepicker's own stopPropagation cannot block it.
+                var ampmEl = dp.$datepicker.querySelector('.air-datepicker-time--current-ampm');
+                if (ampmEl) {
+                    ampmEl.addEventListener('click', function () {
+                        setTimeout(function () { dp.hide(); $el.trigger('change'); }, 150);
+                    }, true);
+                }
             });
         }
     });
