@@ -18,11 +18,13 @@
     <!-- Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
-    <!-- Bootstrap Datepicker -->
+    <!-- Bootstrap Datepicker (date-only inputs) -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" rel="stylesheet">
+    <!-- Tempus Dominus v6 (datetime inputs — official Bootstrap 5 picker) -->
+    <link href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/css/tempus-dominus.min.css" rel="stylesheet">
     <style>
-        /* Bootstrap Datepicker — bordered, system-blue accents */
-        /* Override Bootstrap 5 dropdown-menu base so it doesn't hide our picker */
+        /* ── Bootstrap Datepicker — bordered, system-blue accents ────────── */
+        /* Neutralise Bootstrap 5's .dropdown-menu base so it doesn't hide the calendar */
         .datepicker.dropdown-menu {
             display: block;
             min-width: 0;
@@ -38,41 +40,34 @@
             z-index: 1060 !important;
             position: absolute !important;
         }
-        /* hide caret arrow — unreliable placement with Bootstrap 5 layout */
         .datepicker.datepicker-dropdown::before,
         .datepicker.datepicker-dropdown::after { display: none !important; }
         .datepicker table tr td.today:not(.active) {
-            background: #e3f2fd;
-            border-color: #90c8f9;
-            color: #1565C0;
-            font-weight: 600;
+            background: #e3f2fd; border-color: #90c8f9; color: #1565C0; font-weight: 600;
         }
         .datepicker table tr td.active,
         .datepicker table tr td.active:hover,
         .datepicker table tr td.active.disabled,
         .datepicker table tr td.active.disabled:hover {
-            background: #2196F3 !important;
-            border-color: #2196F3 !important;
-            color: #fff !important;
-            text-shadow: none;
+            background: #2196F3 !important; border-color: #2196F3 !important;
+            color: #fff !important; text-shadow: none;
         }
         .datepicker table tr td:hover:not(.active),
-        .datepicker table tr td span:hover:not(.active) {
-            background: #d0e8fd;
-            color: #1565C0;
-        }
+        .datepicker table tr td span:hover:not(.active) { background: #d0e8fd; color: #1565C0; }
         .datepicker table tr th.switch:hover,
         .datepicker table tr th.prev:hover,
-        .datepicker table tr th.next:hover {
-            background: #e3f2fd;
-            color: #1565C0;
+        .datepicker table tr th.next:hover { background: #e3f2fd; color: #1565C0; }
+
+        /* ── Tempus Dominus v6 — match Bootstrap Datepicker border style ─── */
+        /* TD v6 inherits --bs-primary (#2196F3) for selected/active states */
+        .tempus-dominus-widget {
+            border: 1px solid #90c8f9 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 6px 20px rgba(33,150,243,.15) !important;
+            z-index: 1060 !important;
+            font-family: inherit !important;
+            font-size: .875rem !important;
         }
-        /* Style native datetime-local inputs to match theme */
-        input[type="datetime-local"].form-control:focus {
-            border-color: #90c8f9;
-            box-shadow: 0 0 0 0.25rem rgba(33,150,243,.15);
-        }
-        input[type="datetime-local"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .7; }
     </style>
 
     <style>
@@ -998,8 +993,10 @@
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <!-- Select2 -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<!-- Bootstrap Datepicker -->
+<!-- Bootstrap Datepicker (date-only inputs) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+<!-- Tempus Dominus v6 (datetime inputs) -->
+<script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/js/tempus-dominus.min.js"></script>
 
 <script>
     // Sidebar toggle
@@ -1086,7 +1083,34 @@
                 if (prev) $el.datepicker('update', prev);
             });
         }
-        // datetime-local inputs use the native browser picker (reliable cross-browser)
+        // Tempus Dominus v6 for datetime-local inputs.
+        // TD v6 is the official Bootstrap 5 datetime picker; it reads --bs-primary
+        // so our #2196F3 theme colour is applied automatically.
+        // - promptTimeOnDateChange: after picking a date, switch to time view
+        // - keepOpen: false (default) closes the picker once datetime is complete
+        // - hourCycle h23: 24-hour clock, removes the AM/PM toggle
+        if (typeof tempusDominus !== 'undefined') {
+            $('input[type="datetime-local"]').each(function () {
+                var $el  = $(this);
+                var prev = ($el.val() || '').replace('T', ' ');
+                $el.attr('type', 'text').attr('autocomplete', 'off');
+                if (prev) $el.val(prev);
+
+                new tempusDominus.TempusDominus($el[0], {
+                    localization: {
+                        format:         'yyyy-MM-dd HH:mm',
+                        hourCycle:      'h23',
+                        startOfTheWeek: 1,
+                    },
+                    display: {
+                        components: { seconds: false },
+                        buttons:    { today: true, clear: false, close: true },
+                    },
+                    promptTimeOnDateChange:                 true,
+                    promptTimeOnDateChangeTransitionDelay:  100,
+                });
+            });
+        }
     });
 </script>
 @stack('scripts')
