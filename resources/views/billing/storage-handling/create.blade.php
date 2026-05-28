@@ -383,21 +383,16 @@ let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
 
-// Auto-fetch exchange rate when invoice date or currency changes
+// Fetch USD → LKR exchange rate from master based on invoice date.
+// Always fetches USD→LKR regardless of invoice currency, because tariffs may be
+// USD-denominated even when the invoice is issued in LKR.
 async function fetchExchangeRate() {
-    const currency = document.getElementById('invoiceCurrency').value;
-    const date     = document.getElementById('invoiceDate').value;
-    const defCur   = 'LKR';
+    const date = document.getElementById('invoiceDate').value;
 
-    document.getElementById('rateLabel').textContent       = currency === defCur ? 'Exchange Rate' : currency + ' → ' + defCur + ' Rate';
-    document.getElementById('ratePrefixLabel').textContent = '1 ' + currency + ' =';
-    document.getElementById('rateSuffixLabel').textContent = defCur;
+    document.getElementById('rateLabel').textContent       = 'USD → LKR Rate';
+    document.getElementById('ratePrefixLabel').textContent = '1 USD =';
+    document.getElementById('rateSuffixLabel').textContent = 'LKR';
 
-    if (currency === defCur) {
-        document.getElementById('exchangeRate').value = '1.0000';
-        document.getElementById('rateNote').textContent = 'Same as default currency — rate is 1.0';
-        return;
-    }
     if (!date) return;
 
     const spinner = document.getElementById('rateSpinner');
@@ -405,7 +400,7 @@ async function fetchExchangeRate() {
     document.getElementById('rateNote').textContent = 'Looking up rate…';
 
     try {
-        const res  = await fetch(exchRateUrl + '?currency=' + encodeURIComponent(currency) + '&date=' + encodeURIComponent(date));
+        const res  = await fetch(exchRateUrl + '?currency=USD&date=' + encodeURIComponent(date));
         const data = await res.json();
         if (data.found && data.rate) {
             document.getElementById('exchangeRate').value = parseFloat(data.rate).toFixed(4);
@@ -420,8 +415,8 @@ async function fetchExchangeRate() {
     }
 }
 
+document.addEventListener('DOMContentLoaded', fetchExchangeRate);
 document.getElementById('invoiceDate').addEventListener('change', fetchExchangeRate);
-document.getElementById('invoiceCurrency').addEventListener('change', fetchExchangeRate);
 
 // Operator selection: auto-set invoice type, billing party, tax-exempt alert
 $('#shippingLineId').on('change', function () {
