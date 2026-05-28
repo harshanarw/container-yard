@@ -434,30 +434,35 @@ async function fetchExchangeRate() {
     }
 }
 
-// Re-fetch rate when user changes the invoice date
-document.getElementById('invoiceDate').addEventListener('change', fetchExchangeRate);
+// Re-fetch rate when invoice date changes (both change and input for date-picker compat)
+function onDateChange() {
+    const val = document.getElementById('invoiceDate').value;
+    if (val && /^\d{4}-\d{2}-\d{2}$/.test(val)) fetchExchangeRate();
+}
+document.getElementById('invoiceDate').addEventListener('change', onDateChange);
+document.getElementById('invoiceDate').addEventListener('input',  onDateChange);
 
 // Operator selection: auto-set invoice type, billing party, tax-exempt alert
-$('#shippingLineId').on('change', function () {
-    const val    = this.value;
-    const $opt   = $(this).find('option[value="' + val + '"]');
+// Listen on both 'change' (native) and 'select2:select' (Select2 custom event)
+function onShippingLineChange() {
+    const val    = $('#shippingLineId').val();
+    const $opt   = $('#shippingLineId').find('option[value="' + val + '"]');
     const exempt = $opt.attr('data-tax-exempt') === '1';
 
-    // Tax exempt alert
     document.getElementById('taxExemptAlert').classList.toggle('d-none', !exempt);
-
-    // Auto-set invoice type
     document.getElementById('invoiceType').value = exempt ? 'invoice' : 'tax_invoice';
 
-    // Auto-set billing party dropdown from Customer master mapping
     const bpId = val ? ($opt.attr('data-billing-party-id') || val) : '';
-    $('#billingPartyId').val(bpId).trigger('change');
-});
+    if (bpId) {
+        $('#billingPartyId').val(bpId).trigger('change');
+    }
+}
+$('#shippingLineId').on('change select2:select', onShippingLineChange);
 
 // Billing party: show address info panel on selection
-$('#billingPartyId').on('change', function () {
-    const val    = this.value;
-    const $opt   = $(this).find('option[value="' + val + '"]');
+function onBillingPartyChange() {
+    const val    = $('#billingPartyId').val();
+    const $opt   = $('#billingPartyId').find('option[value="' + val + '"]');
     const addr   = val ? ($opt.attr('data-address') || '') : '';
     const infoEl = document.getElementById('billingPartyInfo');
     const addrEl = document.getElementById('billingPartyAddress');
@@ -468,7 +473,8 @@ $('#billingPartyId').on('change', function () {
         addrEl.textContent = '';
         infoEl.classList.add('d-none');
     }
-});
+}
+$('#billingPartyId').on('change select2:select', onBillingPartyChange);
 
 async function runPreview() {
     const shippingLineId  = document.getElementById('shippingLineId').value;
