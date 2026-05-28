@@ -20,8 +20,8 @@
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
     <!-- Bootstrap Datepicker (date-only inputs) -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" rel="stylesheet">
-    <!-- Tempus Dominus v6 (datetime inputs — official Bootstrap 5 picker) -->
-    <link href="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/css/tempus-dominus.min.css" rel="stylesheet">
+    <!-- Air Datepicker v3 (datetime inputs — viewport-aware, no Bootstrap 5 conflicts) -->
+    <link href="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.css" rel="stylesheet">
     <style>
         /* ── Bootstrap Datepicker — bordered, system-blue accents ────────── */
         /* Neutralise Bootstrap 5's .dropdown-menu base so it doesn't hide the calendar */
@@ -58,15 +58,36 @@
         .datepicker table tr th.prev:hover,
         .datepicker table tr th.next:hover { background: #e3f2fd; color: #1565C0; }
 
-        /* ── Tempus Dominus v6 — match Bootstrap Datepicker border style ─── */
-        /* TD v6 inherits --bs-primary (#2196F3) for selected/active states */
-        .tempus-dominus-widget {
+        /* ── Air Datepicker v3 — match Bootstrap Datepicker border style ── */
+        .air-datepicker-global-container {
+            z-index: 9999 !important;
+        }
+        .air-datepicker {
             border: 1px solid #90c8f9 !important;
             border-radius: 8px !important;
             box-shadow: 0 6px 20px rgba(33,150,243,.15) !important;
-            z-index: 1060 !important;
             font-family: inherit !important;
             font-size: .875rem !important;
+        }
+        .air-datepicker-cell.-selected-,
+        .air-datepicker-cell.-selected-.-focus- {
+            background: #2196F3 !important;
+            color: #fff !important;
+        }
+        .air-datepicker-cell.-current- {
+            color: #1565C0 !important;
+        }
+        .air-datepicker-cell:hover:not(.-selected-) {
+            background: #d0e8fd !important;
+            color: #1565C0 !important;
+        }
+        .air-datepicker--time .air-datepicker--time-current-hours:after,
+        .air-datepicker--time .air-datepicker--time-current-minutes:after {
+            background: #2196F3 !important;
+        }
+        .air-datepicker--navigation-action:hover {
+            background: #e3f2fd !important;
+            color: #1565C0 !important;
         }
     </style>
 
@@ -996,7 +1017,7 @@
 <!-- Bootstrap Datepicker (date-only inputs) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 <!-- Tempus Dominus v6 (datetime inputs) -->
-<script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.4/dist/js/tempus-dominus.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.browser.min.js"></script>
 
 <script>
     // Sidebar toggle
@@ -1083,31 +1104,33 @@
                 if (prev) $el.datepicker('update', prev);
             });
         }
-        // Tempus Dominus v6 for datetime-local inputs.
-        // TD v6 is the official Bootstrap 5 datetime picker; it reads --bs-primary
-        // so our #2196F3 theme colour is applied automatically.
-        // - promptTimeOnDateChange: after picking a date, switch to time view
-        // - keepOpen: false (default) closes the picker once datetime is complete
-        // - hourCycle h23: 24-hour clock, removes the AM/PM toggle
-        if (typeof tempusDominus !== 'undefined') {
+        // Air Datepicker v3 for datetime-local inputs.
+        // Uses its own viewport-aware positioning engine; appends the widget to
+        // document.body via a global container, avoiding fixed-sidebar z-index
+        // and coordinate-calculation issues that broke Tempus Dominus v6.
+        if (typeof AirDatepicker !== 'undefined') {
             $('input[type="datetime-local"]').each(function () {
                 var $el  = $(this);
-                var prev = ($el.val() || '').replace('T', ' ');
+                var raw  = ($el.val() || '').replace('T', ' ');
                 $el.attr('type', 'text').attr('autocomplete', 'off');
-                if (prev) $el.val(prev);
 
-                new tempusDominus.TempusDominus($el[0], {
-                    localization: {
-                        format:         'yyyy-MM-dd HH:mm',
-                        hourCycle:      'h23',
-                        startOfTheWeek: 1,
+                var initDates = [];
+                if (raw && /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw)) {
+                    initDates = [new Date(raw.replace(' ', 'T'))];
+                }
+
+                new AirDatepicker($el[0], {
+                    timepicker:        true,
+                    autoClose:         true,
+                    dateFormat:        'yyyy-MM-dd',
+                    timeFormat:        'HH:mm',
+                    dateTimeSeparator: ' ',
+                    position:          'bottom left',
+                    selectedDates:     initDates,
+                    container:         'body',
+                    onSelect: function (dp) {
+                        $el.trigger('change');
                     },
-                    display: {
-                        components: { seconds: false },
-                        buttons:    { today: true, clear: false, close: true },
-                    },
-                    promptTimeOnDateChange:                 true,
-                    promptTimeOnDateChangeTransitionDelay:  100,
                 });
             });
         }
