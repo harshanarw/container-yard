@@ -283,7 +283,8 @@
                                     <th colspan="4" class="text-center bg-warning-subtle" style="border-bottom:1px solid #dee2e6;font-size:.7rem;letter-spacing:.04em;">
                                         Daily Rate Breakdown
                                     </th>
-                                    <th class="text-end pe-2" rowspan="2" style="vertical-align:middle;">Amount</th>
+                                    <th class="text-end" rowspan="2" style="vertical-align:middle;">Amount</th>
+                                    <th class="text-end pe-2 text-muted" rowspan="2" style="vertical-align:middle;font-size:.7rem;white-space:nowrap;">Value<br>(LKR)</th>
                                 </tr>
                                 <tr>
                                     <th class="text-end bg-warning-subtle" style="font-size:.7rem;">Tariff Rate</th>
@@ -581,7 +582,7 @@ function renderPreview(data) {
             <td class="ps-2 text-muted">${i + 1}</td>
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
-            <td class="small">${l.equipment_type || '—'}</td>
+            <td class="small">${l.eqt_code ? '<span class="fw-semibold">' + l.eqt_code + '</span>' + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '') : (l.equipment_type || '—')}</td>
             <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
             <td class="small">${fmtDate(l.gate_in_date)}</td>
             <td class="text-center small">${fmtDate(l.storage_from)}</td>
@@ -593,13 +594,15 @@ function renderPreview(data) {
             <td class="text-center bg-warning-subtle small text-muted">${l.storage_tariff_currency || 'USD'}</td>
             <td class="text-end bg-warning-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
             <td class="text-end bg-warning-subtle fw-semibold small">${fmt(l.storage_daily_rate)}</td>
-            <td class="text-end pe-2 fw-semibold ${l.storage_subtotal == 0 ? 'text-success' : ''}">${fmtAmt(l.storage_subtotal)}</td>
+            <td class="text-end fw-semibold ${l.storage_subtotal == 0 ? 'text-success' : ''}">${fmtAmt(l.storage_subtotal)}</td>
+            <td class="text-end pe-2 small text-muted">${fmtVal(l.storage_subtotal)}</td>
         </tr>
     `).join('');
     document.getElementById('storageFoot').innerHTML = `
         <tr>
             <td colspan="15" class="text-end">Storage Subtotal</td>
-            <td class="text-end pe-2">${fmtAmt(data.storage_subtotal)}</td>
+            <td class="text-end">${fmtAmt(data.storage_subtotal)}</td>
+            <td class="text-end pe-2 small text-muted">${fmtVal(data.storage_subtotal)}</td>
         </tr>`;
 
     // ── Handling: Lift Off ─────────────────────────────────────────────────
@@ -621,19 +624,21 @@ function renderPreview(data) {
         <th class="text-end bg-success-subtle" style="font-size:.7rem;">Tariff Rate</th>
         <th class="text-center bg-success-subtle" style="font-size:.7rem;">Cur</th>
         <th class="text-end bg-success-subtle" style="font-size:.7rem;">× Exch. Rate</th>
-        <th class="text-end pe-2">Amount</th>`;
+        <th class="text-end">Amount</th>
+        <th class="text-end pe-2 text-muted" style="font-size:.7rem;white-space:nowrap;">Value (LKR)</th>`;
     const liftOffRows = liftOffLines.map((l, i) => `
         <tr>
             <td class="ps-2 text-muted">${i + 1}</td>
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
-            <td class="small">${l.equipment_type || '—'}</td>
+            <td class="small">${l.eqt_code ? '<span class="fw-semibold">' + l.eqt_code + '</span>' + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '') : (l.equipment_type || '—')}</td>
             <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
             <td class="small">${fmtDate(l.gate_in_date)}</td>
             <td class="text-end bg-success-subtle small">${fmt(l.lift_off_rate_usd ?? 0)}</td>
             <td class="text-center bg-success-subtle small text-muted">${l.handling_tariff_currency || 'USD'}</td>
             <td class="text-end bg-success-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
-            <td class="text-end pe-2 fw-semibold">${fmtAmt(l.lift_off_rate)}</td>
+            <td class="text-end fw-semibold">${fmtAmt(l.lift_off_rate)}</td>
+            <td class="text-end pe-2 small text-muted">${fmtVal(l.lift_off_rate)}</td>
         </tr>`).join('');
     document.getElementById('liftOffSection').innerHTML = handlingTableTpl(liftOffRows, liftOffCols, liftOffLines.length)
         + (liftOffLines.length ? `<div class="d-flex justify-content-end px-3 py-1 bg-light border-top small fw-semibold text-muted">
@@ -645,19 +650,21 @@ function renderPreview(data) {
         <th class="text-end bg-primary-subtle" style="font-size:.7rem;">Tariff Rate</th>
         <th class="text-center bg-primary-subtle" style="font-size:.7rem;">Cur</th>
         <th class="text-end bg-primary-subtle" style="font-size:.7rem;">× Exch. Rate</th>
-        <th class="text-end pe-2">Amount</th>`;
+        <th class="text-end">Amount</th>
+        <th class="text-end pe-2 text-muted" style="font-size:.7rem;white-space:nowrap;">Value (LKR)</th>`;
     const liftOnRows = liftOnLines.map((l, i) => `
         <tr>
             <td class="ps-2 text-muted">${i + 1}</td>
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
-            <td class="small">${l.equipment_type || '—'}</td>
+            <td class="small">${l.eqt_code ? '<span class="fw-semibold">' + l.eqt_code + '</span>' + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '') : (l.equipment_type || '—')}</td>
             <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
             <td class="small">${l.gate_out_date ? fmtDate(l.gate_out_date) : '—'}</td>
             <td class="text-end bg-primary-subtle small">${fmt(l.lift_on_rate_usd ?? 0)}</td>
             <td class="text-center bg-primary-subtle small text-muted">${l.handling_tariff_currency || 'USD'}</td>
             <td class="text-end bg-primary-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
-            <td class="text-end pe-2 fw-semibold">${fmtAmt(l.lift_on_rate)}</td>
+            <td class="text-end fw-semibold">${fmtAmt(l.lift_on_rate)}</td>
+            <td class="text-end pe-2 small text-muted">${fmtVal(l.lift_on_rate)}</td>
         </tr>`).join('');
     document.getElementById('liftOnSection').innerHTML = handlingTableTpl(liftOnRows, liftOnCols, liftOnLines.length)
         + (liftOnLines.length ? `<div class="d-flex justify-content-end px-3 py-1 bg-light border-top small fw-semibold text-muted">
