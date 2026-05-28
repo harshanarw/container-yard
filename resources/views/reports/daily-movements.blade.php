@@ -277,7 +277,7 @@
                                 </span>
                             </td>
                             <td>
-                                <span class="badge {{ strtolower($m->cargo_status) === 'full' ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-light border text-secondary' }} small">
+                                <span class="badge {{ strtolower($m->cargo_status) === 'laden' ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-light border text-secondary' }} small">
                                     {{ ucfirst($m->cargo_status) }}
                                 </span>
                             </td>

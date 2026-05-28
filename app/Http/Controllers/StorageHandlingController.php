@@ -113,7 +113,7 @@ class StorageHandlingController extends Controller
             ->orderByDesc('gate_in_time')
             ->get()
             ->keyBy('container_id')
-            ->map(fn ($m) => $m->cargo_status === 'full' ? 'laden' : 'empty');
+            ->map(fn ($m) => $m->cargo_status);
 
         if ($storageRecords->isEmpty() && $liftOffByContainer->isEmpty() && $liftOnByContainer->isEmpty()) {
             return response()->json([

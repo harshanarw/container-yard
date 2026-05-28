@@ -22,7 +22,7 @@ class UpdateContainerRequest extends FormRequest
             'type_code'         => ['required', 'string', 'max:5'],
             'customer_id'    => ['required', 'exists:customers,id'],
             'condition'      => ['required', 'in:sound,damaged,require_repair'],
-            'cargo_status'   => ['required', 'in:empty,full'],
+            'cargo_status'   => ['required', 'in:empty,laden'],
             'status'         => ['required', 'in:in_yard,in_repair,reserved,released'],
             'location_row'   => ['nullable', 'string', 'max:5'],
             'location_bay'   => ['nullable', 'integer', 'min:1', 'max:8'],

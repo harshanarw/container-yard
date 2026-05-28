@@ -107,10 +107,10 @@
                         </div>
 
                         <div class="col-6">
-                            <label class="form-label fw-semibold">Empty / Full</label>
+                            <label class="form-label fw-semibold">Empty / Laden</label>
                             <select name="cargo_status" class="form-select">
-                                <option value="empty" {{ $movement->cargo_status === 'empty' ? 'selected' : '' }}>Empty</option>
-                                <option value="full"  {{ $movement->cargo_status === 'full'  ? 'selected' : '' }}>Full</option>
+                                <option value="empty"  {{ $movement->cargo_status === 'empty'  ? 'selected' : '' }}>Empty</option>
+                                <option value="laden"  {{ $movement->cargo_status === 'laden'  ? 'selected' : '' }}>Laden</option>
                             </select>
                         </div>
 

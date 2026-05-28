@@ -266,7 +266,7 @@ class ReportController extends Controller
 
                 // TSR — Transport service requirements (cargo status)
                 if ($m->cargo_status) {
-                    $cargoCode = strtoupper($m->cargo_status) === 'FULL' ? '1' : '4'; // 1=full, 4=empty
+                    $cargoCode = strtoupper($m->cargo_status) === 'LADEN' ? '1' : '4'; // 1=laden, 4=empty
                     $lines[] = "TSR+++{$cargoCode}'";
                 }
 

@@ -110,7 +110,7 @@ class YardController extends Controller
             'equipment_type_id' => ['required', 'exists:equipment_types,id'],
             'customer_id'       => ['required', 'exists:customers,id'],
             'condition'         => ['required', 'in:sound,damaged,require_repair'],
-            'cargo_status'      => ['required', 'in:empty,full'],
+            'cargo_status'      => ['required', 'in:empty,laden'],
             'location_zone'     => ['nullable', 'string', 'max:10', 'exists:storage_zones,code'],
             'location_row'      => ['nullable', 'string', 'max:5'],
             'location_bay'      => ['nullable', 'integer', 'min:1', 'max:99'],
@@ -379,7 +379,7 @@ class YardController extends Controller
             'vehicle_plate' => ['nullable', 'string', 'max:20'],
             'remarks'       => ['nullable', 'string'],
             'condition'     => ['nullable', 'in:sound,damaged,require_repair'],
-            'cargo_status'  => ['nullable', 'in:empty,full'],
+            'cargo_status'  => ['nullable', 'in:empty,laden'],
             'seal_no'       => ['nullable', 'string', 'max:20'],
         ];
 

@@ -105,10 +105,10 @@
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label fw-semibold">Empty / Full</label>
+                            <label class="form-label fw-semibold">Empty / Laden</label>
                             <select name="cargo_status" class="form-select">
                                 <option value="empty">Empty</option>
-                                <option value="full">Full</option>
+                                <option value="laden">Laden</option>
                             </select>
                         </div>
 
@@ -779,7 +779,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             } else {
                 lookupDone = true;
                 const condMap  = { sound:'Sound', damaged:'Damaged', require_repair:'Requires Repair' };
-                const cargoMap = { empty:'Empty', full:'Full' };
+                const cargoMap = { empty:'Empty', laden:'Laden' };
                 const daysBadge = data.days_in_yard !== null ? '<span class="badge bg-warning-subtle text-warning border ms-1">' + data.days_in_yard + ' day(s) in yard</span>' : '';
                 setInfoBox('success',
                     '<div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-check-circle-fill text-success fs-5"></i><strong class="font-monospace fs-6">' + data.container_no + '</strong>' + daysBadge + '</div>' +
