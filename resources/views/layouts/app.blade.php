@@ -89,6 +89,26 @@
             background: #e3f2fd !important;
             color: #1565C0 !important;
         }
+        /* "Done" button in the Air Datepicker footer */
+        .air-datepicker--buttons {
+            padding: 4px 8px 8px;
+            border-top: 1px solid #e3f2fd;
+        }
+        .adp-done-btn {
+            display: block;
+            width: 100%;
+            padding: 6px 0;
+            background: #2196F3;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: .8125rem;
+            font-weight: 500;
+            font-family: inherit;
+            line-height: 1.4;
+        }
+        .adp-done-btn:hover { background: #1976D2; }
     </style>
 
     <style>
@@ -1121,14 +1141,24 @@
 
                 new AirDatepicker($el[0], {
                     timepicker:        true,
-                    autoClose:         true,
+                    autoClose:         false,
                     dateFormat:        'yyyy-MM-dd',
                     timeFormat:        'HH:mm',
                     dateTimeSeparator: ' ',
                     position:          'bottom left',
                     selectedDates:     initDates,
                     container:         'body',
-                    onSelect: function (dp) {
+                    buttons: [
+                        {
+                            content:   'Done',
+                            className: 'adp-done-btn',
+                            onClick: function (dp) {
+                                dp.hide();
+                                $el.trigger('change');
+                            },
+                        },
+                    ],
+                    onSelect: function () {
                         $el.trigger('change');
                     },
                 });
