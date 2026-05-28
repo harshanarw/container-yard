@@ -434,7 +434,9 @@ async function fetchExchangeRate() {
     }
 }
 
-// Re-fetch rate when invoice date changes (both change and input for date-picker compat)
+// Re-fetch rate when invoice date changes.
+// Flatpickr (without altInput) fires native 'change' on the original input
+// when a date is selected from the calendar, so one listener covers both.
 function onDateChange() {
     const val = document.getElementById('invoiceDate').value;
     if (val && /^\d{4}-\d{2}-\d{2}$/.test(val)) fetchExchangeRate();
