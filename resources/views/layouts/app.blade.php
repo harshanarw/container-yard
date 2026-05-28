@@ -63,6 +63,8 @@
             z-index: 9999 !important;
         }
         .air-datepicker {
+            /* override the CSS variable Air Datepicker uses for its border */
+            --adp-border-color: #90c8f9;
             border: 1px solid #90c8f9 !important;
             border-radius: 8px !important;
             box-shadow: 0 6px 20px rgba(33,150,243,.15) !important;
@@ -89,26 +91,6 @@
             background: #e3f2fd !important;
             color: #1565C0 !important;
         }
-        /* "Done" button in the Air Datepicker footer */
-        .air-datepicker--buttons {
-            padding: 4px 8px 8px;
-            border-top: 1px solid #e3f2fd;
-        }
-        .adp-done-btn {
-            display: block;
-            width: 100%;
-            padding: 6px 0;
-            background: #2196F3;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: .8125rem;
-            font-weight: 500;
-            font-family: inherit;
-            line-height: 1.4;
-        }
-        .adp-done-btn:hover { background: #1976D2; }
     </style>
 
     <style>
@@ -1139,7 +1121,7 @@
                     initDates = [new Date(raw.replace(' ', 'T'))];
                 }
 
-                new AirDatepicker($el[0], {
+                var dp = new AirDatepicker($el[0], {
                     timepicker:        true,
                     autoClose:         false,
                     dateFormat:        'yyyy-MM-dd',
@@ -1148,19 +1130,13 @@
                     position:          'bottom left',
                     selectedDates:     initDates,
                     container:         'body',
-                    buttons: [
-                        {
-                            content:   'Done',
-                            className: 'adp-done-btn',
-                            onClick: function (dp) {
-                                dp.hide();
-                                $el.trigger('change');
-                            },
-                        },
-                    ],
                     onSelect: function () {
                         $el.trigger('change');
                     },
+                });
+                // Auto-close when the AM/PM toggle is clicked (last step in 12h selection)
+                $(dp.$datepicker).on('click', '.air-datepicker--time-current-ampm', function () {
+                    setTimeout(function () { dp.hide(); $el.trigger('change'); }, 150);
                 });
             });
         }
