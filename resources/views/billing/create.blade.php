@@ -93,6 +93,9 @@
                     </select>
                 </div>
 
+                @php
+                    $todayRate = \App\Models\ExchangeRate::getRate('USD', 'LKR', date('Y-m-d'));
+                @endphp
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Invoice Date <span class="text-danger">*</span></label>
                     <input type="date" name="invoice_date" id="invoiceDate" class="form-control"
@@ -119,11 +122,20 @@
                         <div class="input-group">
                             <span class="input-group-text small" id="ratePrefixLabel">1 USD =</span>
                             <input type="number" id="exchangeRate" class="form-control"
-                                   value="1.0000" min="0.0001" step="0.0001" placeholder="e.g. 300">
+                                   value="{{ $todayRate ? number_format((float)$todayRate, 4, '.', '') : '1.0000' }}"
+                                   min="0.0001" step="0.0001" placeholder="e.g. 300">
                             <span class="input-group-text" id="rateSuffixLabel">LKR</span>
                         </div>
                         <div class="form-text d-flex align-items-center gap-1">
-                            <span id="rateNote">Rate auto-loaded from exchange rate master</span>
+                            @if($todayRate)
+                                <span id="rateNote" class="text-success">
+                                    <i class="bi bi-check-circle me-1"></i>Rate auto-loaded: 1 USD = {{ number_format((float)$todayRate, 4) }} LKR
+                                </span>
+                            @else
+                                <span id="rateNote" class="text-warning">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>No rate found for today — please enter manually or add in Exchange Rate master
+                                </span>
+                            @endif
                             <span id="rateSpinner" class="spinner-border spinner-border-sm d-none" style="width:.75rem;height:.75rem;"></span>
                         </div>
                     </div>
@@ -262,7 +274,7 @@
 <script>
 const csrfToken      = '{{ csrf_token() }}';
 const previewUrl     = '{{ route("billing.preview") }}';
-const exchRateUrl    = '{{ route("billing.exchange-rate") }}';
+const exchRateUrl = '/billing/exchange-rate';
 
 let previewLines = [];
 
@@ -286,22 +298,29 @@ async function fetchExchangeRate() {
 
     try {
         const res  = await fetch(exchRateUrl + '?currency=USD&date=' + encodeURIComponent(date));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
-        if (data.found && data.rate) {
-            document.getElementById('exchangeRate').value = parseFloat(data.rate).toFixed(4);
-            document.getElementById('rateNote').textContent = 'Rate auto-loaded for ' + date;
+        const note = document.getElementById('rateNote');
+        if (data.found && data.rate != null) {
+            const r = parseFloat(data.rate).toFixed(4);
+            document.getElementById('exchangeRate').value = r;
+            note.className = 'text-success';
+            note.innerHTML = '<i class="bi bi-check-circle me-1"></i>Rate auto-loaded: 1 USD = ' + r + ' LKR';
         } else {
-            document.getElementById('rateNote').textContent = 'No rate found — please enter manually';
+            note.className = 'text-warning';
+            note.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>No rate found for ' + date + ' — please enter manually';
         }
     } catch (e) {
-        document.getElementById('rateNote').textContent = 'Could not fetch rate';
+        const note = document.getElementById('rateNote');
+        note.className = 'text-danger';
+        note.innerHTML = '<i class="bi bi-x-circle me-1"></i>Could not fetch rate — please enter manually';
     } finally {
         spinner.classList.add('d-none');
     }
 }
 
+// Re-fetch rate when user changes the invoice date
 document.getElementById('invoiceDate').addEventListener('change', fetchExchangeRate);
-fetchExchangeRate(); // auto-load rate for default invoice date on page load
 
 // Customer selection: auto-set invoice type, billing party, tax-exempt alert
 $('#customerId').on('change', function () {
