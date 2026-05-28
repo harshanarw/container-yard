@@ -95,7 +95,7 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Invoice Date <span class="text-danger">*</span></label>
-                    <input type="date" name="invoice_date" class="form-control"
+                    <input type="date" name="invoice_date" id="invoiceDate" class="form-control"
                            value="{{ date('Y-m-d') }}" required>
                 </div>
 
@@ -110,17 +110,22 @@
                             <option value="SGD">SGD — Singapore Dollar</option>
                             <option value="AUD">AUD — Australian Dollar</option>
                         </select>
-                        <div class="form-text">All amounts saved in LKR</div>
+                        <div class="form-text">Values always stored in LKR</div>
                     </div>
                     <div class="col-7">
-                        <label class="form-label fw-semibold">USD → LKR Rate <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold">
+                            <span id="rateLabel">USD → LKR Rate</span> <span class="text-danger">*</span>
+                        </label>
                         <div class="input-group">
-                            <span class="input-group-text small">1 USD =</span>
+                            <span class="input-group-text small" id="ratePrefixLabel">1 USD =</span>
                             <input type="number" id="exchangeRate" class="form-control"
-                                   value="300.0000" min="0.0001" step="0.0001" placeholder="e.g. 300">
-                            <span class="input-group-text">LKR</span>
+                                   value="1.0000" min="0.0001" step="0.0001" placeholder="e.g. 300">
+                            <span class="input-group-text" id="rateSuffixLabel">LKR</span>
                         </div>
-                        <div class="form-text">Tariff rates are in USD; this converts them to LKR</div>
+                        <div class="form-text d-flex align-items-center gap-1">
+                            <span id="rateNote">Rate auto-loaded from exchange rate master</span>
+                            <span id="rateSpinner" class="spinner-border spinner-border-sm d-none" style="width:.75rem;height:.75rem;"></span>
+                        </div>
                     </div>
                 </div>
 
@@ -213,7 +218,8 @@
                                     <th class="text-end">SSCL</th>
                                     <th class="text-end">Tax2%</th>
                                     <th class="text-end">VAT</th>
-                                    <th class="text-end pe-3">Line Total</th>
+                                    <th class="text-end" id="amountHeader">Amount</th>
+                                    <th class="text-end pe-3 text-muted" style="font-size:.75rem;">Value (LKR)</th>
                                 </tr>
                             </thead>
                             <tbody id="previewBody"></tbody>
@@ -254,12 +260,54 @@
 
 @push('scripts')
 <script>
-const csrfToken = '{{ csrf_token() }}';
-const previewUrl = '{{ route("billing.preview") }}';
+const csrfToken      = '{{ csrf_token() }}';
+const previewUrl     = '{{ route("billing.preview") }}';
+const exchRateUrl    = '{{ route("billing.exchange-rate") }}';
 
 let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
+
+// Auto-fetch exchange rate when invoice date or currency changes
+async function fetchExchangeRate() {
+    const currency = document.getElementById('invoiceCurrency').value;
+    const date     = document.getElementById('invoiceDate').value;
+
+    // Update labels
+    const defCur = 'LKR';
+    document.getElementById('rateLabel').textContent      = currency === defCur ? 'Exchange Rate' : currency + ' → ' + defCur + ' Rate';
+    document.getElementById('ratePrefixLabel').textContent = '1 ' + currency + ' =';
+    document.getElementById('rateSuffixLabel').textContent = defCur;
+
+    if (currency === defCur) {
+        document.getElementById('exchangeRate').value = '1.0000';
+        document.getElementById('rateNote').textContent = 'Same as default currency — rate is 1.0';
+        return;
+    }
+    if (!date) return;
+
+    const spinner = document.getElementById('rateSpinner');
+    spinner.classList.remove('d-none');
+    document.getElementById('rateNote').textContent = 'Looking up rate…';
+
+    try {
+        const res  = await fetch(exchRateUrl + '?currency=' + encodeURIComponent(currency) + '&date=' + encodeURIComponent(date));
+        const data = await res.json();
+        if (data.found && data.rate) {
+            document.getElementById('exchangeRate').value = parseFloat(data.rate).toFixed(4);
+            document.getElementById('rateNote').textContent = 'Rate auto-loaded for ' + date;
+        } else {
+            document.getElementById('rateNote').textContent = 'No rate found — please enter manually';
+        }
+    } catch (e) {
+        document.getElementById('rateNote').textContent = 'Could not fetch rate';
+    } finally {
+        spinner.classList.add('d-none');
+    }
+}
+
+document.getElementById('invoiceDate').addEventListener('change', fetchExchangeRate);
+document.getElementById('invoiceCurrency').addEventListener('change', fetchExchangeRate);
 
 // Customer selection: auto-set invoice type, billing party, tax-exempt alert
 $('#customerId').on('change', function () {
@@ -370,15 +418,26 @@ function renderPreview(data) {
     document.getElementById('previewPlaceholder').classList.add('d-none');
     document.getElementById('summarySection').classList.remove('d-none');
 
-    const fmt  = n => parseFloat(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    const fmtC = (n, cur) => (cur || 'LKR') + ' ' + fmt(n);
+    const fmt    = n => parseFloat(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const fmtC   = (n, cur) => (cur || 'LKR') + '\xa0' + fmt(n);
+    const invCur = data.invoice_currency || 'LKR';
+    const defCur = data.default_currency || 'LKR';
+    const exRate = parseFloat(data.exchange_rate) || 1;
 
-    // Summary card — amounts always in LKR
+    // Amount = invoice-currency display; Value = default-currency (LKR) stored amount
+    const toAmt  = lkr => invCur === defCur ? parseFloat(lkr) : parseFloat(lkr) / exRate;
+    const fmtAmt = lkr => fmtC(toAmt(lkr), invCur);
+    const fmtVal = lkr => fmtC(lkr, defCur);
+
+    // Update Amount column header to show invoice currency
+    document.getElementById('amountHeader').textContent = 'Amount (' + invCur + ')';
+
+    // Summary card — show invoice-currency amounts
     document.getElementById('sumContainers').textContent = previewLines.length;
-    document.getElementById('sumSubtotal').textContent   = fmtC(data.subtotal, 'LKR');
-    document.getElementById('sumSscl').textContent       = fmtC(data.sscl_amount, 'LKR');
-    document.getElementById('sumVat').textContent        = fmtC(data.vat_amount, 'LKR');
-    document.getElementById('sumTotal').textContent      = fmtC(data.total_amount, 'LKR');
+    document.getElementById('sumSubtotal').textContent   = fmtAmt(data.subtotal);
+    document.getElementById('sumSscl').textContent       = fmtAmt(data.sscl_amount);
+    document.getElementById('sumVat').textContent        = fmtAmt(data.vat_amount);
+    document.getElementById('sumTotal').textContent      = fmtAmt(data.total_display ?? data.total_amount);
     document.getElementById('lineCount').textContent     = previewLines.length + ' containers';
 
     // Lines table
@@ -394,13 +453,14 @@ function renderPreview(data) {
             <td class="text-center"><span class="badge bg-light border text-dark">${l.total_days}d</span></td>
             <td class="text-center text-success small">${l.free_days}d</td>
             <td class="text-center ${l.chargeable_days > 0 ? 'text-danger fw-semibold' : 'text-success'}">${l.chargeable_days}d</td>
-            <td class="text-end small">${fmtC(l.daily_rate, l.currency)}</td>
-            <td class="text-end fw-semibold ${l.subtotal == 0 ? 'text-success' : ''}">${fmtC(l.subtotal, l.currency)}</td>
+            <td class="text-end small">${fmtAmt(l.daily_rate)}</td>
+            <td class="text-end fw-semibold ${l.subtotal == 0 ? 'text-success' : ''}">${fmtAmt(l.subtotal)}</td>
             <td class="text-end small text-muted">${parseFloat(l.tax1_rate||0).toFixed(2)}%</td>
-            <td class="text-end small text-secondary">${fmtC(l.line_sscl, l.currency)}</td>
+            <td class="text-end small text-secondary">${fmtAmt(l.line_sscl)}</td>
             <td class="text-end small text-muted">${parseFloat(l.tax2_rate||0).toFixed(2)}%</td>
-            <td class="text-end small text-secondary">${fmtC(l.line_vat, l.currency)}</td>
-            <td class="text-end pe-3 fw-bold">${fmtC(l.line_total, l.currency)}</td>
+            <td class="text-end small text-secondary">${fmtAmt(l.line_vat)}</td>
+            <td class="text-end fw-bold">${fmtAmt(l.line_amount ?? l.line_total)}</td>
+            <td class="text-end pe-3 text-muted small">${fmtVal(l.line_value ?? l.line_total)}</td>
         </tr>
     `).join('');
 
@@ -409,22 +469,25 @@ function renderPreview(data) {
     tfoot.innerHTML = `
         <tr>
             <td class="ps-3" colspan="15" style="text-align:right">Subtotal</td>
-            <td class="text-end pe-3">${fmtC(data.subtotal, 'LKR')}</td>
+            <td class="text-end">${fmtAmt(data.subtotal)}</td>
+            <td class="text-end pe-3 text-muted small">${fmtVal(data.subtotal)}</td>
         </tr>
         <tr class="text-muted" style="font-weight:400">
-            <td class="ps-3" colspan="14" style="text-align:right">SSCL</td>
-            <td class="text-end pe-3">${fmtC(data.sscl_amount, 'LKR')}</td>
+            <td class="ps-3" colspan="15" style="text-align:right">SSCL</td>
+            <td class="text-end">${fmtAmt(data.sscl_amount)}</td>
+            <td class="text-end pe-3 small">${fmtVal(data.sscl_amount)}</td>
         </tr>
         <tr class="text-muted" style="font-weight:400">
-            <td class="ps-3" colspan="14" style="text-align:right">VAT</td>
-            <td class="text-end pe-3">${fmtC(data.vat_amount, 'LKR')}</td>
+            <td class="ps-3" colspan="15" style="text-align:right">VAT</td>
+            <td class="text-end">${fmtAmt(data.vat_amount)}</td>
+            <td class="text-end pe-3 small">${fmtVal(data.vat_amount)}</td>
         </tr>
         <tr class="table-primary">
-            <td class="ps-3" colspan="14" style="text-align:right">TOTAL</td>
-            <td class="text-end pe-3">${fmtC(data.total_amount, 'LKR')}</td>
+            <td class="ps-3" colspan="15" style="text-align:right">TOTAL</td>
+            <td class="text-end">${fmtAmt(data.total_display ?? data.total_amount)}</td>
+            <td class="text-end pe-3 small">${fmtVal(data.total_value ?? data.total_amount)}</td>
         </tr>
     `;
-}
 
 function formatDate(d) {
     if (!d) return '—';

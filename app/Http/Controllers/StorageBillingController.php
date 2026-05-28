@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\StorageInvoice;
 use App\Models\StorageInvoiceDetail;
 use App\Models\StorageMasterHeader;
+use App\Services\CurrencyService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
@@ -70,9 +71,9 @@ class StorageBillingController extends Controller
         $taxExempt       = (bool) $customer->tax_exempt;
         $periodFrom      = now()->parse($validated['period_from'])->startOfDay();
         $periodTo        = now()->parse($validated['period_to'])->startOfDay();
-        // exchange_rate is always "1 USD = X LKR" — LKR is the base/reporting currency
         $invoiceCurrency = strtoupper($validated['invoice_currency'] ?? 'LKR');
         $exchangeRate    = (float) ($validated['exchange_rate'] ?? 1.0);
+        $defaultCurrency = CurrencyService::defaultCurrency();
         $ssclPct         = (float) ($validated['sscl_pct'] ?? 0);  // fallback rate
         $vatPct          = (float) ($validated['vat_pct'] ?? 0);    // fallback rate
 
@@ -174,13 +175,18 @@ class StorageBillingController extends Controller
             $freeDaysInPeriod  = min($totalDays, $freeDaysRemaining);
             $chargeableDays    = max(0, $totalDays - $freeDaysInPeriod);
 
-            // Convert USD tariff rate to LKR (base currency) using exchange_rate (1 USD = X LKR)
-            $dailyRateConverted = round($dailyRate * $exchangeRate, 2);
+            // Convert tariff rate to default currency: only multiply by exchangeRate when tariff is USD
+            $tariffMult         = CurrencyService::tariffMultiplier($currency, $exchangeRate);
+            $dailyRateConverted = round($dailyRate * $tariffMult, 2);
             $lineSubtotal       = round($chargeableDays * $dailyRateConverted, 2);
 
             $lineSscl  = round($lineSubtotal * $tax1Rate / 100, 2);
             $lineVat   = round(($lineSubtotal + $lineSscl) * $tax2Rate / 100, 2);
             $lineTotal = round($lineSubtotal + $lineSscl + $lineVat, 2);
+            // Value = amount in default currency (LKR); Amount = amount in invoice currency
+            $lineValue  = $lineTotal;  // stored in default currency (LKR)
+            $dispFactor = CurrencyService::invoiceDisplayFactor($invoiceCurrency, $exchangeRate);
+            $lineAmount = round($lineTotal * $dispFactor, 2);
 
             $eqtLabel = $container->equipmentType
                 ? $container->equipmentType->eqt_code . ' — ' . $container->equipmentType->description
@@ -199,7 +205,7 @@ class StorageBillingController extends Controller
                 'free_days'       => $freeDaysInPeriod,
                 'chargeable_days' => $chargeableDays,
                 'daily_rate'      => $dailyRateConverted,
-                'currency'        => 'LKR',   // amounts always stored in LKR
+                'currency'        => $defaultCurrency,
                 'subtotal'        => $lineSubtotal,
                 'charge_code_id'  => $chargeCodeId,
                 'tax1_rate'       => $tax1Rate,
@@ -207,20 +213,27 @@ class StorageBillingController extends Controller
                 'line_sscl'       => $lineSscl,
                 'line_vat'        => $lineVat,
                 'line_total'      => $lineTotal,
+                'line_value'      => $lineValue,   // default-currency (LKR) amount
+                'line_amount'     => $lineAmount,  // invoice-currency amount (for display)
+                'tariff_currency' => $currency,    // original tariff rate currency
                 'tariff_found'    => (bool) $tariffHeader,
             ];
         }
 
-        $subtotal    = round(array_sum(array_column($lines, 'subtotal')), 2);
-        $ssclAmount  = round(array_sum(array_column($lines, 'line_sscl')), 2);
-        $vatAmount   = round(array_sum(array_column($lines, 'line_vat')), 2);
-        $totalAmount = round(array_sum(array_column($lines, 'line_total')), 2);
+        $subtotal     = round(array_sum(array_column($lines, 'subtotal')), 2);
+        $ssclAmount   = round(array_sum(array_column($lines, 'line_sscl')), 2);
+        $vatAmount    = round(array_sum(array_column($lines, 'line_vat')), 2);
+        $totalAmount  = round(array_sum(array_column($lines, 'line_total')), 2);
+        $totalValue   = $totalAmount;  // default-currency total (LKR)
+        $dispFactor   = CurrencyService::invoiceDisplayFactor($invoiceCurrency, $exchangeRate);
+        $totalDisplay = round($totalAmount * $dispFactor, 2);  // invoice-currency total
 
         return response()->json([
             'customer'         => $customer->name,
             'tax_exempt'       => $taxExempt,
             'lines'            => $lines,
             'invoice_currency' => $invoiceCurrency,
+            'default_currency' => $defaultCurrency,
             'exchange_rate'    => $exchangeRate,
             'subtotal'         => $subtotal,
             'sscl_percentage'  => $ssclPct,
@@ -228,6 +241,8 @@ class StorageBillingController extends Controller
             'vat_percentage'   => $vatPct,
             'vat_amount'       => $vatAmount,
             'total_amount'     => $totalAmount,
+            'total_value'      => $totalValue,
+            'total_display'    => $totalDisplay,
             'tariff_found'     => (bool) $tariffHeader,
             'no_containers'    => false,
         ]);
@@ -270,9 +285,9 @@ class StorageBillingController extends Controller
             'lines.*.line_sscl'        => ['required', 'numeric', 'min:0'],
             'lines.*.line_vat'         => ['required', 'numeric', 'min:0'],
             'lines.*.line_total'       => ['required', 'numeric', 'min:0'],
+            'lines.*.line_value'       => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        // exchange_rate always = "1 USD = X LKR"; all stored amounts are in LKR
         $invoiceCurrency = strtoupper($validated['invoice_currency'] ?? 'LKR');
         $exchangeRate    = (float) ($validated['exchange_rate'] ?? 1.0);
         $ssclPct         = (float) ($validated['sscl_percentage'] ?? 0);
@@ -281,6 +296,7 @@ class StorageBillingController extends Controller
         $ssclAmount      = round(array_sum(array_column($validated['lines'], 'line_sscl')), 2);
         $vatAmount       = round(array_sum(array_column($validated['lines'], 'line_vat')), 2);
         $totalAmount     = round(array_sum(array_column($validated['lines'], 'line_total')), 2);
+        $totalValue      = round(array_sum(array_column($validated['lines'], 'line_value')), 2) ?: $totalAmount;
 
         // Generate sequential invoice number: SBI-YYYYMM-XXXX
         $prefix    = 'SBI-' . now()->format('Ym') . '-';
@@ -308,6 +324,7 @@ class StorageBillingController extends Controller
                 'vat_percentage'      => $vatPct,
                 'vat_amount'          => $vatAmount,
                 'total_amount'        => $totalAmount,
+                'total_value'         => $totalValue,
                 'status'              => 'draft',
                 'notes'               => $validated['notes'] ?? null,
                 'created_by'          => auth()->id(),
@@ -336,6 +353,7 @@ class StorageBillingController extends Controller
                     'line_sscl'          => $line['line_sscl'],
                     'line_vat'           => $line['line_vat'],
                     'line_total'         => $line['line_total'],
+                    'line_value'         => $line['line_value'] ?? $line['line_total'],
                 ]);
             }
         });
@@ -402,6 +420,28 @@ class StorageBillingController extends Controller
         $invoice->update(['status' => 'cancelled']);
 
         return back()->with('success', "Invoice {$invoice->invoice_no} cancelled.");
+    }
+
+    // ── Exchange rate lookup (AJAX) ───────────────────────────────────────────
+
+    public function exchangeRateLookup(Request $request)
+    {
+        $currency = strtoupper($request->get('currency', 'USD'));
+        $date     = $request->get('date', today()->toDateString());
+        $default  = CurrencyService::defaultCurrency();
+
+        if ($currency === $default) {
+            return response()->json(['rate' => 1.0, 'found' => true, 'currency' => $currency, 'default' => $default]);
+        }
+
+        $rate = \App\Models\ExchangeRate::getRate($currency, $default, $date);
+
+        return response()->json([
+            'rate'     => $rate,
+            'found'    => $rate !== null,
+            'currency' => $currency,
+            'default'  => $default,
+        ]);
     }
 
     // ── Printable / PDF ───────────────────────────────────────────────────────

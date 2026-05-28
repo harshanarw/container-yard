@@ -209,10 +209,11 @@ Route::middleware(['auth'])->group(function () {
 
     // Billing — Storage Invoice generation and management
     Route::prefix('billing')->name('billing.')->group(function () {
-        Route::get('/',       [StorageBillingController::class, 'index'])->name('index');
-        Route::get('/create', [StorageBillingController::class, 'create'])->name('create');
-        Route::post('/preview',[StorageBillingController::class, 'preview'])->name('preview');
-        Route::post('/',      [StorageBillingController::class, 'store'])->name('store');
+        Route::get('/',                [StorageBillingController::class, 'index'])->name('index');
+        Route::get('/create',          [StorageBillingController::class, 'create'])->name('create');
+        Route::post('/preview',        [StorageBillingController::class, 'preview'])->name('preview');
+        Route::get('/exchange-rate',   [StorageBillingController::class, 'exchangeRateLookup'])->name('exchange-rate');
+        Route::post('/',               [StorageBillingController::class, 'store'])->name('store');
 
         // Storage & Handling — must come BEFORE the /{invoice} wildcard
         Route::prefix('storage-handling')->name('storage-handling.')->group(function () {

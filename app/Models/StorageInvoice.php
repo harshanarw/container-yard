@@ -15,7 +15,7 @@ class StorageInvoice extends Model
         'billing_period_from', 'billing_period_to',
         'subtotal', 'tax_percentage', 'tax_amount',
         'sscl_percentage', 'sscl_amount', 'vat_percentage', 'vat_amount',
-        'total_amount', 'status', 'notes', 'sent_at', 'created_by',
+        'total_amount', 'total_value', 'status', 'notes', 'sent_at', 'created_by',
     ];
 
     protected $casts = [
@@ -31,6 +31,7 @@ class StorageInvoice extends Model
         'vat_percentage'      => 'decimal:2',
         'vat_amount'          => 'decimal:2',
         'total_amount'        => 'decimal:2',
+        'total_value'         => 'decimal:2',
         'sent_at'             => 'datetime',
     ];
 

@@ -110,7 +110,7 @@
                     <label class="form-label fw-semibold">
                         Invoice Date <span class="text-danger">*</span>
                     </label>
-                    <input type="date" name="invoice_date" class="form-control"
+                    <input type="date" name="invoice_date" id="invoiceDate" class="form-control"
                            value="{{ date('Y-m-d') }}" required>
                 </div>
 
@@ -125,17 +125,22 @@
                             <option value="SGD">SGD — Singapore Dollar</option>
                             <option value="AUD">AUD — Australian Dollar</option>
                         </select>
-                        <div class="form-text">All amounts saved in LKR</div>
+                        <div class="form-text">Values always stored in LKR</div>
                     </div>
                     <div class="col-7">
-                        <label class="form-label fw-semibold">USD → LKR Rate <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold">
+                            <span id="rateLabel">USD → LKR Rate</span> <span class="text-danger">*</span>
+                        </label>
                         <div class="input-group">
-                            <span class="input-group-text small">1 USD =</span>
+                            <span class="input-group-text small" id="ratePrefixLabel">1 USD =</span>
                             <input type="number" id="exchangeRate" class="form-control"
-                                   value="300.0000" min="0.0001" step="0.0001" placeholder="e.g. 300">
-                            <span class="input-group-text">LKR</span>
+                                   value="1.0000" min="0.0001" step="0.0001" placeholder="e.g. 300">
+                            <span class="input-group-text" id="rateSuffixLabel">LKR</span>
                         </div>
-                        <div class="form-text">Tariff rates are in USD; this converts them to LKR</div>
+                        <div class="form-text d-flex align-items-center gap-1">
+                            <span id="rateNote">Rate auto-loaded from exchange rate master</span>
+                            <span id="rateSpinner" class="spinner-border spinner-border-sm d-none" style="width:.75rem;height:.75rem;"></span>
+                        </div>
                     </div>
                 </div>
 
@@ -370,12 +375,53 @@
 
 @push('scripts')
 <script>
-const csrfToken  = '{{ csrf_token() }}';
-const previewUrl = '{{ route("billing.storage-handling.preview") }}';
+const csrfToken   = '{{ csrf_token() }}';
+const previewUrl  = '{{ route("billing.storage-handling.preview") }}';
+const exchRateUrl = '{{ route("billing.exchange-rate") }}';
 
 let previewLines = [];
 
 document.getElementById('previewBtn').addEventListener('click', runPreview);
+
+// Auto-fetch exchange rate when invoice date or currency changes
+async function fetchExchangeRate() {
+    const currency = document.getElementById('invoiceCurrency').value;
+    const date     = document.getElementById('invoiceDate').value;
+    const defCur   = 'LKR';
+
+    document.getElementById('rateLabel').textContent       = currency === defCur ? 'Exchange Rate' : currency + ' → ' + defCur + ' Rate';
+    document.getElementById('ratePrefixLabel').textContent = '1 ' + currency + ' =';
+    document.getElementById('rateSuffixLabel').textContent = defCur;
+
+    if (currency === defCur) {
+        document.getElementById('exchangeRate').value = '1.0000';
+        document.getElementById('rateNote').textContent = 'Same as default currency — rate is 1.0';
+        return;
+    }
+    if (!date) return;
+
+    const spinner = document.getElementById('rateSpinner');
+    spinner.classList.remove('d-none');
+    document.getElementById('rateNote').textContent = 'Looking up rate…';
+
+    try {
+        const res  = await fetch(exchRateUrl + '?currency=' + encodeURIComponent(currency) + '&date=' + encodeURIComponent(date));
+        const data = await res.json();
+        if (data.found && data.rate) {
+            document.getElementById('exchangeRate').value = parseFloat(data.rate).toFixed(4);
+            document.getElementById('rateNote').textContent = 'Rate auto-loaded for ' + date;
+        } else {
+            document.getElementById('rateNote').textContent = 'No rate found — please enter manually';
+        }
+    } catch (e) {
+        document.getElementById('rateNote').textContent = 'Could not fetch rate';
+    } finally {
+        spinner.classList.add('d-none');
+    }
+}
+
+document.getElementById('invoiceDate').addEventListener('change', fetchExchangeRate);
+document.getElementById('invoiceCurrency').addEventListener('change', fetchExchangeRate);
 
 // Operator selection: auto-set invoice type, billing party, tax-exempt alert
 $('#shippingLineId').on('change', function () {
@@ -497,16 +543,24 @@ function renderPreview(data) {
     document.getElementById('summarySection').classList.remove('d-none');
 
     const fmt    = n => parseFloat(n).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const fmtCur = n => 'LKR ' + fmt(n);
+    const fmtCur = n => 'LKR\xa0' + fmt(n);
+    const invCur = data.invoice_currency || 'LKR';
+    const defCur = data.default_currency || 'LKR';
+    const exRate = parseFloat(data.exchange_rate) || 1;
 
-    // Summary card — amounts always in LKR
+    // Amount = invoice-currency display; Value = default-currency (LKR) stored amount
+    const toAmt  = lkr => invCur === defCur ? parseFloat(lkr) : parseFloat(lkr) / exRate;
+    const fmtAmt = lkr => invCur + '\xa0' + fmt(toAmt(lkr));
+    const fmtVal = lkr => fmtCur(lkr);
+
+    // Summary card — show invoice-currency amounts
     document.getElementById('sumContainers').textContent = previewLines.length;
-    document.getElementById('sumStorage').textContent    = fmtCur(data.storage_subtotal);
-    document.getElementById('sumHandling').textContent   = fmtCur(data.handling_subtotal);
-    document.getElementById('sumSubtotal').textContent   = fmtCur(data.subtotal);
-    document.getElementById('sumSscl').textContent       = fmtCur(data.sscl_amount);
-    document.getElementById('sumVat').textContent        = fmtCur(data.vat_amount);
-    document.getElementById('sumTotal').textContent      = fmtCur(data.total_amount);
+    document.getElementById('sumStorage').textContent    = fmtAmt(data.storage_subtotal);
+    document.getElementById('sumHandling').textContent   = fmtAmt(data.handling_subtotal);
+    document.getElementById('sumSubtotal').textContent   = fmtAmt(data.subtotal);
+    document.getElementById('sumSscl').textContent       = fmtAmt(data.sscl_amount);
+    document.getElementById('sumVat').textContent        = fmtAmt(data.vat_amount);
+    document.getElementById('sumTotal').textContent      = fmtAmt(data.total_display ?? data.total_amount);
     document.getElementById('lineCount').textContent     = previewLines.length + ' containers';
 
     // ── Storage table ──────────────────────────────────────────────────────
@@ -527,13 +581,13 @@ function renderPreview(data) {
             <td class="text-center bg-warning-subtle small text-muted">${l.storage_tariff_currency || 'USD'}</td>
             <td class="text-end bg-warning-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
             <td class="text-end bg-warning-subtle fw-semibold small">${fmt(l.storage_daily_rate)}</td>
-            <td class="text-end pe-2 fw-semibold ${l.storage_subtotal == 0 ? 'text-success' : ''}">${fmtCur(l.storage_subtotal)}</td>
+            <td class="text-end pe-2 fw-semibold ${l.storage_subtotal == 0 ? 'text-success' : ''}">${fmtAmt(l.storage_subtotal)}</td>
         </tr>
     `).join('');
     document.getElementById('storageFoot').innerHTML = `
         <tr>
             <td colspan="15" class="text-end">Storage Subtotal</td>
-            <td class="text-end pe-2">${fmtCur(data.storage_subtotal)}</td>
+            <td class="text-end pe-2">${fmtAmt(data.storage_subtotal)}</td>
         </tr>`;
 
     // ── Handling: Lift Off ─────────────────────────────────────────────────
@@ -567,11 +621,11 @@ function renderPreview(data) {
             <td class="text-end bg-success-subtle small">${fmt(l.lift_off_rate_usd ?? 0)}</td>
             <td class="text-center bg-success-subtle small text-muted">${l.handling_tariff_currency || 'USD'}</td>
             <td class="text-end bg-success-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
-            <td class="text-end pe-2 fw-semibold">${fmtCur(l.lift_off_rate)}</td>
+            <td class="text-end pe-2 fw-semibold">${fmtAmt(l.lift_off_rate)}</td>
         </tr>`).join('');
     document.getElementById('liftOffSection').innerHTML = handlingTableTpl(liftOffRows, liftOffCols, liftOffLines.length)
         + (liftOffLines.length ? `<div class="d-flex justify-content-end px-3 py-1 bg-light border-top small fw-semibold text-muted">
-            Lift Off Subtotal: <span class="ms-2 text-dark">${fmtCur(liftOffLines.reduce((s, l) => s + parseFloat(l.lift_off_rate), 0))}</span></div>` : '');
+            Lift Off Subtotal: <span class="ms-2 text-dark">${fmtAmt(liftOffLines.reduce((s, l) => s + parseFloat(l.lift_off_rate), 0))}</span></div>` : '');
 
     const liftOnCols = `
         <th class="ps-2">#</th><th>Container</th><th class="text-center">Size</th>
@@ -591,40 +645,43 @@ function renderPreview(data) {
             <td class="text-end bg-primary-subtle small">${fmt(l.lift_on_rate_usd ?? 0)}</td>
             <td class="text-center bg-primary-subtle small text-muted">${l.handling_tariff_currency || 'USD'}</td>
             <td class="text-end bg-primary-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
-            <td class="text-end pe-2 fw-semibold">${fmtCur(l.lift_on_rate)}</td>
+            <td class="text-end pe-2 fw-semibold">${fmtAmt(l.lift_on_rate)}</td>
         </tr>`).join('');
     document.getElementById('liftOnSection').innerHTML = handlingTableTpl(liftOnRows, liftOnCols, liftOnLines.length)
         + (liftOnLines.length ? `<div class="d-flex justify-content-end px-3 py-1 bg-light border-top small fw-semibold text-muted">
-            Lift On Subtotal: <span class="ms-2 text-dark">${fmtCur(liftOnLines.reduce((s, l) => s + parseFloat(l.lift_on_rate), 0))}</span></div>` : '');
+            Lift On Subtotal: <span class="ms-2 text-dark">${fmtAmt(liftOnLines.reduce((s, l) => s + parseFloat(l.lift_on_rate), 0))}</span></div>` : '');
 
-    document.getElementById('handlingSubtotalFooter').textContent = fmtCur(data.handling_subtotal);
+    document.getElementById('handlingSubtotalFooter').textContent = fmtAmt(data.handling_subtotal);
 
     // ── Invoice Total table ────────────────────────────────────────────────
     const ssclRow = parseFloat(data.sscl_amount) > 0
-        ? `<tr><td class="ps-3 text-muted">SSCL</td><td class="text-end pe-3">${fmtCur(data.sscl_amount)}</td></tr>` : '';
+        ? `<tr><td class="ps-3 text-muted">SSCL</td><td class="text-end">${fmtAmt(data.sscl_amount)}</td><td class="text-end pe-3 small text-muted">${fmtVal(data.sscl_amount)}</td></tr>` : '';
     const vatRow  = parseFloat(data.vat_amount) > 0
-        ? `<tr><td class="ps-3 text-muted">VAT</td><td class="text-end pe-3">${fmtCur(data.vat_amount)}</td></tr>` : '';
+        ? `<tr><td class="ps-3 text-muted">VAT</td><td class="text-end">${fmtAmt(data.vat_amount)}</td><td class="text-end pe-3 small text-muted">${fmtVal(data.vat_amount)}</td></tr>` : '';
     document.getElementById('totalTable').innerHTML = `
         <tbody>
             <tr>
                 <td class="ps-3 text-muted"><i class="bi bi-building text-warning me-1"></i>Storage Subtotal</td>
-                <td class="text-end pe-3 fw-semibold">${fmtCur(data.storage_subtotal)}</td>
+                <td class="text-end fw-semibold">${fmtAmt(data.storage_subtotal)}</td>
+                <td class="text-end pe-3 small text-muted">${fmtVal(data.storage_subtotal)}</td>
             </tr>
             <tr>
                 <td class="ps-3 text-muted"><i class="bi bi-truck text-info me-1"></i>Handling Subtotal</td>
-                <td class="text-end pe-3 fw-semibold">${fmtCur(data.handling_subtotal)}</td>
+                <td class="text-end fw-semibold">${fmtAmt(data.handling_subtotal)}</td>
+                <td class="text-end pe-3 small text-muted">${fmtVal(data.handling_subtotal)}</td>
             </tr>
             <tr class="table-light">
                 <td class="ps-3 fw-semibold">Combined Subtotal</td>
-                <td class="text-end pe-3 fw-semibold">${fmtCur(data.subtotal)}</td>
+                <td class="text-end fw-semibold">${fmtAmt(data.subtotal)}</td>
+                <td class="text-end pe-3 small text-muted">${fmtVal(data.subtotal)}</td>
             </tr>
             ${ssclRow}${vatRow}
             <tr class="table-success fw-bold">
-                <td class="ps-3 fs-6">GRAND TOTAL</td>
-                <td class="text-end pe-3 fs-5">${fmtCur(data.total_amount)}</td>
+                <td class="ps-3 fs-6">GRAND TOTAL (${invCur})</td>
+                <td class="text-end fs-5">${fmtAmt(data.total_display ?? data.total_amount)}</td>
+                <td class="text-end pe-3 small">${fmtVal(data.total_value ?? data.total_amount)}</td>
             </tr>
         </tbody>`;
-}
 
 function fmtDate(d) {
     if (!d) return '—';

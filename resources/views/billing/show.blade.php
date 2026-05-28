@@ -8,12 +8,14 @@
 @endsection
 
 @php
-    // LKR is the base currency; all stored amounts are in LKR.
-    // If invoice_currency ≠ LKR, convert for display: display = lkr / exchange_rate
+    // Stored amounts are in default currency (LKR).
+    // Amount (invoice_currency) = stored / exchange_rate when invoice ≠ LKR.
+    // Value (LKR) = stored amount directly.
     $dispCur  = $invoice->invoice_currency ?? 'LKR';
     $dispRate = (float) ($invoice->exchange_rate ?? 1.0);
     $disp     = fn($lkr) => $dispCur === 'LKR' ? $lkr : round($lkr / $dispRate, 2);
     $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
+    $fmtValue = fn($v)   => 'LKR ' . number_format($v ?? 0, 2);
 @endphp
 
 @section('content')
@@ -272,7 +274,8 @@
                                 <th>Charge Code</th>
                                 <th class="text-end">SSCL</th>
                                 <th class="text-end">VAT</th>
-                                <th class="text-end pe-3">Line Total</th>
+                                <th class="text-end">Amount</th>
+                                <th class="text-end pe-3 text-muted" style="font-size:.75rem;">Value (LKR)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -337,8 +340,11 @@
                                     <div class="text-muted" style="font-size:.65rem;">{{ number_format($line->tax2_rate, 2) }}%</div>
                                     @endif
                                 </td>
-                                <td class="text-end pe-3 fw-bold">
+                                <td class="text-end fw-bold">
                                     {{ $fmtDisp($line->line_total) }}
+                                </td>
+                                <td class="text-end pe-3 text-muted small">
+                                    {{ $fmtValue($line->line_value ?? $line->line_total) }}
                                 </td>
                             </tr>
                             @endforeach
@@ -346,14 +352,16 @@
                         <tfoot class="table-light fw-semibold">
                             <tr>
                                 <td class="ps-3" colspan="14" style="text-align:right">Subtotal</td>
-                                <td class="text-end pe-3">{{ $fmtDisp($invoice->subtotal) }}</td>
+                                <td class="text-end">{{ $fmtDisp($invoice->subtotal) }}</td>
+                                <td class="text-end pe-3 text-muted small">{{ $fmtValue($invoice->subtotal) }}</td>
                             </tr>
                             @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
                             <tr class="fw-normal text-muted">
                                 <td class="ps-3" colspan="14" style="text-align:right">
                                     SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)
                                 </td>
-                                <td class="text-end pe-3">{{ $fmtDisp($invoice->sscl_amount) }}</td>
+                                <td class="text-end">{{ $fmtDisp($invoice->sscl_amount) }}</td>
+                                <td class="text-end pe-3 small">{{ $fmtValue($invoice->sscl_amount) }}</td>
                             </tr>
                             @endif
                             @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
@@ -361,7 +369,8 @@
                                 <td class="ps-3" colspan="14" style="text-align:right">
                                     VAT ({{ number_format($invoice->vat_percentage, 2) }}%)
                                 </td>
-                                <td class="text-end pe-3">{{ $fmtDisp($invoice->vat_amount) }}</td>
+                                <td class="text-end">{{ $fmtDisp($invoice->vat_amount) }}</td>
+                                <td class="text-end pe-3 small">{{ $fmtValue($invoice->vat_amount) }}</td>
                             </tr>
                             @endif
                             @if($invoice->tax_amount > 0)
@@ -369,12 +378,14 @@
                                 <td class="ps-3" colspan="14" style="text-align:right">
                                     Tax ({{ number_format($invoice->tax_percentage, 2) }}%)
                                 </td>
-                                <td class="text-end pe-3">{{ $fmtDisp($invoice->tax_amount) }}</td>
+                                <td class="text-end">{{ $fmtDisp($invoice->tax_amount) }}</td>
+                                <td class="text-end pe-3 small">{{ $fmtValue($invoice->tax_amount) }}</td>
                             </tr>
                             @endif
                             <tr class="table-primary fw-bold">
                                 <td class="ps-3" colspan="14" style="text-align:right">TOTAL</td>
-                                <td class="text-end pe-3 fs-6">{{ $fmtDisp($invoice->total_amount) }}</td>
+                                <td class="text-end fs-6">{{ $fmtDisp($invoice->total_amount) }}</td>
+                                <td class="text-end pe-3 small">{{ $fmtValue($invoice->total_value ?? $invoice->total_amount) }}</td>
                             </tr>
                         </tfoot>
                     </table>

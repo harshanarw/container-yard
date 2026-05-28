@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\GateMovement;
 use App\Models\HandlingTariff;
 use App\Models\StorageHandlingInvoice;
+use App\Services\CurrencyService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\StorageHandlingInvoiceLine;
 use App\Models\StorageMasterHeader;
@@ -78,9 +79,9 @@ class StorageHandlingController extends Controller
         $periodFrom      = now()->parse($v['period_from'])->startOfDay();
         $periodTo        = now()->parse($v['period_to'])->startOfDay();
         $periodToEod     = now()->parse($v['period_to'])->endOfDay();   // for movement timestamps
-        // exchange_rate is always "1 USD = X LKR" — LKR is the base/reporting currency
         $invoiceCurrency = strtoupper($v['invoice_currency'] ?? 'LKR');
         $exchangeRate    = (float) ($v['exchange_rate'] ?? 1.0);
+        $defaultCurrency = CurrencyService::defaultCurrency();
         $ssclPct         = (float) ($v['sscl_pct'] ?? 0);  // fallback rate
         $vatPct          = (float) ($v['vat_pct'] ?? 0);   // fallback rate
 
@@ -214,8 +215,9 @@ class StorageHandlingController extends Controller
             $freeDaysInPeriod  = min($totalDays, $freeDaysRemaining);
             $chargeableDays    = max(0, $totalDays - $freeDaysInPeriod);
 
-            // Convert USD storage rate to LKR (base currency) using exchange_rate (1 USD = X LKR)
-            $storageDailyConverted = round($storageRate * $exchangeRate, 2);
+            // Convert tariff rate to default currency: only multiply by exchangeRate when tariff is USD
+            $storageMult           = CurrencyService::tariffMultiplier($storageCur, $exchangeRate);
+            $storageDailyConverted = round($storageRate * $storageMult, 2);
             $storageSubtotal       = round($chargeableDays * $storageDailyConverted, 2);
 
             // ── Handling calculation ──────────────────────────────────────────
@@ -238,9 +240,10 @@ class StorageHandlingController extends Controller
                     $liftOffRateUsd = (float) $hRate->lift_off_rate;
                     $liftOnRateUsd  = (float) $hRate->lift_on_rate;
                     $handlingCur    = $hRate->currency ?? 'USD';
-                    // Convert handling rates to LKR (base currency)
-                    $liftOffRate = round($liftOffRateUsd * $exchangeRate, 2);
-                    $liftOnRate  = round($liftOnRateUsd  * $exchangeRate, 2);
+                    // Convert handling rates to default currency (same tariff-multiplier logic)
+                    $handlingMult   = CurrencyService::tariffMultiplier($handlingCur, $exchangeRate);
+                    $liftOffRate = round($liftOffRateUsd * $handlingMult, 2);
+                    $liftOnRate  = round($liftOnRateUsd  * $handlingMult, 2);
                 }
             }
 
@@ -252,6 +255,10 @@ class StorageHandlingController extends Controller
             $lineSscl       = round($lineTotal * $tax1Rate / 100, 2);
             $lineVat        = round(($lineTotal + $lineSscl) * $tax2Rate / 100, 2);
             $lineGrandTotal = round($lineTotal + $lineSscl + $lineVat, 2);
+            // Value = default-currency (LKR) amount; Amount = invoice-currency amount
+            $lineValue  = $lineGrandTotal;
+            $dispFactor = CurrencyService::invoiceDisplayFactor($invoiceCurrency, $exchangeRate);
+            $lineAmount = round($lineGrandTotal * $dispFactor, 2);
 
             $eqtLabel = $container->equipmentType
                 ? $container->equipmentType->eqt_code . ' — ' . $container->equipmentType->description
@@ -272,19 +279,19 @@ class StorageHandlingController extends Controller
                 'storage_free_days'        => $freeDaysInPeriod,
                 'storage_chargeable_days'  => $chargeableDays,
                 'storage_daily_rate'       => $storageDailyConverted,
-                'storage_daily_rate_usd'   => $storageRate,       // original tariff rate (pre-conversion)
-                'storage_tariff_currency'  => $storageCur,        // tariff rate currency (e.g. USD)
-                'exchange_rate'            => $exchangeRate,       // 1 USD = X LKR
-                'storage_currency'         => 'LKR',   // amounts always stored in LKR
+                'storage_daily_rate_usd'   => $storageRate,
+                'storage_tariff_currency'  => $storageCur,
+                'exchange_rate'            => $exchangeRate,
+                'storage_currency'         => $defaultCurrency,
                 'storage_subtotal'         => $storageSubtotal,
                 'has_lift_off'             => $hasLiftOff ? 1 : 0,
                 'lift_off_rate'            => $liftOffRate,
-                'lift_off_rate_usd'        => $liftOffRateUsd,    // original tariff rate
+                'lift_off_rate_usd'        => $liftOffRateUsd,
                 'has_lift_on'              => $hasLiftOn ? 1 : 0,
                 'lift_on_rate'             => $liftOnRate,
-                'lift_on_rate_usd'         => $liftOnRateUsd,     // original tariff rate
-                'handling_tariff_currency' => $handlingCur,       // tariff rate currency
-                'handling_currency'        => 'LKR',   // amounts always stored in LKR
+                'lift_on_rate_usd'         => $liftOnRateUsd,
+                'handling_tariff_currency' => $handlingCur,
+                'handling_currency'        => $defaultCurrency,
                 'handling_subtotal'        => $handlingSubtotal,
                 'charge_code_id'           => $chargeCodeId,
                 'tax1_rate'                => $tax1Rate,
@@ -293,6 +300,8 @@ class StorageHandlingController extends Controller
                 'line_sscl'                => $lineSscl,
                 'line_vat'                 => $lineVat,
                 'line_grand_total'         => $lineGrandTotal,
+                'line_value'               => $lineValue,   // default-currency (LKR) amount
+                'line_amount'              => $lineAmount,  // invoice-currency amount (for display)
             ];
         }
 
@@ -302,12 +311,16 @@ class StorageHandlingController extends Controller
         $ssclAmount       = round(array_sum(array_column($lines, 'line_sscl')), 2);
         $vatAmount        = round(array_sum(array_column($lines, 'line_vat')), 2);
         $totalAmount      = round($subtotal + $ssclAmount + $vatAmount, 2);
+        $totalValue       = $totalAmount;
+        $dispFactor       = CurrencyService::invoiceDisplayFactor($invoiceCurrency, $exchangeRate);
+        $totalDisplay     = round($totalAmount * $dispFactor, 2);
 
         return response()->json([
             'shipping_line'          => $shippingLine->name,
             'tax_exempt'             => $taxExempt,
             'lines'                  => $lines,
             'invoice_currency'       => $invoiceCurrency,
+            'default_currency'       => $defaultCurrency,
             'exchange_rate'          => $exchangeRate,
             'storage_subtotal'       => $storageTotalAmt,
             'handling_subtotal'      => $handlingTotalAmt,
@@ -317,6 +330,8 @@ class StorageHandlingController extends Controller
             'vat_percentage'         => $vatPct,
             'vat_amount'             => $vatAmount,
             'total_amount'           => $totalAmount,
+            'total_value'            => $totalValue,
+            'total_display'          => $totalDisplay,
             'storage_tariff_found'   => (bool) $storageTariff,
             'handling_tariff_found'  => (bool) $handlingTariff,
             'no_data'                => false,
@@ -369,6 +384,7 @@ class StorageHandlingController extends Controller
             'lines.*.line_sscl'                   => 'required|numeric|min:0',
             'lines.*.line_vat'                    => 'required|numeric|min:0',
             'lines.*.line_grand_total'            => 'required|numeric|min:0',
+            'lines.*.line_value'                  => 'nullable|numeric|min:0',
         ]);
 
         $invoiceCurrency  = strtoupper($v['invoice_currency'] ?? 'LKR');
@@ -381,6 +397,7 @@ class StorageHandlingController extends Controller
         $ssclAmount       = round(array_sum(array_column($v['lines'], 'line_sscl')), 2);
         $vatAmount        = round(array_sum(array_column($v['lines'], 'line_vat')), 2);
         $totalAmount      = round($subtotal + $ssclAmount + $vatAmount, 2);
+        $totalValue       = round(array_sum(array_column($v['lines'], 'line_value')), 2) ?: $totalAmount;
 
         // Sequential invoice number: SHI-YYYYMM-XXXX
         $prefix    = 'SHI-' . now()->format('Ym') . '-';
@@ -410,6 +427,7 @@ class StorageHandlingController extends Controller
                 'vat_percentage'      => $vatPct,
                 'vat_amount'          => $vatAmount,
                 'total_amount'        => $totalAmount,
+                'total_value'         => $totalValue,
                 'status'              => 'draft',
                 'notes'               => $v['notes'] ?? null,
                 'created_by'          => auth()->id(),
@@ -447,6 +465,7 @@ class StorageHandlingController extends Controller
                     'line_sscl'                => $line['line_sscl'],
                     'line_vat'                 => $line['line_vat'],
                     'line_grand_total'         => $line['line_grand_total'],
+                    'line_value'               => $line['line_value'] ?? $line['line_grand_total'],
                 ]);
             }
         });
