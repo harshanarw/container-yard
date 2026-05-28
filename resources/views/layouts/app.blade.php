@@ -18,117 +18,42 @@
     <!-- Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
-    <!-- Flatpickr date picker -->
-    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+    <!-- Bootstrap Datepicker -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" rel="stylesheet">
     <style>
-        /* ── Flatpickr — system light-blue theme ─────────────────────────── */
-        .flatpickr-calendar {
+        /* Bootstrap Datepicker — bordered, system-blue accents */
+        .datepicker-dropdown {
             border: 1px solid #90c8f9;
-            border-radius: 10px;
-            box-shadow: 0 6px 24px rgba(33,150,243,.18);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(33,150,243,.12);
             font-family: inherit;
             font-size: .875rem;
-            overflow: hidden;
         }
-        /* Header: primary blue */
-        .flatpickr-months {
-            background: #2196F3;
-            padding: 6px 0 4px;
-            border-radius: 9px 9px 0 0;
-        }
-        .flatpickr-months .flatpickr-month,
-        .flatpickr-current-month,
-        .flatpickr-current-month .cur-month,
-        .flatpickr-current-month input.cur-year {
-            background: transparent;
-            color: #fff;
-            fill: #fff;
-            font-weight: 600;
-        }
-        .flatpickr-current-month input.cur-year { width: 4.5ch; }
-        .flatpickr-months .flatpickr-prev-month svg,
-        .flatpickr-months .flatpickr-next-month svg { fill: #fff; }
-        .flatpickr-months .flatpickr-prev-month,
-        .flatpickr-months .flatpickr-next-month {
-            color: #fff; fill: #fff;
-        }
-        .flatpickr-months .flatpickr-prev-month:hover,
-        .flatpickr-months .flatpickr-next-month:hover {
-            background: rgba(255,255,255,.18); border-radius: 50%;
-        }
-        /* Weekday row: very light blue strip */
-        .flatpickr-weekdays {
+        .datepicker table tr td.today:not(.active) {
             background: #e3f2fd;
-            border-bottom: 1px solid #bbdefb;
-        }
-        span.flatpickr-weekday {
-            background: transparent;
+            border-color: #90c8f9;
             color: #1565C0;
             font-weight: 600;
-            font-size: .75rem;
         }
-        /* Day grid: white background */
-        .flatpickr-days,
-        .dayContainer {
-            background: #fff;
-            border-left:  1px solid #90c8f9;
-            border-right: 1px solid #90c8f9;
+        .datepicker table tr td.active,
+        .datepicker table tr td.active:hover,
+        .datepicker table tr td.active.disabled,
+        .datepicker table tr td.active.disabled:hover {
+            background: #2196F3 !important;
+            border-color: #2196F3 !important;
+            color: #fff !important;
+            text-shadow: none;
         }
-        .flatpickr-day {
-            border-radius: 6px;
-            color: #212529;
-        }
-        .flatpickr-day:hover:not(.selected):not(.today) {
+        .datepicker table tr td:hover:not(.active),
+        .datepicker table tr td span:hover:not(.active) {
             background: #d0e8fd;
-            border-color: #90c8f9;
             color: #1565C0;
         }
-        .flatpickr-day.today {
-            border-color: #2196F3;
-            color: #2196F3;
-            font-weight: 700;
-        }
-        .flatpickr-day.today:hover {
-            background: #2196F3;
-            border-color: #2196F3;
-            color: #fff;
-        }
-        .flatpickr-day.selected,
-        .flatpickr-day.selected:hover,
-        .flatpickr-day.startRange,
-        .flatpickr-day.endRange {
-            background: #2196F3;
-            border-color: #2196F3;
-            color: #fff;
-        }
-        .flatpickr-day.inRange {
-            background: #d0e8fd;
-            border-color: #90c8f9;
+        .datepicker table tr th.switch:hover,
+        .datepicker table tr th.prev:hover,
+        .datepicker table tr th.next:hover {
+            background: #e3f2fd;
             color: #1565C0;
-            box-shadow: -5px 0 0 #d0e8fd, 5px 0 0 #d0e8fd;
-        }
-        .flatpickr-day.flatpickr-disabled,
-        .flatpickr-day.flatpickr-disabled:hover,
-        .flatpickr-day.prevMonthDay,
-        .flatpickr-day.nextMonthDay {
-            color: #adb5bd;
-        }
-        /* Footer / time section */
-        .flatpickr-time {
-            background: #fff;
-            border-top: 1px solid #bbdefb;
-        }
-        .flatpickr-time input:hover,
-        .flatpickr-time .flatpickr-am-pm:hover,
-        .flatpickr-time input:focus {
-            background: #d0e8fd;
-        }
-        /* Visible alt-input stays white and clickable */
-        input.flatpickr-input {
-            background-color: #fff !important;
-        }
-        input.flatpickr-input[readonly] {
-            cursor: pointer;
         }
     </style>
 
@@ -1055,8 +980,8 @@
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <!-- Select2 -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<!-- Flatpickr date picker -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<!-- Bootstrap Datepicker -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 
 <script>
     // Sidebar toggle
@@ -1123,21 +1048,20 @@
             $('.select2').select2({ theme: 'bootstrap-5' });
         }
 
-        // Init Flatpickr on all date / datetime-local inputs.
-        // altInput is intentionally NOT used: with altInput Flatpickr sets the
-        // original input to type="hidden" and skips firing native change events,
-        // which would break existing onChange listeners on those elements.
-        if (typeof flatpickr !== 'undefined') {
-            flatpickr('input[type="date"]', {
-                dateFormat: 'Y-m-d',
-                allowInput: true,
-            });
-
-            flatpickr('input[type="datetime-local"]', {
-                dateFormat:  'Y-m-d H:i',
-                enableTime:  true,
-                time_24hr:   true,
-                allowInput:  true,
+        // Bootstrap Datepicker — convert type="date" inputs to text and init
+        if (typeof $.fn.datepicker !== 'undefined') {
+            $('input[type="date"]').each(function () {
+                var $el  = $(this);
+                var prev = $el.val();
+                $el.attr('type', 'text').attr('autocomplete', 'off');
+                $el.datepicker({
+                    format:         'yyyy-mm-dd',
+                    autoclose:      true,
+                    todayHighlight: true,
+                    weekStart:      1,
+                    orientation:    'bottom auto',
+                });
+                if (prev) $el.datepicker('setDate', prev);
             });
         }
     });

@@ -393,8 +393,6 @@ const exchRateUrl = '/billing/exchange-rate';
 
 let previewLines = [];
 
-document.getElementById('previewBtn').addEventListener('click', runPreview);
-
 // Fetch USD → LKR exchange rate from master based on invoice date.
 // Always fetches USD→LKR regardless of invoice currency, because tariffs may be
 // USD-denominated even when the invoice is issued in LKR.
@@ -441,11 +439,7 @@ function onDateChange() {
     const val = document.getElementById('invoiceDate').value;
     if (val && /^\d{4}-\d{2}-\d{2}$/.test(val)) fetchExchangeRate();
 }
-document.getElementById('invoiceDate').addEventListener('change', onDateChange);
-document.getElementById('invoiceDate').addEventListener('input',  onDateChange);
-
 // Operator selection: auto-set invoice type, billing party, tax-exempt alert
-// Listen on both 'change' (native) and 'select2:select' (Select2 custom event)
 function onShippingLineChange() {
     const val    = $('#shippingLineId').val();
     const $opt   = $('#shippingLineId').find('option[value="' + val + '"]');
@@ -459,8 +453,6 @@ function onShippingLineChange() {
         $('#billingPartyId').val(bpId).trigger('change');
     }
 }
-$('#shippingLineId').on('change select2:select', onShippingLineChange);
-
 // Billing party: show address info panel on selection
 function onBillingPartyChange() {
     const val    = $('#billingPartyId').val();
@@ -476,8 +468,6 @@ function onBillingPartyChange() {
         infoEl.classList.add('d-none');
     }
 }
-$('#billingPartyId').on('change select2:select', onBillingPartyChange);
-
 async function runPreview() {
     const shippingLineId  = document.getElementById('shippingLineId').value;
     const periodFrom      = document.getElementById('periodFrom').value;
@@ -719,31 +709,43 @@ function showAlert(type, msg) {
     a.classList.remove('d-none');
 }
 
-// Inject hidden inputs from preview before save
-document.getElementById('billingForm').addEventListener('submit', function (e) {
-    if (previewLines.length === 0) {
-        e.preventDefault();
-        alert('Please run a preview first.');
-        return;
-    }
+// Wire up all event handlers once DOM + jQuery plugins are ready
+$(document).ready(function () {
+    document.getElementById('previewBtn').addEventListener('click', runPreview);
 
-    this.querySelectorAll('[name^="lines["], [name="invoice_currency"], [name="exchange_rate"]')
-        .forEach(el => el.remove());
+    // 'changeDate' fires when Bootstrap Datepicker picks a date;
+    // 'change'/'input' covers manual/typed entry
+    $('#invoiceDate').on('change input changeDate', onDateChange);
 
-    const invoiceCurrency = document.getElementById('invoiceCurrency').value;
-    const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
+    $('#shippingLineId').on('change select2:select', onShippingLineChange);
+    $('#billingPartyId').on('change select2:select', onBillingPartyChange);
 
-    const mkHidden = (name, val) => {
-        const inp = document.createElement('input');
-        inp.type = 'hidden'; inp.name = name; inp.value = val ?? '';
-        this.appendChild(inp);
-    };
-    mkHidden('invoice_currency', invoiceCurrency);
-    mkHidden('exchange_rate', exchangeRate);
+    // Inject hidden inputs from preview before save
+    document.getElementById('billingForm').addEventListener('submit', function (e) {
+        if (previewLines.length === 0) {
+            e.preventDefault();
+            alert('Please run a preview first.');
+            return;
+        }
 
-    previewLines.forEach((line, i) => {
-        Object.entries(line).forEach(([key, val]) => {
-            mkHidden(`lines[${i}][${key}]`, val);
+        this.querySelectorAll('[name^="lines["], [name="invoice_currency"], [name="exchange_rate"]')
+            .forEach(el => el.remove());
+
+        const invoiceCurrency = document.getElementById('invoiceCurrency').value;
+        const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
+
+        const mkHidden = (name, val) => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = name; inp.value = val ?? '';
+            this.appendChild(inp);
+        };
+        mkHidden('invoice_currency', invoiceCurrency);
+        mkHidden('exchange_rate', exchangeRate);
+
+        previewLines.forEach((line, i) => {
+            Object.entries(line).forEach(([key, val]) => {
+                mkHidden(`lines[${i}][${key}]`, val);
+            });
         });
     });
 });
