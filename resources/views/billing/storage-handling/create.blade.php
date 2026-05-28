@@ -415,8 +415,8 @@ async function fetchExchangeRate() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', fetchExchangeRate);
 document.getElementById('invoiceDate').addEventListener('change', fetchExchangeRate);
+fetchExchangeRate(); // auto-load rate for default invoice date on page load
 
 // Operator selection: auto-set invoice type, billing party, tax-exempt alert
 $('#shippingLineId').on('change', function () {

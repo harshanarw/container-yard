@@ -300,8 +300,8 @@ async function fetchExchangeRate() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', fetchExchangeRate);
 document.getElementById('invoiceDate').addEventListener('change', fetchExchangeRate);
+fetchExchangeRate(); // auto-load rate for default invoice date on page load
 
 // Customer selection: auto-set invoice type, billing party, tax-exempt alert
 $('#customerId').on('change', function () {
