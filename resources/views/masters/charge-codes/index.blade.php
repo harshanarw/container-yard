@@ -15,9 +15,11 @@
         <h4><i class="bi bi-tag me-2 text-primary"></i>Charge Codes</h4>
         <p class="text-muted mb-0 small">Define billable charge items for invoices, tariffs and supplier payables. Drag rows to reorder.</p>
     </div>
+    @if(auth()->user()->isSuperUser())
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Charge Code
     </button>
+    @endif
 </div>
 
 @if(session('success'))
@@ -76,6 +78,9 @@
                         <span class="badge bg-primary fw-bold" style="font-size:.8rem;letter-spacing:.5px;">
                             {{ $cc->code }}
                         </span>
+                        @if($cc->is_system)
+                            <span class="badge bg-secondary-subtle text-secondary border ms-1" style="font-size:.65rem;" title="System default — cannot be deleted">SYS</span>
+                        @endif
                     </td>
                     <td class="small fw-semibold">{{ $cc->description }}</td>
                     <td>
@@ -125,15 +130,18 @@
                                     data-category="{{ $cc->category ?? '' }}"
                                     data-rate_type="{{ $cc->rate_type ?? '' }}"
                                     data-tax_code_id="{{ $cc->tax_code_id ?? '' }}"
-                                    title="Edit">
+                                    data-is_system="{{ $cc->is_system ? '1' : '0' }}"
+                                    title="{{ $cc->is_system && !auth()->user()->isSystemAdmin() ? 'Edit Tax Code only (system code)' : 'Edit' }}">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @if(!$cc->is_system || auth()->user()->isSystemAdmin())
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $cc->id }}"
                                     data-label="{{ $cc->code }}"
                                     title="Delete">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -233,6 +241,10 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <div id="editSystemNotice" class="alert alert-warning py-2 small d-none mb-3">
+                        <i class="bi bi-shield-lock me-1"></i>
+                        <strong>System charge code</strong> — only the Tax Code field can be updated.
+                    </div>
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Code <span class="text-danger">*</span></label>
@@ -334,8 +346,13 @@ if (tbody) {
 }
 
 // ── Edit modal ───────────────────────────────────────────────────────────────
+const isSystemAdmin = @json(auth()->user()->isSystemAdmin());
+
 document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
+        const isSystem = btn.dataset.is_system === '1';
+        const limitedEdit = isSystem && !isSystemAdmin;
+
         document.getElementById('editCode').value        = btn.dataset.code;
         document.getElementById('editDescription').value = btn.dataset.description;
         document.getElementById('editCategory').value    = btn.dataset.category || '';
@@ -343,6 +360,16 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
         document.getElementById('editTaxCodeId').value   = btn.dataset.tax_code_id || '';
         document.getElementById('editForm').action =
             '{{ url("masters/charge-codes") }}/' + btn.dataset.id;
+
+        // For system codes edited by Admin: lock everything except Tax Code
+        ['editCode', 'editDescription', 'editCategory', 'editRateType'].forEach(id => {
+            const el = document.getElementById(id);
+            el.disabled = limitedEdit;
+        });
+
+        const notice = document.getElementById('editSystemNotice');
+        if (notice) notice.classList.toggle('d-none', !limitedEdit);
+
         new bootstrap.Modal(document.getElementById('editModal')).show();
     });
 });

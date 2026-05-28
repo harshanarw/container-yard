@@ -50,10 +50,11 @@ class ChargeCode extends Model
         'flat_rate'     => 'Flat Rate / Lump Sum',
     ];
 
-    protected $fillable = ['code', 'description', 'category', 'rate_type', 'tax_code_id', 'is_active', 'sort_order'];
+    protected $fillable = ['code', 'description', 'category', 'rate_type', 'tax_code_id', 'is_active', 'sort_order', 'is_system'];
 
     protected $casts = [
         'is_active'  => 'boolean',
+        'is_system'  => 'boolean',
         'sort_order' => 'integer',
     ];
 

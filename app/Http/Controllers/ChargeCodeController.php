@@ -43,6 +43,17 @@ class ChargeCodeController extends Controller
 
     public function update(Request $request, ChargeCode $chargeCode)
     {
+        $user = auth()->user();
+
+        // Admin (non-system-admin) can only update tax_code_id on system charge codes
+        if ($chargeCode->is_system && ! $user->isSystemAdmin()) {
+            $data = $request->validate([
+                'tax_code_id' => ['nullable', 'integer', 'exists:tax_codes,id'],
+            ]);
+            $chargeCode->update(['tax_code_id' => $data['tax_code_id'] ?? null]);
+            return back()->with('success', "Tax code updated for \"{$chargeCode->code}\".");
+        }
+
         $data = $request->validate([
             'code'        => ['required', 'string', 'max:20', "unique:charge_codes,code,{$chargeCode->id}"],
             'description' => ['required', 'string', 'max:200'],
@@ -66,6 +77,10 @@ class ChargeCodeController extends Controller
 
     public function destroy(ChargeCode $chargeCode)
     {
+        if ($chargeCode->is_system && ! auth()->user()->isSystemAdmin()) {
+            return back()->with('error', 'System charge codes cannot be deleted.');
+        }
+
         $chargeCode->delete();
 
         return back()->with('success', "Charge code \"{$chargeCode->code}\" deleted.");

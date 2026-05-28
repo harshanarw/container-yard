@@ -94,7 +94,7 @@ class ChargeCodeSeeder extends Seeder
         foreach ($charges as $i => $data) {
             ChargeCode::updateOrCreate(
                 ['code' => $data['code']],
-                array_merge($data, ['sort_order' => $i + 1])
+                array_merge($data, ['sort_order' => $i + 1, 'is_system' => true])
             );
         }
     }

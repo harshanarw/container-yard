@@ -325,7 +325,7 @@
                         <select name="charge_code_id" class="form-select form-select-sm select2">
                             <option value="">— None —</option>
                             @foreach($chargeCodes as $cc)
-                                <option value="{{ $cc->id }}">
+                                <option value="{{ $cc->id }}" {{ $cc->code === 'STC' ? 'selected' : '' }}>
                                     {{ $cc->code }} — {{ $cc->description }}
                                     @if($cc->taxCode) ({{ $cc->taxCode->code }}) @endif
                                 </option>
