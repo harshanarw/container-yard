@@ -20,21 +20,27 @@
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
     <!-- Bootstrap Datepicker -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" rel="stylesheet">
-    <!-- jQuery Datetimepicker (for datetime-local inputs) -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.css" rel="stylesheet">
     <style>
         /* Bootstrap Datepicker — bordered, system-blue accents */
+        /* Override Bootstrap 5 dropdown-menu base so it doesn't hide our picker */
+        .datepicker.dropdown-menu {
+            display: block;
+            min-width: 0;
+            padding: 0;
+            margin: 0;
+        }
         .datepicker-dropdown {
-            border: 1px solid #90c8f9;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(33,150,243,.12);
+            border: 1px solid #90c8f9 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 6px 20px rgba(33,150,243,.15) !important;
             font-family: inherit;
             font-size: .875rem;
-            margin-top: 4px;   /* gap between input and calendar */
+            z-index: 1060 !important;
+            position: absolute !important;
         }
-        /* hide the arrow caret — can look misaligned with Bootstrap 5 layout */
+        /* hide caret arrow — unreliable placement with Bootstrap 5 layout */
         .datepicker.datepicker-dropdown::before,
-        .datepicker.datepicker-dropdown::after { display: none; }
+        .datepicker.datepicker-dropdown::after { display: none !important; }
         .datepicker table tr td.today:not(.active) {
             background: #e3f2fd;
             border-color: #90c8f9;
@@ -61,36 +67,12 @@
             background: #e3f2fd;
             color: #1565C0;
         }
-
-        /* jQuery Datetimepicker — bordered, system-blue accents */
-        .xdsoft_datetimepicker {
-            border: 1px solid #90c8f9 !important;
-            border-radius: 8px !important;
-            box-shadow: 0 4px 12px rgba(33,150,243,.12) !important;
-            font-family: inherit !important;
-            font-size: .875rem !important;
+        /* Style native datetime-local inputs to match theme */
+        input[type="datetime-local"].form-control:focus {
+            border-color: #90c8f9;
+            box-shadow: 0 0 0 0.25rem rgba(33,150,243,.15);
         }
-        .xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_current,
-        .xdsoft_datetimepicker .xdsoft_time_box > div > div.xdsoft_current {
-            background: #2196F3 !important;
-            color: #fff !important;
-            text-shadow: none !important;
-        }
-        .xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_today {
-            color: #2196F3;
-            font-weight: 700;
-        }
-        .xdsoft_datetimepicker .xdsoft_calendar td:hover:not(.xdsoft_disabled),
-        .xdsoft_datetimepicker .xdsoft_time_box > div > div:hover:not(.xdsoft_disabled) {
-            background: #d0e8fd !important;
-            color: #1565C0 !important;
-        }
-        .xdsoft_datetimepicker .xdsoft_label i,
-        .xdsoft_datetimepicker .xdsoft_today_button,
-        .xdsoft_datetimepicker .xdsoft_next,
-        .xdsoft_datetimepicker .xdsoft_prev {
-            color: #2196F3;
-        }
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .7; }
     </style>
 
     <style>
@@ -1018,8 +1000,6 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <!-- Bootstrap Datepicker -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
-<!-- jQuery Datetimepicker (for datetime-local inputs) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js"></script>
 
 <script>
     // Sidebar toggle
@@ -1086,7 +1066,10 @@
             $('.select2').select2({ theme: 'bootstrap-5' });
         }
 
-        // Bootstrap Datepicker — convert type="date" inputs to text and init
+        // Bootstrap Datepicker — convert type="date" inputs to text and init.
+        // 'bottom left' forces the calendar to always open BELOW the input;
+        // without this, Bootstrap Datepicker's auto-orientation can decide to
+        // open ABOVE and cover the input when it miscalculates available space.
         if (typeof $.fn.datepicker !== 'undefined') {
             $('input[type="date"]').each(function () {
                 var $el  = $(this);
@@ -1097,30 +1080,13 @@
                     autoclose:      true,
                     todayHighlight: true,
                     weekStart:      1,
+                    orientation:    'bottom left',
+                    container:      'body',
                 });
                 if (prev) $el.datepicker('update', prev);
             });
         }
-
-        // jQuery Datetimepicker — convert type="datetime-local" inputs to text and init
-        if (typeof $.fn.datetimepicker !== 'undefined') {
-            $('input[type="datetime-local"]').each(function () {
-                var $el  = $(this);
-                // ISO value uses 'T' separator; datetimepicker expects a space
-                var prev = ($el.val() || '').replace('T', ' ');
-                $el.attr('type', 'text').attr('autocomplete', 'off');
-                $el.datetimepicker({
-                    format:      'Y-m-d H:i',
-                    autoclose:   true,
-                    scrollMonth: false,
-                    scrollInput: false,
-                    timepicker:  true,
-                    datepicker:  true,
-                    step:        5,
-                });
-                if (prev) $el.val(prev);
-            });
-        }
+        // datetime-local inputs use the native browser picker (reliable cross-browser)
     });
 </script>
 @stack('scripts')
