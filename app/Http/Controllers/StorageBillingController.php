@@ -188,8 +188,11 @@ class StorageBillingController extends Controller
             $dispFactor = CurrencyService::invoiceDisplayFactor($invoiceCurrency, $exchangeRate);
             $lineAmount = round($lineTotal * $dispFactor, 2);
 
-            $eqtLabel = $container->equipmentType
-                ? $container->equipmentType->eqt_code . ' — ' . $container->equipmentType->description
+            $eqt      = $container->equipmentType;
+            $eqtCode  = $eqt ? $eqt->eqt_code  : ($container->size . ($container->type_code ?? ''));
+            $isoCode  = $eqt?->iso_code ?? null;
+            $eqtLabel = $eqt
+                ? $eqt->eqt_code . ' — ' . $eqt->description
                 : ($container->size . "' " . $container->type_code);
 
             $lines[] = [
@@ -197,6 +200,8 @@ class StorageBillingController extends Controller
                 'container_no'       => $container->container_no,
                 'equipment_type_id'  => $eqtId ?: null,
                 'equipment_type'     => $eqtLabel,
+                'eqt_code'           => $eqtCode,
+                'iso_code'           => $isoCode,
                 'cargo_status'    => $cargoStatus,
                 'gate_in_date'    => $gateIn->toDateString(),
                 'from_date'       => $fromDate->toDateString(),

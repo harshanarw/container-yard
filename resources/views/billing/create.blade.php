@@ -455,7 +455,7 @@ function renderPreview(data) {
         <tr class="${l.chargeable_days === 0 ? 'text-muted' : ''}">
             <td class="ps-3">${i + 1}</td>
             <td class="font-monospace">${l.container_no}</td>
-            <td class="small">${l.equipment_type}</td>
+            <td class="small">${l.eqt_code ? '<span class="fw-semibold">' + l.eqt_code + '</span>' + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '') : (l.equipment_type || '—')}</td>
             <td class="text-center">${l.cargo_status === 'laden' ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.7rem;">Laden</span>' : '<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.7rem;">Empty</span>'}</td>
             <td class="small">${formatDate(l.gate_in_date)}</td>
             <td class="text-center small">${formatDate(l.from_date)} – ${formatDate(l.to_date)}</td>
