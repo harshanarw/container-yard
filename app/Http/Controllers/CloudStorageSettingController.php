@@ -187,35 +187,67 @@ class CloudStorageSettingController extends Controller
                 ->with('error', 'No authorization code received from Dropbox.');
         }
 
-        $settings    = CloudStorageSetting::current();
-        $callbackUrl = route('settings.cloud-storage.dropbox.callback');
+        try {
+            $settings    = CloudStorageSetting::current();
+            $callbackUrl = route('settings.cloud-storage.dropbox.callback');
 
-        // Exchange the code for tokens
-        $response = Http::asForm()->withBasicAuth(
-            $settings->dropbox_app_key,
-            $settings->dropbox_app_secret
-        )->post('https://api.dropboxapi.com/oauth2/token', [
-            'code'         => $code,
-            'grant_type'   => 'authorization_code',
-            'redirect_uri' => $callbackUrl,
-        ]);
+            if (empty($settings->dropbox_app_key) || empty($settings->dropbox_app_secret)) {
+                return redirect()->route('settings.cloud-storage.index')
+                    ->with('error', 'Dropbox App Key and App Secret must be saved before connecting.');
+            }
 
-        if (!$response->successful() || empty($response->json('refresh_token'))) {
+            // Exchange the authorization code for tokens
+            $response = Http::asForm()->withBasicAuth(
+                $settings->dropbox_app_key,
+                $settings->dropbox_app_secret
+            )->post('https://api.dropboxapi.com/oauth2/token', [
+                'code'         => $code,
+                'grant_type'   => 'authorization_code',
+                'redirect_uri' => $callbackUrl,
+            ]);
+
+            if (! $response->successful()) {
+                return redirect()->route('settings.cloud-storage.index')
+                    ->with('error', 'Dropbox token exchange failed (HTTP ' . $response->status() . '): '
+                        . ($response->json('error_description') ?? $response->body()));
+            }
+
+            $refreshToken = $response->json('refresh_token');
+            $accessToken  = $response->json('access_token');
+
+            if (empty($refreshToken)) {
+                return redirect()->route('settings.cloud-storage.index')
+                    ->with('error', 'Dropbox did not return a refresh token. Ensure your app has '
+                        . '"token_access_type=offline" and the Dropbox app permissions are submitted.');
+            }
+
+            // Check the required columns exist (migration 035 guard)
+            if (! \Schema::hasColumn('cloud_storage_settings', 'dropbox_refresh_token')) {
+                return redirect()->route('settings.cloud-storage.index')
+                    ->with('error', 'Database migration is pending. Please run: php artisan migrate — '
+                        . 'then try connecting again.');
+            }
+
+            $settings->update([
+                'dropbox_refresh_token'      => $refreshToken,
+                'dropbox_access_token_cache' => $accessToken,
+                'dropbox_token_expires_at'   => now()->addSeconds((int) ($response->json('expires_in') ?? 14400) - 60),
+                'updated_by'                 => auth()->id(),
+            ]);
+
+            Documents::flushDriver();
+
             return redirect()->route('settings.cloud-storage.index')
-                ->with('error', 'Failed to get Dropbox tokens: '
-                    . ($response->json('error_description') ?? $response->status()));
+                ->with('success', 'Dropbox connected successfully. Access token will auto-refresh.');
+
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            return redirect()->route('settings.cloud-storage.index')
+                ->with('error', 'Could not reach Dropbox API: ' . $e->getMessage()
+                    . ' — check your server\'s outbound internet access.');
+        } catch (\Throwable $e) {
+            \Log::error('[DropboxCallback] ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->route('settings.cloud-storage.index')
+                ->with('error', 'Dropbox callback error: ' . $e->getMessage());
         }
-
-        $settings->update([
-            'dropbox_refresh_token'      => $response->json('refresh_token'),
-            'dropbox_access_token_cache' => $response->json('access_token'),
-            'dropbox_token_expires_at'   => now()->addSeconds((int)($response->json('expires_in') ?? 14400) - 60),
-            'updated_by'                 => auth()->id(),
-        ]);
-
-        Documents::flushDriver();
-
-        return redirect()->route('settings.cloud-storage.index')
-            ->with('success', 'Dropbox connected successfully. Tokens saved — access token will auto-refresh.');
     }
 }
