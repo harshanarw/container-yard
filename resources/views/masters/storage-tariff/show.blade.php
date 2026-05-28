@@ -285,8 +285,7 @@
                             <option value="">— Select —</option>
                             @foreach($allTypes as $eqt)
                                 <option value="{{ $eqt->id }}">
-                                    {{ $eqt->eqt_code }}
-                                    @if($eqt->description) — {{ $eqt->description }} @endif
+                                    {{ $eqt->eqt_code }}{{ $eqt->iso_code ? ' · ' . $eqt->iso_code : '' }}
                                 </option>
                             @endforeach
                         </select>

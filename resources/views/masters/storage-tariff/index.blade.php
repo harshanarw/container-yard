@@ -214,7 +214,7 @@
                             <label class="form-label fw-semibold">
                                 Customer <span class="text-danger">*</span>
                             </label>
-                            <select name="customer_id" class="form-select select2" required>
+                            <select name="customer_id" class="form-select select2-modal" required>
                                 <option value="">— Select Customer —</option>
                                 @foreach($customers as $customer)
                                     <option value="{{ $customer->id }}">
@@ -322,6 +322,15 @@ document.addEventListener('DOMContentLoaded', () => {
             ],
         });
     }
+
+    // Reinitialise Select2 inside #addModal with dropdownParent so the search
+    // field remains focusable (Bootstrap's focus trap blocks typing otherwise).
+    $('#addModal').on('shown.bs.modal', function () {
+        $(this).find('.select2-modal').select2({
+            theme: 'bootstrap-5',
+            dropdownParent: $(this),
+        });
+    });
 
     // Delete modal
     document.querySelectorAll('.btn-delete').forEach(btn => {
