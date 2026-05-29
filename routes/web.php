@@ -83,7 +83,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('estimates/{estimate}/pdf',             [EstimateController::class, 'pdf'])->name('estimates.pdf');
 
     // Work Orders
-    Route::resource('work-orders', WorkOrderController::class)->only(['index', 'show']);
+    Route::resource('work-orders', WorkOrderController::class)->except(['create', 'store']);
+    Route::patch('work-orders/{workOrder}/status', [WorkOrderController::class, 'updateStatus'])->name('work-orders.update-status');
 
     // Repair Invoices
     Route::resource('repair-invoices', RepairInvoiceController::class)->only(['index', 'show']);
