@@ -306,10 +306,7 @@
     </div>
 
     <div class="auth-footer">
-        &copy; {{ date('Y') }} {{ $companySetting?->company_name ?? 'CYM System' }}
-        @if($companySetting?->software_provider)
-        &nbsp;·&nbsp; {{ $companySetting->software_provider }}
-        @endif
+        &copy; {{ date('Y') }} {{ $companySetting?->software_provider ?? 'CYM System' }}
     </div>
 </div>
 
