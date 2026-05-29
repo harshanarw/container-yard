@@ -581,12 +581,6 @@
                             <i class="bi bi-card-checklist"></i><span>Surveys</span>
                         </a>
                     </li>
-                    <li class="nav-item sub-item">
-                        <a href="{{ route('estimates.index') }}"
-                           class="nav-link {{ request()->routeIs('estimates.*') ? 'active' : '' }}">
-                            <i class="bi bi-tools"></i><span>Repair Estimates</span>
-                        </a>
-                    </li>
                 </ul>
             </div>
 
@@ -711,7 +705,7 @@
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-mr-codes"
                     aria-expanded="{{ $mrCodesActive ? 'true' : 'false' }}"
                     aria-controls="nav-sub-setup-mr-codes">
-                <i class="bi bi-tools nav-sub-icon"></i>
+                <i class="bi bi-wrench-adjustable-circle nav-sub-icon"></i>
                 <span>M&amp;R Codes</span>
                 <i class="bi bi-chevron-down sub-chevron"></i>
             </button>

@@ -8,6 +8,8 @@
     <li class="breadcrumb-item active">{{ $typeLabel }}</li>
 @endsection
 
+@section('content')
+
 @php
 $icons = [
     'location'       => 'bi-map',
