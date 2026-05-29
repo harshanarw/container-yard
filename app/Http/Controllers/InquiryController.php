@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\Damage;
 use App\Models\Inquiry;
+use App\Models\MrCode;
 use App\Models\InquiryChecklist;
 use App\Models\InquiryPhoto;
 use App\Models\User;
@@ -57,9 +58,17 @@ class InquiryController extends Controller
             ? Container::with(['customer', 'equipmentType'])->find($request->container_id)
             : null;
 
+        $mrLocationCodes    = MrCode::ofType('location')->active()->orderBy('sort_order')->get();
+        $mrComponentCodes   = MrCode::ofType('component')->active()->orderBy('sort_order')->get();
+        $mrDamageCodes      = MrCode::ofType('damage')->active()->orderBy('sort_order')->get();
+        $mrRepairCodes      = MrCode::ofType('repair')->active()->orderBy('sort_order')->get();
+        $mrResponsibilityCodes = MrCode::ofType('responsibility')->active()->orderBy('sort_order')->get();
+
         return view('inquiries.create', compact(
             'customers', 'inspectors', 'containers', 'selectedContainer',
-            'checklistItems', 'equipmentTypes'
+            'checklistItems', 'equipmentTypes',
+            'mrLocationCodes', 'mrComponentCodes', 'mrDamageCodes',
+            'mrRepairCodes', 'mrResponsibilityCodes'
         ));
     }
 
@@ -90,7 +99,16 @@ class InquiryController extends Controller
         // Save damages
         if ($request->damages) {
             foreach ($request->damages as $damage) {
-                $inquiry->damages()->create($damage);
+                // Auto-compute area from dimensions
+                if (!empty($damage['dim_length']) && !empty($damage['dim_width'])) {
+                    $damage['dim_area'] = round($damage['dim_length'] * $damage['dim_width'] / 10000, 4);
+                }
+                $dmg = $inquiry->damages()->create($damage);
+                // Auto-generate CEDEX code after relations are saved
+                if ($dmg->dim_length) {
+                    $cedex = $dmg->buildCedexCode();
+                    if ($cedex) $dmg->update(['cedex_code' => $cedex]);
+                }
             }
         }
 
@@ -124,18 +142,33 @@ class InquiryController extends Controller
 
     public function show(Inquiry $inquiry)
     {
-        $inquiry->load(['container', 'customer', 'inspector', 'damages', 'checklists', 'photos', 'estimate']);
+        $inquiry->load([
+            'container', 'customer', 'inspector', 'checklists', 'photos', 'estimate',
+            'damages.locationCode', 'damages.componentCode', 'damages.damageCode',
+            'damages.repairCode', 'damages.materialCode', 'damages.responsibilityCode',
+        ]);
 
         return view('inquiries.show', compact('inquiry'));
     }
 
     public function edit(Inquiry $inquiry)
     {
-        $inquiry->load(['damages', 'checklists']);
+        $inquiry->load(['damages.locationCode', 'damages.componentCode', 'damages.damageCode',
+                        'damages.repairCode', 'damages.responsibilityCode', 'checklists']);
         $inspectors     = User::where('role', 'inspector')->where('status', 'active')->get();
         $checklistItems = ChecklistMasterItem::active()->get();
 
-        return view('inquiries.edit', compact('inquiry', 'inspectors', 'checklistItems'));
+        $mrLocationCodes       = MrCode::ofType('location')->active()->orderBy('sort_order')->get();
+        $mrComponentCodes      = MrCode::ofType('component')->active()->orderBy('sort_order')->get();
+        $mrDamageCodes         = MrCode::ofType('damage')->active()->orderBy('sort_order')->get();
+        $mrRepairCodes         = MrCode::ofType('repair')->active()->orderBy('sort_order')->get();
+        $mrResponsibilityCodes = MrCode::ofType('responsibility')->active()->orderBy('sort_order')->get();
+
+        return view('inquiries.edit', compact(
+            'inquiry', 'inspectors', 'checklistItems',
+            'mrLocationCodes', 'mrComponentCodes', 'mrDamageCodes',
+            'mrRepairCodes', 'mrResponsibilityCodes'
+        ));
     }
 
     public function update(UpdateInquiryRequest $request, Inquiry $inquiry)

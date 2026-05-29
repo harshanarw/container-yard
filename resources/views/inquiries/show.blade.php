@@ -176,9 +176,13 @@
                             <tr>
                                 <th class="ps-3">#</th>
                                 <th>Location</th>
-                                <th>Damage Type</th>
+                                <th>Component</th>
+                                <th>Damage</th>
+                                <th>Repair</th>
+                                <th>Resp.</th>
                                 <th>Severity</th>
                                 <th>Dimensions</th>
+                                <th>CEDEX</th>
                                 <th>Description</th>
                             </tr>
                         </thead>
@@ -186,11 +190,45 @@
                             @foreach($inquiry->damages as $i => $dmg)
                             <tr>
                                 <td class="ps-3 text-muted">{{ $i + 1 }}</td>
-                                <td class="fw-semibold">{{ ucwords(str_replace('_', ' ', $dmg->location)) }}</td>
-                                <td>{{ ucwords(str_replace('_', ' ', $dmg->damage_type)) }}</td>
+                                <td class="fw-semibold small">
+                                    @if($dmg->locationCode)
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">{{ $dmg->locationCode->code }}</span>
+                                        <span class="ms-1">{{ $dmg->locationCode->name }}</span>
+                                    @elseif($dmg->location)
+                                        {{ ucwords(str_replace('_', ' ', $dmg->location)) }}
+                                    @else —
+                                    @endif
+                                </td>
+                                <td class="small">
+                                    @if($dmg->componentCode)
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle font-monospace">{{ $dmg->componentCode->code }}</span>
+                                    @else <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="small">
+                                    @if($dmg->damageCode)
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace">{{ $dmg->damageCode->code }}</span>
+                                        <span class="ms-1">{{ $dmg->damageCode->name }}</span>
+                                    @elseif($dmg->damage_type)
+                                        {{ ucwords(str_replace('_', ' ', $dmg->damage_type)) }}
+                                    @else —
+                                    @endif
+                                </td>
+                                <td class="small">
+                                    @if($dmg->repairCode)
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace">{{ $dmg->repairCode->code }}</span>
+                                    @else <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="small">
+                                    @if($dmg->responsibilityCode)
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle font-monospace">{{ $dmg->responsibilityCode->code }}</span>
+                                    @else <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                                 <td>
                                     @php
-                                        $sc = match($dmg->severity) {
+                                        $sc = match($dmg->severity ?? 'minor') {
                                             'minor'    => 'success',
                                             'moderate' => 'warning',
                                             'severe'   => 'danger',
@@ -198,11 +236,25 @@
                                         };
                                     @endphp
                                     <span class="badge bg-{{ $sc }}-subtle text-{{ $sc }}">
-                                        {{ ucfirst($dmg->severity) }}
+                                        {{ ucfirst($dmg->severity ?? '—') }}
                                     </span>
                                 </td>
-                                <td class="font-monospace text-muted">{{ $dmg->dimensions ?? '—' }}</td>
-                                <td class="text-muted">{{ $dmg->description ?? '—' }}</td>
+                                <td class="font-monospace text-muted small">
+                                    @if($dmg->dim_length)
+                                        {{ $dmg->dim_length }}×{{ $dmg->dim_width }}
+                                        @if($dmg->dim_area) <span class="text-muted">({{ $dmg->dim_area }}m²)</span> @endif
+                                    @elseif($dmg->dimensions)
+                                        {{ $dmg->dimensions }}
+                                    @else —
+                                    @endif
+                                </td>
+                                <td class="font-monospace small">
+                                    @if($dmg->cedex_code)
+                                        <span class="badge bg-dark text-white">{{ $dmg->cedex_code }}</span>
+                                    @else <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="text-muted small">{{ $dmg->description ?? '—' }}</td>
                             </tr>
                             @endforeach
                         </tbody>

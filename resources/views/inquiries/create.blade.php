@@ -141,6 +141,14 @@
             </div>
 
             <!-- Damage Assessment -->
+            {{-- Build JSON option lists for JS template row --}}
+            @php
+            $locOpts  = $mrLocationCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]);
+            $cmpOpts  = $mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]);
+            $dmgOpts  = $mrDamageCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]);
+            $repOpts  = $mrRepairCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]);
+            $resOpts  = $mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]);
+            @endphp
             <div class="card content-card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Damage Assessment</span>
@@ -153,10 +161,14 @@
                         <table class="table table-sm align-middle mb-0" id="damageTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-3" style="width:22%">Location</th>
-                                    <th style="width:22%">Damage Type</th>
-                                    <th style="width:15%">Severity</th>
-                                    <th style="width:20%">Dimensions (cm)</th>
+                                    <th class="ps-3" style="min-width:120px">Location</th>
+                                    <th style="min-width:110px">Component</th>
+                                    <th style="min-width:110px">Damage</th>
+                                    <th style="min-width:110px">Repair</th>
+                                    <th style="min-width:100px">Resp.</th>
+                                    <th style="min-width:70px">Severity</th>
+                                    <th style="min-width:140px">Dimensions (cm) L / W</th>
+                                    <th style="min-width:60px">Qty</th>
                                     <th>Description</th>
                                     <th style="width:40px"></th>
                                 </tr>
@@ -164,29 +176,43 @@
                             <tbody id="damageRows">
                                 <tr class="damage-row">
                                     <td class="ps-3">
-                                        <select name="damages[0][location]" class="form-select form-select-sm">
-                                            <option>Floor</option>
-                                            <option>Roof</option>
-                                            <option>Left Side Wall</option>
-                                            <option>Right Side Wall</option>
-                                            <option>Front Wall</option>
-                                            <option>Door</option>
-                                            <option>Door Seal</option>
-                                            <option>Corner Post</option>
-                                            <option>Base Rail</option>
-                                            <option>Cross Member</option>
+                                        <select name="damages[0][location_code_id]" class="form-select form-select-sm">
+                                            <option value="">—</option>
+                                            @foreach($mrLocationCodes as $c)
+                                                <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                            @endforeach
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][damage_type]" class="form-select form-select-sm">
-                                            <option>Dent</option>
-                                            <option>Hole</option>
-                                            <option>Crack</option>
-                                            <option>Rust/Corrosion</option>
-                                            <option>Missing Part</option>
-                                            <option>Broken</option>
-                                            <option>Bent</option>
-                                            <option>Delamination</option>
+                                        <select name="damages[0][component_code_id]" class="form-select form-select-sm">
+                                            <option value="">—</option>
+                                            @foreach($mrComponentCodes as $c)
+                                                <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select name="damages[0][damage_code_id]" class="form-select form-select-sm">
+                                            <option value="">—</option>
+                                            @foreach($mrDamageCodes as $c)
+                                                <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select name="damages[0][repair_code_id]" class="form-select form-select-sm">
+                                            <option value="">—</option>
+                                            @foreach($mrRepairCodes as $c)
+                                                <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm">
+                                            <option value="">—</option>
+                                            @foreach($mrResponsibilityCodes as $c)
+                                                <option value="{{ $c->id }}">{{ $c->code }}</option>
+                                            @endforeach
                                         </select>
                                     </td>
                                     <td>
@@ -197,14 +223,16 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <div class="input-group input-group-sm">
-                                            <input type="text" name="damages[0][dimensions]" class="form-control"
-                                                   placeholder="L×W×D">
+                                        <div class="d-flex gap-1">
+                                            <input type="number" name="damages[0][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:60px">
+                                            <input type="number" name="damages[0][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:60px">
                                         </div>
                                     </td>
                                     <td>
-                                        <input type="text" name="damages[0][description]" class="form-control form-control-sm"
-                                               placeholder="Additional details…">
+                                        <input type="number" name="damages[0][quantity]" class="form-control form-control-sm" value="1" step="0.5" min="0.5" style="width:60px">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="damages[0][description]" class="form-control form-control-sm" placeholder="Details…">
                                     </td>
                                     <td class="pe-2">
                                         <button type="button" class="btn btn-sm btn-outline-danger remove-row">
@@ -389,6 +417,18 @@
         if (sel.value) applyEqt(sel.selectedOptions[0]);
     })();
 
+    const mrLocOpts  = @json($locOpts);
+    const mrCmpOpts  = @json($cmpOpts);
+    const mrDmgOpts  = @json($dmgOpts);
+    const mrRepOpts  = @json($repOpts);
+    const mrResOpts  = @json($resOpts);
+
+    function buildSelect(name, opts, codePfx) {
+        let html = `<select name="${name}" class="form-select form-select-sm"><option value="">—</option>`;
+        opts.forEach(o => { html += `<option value="${o.id}">${o.code} ${codePfx ? '' : o.name}</option>`; });
+        return html + '</select>';
+    }
+
     let damageRowIndex = 1;
 
     document.getElementById('addDamageRow').addEventListener('click', function () {
@@ -397,17 +437,14 @@
         const row = document.createElement('tr');
         row.className = 'damage-row';
         row.innerHTML = `
-            <td class="ps-3">
-                <select name="damages[${i}][location]" class="form-select form-select-sm">
-                    <option>Floor</option><option>Roof</option><option>Left Side Wall</option>
-                    <option>Right Side Wall</option><option>Front Wall</option><option>Door</option>
-                    <option>Door Seal</option><option>Corner Post</option><option>Base Rail</option>
-                </select>
-            </td>
+            <td class="ps-3">${buildSelect('damages['+i+'][location_code_id]', mrLocOpts)}</td>
+            <td>${buildSelect('damages['+i+'][component_code_id]', mrCmpOpts)}</td>
+            <td>${buildSelect('damages['+i+'][damage_code_id]', mrDmgOpts)}</td>
+            <td>${buildSelect('damages['+i+'][repair_code_id]', mrRepOpts)}</td>
             <td>
-                <select name="damages[${i}][damage_type]" class="form-select form-select-sm">
-                    <option>Dent</option><option>Hole</option><option>Crack</option>
-                    <option>Rust/Corrosion</option><option>Missing Part</option><option>Broken</option>
+                <select name="damages[${i}][responsibility_code_id]" class="form-select form-select-sm">
+                    <option value="">—</option>
+                    ${mrResOpts.map(o => `<option value="${o.id}">${o.code}</option>`).join('')}
                 </select>
             </td>
             <td>
@@ -417,7 +454,13 @@
                     <option value="severe">Severe</option>
                 </select>
             </td>
-            <td><input type="text" name="damages[${i}][dimensions]" class="form-control form-control-sm" placeholder="L×W×D"></td>
+            <td>
+                <div class="d-flex gap-1">
+                    <input type="number" name="damages[${i}][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:60px">
+                    <input type="number" name="damages[${i}][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:60px">
+                </div>
+            </td>
+            <td><input type="number" name="damages[${i}][quantity]" class="form-control form-control-sm" value="1" step="0.5" min="0.5" style="width:60px"></td>
             <td><input type="text" name="damages[${i}][description]" class="form-control form-control-sm" placeholder="Details…"></td>
             <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>
         `;
