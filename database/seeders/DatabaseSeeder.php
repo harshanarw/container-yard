@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             TaxCodeSeeder::class,
             ChargeCodeSeeder::class,
             CurrencySeeder::class,
+            MrCodeSeeder::class,
         ]);
     }
 }

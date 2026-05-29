@@ -684,6 +684,29 @@
                 </ul>
             </div>
 
+            {{-- M&R Codes sub-group --}}
+            @php $mrCodesActive = request()->routeIs('masters.mr-codes.*'); @endphp
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-mr-codes"
+                    aria-expanded="{{ $mrCodesActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-setup-mr-codes">
+                <i class="bi bi-tools nav-sub-icon"></i>
+                <span>M&amp;R Codes</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ $mrCodesActive ? 'show' : '' }}" id="nav-sub-setup-mr-codes">
+                <ul class="nav flex-column">
+                    @foreach(\App\Models\MrCode::TYPES as $slug => $label)
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.mr-codes.index', $slug) }}"
+                           class="nav-link {{ request()->routeIs('masters.mr-codes.*') && request()->route('mrCodeType') === $slug ? 'active' : '' }}">
+                            <i class="bi bi-code-square"></i><span>{{ $label }}</span>
+                        </a>
+                    </li>
+                    @endforeach
+                </ul>
+            </div>
+
             {{-- Tariffs sub-group --}}
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-tariffs"

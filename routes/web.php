@@ -27,6 +27,7 @@ use App\Http\Controllers\StorageTariffController;
 use App\Http\Controllers\StorageHandlingController;
 use App\Http\Controllers\HandlingTariffController;
 use App\Http\Controllers\StorageZoneController;
+use App\Http\Controllers\MrCodeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\YardController;
 
@@ -140,6 +141,15 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{customerType}',        [CustomerTypeController::class, 'update'])->name('update');
             Route::patch('{customerType}/toggle', [CustomerTypeController::class, 'toggleActive'])->name('toggle');
             Route::delete('{customerType}',       [CustomerTypeController::class, 'destroy'])->name('destroy');
+        });
+        // M&R Codes (location / component / damage / repair / material / responsibility)
+        Route::prefix('mr-codes/{mrCodeType}')->name('mr-codes.')->group(function () {
+            Route::get('/',                          [MrCodeController::class, 'index'])->name('index');
+            Route::post('/',                         [MrCodeController::class, 'store'])->name('store');
+            Route::post('reorder',                   [MrCodeController::class, 'reorder'])->name('reorder');
+            Route::patch('{mrCode}',                 [MrCodeController::class, 'update'])->name('update');
+            Route::patch('{mrCode}/toggle',          [MrCodeController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{mrCode}',                [MrCodeController::class, 'destroy'])->name('destroy');
         });
         // Charge Codes
         Route::prefix('charge-codes')->name('charge-codes.')->group(function () {
