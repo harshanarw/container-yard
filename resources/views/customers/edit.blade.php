@@ -437,7 +437,6 @@
     const statesUrl    = '{{ route("ajax.states") }}';
     const districtsUrl = '{{ route("ajax.districts") }}';
 
-    const countryEl      = document.getElementById('countrySelect');
     const stateDropWrap  = document.getElementById('stateDropdownWrap');
     const stateFreeWrap  = document.getElementById('stateFreeTextWrap');
     const stateSelect    = document.getElementById('stateSelect');
@@ -445,7 +444,22 @@
     const districtWrap   = document.getElementById('districtWrap');
     const districtSelect = document.getElementById('districtSelect');
 
+    function s2destroy(el) {
+        if ($.fn.select2 && $(el).data('select2')) $(el).select2('destroy');
+    }
+
+    function initSelect2State() {
+        if (!$.fn.select2) return;
+        $(stateSelect).select2({ placeholder: '— Select State / Province —', allowClear: true, width: '100%' });
+    }
+
+    function initSelect2District() {
+        if (!$.fn.select2) return;
+        $(districtSelect).select2({ placeholder: '— Select District —', allowClear: true, width: '100%' });
+    }
+
     function clearDistricts() {
+        s2destroy(districtSelect);
         districtSelect.innerHTML = '<option value="">— Select District —</option>';
         districtWrap.style.display = 'none';
     }
@@ -464,10 +478,12 @@
                     districtSelect.appendChild(opt);
                 });
                 districtWrap.style.display = '';
+                initSelect2District();
             });
     }
 
-    function loadStates(countryId, preselectStateId, preselectDistrictId) {
+    function loadStates(countryId) {
+        s2destroy(stateSelect);
         stateSelect.innerHTML = '<option value="">— Select State / Province —</option>';
         stateFreeText.value = '';
         clearDistricts();
@@ -486,12 +502,11 @@
                         const opt = document.createElement('option');
                         opt.value = s.id;
                         opt.textContent = s.name;
-                        if (preselectStateId && s.id == preselectStateId) opt.selected = true;
                         stateSelect.appendChild(opt);
                     });
                     stateDropWrap.style.display = '';
                     stateFreeWrap.style.display = 'none';
-                    if (preselectStateId) loadDistricts(preselectStateId);
+                    initSelect2State();
                 } else {
                     stateDropWrap.style.display = 'none';
                     stateFreeWrap.style.display = '';
@@ -500,12 +515,21 @@
     }
 
     $('#countrySelect').on('change', function () {
-        loadStates(this.value, null, null);
+        loadStates(this.value);
     });
 
-    stateSelect.addEventListener('change', function () {
+    // Select2 triggers jQuery change, so use jQuery binding
+    $('#stateSelect').on('change', function () {
         loadDistricts(this.value);
     });
+
+    // Init Select2 on page load for server-side pre-loaded dropdowns
+    if (stateDropWrap.style.display !== 'none') {
+        initSelect2State();
+    }
+    if (districtWrap.style.display !== 'none') {
+        initSelect2District();
+    }
 })();
 </script>
 @endpush
