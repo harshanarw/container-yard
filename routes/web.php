@@ -27,6 +27,7 @@ use App\Http\Controllers\StorageTariffController;
 use App\Http\Controllers\StorageHandlingController;
 use App\Http\Controllers\HandlingTariffController;
 use App\Http\Controllers\StorageZoneController;
+use App\Http\Controllers\EmailConfigController;
 use App\Http\Controllers\MrCodeController;
 use App\Http\Controllers\MrTariffController;
 use App\Http\Controllers\UserController;
@@ -38,6 +39,7 @@ use App\Http\Controllers\YardController;
 |--------------------------------------------------------------------------
 */
 require __DIR__.'/auth.php';
+require __DIR__.'/portal.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -71,10 +73,12 @@ Route::middleware(['auth'])->group(function () {
 
     // Repair Estimates
     Route::resource('estimates', EstimateController::class);
-    Route::post('estimates/{estimate}/send', [EstimateController::class, 'send'])->name('estimates.send');
-    Route::patch('estimates/{estimate}/approve', [EstimateController::class, 'approve'])->name('estimates.approve');
-    Route::patch('estimates/{estimate}/reject', [EstimateController::class, 'reject'])->name('estimates.reject');
-    Route::get('estimates/{estimate}/pdf', [EstimateController::class, 'pdf'])->name('estimates.pdf');
+    Route::post('estimates/{estimate}/send',           [EstimateController::class, 'send'])->name('estimates.send');
+    Route::post('estimates/{estimate}/send-reminder',  [EstimateController::class, 'sendReminder'])->name('estimates.send-reminder');
+    Route::patch('estimates/{estimate}/revoke-token',  [EstimateController::class, 'revokeToken'])->name('estimates.revoke-token');
+    Route::patch('estimates/{estimate}/approve',       [EstimateController::class, 'approve'])->name('estimates.approve');
+    Route::patch('estimates/{estimate}/reject',        [EstimateController::class, 'reject'])->name('estimates.reject');
+    Route::get('estimates/{estimate}/pdf',             [EstimateController::class, 'pdf'])->name('estimates.pdf');
 
     // Yard Operations
     Route::prefix('yard')->name('yard.')->group(function () {
@@ -302,6 +306,15 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/',  [SettingController::class, 'index'])->name('index');
         Route::post('/', [SettingController::class, 'update'])->name('update');
+
+        // Email Configuration
+        Route::prefix('email-config')->name('email-config.')->group(function () {
+            Route::get('/',                         [EmailConfigController::class, 'index'])->name('index');
+            Route::post('/',                        [EmailConfigController::class, 'store'])->name('store');
+            Route::patch('/{emailConfig}',          [EmailConfigController::class, 'update'])->name('update');
+            Route::delete('/{emailConfig}',         [EmailConfigController::class, 'destroy'])->name('destroy');
+            Route::post('/{emailConfig}/test',      [EmailConfigController::class, 'test'])->name('test');
+        });
 
         // Cloud storage
         Route::prefix('cloud-storage')->name('cloud-storage.')->group(function () {

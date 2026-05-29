@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreEstimateRequest;
 use App\Http\Requests\UpdateEstimateRequest;
+use App\Jobs\SendEstimateEmailJob;
+use App\Mail\EstimateReminderMail;
 use App\Models\Container;
 use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\Estimate;
 use App\Models\Inquiry;
+use App\Models\PortalToken;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class EstimateController extends Controller
@@ -31,7 +35,9 @@ class EstimateController extends Controller
 
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
 
-        return view('estimates.index', compact('estimates', 'customers'));
+        $pendingApprovalCount = Estimate::whereIn('status', ['sent', 'under_review'])->count();
+
+        return view('estimates.index', compact('estimates', 'customers', 'pendingApprovalCount'));
     }
 
     public function create(Request $request)
@@ -105,7 +111,6 @@ class EstimateController extends Controller
             ]);
         }
 
-        // Link inquiry status
         if ($request->inquiry_id) {
             Inquiry::where('id', $request->inquiry_id)
                 ->update(['status' => 'estimate_sent']);
@@ -117,9 +122,22 @@ class EstimateController extends Controller
 
     public function show(Estimate $estimate)
     {
-        $estimate->load(['container', 'customer', 'inquiry', 'lineItems', 'createdBy', 'approvedBy']);
+        $estimate->load([
+            'container', 'customer', 'inquiry', 'lineItems',
+            'createdBy', 'approvedBy', 'parentEstimate', 'revisions',
+            'approvalActions.lineItem', 'approvalActions.actionedBy',
+        ]);
 
-        return view('estimates.show', compact('estimate'));
+        $activeToken = PortalToken::where('tokenable_type', Estimate::class)
+            ->where('tokenable_id', $estimate->id)
+            ->whereNull('revoked_at')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->latest()
+            ->first();
+
+        return view('estimates.show', compact('estimate', 'activeToken'));
     }
 
     public function edit(Estimate $estimate)
@@ -202,7 +220,17 @@ class EstimateController extends Controller
             'send_to_email' => ['required', 'email'],
             'send_cc_email' => ['nullable', 'email'],
             'email_message' => ['nullable', 'string'],
+            'expiry_days'   => ['nullable', 'integer', 'min:1', 'max:365'],
         ]);
+
+        $isResend = in_array($estimate->status, ['sent', 'under_review', 'returned', 'rejected']);
+
+        if ($isResend) {
+            // Auto-version the estimate
+            $estimate->increment('version_no');
+            // Reset all line approval statuses
+            $estimate->lineItems()->update(['approval_status' => 'pending']);
+        }
 
         $estimate->update([
             'status'        => 'sent',
@@ -212,9 +240,52 @@ class EstimateController extends Controller
             'email_message' => $request->email_message,
         ]);
 
-        // TODO: dispatch SendEstimateEmail job
+        // Revoke old tokens for this estimate
+        PortalToken::where('tokenable_type', Estimate::class)
+            ->where('tokenable_id', $estimate->id)
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => now()]);
 
-        return back()->with('success', "Estimate sent to {$request->send_to_email}.");
+        $expiryDays = (int) ($request->expiry_days ?? 30);
+        $portalToken = PortalToken::generate($estimate, $request->send_to_email, $expiryDays);
+
+        SendEstimateEmailJob::dispatch($estimate, $portalToken, $request->email_message);
+
+        $versionNote = $isResend ? " (v{$estimate->version_no})" : '';
+        return back()->with('success', "Estimate sent to {$request->send_to_email}{$versionNote}.");
+    }
+
+    public function sendReminder(Estimate $estimate)
+    {
+        $token = PortalToken::where('tokenable_type', Estimate::class)
+            ->where('tokenable_id', $estimate->id)
+            ->whereNull('revoked_at')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->latest()
+            ->first();
+
+        if (!$token) {
+            return back()->with('error', 'No active portal token — send the estimate first.');
+        }
+
+        try {
+            Mail::to($token->email)->send(new EstimateReminderMail($estimate, $token));
+            return back()->with('success', "Reminder sent to {$token->email}.");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Failed to send reminder: ' . $e->getMessage());
+        }
+    }
+
+    public function revokeToken(Estimate $estimate)
+    {
+        PortalToken::where('tokenable_type', Estimate::class)
+            ->where('tokenable_id', $estimate->id)
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => now()]);
+
+        return back()->with('success', 'Portal link revoked. Owner can no longer access via the old link.');
     }
 
     public function approve(Request $request, Estimate $estimate)

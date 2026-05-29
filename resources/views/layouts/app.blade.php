@@ -589,6 +589,27 @@
                     </li>
                 </ul>
             </div>
+
+            {{-- M&R sub-group --}}
+            @php $mrOpsActive = request()->routeIs('estimates.*'); @endphp
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-mr"
+                    aria-expanded="{{ $mrOpsActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-ops-mr">
+                <i class="bi bi-wrench-adjustable nav-sub-icon"></i>
+                <span>M&amp;R</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ $mrOpsActive ? 'show' : '' }}" id="nav-sub-ops-mr">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('estimates.index') }}"
+                           class="nav-link {{ request()->routeIs('estimates.*') ? 'active' : '' }}">
+                            <i class="bi bi-file-earmark-ruled"></i><span>Repair Estimates</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
 
         {{-- ── BILLING ── --}}
@@ -859,6 +880,12 @@
                         <a href="{{ route('settings.company.index') }}"
                            class="nav-link {{ request()->routeIs('settings.company.*') ? 'active' : '' }}">
                             <i class="bi bi-building"></i><span>Company Settings</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('settings.email-config.index') }}"
+                           class="nav-link {{ request()->routeIs('settings.email-config.*') ? 'active' : '' }}">
+                            <i class="bi bi-envelope-gear"></i><span>Email Config</span>
                         </a>
                     </li>
                     <li class="nav-item sub-item">

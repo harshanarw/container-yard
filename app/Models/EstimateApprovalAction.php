@@ -8,7 +8,7 @@ class EstimateApprovalAction extends Model
 {
     protected $fillable = [
         'estimate_id', 'estimate_line_item_id', 'action',
-        'amended_amount', 'notes', 'actioned_by',
+        'amended_amount', 'notes', 'actioned_by', 'performed_by_email',
     ];
 
     protected $casts = [
