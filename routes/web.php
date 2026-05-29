@@ -87,7 +87,10 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('work-orders/{workOrder}/status', [WorkOrderController::class, 'updateStatus'])->name('work-orders.update-status');
 
     // Repair Invoices
-    Route::resource('repair-invoices', RepairInvoiceController::class)->only(['index', 'show']);
+    Route::resource('repair-invoices', RepairInvoiceController::class)->except(['create', 'store']);
+    Route::patch('repair-invoices/{repairInvoice}/issue',          [RepairInvoiceController::class, 'issue'])->name('repair-invoices.issue');
+    Route::patch('repair-invoices/{repairInvoice}/record-payment', [RepairInvoiceController::class, 'recordPayment'])->name('repair-invoices.record-payment');
+    Route::patch('repair-invoices/{repairInvoice}/cancel',         [RepairInvoiceController::class, 'cancel'])->name('repair-invoices.cancel');
 
     // Yard Operations
     Route::prefix('yard')->name('yard.')->group(function () {
