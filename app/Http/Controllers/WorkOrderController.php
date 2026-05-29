@@ -18,8 +18,8 @@ class WorkOrderController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('work_order_no', 'like', "%{$search}%")
-                  ->orWhereHas('container', fn($sq) => $sq->where('container_no', 'like', "%{$search}%"))
+                $q->where('wo_no', 'like', "%{$search}%")
+                  ->orWhere('container_no', 'like', "%{$search}%")
                   ->orWhereHas('customer', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
             });
         }
@@ -28,13 +28,13 @@ class WorkOrderController extends Controller
 
         return view('work-orders.index', [
             'workOrders' => $workOrders,
-            'statuses' => ['scheduled', 'in_progress', 'completed', 'on_hold', 'cancelled'],
+            'statuses'   => ['pending', 'in_progress', 'on_hold', 'completed', 'closed', 'cancelled'],
         ]);
     }
 
     public function show(WorkOrder $workOrder)
     {
-        $workOrder->load('estimate.lineItems', 'container', 'customer', 'assignedTo', 'lines');
+        $workOrder->load('estimate', 'container', 'customer', 'assignedTo', 'lines.componentCode', 'lines.damageCode', 'lines.repairCode');
 
         return view('work-orders.show', [
             'workOrder' => $workOrder,

@@ -10,87 +10,69 @@ use Illuminate\Database\Seeder;
 
 class WorkOrderSeeder extends Seeder
 {
-    /**
-     * Seed sample Work Order records (demo/test data).
-     *
-     * Creates work orders from approved repair estimates.
-     * This is optional test data — not run by default.
-     *
-     * Usage: php artisan db:seed --class=WorkOrderSeeder
-     * Requires: EstimateSeeder (estimates must exist first)
-     */
     public function run(): void
     {
-        $approvedEstimates = Estimate::where('status', 'approved')
-            ->with('lineItems', 'inquiry.container', 'createdBy')
+        $approvedEstimates = Estimate::with('lineItems', 'inquiry.container', 'customer')
+            ->where('status', 'approved')
             ->get();
 
         if ($approvedEstimates->isEmpty()) {
-            $this->command->warn('No approved estimates found. Mark some estimates as "approved" first.');
+            $this->command->warn('No approved estimates found. WorkOrderSeeder skipped.');
             return;
         }
 
-        $workshopSupervisor = User::where('role', 'yard_supervisor')->first();
-        $workshopSupervisor = $workshopSupervisor ?: User::first();
+        $supervisor = User::where('role', 'yard_supervisor')->first() ?? User::first();
+        $admin      = User::first();
 
-        $woCounter = 1;
+        $counter = 1;
 
         foreach ($approvedEstimates as $estimate) {
-            if (!$estimate->inquiry || !$estimate->inquiry->container) {
+            if (!$estimate->inquiry?->container) {
                 continue;
             }
 
-            $woNo = 'WO-' . str_pad($woCounter++, 6, '0', STR_PAD_LEFT);
+            $container = $estimate->inquiry->container;
 
-            $workOrder = WorkOrder::create([
-                'work_order_no'        => $woNo,
-                'estimate_id'          => $estimate->id,
-                'inquiry_id'           => $estimate->inquiry_id,
-                'container_id'         => $estimate->inquiry->container_id,
-                'customer_id'          => $estimate->customer_id,
-                'equipment_type_id'    => $estimate->equipment_type_id,
-                'work_type'            => $estimate->rh_type ?? 'standard_repair',
-                'priority'             => 'normal',
-                'scheduled_start_date' => $estimate->created_at->addDays(1)->toDateString(),
-                'scheduled_end_date'   => $estimate->created_at->addDays(5)->toDateString(),
-                'actual_start_date'    => null,
-                'actual_end_date'      => null,
-                'status'               => 'scheduled',
-                'total_labor_hours'    => $estimate->lineItems->sum('std_labor_hours') ?? 0,
-                'total_material_cost'  => $estimate->lineItems->sum(function ($line) {
-                    return ($line->material_qty ?? 0) * ($line->material_rate ?? 0);
-                }),
-                'notes'                => "Repair work order for {$estimate->inquiry->container->container_no}",
-                'assigned_to'          => $workshopSupervisor->id,
-                'created_by'           => $estimate->created_by,
-                'created_at'           => $estimate->created_at->addDays(1),
-                'updated_at'           => $estimate->created_at->addDays(1),
+            $wo = WorkOrder::create([
+                'wo_no'            => 'WO-' . str_pad($counter++, 4, '0', STR_PAD_LEFT),
+                'estimate_id'      => $estimate->id,
+                'container_id'     => $container->id,
+                'container_no'     => $container->container_no,
+                'customer_id'      => $estimate->customer_id,
+                'assigned_to'      => $supervisor->id,
+                'status'           => 'pending',
+                'priority'         => 'normal',
+                'target_date'      => now()->addDays(7)->toDateString(),
+                'started_date'     => null,
+                'completed_date'   => null,
+                'instructions'     => "Repair work for {$container->container_no} as per estimate {$estimate->estimate_no}.",
+                'technician_notes' => null,
+                'created_by'       => $admin->id,
+                'closed_by'        => null,
             ]);
 
-            // Create work order lines from estimate lines
-            foreach ($estimate->lineItems as $estimateLine) {
+            foreach ($estimate->lineItems as $line) {
                 WorkOrderLine::create([
-                    'work_order_id'          => $workOrder->id,
-                    'estimate_line_item_id'  => $estimateLine->id,
-                    'description'            => $estimateLine->description,
-                    'component_code_id'      => $estimateLine->component_code_id,
-                    'damage_code_id'         => $estimateLine->damage_code_id,
-                    'repair_code_id'         => $estimateLine->repair_code_id,
-                    'std_labor_hours'        => $estimateLine->std_labor_hours,
-                    'actual_labor_hours'     => null,
-                    'labor_rate'             => $estimateLine->labor_rate,
-                    'material_qty'           => $estimateLine->material_qty,
-                    'material_rate'          => $estimateLine->material_rate,
-                    'ancillary'              => $estimateLine->ancillary,
-                    'actual_cost'            => null,
+                    'work_order_id'          => $wo->id,
+                    'estimate_line_item_id'  => $line->id,
+                    'location_code_id'       => $line->location_code_id,
+                    'component_code_id'      => $line->component_code_id,
+                    'damage_code_id'         => $line->damage_code_id,
+                    'repair_code_id'         => $line->repair_code_id,
+                    'cedex_code'             => $line->cedex_code,
+                    'qty'                    => $line->qty ?? 1,
                     'status'                 => 'pending',
-                    'notes'                  => null,
+                    'actual_labor_hours'     => null,
+                    'actual_material_qty'    => null,
+                    'technician_notes'       => null,
+                    'completed_at'           => null,
+                    'completed_by'           => null,
                 ]);
             }
 
-            $this->command->line("  Created work order {$woNo} from estimate {$estimate->estimate_no}");
+            $this->command->line("  Created {$wo->wo_no} for {$container->container_no} ({$estimate->lineItems->count()} lines)");
         }
 
-        $this->command->info('Created ' . ($woCounter - 1) . ' work orders from ' . $approvedEstimates->count() . ' approved estimates.');
+        $this->command->info('Created ' . ($counter - 1) . ' work orders from ' . $approvedEstimates->count() . ' approved estimates.');
     }
 }
