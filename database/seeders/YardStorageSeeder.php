@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\EquipmentType;
 use App\Models\GateMovement;
 use App\Models\StorageMasterDetail;
 use App\Models\YardStorage;
@@ -47,21 +48,30 @@ class YardStorageSeeder extends Seeder
             $totalDays = $gateOutCarbon->diffInDays($gateInCarbon) ?: 1;
             $chargeableDays = max(0, $totalDays - $freeStorageDays);
 
-            // Get storage tariff detail for this container size
-            $tariffDetail = StorageMasterDetail::whereHas('header', function ($q) {
-                $q->where('is_active', true);
-            })
-                ->where('size', $gateIn->size)
-                ->where('cargo_status', $gateIn->cargo_status)
-                ->orderBy('id')
+            // Find equipment type for this container (by size + type_code)
+            $equipmentType = EquipmentType::where('size', $gateIn->size)
+                ->where('type_code', $gateIn->container_type)
                 ->first();
 
-            if (!$tariffDetail) {
-                $this->command->warn("No active tariff found for size {$gateIn->size} and cargo status {$gateIn->cargo_status}");
+            if (!$equipmentType) {
+                $this->command->warn("No equipment type found for size {$gateIn->size} and type {$gateIn->container_type}");
                 continue;
             }
 
-            $dailyRate = $tariffDetail->rate ?? 0;
+            // Get storage tariff detail for this equipment type (use most recent active tariff)
+            $tariffDetail = StorageMasterDetail::whereHas('header', function ($q) {
+                $q->where('is_active', true);
+            })
+                ->where('equipment_type_id', $equipmentType->id)
+                ->orderByDesc('id')
+                ->first();
+
+            if (!$tariffDetail) {
+                $this->command->warn("No active tariff found for equipment type {$equipmentType->eqt_code}");
+                continue;
+            }
+
+            $dailyRate = $tariffDetail->storage_rate ?? 0;
             $subtotal = $chargeableDays * $dailyRate;
             $taxPercentage = 18.00; // default VAT
             $taxAmount = ($subtotal * $taxPercentage) / 100;
