@@ -28,7 +28,7 @@ class OptionalDemoDataSeeder extends Seeder
      * These are completely optional and not run by DatabaseSeeder::run()
      * Use these to populate transaction history for testing/demo purposes.
      */
-    public function call(array $seeders = []): void
+    public function run(): void
     {
         $this->call([
             GateMovementSeeder::class,
