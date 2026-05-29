@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\GateMovement;
-use App\Models\HandlingTariffRate;
+use App\Models\YardStorage;
 use App\Models\StorageHandlingInvoice;
 use App\Models\StorageHandlingInvoiceLine;
 use App\Models\User;
@@ -14,20 +14,18 @@ class StorageHandlingInvoiceSeeder extends Seeder
     /**
      * Seed sample Storage & Handling Invoice records (demo/test data).
      *
-     * Creates handling invoices for gate movements using handling tariff rates.
+     * Creates combined storage+handling invoices per customer per month.
      * This is optional test data — not run by default.
      *
      * Usage: php artisan db:seed --class=StorageHandlingInvoiceSeeder
-     * Requires: GateMovementSeeder (gate movements must exist first)
+     * Requires: GateMovementSeeder, YardStorageSeeder
      */
     public function run(): void
     {
-        $gateMovements = GateMovement::with('container', 'customer')
-            ->where('movement_status', 'done')
-            ->get();
+        $yardStorages = YardStorage::with('container', 'customer')->get();
 
-        if ($gateMovements->isEmpty()) {
-            $this->command->warn('No completed gate movements found. Run GateMovementSeeder first.');
+        if ($yardStorages->isEmpty()) {
+            $this->command->warn('No yard storage records found. Run YardStorageSeeder first.');
             return;
         }
 
@@ -37,80 +35,96 @@ class StorageHandlingInvoiceSeeder extends Seeder
         $invoiceCounter = 1;
         $created = 0;
 
-        foreach ($gateMovements as $movement) {
-            // Get handling tariff rate for this customer and container size
-            $tariffRate = HandlingTariffRate::whereHas('tariff', function ($q) use ($movement) {
-                $q->where('shipping_line_id', $movement->customer_id)
-                  ->where('is_active', true);
-            })
-                ->where('container_size', $movement->size)
-                ->orderBy('id')
-                ->first();
+        // Group storages by customer
+        $byCustomer = $yardStorages->groupBy('customer_id');
 
-            if (!$tariffRate) {
-                // Try default (non-customer-specific) rate
-                $tariffRate = HandlingTariffRate::whereHas('tariff', function ($q) {
-                    $q->whereNull('shipping_line_id')
-                      ->where('is_active', true);
-                })
-                    ->where('container_size', $movement->size)
-                    ->first();
-            }
-
-            if (!$tariffRate) {
-                continue; // Skip if no tariff rate found
-            }
-
-            // Determine rate based on movement type
-            $rate = $movement->movement_type === 'in' ? $tariffRate->lift_off_rate : $tariffRate->lift_on_rate;
-            $subtotal = $rate;
-            $taxPercentage = 18.00;
-            $taxAmount = ($subtotal * $taxPercentage) / 100;
-            $totalValue = $subtotal + $taxAmount;
-
+        foreach ($byCustomer as $customerId => $storages) {
             $invoiceNo = 'SH-' . str_pad($invoiceCounter++, 5, '0', STR_PAD_LEFT);
+            $invoiceDate = now();
+
+            $storageTotalSubtotal = 0;
+            $storageTotalTax = 0;
+            $handlingTotalSubtotal = 0;
+
+            // For now, simple handling charges (could be enhanced with actual handling tariffs)
+            $liftOffRate = 15.00; // sample rate
+            $liftOnRate = 15.00;  // sample rate
 
             $invoice = StorageHandlingInvoice::create([
-                'invoice_no'           => $invoiceNo,
-                'customer_id'          => $movement->customer_id,
-                'invoice_type'         => 'handling',
-                'invoice_date'         => $movement->created_at->toDateString(),
-                'due_date'             => $movement->created_at->addDays(30)->toDateString(),
-                'subtotal'             => $subtotal,
-                'tax_percentage'       => $taxPercentage,
-                'tax_amount'           => $taxAmount,
-                'total_value'          => $totalValue,
-                'currency'             => $movement->customer->currency ?? 'USD',
-                'billing_party_id'     => $movement->customer->billing_party_id,
-                'sscl_registered'      => $movement->customer->sscl_registered ?? false,
-                'status'               => 'draft',
-                'remarks'              => ucfirst($movement->movement_type) . " handling for {$movement->container_no}",
-                'created_by'           => $billingClerk->id,
-                'updated_by'           => $billingClerk->id,
+                'invoice_no'          => $invoiceNo,
+                'shipping_line_id'    => $customerId,
+                'invoice_date'        => $invoiceDate->toDateString(),
+                'billing_period_from' => $invoiceDate->clone()->startOfMonth()->toDateString(),
+                'billing_period_to'   => $invoiceDate->clone()->endOfMonth()->toDateString(),
+                'storage_subtotal'    => 0, // Will accumulate
+                'handling_subtotal'   => 0, // Will accumulate
+                'subtotal'            => 0, // Will accumulate
+                'tax_percentage'      => 18.00,
+                'tax_amount'          => 0,  // Will accumulate
+                'total_amount'        => 0,  // Will accumulate
+                'status'              => 'draft',
+                'notes'               => "Storage and handling charges for period",
+                'created_by'          => $billingClerk->id,
             ]);
 
-            // Create invoice line
-            StorageHandlingInvoiceLine::create([
-                'storage_handling_invoice_id' => $invoice->id,
-                'container_no'                => $movement->container_no,
-                'size'                        => $movement->size,
-                'container_type'              => $movement->container_type,
-                'equipment_type_id'           => $movement->container->equipment_type_id,
-                'movement_type'               => $movement->movement_type,
-                'movement_date'               => $movement->movement_type === 'in' ? $movement->gate_in_time->toDateString() : $movement->gate_out_time->toDateString(),
-                'charge_code_id'              => null,
-                'rate'                        => $rate,
-                'quantity'                    => 1,
-                'line_value'                  => $subtotal,
-                'tax_percentage'              => $taxPercentage,
-                'tax_amount'                  => $taxAmount,
-                'currency'                    => $invoice->currency,
-                'cargo_status'                => $movement->cargo_status,
+            // Create lines for each storage record
+            foreach ($storages as $storage) {
+                $storageTotalSubtotal += $storage->total_charge;
+
+                $hasLiftOff = true;  // All gate-in movements have lift-off
+                $hasLiftOn = $storage->gate_out_date ? true : false;
+
+                $handlingCost = 0;
+                if ($hasLiftOff) {
+                    $handlingCost += $liftOffRate;
+                }
+                if ($hasLiftOn) {
+                    $handlingCost += $liftOnRate;
+                }
+                $handlingTotalSubtotal += $handlingCost;
+
+                StorageHandlingInvoiceLine::create([
+                    'invoice_id'              => $invoice->id,
+                    'container_id'            => $storage->container_id,
+                    'container_no'            => $storage->container->container_no,
+                    'container_size'          => $storage->container->size,
+                    'equipment_type'          => $storage->container->equipmentType?->dropdown_label ?? "{$storage->container->size}{$storage->container->type_code}",
+                    'gate_in_date'            => $storage->gate_in_date,
+                    'gate_out_date'           => $storage->gate_out_date,
+                    'storage_from'            => $storage->gate_in_date,
+                    'storage_to'              => $storage->gate_out_date,
+                    'storage_total_days'      => $storage->total_days,
+                    'storage_free_days'       => $storage->free_days,
+                    'storage_chargeable_days' => $storage->chargeable_days,
+                    'storage_daily_rate'      => $storage->daily_rate,
+                    'storage_currency'        => 'LKR',
+                    'storage_subtotal'        => $storage->total_charge,
+                    'has_lift_off'            => $hasLiftOff,
+                    'lift_off_rate'           => $hasLiftOff ? $liftOffRate : 0,
+                    'has_lift_on'             => $hasLiftOn,
+                    'lift_on_rate'            => $hasLiftOn ? $liftOnRate : 0,
+                    'handling_currency'       => 'USD',
+                    'handling_subtotal'       => $handlingCost,
+                    'line_total'              => $storage->total_charge + $handlingCost,
+                ]);
+            }
+
+            // Update invoice totals
+            $totalSubtotal = $storageTotalSubtotal + $handlingTotalSubtotal;
+            $taxAmount = ($totalSubtotal * 18.00) / 100;
+            $totalAmount = $totalSubtotal + $taxAmount;
+
+            $invoice->update([
+                'storage_subtotal'  => $storageTotalSubtotal,
+                'handling_subtotal' => $handlingTotalSubtotal,
+                'subtotal'          => $totalSubtotal,
+                'tax_amount'        => $taxAmount,
+                'total_amount'      => $totalAmount,
             ]);
 
             $created++;
         }
 
-        $this->command->info('Created ' . $created . ' handling invoices.');
+        $this->command->info('Created ' . $created . ' storage & handling invoices.');
     }
 }
