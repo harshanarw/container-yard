@@ -118,6 +118,7 @@
                                 <option value="">— Select District —</option>
                             </select>
                         </div>
+                        <div class="w-100"></div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Local Agent</label>
                             <div class="customer-autocomplete" data-local-agents="1">

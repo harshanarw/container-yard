@@ -135,6 +135,7 @@
                             $initLocalAgent   = $customer->localAgent;
                             $initBillingParty = $customer->billingParty;
                         @endphp
+                        <div class="w-100"></div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Local Agent</label>
                             <div class="customer-autocomplete" data-local-agents="1">
