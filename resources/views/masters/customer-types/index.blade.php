@@ -41,6 +41,7 @@
                     <th class="ps-3" style="width:36px;"></th>
                     <th style="width:36px;">#</th>
                     <th>Name</th>
+                    <th style="width:90px;" class="text-center">Short Code</th>
                     <th>Description</th>
                     <th style="width:100px;" class="text-center">Customers</th>
                     <th style="width:90px;" class="text-center">Status</th>
@@ -55,6 +56,13 @@
                     </td>
                     <td class="small text-muted fw-semibold">{{ $item->sort_order }}</td>
                     <td class="fw-semibold small">{{ $item->name }}</td>
+                    <td class="text-center">
+                        @if($item->short_code)
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">{{ $item->short_code }}</span>
+                        @else
+                            <span class="text-muted small">—</span>
+                        @endif
+                    </td>
                     <td class="small text-muted">{{ $item->description ?? '—' }}</td>
                     <td class="text-center">
                         <span class="badge bg-primary rounded-pill">{{ $item->customers_count ?? 0 }}</span>
@@ -74,6 +82,7 @@
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $item->id }}"
                                     data-name="{{ $item->name }}"
+                                    data-short_code="{{ $item->short_code }}"
                                     data-description="{{ $item->description }}"
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
@@ -114,10 +123,19 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control"
-                               maxlength="100" required placeholder="e.g. Shipping Line">
+                    <div class="row g-2 mb-3">
+                        <div class="col-8">
+                            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control"
+                                   maxlength="100" required placeholder="e.g. Shipping Line">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">Short Code</label>
+                            <input type="text" name="short_code" class="form-control text-uppercase font-monospace"
+                                   maxlength="5" placeholder="e.g. SHL"
+                                   oninput="this.value=this.value.toUpperCase()">
+                            <div class="form-text">2–5 letters</div>
+                        </div>
                     </div>
                     <div class="mb-0">
                         <label class="form-label fw-semibold">Description</label>
@@ -147,10 +165,18 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" id="editName" class="form-control"
-                               maxlength="100" required>
+                    <div class="row g-2 mb-3">
+                        <div class="col-8">
+                            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" id="editName" class="form-control"
+                                   maxlength="100" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">Short Code</label>
+                            <input type="text" name="short_code" id="editShortCode" class="form-control text-uppercase font-monospace"
+                                   maxlength="5" oninput="this.value=this.value.toUpperCase()">
+                            <div class="form-text">2–5 letters</div>
+                        </div>
                     </div>
                     <div class="mb-0">
                         <label class="form-label fw-semibold">Description</label>
@@ -221,6 +247,7 @@ if (tbody) {
 document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
         document.getElementById('editName').value        = btn.dataset.name;
+        document.getElementById('editShortCode').value   = btn.dataset.short_code ?? '';
         document.getElementById('editDescription').value = btn.dataset.description ?? '';
         document.getElementById('editForm').action =
             '{{ url("masters/customer-types") }}/' + btn.dataset.id;

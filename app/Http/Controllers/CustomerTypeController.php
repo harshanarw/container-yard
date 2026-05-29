@@ -18,6 +18,7 @@ class CustomerTypeController extends Controller
     {
         $data = $request->validate([
             'name'        => ['required', 'string', 'max:100', 'unique:customer_types,name'],
+            'short_code'  => ['nullable', 'string', 'max:5', 'unique:customer_types,short_code'],
             'description' => ['nullable', 'string', 'max:200'],
         ]);
 
@@ -32,6 +33,7 @@ class CustomerTypeController extends Controller
     {
         $data = $request->validate([
             'name'        => ['required', 'string', 'max:100', "unique:customer_types,name,{$customerType->id}"],
+            'short_code'  => ['nullable', 'string', 'max:5', "unique:customer_types,short_code,{$customerType->id}"],
             'description' => ['nullable', 'string', 'max:200'],
         ]);
 

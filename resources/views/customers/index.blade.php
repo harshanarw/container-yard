@@ -141,11 +141,17 @@
                             @endif
                         </td>
                         <td>
-                            @foreach($customer->types->take(2) as $t)
-                                <span class="badge bg-info-subtle text-info border border-info-subtle me-1">{{ $t->name }}</span>
+                            @foreach($customer->types->take(3) as $t)
+                                <span class="badge bg-info-subtle text-info border border-info-subtle me-1 font-monospace"
+                                      data-bs-toggle="tooltip" data-bs-placement="top"
+                                      title="{{ $t->name }}">{{ $t->display_code }}</span>
                             @endforeach
-                            @if($customer->types->count() > 2)
-                                <span class="badge bg-secondary">+{{ $customer->types->count() - 2 }}</span>
+                            @if($customer->types->count() > 3)
+                                <span class="badge bg-secondary"
+                                      data-bs-toggle="tooltip" data-bs-placement="top"
+                                      title="{{ $customer->types->skip(3)->pluck('name')->join(', ') }}">
+                                    +{{ $customer->types->count() - 3 }}
+                                </span>
                             @endif
                             @if($customer->types->isEmpty())
                                 <span class="text-muted small">—</span>
@@ -249,6 +255,11 @@ $(document).ready(function () {
         const btn = $(e.relatedTarget);
         $('#deleteCustomerName').text(btn.data('name'));
         $('#formDeleteCustomer').attr('action', btn.data('url'));
+    });
+
+    // Init Bootstrap tooltips for customer type short-code badges
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+        new bootstrap.Tooltip(el);
     });
 });
 </script>
