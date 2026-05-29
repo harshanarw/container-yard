@@ -585,7 +585,7 @@
             </div>
 
             {{-- M&R sub-group --}}
-            @php $mrOpsActive = request()->routeIs('estimates.*'); @endphp
+            @php $mrOpsActive = request()->routeIs('estimates.*') || request()->routeIs('work-orders.*') || request()->routeIs('repair-invoices.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-mr"
                     aria-expanded="{{ $mrOpsActive ? 'true' : 'false' }}"
@@ -600,6 +600,18 @@
                         <a href="{{ route('estimates.index') }}"
                            class="nav-link {{ request()->routeIs('estimates.*') ? 'active' : '' }}">
                             <i class="bi bi-file-earmark-ruled"></i><span>Repair Estimates</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('work-orders.index') }}"
+                           class="nav-link {{ request()->routeIs('work-orders.*') ? 'active' : '' }}">
+                            <i class="bi bi-hammer"></i><span>Work Orders</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('repair-invoices.index') }}"
+                           class="nav-link {{ request()->routeIs('repair-invoices.*') ? 'active' : '' }}">
+                            <i class="bi bi-receipt"></i><span>Repair Invoices</span>
                         </a>
                     </li>
                 </ul>

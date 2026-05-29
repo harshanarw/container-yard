@@ -20,6 +20,8 @@ use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\SurveyController;
+use App\Http\Controllers\WorkOrderController;
+use App\Http\Controllers\RepairInvoiceController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StorageBillingController;
@@ -79,6 +81,12 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('estimates/{estimate}/approve',       [EstimateController::class, 'approve'])->name('estimates.approve');
     Route::patch('estimates/{estimate}/reject',        [EstimateController::class, 'reject'])->name('estimates.reject');
     Route::get('estimates/{estimate}/pdf',             [EstimateController::class, 'pdf'])->name('estimates.pdf');
+
+    // Work Orders
+    Route::resource('work-orders', WorkOrderController::class)->only(['index', 'show']);
+
+    // Repair Invoices
+    Route::resource('repair-invoices', RepairInvoiceController::class)->only(['index', 'show']);
 
     // Yard Operations
     Route::prefix('yard')->name('yard.')->group(function () {
