@@ -6,6 +6,7 @@ use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\CompanySetting;
 use App\Models\Country;
+use App\Models\CountryState;
 use App\Models\Customer;
 use App\Models\CustomerType;
 use Illuminate\Http\Request;
@@ -68,11 +69,16 @@ class CustomerController extends Controller
 
     public function create()
     {
-        $customerTypes     = CustomerType::where('is_active', true)->orderBy('sort_order')->get();
-        $countries         = Country::forSelect();
-        $defaultCountryId  = CompanySetting::current()?->country_id;
+        $customerTypes    = CustomerType::where('is_active', true)->orderBy('sort_order')->get();
+        $countries        = Country::forSelect();
+        $defaultCountryId = CompanySetting::current()?->country_id;
 
-        return view('customers.create', compact('customerTypes', 'countries', 'defaultCountryId'));
+        $initialStates = $defaultCountryId
+            ? CountryState::where('country_id', $defaultCountryId)->whereNull('parent_id')
+                ->orderBy('sort_order')->orderBy('name')->get()
+            : collect();
+
+        return view('customers.create', compact('customerTypes', 'countries', 'defaultCountryId', 'initialStates'));
     }
 
     public function store(StoreCustomerRequest $request)
@@ -113,7 +119,20 @@ class CustomerController extends Controller
         $countries        = Country::forSelect();
         $defaultCountryId = CompanySetting::current()?->country_id;
 
-        return view('customers.edit', compact('customer', 'customerTypes', 'countries', 'defaultCountryId'));
+        $initialStates = $customer->country_id
+            ? CountryState::where('country_id', $customer->country_id)->whereNull('parent_id')
+                ->orderBy('sort_order')->orderBy('name')->get()
+            : collect();
+
+        $initialDistricts = $customer->state_id
+            ? CountryState::where('parent_id', $customer->state_id)
+                ->orderBy('sort_order')->orderBy('name')->get()
+            : collect();
+
+        return view('customers.edit', compact(
+            'customer', 'customerTypes', 'countries', 'defaultCountryId',
+            'initialStates', 'initialDistricts'
+        ));
     }
 
     public function update(UpdateCustomerRequest $request, Customer $customer)

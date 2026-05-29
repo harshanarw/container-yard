@@ -25,6 +25,8 @@ class UpdateCustomerRequest extends FormRequest
             'city'                => ['nullable', 'string', 'max:100'],
             'state'               => ['nullable', 'string', 'max:100'],
             'country_id'          => ['nullable', 'integer', 'exists:countries,id'],
+            'state_id'            => ['nullable', 'integer', 'exists:country_states,id'],
+            'district_id'         => ['nullable', 'integer', 'exists:country_states,id'],
             'contact_person'      => ['nullable', 'string', 'max:255'],
             'designation'         => ['nullable', 'string', 'max:100'],
             'phone_office'        => ['nullable', 'string', 'max:20'],

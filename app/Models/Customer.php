@@ -15,9 +15,19 @@ class Customer extends Model
         return $this->belongsTo(Country::class, 'country_id');
     }
 
+    public function stateInfo()
+    {
+        return $this->belongsTo(CountryState::class, 'state_id');
+    }
+
+    public function districtInfo()
+    {
+        return $this->belongsTo(CountryState::class, 'district_id');
+    }
+
     protected $fillable = [
         'code', 'name', 'registration_no', 'address', 'city', 'state',
-        'country', 'country_id', 'contact_person', 'designation', 'phone_office', 'phone_mobile',
+        'country', 'country_id', 'state_id', 'district_id', 'contact_person', 'designation', 'phone_office', 'phone_mobile',
         'fax', 'email', 'website', 'currency', 'credit_limit', 'payment_terms',
         'status',
         'contract_start', 'contract_end', 'email_notifications', 'auto_invoice',

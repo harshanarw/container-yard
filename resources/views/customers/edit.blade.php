@@ -86,24 +86,47 @@
                                    value="{{ old('city', $customer->city) }}" placeholder="Port Klang">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">State</label>
-                            <select name="state" class="form-select">
-                                <option value="">— State —</option>
-                                @foreach(['Johor','Kedah','Kelantan','Melaka','Negeri Sembilan','Pahang',
-                                          'Perak','Perlis','Pulau Pinang','Sabah','Sarawak',
-                                          'Selangor','Terengganu','W.P. Kuala Lumpur','W.P. Labuan','W.P. Putrajaya'] as $state)
-                                    <option {{ old('state', $customer->state)==$state?'selected':'' }}>{{ $state }}</option>
-                                @endforeach
-                            </select>
+                            <label class="form-label fw-semibold" id="stateLabelEdit">State / Province</label>
+                            {{-- Dropdown shown when country has states in DB --}}
+                            <div id="stateDropdownWrap" @if($initialStates->isEmpty()) style="display:none;" @endif>
+                                <select name="state_id" id="stateSelect" class="form-select">
+                                    <option value="">— Select State / Province —</option>
+                                    @foreach($initialStates as $s)
+                                        <option value="{{ $s->id }}"
+                                            {{ old('state_id', $customer->state_id) == $s->id ? 'selected' : '' }}>
+                                            {{ $s->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            {{-- Free-text fallback --}}
+                            <div id="stateFreeTextWrap" @if($initialStates->isNotEmpty()) style="display:none;" @endif>
+                                <input type="text" name="state" id="stateFreeText" class="form-control"
+                                       value="{{ old('state', $customer->state) }}" placeholder="State / Province">
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Country</label>
-                            <select name="country_id" class="form-select select2">
+                            <select name="country_id" id="countrySelect" class="form-select select2">
                                 <option value="">— Select Country —</option>
                                 @foreach($countries as $c)
                                     <option value="{{ $c->id }}"
                                         {{ old('country_id', $customer->country_id ?? $defaultCountryId) == $c->id ? 'selected' : '' }}>
                                         {{ $c->flag_emoji }} {{ $c->name }} ({{ $c->iso2 }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        {{-- District — only visible when selected state has districts --}}
+                        <div class="col-md-4" id="districtWrap"
+                             @if($initialDistricts->isEmpty()) style="display:none;" @endif>
+                            <label class="form-label fw-semibold">District</label>
+                            <select name="district_id" id="districtSelect" class="form-select">
+                                <option value="">— Select District —</option>
+                                @foreach($initialDistricts as $d)
+                                    <option value="{{ $d->id }}"
+                                        {{ old('district_id', $customer->district_id) == $d->id ? 'selected' : '' }}>
+                                        {{ $d->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -404,6 +427,83 @@
         }
 
         function closeDropdown() { dropdown.style.display = 'none'; }
+    });
+})();
+</script>
+<script>
+// ── Dynamic State / District ──────────────────────────────────────────────────
+(function () {
+    const statesUrl    = '{{ route("ajax.states") }}';
+    const districtsUrl = '{{ route("ajax.districts") }}';
+
+    const countryEl      = document.getElementById('countrySelect');
+    const stateDropWrap  = document.getElementById('stateDropdownWrap');
+    const stateFreeWrap  = document.getElementById('stateFreeTextWrap');
+    const stateSelect    = document.getElementById('stateSelect');
+    const stateFreeText  = document.getElementById('stateFreeText');
+    const districtWrap   = document.getElementById('districtWrap');
+    const districtSelect = document.getElementById('districtSelect');
+
+    function clearDistricts() {
+        districtSelect.innerHTML = '<option value="">— Select District —</option>';
+        districtWrap.style.display = 'none';
+    }
+
+    function loadDistricts(stateId) {
+        clearDistricts();
+        if (!stateId) return;
+        fetch(districtsUrl + '?state_id=' + stateId)
+            .then(r => r.json())
+            .then(districts => {
+                if (!districts.length) return;
+                districts.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.id;
+                    opt.textContent = d.name;
+                    districtSelect.appendChild(opt);
+                });
+                districtWrap.style.display = '';
+            });
+    }
+
+    function loadStates(countryId, preselectStateId, preselectDistrictId) {
+        stateSelect.innerHTML = '<option value="">— Select State / Province —</option>';
+        stateFreeText.value = '';
+        clearDistricts();
+
+        if (!countryId) {
+            stateDropWrap.style.display = 'none';
+            stateFreeWrap.style.display = '';
+            return;
+        }
+
+        fetch(statesUrl + '?country_id=' + countryId)
+            .then(r => r.json())
+            .then(states => {
+                if (states.length) {
+                    states.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = s.name;
+                        if (preselectStateId && s.id == preselectStateId) opt.selected = true;
+                        stateSelect.appendChild(opt);
+                    });
+                    stateDropWrap.style.display = '';
+                    stateFreeWrap.style.display = 'none';
+                    if (preselectStateId) loadDistricts(preselectStateId);
+                } else {
+                    stateDropWrap.style.display = 'none';
+                    stateFreeWrap.style.display = '';
+                }
+            });
+    }
+
+    $('#countrySelect').on('change', function () {
+        loadStates(this.value, null, null);
+    });
+
+    stateSelect.addEventListener('change', function () {
+        loadDistricts(this.value);
     });
 })();
 </script>

@@ -6,6 +6,7 @@ use App\Http\Controllers\ChecklistMasterItemController;
 use App\Http\Controllers\CloudStorageSettingController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\CountryController;
+use App\Http\Controllers\CountryStateController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\CustomerTypeController;
@@ -247,6 +248,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{document}/download',      [DocumentController::class, 'download'])->name('download');
         Route::delete('/{document}',            [DocumentController::class, 'destroy'])->name('destroy');
     });
+
+    // AJAX — country subdivision lookups
+    Route::get('/ajax/states',    [CountryStateController::class, 'byCountry'])->name('ajax.states');
+    Route::get('/ajax/districts', [CountryStateController::class, 'byState'])->name('ajax.districts');
 
     // Country List — System Administrator only
     Route::prefix('settings/countries')->name('settings.countries.')->group(function () {
