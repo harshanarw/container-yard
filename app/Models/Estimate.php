@@ -10,7 +10,8 @@ class Estimate extends Model
     use HasFactory;
 
     protected $fillable = [
-        'estimate_no', 'inquiry_id', 'container_id', 'equipment_type_id', 'container_no', 'customer_id',
+        'estimate_no', 'version_no', 'parent_estimate_id',
+        'inquiry_id', 'container_id', 'equipment_type_id', 'container_no', 'customer_id',
         'size', 'type_code', 'estimate_date', 'valid_until', 'currency', 'priority',
         'status', 'scope_of_work', 'terms', 'subtotal', 'tax_percentage', 'tax_amount',
         'grand_total', 'send_to_email', 'send_cc_email', 'email_message', 'attach_pdf',
@@ -55,6 +56,21 @@ class Estimate extends Model
     public function lineItems()
     {
         return $this->hasMany(EstimateLineItem::class);
+    }
+
+    public function approvalActions()
+    {
+        return $this->hasMany(EstimateApprovalAction::class);
+    }
+
+    public function parentEstimate()
+    {
+        return $this->belongsTo(Estimate::class, 'parent_estimate_id');
+    }
+
+    public function revisions()
+    {
+        return $this->hasMany(Estimate::class, 'parent_estimate_id');
     }
 
     public function createdBy()
