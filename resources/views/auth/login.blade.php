@@ -151,15 +151,15 @@
             justify-content: center;
             border: 1px dashed #cbd5e1;
             border-radius: 6px;
-            padding: 8px 6px;
-            letter-spacing: 2px;
-            font-size: 17px;
+            padding: 8px 5px 8px 11px;
+            letter-spacing: 6px;
+            font-size: 18px;
             font-weight: 700;
             font-family: 'Courier New', monospace;
             color: #2196F3;
             background: #f8fafc;
             user-select: none;
-            width: 100px;
+            white-space: nowrap;
             flex-shrink: 0;
         }
         .captcha-refresh {
@@ -348,8 +348,7 @@
     function generateCaptcha() {
         const code = Math.floor(1000 + Math.random() * 9000).toString();
         captchaAnswer.value = code;
-        // Display with spaces for readability
-        captchaDisplay.textContent = code.split('').join(' ');
+        captchaDisplay.textContent = code;
     }
     generateCaptcha();
     captchaRefresh.addEventListener('click', function () {
