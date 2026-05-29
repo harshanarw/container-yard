@@ -33,7 +33,6 @@ class EstimateSeeder extends Seeder
         // ── Create missing customers (shipping lines from dummy data) ───────
         $msc = Customer::firstOrCreate(['code' => 'MSC'], [
             'name'                => 'MSC Mediterranean Shipping Co.',
-            'type'                => 'shipping_line',
             'country'             => 'Sri Lanka',
             'currency'            => 'LKR',
             'payment_terms'       => 'net30',
@@ -44,7 +43,6 @@ class EstimateSeeder extends Seeder
 
         $evg = Customer::firstOrCreate(['code' => 'EVG'], [
             'name'                => 'Evergreen Marine Corp.',
-            'type'                => 'shipping_line',
             'country'             => 'Sri Lanka',
             'currency'            => 'LKR',
             'payment_terms'       => 'net30',
@@ -55,7 +53,6 @@ class EstimateSeeder extends Seeder
 
         $zim = Customer::firstOrCreate(['code' => 'ZIM'], [
             'name'                => 'ZIM Integrated Shipping',
-            'type'                => 'shipping_line',
             'country'             => 'Sri Lanka',
             'currency'            => 'LKR',
             'payment_terms'       => 'net30',
@@ -66,7 +63,6 @@ class EstimateSeeder extends Seeder
 
         $hlx = Customer::firstOrCreate(['code' => 'HLX'], [
             'name'                => 'Hapag-Lloyd AG',
-            'type'                => 'shipping_line',
             'country'             => 'Sri Lanka',
             'currency'            => 'LKR',
             'payment_terms'       => 'net30',
