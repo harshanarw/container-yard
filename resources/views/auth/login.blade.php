@@ -151,15 +151,16 @@
             justify-content: center;
             border: 1px dashed #cbd5e1;
             border-radius: 6px;
-            padding: 8px 10px;
-            letter-spacing: 4px;
-            font-size: 22px;
+            padding: 8px 6px;
+            letter-spacing: 2px;
+            font-size: 17px;
             font-weight: 700;
             font-family: 'Courier New', monospace;
             color: #2196F3;
             background: #f8fafc;
             user-select: none;
-            min-width: 110px;
+            width: 100px;
+            flex-shrink: 0;
         }
         .captcha-refresh {
             background: none; border: none; outline: none;
@@ -286,9 +287,9 @@
             {{-- CAPTCHA --}}
             <label class="auth-label">Image Text</label>
             <div class="d-flex align-items-center gap-2 mb-3">
-                <div class="auth-input-group" style="flex:1;">
+                <div class="auth-input-group" style="flex:1; min-width:0;">
                     <span class="ig-icon"><i class="bi bi-shield-check"></i></span>
-                    <input type="text" id="captchaInput" placeholder="Type the digits you see"
+                    <input type="text" id="captchaInput" placeholder="Type digits"
                            inputmode="numeric" maxlength="6" autocomplete="off">
                 </div>
                 <div class="captcha-display" id="captchaDisplay"></div>
