@@ -104,9 +104,7 @@ class HandlingTariffSeeder extends Seeder
         ];
 
         foreach ($tariffs as $data) {
-            $shippingLine = Customer::where('code', $data['code'])
-                ->where('type', 'shipping_line')
-                ->first();
+            $shippingLine = Customer::where('code', $data['code'])->first();
 
             if (! $shippingLine) {
                 $this->command->warn("Shipping line [{$data['code']}] not found — skipping.");
