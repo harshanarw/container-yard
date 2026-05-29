@@ -450,12 +450,12 @@
 
     function initSelect2State() {
         if (!$.fn.select2) return;
-        $(stateSelect).select2({ placeholder: '— Select State / Province —', allowClear: true, width: '100%' });
+        $(stateSelect).select2({ theme: 'bootstrap-5', placeholder: '— Select State / Province —', allowClear: true, width: '100%' });
     }
 
     function initSelect2District() {
         if (!$.fn.select2) return;
-        $(districtSelect).select2({ placeholder: '— Select District —', allowClear: true, width: '100%' });
+        $(districtSelect).select2({ theme: 'bootstrap-5', placeholder: '— Select District —', allowClear: true, width: '100%' });
     }
 
     function clearDistricts() {
