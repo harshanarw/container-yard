@@ -49,16 +49,16 @@ These are executed automatically with `php artisan migrate:fresh --seed` and pop
 ### 2. **Optional Demo Data Seeders** (Manual Run)
 These are NOT run by default. Run them separately to populate transaction/operational history for testing and demos.
 
-**6 optional demo seeders (run in order or together):**
+**5 optional demo seeders (run in order or together via OptionalDemoDataSeeder):**
 
 1. **`GateMovementSeeder`** - Gate in/out movements
-   - Creates realistic gate in/out cycles for all 11 sample containers
+   - Creates realistic gate in/out cycles for all 11+ sample containers
    - 50% of containers get a gate out movement
    - Timestamps aligned with container gate_in_date
    
 2. **`YardStorageSeeder`** - Yard storage calculations
    - Calculates storage periods from gate movements
-   - Applies storage tariffs
+   - Applies storage tariffs based on equipment type
    - Generates storage charges and taxes
    - **Requires:** GateMovementSeeder
 
@@ -67,21 +67,24 @@ These are NOT run by default. Run them separately to populate transaction/operat
    - Generates invoice details with line items
    - **Requires:** YardStorageSeeder
 
-4. **`StorageHandlingInvoiceSeeder`** - Handling invoices
-   - Creates handling invoices for each gate movement
-   - Uses handling tariffs per customer
+4. **`StorageHandlingInvoiceSeeder`** - Storage & Handling invoices
+   - Creates combined storage + handling invoices per customer
+   - Uses storage records for storage charges
    - Applies lift-off rates for gate-in, lift-on rates for gate-out
-   - **Requires:** GateMovementSeeder
+   - **Requires:** GateMovementSeeder + YardStorageSeeder
 
-5. **`WorkOrderSeeder`** - Work orders
+5. **`RepairInvoiceSeeder`** - Repair invoices
+   - Creates repair invoices from approved estimates
+   - Calculates labor + materials + ancillary costs
+   - **Requires:** EstimateSeeder + manually mark estimates as 'approved'
+
+**Optional (run separately if needed):**
+
+6. **`WorkOrderSeeder`** - Work orders
    - Creates work orders from approved estimates
    - Converts estimate lines to work order lines
    - **Requires:** EstimateSeeder (and manually mark estimates as 'approved')
-
-6. **`RepairInvoiceSeeder`** - Repair invoices
-   - Creates repair invoices from work orders
-   - Calculates labor + materials + ancillary costs
-   - **Requires:** WorkOrderSeeder
+   - **Note:** Not included in OptionalDemoDataSeeder; run separately if needed for workflow testing
 
 ---
 
@@ -175,12 +178,16 @@ StorageHandlingInvoice ← StorageHandlingInvoiceSeeder
 ### After `php artisan db:seed --class=OptionalDemoDataSeeder`
 | Table | Records | Notes |
 |-------|---------|-------|
-| gate_movements | ~16-17 | ~11 in + ~5-6 out |
-| yard_storage | ~11 | One per container |
-| storage_invoices | ~11 | Based on storage records |
-| storage_handling_invoices | ~16-17 | Based on gate movements |
-| work_orders | ~3-4 | Only if estimates are marked approved |
-| repair_invoices | ~3-4 | Based on work orders |
+| gate_movements | ~22-23 | ~11-12 in + ~11-12 out |
+| yard_storage | ~22-23 | One per gate-in movement |
+| storage_invoices | ~10 | One per customer (aggregated) |
+| storage_handling_invoices | ~10 | One per customer (aggregated) |
+| repair_invoices | 6 | From 6 sample estimates |
+
+**Note:** WorkOrderSeeder is separate and not run by default. Run it separately if needed:
+```bash
+php artisan db:seed --class=WorkOrderSeeder
+```
 
 ---
 

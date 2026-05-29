@@ -14,8 +14,10 @@ class OptionalDemoDataSeeder extends Seeder
      * 2. YardStorageSeeder     - Storage calculations from movements
      * 3. StorageInvoiceSeeder  - Storage invoices from storage records
      * 4. StorageHandlingInvoiceSeeder - Handling invoices from movements
-     * 5. WorkOrderSeeder       - Work orders from approved estimates
-     * 6. RepairInvoiceSeeder   - Repair invoices from work orders
+     * 5. RepairInvoiceSeeder   - Repair invoices from approved estimates
+     *
+     * Optional (run separately if needed):
+     * - WorkOrderSeeder       - Work orders from approved estimates
      *
      * Usage:
      *   php artisan db:seed --class=OptionalDemoDataSeeder
@@ -35,7 +37,6 @@ class OptionalDemoDataSeeder extends Seeder
             YardStorageSeeder::class,
             StorageInvoiceSeeder::class,
             StorageHandlingInvoiceSeeder::class,
-            WorkOrderSeeder::class,
             RepairInvoiceSeeder::class,
         ]);
     }
