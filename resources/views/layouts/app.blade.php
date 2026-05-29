@@ -831,6 +831,12 @@
                         </a>
                     </li>
                     <li class="nav-item sub-item">
+                        <a href="{{ route('settings.countries.index') }}"
+                           class="nav-link {{ request()->routeIs('settings.countries.*') ? 'active' : '' }}">
+                            <i class="bi bi-globe"></i><span>Country List</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
                         <a href="{{ route('settings.cloud-storage.index') }}"
                            class="nav-link {{ request()->routeIs('settings.cloud-storage.*') ? 'active' : '' }}">
                             <i class="bi bi-cloud-upload"></i><span>Storage</span>

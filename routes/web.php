@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChecklistMasterItemController;
 use App\Http\Controllers\CloudStorageSettingController;
 use App\Http\Controllers\CompanySettingController;
+use App\Http\Controllers\CountryController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\CustomerTypeController;
@@ -245,6 +246,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{document}/preview',       [DocumentController::class, 'preview'])->name('preview');
         Route::get('/{document}/download',      [DocumentController::class, 'download'])->name('download');
         Route::delete('/{document}',            [DocumentController::class, 'destroy'])->name('destroy');
+    });
+
+    // Country List — System Administrator only
+    Route::prefix('settings/countries')->name('settings.countries.')->group(function () {
+        Route::get('/',                   [CountryController::class, 'index'])->name('index');
+        Route::post('/',                  [CountryController::class, 'store'])->name('store');
+        Route::patch('/{country}',        [CountryController::class, 'update'])->name('update');
+        Route::patch('/{country}/toggle', [CountryController::class, 'toggleActive'])->name('toggle');
+        Route::delete('/{country}',       [CountryController::class, 'destroy'])->name('destroy');
     });
 
     // Company Settings — System Administrator only

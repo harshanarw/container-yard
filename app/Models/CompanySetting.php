@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\Storage;
 
 class CompanySetting extends Model
 {
+    public function countryInfo()
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
+
     protected $fillable = [
         'company_name',
         'company_prefix',
@@ -15,6 +20,7 @@ class CompanySetting extends Model
         'address',
         'city',
         'country',
+        'country_id',
         'telephone',
         'email',
         'website',

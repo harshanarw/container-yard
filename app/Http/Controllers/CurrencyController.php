@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanySetting;
+use App\Models\Country;
 use App\Models\Currency;
 use Illuminate\Http\Request;
 
@@ -9,17 +11,19 @@ class CurrencyController extends Controller
 {
     public function index()
     {
-        $currencies = Currency::orderBy('sort_order')->orderBy('code')->get();
-        return view('masters.currencies.index', compact('currencies'));
+        $currencies       = Currency::with('countryInfo')->orderBy('sort_order')->orderBy('code')->get();
+        $countries        = Country::forSelect();
+        $defaultCountryId = CompanySetting::current()?->country_id;
+        return view('masters.currencies.index', compact('currencies', 'countries', 'defaultCountryId'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'code'    => ['required', 'string', 'size:3', 'unique:currencies,code'],
-            'name'    => ['required', 'string', 'max:100'],
-            'country' => ['nullable', 'string', 'max:100'],
-            'symbol'  => ['nullable', 'string', 'max:10'],
+            'code'       => ['required', 'string', 'size:3', 'unique:currencies,code'],
+            'name'       => ['required', 'string', 'max:100'],
+            'country_id' => ['nullable', 'integer', 'exists:countries,id'],
+            'symbol'     => ['nullable', 'string', 'max:10'],
         ]);
 
         $data['code']       = strtoupper($data['code']);
@@ -33,10 +37,10 @@ class CurrencyController extends Controller
     public function update(Request $request, Currency $currency)
     {
         $data = $request->validate([
-            'code'    => ['required', 'string', 'size:3', "unique:currencies,code,{$currency->id}"],
-            'name'    => ['required', 'string', 'max:100'],
-            'country' => ['nullable', 'string', 'max:100'],
-            'symbol'  => ['nullable', 'string', 'max:10'],
+            'code'       => ['required', 'string', 'size:3', "unique:currencies,code,{$currency->id}"],
+            'name'       => ['required', 'string', 'max:100'],
+            'country_id' => ['nullable', 'integer', 'exists:countries,id'],
+            'symbol'     => ['nullable', 'string', 'max:10'],
         ]);
 
         $data['code'] = strtoupper($data['code']);

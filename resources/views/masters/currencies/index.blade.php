@@ -76,7 +76,15 @@
                             </span>
                         @endif
                     </td>
-                    <td class="small text-muted">{{ $cur->country ?? '—' }}</td>
+                    <td class="small text-muted">
+                        @if($cur->countryInfo)
+                            {{ $cur->countryInfo->flag_emoji }} {{ $cur->countryInfo->name }}
+                        @elseif($cur->country)
+                            {{ $cur->country }}
+                        @else
+                            —
+                        @endif
+                    </td>
                     <td class="text-center">
                         @if($cur->is_default)
                             <span class="badge bg-warning text-dark">
@@ -110,7 +118,7 @@
                                     data-id="{{ $cur->id }}"
                                     data-code="{{ $cur->code }}"
                                     data-name="{{ $cur->name }}"
-                                    data-country="{{ $cur->country ?? '' }}"
+                                    data-country_id="{{ $cur->country_id ?? '' }}"
                                     data-symbol="{{ $cur->symbol ?? '' }}"
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
@@ -183,8 +191,15 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Country / Region</label>
-                            <input type="text" name="country" class="form-control"
-                                   maxlength="100" placeholder="e.g. United States">
+                            <select name="country_id" class="form-select select2-modal-add">
+                                <option value="">— Select Country —</option>
+                                @foreach($countries as $c)
+                                    <option value="{{ $c->id }}"
+                                        {{ $defaultCountryId == $c->id ? 'selected' : '' }}>
+                                        {{ $c->flag_emoji }} {{ $c->name }} ({{ $c->iso2 }})
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -231,7 +246,14 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Country / Region</label>
-                            <input type="text" name="country" id="editCountry" class="form-control" maxlength="100">
+                            <select name="country_id" id="editCountryId" class="form-select select2-modal-edit">
+                                <option value="">— Select Country —</option>
+                                @foreach($countries as $c)
+                                    <option value="{{ $c->id }}">
+                                        {{ $c->flag_emoji }} {{ $c->name }} ({{ $c->iso2 }})
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -295,14 +317,22 @@ if (tbody) {
     });
 }
 
+// ── Select2 in modals ────────────────────────────────────────────────────────
+$('#addModal').on('shown.bs.modal', function () {
+    $(this).find('.select2-modal-add').select2({ theme: 'bootstrap-5', dropdownParent: $(this) });
+});
+$('#editModal').on('shown.bs.modal', function () {
+    $(this).find('.select2-modal-edit').select2({ theme: 'bootstrap-5', dropdownParent: $(this) });
+});
+
 // ── Edit modal ───────────────────────────────────────────────────────────────
 document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.getElementById('editCode').value    = btn.dataset.code;
-        document.getElementById('editName').value    = btn.dataset.name;
-        document.getElementById('editCountry').value = btn.dataset.country;
-        document.getElementById('editSymbol').value  = btn.dataset.symbol;
-        document.getElementById('editForm').action   =
+        document.getElementById('editCode').value        = btn.dataset.code;
+        document.getElementById('editName').value        = btn.dataset.name;
+        document.getElementById('editCountryId').value   = btn.dataset.country_id || '';
+        document.getElementById('editSymbol').value      = btn.dataset.symbol;
+        document.getElementById('editForm').action       =
             '{{ url("masters/currencies") }}/' + btn.dataset.id;
         new bootstrap.Modal(document.getElementById('editModal')).show();
     });

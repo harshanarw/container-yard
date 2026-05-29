@@ -10,9 +10,14 @@ class Customer extends Model
 {
     use HasFactory;
 
+    public function countryInfo()
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
+
     protected $fillable = [
         'code', 'name', 'registration_no', 'address', 'city', 'state',
-        'country', 'contact_person', 'designation', 'phone_office', 'phone_mobile',
+        'country', 'country_id', 'contact_person', 'designation', 'phone_office', 'phone_mobile',
         'fax', 'email', 'website', 'currency', 'credit_limit', 'payment_terms',
         'status',
         'contract_start', 'contract_end', 'email_notifications', 'auto_invoice',

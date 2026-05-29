@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CompanySetting;
+use App\Models\Country;
 use App\Models\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +22,8 @@ class CompanySettingController extends Controller
         $this->authorise();
         $settings   = CompanySetting::current();
         $currencies = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
-        return view('settings.company.index', compact('settings', 'currencies'));
+        $countries  = Country::forSelect();
+        return view('settings.company.index', compact('settings', 'currencies', 'countries'));
     }
 
     public function setDefaultCurrency(Request $request)
@@ -53,7 +55,7 @@ class CompanySettingController extends Controller
             'tagline'        => ['nullable', 'string', 'max:200'],
             'address'      => ['nullable', 'string'],
             'city'         => ['nullable', 'string', 'max:100'],
-            'country'      => ['nullable', 'string', 'max:100'],
+            'country_id'   => ['nullable', 'integer', 'exists:countries,id'],
             'telephone'    => ['nullable', 'string', 'max:50'],
             'email'        => ['nullable', 'email', 'max:200'],
             'website'      => ['nullable', 'string', 'max:200'],

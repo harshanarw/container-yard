@@ -245,11 +245,17 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Country</label>
-                    <input type="text" name="country"
-                           class="form-control @error('country') is-invalid @enderror"
-                           value="{{ old('country', $settings->country) }}"
-                           maxlength="100">
-                    @error('country')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <select name="country_id"
+                            class="form-select select2 @error('country_id') is-invalid @enderror">
+                        <option value="">— Select Country —</option>
+                        @foreach($countries as $c)
+                            <option value="{{ $c->id }}"
+                                {{ old('country_id', $settings->country_id) == $c->id ? 'selected' : '' }}>
+                                {{ $c->flag_emoji }} {{ $c->name }} ({{ $c->iso2 }})
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('country_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-12">
                     <label class="form-label fw-semibold">Software Provider</label>

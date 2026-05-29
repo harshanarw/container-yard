@@ -98,8 +98,15 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Country</label>
-                            <input type="text" name="country" class="form-control"
-                                   value="{{ old('country', $customer->country) }}">
+                            <select name="country_id" class="form-select select2">
+                                <option value="">— Select Country —</option>
+                                @foreach($countries as $c)
+                                    <option value="{{ $c->id }}"
+                                        {{ old('country_id', $customer->country_id ?? $defaultCountryId) == $c->id ? 'selected' : '' }}>
+                                        {{ $c->flag_emoji }} {{ $c->name }} ({{ $c->iso2 }})
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                         @php
                             $initLocalAgent   = $customer->localAgent;

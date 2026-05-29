@@ -6,10 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class Currency extends Model
 {
+    public function countryInfo()
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
+
     protected $fillable = [
         'code',
         'name',
         'country',
+        'country_id',
         'symbol',
         'is_default',
         'is_active',

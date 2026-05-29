@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
+use App\Models\CompanySetting;
+use App\Models\Country;
 use App\Models\Customer;
 use App\Models\CustomerType;
 use Illuminate\Http\Request;
@@ -66,9 +68,11 @@ class CustomerController extends Controller
 
     public function create()
     {
-        $customerTypes = CustomerType::where('is_active', true)->orderBy('sort_order')->get();
+        $customerTypes     = CustomerType::where('is_active', true)->orderBy('sort_order')->get();
+        $countries         = Country::forSelect();
+        $defaultCountryId  = CompanySetting::current()?->country_id;
 
-        return view('customers.create', compact('customerTypes'));
+        return view('customers.create', compact('customerTypes', 'countries', 'defaultCountryId'));
     }
 
     public function store(StoreCustomerRequest $request)
@@ -105,9 +109,11 @@ class CustomerController extends Controller
     public function edit(Customer $customer)
     {
         $customer->load(['types', 'localAgent', 'billingParty']);
-        $customerTypes = CustomerType::where('is_active', true)->orderBy('sort_order')->get();
+        $customerTypes    = CustomerType::where('is_active', true)->orderBy('sort_order')->get();
+        $countries        = Country::forSelect();
+        $defaultCountryId = CompanySetting::current()?->country_id;
 
-        return view('customers.edit', compact('customer', 'customerTypes'));
+        return view('customers.edit', compact('customer', 'customerTypes', 'countries', 'defaultCountryId'));
     }
 
     public function update(UpdateCustomerRequest $request, Customer $customer)
