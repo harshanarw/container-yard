@@ -28,6 +28,7 @@ use App\Http\Controllers\StorageHandlingController;
 use App\Http\Controllers\HandlingTariffController;
 use App\Http\Controllers\StorageZoneController;
 use App\Http\Controllers\MrCodeController;
+use App\Http\Controllers\MrTariffController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\YardController;
 
@@ -186,6 +187,21 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/',                      [ExchangeRateController::class, 'store'])->name('store');
             Route::patch('{exchangeRate}',        [ExchangeRateController::class, 'update'])->name('update');
             Route::delete('{exchangeRate}',       [ExchangeRateController::class, 'destroy'])->name('destroy');
+        });
+        // M&R Rate Tariff
+        Route::prefix('mr-tariff')->name('mr-tariff.')->group(function () {
+            Route::get('/',                          [MrTariffController::class, 'index'])->name('index');
+            Route::post('/',                         [MrTariffController::class, 'store'])->name('store');
+            Route::get('{mrTariff}',                 [MrTariffController::class, 'show'])->name('show');
+            Route::patch('{mrTariff}',               [MrTariffController::class, 'update'])->name('update');
+            Route::patch('{mrTariff}/toggle',        [MrTariffController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{mrTariff}',              [MrTariffController::class, 'destroy'])->name('destroy');
+            // Rule lines nested under header
+            Route::prefix('{mrTariff}/rules')->name('rules.')->group(function () {
+                Route::post('/',         [MrTariffController::class, 'storeRule'])->name('store');
+                Route::patch('{rule}',   [MrTariffController::class, 'updateRule'])->name('update');
+                Route::delete('{rule}',  [MrTariffController::class, 'destroyRule'])->name('destroy');
+            });
         });
         // Handling Charges Tariff
         Route::prefix('handling-tariff')->name('handling-tariff.')->group(function () {

@@ -708,14 +708,16 @@
             </div>
 
             {{-- Tariffs sub-group --}}
+            @php $tariffsActive = request()->routeIs('masters.storage-tariff.*') || request()->routeIs('masters.handling-tariff.*') || request()->routeIs('masters.mr-tariff.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-tariffs"
-                    aria-expanded="false" aria-controls="nav-sub-setup-tariffs">
+                    aria-expanded="{{ $tariffsActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-setup-tariffs">
                 <i class="bi bi-tags nav-sub-icon"></i>
                 <span>Tariffs</span>
                 <i class="bi bi-chevron-down sub-chevron"></i>
             </button>
-            <div class="collapse" id="nav-sub-setup-tariffs">
+            <div class="collapse {{ $tariffsActive ? 'show' : '' }}" id="nav-sub-setup-tariffs">
                 <ul class="nav flex-column">
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.storage-tariff.index') }}"
@@ -727,6 +729,12 @@
                         <a href="{{ route('masters.handling-tariff.index') }}"
                            class="nav-link {{ request()->routeIs('masters.handling-tariff.*') ? 'active' : '' }}">
                             <i class="bi bi-wrench"></i><span>Handling</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.mr-tariff.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.mr-tariff.*') ? 'active' : '' }}">
+                            <i class="bi bi-tools"></i><span>M&amp;R</span>
                         </a>
                     </li>
                 </ul>
