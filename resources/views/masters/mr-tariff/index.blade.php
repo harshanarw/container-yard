@@ -92,7 +92,7 @@
                     <tr class="{{ $rowCls }}">
                         <td class="ps-3 text-muted small">{{ $tariff->id }}</td>
                         <td class="fw-semibold small">{{ $tariff->name }}</td>
-                        <td class="small">{{ $tariff->customer->name ?? '<span class="text-muted fst-italic">Default / All</span>' }}</td>
+                        <td class="small">{!! $tariff->customer->name ?? '<span class="text-muted fst-italic">Default / All</span>' !!}</td>
                         <td class="small">
                             {{ $tariff->valid_from->format('d M Y') }}
                             @if($tariff->valid_to)
