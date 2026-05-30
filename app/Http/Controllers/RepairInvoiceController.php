@@ -34,7 +34,7 @@ class RepairInvoiceController extends Controller
 
     public function show(RepairInvoice $invoice)
     {
-        $invoice->load('estimate', 'workOrder', 'container', 'customer', 'lines.estimateLineItem', 'createdByUser', 'issuedByUser');
+        $invoice->load('estimate', 'workOrder', 'container', 'customer', 'lines.estimateLineItem', 'createdBy', 'issuedBy');
 
         return view('repair-invoices.show', [
             'invoice'      => $invoice,
