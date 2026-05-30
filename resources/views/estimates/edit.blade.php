@@ -192,7 +192,7 @@
                                         <input type="number" name="line_items[{{ $i }}][qty]"
                                                class="form-control form-control-sm qty"
                                                value="{{ old("line_items.{$i}.qty", $item->qty) }}"
-                                               min="0.01" step="0.5" required>
+                                               min="0.01" step="0.01" required>
                                     </td>
                                     <td>
                                         <input type="number" name="line_items[{{ $i }}][unit_price]"
@@ -557,7 +557,7 @@
                         <option value="paint">Paint</option>
                     </select>
                 </td>
-                <td><input type="number" name="line_items[${i}][qty]"        class="form-control form-control-sm qty"        value="1"    min="0.01" step="0.5" required></td>
+                <td><input type="number" name="line_items[${i}][qty]"        class="form-control form-control-sm qty"        value="1"    min="0.01" step="0.01" required></td>
                 <td><input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="0.00" step="0.01" min="0"   required></td>
                 <td>${buildTaxCodeSelect(`line_items[${i}][tax_code_id]`)}</td>
                 <td class="text-end pe-2 small">
