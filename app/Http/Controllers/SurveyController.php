@@ -13,6 +13,7 @@ use App\Models\GateMovement;
 use App\Models\Inquiry;
 use App\Models\InquiryChecklist;
 use App\Models\InquiryPhoto;
+use App\Models\MrCode;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -75,9 +76,17 @@ class SurveyController extends Controller
             ? Container::with(['customer', 'equipmentType'])->find($request->container_id)
             : null;
 
+        $mrLocationCodes       = MrCode::ofType('location')->active()->orderBy('sort_order')->get();
+        $mrComponentCodes      = MrCode::ofType('component')->active()->orderBy('sort_order')->get();
+        $mrDamageCodes         = MrCode::ofType('damage')->active()->orderBy('sort_order')->get();
+        $mrRepairCodes         = MrCode::ofType('repair')->active()->orderBy('sort_order')->get();
+        $mrResponsibilityCodes = MrCode::ofType('responsibility')->active()->orderBy('sort_order')->get();
+
         return view('surveys.create', compact(
             'customers', 'inspectors', 'containers', 'selectedContainer',
-            'checklistItems', 'equipmentTypes'
+            'checklistItems', 'equipmentTypes',
+            'mrLocationCodes', 'mrComponentCodes', 'mrDamageCodes',
+            'mrRepairCodes', 'mrResponsibilityCodes'
         ));
     }
 
@@ -172,11 +181,27 @@ class SurveyController extends Controller
 
     public function edit(Inquiry $survey)
     {
-        $survey->load(['damages', 'checklists']);
+        $survey->load(['damages.locationCode', 'damages.componentCode', 'damages.damageCode',
+                       'damages.repairCode', 'damages.responsibilityCode', 'checklists']);
         $inspectors     = User::where('role', 'inspector')->where('status', 'active')->get();
         $checklistItems = ChecklistMasterItem::active()->get();
 
-        return view('surveys.edit', ['inquiry' => $survey, 'inspectors' => $inspectors, 'checklistItems' => $checklistItems]);
+        $mrLocationCodes       = MrCode::ofType('location')->active()->orderBy('sort_order')->get();
+        $mrComponentCodes      = MrCode::ofType('component')->active()->orderBy('sort_order')->get();
+        $mrDamageCodes         = MrCode::ofType('damage')->active()->orderBy('sort_order')->get();
+        $mrRepairCodes         = MrCode::ofType('repair')->active()->orderBy('sort_order')->get();
+        $mrResponsibilityCodes = MrCode::ofType('responsibility')->active()->orderBy('sort_order')->get();
+
+        return view('surveys.edit', [
+            'inquiry'              => $survey,
+            'inspectors'           => $inspectors,
+            'checklistItems'       => $checklistItems,
+            'mrLocationCodes'      => $mrLocationCodes,
+            'mrComponentCodes'     => $mrComponentCodes,
+            'mrDamageCodes'        => $mrDamageCodes,
+            'mrRepairCodes'        => $mrRepairCodes,
+            'mrResponsibilityCodes'=> $mrResponsibilityCodes,
+        ]);
     }
 
     public function update(UpdateSurveyRequest $request, Inquiry $survey)

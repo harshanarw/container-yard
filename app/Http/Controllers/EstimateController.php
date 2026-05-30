@@ -11,6 +11,7 @@ use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\Estimate;
 use App\Models\Inquiry;
+use App\Models\MrCode;
 use App\Models\MrTariffHeader;
 use App\Models\PortalToken;
 use Illuminate\Http\Request;
@@ -51,15 +52,20 @@ class EstimateController extends Controller
         $equipmentTypes = EquipmentType::active()->get();
 
         $selectedInquiry   = $request->inquiry_id
-            ? Inquiry::with(['container', 'customer', 'damages', 'equipmentType'])->find($request->inquiry_id)
+            ? Inquiry::with(['container', 'customer', 'damages.locationCode', 'damages.componentCode',
+                             'damages.damageCode', 'damages.repairCode', 'equipmentType'])->find($request->inquiry_id)
             : null;
 
         $selectedContainer = $request->container_id
             ? Container::with(['customer', 'equipmentType'])->find($request->container_id)
             : null;
 
+        $mrComponentCodes = MrCode::ofType('component')->active()->orderBy('sort_order')->get();
+        $mrLocationCodes  = MrCode::ofType('location')->active()->orderBy('sort_order')->get();
+
         return view('estimates.create', compact(
-            'customers', 'containers', 'equipmentTypes', 'selectedInquiry', 'selectedContainer'
+            'customers', 'containers', 'equipmentTypes', 'selectedInquiry', 'selectedContainer',
+            'mrComponentCodes', 'mrLocationCodes'
         ));
     }
 
@@ -172,7 +178,11 @@ class EstimateController extends Controller
 
         $estimate->load(['lineItems', 'equipmentType']);
 
-        return view('estimates.edit', compact('estimate', 'customers', 'containers', 'equipmentTypes'));
+        $mrComponentCodes = MrCode::ofType('component')->active()->orderBy('sort_order')->get();
+        $mrLocationCodes  = MrCode::ofType('location')->active()->orderBy('sort_order')->get();
+
+        return view('estimates.edit', compact('estimate', 'customers', 'containers', 'equipmentTypes',
+                                             'mrComponentCodes', 'mrLocationCodes'));
     }
 
     public function update(UpdateEstimateRequest $request, Estimate $estimate)

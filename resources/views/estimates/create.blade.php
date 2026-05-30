@@ -375,6 +375,18 @@
         ).join('');
     }
 
+    // Component / location code options (injected from PHP)
+    const mrCmpCodeOpts = @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+    const mrLocCodeOpts = @json($mrLocationCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+
+    function buildCodeSelect(name, options, selectedId) {
+        let html = `<select name="${name}" class="form-select form-select-sm mb-1"><option value="">— code —</option>`;
+        options.forEach(o => {
+            html += `<option value="${o.id}"${o.id == selectedId ? ' selected' : ''}>${o.code} ${o.name}</option>`;
+        });
+        return html + '</select>';
+    }
+
     function buildRow(data = {}) {
         const i = lineIdx++;
         const fromDamage = !!data.damage_id;
@@ -385,11 +397,11 @@
         return `<tr class="estimate-line">
             <td class="ps-2 text-center">${sourceBadge}</td>
             <td class="ps-1">
-                <input type="text"   name="line_items[${i}][component]"    class="form-control form-control-sm" placeholder="Component / description" value="${esc(data.component ?? '')}">
+                ${buildCodeSelect(`line_items[${i}][component_code_id]`, mrCmpCodeOpts, data.component_code_id ?? '')}
+                <input type="text"   name="line_items[${i}][component]"    class="form-control form-control-sm comp-desc" placeholder="Description / override" value="${esc(data.component ?? '')}">
                 <input type="hidden" name="line_items[${i}][damage_id]"          value="${data.damage_id          ?? ''}">
                 <input type="hidden" name="line_items[${i}][mr_tariff_rule_id]"  value="${data.mr_tariff_rule_id  ?? ''}">
                 <input type="hidden" name="line_items[${i}][location_code_id]"   value="${data.location_code_id   ?? ''}">
-                <input type="hidden" name="line_items[${i}][component_code_id]"  value="${data.component_code_id  ?? ''}">
                 <input type="hidden" name="line_items[${i}][damage_code_id]"     value="${data.damage_code_id     ?? ''}">
                 <input type="hidden" name="line_items[${i}][repair_code_id]"     value="${data.repair_code_id     ?? ''}">
                 <input type="hidden" name="line_items[${i}][material_code_id]"   value="${data.material_code_id   ?? ''}">
@@ -451,6 +463,18 @@
         document.getElementById('totalTax').textContent  = fmt(taxTotal);
         document.getElementById('grandTotal').textContent = fmt(subtotal + taxTotal);
     }
+
+    // ── Component code → auto-fill description ─────────────────────────────
+    document.getElementById('lineItems').addEventListener('change', function (e) {
+        const sel = e.target;
+        if (!sel.name || !sel.name.includes('[component_code_id]')) return;
+        const row = sel.closest('tr');
+        if (!row) return;
+        const descInput = row.querySelector('.comp-desc');
+        if (!descInput || descInput.value.trim()) return; // don't overwrite existing text
+        const opt = mrCmpCodeOpts.find(o => o.id == sel.value);
+        if (opt) descInput.value = opt.name;
+    });
 
     // ── Add / Remove lines ─────────────────────────────────────────────────
     const lineItems = document.getElementById('lineItems');

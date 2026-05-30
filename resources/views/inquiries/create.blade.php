@@ -88,34 +88,28 @@
                             <select name="customer_id" class="form-select select2" required>
                                 <option value="">— Select Customer —</option>
                                 @foreach($customers ?? [] as $c)
-                                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                    <option value="{{ $c->id }}" {{ old('customer_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                                 @endforeach
-                                <!-- Dummy options -->
-                                <option value="1">Maersk Line</option>
-                                <option value="2">CMA CGM Malaysia</option>
-                                <option value="3">Hapag-Lloyd</option>
-                                <option value="4">PIL Shipping</option>
-                                <option value="5">OOCL Malaysia</option>
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Inquiry Type <span class="text-danger">*</span></label>
                             <select name="inquiry_type" class="form-select" required>
                                 <option value="">— Select Type —</option>
-                                <option>Damage Survey</option>
-                                <option>Pre-trip Inspection</option>
-                                <option>Repair Assessment</option>
-                                <option>Condition Survey</option>
-                                <option>Pre-delivery Inspection</option>
+                                <option value="damage_survey"            {{ old('inquiry_type') === 'damage_survey'            ? 'selected' : '' }}>Damage Survey</option>
+                                <option value="pre_trip_inspection"      {{ old('inquiry_type') === 'pre_trip_inspection'      ? 'selected' : '' }}>Pre-trip Inspection</option>
+                                <option value="repair_assessment"        {{ old('inquiry_type') === 'repair_assessment'        ? 'selected' : '' }}>Repair Assessment</option>
+                                <option value="condition_survey"         {{ old('inquiry_type') === 'condition_survey'         ? 'selected' : '' }}>Condition Survey</option>
+                                <option value="pre_delivery_inspection"  {{ old('inquiry_type') === 'pre_delivery_inspection'  ? 'selected' : '' }}>Pre-delivery Inspection</option>
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Assigned Inspector <span class="text-danger">*</span></label>
                             <select name="inspector_id" class="form-select" required>
                                 <option value="">— Inspector —</option>
-                                <option value="1">Lee Wen Hao</option>
-                                <option value="2">Tan Boon Keat</option>
-                                <option value="3">Mohd Faizal</option>
+                                @foreach($inspectors ?? [] as $ins)
+                                    <option value="{{ $ins->id }}" {{ old('inspector_id') == $ins->id ? 'selected' : '' }}>{{ $ins->name }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-4">

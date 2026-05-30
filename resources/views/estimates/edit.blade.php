@@ -120,7 +120,7 @@
                         <table class="table align-middle mb-0" id="lineTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-3" style="width:25%">Component / Location</th>
+                                    <th class="ps-3" style="width:25%">Component / Description</th>
                                     <th style="width:22%">Repair Type</th>
                                     <th style="width:10%">Qty</th>
                                     <th style="width:15%">Unit Price</th>
@@ -134,10 +134,18 @@
                                 <tr class="estimate-line">
                                     <td class="ps-3">
                                         <input type="hidden" name="line_items[{{ $i }}][id]" value="{{ $item->id }}">
+                                        <select name="line_items[{{ $i }}][component_code_id]" class="form-select form-select-sm mb-1">
+                                            <option value="">— code —</option>
+                                            @foreach($mrComponentCodes as $c)
+                                            <option value="{{ $c->id }}" {{ old("line_items.{$i}.component_code_id", $item->component_code_id) == $c->id ? 'selected' : '' }}>
+                                                {{ $c->code }} {{ $c->name }}
+                                            </option>
+                                            @endforeach
+                                        </select>
                                         <input type="text" name="line_items[{{ $i }}][component]"
-                                               class="form-control form-control-sm"
+                                               class="form-control form-control-sm comp-desc"
                                                value="{{ old("line_items.{$i}.component", $item->component) }}"
-                                               placeholder="e.g. Floor Panel" required>
+                                               placeholder="Description / override">
                                     </td>
                                     <td>
                                         <select name="line_items[{{ $i }}][repair_type]" class="form-select form-select-sm" required>
@@ -313,13 +321,35 @@
 
     document.getElementById('lineTable').addEventListener('input', recalculate);
 
+    // Component code options for new-row JS template
+    const mrCmpCodeOpts = @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+
+    function buildCompSelect(name) {
+        let opts = '<option value="">— code —</option>';
+        mrCmpCodeOpts.forEach(o => { opts += `<option value="${o.id}">${o.code} ${o.name}</option>`; });
+        return `<select name="${name}" class="form-select form-select-sm mb-1">${opts}</select>`;
+    }
+
+    // Auto-fill description when component code is selected
+    document.getElementById('lineItems').addEventListener('change', function (e) {
+        const sel = e.target;
+        if (!sel.name || !sel.name.includes('[component_code_id]')) return;
+        const row = sel.closest('tr');
+        if (!row) return;
+        const descInput = row.querySelector('.comp-desc');
+        if (!descInput || descInput.value.trim()) return;
+        const opt = mrCmpCodeOpts.find(o => o.id == sel.value);
+        if (opt) descInput.value = opt.name;
+    });
+
     document.getElementById('addLine').addEventListener('click', function () {
         const tbody = document.getElementById('lineItems');
         const i = lineIdx++;
         tbody.insertAdjacentHTML('beforeend', `
             <tr class="estimate-line">
                 <td class="ps-3">
-                    <input type="text" name="line_items[${i}][component]" class="form-control form-control-sm" placeholder="Component" required>
+                    ${buildCompSelect(`line_items[${i}][component_code_id]`)}
+                    <input type="text" name="line_items[${i}][component]" class="form-control form-control-sm comp-desc" placeholder="Description / override">
                 </td>
                 <td>
                     <select name="line_items[${i}][repair_type]" class="form-select form-select-sm" required>

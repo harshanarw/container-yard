@@ -52,12 +52,17 @@ class StoreSurveyRequest extends FormRequest
             'estimated_repair_cost' => ['nullable', 'numeric', 'min:0'],
 
             // Damages
-            'damages'                  => ['nullable', 'array'],
-            'damages.*.location'       => ['required', 'in:floor,roof,left_side_wall,right_side_wall,front_wall,door,door_seal,corner_post,base_rail,cross_member'],
-            'damages.*.damage_type'    => ['required', 'in:dent,hole,crack,rust_corrosion,missing_part,broken,bent,delamination'],
-            'damages.*.severity'       => ['required', 'in:minor,moderate,severe'],
-            'damages.*.dimensions'     => ['nullable', 'string', 'max:50'],
-            'damages.*.description'    => ['nullable', 'string'],
+            'damages'                          => ['nullable', 'array'],
+            'damages.*.location_code_id'       => ['nullable', 'exists:mr_codes,id'],
+            'damages.*.component_code_id'      => ['nullable', 'exists:mr_codes,id'],
+            'damages.*.damage_code_id'         => ['nullable', 'exists:mr_codes,id'],
+            'damages.*.repair_code_id'         => ['nullable', 'exists:mr_codes,id'],
+            'damages.*.responsibility_code_id' => ['nullable', 'exists:mr_codes,id'],
+            'damages.*.severity'               => ['required', 'in:minor,moderate,severe'],
+            'damages.*.dim_length'             => ['nullable', 'numeric', 'min:0'],
+            'damages.*.dim_width'              => ['nullable', 'numeric', 'min:0'],
+            'damages.*.quantity'               => ['nullable', 'numeric', 'min:0'],
+            'damages.*.description'            => ['nullable', 'string'],
 
             // Checklist
             'checklist'                => ['nullable', 'array'],
