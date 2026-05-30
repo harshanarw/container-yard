@@ -128,7 +128,12 @@ class SurveyController extends Controller
             // Save damages
             if ($request->damages) {
                 foreach ($request->damages as $damage) {
-                    $inquiry->damages()->create($damage);
+                    if (!empty($damage['dim_length']) && !empty($damage['dim_width'])) {
+                        $damage['dim_area'] = round($damage['dim_length'] * $damage['dim_width'] / 10000, 4);
+                    }
+                    $dmg   = $inquiry->damages()->create($damage);
+                    $cedex = $dmg->buildCedexCode();
+                    if ($cedex) $dmg->update(['cedex_code' => $cedex]);
                 }
             }
             \Log::debug('[StoreSurvey] Damages saved');
@@ -232,7 +237,12 @@ class SurveyController extends Controller
             if ($request->has('damages')) {
                 $survey->damages()->delete();
                 foreach ($request->damages as $damage) {
-                    $survey->damages()->create($damage);
+                    if (!empty($damage['dim_length']) && !empty($damage['dim_width'])) {
+                        $damage['dim_area'] = round($damage['dim_length'] * $damage['dim_width'] / 10000, 4);
+                    }
+                    $dmg   = $survey->damages()->create($damage);
+                    $cedex = $dmg->buildCedexCode();
+                    if ($cedex) $dmg->update(['cedex_code' => $cedex]);
                 }
             }
             \Log::debug('[UpdateSurvey] Damages replaced');

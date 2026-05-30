@@ -103,12 +103,9 @@ class InquiryController extends Controller
                 if (!empty($damage['dim_length']) && !empty($damage['dim_width'])) {
                     $damage['dim_area'] = round($damage['dim_length'] * $damage['dim_width'] / 10000, 4);
                 }
-                $dmg = $inquiry->damages()->create($damage);
-                // Auto-generate CEDEX code after relations are saved
-                if ($dmg->dim_length) {
-                    $cedex = $dmg->buildCedexCode();
-                    if ($cedex) $dmg->update(['cedex_code' => $cedex]);
-                }
+                $dmg   = $inquiry->damages()->create($damage);
+                $cedex = $dmg->buildCedexCode();
+                if ($cedex) $dmg->update(['cedex_code' => $cedex]);
             }
         }
 
@@ -184,7 +181,12 @@ class InquiryController extends Controller
         if ($request->has('damages')) {
             $inquiry->damages()->delete();
             foreach ($request->damages as $damage) {
-                $inquiry->damages()->create($damage);
+                if (!empty($damage['dim_length']) && !empty($damage['dim_width'])) {
+                    $damage['dim_area'] = round($damage['dim_length'] * $damage['dim_width'] / 10000, 4);
+                }
+                $dmg   = $inquiry->damages()->create($damage);
+                $cedex = $dmg->buildCedexCode();
+                if ($cedex) $dmg->update(['cedex_code' => $cedex]);
             }
         }
 
