@@ -104,7 +104,9 @@ class EmailConfigController extends Controller
         $request->validate(['test_email' => ['required', 'email']]);
 
         try {
-            \Illuminate\Support\Facades\Mail::raw(
+            $this->applyMailerConfig($emailConfig);
+
+            \Illuminate\Support\Facades\Mail::mailer('dynamic')->raw(
                 "This is a test email from {$emailConfig->name}.",
                 function ($message) use ($request, $emailConfig) {
                     $message->to($request->test_email)
@@ -118,6 +120,49 @@ class EmailConfigController extends Controller
             return back()->with('success', "Test email sent to {$request->test_email}.");
         } catch (\Throwable $e) {
             return back()->with('error', 'Send failed: ' . $e->getMessage());
+        }
+    }
+
+    private function applyMailerConfig(EmailConfig $config): void
+    {
+        $settings = match ($config->driver) {
+            'smtp' => [
+                'transport'  => 'smtp',
+                'host'       => $config->smtp_host,
+                'port'       => $config->smtp_port ?? 587,
+                'encryption' => $config->smtp_encryption === 'none' ? null : $config->smtp_encryption,
+                'username'   => $config->smtp_username,
+                'password'   => $config->smtp_password,
+                'stream'     => [
+                    'ssl' => [
+                        'verify_peer'       => false,
+                        'verify_peer_name'  => false,
+                        'allow_self_signed' => true,
+                    ],
+                ],
+            ],
+            'mailgun' => [
+                'transport' => 'mailgun',
+                'domain'    => $config->mailgun_domain,
+                'secret'    => $config->mailgun_secret,
+                'endpoint'  => $config->mailgun_endpoint,
+            ],
+            'sendgrid' => [
+                'transport' => 'smtp',
+                'host'      => 'smtp.sendgrid.net',
+                'port'      => 587,
+                'encryption'=> 'tls',
+                'username'  => 'apikey',
+                'password'  => $config->sendgrid_api_key,
+            ],
+            default => [],
+        };
+
+        config(['mail.mailers.dynamic' => $settings]);
+
+        if ($config->from_email) {
+            config(['mail.from.address' => $config->from_email]);
+            config(['mail.from.name'    => $config->from_name ?? config('mail.from.name')]);
         }
     }
 }
