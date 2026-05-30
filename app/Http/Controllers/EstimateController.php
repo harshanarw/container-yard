@@ -216,13 +216,32 @@ class EstimateController extends Controller
 
         $estimate->lineItems()->delete();
         foreach ($request->line_items as $item) {
+            $lineAmount = round($item['qty'] * $item['unit_price'], 2);
             $estimate->lineItems()->create([
-                'component'      => $item['component'],
-                'repair_type'    => $item['repair_type'],
-                'qty'            => $item['qty'],
-                'unit_price'     => $item['unit_price'],
-                'tax_percentage' => $item['tax_percentage'] ?? 0,
-                'line_amount'    => $item['qty'] * $item['unit_price'],
+                'component'           => $item['component'],
+                'repair_type'         => $item['repair_type'],
+                'qty'                 => $item['qty'],
+                'unit_price'          => $item['unit_price'],
+                'tax_percentage'      => $item['tax_percentage'] ?? 0,
+                'line_amount'         => $lineAmount,
+                // MR code traceability
+                'damage_id'           => $item['damage_id'] ?? null,
+                'mr_tariff_rule_id'   => $item['mr_tariff_rule_id'] ?? null,
+                'location_code_id'    => $item['location_code_id'] ?? null,
+                'component_code_id'   => $item['component_code_id'] ?? null,
+                'damage_code_id'      => $item['damage_code_id'] ?? null,
+                'repair_code_id'      => $item['repair_code_id'] ?? null,
+                'material_code_id'    => $item['material_code_id'] ?? null,
+                'cedex_code'          => $item['cedex_code'] ?? null,
+                'repair_category_id'  => $item['repair_category_id'] ?? null,
+                // Labor / material breakdown
+                'std_labor_hours'     => $item['std_labor_hours'] ?? 0,
+                'labor_rate'          => $item['labor_rate'] ?? 0,
+                'labor_amount'        => $item['labor_amount'] ?? 0,
+                'material_qty'        => $item['material_qty'] ?? 0,
+                'material_rate'       => $item['material_rate'] ?? 0,
+                'material_amount'     => $item['material_amount'] ?? 0,
+                'ancillary_amount'    => $item['ancillary_amount'] ?? 0,
             ]);
         }
 

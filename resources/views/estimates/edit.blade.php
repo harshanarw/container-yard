@@ -120,12 +120,13 @@
                         <table class="table align-middle mb-0" id="lineTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-3" style="width:25%">Component / Description</th>
-                                    <th style="width:22%">Repair Type</th>
-                                    <th style="width:10%">Qty</th>
-                                    <th style="width:15%">Unit Price</th>
-                                    <th style="width:8%">Tax %</th>
-                                    <th style="width:15%">Amount</th>
+                                    <th class="ps-3" style="width:14%">Code</th>
+                                    <th style="width:18%">Description</th>
+                                    <th style="width:20%">Repair Type</th>
+                                    <th style="width:9%">Qty</th>
+                                    <th style="width:13%">Unit Price</th>
+                                    <th style="width:7%">Tax %</th>
+                                    <th style="width:14%">Amount</th>
                                     <th style="width:40px"></th>
                                 </tr>
                             </thead>
@@ -133,19 +134,36 @@
                                 @foreach($estimate->lineItems as $i => $item)
                                 <tr class="estimate-line">
                                     <td class="ps-3">
-                                        <input type="hidden" name="line_items[{{ $i }}][id]" value="{{ $item->id }}">
-                                        <select name="line_items[{{ $i }}][component_code_id]" class="form-select form-select-sm mb-1">
-                                            <option value="">— code —</option>
+                                        <input type="hidden" name="line_items[{{ $i }}][id]"                value="{{ $item->id }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][damage_id]"         value="{{ $item->damage_id }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][mr_tariff_rule_id]" value="{{ $item->mr_tariff_rule_id }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][location_code_id]"  value="{{ $item->location_code_id }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][damage_code_id]"    value="{{ $item->damage_code_id }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][repair_code_id]"    value="{{ $item->repair_code_id }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][material_code_id]"  value="{{ $item->material_code_id }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][cedex_code]"        value="{{ $item->cedex_code }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][repair_category_id]" value="{{ $item->repair_category_id }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][std_labor_hours]"   value="{{ $item->std_labor_hours ?? 0 }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][labor_rate]"        value="{{ $item->labor_rate ?? 0 }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][labor_amount]"      value="{{ $item->labor_amount ?? 0 }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][material_qty]"      value="{{ $item->material_qty ?? 0 }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][material_rate]"     value="{{ $item->material_rate ?? 0 }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][material_amount]"   value="{{ $item->material_amount ?? 0 }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][ancillary_amount]"  value="{{ $item->ancillary_amount ?? 0 }}">
+                                        <select name="line_items[{{ $i }}][component_code_id]" class="form-select form-select-sm">
+                                            <option value="">— any —</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}" {{ old("line_items.{$i}.component_code_id", $item->component_code_id) == $c->id ? 'selected' : '' }}>
                                                 {{ $c->code }} {{ $c->name }}
                                             </option>
                                             @endforeach
                                         </select>
+                                    </td>
+                                    <td>
                                         <input type="text" name="line_items[{{ $i }}][component]"
                                                class="form-control form-control-sm comp-desc"
                                                value="{{ old("line_items.{$i}.component", $item->component) }}"
-                                               placeholder="Description / override">
+                                               placeholder="Description">
                                     </td>
                                     <td>
                                         <select name="line_items[{{ $i }}][repair_type]" class="form-select form-select-sm" required>
@@ -185,14 +203,14 @@
                             </tbody>
                             <tfoot class="table-light">
                                 <tr>
-                                    <td colspan="5" class="text-end fw-semibold pe-3">Subtotal:</td>
+                                    <td colspan="6" class="text-end fw-semibold pe-3">Subtotal:</td>
                                     <td class="fw-semibold text-end pe-2" id="subtotal">
                                         {{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}
                                     </td>
                                     <td></td>
                                 </tr>
                                 <tr>
-                                    <td colspan="5" class="text-end fw-semibold pe-3">
+                                    <td colspan="6" class="text-end fw-semibold pe-3">
                                         Tax (<input type="number" name="tax_percentage" id="taxPct"
                                                     class="form-control form-control-sm d-inline-block text-center"
                                                     style="width:60px"
@@ -205,7 +223,7 @@
                                     <td></td>
                                 </tr>
                                 <tr class="table-primary">
-                                    <td colspan="5" class="text-end fw-bold pe-3 fs-6">TOTAL:</td>
+                                    <td colspan="6" class="text-end fw-bold pe-3 fs-6">TOTAL:</td>
                                     <td class="fw-bold text-end pe-2 fs-6" id="grandTotal">
                                         {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}
                                     </td>
@@ -325,7 +343,7 @@
     const mrCmpCodeOpts = @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
 
     function buildCompSelect(name) {
-        let opts = '<option value="">— code —</option>';
+        let opts = '<option value="">— any —</option>';
         mrCmpCodeOpts.forEach(o => { opts += `<option value="${o.id}">${o.code} ${o.name}</option>`; });
         return `<select name="${name}" class="form-select form-select-sm mb-1">${opts}</select>`;
     }
@@ -349,7 +367,9 @@
             <tr class="estimate-line">
                 <td class="ps-3">
                     ${buildCompSelect(`line_items[${i}][component_code_id]`)}
-                    <input type="text" name="line_items[${i}][component]" class="form-control form-control-sm comp-desc" placeholder="Description / override">
+                </td>
+                <td>
+                    <input type="text" name="line_items[${i}][component]" class="form-control form-control-sm comp-desc" placeholder="Description">
                 </td>
                 <td>
                     <select name="line_items[${i}][repair_type]" class="form-select form-select-sm" required>
