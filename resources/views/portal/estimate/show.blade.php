@@ -2,6 +2,29 @@
 
 @section('title', 'Estimate ' . $estimate->estimate_no)
 
+@push('head')
+<style>
+  .code-chip {
+    display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .4px;
+    padding: 1px 7px; border-radius: 20px; font-family: monospace; white-space: nowrap;
+  }
+  .code-chip.blue    { background: #dbeafe; color: #1d4ed8; }
+  .code-chip.green   { background: #d1fae5; color: #065f46; }
+  .code-chip.orange  { background: #fef3c7; color: #92400e; }
+  .summary-card { border: none; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+  .summary-header { background: linear-gradient(135deg, #1a56db 0%, #0d6efd 100%); padding: 24px 28px; color: #fff; }
+  .summary-meta { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 14px; }
+  .summary-meta-item label { font-size: .72rem; opacity: .75; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .5px; }
+  .summary-meta-item span  { font-size: .92rem; font-weight: 600; }
+  .total-pill { background: rgba(255,255,255,.18); border-radius: 10px; padding: 10px 20px; text-align: center; }
+  .total-pill .label { font-size: .72rem; opacity: .8; text-transform: uppercase; letter-spacing: .5px; }
+  .total-pill .value { font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
+  .action-bar { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.07); padding: 20px 24px; margin-bottom: 16px; }
+  .tfoot-row td { font-size: .85rem; padding: 5px 10px; }
+  .tfoot-total td { font-size: .95rem; font-weight: 700; background: #eff6ff; color: #1a56db; padding: 10px 10px; border-top: 2px solid #1a56db !important; }
+</style>
+@endpush
+
 @section('content')
 @php
   $statusColors = [
@@ -20,166 +43,275 @@
     'amended'  => 'warning',
   ];
   $canAct = in_array($estimate->status, ['sent', 'under_review']) && $portalToken->isValid();
+  $cols   = $canAct ? 9 : 8;
 @endphp
 
-<div class="d-flex align-items-center justify-content-between mb-3 mt-2">
-  <div>
-    <h4 class="mb-1 fw-bold"><i class="bi bi-tools me-2 text-primary"></i>{{ $estimate->estimate_no }}</h4>
-    <p class="text-muted mb-0 small">
-      Container: <strong>{{ $estimate->container_no }}</strong>
-      &nbsp;·&nbsp;
-      <span class="badge bg-{{ $statusColors[$estimate->status] ?? 'secondary' }}">{{ ucfirst(str_replace('_', ' ', $estimate->status)) }}</span>
-    </p>
-  </div>
-  <a href="{{ route('estimates.pdf', $estimate) }}" class="btn btn-outline-secondary btn-sm" target="_blank">
-    <i class="bi bi-file-pdf me-1"></i>Download PDF
-  </a>
-</div>
-
+{{-- ── Alerts ── --}}
 @if(!$portalToken->isValid())
-<div class="alert alert-danger">
+<div class="alert alert-danger mt-3">
   <i class="bi bi-exclamation-triangle me-2"></i>This link has expired or been revoked.
   Please contact the depot for a new link.
 </div>
 @endif
 
 @if($portalToken->expires_at && $portalToken->isValid())
-<div class="alert alert-warning py-2 small">
-  <i class="bi bi-clock me-1"></i>This review link expires on <strong>{{ $portalToken->expires_at->format('d M Y, H:i') }}</strong> UTC
+<div class="alert alert-warning py-2 small mt-3">
+  <i class="bi bi-clock me-1"></i>Review link expires on
+  <strong>{{ $portalToken->expires_at->format('d M Y, H:i') }} UTC</strong>
 </div>
 @endif
 
 @if(in_array($estimate->status, ['approved', 'rejected', 'partially_approved']))
-<div class="alert alert-{{ $statusColors[$estimate->status] ?? 'secondary' }} py-2 small">
-  <i class="bi bi-check-circle me-1"></i>You have already responded to this estimate
+<div class="alert alert-{{ $statusColors[$estimate->status] ?? 'secondary' }} py-2 small mt-3">
+  <i class="bi bi-check-circle me-1"></i>
+  You have already responded to this estimate
   (<strong>{{ ucfirst(str_replace('_', ' ', $estimate->status)) }}</strong>).
   Contact the depot if you need to revise your response.
 </div>
 @endif
 
-<div class="row g-3">
-  <!-- Left: Line Items -->
-  <div class="col-lg-8">
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-list-ul me-2 text-primary"></i>Repair Line Items
-        @if($canAct)
-          <span class="badge bg-info ms-2 float-end">Review each line or use bulk actions below</span>
+{{-- ── Summary header card ── --}}
+<div class="card summary-card mb-4 mt-2">
+  <div class="summary-header">
+    <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-tools" style="font-size:1.2rem;opacity:.8"></i>
+          <span style="font-size:.75rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;">Repair Estimate</span>
+          <span class="badge bg-{{ $statusColors[$estimate->status] ?? 'secondary' }} ms-1">
+            {{ ucfirst(str_replace('_', ' ', $estimate->status)) }}
+          </span>
+        </div>
+        <div style="font-size:1.6rem;font-weight:800;letter-spacing:.5px;font-family:monospace;">
+          {{ $estimate->estimate_no }}
+        </div>
+        @if($estimate->version_no > 1)
+          <div style="font-size:.78rem;opacity:.75;">Version {{ $estimate->version_no }}</div>
         @endif
       </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table align-middle mb-0">
-            <thead class="table-light">
-              <tr>
-                <th class="ps-3">#</th>
-                <th>Description</th>
-                <th class="text-end">Qty</th>
-                <th class="text-end">Unit Price</th>
-                <th class="text-end pe-3">Amount</th>
-                <th class="text-center">Status</th>
-                @if($canAct)<th class="text-center">Action</th>@endif
-              </tr>
-            </thead>
-            <tbody>
-              @foreach($estimate->lineItems as $i => $line)
-              <tr>
-                <td class="ps-3 text-muted small">{{ $i + 1 }}</td>
-                <td class="small">
-                  {{ $line->component }}
-                  @if($line->repair_type)
-                    <span class="text-muted">— {{ ucfirst(str_replace('_', ' ', $line->repair_type)) }}</span>
-                  @endif
-                </td>
-                <td class="text-end small">{{ $line->qty }}</td>
-                <td class="text-end small">{{ number_format($line->unit_price, 2) }}</td>
-                <td class="text-end small pe-3 fw-semibold">
-                  {{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}
-                </td>
-                <td class="text-center">
-                  <span class="badge bg-{{ $lineStatusColors[$line->approval_status ?? 'pending'] ?? 'secondary' }}">
-                    {{ ucfirst($line->approval_status ?? 'pending') }}
-                  </span>
-                </td>
-                @if($canAct)
-                <td class="text-center">
-                  @if(($line->approval_status ?? 'pending') === 'pending')
-                  <div class="d-flex gap-1 justify-content-center">
-                    <form method="POST" action="{{ route('portal.estimate.line-action', ['token' => $token, 'lineItem' => $line->id]) }}">
-                      @csrf
-                      <input type="hidden" name="action" value="approved">
-                      <button type="submit" class="btn btn-success btn-sm py-0 px-2" title="Approve">
-                        <i class="bi bi-check-lg"></i>
-                      </button>
-                    </form>
-                    <button type="button" class="btn btn-danger btn-sm py-0 px-2" title="Reject"
-                            data-bs-toggle="modal" data-bs-target="#rejectLineModal{{ $line->id }}">
-                      <i class="bi bi-x-lg"></i>
-                    </button>
-                    <button type="button" class="btn btn-warning btn-sm py-0 px-2" title="Amend"
-                            data-bs-toggle="modal" data-bs-target="#amendLineModal{{ $line->id }}">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                  </div>
-                  @else
-                    <span class="text-muted small">—</span>
-                  @endif
-                </td>
-                @endif
-              </tr>
-              @endforeach
-            </tbody>
-            <tfoot class="table-light">
-              <tr>
-                <td colspan="{{ $canAct ? 7 : 6 }}" class="text-end fw-semibold pe-3 pt-2">
-                  Subtotal: {{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}
-                </td>
-              </tr>
-              @if($estimate->tax_percentage > 0)
-              <tr>
-                <td colspan="{{ $canAct ? 7 : 6 }}" class="text-end fw-semibold pe-3">
-                  Tax ({{ $estimate->tax_percentage }}%): {{ $estimate->currency }} {{ number_format($estimate->tax_amount, 2) }}
-                </td>
-              </tr>
-              @endif
-              <tr class="table-primary">
-                <td colspan="{{ $canAct ? 7 : 6 }}" class="text-end fw-bold pe-3 fs-6">
-                  TOTAL: {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+      <div class="total-pill">
+        <div class="label">Grand Total</div>
+        <div class="value">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</div>
+        @if($estimate->sscl_amount > 0 || $estimate->vat_amount > 0)
+          <div style="font-size:.72rem;opacity:.8;margin-top:2px;">
+            incl. taxes
+          </div>
+        @endif
       </div>
     </div>
 
-    @if($estimate->scope_of_work || $estimate->terms)
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold"><i class="bi bi-file-text me-2"></i>Scope &amp; Terms</div>
-      <div class="card-body small">
-        @if($estimate->scope_of_work)
-          <div class="mb-2"><strong>Scope of Work</strong><br><span style="white-space:pre-line">{{ $estimate->scope_of_work }}</span></div>
-        @endif
-        @if($estimate->terms)
-          <div><strong>Terms &amp; Conditions</strong><br><span style="white-space:pre-line">{{ $estimate->terms }}</span></div>
-        @endif
+    <div class="summary-meta">
+      <div class="summary-meta-item">
+        <label>Container</label>
+        <span>{{ $estimate->container_no }}</span>
+      </div>
+      @if($estimate->customer)
+      <div class="summary-meta-item">
+        <label>Customer</label>
+        <span>{{ $estimate->customer->name }}</span>
+      </div>
+      @endif
+      <div class="summary-meta-item">
+        <label>Issue Date</label>
+        <span>{{ $estimate->estimate_date->format('d M Y') }}</span>
+      </div>
+      <div class="summary-meta-item">
+        <label>Valid Until</label>
+        <span class="{{ $estimate->valid_until->isPast() ? 'text-warning' : '' }}">
+          {{ $estimate->valid_until->format('d M Y') }}
+          @if($estimate->valid_until->isPast())
+            <i class="bi bi-exclamation-circle ms-1"></i>
+          @endif
+        </span>
+      </div>
+      <div class="ms-auto">
+        <a href="{{ route('estimates.pdf', $estimate) }}" class="btn btn-sm btn-light" target="_blank">
+          <i class="bi bi-file-pdf me-1"></i>Download PDF
+        </a>
       </div>
     </div>
+  </div>
+</div>
+
+{{-- ── Line Items card ── --}}
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span class="fw-semibold"><i class="bi bi-list-ul me-2 text-primary"></i>Repair Line Items</span>
+    @if($canAct)
+      <span class="badge bg-light text-secondary border small">Review each line, then use the actions below</span>
     @endif
   </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3" style="width:3%">#</th>
+            <th style="width:9%">MR Code</th>
+            <th style="width:10%">Charge Code</th>
+            <th>Description</th>
+            <th style="width:10%">Repair Type</th>
+            <th class="text-end" style="width:5%">Qty</th>
+            <th class="text-end" style="width:9%">Unit Price</th>
+            <th style="width:7%">Tax Code</th>
+            <th class="text-end pe-3" style="width:9%">Amount</th>
+            <th class="text-center" style="width:8%">Status</th>
+            @if($canAct)<th class="text-center" style="width:9%">Action</th>@endif
+          </tr>
+        </thead>
+        <tbody>
+          @foreach($estimate->lineItems as $i => $line)
+          <tr class="{{ $loop->even ? 'table-light' : '' }}">
+            <td class="ps-3 text-muted">{{ $i + 1 }}</td>
 
-  <!-- Right: Bulk Actions -->
-  <div class="col-lg-4">
-    @if($canAct)
-    <div class="card shadow-sm mb-3 border-success">
+            {{-- MR Code chip --}}
+            <td>
+              @if($line->componentCode)
+                <span class="code-chip blue" title="{{ $line->componentCode->name }}">
+                  {{ $line->componentCode->code }}
+                </span>
+              @else
+                <span class="text-muted">—</span>
+              @endif
+            </td>
+
+            {{-- Charge Code chip --}}
+            <td>
+              @if($line->chargeCode)
+                <span class="code-chip green" title="{{ $line->chargeCode->name }}">
+                  {{ $line->chargeCode->code }}
+                </span>
+              @else
+                <span class="text-muted">—</span>
+              @endif
+            </td>
+
+            {{-- Description --}}
+            <td class="fw-semibold">{{ $line->component }}</td>
+
+            {{-- Repair type --}}
+            <td class="text-muted">{{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}</td>
+
+            <td class="text-end">{{ number_format($line->qty, 2) }}</td>
+            <td class="text-end">{{ number_format($line->unit_price, 2) }}</td>
+
+            {{-- Tax Code --}}
+            <td>
+              @if($line->taxCode)
+                <span class="code-chip orange" title="{{ $line->taxCode->name ?? $line->taxCode->code }}">
+                  {{ $line->taxCode->code }}
+                </span>
+              @else
+                <span class="text-muted">—</span>
+              @endif
+            </td>
+
+            <td class="text-end pe-3 fw-semibold">
+              {{ number_format($line->line_amount, 2) }}
+            </td>
+
+            <td class="text-center">
+              <span class="badge bg-{{ $lineStatusColors[$line->approval_status ?? 'pending'] ?? 'secondary' }}">
+                {{ ucfirst($line->approval_status ?? 'pending') }}
+              </span>
+            </td>
+
+            @if($canAct)
+            <td class="text-center">
+              @if(($line->approval_status ?? 'pending') === 'pending')
+              <div class="d-flex gap-1 justify-content-center">
+                <form method="POST" action="{{ route('portal.estimate.line-action', ['token' => $token, 'lineItem' => $line->id]) }}">
+                  @csrf
+                  <input type="hidden" name="action" value="approved">
+                  <button type="submit" class="btn btn-success btn-sm py-0 px-2" title="Approve">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                </form>
+                <button type="button" class="btn btn-danger btn-sm py-0 px-2" title="Reject"
+                        data-bs-toggle="modal" data-bs-target="#rejectLineModal{{ $line->id }}">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+                <button type="button" class="btn btn-warning btn-sm py-0 px-2" title="Request Amendment"
+                        data-bs-toggle="modal" data-bs-target="#amendLineModal{{ $line->id }}">
+                  <i class="bi bi-pencil"></i>
+                </button>
+              </div>
+              @else
+                <span class="text-muted">—</span>
+              @endif
+            </td>
+            @endif
+          </tr>
+          @endforeach
+        </tbody>
+
+        {{-- ── Tax & Total footer ── --}}
+        <tfoot>
+          <tr class="tfoot-row">
+            <td colspan="{{ $cols }}" class="text-end text-muted border-top">Subtotal</td>
+            <td class="text-end border-top" colspan="{{ $canAct ? 2 : 1 }}">
+              {{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}
+            </td>
+          </tr>
+          @if($estimate->sscl_amount > 0)
+          <tr class="tfoot-row">
+            <td colspan="{{ $cols }}" class="text-end text-muted">SSCL</td>
+            <td class="text-end" colspan="{{ $canAct ? 2 : 1 }}">
+              {{ $estimate->currency }} {{ number_format($estimate->sscl_amount, 2) }}
+            </td>
+          </tr>
+          @endif
+          @if($estimate->vat_amount > 0)
+          <tr class="tfoot-row">
+            <td colspan="{{ $cols }}" class="text-end text-muted">VAT</td>
+            <td class="text-end" colspan="{{ $canAct ? 2 : 1 }}">
+              {{ $estimate->currency }} {{ number_format($estimate->vat_amount, 2) }}
+            </td>
+          </tr>
+          @endif
+          <tr class="tfoot-total">
+            <td colspan="{{ $cols }}" class="text-end">Grand Total</td>
+            <td class="text-end" colspan="{{ $canAct ? 2 : 1 }}">
+              {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+{{-- ── Scope & Terms ── --}}
+@if($estimate->scope_of_work || $estimate->terms)
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold"><i class="bi bi-file-text me-2 text-secondary"></i>Scope &amp; Terms</div>
+  <div class="card-body small">
+    @if($estimate->scope_of_work)
+      <p class="mb-1 fw-semibold">Scope of Work</p>
+      <p class="text-muted mb-3" style="white-space:pre-line">{{ $estimate->scope_of_work }}</p>
+    @endif
+    @if($estimate->terms)
+      <p class="mb-1 fw-semibold">Terms &amp; Conditions</p>
+      <p class="text-muted mb-0" style="white-space:pre-line">{{ $estimate->terms }}</p>
+    @endif
+  </div>
+</div>
+@endif
+
+{{-- ── Bulk Action cards ── --}}
+@if($canAct)
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100 border-success shadow-sm">
       <div class="card-header bg-success text-white fw-semibold">
-        <i class="bi bi-check-all me-2"></i>Approve All Lines
+        <i class="bi bi-check-all me-2"></i>Approve Entire Estimate
       </div>
       <div class="card-body">
+        <p class="small text-muted mb-3">Approving will mark all line items as accepted and notify the depot to proceed with repairs.</p>
         <form method="POST" action="{{ route('portal.estimate.approve', $token) }}">
           @csrf
           <div class="mb-3">
-            <label class="form-label small fw-semibold">Notes (optional)</label>
+            <label class="form-label small fw-semibold">Notes <span class="text-muted fw-normal">(optional)</span></label>
             <textarea name="notes" class="form-control form-control-sm" rows="3"
                       placeholder="Any comments for the depot…"></textarea>
           </div>
@@ -190,12 +322,15 @@
         </form>
       </div>
     </div>
+  </div>
 
-    <div class="card shadow-sm mb-3 border-danger">
+  <div class="col-md-6">
+    <div class="card h-100 border-danger shadow-sm">
       <div class="card-header bg-danger text-white fw-semibold">
         <i class="bi bi-x-circle me-2"></i>Reject Estimate
       </div>
       <div class="card-body">
+        <p class="small text-muted mb-3">Rejecting will decline all repair work. The depot will be notified and may resubmit a revised estimate.</p>
         <form method="POST" action="{{ route('portal.estimate.reject', $token) }}">
           @csrf
           <div class="mb-3">
@@ -210,50 +345,37 @@
         </form>
       </div>
     </div>
-    @endif
-
-    <!-- Estimate Info -->
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold"><i class="bi bi-info-circle me-2"></i>Estimate Info</div>
-      <div class="card-body small">
-        <div class="mb-1"><span class="text-muted">Issue Date:</span> {{ $estimate->estimate_date->format('d M Y') }}</div>
-        <div class="mb-1"><span class="text-muted">Valid Until:</span>
-          <strong class="{{ $estimate->valid_until->isPast() ? 'text-danger' : '' }}">
-            {{ $estimate->valid_until->format('d M Y') }}
-          </strong>
-        </div>
-        <div class="mb-1"><span class="text-muted">Currency:</span> {{ $estimate->currency }}</div>
-        @if($estimate->customer)
-        <div class="mb-1"><span class="text-muted">Customer:</span> {{ $estimate->customer->name }}</div>
-        @endif
-      </div>
-    </div>
   </div>
 </div>
+@endif
 
-{{-- Per-line reject modals --}}
+{{-- ── Per-line modals ── --}}
 @if($canAct)
 @foreach($estimate->lineItems as $line)
 @if(($line->approval_status ?? 'pending') === 'pending')
 
 <div class="modal fade" id="rejectLineModal{{ $line->id }}" tabindex="-1">
-  <div class="modal-dialog modal-sm">
+  <div class="modal-dialog">
     <div class="modal-content">
       <form method="POST" action="{{ route('portal.estimate.line-action', ['token' => $token, 'lineItem' => $line->id]) }}">
         @csrf
         <input type="hidden" name="action" value="rejected">
-        <div class="modal-header py-2">
-          <h6 class="modal-title">Reject Line #{{ $loop->iteration }}</h6>
+        <div class="modal-header">
+          <h6 class="modal-title"><i class="bi bi-x-circle text-danger me-2"></i>Reject Line #{{ $loop->iteration }}</h6>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body py-2">
-          <p class="small text-muted mb-2">{{ $line->component }}</p>
-          <label class="form-label small fw-semibold">Reason</label>
-          <textarea name="notes" class="form-control form-control-sm" rows="3" placeholder="Optional reason…"></textarea>
+        <div class="modal-body">
+          <div class="bg-light rounded p-2 mb-3 small">
+            <strong>{{ $line->component }}</strong>
+            @if($line->repair_type) — {{ ucfirst(str_replace('_', ' ', $line->repair_type)) }}@endif
+            <span class="float-end fw-semibold">{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}</span>
+          </div>
+          <label class="form-label small fw-semibold">Reason <span class="text-muted fw-normal">(optional)</span></label>
+          <textarea name="notes" class="form-control form-control-sm" rows="3" placeholder="Describe why this line is being rejected…"></textarea>
         </div>
-        <div class="modal-footer py-2">
+        <div class="modal-footer">
           <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-sm btn-danger">Reject Line</button>
+          <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-x-circle me-1"></i>Reject Line</button>
         </div>
       </form>
     </div>
@@ -261,23 +383,28 @@
 </div>
 
 <div class="modal fade" id="amendLineModal{{ $line->id }}" tabindex="-1">
-  <div class="modal-dialog modal-sm">
+  <div class="modal-dialog">
     <div class="modal-content">
       <form method="POST" action="{{ route('portal.estimate.line-action', ['token' => $token, 'lineItem' => $line->id]) }}">
         @csrf
         <input type="hidden" name="action" value="amended">
-        <div class="modal-header py-2">
-          <h6 class="modal-title">Request Amendment — Line #{{ $loop->iteration }}</h6>
+        <div class="modal-header">
+          <h6 class="modal-title"><i class="bi bi-pencil text-warning me-2"></i>Request Amendment — Line #{{ $loop->iteration }}</h6>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body py-2">
-          <p class="small text-muted mb-2">{{ $line->component }}</p>
+        <div class="modal-body">
+          <div class="bg-light rounded p-2 mb-3 small">
+            <strong>{{ $line->component }}</strong>
+            @if($line->repair_type) — {{ ucfirst(str_replace('_', ' ', $line->repair_type)) }}@endif
+            <span class="float-end fw-semibold">{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}</span>
+          </div>
           <label class="form-label small fw-semibold">Amendment Notes <span class="text-danger">*</span></label>
-          <textarea name="notes" class="form-control form-control-sm" rows="3" placeholder="Describe requested changes…" required></textarea>
+          <textarea name="notes" class="form-control form-control-sm" rows="3"
+                    placeholder="Describe the changes you are requesting…" required></textarea>
         </div>
-        <div class="modal-footer py-2">
+        <div class="modal-footer">
           <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-sm btn-warning">Request Amendment</button>
+          <button type="submit" class="btn btn-sm btn-warning"><i class="bi bi-pencil me-1"></i>Submit Amendment</button>
         </div>
       </form>
     </div>
