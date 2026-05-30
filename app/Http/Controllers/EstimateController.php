@@ -326,7 +326,7 @@ class EstimateController extends Controller
         $expiryDays  = (int) ($request->expiry_days ?? 30);
         $portalToken = PortalToken::generate($estimate, $request->send_to_email, $expiryDays);
 
-        SendEstimateEmailJob::dispatch($estimate, $portalToken, $request->email_message);
+        SendEstimateEmailJob::dispatchSync($estimate, $portalToken, $request->email_message);
 
         $versionNote = $isResend ? " (v{$estimate->version_no})" : '';
         return back()->with('success', "Estimate sent to {$request->send_to_email}{$versionNote}.");
