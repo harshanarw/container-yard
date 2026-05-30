@@ -582,8 +582,9 @@ class EstimateController extends Controller
 
     private function generateEstimateNo(): string
     {
-        $last = Estimate::latest('id')->value('estimate_no');
-        $next = $last ? (int) Str::afterLast($last, '-') + 1 : 1;
-        return 'RE-' . str_pad($next, 4, '0', STR_PAD_LEFT);
+        $max = Estimate::selectRaw("MAX(CAST(SUBSTRING(estimate_no, 4) AS UNSIGNED)) as max_no")
+            ->value('max_no');
+
+        return 'RE-' . str_pad(($max ?? 0) + 1, 4, '0', STR_PAD_LEFT);
     }
 }

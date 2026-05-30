@@ -106,7 +106,7 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Assigned Inspector</label>
-                            <select name="inspector_id" class="form-select">
+                            <select name="inspector_id" class="form-select select2">
                                 <option value="">— Select Inspector —</option>
                                 @foreach($inspectors as $ins)
                                 <option value="{{ $ins->id }}"
@@ -179,7 +179,7 @@
                                 @forelse($inquiry->damages as $di => $dmg)
                                 <tr class="damage-row">
                                     <td class="ps-3">
-                                        <select name="damages[{{ $di }}][location_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[{{ $di }}][location_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrLocationCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->location_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
@@ -187,7 +187,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][component_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[{{ $di }}][component_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->component_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
@@ -195,7 +195,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][damage_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[{{ $di }}][damage_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrDamageCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->damage_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
@@ -203,7 +203,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][repair_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[{{ $di }}][repair_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrRepairCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->repair_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
@@ -211,7 +211,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][responsibility_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[{{ $di }}][responsibility_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrResponsibilityCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->responsibility_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }}</option>
@@ -246,7 +246,7 @@
                                 @empty
                                 <tr class="damage-row">
                                     <td class="ps-3">
-                                        <select name="damages[0][location_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][location_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrLocationCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -254,7 +254,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][component_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][component_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -262,7 +262,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][damage_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][damage_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrDamageCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -270,7 +270,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][repair_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][repair_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrRepairCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -278,7 +278,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrResponsibilityCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }}</option>
@@ -409,22 +409,32 @@
     // ── Damage rows ───────────────────────────────────────────
     let damageRowIndex = {{ $inquiry->damages->count() ?: 1 }};
 
-    const mrLocOpts  = `<option value="">—</option>` + @json($mrLocationCodes->map(fn($c) => ['id'=>$c->id,'label'=>$c->code.' '.$c->name]))->reduce((a,c) => a+`<option value="${c.id}">${c.label}</option>`,'');
-    const mrCmpOpts  = `<option value="">—</option>` + @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'label'=>$c->code.' '.$c->name]))->reduce((a,c) => a+`<option value="${c.id}">${c.label}</option>`,'');
-    const mrDmgOpts  = `<option value="">—</option>` + @json($mrDamageCodes->map(fn($c) => ['id'=>$c->id,'label'=>$c->code.' '.$c->name]))->reduce((a,c) => a+`<option value="${c.id}">${c.label}</option>`,'');
-    const mrRepOpts  = `<option value="">—</option>` + @json($mrRepairCodes->map(fn($c) => ['id'=>$c->id,'label'=>$c->code.' '.$c->name]))->reduce((a,c) => a+`<option value="${c.id}">${c.label}</option>`,'');
-    const mrRespOpts = `<option value="">—</option>` + @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'label'=>$c->code]))->reduce((a,c) => a+`<option value="${c.id}">${c.label}</option>`,'');
+    const mrLocOpts  = @json($mrLocationCodes->map(fn($c)  => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+    const mrCmpOpts  = @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+    const mrDmgOpts  = @json($mrDamageCodes->map(fn($c)    => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+    const mrRepOpts  = @json($mrRepairCodes->map(fn($c)    => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+    const mrResOpts  = @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+
+    function buildSel(name, opts, codeOnly) {
+        let html = `<select name="${name}" class="form-select form-select-sm s2"><option value="">—</option>`;
+        opts.forEach(o => { html += `<option value="${o.id}">${o.code}${codeOnly ? '' : ' '+o.name}</option>`; });
+        return html + '</select>';
+    }
+
+    function initRowSelects(tr) {
+        $(tr).find('select.s2').select2({ theme: 'bootstrap-5', width: '100%' });
+    }
 
     document.getElementById('addDamageRow').addEventListener('click', function () {
         const i = damageRowIndex++;
         const row = document.createElement('tr');
         row.className = 'damage-row';
         row.innerHTML = `
-            <td class="ps-3"><select name="damages[${i}][location_code_id]" class="form-select form-select-sm">${mrLocOpts}</select></td>
-            <td><select name="damages[${i}][component_code_id]" class="form-select form-select-sm">${mrCmpOpts}</select></td>
-            <td><select name="damages[${i}][damage_code_id]" class="form-select form-select-sm">${mrDmgOpts}</select></td>
-            <td><select name="damages[${i}][repair_code_id]" class="form-select form-select-sm">${mrRepOpts}</select></td>
-            <td><select name="damages[${i}][responsibility_code_id]" class="form-select form-select-sm">${mrRespOpts}</select></td>
+            <td class="ps-3">${buildSel('damages['+i+'][location_code_id]', mrLocOpts)}</td>
+            <td>${buildSel('damages['+i+'][component_code_id]', mrCmpOpts)}</td>
+            <td>${buildSel('damages['+i+'][damage_code_id]', mrDmgOpts)}</td>
+            <td>${buildSel('damages['+i+'][repair_code_id]', mrRepOpts)}</td>
+            <td>${buildSel('damages['+i+'][responsibility_code_id]', mrResOpts, true)}</td>
             <td>
                 <select name="damages[${i}][severity]" class="form-select form-select-sm">
                     <option value="minor">Minor</option>
@@ -442,6 +452,7 @@
             <td><input type="text" name="damages[${i}][description]" class="form-control form-control-sm" placeholder="Details…"></td>
             <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>`;
         document.getElementById('damageRows').appendChild(row);
+        initRowSelects(row);
     });
 
     document.getElementById('damageRows').addEventListener('click', function (e) {
@@ -449,6 +460,13 @@
             const rows = document.querySelectorAll('.damage-row');
             if (rows.length > 1) e.target.closest('.damage-row').remove();
         }
+    });
+
+    // Initialize Select2 on all Blade-rendered damage rows
+    $(function () {
+        document.querySelectorAll('#damageRows .damage-row').forEach(function (row) {
+            initRowSelects(row);
+        });
     });
 
     // Submit via fetch — handles JSON validation error responses
