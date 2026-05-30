@@ -53,6 +53,13 @@ class SendEstimateEmailJob implements ShouldQueue
                 'encryption' => $config->smtp_encryption === 'none' ? null : $config->smtp_encryption,
                 'username'   => $config->smtp_username,
                 'password'   => $config->smtp_password,
+                'stream'     => [
+                    'ssl' => [
+                        'verify_peer'      => false,
+                        'verify_peer_name' => false,
+                        'allow_self_signed' => true,
+                    ],
+                ],
             ],
             'mailgun' => [
                 'transport' => 'mailgun',
