@@ -4,120 +4,174 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Repair Estimate {{ $estimate->estimate_no }}</title>
-<style>
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f6f8; margin: 0; padding: 0; }
-  .wrapper { max-width: 620px; margin: 30px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-  .header { background: #0d6efd; padding: 28px 36px; text-align: center; }
-  .header img { max-height: 52px; }
-  .header h1 { color: #fff; margin: 12px 0 0; font-size: 1.3rem; font-weight: 600; }
-  .body { padding: 32px 36px; color: #212529; font-size: .95rem; line-height: 1.6; }
-  .info-box { background: #f8f9fa; border-radius: 6px; padding: 18px 20px; margin: 20px 0; }
-  .info-row { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid #e9ecef; }
-  .info-row:last-child { border-bottom: none; }
-  .info-label { color: #6c757d; font-size: .85rem; min-width: 130px; }
-  .info-value { font-weight: 600; }
-  .btn { display: inline-block; background: #0d6efd; color: #fff !important; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 600; margin: 20px 0; font-size: 1rem; }
-  .expiry { color: #dc3545; font-size: .85rem; margin-top: 8px; }
-  .footer { background: #f8f9fa; padding: 20px 36px; text-align: center; color: #6c757d; font-size: .8rem; border-top: 1px solid #e9ecef; }
-  table.lines { width: 100%; border-collapse: collapse; margin-top: 16px; }
-  table.lines th { background: #e9ecef; padding: 8px 10px; text-align: left; font-size: .82rem; color: #495057; }
-  table.lines td { padding: 7px 10px; font-size: .85rem; border-bottom: 1px solid #f1f3f5; }
-  table.lines tfoot td { font-weight: 700; border-top: 2px solid #dee2e6; padding-top: 10px; }
-</style>
 </head>
-<body>
-<div class="wrapper">
-  <div class="header">
-    @if($company->logo_url)
-      <img src="{{ $company->logo_url }}" alt="{{ $company->company_name }}">
-    @else
-      <h1>{{ $company->company_name }}</h1>
-    @endif
-    <h1>Repair Estimate — Action Required</h1>
-  </div>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
 
-  <div class="body">
-    <p>Dear Owner / Principal,</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:32px 16px;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.10);">
 
-    @if($customMessage)
-      <p>{{ $customMessage }}</p>
-    @else
-      <p>Please find below your repair estimate for container <strong>{{ $estimate->container_no }}</strong>.
-      Kindly review and respond at your earliest convenience.</p>
-    @endif
-
-    <div class="info-box">
-      <div class="info-row">
-        <span class="info-label">Estimate No.</span>
-        <span class="info-value font-monospace">{{ $estimate->estimate_no }}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Container No.</span>
-        <span class="info-value">{{ $estimate->container_no }}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Issue Date</span>
-        <span class="info-value">{{ $estimate->estimate_date->format('d M Y') }}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Valid Until</span>
-        <span class="info-value">{{ $estimate->valid_until->format('d M Y') }}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Grand Total</span>
-        <span class="info-value">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</span>
-      </div>
-    </div>
-
-    <table class="lines">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Description</th>
-          <th style="text-align:right">Qty</th>
-          <th style="text-align:right">Unit Price</th>
-          <th style="text-align:right">Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach($estimate->lineItems as $i => $line)
-        <tr>
-          <td>{{ $i + 1 }}</td>
-          <td>{{ $line->component }} — {{ $line->repair_type }}</td>
-          <td style="text-align:right">{{ $line->qty }}</td>
-          <td style="text-align:right">{{ number_format($line->unit_price, 2) }}</td>
-          <td style="text-align:right">{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}</td>
-        </tr>
-        @endforeach
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="4" style="text-align:right">Grand Total:</td>
-          <td style="text-align:right">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
-        </tr>
-      </tfoot>
-    </table>
-
-    <div style="text-align: center; margin-top: 28px;">
-      @php $portalUrl = url('/portal/estimate/' . $portalToken->token); @endphp
-      <a href="{{ $portalUrl }}" class="btn">Review &amp; Approve / Reject</a>
-      @if($portalToken->expires_at)
-      <p class="expiry">This link expires on {{ $portalToken->expires_at->format('d M Y, H:i') }} UTC</p>
+  {{-- ── HEADER ── --}}
+  <tr>
+    <td style="background:linear-gradient(135deg,#1a56db 0%,#0d6efd 100%);padding:32px 40px;text-align:center;">
+      @if(!empty($company->logo_url))
+        <img src="{{ $company->logo_url }}" alt="{{ $company->company_name }}" style="max-height:56px;max-width:200px;display:block;margin:0 auto 12px;">
+      @else
+        <div style="color:#ffffff;font-size:1.25rem;font-weight:700;letter-spacing:.5px;margin-bottom:10px;">{{ $company->company_name }}</div>
       @endif
-    </div>
+      <div style="display:inline-block;background:rgba(255,255,255,0.18);border-radius:20px;padding:4px 16px;margin-bottom:8px;">
+        <span style="color:#e0eaff;font-size:.78rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Repair Estimate</span>
+      </div>
+      <div style="color:#ffffff;font-size:1.5rem;font-weight:700;margin:4px 0 0;">{{ $estimate->estimate_no }}</div>
+    </td>
+  </tr>
 
-    <p style="color:#6c757d; font-size:.85rem; margin-top:24px;">
-      If the button above does not work, copy and paste this link into your browser:<br>
-      <a href="{{ $portalUrl }}">{{ $portalUrl }}</a>
-    </p>
-  </div>
+  {{-- ── BODY ── --}}
+  <tr>
+    <td style="padding:36px 40px;color:#212529;">
 
-  <div class="footer">
-    <p>{{ $company->company_name }}
-    @if($company->address) · {{ $company->address }} @endif
-    @if($company->email) · {{ $company->email }} @endif</p>
-    <p>This email was sent automatically. Please do not reply directly.</p>
-  </div>
-</div>
+      <p style="margin:0 0 6px;font-size:.95rem;color:#495057;">Dear Owner / Principal,</p>
+
+      @if($customMessage)
+        <p style="margin:12px 0 0;font-size:.95rem;line-height:1.65;color:#212529;">{{ $customMessage }}</p>
+      @else
+        <p style="margin:12px 0 0;font-size:.95rem;line-height:1.65;color:#212529;">
+          Please find below your repair estimate for container <strong>{{ $estimate->container_no }}</strong>.
+          Kindly review and respond at your earliest convenience.
+        </p>
+      @endif
+
+      {{-- ── Info card ── --}}
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef;overflow:hidden;">
+        <tr>
+          <td style="padding:10px 18px;border-bottom:1px solid #e9ecef;width:48%;">
+            <div style="font-size:.78rem;color:#6c757d;margin-bottom:2px;">Estimate No.</div>
+            <div style="font-size:.95rem;font-weight:700;color:#1a56db;font-family:monospace;">{{ $estimate->estimate_no }}</div>
+          </td>
+          <td style="padding:10px 18px;border-bottom:1px solid #e9ecef;">
+            <div style="font-size:.78rem;color:#6c757d;margin-bottom:2px;">Container No.</div>
+            <div style="font-size:.95rem;font-weight:700;">{{ $estimate->container_no }}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 18px;border-bottom:1px solid #e9ecef;">
+            <div style="font-size:.78rem;color:#6c757d;margin-bottom:2px;">Issue Date</div>
+            <div style="font-size:.95rem;font-weight:600;">{{ $estimate->estimate_date->format('d M Y') }}</div>
+          </td>
+          <td style="padding:10px 18px;border-bottom:1px solid #e9ecef;">
+            <div style="font-size:.78rem;color:#6c757d;margin-bottom:2px;">Valid Until</div>
+            <div style="font-size:.95rem;font-weight:600;color:#dc3545;">{{ $estimate->valid_until->format('d M Y') }}</div>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding:12px 18px;background:#1a56db;border-radius:0 0 7px 7px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="color:#cfe2ff;font-size:.85rem;font-weight:600;">Grand Total</td>
+                <td style="text-align:right;color:#ffffff;font-size:1.15rem;font-weight:700;">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      {{-- ── Line items ── --}}
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:.875rem;margin-bottom:4px;">
+        <thead>
+          <tr style="background:#e9ecef;">
+            <th style="padding:8px 10px;text-align:left;color:#495057;font-size:.78rem;font-weight:700;border-bottom:2px solid #dee2e6;">#</th>
+            <th style="padding:8px 10px;text-align:left;color:#495057;font-size:.78rem;font-weight:700;border-bottom:2px solid #dee2e6;">Description</th>
+            <th style="padding:8px 10px;text-align:right;color:#495057;font-size:.78rem;font-weight:700;border-bottom:2px solid #dee2e6;">Qty</th>
+            <th style="padding:8px 10px;text-align:right;color:#495057;font-size:.78rem;font-weight:700;border-bottom:2px solid #dee2e6;">Unit Price</th>
+            <th style="padding:8px 10px;text-align:right;color:#495057;font-size:.78rem;font-weight:700;border-bottom:2px solid #dee2e6;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach($estimate->lineItems as $i => $line)
+          <tr style="background:{{ $loop->even ? '#f8f9fa' : '#ffffff' }};">
+            <td style="padding:7px 10px;color:#6c757d;border-bottom:1px solid #f1f3f5;">{{ $i + 1 }}</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;">{{ $line->component }} — {{ $line->repair_type }}</td>
+            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;">{{ number_format($line->qty, 2) }}</td>
+            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;">{{ number_format($line->unit_price, 2) }}</td>
+            <td style="padding:7px 10px;text-align:right;font-weight:600;border-bottom:1px solid #f1f3f5;">{{ number_format($line->line_amount, 2) }}</td>
+          </tr>
+          @endforeach
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" style="padding:8px 10px;text-align:right;color:#6c757d;font-size:.82rem;border-top:1px solid #dee2e6;">Subtotal</td>
+            <td style="padding:8px 10px;text-align:right;border-top:1px solid #dee2e6;">{{ number_format($estimate->subtotal, 2) }}</td>
+          </tr>
+          @if($estimate->sscl_amount > 0)
+          <tr>
+            <td colspan="4" style="padding:4px 10px;text-align:right;color:#6c757d;font-size:.82rem;">SSCL</td>
+            <td style="padding:4px 10px;text-align:right;">{{ number_format($estimate->sscl_amount, 2) }}</td>
+          </tr>
+          @endif
+          @if($estimate->vat_amount > 0)
+          <tr>
+            <td colspan="4" style="padding:4px 10px;text-align:right;color:#6c757d;font-size:.82rem;">VAT</td>
+            <td style="padding:4px 10px;text-align:right;">{{ number_format($estimate->vat_amount, 2) }}</td>
+          </tr>
+          @endif
+          <tr style="background:#f0f4ff;">
+            <td colspan="4" style="padding:10px 10px;text-align:right;font-weight:700;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;">Grand Total</td>
+            <td style="padding:10px 10px;text-align:right;font-weight:800;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      {{-- ── CTA button ── --}}
+      @php $portalUrl = url('/portal/estimate/' . $portalToken->token); @endphp
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0 20px;">
+        <tr>
+          <td align="center">
+            <a href="{{ $portalUrl }}"
+               style="display:inline-block;background:#1a56db;color:#ffffff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:1rem;letter-spacing:.3px;border:none;">
+              &#x1F4CB;&nbsp; Review &amp; Approve / Reject
+            </a>
+          </td>
+        </tr>
+        @if($portalToken->expires_at)
+        <tr>
+          <td align="center" style="padding-top:10px;font-size:.8rem;color:#dc3545;font-weight:500;">
+            This link expires on {{ $portalToken->expires_at->format('d M Y, H:i') }} UTC
+          </td>
+        </tr>
+        @endif
+      </table>
+
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;background:#f8f9fa;border-radius:6px;border:1px solid #e9ecef;">
+        <tr>
+          <td style="padding:12px 16px;">
+            <div style="font-size:.78rem;color:#6c757d;margin-bottom:4px;">If the button above does not work, copy and paste this link into your browser:</div>
+            <a href="{{ $portalUrl }}" style="font-size:.78rem;color:#1a56db;word-break:break-all;">{{ $portalUrl }}</a>
+          </td>
+        </tr>
+      </table>
+
+    </td>
+  </tr>
+
+  {{-- ── FOOTER ── --}}
+  <tr>
+    <td style="background:#f8f9fa;padding:20px 40px;border-top:1px solid #e9ecef;text-align:center;">
+      <div style="color:#495057;font-size:.82rem;font-weight:600;margin-bottom:4px;">{{ $company->company_name }}</div>
+      @if(!empty($company->address))
+        <div style="color:#6c757d;font-size:.78rem;">{{ $company->address }}</div>
+      @endif
+      @if(!empty($company->email))
+        <div style="color:#6c757d;font-size:.78rem;">{{ $company->email }}</div>
+      @endif
+      <div style="color:#adb5bd;font-size:.75rem;margin-top:10px;border-top:1px solid #e9ecef;padding-top:10px;">
+        This email was sent automatically. Please do not reply directly.
+      </div>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+
 </body>
 </html>
