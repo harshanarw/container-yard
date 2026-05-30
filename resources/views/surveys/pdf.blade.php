@@ -32,12 +32,11 @@
         tbody tr:nth-child(even) { background: #f8f9fa; }
         tbody td { padding: 5px 7px; border-bottom: 1px solid #eee; vertical-align: middle; }
 
-        .code-chip { display: inline-block; background: #e8f0fe; color: #1a56db; border: 1px solid #bfcfef;
-                     border-radius: 3px; padding: 1px 5px; font-family: monospace; font-size: 10px; font-weight: bold; }
-        .code-danger  { background: #fff0f0; color: #dc3545; border-color: #f5c2c7; }
-        .code-success { background: #f0fff4; color: #198754; border-color: #badbcc; }
-        .code-warn    { background: #fffde7; color: #856404; border-color: #ffecb5; }
-        .code-dark    { background: #212529; color: #fff; border-color: #000; }
+        .code-chip         { display: inline-block; background: #e8f0fe; color: #1a56db; border: 1px solid #bfcfef; border-radius: 3px; padding: 1px 5px; font-family: monospace; font-size: 10px; font-weight: bold; }
+        .code-chip.danger  { background: #fff0f0; color: #dc3545; border-color: #f5c2c7; }
+        .code-chip.success { background: #f0fff4; color: #198754; border-color: #badbcc; }
+        .code-chip.warn    { background: #fffde7; color: #856404; border-color: #ffecb5; }
+        .code-chip.dark    { background: #212529; color: #fff; border-color: #000; }
         .sev-minor    { display:inline-block; background:#d1e7dd; color:#0f5132; border-radius:3px; padding:1px 6px; font-size:9px; }
         .sev-moderate { display:inline-block; background:#fff3cd; color:#664d03; border-radius:3px; padding:1px 6px; font-size:9px; }
         .sev-severe   { display:inline-block; background:#f8d7da; color:#842029; border-radius:3px; padding:1px 6px; font-size:9px; }
@@ -248,20 +247,20 @@
                     </td>
                     <td>
                         @if($dmg->damageCode)
-                            <span class="code-chip code-danger">{{ $dmg->damageCode->code }}</span>
+                            <span class="code-chip danger">{{ $dmg->damageCode->code }}</span>
                             <span style="font-size:9px;color:#555;display:block;margin-top:1px;">{{ $dmg->damageCode->name }}</span>
                         @else <span style="color:#adb5bd">—</span>
                         @endif
                     </td>
                     <td>
                         @if($dmg->repairCode)
-                            <span class="code-chip code-success">{{ $dmg->repairCode->code }}</span>
+                            <span class="code-chip success">{{ $dmg->repairCode->code }}</span>
                         @else <span style="color:#adb5bd">—</span>
                         @endif
                     </td>
                     <td>
                         @if($dmg->responsibilityCode)
-                            <span class="code-chip code-warn">{{ $dmg->responsibilityCode->code }}</span>
+                            <span class="code-chip warn">{{ $dmg->responsibilityCode->code }}</span>
                         @else <span style="color:#adb5bd">—</span>
                         @endif
                     </td>
@@ -286,7 +285,7 @@
                     </td>
                     <td>
                         @if($dmg->cedex_code)
-                            <span class="code-chip code-dark">{{ $dmg->cedex_code }}</span>
+                            <span class="code-chip dark">{{ $dmg->cedex_code }}</span>
                         @else <span style="color:#adb5bd">—</span>
                         @endif
                     </td>
@@ -309,13 +308,11 @@
     <!-- Checklist -->
     @if($inquiry->checklists->isNotEmpty())
     <div class="section">
-        <div class="section-title">Inspection Checklist
-            @php
-                $checked = $inquiry->checklists->where('is_checked', true)->count();
-                $total   = $inquiry->checklists->count();
-            @endphp
-            ({{ $checked }}/{{ $total }} passed)
-        </div>
+        @php
+            $checkedCount = $inquiry->checklists->where('is_checked', true)->count();
+            $totalCount   = $inquiry->checklists->count();
+        @endphp
+        <div class="section-title">Inspection Checklist ({{ $checkedCount }}/{{ $totalCount }} passed)</div>
         <div class="checklist-grid">
             @foreach($inquiry->checklists as $cl)
             <div class="cl-item {{ $cl->is_checked ? 'cl-checked' : 'cl-unchecked' }}">
