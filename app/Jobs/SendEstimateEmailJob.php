@@ -27,23 +27,39 @@ class SendEstimateEmailJob implements ShouldQueue
 
     public function handle(): void
     {
-        $config = EmailConfig::forCategory('estimate');
+        $config   = EmailConfig::forCategory('estimate');
         $mailable = new EstimateIssuedMail($this->estimate, $this->portalToken, $this->customMessage);
 
-        if ($config) {
-            $this->configureMailer($config);
-        }
+        $useCustomMailer = $config && $this->configureMailer($config);
 
-        $mailer = Mail::to($this->portalToken->email);
+        $mailerInstance = $useCustomMailer
+            ? Mail::mailer('dynamic')
+            : $this->applyDefaultSslBypass();
+
+        $pending = $mailerInstance->to($this->portalToken->email);
 
         if ($this->estimate->send_cc_email) {
-            $mailer->cc($this->estimate->send_cc_email);
+            $pending->cc($this->estimate->send_cc_email);
         }
 
-        $mailer->send($mailable);
+        $pending->send($mailable);
     }
 
-    private function configureMailer(EmailConfig $config): void
+    private function applyDefaultSslBypass(): \Illuminate\Mail\Mailer
+    {
+        $default = config('mail.default');
+        config(["mail.mailers.{$default}.stream" => [
+            'ssl' => [
+                'verify_peer'       => false,
+                'verify_peer_name'  => false,
+                'allow_self_signed' => true,
+            ],
+        ]]);
+
+        return Mail::mailer($default);
+    }
+
+    private function configureMailer(EmailConfig $config): bool
     {
         $settings = match($config->driver) {
             'smtp' => [
@@ -78,13 +94,17 @@ class SendEstimateEmailJob implements ShouldQueue
             default => [],
         };
 
-        if (!empty($settings)) {
-            config(['mail.mailers.dynamic' => $settings]);
-
-            if ($config->from_email) {
-                config(['mail.from.address' => $config->from_email]);
-                config(['mail.from.name' => $config->from_name ?? config('mail.from.name')]);
-            }
+        if (empty($settings)) {
+            return false;
         }
+
+        config(['mail.mailers.dynamic' => $settings]);
+
+        if ($config->from_email) {
+            config(['mail.from.address' => $config->from_email]);
+            config(['mail.from.name' => $config->from_name ?? config('mail.from.name')]);
+        }
+
+        return true;
     }
 }
