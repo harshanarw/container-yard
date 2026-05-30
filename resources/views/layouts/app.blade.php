@@ -711,13 +711,32 @@
                 </ul>
             </div>
 
-            {{-- M&R Codes sub-group --}}
-            {{-- Repair Categories --}}
+            {{-- Repair Categories sub-group --}}
             @php $repairCatActive = request()->routeIs('masters.repair-categories.*') || request()->routeIs('masters.repair-category-mappings.*'); @endphp
-            <a href="{{ route('masters.repair-categories.index') }}"
-               class="nav-link {{ $repairCatActive ? 'active' : '' }}">
-                <i class="bi bi-tags nav-sub-icon"></i><span>Repair Categories</span>
-            </a>
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-repair-cat"
+                    aria-expanded="{{ $repairCatActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-setup-repair-cat">
+                <i class="bi bi-tags nav-sub-icon"></i>
+                <span>Repair Categories</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ $repairCatActive ? 'show' : '' }}" id="nav-sub-setup-repair-cat">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.repair-categories.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.repair-categories.*') ? 'active' : '' }}">
+                            <i class="bi bi-tags"></i><span>Categories</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.repair-category-mappings.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.repair-category-mappings.*') ? 'active' : '' }}">
+                            <i class="bi bi-diagram-3"></i><span>Mapping Rules</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
             @php $mrCodesActive = request()->routeIs('masters.mr-codes.*'); @endphp
             <button class="nav-sub-toggle"
