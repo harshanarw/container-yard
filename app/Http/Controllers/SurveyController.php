@@ -278,6 +278,17 @@ class SurveyController extends Controller
         }
     }
 
+    public function pdf(Inquiry $survey)
+    {
+        $survey->load([
+            'container', 'customer', 'inspector', 'checklists', 'estimate', 'equipmentType',
+            'damages.locationCode', 'damages.componentCode', 'damages.damageCode',
+            'damages.repairCode', 'damages.responsibilityCode',
+        ]);
+
+        return view('surveys.pdf', ['inquiry' => $survey]);
+    }
+
     public function destroyPhoto(Inquiry $survey, InquiryPhoto $photo)
     {
         // Legacy local photos still use public_path

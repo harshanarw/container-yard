@@ -69,6 +69,7 @@ Route::middleware(['auth'])->group(function () {
     // Container Surveys (formerly Inquiries)
     Route::resource('surveys', SurveyController::class);
     Route::delete('surveys/{survey}/photos/{photo}', [SurveyController::class, 'destroyPhoto'])->name('surveys.photos.destroy');
+    Route::get('surveys/{survey}/pdf',             [SurveyController::class, 'pdf'])->name('surveys.pdf');
 
     // Container Inquiries (legacy — kept for backward compatibility with estimates)
     Route::resource('inquiries', InquiryController::class);

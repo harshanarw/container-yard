@@ -7,7 +7,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #333; background: #fff; }
-        .page { max-width: 800px; margin: 0 auto; padding: 30px; }
+        .page { max-width: 860px; margin: 0 auto; padding: 30px; }
 
         /* Header */
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; border-bottom: 2px solid #1a56db; padding-bottom: 16px; }
@@ -33,14 +33,19 @@
 
         /* Table */
         table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
-        thead th { background: #1a56db; color: #fff; padding: 8px 10px; text-align: left; font-size: 11px; }
+        thead th { background: #1a56db; color: #fff; padding: 7px 8px; text-align: left; font-size: 10px; }
         thead th.text-right { text-align: right; }
         tbody tr:nth-child(even) { background: #f8f9fa; }
-        tbody td { padding: 7px 10px; border-bottom: 1px solid #eee; font-size: 11px; }
+        tbody td { padding: 6px 8px; border-bottom: 1px solid #eee; font-size: 11px; vertical-align: top; }
         tbody td.text-right { text-align: right; }
-        tfoot td { padding: 6px 10px; font-size: 12px; }
+        tfoot td { padding: 6px 8px; font-size: 12px; }
         tfoot .total-row td { font-weight: bold; font-size: 13px; background: #e8f0fe; border-top: 2px solid #1a56db; }
         tfoot .subtax-row td { color: #555; }
+
+        .code-chip { display: inline-block; background: #e8f0fe; color: #1a56db; border: 1px solid #bfcfef;
+                     border-radius: 3px; padding: 1px 5px; font-family: monospace; font-size: 10px; font-weight: bold; }
+        .code-chip-green { background: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+        .sub-amt { font-size: 9px; color: #777; display: block; line-height: 1.4; }
 
         /* Sections */
         .section { margin-bottom: 20px; }
@@ -94,7 +99,6 @@
 
     <!-- Info Grid -->
     <div class="info-grid">
-        <!-- Estimate Info -->
         <div class="info-box">
             <h3>Estimate Info</h3>
             <div class="info-row">
@@ -119,18 +123,17 @@
             </div>
             @if($estimate->inquiry)
             <div class="info-row">
-                <span class="info-label">Inquiry Ref.</span>
+                <span class="info-label">Survey Ref.</span>
                 <span class="info-value">{{ $estimate->inquiry->inquiry_no }}</span>
             </div>
             @endif
         </div>
 
-        <!-- Container & Customer -->
         <div class="info-box">
             <h3>Container & Customer</h3>
             <div class="info-row">
                 <span class="info-label">Container No.</span>
-                <span class="info-value">{{ $estimate->container_no }}</span>
+                <span class="info-value" style="font-family:monospace">{{ $estimate->container_no }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Size / Type</span>
@@ -161,39 +164,84 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width:5%">#</th>
-                    <th style="width:28%">Component / Location</th>
-                    <th style="width:18%">Repair Type</th>
-                    <th class="text-right" style="width:8%">Qty</th>
-                    <th class="text-right" style="width:14%">Unit Price</th>
-                    <th class="text-right" style="width:8%">Tax %</th>
-                    <th class="text-right" style="width:19%">Amount</th>
+                    <th style="width:3%">#</th>
+                    <th style="width:9%">MR Code</th>
+                    <th style="width:10%">Charge Code</th>
+                    <th style="width:22%">Description</th>
+                    <th style="width:11%">Repair Type</th>
+                    <th class="text-right" style="width:5%">Qty</th>
+                    <th class="text-right" style="width:11%">Unit Price</th>
+                    <th style="width:8%">Tax Code</th>
+                    <th class="text-right" style="width:21%">Amount</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($estimate->lineItems as $i => $item)
                 <tr>
                     <td>{{ $i + 1 }}</td>
+                    <td>
+                        @if($item->componentCode)
+                            <span class="code-chip">{{ $item->componentCode->code }}</span>
+                            <span style="font-size:9px;color:#666;display:block;margin-top:2px;">{{ $item->componentCode->name }}</span>
+                        @else
+                            <span style="color:#adb5bd">—</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if($item->chargeCode)
+                            <span class="code-chip code-chip-green">{{ $item->chargeCode->code }}</span>
+                        @else
+                            <span style="color:#adb5bd">—</span>
+                        @endif
+                    </td>
                     <td>{{ $item->component }}</td>
                     <td>{{ ucfirst(str_replace('_', ' ', $item->repair_type)) }}</td>
                     <td class="text-right">{{ $item->qty }}</td>
                     <td class="text-right">{{ number_format($item->unit_price, 2) }}</td>
-                    <td class="text-right">{{ $item->tax_percentage }}%</td>
-                    <td class="text-right">{{ $estimate->currency }} {{ number_format($item->line_amount, 2) }}</td>
+                    <td>
+                        @if($item->taxCode)
+                            <span class="code-chip" title="{{ $item->taxCode->code }} (SSCL {{ $item->taxCode->tax1_rate }}% + VAT {{ $item->taxCode->tax2_rate }}%)">
+                                {{ $item->taxCode->code }}
+                            </span>
+                        @else
+                            <span style="color:#adb5bd">—</span>
+                        @endif
+                    </td>
+                    <td class="text-right">
+                        {{ $estimate->currency }} {{ number_format($item->line_amount, 2) }}
+                        @if(($item->tax1_amount ?? 0) > 0)
+                            <span class="sub-amt">SSCL: {{ number_format($item->tax1_amount, 2) }}</span>
+                        @endif
+                        @if(($item->tax2_amount ?? 0) > 0)
+                            <span class="sub-amt">VAT: {{ number_format($item->tax2_amount, 2) }}</span>
+                        @endif
+                    </td>
                 </tr>
                 @endforeach
             </tbody>
             <tfoot>
                 <tr class="subtax-row">
-                    <td colspan="6" style="text-align:right; padding-right:10px">Subtotal:</td>
+                    <td colspan="8" style="text-align:right; padding-right:10px">Subtotal:</td>
                     <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}</td>
                 </tr>
+                @if(($estimate->sscl_amount ?? 0) > 0)
                 <tr class="subtax-row">
-                    <td colspan="6" style="text-align:right; padding-right:10px">Tax ({{ $estimate->tax_percentage }}%):</td>
-                    <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->tax_amount, 2) }}</td>
+                    <td colspan="8" style="text-align:right; padding-right:10px">
+                        SSCL:
+                    </td>
+                    <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->sscl_amount, 2) }}</td>
                 </tr>
+                @endif
+                @if(($estimate->vat_amount ?? 0) > 0)
+                <tr class="subtax-row">
+                    <td colspan="8" style="text-align:right; padding-right:10px">
+                        VAT:
+                    </td>
+                    <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->vat_amount, 2) }}</td>
+                </tr>
+                @endif
                 <tr class="total-row">
-                    <td colspan="6" style="text-align:right; padding-right:10px">GRAND TOTAL:</td>
+                    <td colspan="8" style="text-align:right; padding-right:10px">GRAND TOTAL:</td>
                     <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
                 </tr>
             </tfoot>
@@ -228,9 +276,7 @@
 </div>
 
 <script>
-    // Auto-trigger print when opened via PDF button
     window.addEventListener('load', function() {
-        // Small delay to allow styles to render
         setTimeout(function() { window.print(); }, 400);
     });
 </script>

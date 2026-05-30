@@ -339,6 +339,9 @@
                 <a href="{{ route('surveys.edit', $inquiry) }}" class="btn btn-primary btn-sm">
                     <i class="bi bi-pencil me-2"></i>Edit Survey
                 </a>
+                <a href="{{ route('surveys.pdf', $inquiry) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-printer me-2"></i>Print Survey PDF
+                </a>
                 @if(!$inquiry->estimate)
                 <a href="{{ route('estimates.create', ['inquiry_id' => $inquiry->id]) }}"
                    class="btn btn-warning btn-sm">

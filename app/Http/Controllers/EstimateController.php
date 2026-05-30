@@ -391,7 +391,8 @@ class EstimateController extends Controller
 
     public function pdf(Estimate $estimate)
     {
-        $estimate->load(['container', 'customer', 'inquiry', 'lineItems', 'createdBy']);
+        $estimate->load(['container', 'customer', 'inquiry', 'lineItems.componentCode',
+                         'lineItems.chargeCode', 'lineItems.taxCode', 'createdBy']);
 
         return view('estimates.pdf', compact('estimate'));
     }
