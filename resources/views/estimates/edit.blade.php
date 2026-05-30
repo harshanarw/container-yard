@@ -121,12 +121,12 @@
                             <thead class="table-light">
                                 <tr>
                                     <th class="ps-3" style="width:11%">MR Code</th>
-                                    <th style="width:13%">Charge Code</th>
-                                    <th style="width:15%">Description</th>
+                                    <th style="width:10%">Charge Code</th>
+                                    <th style="width:17%">Description</th>
                                     <th style="width:14%">Repair Type</th>
                                     <th style="width:7%">Qty</th>
                                     <th style="width:10%">Unit Price</th>
-                                    <th style="width:11%">Tax Code</th>
+                                    <th style="width:8%">Tax Code</th>
                                     <th style="width:11%">Net Amount</th>
                                     <th style="width:40px"></th>
                                 </tr>
@@ -155,7 +155,7 @@
                                             <option value="">— any —</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}" {{ old("line_items.{$i}.component_code_id", $item->component_code_id) == $c->id ? 'selected' : '' }}>
-                                                {{ $c->code }} {{ $c->name }}
+                                                {{ $c->code }} — {{ $c->name }}
                                             </option>
                                             @endforeach
                                         </select>
@@ -165,6 +165,7 @@
                                             <option value="">— none —</option>
                                             @foreach($chargeCodes as $cc)
                                             <option value="{{ $cc->id }}"
+                                                    data-code="{{ $cc->code }}"
                                                     data-tax1-rate="{{ $cc->taxCode?->tax1_rate ?? 0 }}"
                                                     data-tax2-rate="{{ $cc->taxCode?->tax2_rate ?? 0 }}"
                                                     data-tax-code-id="{{ $cc->tax_code_id ?? '' }}"
@@ -206,8 +207,9 @@
                                             <option value="{{ $tc->id }}"
                                                     data-tax1-rate="{{ $tc->tax1_rate }}"
                                                     data-tax2-rate="{{ $tc->tax2_rate }}"
+                                                    title="{{ $tc->code }} (SSCL {{ $tc->tax1_rate }}% + VAT {{ $tc->tax2_rate }}%)"
                                                     {{ old("line_items.{$i}.tax_code_id", $item->tax_code_id) == $tc->id ? 'selected' : '' }}>
-                                                {{ $tc->code }} (SSCL {{ $tc->tax1_rate }}% + VAT {{ $tc->tax2_rate }}%)
+                                                {{ $tc->code }}
                                             </option>
                                             @endforeach
                                         </select>
@@ -393,14 +395,14 @@
 
     function buildCompSelect(name) {
         let opts = '<option value="">— any —</option>';
-        mrCmpCodeOpts.forEach(o => { opts += `<option value="${o.id}">${o.code} ${o.name}</option>`; });
+        mrCmpCodeOpts.forEach(o => { opts += `<option value="${o.id}">${esc(o.code)} — ${esc(o.name)}</option>`; });
         return `<select name="${name}" class="form-select form-select-sm mb-1 s2">${opts}</select>`;
     }
 
     function buildChargeCodeSelect(name) {
         let opts = '<option value="">— none —</option>';
         chargeCodeOpts.forEach(c => {
-            opts += `<option value="${c.id}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}">${c.code} — ${esc(c.description)}</option>`;
+            opts += `<option value="${c.id}" data-code="${esc(c.code)}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}">${esc(c.code)} — ${esc(c.description)}</option>`;
         });
         return `<select name="${name}" class="form-select form-select-sm charge-code-sel s2">${opts}</select>`;
     }
@@ -408,14 +410,22 @@
     function buildTaxCodeSelect(name) {
         let opts = '<option value="">— none —</option>';
         taxCodeOpts.forEach(tc => {
-            const label = `${tc.code} (SSCL ${tc.tax1_rate}% + VAT ${tc.tax2_rate}%)`;
-            opts += `<option value="${tc.id}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}">${esc(label)}</option>`;
+            const fullLabel = `${tc.code} (SSCL ${tc.tax1_rate}% + VAT ${tc.tax2_rate}%)`;
+            opts += `<option value="${tc.id}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}" title="${esc(fullLabel)}">${esc(tc.code)}</option>`;
         });
         return `<select name="${name}" class="form-select form-select-sm tax-code-sel s2">${opts}</select>`;
     }
 
     function initLineSelects(tr) {
-        $(tr).find('select.s2').select2({ theme: 'bootstrap-5', width: '100%' });
+        $(tr).find('select.s2:not(.charge-code-sel)').select2({ theme: 'bootstrap-5', width: '100%' });
+        $(tr).find('select.charge-code-sel.s2').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            templateSelection: function (data) {
+                if (!data.id) return data.text;
+                return $(data.element).data('code') || data.text.split(' — ')[0] || data.text;
+            }
+        });
     }
 
     function applyChargeToRow(row, chargeCodeId, taxCodeId) {

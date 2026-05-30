@@ -143,13 +143,13 @@
                             <thead class="table-light">
                                 <tr>
                                     <th class="ps-3" style="width:32px;"></th>
-                                    <th style="width:10%">MR Code</th>
-                                    <th style="width:13%">Charge Code</th>
+                                    <th style="width:11%">MR Code</th>
+                                    <th style="width:11%">Charge Code</th>
                                     <th style="width:14%">Description</th>
                                     <th style="width:13%">Repair Type</th>
                                     <th style="width:6%">Qty</th>
                                     <th style="width:9%">Unit Price</th>
-                                    <th style="width:11%">Tax Code</th>
+                                    <th style="width:8%">Tax Code</th>
                                     <th style="width:9%" class="text-end pe-2">Net Amount</th>
                                     <th style="width:36px;"></th>
                                 </tr>
@@ -413,7 +413,7 @@
     function buildCodeSelect(name, options, selectedId) {
         let html = `<select name="${name}" class="form-select form-select-sm mb-1 s2"><option value="">— any —</option>`;
         options.forEach(o => {
-            html += `<option value="${o.id}"${o.id == selectedId ? ' selected' : ''}>${o.code} ${o.name}</option>`;
+            html += `<option value="${o.id}"${o.id == selectedId ? ' selected' : ''}>${esc(o.code)} — ${esc(o.name)}</option>`;
         });
         return html + '</select>';
     }
@@ -421,7 +421,7 @@
     function buildChargeCodeSelect(name, selectedId) {
         let opts = '<option value="">— none —</option>';
         chargeCodeOpts.forEach(c => {
-            opts += `<option value="${c.id}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}"${c.id == selectedId ? ' selected' : ''}>${c.code} — ${esc(c.description)}</option>`;
+            opts += `<option value="${c.id}" data-code="${esc(c.code)}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}"${c.id == selectedId ? ' selected' : ''}>${esc(c.code)} — ${esc(c.description)}</option>`;
         });
         return `<select name="${name}" class="form-select form-select-sm charge-code-sel s2">${opts}</select>`;
     }
@@ -429,14 +429,22 @@
     function buildTaxCodeSelect(name, selectedId) {
         let opts = '<option value="">— none —</option>';
         taxCodeOpts.forEach(tc => {
-            const label = `${tc.code} (SSCL ${tc.tax1_rate}% + VAT ${tc.tax2_rate}%)`;
-            opts += `<option value="${tc.id}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}"${tc.id == selectedId ? ' selected' : ''}>${esc(label)}</option>`;
+            const fullLabel = `${tc.code} (SSCL ${tc.tax1_rate}% + VAT ${tc.tax2_rate}%)`;
+            opts += `<option value="${tc.id}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}" title="${esc(fullLabel)}"${tc.id == selectedId ? ' selected' : ''}>${esc(tc.code)}</option>`;
         });
         return `<select name="${name}" class="form-select form-select-sm tax-code-sel s2">${opts}</select>`;
     }
 
     function initLineSelects(tr) {
-        $(tr).find('select.s2').select2({ theme: 'bootstrap-5', width: '100%' });
+        $(tr).find('select.s2:not(.charge-code-sel)').select2({ theme: 'bootstrap-5', width: '100%' });
+        $(tr).find('select.charge-code-sel.s2').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            templateSelection: function (data) {
+                if (!data.id) return data.text;
+                return $(data.element).data('code') || data.text.split(' — ')[0] || data.text;
+            }
+        });
     }
 
     const resolveUrl = '{{ route("estimates.resolve-charge-code") }}';
@@ -685,12 +693,14 @@
         if (mainBtn) { importDamages(mainBtn); } else { importDamages(this); }
     });
 
-    // ── Initialise with one blank row ────────────────────────────────────
-    if (lineItems.children.length === 0) {
-        lineItems.insertAdjacentHTML('beforeend', buildRow());
-        initLineSelects(lineItems.lastElementChild);
-        recalculate();
-    }
+    // ── Initialise with one blank row (inside jQuery ready to guarantee Select2 is loaded) ──
+    $(function () {
+        if (lineItems.children.length === 0) {
+            lineItems.insertAdjacentHTML('beforeend', buildRow());
+            initLineSelects(lineItems.lastElementChild);
+            recalculate();
+        }
+    });
 })();
 </script>
 @endpush
