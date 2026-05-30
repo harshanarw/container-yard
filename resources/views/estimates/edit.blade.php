@@ -200,10 +200,19 @@
                                                step="0.01" min="0" required>
                                     </td>
                                     <td>
+                                        <div class="tax-code-badge mb-1">
+                                            @if($item->taxCode)
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.68rem;">
+                                                    {{ $item->taxCode->code }} {{ number_format($item->taxCode->total_rate, 2) }}%
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <input type="hidden" name="line_items[{{ $i }}][tax_code_id]" class="tax-code-id-field"
+                                               value="{{ old("line_items.{$i}.tax_code_id", $item->tax_code_id) }}">
                                         <input type="number" name="line_items[{{ $i }}][tax_percentage]"
                                                class="form-control form-control-sm tax-pct"
                                                value="{{ old("line_items.{$i}.tax_percentage", $item->tax_percentage) }}"
-                                               min="0" max="100">
+                                               min="0" max="100" style="width:65px;">
                                     </td>
                                     <td class="fw-semibold line-amount text-end pe-2">
                                         {{ $estimate->currency }} {{ number_format($item->line_amount, 2) }}
@@ -363,6 +372,9 @@
         'description' => $c->description,
         'tax_rate'    => $c->taxCode?->total_rate ?? 0,
         'tax_code_id' => $c->tax_code_id,
+        'tax_label'   => $c->taxCode
+                            ? ($c->taxCode->code . ' ' . number_format($c->taxCode->total_rate, 2) . '%')
+                            : null,
     ]);
     @endphp
     const chargeCodeOpts = @json($chargeCodeJson);
@@ -377,15 +389,36 @@
         return `<select name="${name}" class="form-select form-select-sm mb-1">${opts}</select>`;
     }
 
+    const resolveUrl = '{{ route("estimates.resolve-charge-code") }}';
+
     function buildChargeCodeSelect(name) {
         let opts = '<option value="">— none —</option>';
         chargeCodeOpts.forEach(c => {
-            opts += `<option value="${c.id}" data-tax-rate="${c.tax_rate}" data-tax-code-id="${c.tax_code_id ?? ''}">${c.code} — ${esc(c.description)}</option>`;
+            opts += `<option value="${c.id}" data-tax-rate="${c.tax_rate}" data-tax-code-id="${c.tax_code_id ?? ''}" data-tax-label="${esc(c.tax_label ?? '')}">${c.code} — ${esc(c.description)}</option>`;
         });
         return `<select name="${name}" class="form-select form-select-sm charge-code-sel">${opts}</select>`;
     }
 
-    // Auto-fill description from component code; auto-fill tax from charge code
+    function taxBadgeHtml(label) {
+        return label
+            ? `<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.68rem;">${esc(label)}</span>`
+            : '';
+    }
+
+    function applyChargeToRow(row, chargeCodeId, taxRate, taxCodeId, taxLabel) {
+        const chargeSel = row.querySelector('.charge-code-sel');
+        const taxPctEl  = row.querySelector('.tax-pct');
+        const taxCodeEl = row.querySelector('.tax-code-id-field');
+        const badgeEl   = row.querySelector('.tax-code-badge');
+        if (chargeSel) chargeSel.value = chargeCodeId || '';
+        if (taxPctEl)  taxPctEl.value  = taxRate ?? 0;
+        if (taxCodeEl) taxCodeEl.value = taxCodeId ?? '';
+        if (badgeEl)   badgeEl.innerHTML = taxBadgeHtml(taxLabel);
+        recalculate();
+    }
+
+    // Auto-fill description from component code + AJAX resolve charge/tax;
+    // auto-fill tax badge + % when charge code is selected manually
     document.getElementById('lineItems').addEventListener('change', function (e) {
         const sel = e.target;
         const row = sel.closest('tr');
@@ -397,20 +430,27 @@
                 const opt = mrCmpCodeOpts.find(o => o.id == sel.value);
                 if (opt) descInput.value = opt.name;
             }
+            if (sel.value) {
+                const repairCodeId = row.querySelector('[name*="[repair_code_id]"]')?.value || '';
+                const url = resolveUrl + '?component_code_id=' + sel.value + (repairCodeId ? '&repair_code_id=' + repairCodeId : '');
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.found) {
+                            applyChargeToRow(row, data.charge_code_id, data.tax_rate, data.tax_code_id, data.tax_label);
+                        }
+                    })
+                    .catch(() => {});
+            }
         }
 
         if (sel.classList.contains('charge-code-sel')) {
             const opt = sel.selectedOptions[0];
-            const taxPctEl  = row.querySelector('.tax-pct');
-            const taxCodeEl = row.querySelector('.tax-code-id-field');
             if (opt?.value) {
-                if (taxPctEl)  taxPctEl.value  = opt.dataset.taxRate   || 0;
-                if (taxCodeEl) taxCodeEl.value = opt.dataset.taxCodeId || '';
+                applyChargeToRow(row, opt.value, opt.dataset.taxRate, opt.dataset.taxCodeId, opt.dataset.taxLabel);
             } else {
-                if (taxPctEl)  taxPctEl.value  = 0;
-                if (taxCodeEl) taxCodeEl.value = '';
+                applyChargeToRow(row, '', 0, '', '');
             }
-            recalculate();
         }
     });
 
@@ -441,7 +481,11 @@
                 </td>
                 <td><input type="number" name="line_items[${i}][qty]" class="form-control form-control-sm qty" value="1" min="0.01" step="0.5" required></td>
                 <td><input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="0.00" step="0.01" min="0" required></td>
-                <td><input type="number" name="line_items[${i}][tax_percentage]" class="form-control form-control-sm tax-pct" value="0" min="0" max="100"></td>
+                <td>
+                    <div class="tax-code-badge mb-1"></div>
+                    <input type="hidden" name="line_items[${i}][tax_code_id]" class="tax-code-id-field" value="">
+                    <input type="number" name="line_items[${i}][tax_percentage]" class="form-control form-control-sm tax-pct" value="0" min="0" max="100" style="width:65px;">
+                </td>
                 <td class="fw-semibold line-amount text-end pe-2">${currency} 0.00</td>
                 <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button></td>
             </tr>

@@ -31,6 +31,7 @@ use App\Http\Controllers\HandlingTariffController;
 use App\Http\Controllers\StorageZoneController;
 use App\Http\Controllers\EmailConfigController;
 use App\Http\Controllers\MrCodeController;
+use App\Http\Controllers\MrCodeChargeMappingController;
 use App\Http\Controllers\MrTariffController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\YardController;
@@ -74,6 +75,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('inquiries/{inquiry}/photos/{photo}', [InquiryController::class, 'destroyPhoto'])->name('inquiries.photos.destroy');
 
     // Repair Estimates
+    Route::get('estimates/resolve-charge-code', [EstimateController::class, 'resolveChargeCode'])->name('estimates.resolve-charge-code');
     Route::resource('estimates', EstimateController::class);
     Route::get('estimates/import-damages/{inquiry}',   [EstimateController::class, 'importDamages'])->name('estimates.import-damages');
     Route::post('estimates/{estimate}/send',           [EstimateController::class, 'send'])->name('estimates.send');
@@ -178,6 +180,14 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{repairCategoryMapping}',              [\App\Http\Controllers\RepairCategoryMappingController::class, 'update'])->name('update');
             Route::patch('{repairCategoryMapping}/toggle',       [\App\Http\Controllers\RepairCategoryMappingController::class, 'toggleActive'])->name('toggle');
             Route::delete('{repairCategoryMapping}',             [\App\Http\Controllers\RepairCategoryMappingController::class, 'destroy'])->name('destroy');
+        });
+        // MR Code → Charge Code Mappings
+        Route::prefix('mr-charge-mappings')->name('mr-charge-mappings.')->group(function () {
+            Route::get('/',                                [MrCodeChargeMappingController::class, 'index'])->name('index');
+            Route::post('/',                              [MrCodeChargeMappingController::class, 'store'])->name('store');
+            Route::patch('{mrCodeChargeMapping}/toggle',  [MrCodeChargeMappingController::class, 'toggleActive'])->name('toggle');
+            Route::patch('{mrCodeChargeMapping}',         [MrCodeChargeMappingController::class, 'update'])->name('update');
+            Route::delete('{mrCodeChargeMapping}',        [MrCodeChargeMappingController::class, 'destroy'])->name('destroy');
         });
         // M&R Codes (location / component / damage / repair / material / responsibility)
         Route::prefix('mr-codes/{mrCodeType}')->name('mr-codes.')->group(function () {

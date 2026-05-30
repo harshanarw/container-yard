@@ -8,6 +8,7 @@ use App\Jobs\SendEstimateEmailJob;
 use App\Mail\EstimateReminderMail;
 use App\Models\ChargeCode;
 use App\Models\Container;
+use App\Models\MrCodeChargeMapping;
 use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\Estimate;
@@ -185,7 +186,7 @@ class EstimateController extends Controller
             ->with('customer')->orderBy('container_no')->get();
         $equipmentTypes = EquipmentType::active()->get();
 
-        $estimate->load(['lineItems', 'equipmentType']);
+        $estimate->load(['lineItems.taxCode', 'equipmentType']);
 
         $mrComponentCodes = MrCode::ofType('component')->active()->orderBy('sort_order')->get();
         $mrLocationCodes  = MrCode::ofType('location')->active()->orderBy('sort_order')->get();
@@ -460,6 +461,11 @@ class EstimateController extends Controller
             $qty         = max(1, (float) ($dmg->quantity ?? 1));
             $unitPrice   = $tariffRule ? $tariffRule->computeAmount() : 0;
 
+            // Resolve charge code + tax from MR code mapping
+            $chargeMapping = MrCodeChargeMapping::resolve($dmg->component_code_id, $dmg->repair_code_id);
+            $chargeCode    = $chargeMapping?->chargeCode;
+            $taxCode       = $chargeCode?->taxCode;
+
             $lines[] = [
                 // Traceability
                 'damage_id'         => $dmg->id,
@@ -470,13 +476,17 @@ class EstimateController extends Controller
                 'repair_code_id'    => $dmg->repair_code_id,
                 'material_code_id'  => $dmg->material_code_id,
                 'cedex_code'        => $dmg->cedex_code,
+                // Charge code / tax code from mapping
+                'charge_code_id'    => $chargeCode?->id,
+                'tax_code_id'       => $taxCode?->id,
+                'tax_percentage'    => $taxCode?->total_rate ?? 0,
+                'tax_label'         => $taxCode ? ($taxCode->code . ' ' . number_format($taxCode->total_rate, 2) . '%') : null,
                 // Line data
                 'component'         => $dmg->componentCode?->name
                                         ?? ucwords(str_replace('_', ' ', $dmg->location ?? '')),
                 'repair_type'       => $repairType,
                 'qty'               => $qty,
                 'unit_price'        => $unitPrice,
-                'tax_percentage'    => 0,
                 // Labor / material breakdown from tariff
                 'std_labor_hours'   => (float) ($tariffRule?->std_labor_hours ?? 0),
                 'labor_rate'        => (float) ($tariffRule?->labor_rate ?? 0),
@@ -498,6 +508,32 @@ class EstimateController extends Controller
             'tariff_name'  => $tariffHeader?->name,
             'tariff_found' => $tariffHeader !== null,
             'damage_count' => count($lines),
+        ]);
+    }
+
+    public function resolveChargeCode(Request $request)
+    {
+        $componentCodeId = $request->integer('component_code_id') ?: null;
+        $repairCodeId    = $request->integer('repair_code_id')    ?: null;
+
+        $mapping = MrCodeChargeMapping::resolve($componentCodeId, $repairCodeId);
+
+        if (! $mapping) {
+            return response()->json(['found' => false]);
+        }
+
+        $taxCode = $mapping->chargeCode->taxCode;
+
+        return response()->json([
+            'found'              => true,
+            'charge_code_id'     => $mapping->charge_code_id,
+            'charge_code'        => $mapping->chargeCode->code,
+            'charge_description' => $mapping->chargeCode->description,
+            'tax_rate'           => $taxCode?->total_rate ?? 0,
+            'tax_code_id'        => $mapping->chargeCode->tax_code_id,
+            'tax_label'          => $taxCode
+                ? $taxCode->code . ' ' . number_format($taxCode->total_rate, 2) . '%'
+                : null,
         ]);
     }
 

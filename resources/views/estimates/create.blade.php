@@ -389,6 +389,9 @@
         'description' => $c->description,
         'tax_rate'    => $c->taxCode?->total_rate ?? 0,
         'tax_code_id' => $c->tax_code_id,
+        'tax_label'   => $c->taxCode
+                            ? ($c->taxCode->code . ' ' . number_format($c->taxCode->total_rate, 2) . '%')
+                            : null,
     ]);
     @endphp
     const chargeCodeOpts = @json($chargeCodeJson);
@@ -401,12 +404,32 @@
         return html + '</select>';
     }
 
-    function buildChargeCodeSelect(name, selectedId, taxCodeHiddenName) {
+    const resolveUrl = '{{ route("estimates.resolve-charge-code") }}';
+
+    function buildChargeCodeSelect(name, selectedId) {
         let opts = '<option value="">— none —</option>';
         chargeCodeOpts.forEach(c => {
-            opts += `<option value="${c.id}" data-tax-rate="${c.tax_rate}" data-tax-code-id="${c.tax_code_id ?? ''}"${c.id == selectedId ? ' selected' : ''}>${c.code} — ${esc(c.description)}</option>`;
+            opts += `<option value="${c.id}" data-tax-rate="${c.tax_rate}" data-tax-code-id="${c.tax_code_id ?? ''}" data-tax-label="${esc(c.tax_label ?? '')}"${c.id == selectedId ? ' selected' : ''}>${c.code} — ${esc(c.description)}</option>`;
         });
         return `<select name="${name}" class="form-select form-select-sm charge-code-sel">${opts}</select>`;
+    }
+
+    function taxBadgeHtml(label) {
+        return label
+            ? `<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.68rem;">${esc(label)}</span>`
+            : '';
+    }
+
+    function applyChargeToRow(row, chargeCodeId, taxRate, taxCodeId, taxLabel) {
+        const chargeSel = row.querySelector('.charge-code-sel');
+        const taxPctEl  = row.querySelector('.tax-pct');
+        const taxCodeEl = row.querySelector('.tax-code-id-field');
+        const badgeEl   = row.querySelector('.tax-code-badge');
+        if (chargeSel) chargeSel.value = chargeCodeId || '';
+        if (taxPctEl)  taxPctEl.value  = taxRate ?? 0;
+        if (taxCodeEl) taxCodeEl.value = taxCodeId ?? '';
+        if (badgeEl)   badgeEl.innerHTML = taxBadgeHtml(taxLabel);
+        recalculate();
     }
 
     function buildRow(data = {}) {
@@ -418,6 +441,7 @@
         const defaultTax = data.tax_percentage !== undefined
             ? data.tax_percentage
             : (parseFloat(document.getElementById('globalTax')?.value) || 0);
+        const initialTaxBadge = taxBadgeHtml(data.tax_label ?? '');
 
         return `<tr class="estimate-line">
             <td class="ps-2 text-center">${sourceBadge}</td>
@@ -458,7 +482,8 @@
                 <input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="${data.unit_price ?? 0}"   min="0"    step="0.01">
             </td>
             <td>
-                <input type="number" name="line_items[${i}][tax_percentage]" class="form-control form-control-sm tax-pct" value="${defaultTax}" min="0" max="100">
+                <div class="tax-code-badge mb-1">${initialTaxBadge}</div>
+                <input type="number" name="line_items[${i}][tax_percentage]" class="form-control form-control-sm tax-pct" value="${defaultTax}" min="0" max="100" style="width:65px;">
             </td>
             <td class="fw-semibold line-amount text-end pe-2 small">0.00</td>
             <td class="pe-1">
@@ -495,32 +520,42 @@
         document.getElementById('grandTotal').textContent = fmt(subtotal + taxTotal);
     }
 
-    // ── Component code → auto-fill description; Charge code → auto-fill tax ──
+    // ── Component code: auto-fill description + AJAX resolve charge/tax ──────
+    // ── Charge code: auto-fill tax badge + tax % ──────────────────────────────
     document.getElementById('lineItems').addEventListener('change', function (e) {
         const sel = e.target;
         const row = sel.closest('tr');
         if (!row) return;
 
         if (sel.name?.includes('[component_code_id]')) {
+            // Auto-fill description
             const descInput = row.querySelector('.comp-desc');
             if (descInput && !descInput.value.trim()) {
                 const opt = mrCmpCodeOpts.find(o => o.id == sel.value);
                 if (opt) descInput.value = opt.name;
             }
+            // AJAX resolve: find best matching charge code from MR mapping
+            if (sel.value) {
+                const repairCodeId = row.querySelector('[name*="[repair_code_id]"]')?.value || '';
+                const url = resolveUrl + '?component_code_id=' + sel.value + (repairCodeId ? '&repair_code_id=' + repairCodeId : '');
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.found) {
+                            applyChargeToRow(row, data.charge_code_id, data.tax_rate, data.tax_code_id, data.tax_label);
+                        }
+                    })
+                    .catch(() => {});
+            }
         }
 
         if (sel.classList.contains('charge-code-sel')) {
             const opt = sel.selectedOptions[0];
-            const taxPctEl    = row.querySelector('.tax-pct');
-            const taxCodeEl   = row.querySelector('.tax-code-id-field');
             if (opt?.value) {
-                if (taxPctEl)  taxPctEl.value  = opt.dataset.taxRate    || 0;
-                if (taxCodeEl) taxCodeEl.value = opt.dataset.taxCodeId  || '';
+                applyChargeToRow(row, opt.value, opt.dataset.taxRate, opt.dataset.taxCodeId, opt.dataset.taxLabel);
             } else {
-                if (taxPctEl)  taxPctEl.value  = 0;
-                if (taxCodeEl) taxCodeEl.value = '';
+                applyChargeToRow(row, '', 0, '', '');
             }
-            recalculate();
         }
     });
 

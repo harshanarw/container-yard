@@ -738,7 +738,7 @@
                 </ul>
             </div>
 
-            @php $mrCodesActive = request()->routeIs('masters.mr-codes.*'); @endphp
+            @php $mrCodesActive = request()->routeIs('masters.mr-codes.*') || request()->routeIs('masters.mr-charge-mappings.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-mr-codes"
                     aria-expanded="{{ $mrCodesActive ? 'true' : 'false' }}"
@@ -757,6 +757,12 @@
                         </a>
                     </li>
                     @endforeach
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.mr-charge-mappings.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.mr-charge-mappings.*') ? 'active' : '' }}">
+                            <i class="bi bi-arrow-left-right"></i><span>Charge Mappings</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
 
