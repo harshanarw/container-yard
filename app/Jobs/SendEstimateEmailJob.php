@@ -48,34 +48,25 @@ class SendEstimateEmailJob implements ShouldQueue
     private function applyDefaultSslBypass(): \Illuminate\Mail\Mailer
     {
         $default = config('mail.default');
-        config(["mail.mailers.{$default}.stream" => [
-            'ssl' => [
-                'verify_peer'       => false,
-                'verify_peer_name'  => false,
-                'allow_self_signed' => true,
-            ],
-        ]]);
+        $base    = config("mail.mailers.{$default}", []);
 
-        return Mail::mailer($default);
+        config(['mail.mailers.dynamic' => array_merge($base, [
+            'transport' => 'smtp-no-verify',
+        ])]);
+
+        return Mail::mailer('dynamic');
     }
 
     private function configureMailer(EmailConfig $config): bool
     {
         $settings = match($config->driver) {
             'smtp' => [
-                'transport'  => 'smtp',
+                'transport'  => 'smtp-no-verify',
                 'host'       => $config->smtp_host,
                 'port'       => $config->smtp_port ?? 587,
                 'encryption' => $config->smtp_encryption === 'none' ? null : $config->smtp_encryption,
                 'username'   => $config->smtp_username,
                 'password'   => $config->smtp_password,
-                'stream'     => [
-                    'ssl' => [
-                        'verify_peer'      => false,
-                        'verify_peer_name' => false,
-                        'allow_self_signed' => true,
-                    ],
-                ],
             ],
             'mailgun' => [
                 'transport' => 'mailgun',
