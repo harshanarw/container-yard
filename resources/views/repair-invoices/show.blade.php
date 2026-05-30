@@ -187,11 +187,11 @@ $statusColors = [
             <thead class="table-light">
                 <tr>
                     <th>#</th>
+                    <th>Charge Code</th>
                     <th>Component</th>
-                    <th>Damage</th>
-                    <th>Repair</th>
                     <th style="width: 60px" class="text-end">Qty</th>
                     <th style="width: 100px" class="text-end">Unit Price</th>
+                    <th style="width: 70px" class="text-end">Tax %</th>
                     <th style="width: 100px" class="text-end">Amount</th>
                 </tr>
             </thead>
@@ -199,17 +199,24 @@ $statusColors = [
                 @foreach($invoice->lines as $i => $line)
                 <tr>
                     <td class="text-muted small">{{ $i + 1 }}</td>
+                    <td class="small">
+                        @if($line->chargeCode)
+                            <span class="badge bg-warning-subtle text-warning border font-monospace">{{ $line->chargeCode->code }}</span>
+                            <span class="text-muted ms-1" style="font-size:.8rem;">{{ $line->chargeCode->description }}</span>
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
                     <td class="small">{{ $line->description }}</td>
-                    <td class="small text-muted">—</td>
-                    <td class="small text-muted">—</td>
                     <td class="small text-end">{{ number_format($line->qty, 2) }}</td>
                     <td class="small text-end">{{ $invoice->currency }} {{ number_format($line->unit_price, 2) }}</td>
+                    <td class="small text-end text-muted">{{ number_format($line->tax_percentage, 2) }}%</td>
                     <td class="small text-end fw-semibold">{{ $invoice->currency }} {{ number_format($line->line_amount, 2) }}</td>
                 </tr>
                 @endforeach
                 <tr class="table-light fw-bold">
-                    <td colspan="5" class="text-end">Subtotal</td>
-                    <td colspan="2" class="text-end">{{ $invoice->currency }} {{ number_format($invoice->subtotal, 2) }}</td>
+                    <td colspan="6" class="text-end">Subtotal</td>
+                    <td class="text-end">{{ $invoice->currency }} {{ number_format($invoice->subtotal, 2) }}</td>
                 </tr>
             </tbody>
         </table>

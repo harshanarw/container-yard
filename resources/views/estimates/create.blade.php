@@ -148,13 +148,14 @@
                             <thead class="table-light">
                                 <tr>
                                     <th class="ps-3" style="width:32px;"></th>
-                                    <th style="width:13%">Code</th>
-                                    <th style="width:18%">Description</th>
-                                    <th style="width:16%">Repair Type</th>
-                                    <th style="width:8%">Qty</th>
-                                    <th style="width:12%">Unit Price</th>
-                                    <th style="width:7%">Tax %</th>
-                                    <th style="width:12%" class="text-end pe-2">Amount</th>
+                                    <th style="width:10%">MR Code</th>
+                                    <th style="width:13%">Charge Code</th>
+                                    <th style="width:14%">Description</th>
+                                    <th style="width:13%">Repair Type</th>
+                                    <th style="width:6%">Qty</th>
+                                    <th style="width:9%">Unit Price</th>
+                                    <th style="width:6%">Tax %</th>
+                                    <th style="width:9%" class="text-end pe-2">Amount</th>
                                     <th style="width:36px;"></th>
                                 </tr>
                             </thead>
@@ -163,17 +164,17 @@
                             </tbody>
                             <tfoot class="table-light">
                                 <tr>
-                                    <td colspan="7" class="text-end fw-semibold pe-3 small">Subtotal:</td>
+                                    <td colspan="8" class="text-end fw-semibold pe-3 small">Subtotal:</td>
                                     <td class="fw-semibold text-end pe-2 small" id="subtotal">0.00</td>
                                     <td></td>
                                 </tr>
                                 <tr>
-                                    <td colspan="7" class="text-end fw-semibold pe-3 small">Tax:</td>
+                                    <td colspan="8" class="text-end fw-semibold pe-3 small">Tax:</td>
                                     <td class="fw-semibold text-end pe-2 small" id="totalTax">0.00</td>
                                     <td></td>
                                 </tr>
                                 <tr class="table-primary">
-                                    <td colspan="7" class="text-end fw-bold pe-3">TOTAL:</td>
+                                    <td colspan="8" class="text-end fw-bold pe-3">TOTAL:</td>
                                     <td class="fw-bold text-end pe-2" id="grandTotal">0.00</td>
                                     <td></td>
                                 </tr>
@@ -376,9 +377,18 @@
         ).join('');
     }
 
-    // Component / location code options (injected from PHP)
+    // MR code options (injected from PHP)
     const mrCmpCodeOpts = @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
     const mrLocCodeOpts = @json($mrLocationCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+
+    // Charge code options with embedded tax rate
+    const chargeCodeOpts = @json($chargeCodes->map(fn($c) => [
+        'id'          => $c->id,
+        'code'        => $c->code,
+        'description' => $c->description,
+        'tax_rate'    => $c->taxCode?->total_rate ?? 0,
+        'tax_code_id' => $c->tax_code_id,
+    ]));
 
     function buildCodeSelect(name, options, selectedId) {
         let html = `<select name="${name}" class="form-select form-select-sm mb-1"><option value="">— any —</option>`;
@@ -388,12 +398,23 @@
         return html + '</select>';
     }
 
+    function buildChargeCodeSelect(name, selectedId, taxCodeHiddenName) {
+        let opts = '<option value="">— none —</option>';
+        chargeCodeOpts.forEach(c => {
+            opts += `<option value="${c.id}" data-tax-rate="${c.tax_rate}" data-tax-code-id="${c.tax_code_id ?? ''}"${c.id == selectedId ? ' selected' : ''}>${c.code} — ${esc(c.description)}</option>`;
+        });
+        return `<select name="${name}" class="form-select form-select-sm charge-code-sel">${opts}</select>`;
+    }
+
     function buildRow(data = {}) {
         const i = lineIdx++;
         const fromDamage = !!data.damage_id;
         const sourceBadge = fromDamage
             ? `<span class="badge bg-warning-subtle text-warning border source-badge" title="Imported from survey damage"><i class="bi bi-clipboard-data"></i></span>`
             : `<span class="badge bg-light text-muted border source-badge" title="Manual entry"><i class="bi bi-pencil"></i></span>`;
+        const defaultTax = data.tax_percentage !== undefined
+            ? data.tax_percentage
+            : (parseFloat(document.getElementById('globalTax')?.value) || 0);
 
         return `<tr class="estimate-line">
             <td class="ps-2 text-center">${sourceBadge}</td>
@@ -406,6 +427,7 @@
                 <input type="hidden" name="line_items[${i}][repair_code_id]"     value="${data.repair_code_id     ?? ''}">
                 <input type="hidden" name="line_items[${i}][material_code_id]"   value="${data.material_code_id   ?? ''}">
                 <input type="hidden" name="line_items[${i}][cedex_code]"         value="${esc(data.cedex_code     ?? '')}">
+                <input type="hidden" name="line_items[${i}][tax_code_id]"        class="tax-code-id-field" value="${data.tax_code_id ?? ''}">
                 <input type="hidden" name="line_items[${i}][std_labor_hours]"    value="${data.std_labor_hours    ?? 0}">
                 <input type="hidden" name="line_items[${i}][labor_rate]"         value="${data.labor_rate         ?? 0}">
                 <input type="hidden" name="line_items[${i}][labor_amount]"       value="${data.labor_amount       ?? 0}">
@@ -414,6 +436,9 @@
                 <input type="hidden" name="line_items[${i}][material_amount]"    value="${data.material_amount    ?? 0}">
                 <input type="hidden" name="line_items[${i}][ancillary_amount]"   value="${data.ancillary_amount   ?? 0}">
                 ${fromDamage && data.cedex_code ? `<small class="text-muted font-monospace" style="font-size:.68rem;">${esc(data.cedex_code)}</small>` : ''}
+            </td>
+            <td>
+                ${buildChargeCodeSelect(`line_items[${i}][charge_code_id]`, data.charge_code_id ?? '')}
             </td>
             <td>
                 <input type="text" name="line_items[${i}][component]" class="form-control form-control-sm comp-desc" placeholder="Description" value="${esc(data.component ?? '')}">
@@ -430,7 +455,7 @@
                 <input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="${data.unit_price ?? 0}"   min="0"    step="0.01">
             </td>
             <td>
-                <input type="number" name="line_items[${i}][tax_percentage]" class="form-control form-control-sm tax-pct" value="${data.tax_percentage !== undefined ? data.tax_percentage : (parseFloat(document.getElementById('globalTax')?.value) || 0)}" min="0" max="100">
+                <input type="number" name="line_items[${i}][tax_percentage]" class="form-control form-control-sm tax-pct" value="${defaultTax}" min="0" max="100">
             </td>
             <td class="fw-semibold line-amount text-end pe-2 small">0.00</td>
             <td class="pe-1">
@@ -467,16 +492,33 @@
         document.getElementById('grandTotal').textContent = fmt(subtotal + taxTotal);
     }
 
-    // ── Component code → auto-fill description ─────────────────────────────
+    // ── Component code → auto-fill description; Charge code → auto-fill tax ──
     document.getElementById('lineItems').addEventListener('change', function (e) {
         const sel = e.target;
-        if (!sel.name || !sel.name.includes('[component_code_id]')) return;
         const row = sel.closest('tr');
         if (!row) return;
-        const descInput = row.querySelector('.comp-desc');
-        if (!descInput || descInput.value.trim()) return; // don't overwrite existing text
-        const opt = mrCmpCodeOpts.find(o => o.id == sel.value);
-        if (opt) descInput.value = opt.name;
+
+        if (sel.name?.includes('[component_code_id]')) {
+            const descInput = row.querySelector('.comp-desc');
+            if (descInput && !descInput.value.trim()) {
+                const opt = mrCmpCodeOpts.find(o => o.id == sel.value);
+                if (opt) descInput.value = opt.name;
+            }
+        }
+
+        if (sel.classList.contains('charge-code-sel')) {
+            const opt = sel.selectedOptions[0];
+            const taxPctEl    = row.querySelector('.tax-pct');
+            const taxCodeEl   = row.querySelector('.tax-code-id-field');
+            if (opt?.value) {
+                if (taxPctEl)  taxPctEl.value  = opt.dataset.taxRate    || 0;
+                if (taxCodeEl) taxCodeEl.value = opt.dataset.taxCodeId  || '';
+            } else {
+                if (taxPctEl)  taxPctEl.value  = 0;
+                if (taxCodeEl) taxCodeEl.value = '';
+            }
+            recalculate();
+        }
     });
 
     // ── Add / Remove lines ─────────────────────────────────────────────────

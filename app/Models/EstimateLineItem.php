@@ -20,6 +20,7 @@ class EstimateLineItem extends Model
         'ancillary_amount',
         'approval_status', 'is_override', 'override_reason', 'override_by', 'override_at',
         'cedex_code', 'repair_category_id',
+        'charge_code_id', 'tax_code_id',
     ];
 
     protected $casts = [
@@ -86,6 +87,16 @@ class EstimateLineItem extends Model
     public function repairCategory()
     {
         return $this->belongsTo(RepairCategory::class);
+    }
+
+    public function chargeCode()
+    {
+        return $this->belongsTo(ChargeCode::class);
+    }
+
+    public function taxCode()
+    {
+        return $this->belongsTo(TaxCode::class);
     }
 
     public function workOrderLine()

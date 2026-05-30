@@ -6,6 +6,7 @@ use App\Http\Requests\StoreEstimateRequest;
 use App\Http\Requests\UpdateEstimateRequest;
 use App\Jobs\SendEstimateEmailJob;
 use App\Mail\EstimateReminderMail;
+use App\Models\ChargeCode;
 use App\Models\Container;
 use App\Models\Customer;
 use App\Models\EquipmentType;
@@ -62,10 +63,15 @@ class EstimateController extends Controller
 
         $mrComponentCodes = MrCode::ofType('component')->active()->orderBy('sort_order')->get();
         $mrLocationCodes  = MrCode::ofType('location')->active()->orderBy('sort_order')->get();
+        $chargeCodes      = ChargeCode::with('taxCode')
+            ->where('is_active', true)
+            ->whereIn('category', ['repair', 'labour'])
+            ->orderBy('sort_order')->orderBy('code')
+            ->get();
 
         return view('estimates.create', compact(
             'customers', 'containers', 'equipmentTypes', 'selectedInquiry', 'selectedContainer',
-            'mrComponentCodes', 'mrLocationCodes'
+            'mrComponentCodes', 'mrLocationCodes', 'chargeCodes'
         ));
     }
 
@@ -125,6 +131,9 @@ class EstimateController extends Controller
                 'material_code_id'    => $item['material_code_id'] ?? null,
                 'cedex_code'          => $item['cedex_code'] ?? null,
                 'repair_category_id'  => $item['repair_category_id'] ?? null,
+                // Charge / tax code
+                'charge_code_id'      => $item['charge_code_id'] ?? null,
+                'tax_code_id'         => $item['tax_code_id'] ?? null,
                 // Labor / material breakdown
                 'std_labor_hours'     => $item['std_labor_hours'] ?? 0,
                 'labor_rate'          => $item['labor_rate'] ?? 0,
@@ -180,9 +189,14 @@ class EstimateController extends Controller
 
         $mrComponentCodes = MrCode::ofType('component')->active()->orderBy('sort_order')->get();
         $mrLocationCodes  = MrCode::ofType('location')->active()->orderBy('sort_order')->get();
+        $chargeCodes      = ChargeCode::with('taxCode')
+            ->where('is_active', true)
+            ->whereIn('category', ['repair', 'labour'])
+            ->orderBy('sort_order')->orderBy('code')
+            ->get();
 
         return view('estimates.edit', compact('estimate', 'customers', 'containers', 'equipmentTypes',
-                                             'mrComponentCodes', 'mrLocationCodes'));
+                                             'mrComponentCodes', 'mrLocationCodes', 'chargeCodes'));
     }
 
     public function update(UpdateEstimateRequest $request, Estimate $estimate)
@@ -234,6 +248,9 @@ class EstimateController extends Controller
                 'material_code_id'    => $item['material_code_id'] ?? null,
                 'cedex_code'          => $item['cedex_code'] ?? null,
                 'repair_category_id'  => $item['repair_category_id'] ?? null,
+                // Charge / tax code
+                'charge_code_id'      => $item['charge_code_id'] ?? null,
+                'tax_code_id'         => $item['tax_code_id'] ?? null,
                 // Labor / material breakdown
                 'std_labor_hours'     => $item['std_labor_hours'] ?? 0,
                 'labor_rate'          => $item['labor_rate'] ?? 0,

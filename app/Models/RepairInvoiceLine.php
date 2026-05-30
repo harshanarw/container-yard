@@ -9,6 +9,7 @@ class RepairInvoiceLine extends Model
     protected $fillable = [
         'repair_invoice_id', 'estimate_line_item_id', 'work_order_line_id',
         'location_code_id', 'component_code_id', 'damage_code_id', 'repair_code_id',
+        'charge_code_id', 'tax_code_id',
         'cedex_code', 'description', 'qty', 'unit_price', 'tax_percentage', 'line_amount',
     ];
 
@@ -52,5 +53,15 @@ class RepairInvoiceLine extends Model
     public function repairCode()
     {
         return $this->belongsTo(MrCode::class, 'repair_code_id');
+    }
+
+    public function chargeCode()
+    {
+        return $this->belongsTo(ChargeCode::class);
+    }
+
+    public function taxCode()
+    {
+        return $this->belongsTo(TaxCode::class);
     }
 }

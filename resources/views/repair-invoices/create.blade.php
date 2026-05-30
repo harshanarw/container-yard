@@ -56,7 +56,7 @@
                     @error('estimate_id')
                     <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
-                    <div class="form-text">Invoice lines will be auto-generated from the estimate's line items. Tax at 18% will be applied.</div>
+                    <div class="form-text">Invoice lines will be auto-generated from the estimate's approved line items. Tax rates are inherited from the estimate's charge code assignments.</div>
                 </div>
 
                 <hr>
@@ -79,7 +79,7 @@
                 <ul class="small text-muted mb-0 ps-3">
                     <li>Select an approved estimate</li>
                     <li>Invoice lines are auto-generated from the estimate's repair items</li>
-                    <li>18% tax is applied automatically</li>
+                    <li>Tax rates are inherited from each line's charge code assignment</li>
                     <li>Invoice starts in <strong>Draft</strong> status</li>
                     <li>Use <strong>Issue</strong> to send the invoice to the customer</li>
                 </ul>

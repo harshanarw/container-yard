@@ -120,13 +120,14 @@
                         <table class="table align-middle mb-0" id="lineTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-3" style="width:14%">Code</th>
-                                    <th style="width:18%">Description</th>
-                                    <th style="width:20%">Repair Type</th>
-                                    <th style="width:9%">Qty</th>
-                                    <th style="width:13%">Unit Price</th>
-                                    <th style="width:7%">Tax %</th>
-                                    <th style="width:14%">Amount</th>
+                                    <th class="ps-3" style="width:11%">MR Code</th>
+                                    <th style="width:13%">Charge Code</th>
+                                    <th style="width:15%">Description</th>
+                                    <th style="width:16%">Repair Type</th>
+                                    <th style="width:8%">Qty</th>
+                                    <th style="width:11%">Unit Price</th>
+                                    <th style="width:6%">Tax %</th>
+                                    <th style="width:12%">Amount</th>
                                     <th style="width:40px"></th>
                                 </tr>
                             </thead>
@@ -155,6 +156,20 @@
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}" {{ old("line_items.{$i}.component_code_id", $item->component_code_id) == $c->id ? 'selected' : '' }}>
                                                 {{ $c->code }} {{ $c->name }}
+                                            </option>
+                                            @endforeach
+                                        </select>
+                                        <input type="hidden" name="line_items[{{ $i }}][tax_code_id]"    class="tax-code-id-field" value="{{ old("line_items.{$i}.tax_code_id", $item->tax_code_id) }}">
+                                    </td>
+                                    <td>
+                                        <select name="line_items[{{ $i }}][charge_code_id]" class="form-select form-select-sm charge-code-sel">
+                                            <option value="">— none —</option>
+                                            @foreach($chargeCodes as $cc)
+                                            <option value="{{ $cc->id }}"
+                                                    data-tax-rate="{{ $cc->taxCode?->total_rate ?? 0 }}"
+                                                    data-tax-code-id="{{ $cc->tax_code_id ?? '' }}"
+                                                    {{ old("line_items.{$i}.charge_code_id", $item->charge_code_id) == $cc->id ? 'selected' : '' }}>
+                                                {{ $cc->code }} — {{ $cc->description }}
                                             </option>
                                             @endforeach
                                         </select>
@@ -203,14 +218,14 @@
                             </tbody>
                             <tfoot class="table-light">
                                 <tr>
-                                    <td colspan="6" class="text-end fw-semibold pe-3">Subtotal:</td>
+                                    <td colspan="7" class="text-end fw-semibold pe-3">Subtotal:</td>
                                     <td class="fw-semibold text-end pe-2" id="subtotal">
                                         {{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}
                                     </td>
                                     <td></td>
                                 </tr>
                                 <tr>
-                                    <td colspan="6" class="text-end fw-semibold pe-3">
+                                    <td colspan="7" class="text-end fw-semibold pe-3">
                                         Tax (<input type="number" name="tax_percentage" id="taxPct"
                                                     class="form-control form-control-sm d-inline-block text-center"
                                                     style="width:60px"
@@ -223,7 +238,7 @@
                                     <td></td>
                                 </tr>
                                 <tr class="table-primary">
-                                    <td colspan="6" class="text-end fw-bold pe-3 fs-6">TOTAL:</td>
+                                    <td colspan="7" class="text-end fw-bold pe-3 fs-6">TOTAL:</td>
                                     <td class="fw-bold text-end pe-2 fs-6" id="grandTotal">
                                         {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}
                                     </td>
@@ -339,8 +354,19 @@
 
     document.getElementById('lineTable').addEventListener('input', recalculate);
 
-    // Component code options for new-row JS template
+    // MR code options and charge code options for new-row JS template
     const mrCmpCodeOpts = @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+    const chargeCodeOpts = @json($chargeCodes->map(fn($c) => [
+        'id'          => $c->id,
+        'code'        => $c->code,
+        'description' => $c->description,
+        'tax_rate'    => $c->taxCode?->total_rate ?? 0,
+        'tax_code_id' => $c->tax_code_id,
+    ]));
+
+    function esc(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
 
     function buildCompSelect(name) {
         let opts = '<option value="">— any —</option>';
@@ -348,16 +374,41 @@
         return `<select name="${name}" class="form-select form-select-sm mb-1">${opts}</select>`;
     }
 
-    // Auto-fill description when component code is selected
+    function buildChargeCodeSelect(name) {
+        let opts = '<option value="">— none —</option>';
+        chargeCodeOpts.forEach(c => {
+            opts += `<option value="${c.id}" data-tax-rate="${c.tax_rate}" data-tax-code-id="${c.tax_code_id ?? ''}">${c.code} — ${esc(c.description)}</option>`;
+        });
+        return `<select name="${name}" class="form-select form-select-sm charge-code-sel">${opts}</select>`;
+    }
+
+    // Auto-fill description from component code; auto-fill tax from charge code
     document.getElementById('lineItems').addEventListener('change', function (e) {
         const sel = e.target;
-        if (!sel.name || !sel.name.includes('[component_code_id]')) return;
         const row = sel.closest('tr');
         if (!row) return;
-        const descInput = row.querySelector('.comp-desc');
-        if (!descInput || descInput.value.trim()) return;
-        const opt = mrCmpCodeOpts.find(o => o.id == sel.value);
-        if (opt) descInput.value = opt.name;
+
+        if (sel.name?.includes('[component_code_id]')) {
+            const descInput = row.querySelector('.comp-desc');
+            if (descInput && !descInput.value.trim()) {
+                const opt = mrCmpCodeOpts.find(o => o.id == sel.value);
+                if (opt) descInput.value = opt.name;
+            }
+        }
+
+        if (sel.classList.contains('charge-code-sel')) {
+            const opt = sel.selectedOptions[0];
+            const taxPctEl  = row.querySelector('.tax-pct');
+            const taxCodeEl = row.querySelector('.tax-code-id-field');
+            if (opt?.value) {
+                if (taxPctEl)  taxPctEl.value  = opt.dataset.taxRate   || 0;
+                if (taxCodeEl) taxCodeEl.value = opt.dataset.taxCodeId || '';
+            } else {
+                if (taxPctEl)  taxPctEl.value  = 0;
+                if (taxCodeEl) taxCodeEl.value = '';
+            }
+            recalculate();
+        }
     });
 
     document.getElementById('addLine').addEventListener('click', function () {
@@ -367,6 +418,10 @@
             <tr class="estimate-line">
                 <td class="ps-3">
                     ${buildCompSelect(`line_items[${i}][component_code_id]`)}
+                    <input type="hidden" name="line_items[${i}][tax_code_id]" class="tax-code-id-field" value="">
+                </td>
+                <td>
+                    ${buildChargeCodeSelect(`line_items[${i}][charge_code_id]`)}
                 </td>
                 <td>
                     <input type="text" name="line_items[${i}][component]" class="form-control form-control-sm comp-desc" placeholder="Description">
@@ -374,7 +429,7 @@
                 <td>
                     <select name="line_items[${i}][repair_type]" class="form-select form-select-sm" required>
                         <option value="replace">Replace</option>
-                        <option value="repair">Repair</option>
+                        <option value="repair" selected>Repair</option>
                         <option value="weld">Weld</option>
                         <option value="straighten">Straighten</option>
                         <option value="clean_and_treat">Clean &amp; Treat</option>

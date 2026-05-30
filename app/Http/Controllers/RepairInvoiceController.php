@@ -78,17 +78,20 @@ class RepairInvoiceController extends Controller
                 'component_code_id'     => $line->component_code_id,
                 'damage_code_id'        => $line->damage_code_id,
                 'repair_code_id'        => $line->repair_code_id,
+                'charge_code_id'        => $line->charge_code_id,
+                'tax_code_id'           => $line->tax_code_id,
                 'cedex_code'            => $line->cedex_code,
                 'description'           => $line->component ?? 'Repair work item',
                 'qty'                   => $line->qty ?? 1,
                 'unit_price'            => $lineAmount,
-                'tax_percentage'        => 18.00,
+                'tax_percentage'        => $line->tax_percentage ?? $estimate->tax_percentage,
                 'line_amount'           => $lineAmount,
             ];
         }
 
-        $taxAmount  = $subtotal * 18 / 100;
-        $grandTotal = $subtotal + $taxAmount;
+        $taxPct     = (float) $estimate->tax_percentage;
+        $taxAmount  = round($subtotal * $taxPct / 100, 2);
+        $grandTotal = round($subtotal + $taxAmount, 2);
 
         $invoice = \App\Models\RepairInvoice::create([
             'invoice_no'     => $invNo,
@@ -101,7 +104,7 @@ class RepairInvoiceController extends Controller
             'currency'       => $estimate->customer->currency ?? 'USD',
             'status'         => 'draft',
             'subtotal'       => $subtotal,
-            'tax_percentage' => 18.00,
+            'tax_percentage' => $taxPct,
             'tax_amount'     => $taxAmount,
             'grand_total'    => $grandTotal,
             'amount_paid'    => 0,
@@ -120,7 +123,11 @@ class RepairInvoiceController extends Controller
 
     public function show(RepairInvoice $invoice)
     {
-        $invoice->load('estimate', 'workOrder', 'container', 'customer', 'lines.estimateLineItem', 'createdBy', 'issuedBy');
+        $invoice->load([
+            'estimate', 'workOrder', 'container', 'customer',
+            'lines.estimateLineItem', 'lines.chargeCode',
+            'createdBy', 'issuedBy',
+        ]);
 
         return view('repair-invoices.show', [
             'invoice'      => $invoice,
