@@ -326,12 +326,12 @@
                     </div>
                     <div class="form-check form-switch mb-1">
                         <input class="form-check-input" type="checkbox" name="attach_pdf" id="attachPdf"
-                               {{ old('attach_pdf', $estimate->attach_pdf) ? 'checked' : '' }}>
+                               value="1" {{ old('attach_pdf', $estimate->attach_pdf) ? 'checked' : '' }}>
                         <label class="form-check-label small" for="attachPdf">Attach PDF estimate</label>
                     </div>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" name="attach_photos" id="attachPhotos"
-                               {{ old('attach_photos', $estimate->attach_photos) ? 'checked' : '' }}>
+                               value="1" {{ old('attach_photos', $estimate->attach_photos) ? 'checked' : '' }}>
                         <label class="form-check-label small" for="attachPhotos">Attach inspection photos</label>
                     </div>
                 </div>
