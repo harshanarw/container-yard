@@ -70,7 +70,7 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
                             <div class="d-flex gap-2 align-items-center">
-                                <select name="equipment_type_id" id="eqtSelect" class="form-select" required>
+                                <select name="equipment_type_id" id="eqtSelect" class="form-select select2" required>
                                     <option value="">— Select Equipment Type —</option>
                                     @foreach($equipmentTypes as $eqt)
                                     <option value="{{ $eqt->id }}"
@@ -411,7 +411,7 @@
     }
 
     function buildCodeSelect(name, options, selectedId) {
-        let html = `<select name="${name}" class="form-select form-select-sm mb-1"><option value="">— any —</option>`;
+        let html = `<select name="${name}" class="form-select form-select-sm mb-1 s2"><option value="">— any —</option>`;
         options.forEach(o => {
             html += `<option value="${o.id}"${o.id == selectedId ? ' selected' : ''}>${o.code} ${o.name}</option>`;
         });
@@ -423,7 +423,7 @@
         chargeCodeOpts.forEach(c => {
             opts += `<option value="${c.id}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}"${c.id == selectedId ? ' selected' : ''}>${c.code} — ${esc(c.description)}</option>`;
         });
-        return `<select name="${name}" class="form-select form-select-sm charge-code-sel">${opts}</select>`;
+        return `<select name="${name}" class="form-select form-select-sm charge-code-sel s2">${opts}</select>`;
     }
 
     function buildTaxCodeSelect(name, selectedId) {
@@ -432,7 +432,11 @@
             const label = `${tc.code} (SSCL ${tc.tax1_rate}% + VAT ${tc.tax2_rate}%)`;
             opts += `<option value="${tc.id}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}"${tc.id == selectedId ? ' selected' : ''}>${esc(label)}</option>`;
         });
-        return `<select name="${name}" class="form-select form-select-sm tax-code-sel">${opts}</select>`;
+        return `<select name="${name}" class="form-select form-select-sm tax-code-sel s2">${opts}</select>`;
+    }
+
+    function initLineSelects(tr) {
+        $(tr).find('select.s2').select2({ theme: 'bootstrap-5', width: '100%' });
     }
 
     const resolveUrl = '{{ route("estimates.resolve-charge-code") }}';
@@ -440,8 +444,14 @@
     function applyChargeToRow(row, chargeCodeId, taxCodeId) {
         const chargeSel  = row.querySelector('.charge-code-sel');
         const taxCodeSel = row.querySelector('.tax-code-sel');
-        if (chargeSel)  chargeSel.value  = chargeCodeId || '';
-        if (taxCodeSel) taxCodeSel.value = taxCodeId ?? '';
+        if (chargeSel) {
+            chargeSel.value = chargeCodeId || '';
+            if (typeof $ !== 'undefined') $(chargeSel).trigger('change.select2');
+        }
+        if (taxCodeSel) {
+            taxCodeSel.value = taxCodeId ?? '';
+            if (typeof $ !== 'undefined') $(taxCodeSel).trigger('change.select2');
+        }
         recalculate();
     }
 
@@ -598,6 +608,7 @@
 
     document.getElementById('addLine').addEventListener('click', () => {
         lineItems.insertAdjacentHTML('beforeend', buildRow());
+        initLineSelects(lineItems.lastElementChild);
         recalculate();
     });
 
@@ -641,6 +652,7 @@
                 lineIdx = 0;
                 data.lines.forEach(line => {
                     lineItems.insertAdjacentHTML('beforeend', buildRow(line));
+                    initLineSelects(lineItems.lastElementChild);
                 });
                 recalculate();
 
@@ -676,6 +688,7 @@
     // ── Initialise with one blank row ────────────────────────────────────
     if (lineItems.children.length === 0) {
         lineItems.insertAdjacentHTML('beforeend', buildRow());
+        initLineSelects(lineItems.lastElementChild);
         recalculate();
     }
 })();

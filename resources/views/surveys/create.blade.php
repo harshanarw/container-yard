@@ -81,7 +81,7 @@
                         <div class="col-md-7">
                             <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
                             <div class="d-flex gap-2 align-items-center">
-                                <select name="equipment_type_id" id="eqtSelect" class="form-select" required>
+                                <select name="equipment_type_id" id="eqtSelect" class="form-select select2" required>
                                     <option value="">— Select Equipment Type —</option>
                                     @foreach($equipmentTypes as $eqt)
                                     <option value="{{ $eqt->id }}"
@@ -124,7 +124,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Assigned Inspector</label>
-                            <select name="inspector_id" class="form-select">
+                            <select name="inspector_id" class="form-select select2">
                                 <option value="">— Inspector —</option>
                                 @foreach($inspectors as $ins)
                                 <option value="{{ $ins->id }}" {{ old('inspector_id') == $ins->id ? 'selected' : '' }}>
@@ -183,7 +183,7 @@
                             <tbody id="damageRows">
                                 <tr class="damage-row">
                                     <td class="ps-3">
-                                        <select name="damages[0][location_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][location_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrLocationCodes as $c)
                                                 <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -191,7 +191,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][component_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][component_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrComponentCodes as $c)
                                                 <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -199,7 +199,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][damage_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][damage_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrDamageCodes as $c)
                                                 <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -207,7 +207,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][repair_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][repair_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrRepairCodes as $c)
                                                 <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -215,7 +215,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrResponsibilityCodes as $c)
                                                 <option value="{{ $c->id }}">{{ $c->code }}</option>
@@ -418,9 +418,13 @@
                 return;
             }
 
-            // 1. Equipment Type (plain select — native API works fine)
+            // 1. Equipment Type (Select2 — must use jQuery val().trigger())
             if (eqtSelect && opt.dataset.eqtId) {
-                eqtSelect.value = opt.dataset.eqtId;
+                if (typeof $ !== 'undefined') {
+                    $(eqtSelect).val(opt.dataset.eqtId).trigger('change');
+                } else {
+                    eqtSelect.value = opt.dataset.eqtId;
+                }
                 applyEqtBadges(eqtSelect.selectedOptions[0]);
             }
 
@@ -504,6 +508,10 @@
     const mrRepOpts  = `<option value="">—</option>` + @json($mrRepairCodes->map(fn($c) => ['id'=>$c->id,'label'=>$c->code.' '.$c->name]))->reduce((a,c) => a+`<option value="${c.id}">${c.label}</option>`,'');
     const mrRespOpts = `<option value="">—</option>` + @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'label'=>$c->code]))->reduce((a,c) => a+`<option value="${c.id}">${c.label}</option>`,'');
 
+    function initRowSelects(tr) {
+        $(tr).find('select.s2').select2({ theme: 'bootstrap-5', width: '100%' });
+    }
+
     let damageRowIndex = 1;
 
     document.getElementById('addDamageRow').addEventListener('click', function () {
@@ -512,11 +520,11 @@
         const row = document.createElement('tr');
         row.className = 'damage-row';
         row.innerHTML = `
-            <td class="ps-3"><select name="damages[${i}][location_code_id]" class="form-select form-select-sm">${mrLocOpts}</select></td>
-            <td><select name="damages[${i}][component_code_id]" class="form-select form-select-sm">${mrCmpOpts}</select></td>
-            <td><select name="damages[${i}][damage_code_id]" class="form-select form-select-sm">${mrDmgOpts}</select></td>
-            <td><select name="damages[${i}][repair_code_id]" class="form-select form-select-sm">${mrRepOpts}</select></td>
-            <td><select name="damages[${i}][responsibility_code_id]" class="form-select form-select-sm">${mrRespOpts}</select></td>
+            <td class="ps-3"><select name="damages[${i}][location_code_id]" class="form-select form-select-sm s2">${mrLocOpts}</select></td>
+            <td><select name="damages[${i}][component_code_id]" class="form-select form-select-sm s2">${mrCmpOpts}</select></td>
+            <td><select name="damages[${i}][damage_code_id]" class="form-select form-select-sm s2">${mrDmgOpts}</select></td>
+            <td><select name="damages[${i}][repair_code_id]" class="form-select form-select-sm s2">${mrRepOpts}</select></td>
+            <td><select name="damages[${i}][responsibility_code_id]" class="form-select form-select-sm s2">${mrRespOpts}</select></td>
             <td>
                 <select name="damages[${i}][severity]" class="form-select form-select-sm">
                     <option value="minor">Minor</option>
@@ -535,6 +543,7 @@
             <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>
         `;
         tbody.appendChild(row);
+        initRowSelects(row);
     });
 
     document.getElementById('damageRows').addEventListener('click', function (e) {
@@ -542,6 +551,11 @@
             const rows = document.querySelectorAll('.damage-row');
             if (rows.length > 1) e.target.closest('.damage-row').remove();
         }
+    });
+
+    // Initialize Select2 on the first Blade-rendered damage row
+    $(function () {
+        initRowSelects(document.querySelector('#damageRows .damage-row'));
     });
 
     // ── Photo Uploader ────────────────────────────────────────────────

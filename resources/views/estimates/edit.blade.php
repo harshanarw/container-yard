@@ -151,7 +151,7 @@
                                         <input type="hidden" name="line_items[{{ $i }}][material_rate]"     value="{{ $item->material_rate ?? 0 }}">
                                         <input type="hidden" name="line_items[{{ $i }}][material_amount]"   value="{{ $item->material_amount ?? 0 }}">
                                         <input type="hidden" name="line_items[{{ $i }}][ancillary_amount]"  value="{{ $item->ancillary_amount ?? 0 }}">
-                                        <select name="line_items[{{ $i }}][component_code_id]" class="form-select form-select-sm">
+                                        <select name="line_items[{{ $i }}][component_code_id]" class="form-select form-select-sm s2">
                                             <option value="">— any —</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}" {{ old("line_items.{$i}.component_code_id", $item->component_code_id) == $c->id ? 'selected' : '' }}>
@@ -161,7 +161,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="line_items[{{ $i }}][charge_code_id]" class="form-select form-select-sm charge-code-sel">
+                                        <select name="line_items[{{ $i }}][charge_code_id]" class="form-select form-select-sm charge-code-sel s2">
                                             <option value="">— none —</option>
                                             @foreach($chargeCodes as $cc)
                                             <option value="{{ $cc->id }}"
@@ -200,7 +200,7 @@
                                                step="0.01" min="0" required>
                                     </td>
                                     <td>
-                                        <select name="line_items[{{ $i }}][tax_code_id]" class="form-select form-select-sm tax-code-sel">
+                                        <select name="line_items[{{ $i }}][tax_code_id]" class="form-select form-select-sm tax-code-sel s2">
                                             <option value="">— none —</option>
                                             @foreach($taxCodes as $tc)
                                             <option value="{{ $tc->id }}"
@@ -394,7 +394,7 @@
     function buildCompSelect(name) {
         let opts = '<option value="">— any —</option>';
         mrCmpCodeOpts.forEach(o => { opts += `<option value="${o.id}">${o.code} ${o.name}</option>`; });
-        return `<select name="${name}" class="form-select form-select-sm mb-1">${opts}</select>`;
+        return `<select name="${name}" class="form-select form-select-sm mb-1 s2">${opts}</select>`;
     }
 
     function buildChargeCodeSelect(name) {
@@ -402,7 +402,7 @@
         chargeCodeOpts.forEach(c => {
             opts += `<option value="${c.id}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}">${c.code} — ${esc(c.description)}</option>`;
         });
-        return `<select name="${name}" class="form-select form-select-sm charge-code-sel">${opts}</select>`;
+        return `<select name="${name}" class="form-select form-select-sm charge-code-sel s2">${opts}</select>`;
     }
 
     function buildTaxCodeSelect(name) {
@@ -411,14 +411,24 @@
             const label = `${tc.code} (SSCL ${tc.tax1_rate}% + VAT ${tc.tax2_rate}%)`;
             opts += `<option value="${tc.id}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}">${esc(label)}</option>`;
         });
-        return `<select name="${name}" class="form-select form-select-sm tax-code-sel">${opts}</select>`;
+        return `<select name="${name}" class="form-select form-select-sm tax-code-sel s2">${opts}</select>`;
+    }
+
+    function initLineSelects(tr) {
+        $(tr).find('select.s2').select2({ theme: 'bootstrap-5', width: '100%' });
     }
 
     function applyChargeToRow(row, chargeCodeId, taxCodeId) {
         const chargeSel  = row.querySelector('.charge-code-sel');
         const taxCodeSel = row.querySelector('.tax-code-sel');
-        if (chargeSel)  chargeSel.value  = chargeCodeId || '';
-        if (taxCodeSel) taxCodeSel.value = taxCodeId    ?? '';
+        if (chargeSel) {
+            chargeSel.value = chargeCodeId || '';
+            if (typeof $ !== 'undefined') $(chargeSel).trigger('change.select2');
+        }
+        if (taxCodeSel) {
+            taxCodeSel.value = taxCodeId ?? '';
+            if (typeof $ !== 'undefined') $(taxCodeSel).trigger('change.select2');
+        }
         recalculate();
     }
 
@@ -506,7 +516,7 @@
         const tbody = document.getElementById('lineItems');
         const i = lineIdx++;
         tbody.insertAdjacentHTML('beforeend', `
-            <tr class="estimate-line">
+            <tr class="estimate-line js-new-line">
                 <td class="ps-3">
                     ${buildCompSelect(`line_items[${i}][component_code_id]`)}
                     <input type="hidden" name="line_items[${i}][damage_id]"         value="">
@@ -550,6 +560,7 @@
                 <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button></td>
             </tr>
         `);
+        initLineSelects(tbody.lastElementChild);
         recalculate();
     });
 
@@ -560,6 +571,13 @@
                 recalculate();
             }
         }
+    });
+
+    // Initialize Select2 on all Blade-rendered line rows
+    $(function () {
+        document.querySelectorAll('#lineItems .estimate-line').forEach(function (row) {
+            initLineSelects(row);
+        });
     });
 
     // Initial calculation from Blade-rendered rows

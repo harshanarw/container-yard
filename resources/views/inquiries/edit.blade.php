@@ -124,7 +124,7 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Assigned Inspector</label>
-                            <select name="inspector_id" class="form-select">
+                            <select name="inspector_id" class="form-select select2">
                                 <option value="">— Select Inspector —</option>
                                 @foreach($inspectors as $ins)
                                 <option value="{{ $ins->id }}"
@@ -199,7 +199,7 @@
                                 @forelse($existingDmgs as $di => $dmg)
                                 <tr class="damage-row">
                                     <td class="ps-3">
-                                        <select name="damages[{{ $di }}][location_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[{{ $di }}][location_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrLocationCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->location_code_id == $c->id ? 'selected' : '' }}>
@@ -209,7 +209,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][component_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[{{ $di }}][component_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->component_code_id == $c->id ? 'selected' : '' }}>
@@ -219,7 +219,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][damage_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[{{ $di }}][damage_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrDamageCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->damage_code_id == $c->id ? 'selected' : '' }}>
@@ -229,7 +229,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][repair_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[{{ $di }}][repair_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrRepairCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->repair_code_id == $c->id ? 'selected' : '' }}>
@@ -239,7 +239,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][responsibility_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[{{ $di }}][responsibility_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrResponsibilityCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->responsibility_code_id == $c->id ? 'selected' : '' }}>
@@ -276,7 +276,7 @@
                                 @empty
                                 <tr class="damage-row">
                                     <td class="ps-3">
-                                        <select name="damages[0][location_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][location_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrLocationCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -284,7 +284,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][component_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][component_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -292,7 +292,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][damage_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][damage_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrDamageCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -300,7 +300,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][repair_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][repair_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrRepairCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
@@ -308,7 +308,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm">
+                                        <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm s2">
                                             <option value="">—</option>
                                             @foreach($mrResponsibilityCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }}</option>
@@ -510,9 +510,13 @@
     const mrResOpts = @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
 
     function buildSel(name, opts, codeOnly) {
-        let html = `<select name="${name}" class="form-select form-select-sm"><option value="">—</option>`;
+        let html = `<select name="${name}" class="form-select form-select-sm s2"><option value="">—</option>`;
         opts.forEach(o => { html += `<option value="${o.id}">${o.code}${codeOnly ? '' : ' '+o.name}</option>`; });
         return html + '</select>';
+    }
+
+    function initRowSelects(tr) {
+        $(tr).find('select.s2').select2({ theme: 'bootstrap-5', width: '100%' });
     }
 
     document.getElementById('addDamageRow').addEventListener('click', function () {
@@ -542,6 +546,7 @@
             <td><input type="text" name="damages[${i}][description]" class="form-control form-control-sm" placeholder="Details…"></td>
             <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>`;
         document.getElementById('damageRows').appendChild(row);
+        initRowSelects(row);
     });
 
     document.getElementById('damageRows').addEventListener('click', function (e) {
@@ -549,6 +554,13 @@
             const rows = document.querySelectorAll('.damage-row');
             if (rows.length > 1) e.target.closest('.damage-row').remove();
         }
+    });
+
+    // Initialize Select2 on all Blade-rendered damage rows
+    $(function () {
+        document.querySelectorAll('#damageRows .damage-row').forEach(function (row) {
+            initRowSelects(row);
+        });
     });
 
     // ── Photo Uploader ────────────────────────────────────────
