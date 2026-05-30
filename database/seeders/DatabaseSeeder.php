@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             YardLocationSeeder::class,      // yard bays / locations
             ChecklistMasterItemSeeder::class, // inspection checklist items
             MrCodeSeeder::class,            // M&R location / component / damage / repair codes
+            RepairCategorySeeder::class,    // Repair categories (STR, DR, FL, CLN, PNT, MCH)
+            RepairCategoryMappingSeeder::class, // Auto-suggest rules: component+repair_type → category
 
             // ── Users ────────────────────────────────────────────────────────
             SystemAdminSeeder::class,       // sysadmin@containeryard.com

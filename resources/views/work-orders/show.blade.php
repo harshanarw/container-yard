@@ -29,6 +29,10 @@ $statusColors = [
             <span class="badge bg-{{ $statusColors[$workOrder->status] ?? 'secondary' }}">
                 {{ ucfirst(str_replace('_', ' ', $workOrder->status)) }}
             </span>
+            @if($workOrder->repairCategory)
+            &nbsp;<span class="badge bg-{{ $workOrder->repairCategory->color }}">{{ $workOrder->repairCategory->code }}</span>
+            <span class="text-muted">{{ $workOrder->repairCategory->name }}</span>
+            @endif
             &nbsp;·&nbsp; {{ $workOrder->container_no }}
             &nbsp;·&nbsp; {{ $workOrder->customer->name ?? '—' }}
         </p>

@@ -712,6 +712,13 @@
             </div>
 
             {{-- M&R Codes sub-group --}}
+            {{-- Repair Categories --}}
+            @php $repairCatActive = request()->routeIs('masters.repair-categories.*') || request()->routeIs('masters.repair-category-mappings.*'); @endphp
+            <a href="{{ route('masters.repair-categories.index') }}"
+               class="nav-link {{ $repairCatActive ? 'active' : '' }}">
+                <i class="bi bi-tags nav-sub-icon"></i><span>Repair Categories</span>
+            </a>
+
             @php $mrCodesActive = request()->routeIs('masters.mr-codes.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-mr-codes"

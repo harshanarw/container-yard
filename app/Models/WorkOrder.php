@@ -11,9 +11,9 @@ class WorkOrder extends Model
 
     protected $fillable = [
         'wo_no', 'estimate_id', 'container_id', 'container_no', 'customer_id',
-        'assigned_to', 'status', 'priority', 'target_date', 'started_date',
-        'completed_date', 'instructions', 'technician_notes',
-        'created_by', 'closed_by',
+        'repair_category_id', 'assigned_to', 'status', 'priority',
+        'target_date', 'started_date', 'completed_date',
+        'instructions', 'technician_notes', 'created_by', 'closed_by',
     ];
 
     protected $casts = [
@@ -25,6 +25,11 @@ class WorkOrder extends Model
     public function estimate()
     {
         return $this->belongsTo(Estimate::class);
+    }
+
+    public function repairCategory()
+    {
+        return $this->belongsTo(RepairCategory::class);
     }
 
     public function container()

@@ -46,6 +46,7 @@
                     <th>WO #</th>
                     <th>Container</th>
                     <th>Customer</th>
+                    <th>Category</th>
                     <th>Priority</th>
                     <th>Status</th>
                     <th>Assigned To</th>
@@ -61,6 +62,14 @@
                         </td>
                         <td class="small">{{ $wo->container_no }}</td>
                         <td class="small">{{ $wo->customer->code ?? $wo->customer->name ?? '—' }}</td>
+                        <td class="small">
+                            @if($wo->repairCategory)
+                                <span class="badge bg-{{ $wo->repairCategory->color }}">{{ $wo->repairCategory->code }}</span>
+                                <span class="text-muted">{{ $wo->repairCategory->name }}</span>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </td>
                         <td class="small">
                             <span class="badge {{ $wo->priority === 'critical' ? 'bg-danger' : ($wo->priority === 'urgent' ? 'bg-warning text-dark' : 'bg-light text-dark border') }}">
                                 {{ ucfirst($wo->priority) }}
@@ -88,7 +97,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center py-4 text-muted">
+                        <td colspan="9" class="text-center py-4 text-muted">
                             No work orders found.
                         </td>
                     </tr>

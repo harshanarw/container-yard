@@ -19,7 +19,7 @@ class EstimateLineItem extends Model
         'material_qty', 'material_rate', 'material_amount',
         'ancillary_amount',
         'approval_status', 'is_override', 'override_reason', 'override_by', 'override_at',
-        'cedex_code',
+        'cedex_code', 'repair_category_id',
     ];
 
     protected $casts = [
@@ -81,5 +81,15 @@ class EstimateLineItem extends Model
     public function overrideBy()
     {
         return $this->belongsTo(User::class, 'override_by');
+    }
+
+    public function repairCategory()
+    {
+        return $this->belongsTo(RepairCategory::class);
+    }
+
+    public function workOrderLine()
+    {
+        return $this->hasOne(WorkOrderLine::class, 'estimate_line_item_id');
     }
 }

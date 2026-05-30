@@ -84,7 +84,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Work Orders
     Route::resource('work-orders', WorkOrderController::class);
-    Route::patch('work-orders/{workOrder}/status', [WorkOrderController::class, 'updateStatus'])->name('work-orders.update-status');
+    Route::patch('work-orders/{workOrder}/status',                                  [WorkOrderController::class, 'updateStatus'])->name('work-orders.update-status');
+    Route::get('work-orders/{estimate}/available-categories',                        [WorkOrderController::class, 'availableCategories'])->name('work-orders.available-categories');
+    Route::get('work-orders/{estimate}/preview-lines/{repairCategory}',              [WorkOrderController::class, 'previewLines'])->name('work-orders.preview-lines');
 
     // Repair Invoices
     Route::resource('repair-invoices', RepairInvoiceController::class);
@@ -158,6 +160,23 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{customerType}',        [CustomerTypeController::class, 'update'])->name('update');
             Route::patch('{customerType}/toggle', [CustomerTypeController::class, 'toggleActive'])->name('toggle');
             Route::delete('{customerType}',       [CustomerTypeController::class, 'destroy'])->name('destroy');
+        });
+        // Repair Categories
+        Route::prefix('repair-categories')->name('repair-categories.')->group(function () {
+            Route::get('/',                              [\App\Http\Controllers\RepairCategoryController::class, 'index'])->name('index');
+            Route::post('/',                             [\App\Http\Controllers\RepairCategoryController::class, 'store'])->name('store');
+            Route::post('reorder',                       [\App\Http\Controllers\RepairCategoryController::class, 'reorder'])->name('reorder');
+            Route::patch('{repairCategory}',             [\App\Http\Controllers\RepairCategoryController::class, 'update'])->name('update');
+            Route::patch('{repairCategory}/toggle',      [\App\Http\Controllers\RepairCategoryController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{repairCategory}',            [\App\Http\Controllers\RepairCategoryController::class, 'destroy'])->name('destroy');
+        });
+        // Repair Category Mappings
+        Route::prefix('repair-category-mappings')->name('repair-category-mappings.')->group(function () {
+            Route::get('/',                                      [\App\Http\Controllers\RepairCategoryMappingController::class, 'index'])->name('index');
+            Route::post('/',                                     [\App\Http\Controllers\RepairCategoryMappingController::class, 'store'])->name('store');
+            Route::patch('{repairCategoryMapping}',              [\App\Http\Controllers\RepairCategoryMappingController::class, 'update'])->name('update');
+            Route::patch('{repairCategoryMapping}/toggle',       [\App\Http\Controllers\RepairCategoryMappingController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{repairCategoryMapping}',             [\App\Http\Controllers\RepairCategoryMappingController::class, 'destroy'])->name('destroy');
         });
         // M&R Codes (location / component / damage / repair / material / responsibility)
         Route::prefix('mr-codes/{mrCodeType}')->name('mr-codes.')->group(function () {

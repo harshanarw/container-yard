@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RepairCategory;
 use App\Models\WorkOrder;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -10,7 +11,7 @@ class WorkOrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = WorkOrder::with('estimate', 'container', 'customer', 'assignedTo');
+        $query = WorkOrder::with('estimate', 'container', 'customer', 'assignedTo', 'repairCategory');
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -35,56 +36,135 @@ class WorkOrderController extends Controller
 
     public function create()
     {
-        $approvedEstimates = \App\Models\Estimate::with('inquiry.container', 'customer')
+        // Estimates eligible: approved + still have unassigned line items
+        $approvedEstimates = \App\Models\Estimate::with('customer')
             ->where('status', 'approved')
-            ->whereDoesntHave('workOrders')
+            ->whereHas('lineItems', function ($q) {
+                $q->whereDoesntHave('workOrderLine');
+            })
             ->orderByDesc('created_at')
             ->get();
 
-        $supervisors = \App\Models\User::whereIn('role', ['yard_supervisor', 'admin'])->get();
+        $supervisors = User::whereIn('role', ['yard_supervisor', 'admin'])->get();
+        $categories  = RepairCategory::active()->get();
 
         return view('work-orders.create', [
             'approvedEstimates' => $approvedEstimates,
             'supervisors'       => $supervisors,
             'priorities'        => ['normal', 'urgent', 'critical'],
+            'categories'        => $categories,
         ]);
+    }
+
+    /**
+     * AJAX: return available repair categories for an estimate (those with unassigned lines).
+     */
+    public function availableCategories(\App\Models\Estimate $estimate)
+    {
+        $lines = $estimate->lineItems()
+            ->whereDoesntHave('workOrderLine')
+            ->whereNotNull('repair_category_id')
+            ->with('repairCategory')
+            ->get();
+
+        $categories = $lines->groupBy('repair_category_id')->map(function ($group) {
+            $cat = $group->first()->repairCategory;
+            return [
+                'id'         => $cat->id,
+                'code'       => $cat->code,
+                'name'       => $cat->name,
+                'color'      => $cat->color,
+                'line_count' => $group->count(),
+            ];
+        })->values();
+
+        $uncatCount = $estimate->lineItems()
+            ->whereDoesntHave('workOrderLine')
+            ->whereNull('repair_category_id')
+            ->count();
+
+        return response()->json([
+            'categories'          => $categories,
+            'uncategorised_count' => $uncatCount,
+        ]);
+    }
+
+    /**
+     * AJAX: preview line items for a given estimate + category.
+     */
+    public function previewLines(\App\Models\Estimate $estimate, RepairCategory $repairCategory)
+    {
+        $lines = $estimate->lineItems()
+            ->where('repair_category_id', $repairCategory->id)
+            ->whereDoesntHave('workOrderLine')
+            ->with('componentCode', 'damageCode', 'repairCode', 'locationCode')
+            ->get()
+            ->map(fn($l) => [
+                'id'          => $l->id,
+                'component'   => $l->component ?? $l->componentCode?->name ?? '—',
+                'damage'      => $l->damageCode?->name ?? '—',
+                'repair'      => $l->repairCode?->name ?? $l->repair_type ?? '—',
+                'location'    => $l->locationCode?->name ?? '—',
+                'qty'         => $l->qty,
+                'line_amount' => $l->line_amount,
+            ]);
+
+        return response()->json(['lines' => $lines]);
     }
 
     public function store(\Illuminate\Http\Request $request)
     {
         $validated = $request->validate([
-            'estimate_id'  => 'required|exists:estimates,id',
-            'assigned_to'  => 'nullable|exists:users,id',
-            'priority'     => 'required|in:normal,urgent,critical',
-            'target_date'  => 'nullable|date',
-            'instructions' => 'nullable|string|max:500',
+            'estimate_id'        => 'required|exists:estimates,id',
+            'repair_category_id' => 'required|exists:repair_categories,id',
+            'assigned_to'        => 'nullable|exists:users,id',
+            'priority'           => 'required|in:normal,urgent,critical',
+            'target_date'        => 'nullable|date',
+            'instructions'       => 'nullable|string|max:500',
         ]);
 
-        $estimate = \App\Models\Estimate::with('inquiry.container', 'customer', 'lineItems')->findOrFail($validated['estimate_id']);
+        $estimate = \App\Models\Estimate::with('customer', 'lineItems')->findOrFail($validated['estimate_id']);
 
         if ($estimate->status !== 'approved') {
             return back()->withErrors(['estimate_id' => 'Only approved estimates can have work orders.'])->withInput();
         }
 
-        $lastWo = \App\Models\WorkOrder::orderByDesc('id')->value('wo_no');
+        if (WorkOrder::where('estimate_id', $estimate->id)
+                     ->where('repair_category_id', $validated['repair_category_id'])
+                     ->whereNotIn('status', ['cancelled'])
+                     ->exists()) {
+            return back()->withErrors(['repair_category_id' => 'A work order for this category already exists on this estimate.'])->withInput();
+        }
+
+        $lines = $estimate->lineItems()
+            ->where('repair_category_id', $validated['repair_category_id'])
+            ->whereDoesntHave('workOrderLine')
+            ->get();
+
+        if ($lines->isEmpty()) {
+            return back()->withErrors(['repair_category_id' => 'No unassigned line items found for this category.'])->withInput();
+        }
+
+        $lastWo = WorkOrder::orderByDesc('id')->value('wo_no');
         $nextNo = $lastWo ? (int) substr($lastWo, 3) + 1 : 1;
         $woNo   = 'WO-' . str_pad($nextNo, 4, '0', STR_PAD_LEFT);
 
-        $workOrder = \App\Models\WorkOrder::create([
-            'wo_no'        => $woNo,
-            'estimate_id'  => $estimate->id,
-            'container_id' => $estimate->container_id,
-            'container_no' => $estimate->container_no,
-            'customer_id'  => $estimate->customer_id,
-            'assigned_to'  => $validated['assigned_to'],
-            'status'       => 'pending',
-            'priority'     => $validated['priority'],
-            'target_date'  => $validated['target_date'],
-            'instructions' => $validated['instructions'],
-            'created_by'   => auth()->id(),
+        $workOrder = WorkOrder::create([
+            'wo_no'              => $woNo,
+            'estimate_id'        => $estimate->id,
+            'container_id'       => $estimate->container_id,
+            'container_no'       => $estimate->container_no,
+            'customer_id'        => $estimate->customer_id,
+            'repair_category_id' => $validated['repair_category_id'],
+            'assigned_to'        => $validated['assigned_to'],
+            'status'             => 'pending',
+            'priority'           => $validated['priority'],
+            'target_date'        => $validated['target_date'],
+            'instructions'       => $validated['instructions'],
+            'created_by'         => auth()->id(),
         ]);
 
-        foreach ($estimate->lineItems as $line) {
+        foreach ($lines as $line) {
             $workOrder->lines()->create([
                 'estimate_line_item_id' => $line->id,
                 'location_code_id'      => $line->location_code_id,
@@ -97,27 +177,32 @@ class WorkOrderController extends Controller
             ]);
         }
 
-        return redirect()->route('work-orders.show', $workOrder)->with('success', "Work order {$woNo} created successfully.");
+        return redirect()->route('work-orders.show', $workOrder)
+                         ->with('success', "Work order {$woNo} created for: {$workOrder->repairCategory->name}.");
     }
 
     public function show(WorkOrder $workOrder)
     {
-        $workOrder->load('estimate', 'container', 'customer', 'assignedTo', 'lines.componentCode', 'lines.damageCode', 'lines.repairCode', 'createdBy');
+        $workOrder->load(
+            'estimate', 'container', 'customer', 'assignedTo', 'repairCategory',
+            'lines.componentCode', 'lines.damageCode', 'lines.repairCode', 'createdBy'
+        );
 
         return view('work-orders.show', [
-            'workOrder' => $workOrder,
-            'canEdit'   => in_array($workOrder->status, ['pending', 'in_progress', 'on_hold']),
-            'canDelete' => $workOrder->status === 'pending',
-            'canStart'  => $workOrder->status === 'pending',
+            'workOrder'   => $workOrder,
+            'canEdit'     => in_array($workOrder->status, ['pending', 'in_progress', 'on_hold']),
+            'canDelete'   => $workOrder->status === 'pending',
+            'canStart'    => $workOrder->status === 'pending',
             'canComplete' => in_array($workOrder->status, ['in_progress', 'on_hold']),
-            'canClose'  => $workOrder->status === 'completed',
+            'canClose'    => $workOrder->status === 'completed',
         ]);
     }
 
     public function edit(WorkOrder $workOrder)
     {
         if (!in_array($workOrder->status, ['pending', 'in_progress', 'on_hold'])) {
-            return redirect()->route('work-orders.show', $workOrder)->with('error', 'Cannot edit a ' . $workOrder->status . ' work order.');
+            return redirect()->route('work-orders.show', $workOrder)
+                             ->with('error', 'Cannot edit a ' . $workOrder->status . ' work order.');
         }
 
         $supervisors = User::where('role', 'yard_supervisor')->orWhere('role', 'admin')->get();
@@ -133,27 +218,29 @@ class WorkOrderController extends Controller
     public function update(Request $request, WorkOrder $workOrder)
     {
         if (!in_array($workOrder->status, ['pending', 'in_progress', 'on_hold'])) {
-            return redirect()->route('work-orders.show', $workOrder)->with('error', 'Cannot edit a ' . $workOrder->status . ' work order.');
+            return redirect()->route('work-orders.show', $workOrder)
+                             ->with('error', 'Cannot edit a ' . $workOrder->status . ' work order.');
         }
 
         $validated = $request->validate([
-            'assigned_to' => 'nullable|exists:users,id',
-            'status'      => 'required|in:pending,in_progress,on_hold,completed,closed,cancelled',
-            'priority'    => 'required|in:normal,urgent,critical',
-            'target_date' => 'nullable|date',
-            'instructions' => 'nullable|string|max:500',
+            'assigned_to'      => 'nullable|exists:users,id',
+            'status'           => 'required|in:pending,in_progress,on_hold,completed,closed,cancelled',
+            'priority'         => 'required|in:normal,urgent,critical',
+            'target_date'      => 'nullable|date',
+            'instructions'     => 'nullable|string|max:500',
             'technician_notes' => 'nullable|string|max:500',
         ]);
 
         $workOrder->update($validated);
 
-        return redirect()->route('work-orders.show', $workOrder)->with('success', 'Work order updated successfully.');
+        return redirect()->route('work-orders.show', $workOrder)->with('success', 'Work order updated.');
     }
 
     public function destroy(WorkOrder $workOrder)
     {
         if ($workOrder->status !== 'pending') {
-            return redirect()->route('work-orders.show', $workOrder)->with('error', 'Only pending work orders can be deleted.');
+            return redirect()->route('work-orders.show', $workOrder)
+                             ->with('error', 'Only pending work orders can be deleted.');
         }
 
         $wo_no = $workOrder->wo_no;
@@ -171,7 +258,6 @@ class WorkOrderController extends Controller
         $oldStatus = $workOrder->status;
         $newStatus = $validated['status'];
 
-        // Validate state transitions
         $validTransitions = [
             'pending'     => ['in_progress', 'cancelled'],
             'in_progress' => ['on_hold', 'completed', 'cancelled'],
@@ -187,7 +273,6 @@ class WorkOrderController extends Controller
 
         $updateData = ['status' => $newStatus];
 
-        // Set dates based on transition
         if ($newStatus === 'in_progress' && !$workOrder->started_date) {
             $updateData['started_date'] = now()->toDateString();
         }
