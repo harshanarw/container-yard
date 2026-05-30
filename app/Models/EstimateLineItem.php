@@ -21,6 +21,7 @@ class EstimateLineItem extends Model
         'approval_status', 'is_override', 'override_reason', 'override_by', 'override_at',
         'cedex_code', 'repair_category_id',
         'charge_code_id', 'tax_code_id',
+        'tax1_rate', 'tax2_rate', 'tax1_amount', 'tax2_amount', 'gross_amount',
     ];
 
     protected $casts = [
@@ -34,8 +35,13 @@ class EstimateLineItem extends Model
         'material_qty'    => 'decimal:3',
         'material_rate'   => 'decimal:2',
         'material_amount' => 'decimal:2',
-        'ancillary_amount'=> 'decimal:2',
-        'is_override'     => 'boolean',
+        'ancillary_amount' => 'decimal:2',
+        'tax1_rate'        => 'decimal:4',
+        'tax2_rate'        => 'decimal:4',
+        'tax1_amount'      => 'decimal:2',
+        'tax2_amount'      => 'decimal:2',
+        'gross_amount'     => 'decimal:2',
+        'is_override'      => 'boolean',
         'override_at'     => 'datetime',
     ];
 

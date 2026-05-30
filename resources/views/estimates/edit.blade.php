@@ -123,11 +123,11 @@
                                     <th class="ps-3" style="width:11%">MR Code</th>
                                     <th style="width:13%">Charge Code</th>
                                     <th style="width:15%">Description</th>
-                                    <th style="width:16%">Repair Type</th>
-                                    <th style="width:8%">Qty</th>
-                                    <th style="width:11%">Unit Price</th>
-                                    <th style="width:6%">Tax %</th>
-                                    <th style="width:12%">Amount</th>
+                                    <th style="width:14%">Repair Type</th>
+                                    <th style="width:7%">Qty</th>
+                                    <th style="width:10%">Unit Price</th>
+                                    <th style="width:11%">Tax Code</th>
+                                    <th style="width:11%">Net Amount</th>
                                     <th style="width:40px"></th>
                                 </tr>
                             </thead>
@@ -159,14 +159,14 @@
                                             </option>
                                             @endforeach
                                         </select>
-                                        <input type="hidden" name="line_items[{{ $i }}][tax_code_id]"    class="tax-code-id-field" value="{{ old("line_items.{$i}.tax_code_id", $item->tax_code_id) }}">
                                     </td>
                                     <td>
                                         <select name="line_items[{{ $i }}][charge_code_id]" class="form-select form-select-sm charge-code-sel">
                                             <option value="">— none —</option>
                                             @foreach($chargeCodes as $cc)
                                             <option value="{{ $cc->id }}"
-                                                    data-tax-rate="{{ $cc->taxCode?->total_rate ?? 0 }}"
+                                                    data-tax1-rate="{{ $cc->taxCode?->tax1_rate ?? 0 }}"
+                                                    data-tax2-rate="{{ $cc->taxCode?->tax2_rate ?? 0 }}"
                                                     data-tax-code-id="{{ $cc->tax_code_id ?? '' }}"
                                                     {{ old("line_items.{$i}.charge_code_id", $item->charge_code_id) == $cc->id ? 'selected' : '' }}>
                                                 {{ $cc->code }} — {{ $cc->description }}
@@ -200,22 +200,34 @@
                                                step="0.01" min="0" required>
                                     </td>
                                     <td>
-                                        <div class="tax-code-badge mb-1">
-                                            @if($item->taxCode)
-                                                <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.68rem;">
-                                                    {{ $item->taxCode->code }} {{ number_format($item->taxCode->total_rate, 2) }}%
-                                                </span>
+                                        <select name="line_items[{{ $i }}][tax_code_id]" class="form-select form-select-sm tax-code-sel">
+                                            <option value="">— none —</option>
+                                            @foreach($taxCodes as $tc)
+                                            <option value="{{ $tc->id }}"
+                                                    data-tax1-rate="{{ $tc->tax1_rate }}"
+                                                    data-tax2-rate="{{ $tc->tax2_rate }}"
+                                                    {{ old("line_items.{$i}.tax_code_id", $item->tax_code_id) == $tc->id ? 'selected' : '' }}>
+                                                {{ $tc->code }} (SSCL {{ $tc->tax1_rate }}% + VAT {{ $tc->tax2_rate }}%)
+                                            </option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td class="text-end pe-2 small">
+                                        <div class="fw-semibold line-net">
+                                            {{ $estimate->currency }} {{ number_format($item->line_amount, 2) }}
+                                        </div>
+                                        <div style="font-size:.68rem; line-height:1.4; color:#6c757d;">
+                                            @if(($item->tax1_amount ?? 0) > 0)
+                                                <span class="line-sscl-amt">+SSCL {{ number_format($item->tax1_amount, 2) }}</span>
+                                            @else
+                                                <span class="line-sscl-amt"></span>
+                                            @endif
+                                            @if(($item->tax2_amount ?? 0) > 0)
+                                                <span class="line-vat-amt"> +VAT {{ number_format($item->tax2_amount, 2) }}</span>
+                                            @else
+                                                <span class="line-vat-amt"></span>
                                             @endif
                                         </div>
-                                        <input type="hidden" name="line_items[{{ $i }}][tax_code_id]" class="tax-code-id-field"
-                                               value="{{ old("line_items.{$i}.tax_code_id", $item->tax_code_id) }}">
-                                        <input type="number" name="line_items[{{ $i }}][tax_percentage]"
-                                               class="form-control form-control-sm tax-pct"
-                                               value="{{ old("line_items.{$i}.tax_percentage", $item->tax_percentage) }}"
-                                               min="0" max="100" style="width:65px;">
-                                    </td>
-                                    <td class="fw-semibold line-amount text-end pe-2">
-                                        {{ $estimate->currency }} {{ number_format($item->line_amount, 2) }}
                                     </td>
                                     <td class="pe-2">
                                         <button type="button" class="btn btn-sm btn-outline-danger remove-line">
@@ -234,15 +246,20 @@
                                     <td></td>
                                 </tr>
                                 <tr>
-                                    <td colspan="7" class="text-end fw-semibold pe-3">
-                                        Tax (<input type="number" name="tax_percentage" id="taxPct"
-                                                    class="form-control form-control-sm d-inline-block text-center"
-                                                    style="width:60px"
-                                                    value="{{ old('tax_percentage', $estimate->tax_percentage) }}"
-                                                    min="0" max="100" step="0.01">%):
+                                    <td colspan="7" class="text-end pe-3 small text-muted">
+                                        SSCL <span id="ssclPctDisplay" class="text-muted"></span>:
                                     </td>
-                                    <td class="fw-semibold text-end pe-2" id="totalTax">
-                                        {{ $estimate->currency }} {{ number_format($estimate->tax_amount, 2) }}
+                                    <td class="text-end pe-2 small text-muted" id="totalSscl">
+                                        {{ $estimate->currency }} {{ number_format($estimate->sscl_amount ?? 0, 2) }}
+                                    </td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="7" class="text-end pe-3 small text-muted">
+                                        VAT <span id="vatPctDisplay" class="text-muted"></span>:
+                                    </td>
+                                    <td class="text-end pe-2 small text-muted" id="totalVat">
+                                        {{ $estimate->currency }} {{ number_format($estimate->vat_amount ?? 0, 2) }}
                                     </td>
                                     <td></td>
                                 </tr>
@@ -337,51 +354,42 @@
 
 @push('scripts')
 <script>
-    let lineIdx = {{ $estimate->lineItems->count() }};
+(function () {
+    let lineIdx  = {{ $estimate->lineItems->count() }};
     const currency = '{{ $estimate->currency }}';
 
-    function fmt(n) {
-        return currency + ' ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    }
+    function fmt(n)      { return currency + ' ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function fmtSmall(n) { return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function esc(str)    { return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    function recalculate() {
-        let subtotal = 0;
-        document.querySelectorAll('.estimate-line').forEach(row => {
-            const qty   = parseFloat(row.querySelector('.qty')?.value  || 0);
-            const price = parseFloat(row.querySelector('.unit-price')?.value || 0);
-            const net   = qty * price;
-            subtotal   += net;
-            const amtEl = row.querySelector('.line-amount');
-            if (amtEl) amtEl.textContent = fmt(net);
-        });
-        const taxPct = parseFloat(document.getElementById('taxPct').value || 0);
-        const tax    = subtotal * taxPct / 100;
-        document.getElementById('subtotal').textContent  = fmt(subtotal);
-        document.getElementById('totalTax').textContent  = fmt(tax);
-        document.getElementById('grandTotal').textContent = fmt(subtotal + tax);
-    }
-
-    document.getElementById('lineTable').addEventListener('input', recalculate);
-
-    // MR code options and charge code options for new-row JS template
+    // MR component code options
     const mrCmpCodeOpts = @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+
+    // Charge code options with embedded Tax1/Tax2 rates
     @php
     $chargeCodeJson = $chargeCodes->map(fn($c) => [
         'id'          => $c->id,
         'code'        => $c->code,
         'description' => $c->description,
-        'tax_rate'    => $c->taxCode?->total_rate ?? 0,
+        'tax1_rate'   => $c->taxCode?->tax1_rate ?? 0,
+        'tax2_rate'   => $c->taxCode?->tax2_rate ?? 0,
         'tax_code_id' => $c->tax_code_id,
-        'tax_label'   => $c->taxCode
-                            ? ($c->taxCode->code . ' ' . number_format($c->taxCode->total_rate, 2) . '%')
-                            : null,
     ]);
     @endphp
     const chargeCodeOpts = @json($chargeCodeJson);
 
-    function esc(str) {
-        return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
+    // Tax code options
+    @php
+    $taxCodeJson = $taxCodes->map(fn($tc) => [
+        'id'        => $tc->id,
+        'code'      => $tc->code,
+        'tax1_rate' => $tc->tax1_rate,
+        'tax2_rate' => $tc->tax2_rate,
+    ]);
+    @endphp
+    const taxCodeOpts = @json($taxCodeJson);
+
+    const resolveUrl = '{{ route("estimates.resolve-charge-code") }}';
 
     function buildCompSelect(name) {
         let opts = '<option value="">— any —</option>';
@@ -389,36 +397,73 @@
         return `<select name="${name}" class="form-select form-select-sm mb-1">${opts}</select>`;
     }
 
-    const resolveUrl = '{{ route("estimates.resolve-charge-code") }}';
-
     function buildChargeCodeSelect(name) {
         let opts = '<option value="">— none —</option>';
         chargeCodeOpts.forEach(c => {
-            opts += `<option value="${c.id}" data-tax-rate="${c.tax_rate}" data-tax-code-id="${c.tax_code_id ?? ''}" data-tax-label="${esc(c.tax_label ?? '')}">${c.code} — ${esc(c.description)}</option>`;
+            opts += `<option value="${c.id}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}">${c.code} — ${esc(c.description)}</option>`;
         });
         return `<select name="${name}" class="form-select form-select-sm charge-code-sel">${opts}</select>`;
     }
 
-    function taxBadgeHtml(label) {
-        return label
-            ? `<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.68rem;">${esc(label)}</span>`
-            : '';
+    function buildTaxCodeSelect(name) {
+        let opts = '<option value="">— none —</option>';
+        taxCodeOpts.forEach(tc => {
+            const label = `${tc.code} (SSCL ${tc.tax1_rate}% + VAT ${tc.tax2_rate}%)`;
+            opts += `<option value="${tc.id}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}">${esc(label)}</option>`;
+        });
+        return `<select name="${name}" class="form-select form-select-sm tax-code-sel">${opts}</select>`;
     }
 
-    function applyChargeToRow(row, chargeCodeId, taxRate, taxCodeId, taxLabel) {
-        const chargeSel = row.querySelector('.charge-code-sel');
-        const taxPctEl  = row.querySelector('.tax-pct');
-        const taxCodeEl = row.querySelector('.tax-code-id-field');
-        const badgeEl   = row.querySelector('.tax-code-badge');
-        if (chargeSel) chargeSel.value = chargeCodeId || '';
-        if (taxPctEl)  taxPctEl.value  = taxRate ?? 0;
-        if (taxCodeEl) taxCodeEl.value = taxCodeId ?? '';
-        if (badgeEl)   badgeEl.innerHTML = taxBadgeHtml(taxLabel);
+    function applyChargeToRow(row, chargeCodeId, taxCodeId) {
+        const chargeSel  = row.querySelector('.charge-code-sel');
+        const taxCodeSel = row.querySelector('.tax-code-sel');
+        if (chargeSel)  chargeSel.value  = chargeCodeId || '';
+        if (taxCodeSel) taxCodeSel.value = taxCodeId    ?? '';
         recalculate();
     }
 
-    // Auto-fill description from component code + AJAX resolve charge/tax;
-    // auto-fill tax badge + % when charge code is selected manually
+    function recalculate() {
+        let subtotal = 0, ssclTotal = 0, vatTotal = 0;
+        let ssclRates = new Set(), vatRates = new Set();
+
+        document.querySelectorAll('.estimate-line').forEach(row => {
+            const qty   = parseFloat(row.querySelector('.qty')?.value       || 0);
+            const price = parseFloat(row.querySelector('.unit-price')?.value || 0);
+            const net   = qty * price;
+
+            const taxSel = row.querySelector('.tax-code-sel');
+            const selOpt = taxSel?.selectedOptions[0];
+            const t1Rate = parseFloat(selOpt?.dataset.tax1Rate || 0);
+            const t2Rate = parseFloat(selOpt?.dataset.tax2Rate || 0);
+
+            const t1 = net * (t1Rate / 100);
+            const t2 = (net + t1) * (t2Rate / 100);
+
+            subtotal  += net;
+            ssclTotal += t1;
+            vatTotal  += t2;
+
+            if (t1Rate > 0) ssclRates.add(t1Rate);
+            if (t2Rate > 0) vatRates.add(t2Rate);
+
+            const netEl = row.querySelector('.line-net');
+            const sEl   = row.querySelector('.line-sscl-amt');
+            const vEl   = row.querySelector('.line-vat-amt');
+            if (netEl) netEl.textContent = fmt(net);
+            if (sEl)   sEl.textContent  = t1 > 0 ? '+SSCL ' + fmtSmall(t1) : '';
+            if (vEl)   vEl.textContent  = t2 > 0 ? ' +VAT ' + fmtSmall(t2) : '';
+        });
+
+        document.getElementById('subtotal').textContent   = fmt(subtotal);
+        document.getElementById('totalSscl').textContent  = fmt(ssclTotal);
+        document.getElementById('totalVat').textContent   = fmt(vatTotal);
+        document.getElementById('grandTotal').textContent  = fmt(subtotal + ssclTotal + vatTotal);
+
+        document.getElementById('ssclPctDisplay').textContent = ssclRates.size === 1 ? `(${[...ssclRates][0]}%)` : '';
+        document.getElementById('vatPctDisplay').textContent  = vatRates.size  === 1 ? `(${[...vatRates][0]}%)`  : '';
+    }
+
+    // Change events: component code → auto-fill + AJAX resolve; charge code → set tax code; tax code → recalc
     document.getElementById('lineItems').addEventListener('change', function (e) {
         const sel = e.target;
         const row = sel.closest('tr');
@@ -437,7 +482,7 @@
                     .then(r => r.json())
                     .then(data => {
                         if (data.found) {
-                            applyChargeToRow(row, data.charge_code_id, data.tax_rate, data.tax_code_id, data.tax_label);
+                            applyChargeToRow(row, data.charge_code_id, data.tax_code_id);
                         }
                     })
                     .catch(() => {});
@@ -446,14 +491,17 @@
 
         if (sel.classList.contains('charge-code-sel')) {
             const opt = sel.selectedOptions[0];
-            if (opt?.value) {
-                applyChargeToRow(row, opt.value, opt.dataset.taxRate, opt.dataset.taxCodeId, opt.dataset.taxLabel);
-            } else {
-                applyChargeToRow(row, '', 0, '', '');
-            }
+            applyChargeToRow(row, opt?.value || '', opt?.dataset.taxCodeId || '');
+        }
+
+        if (sel.classList.contains('tax-code-sel')) {
+            recalculate();
         }
     });
 
+    document.getElementById('lineTable').addEventListener('input', recalculate);
+
+    // Add new row
     document.getElementById('addLine').addEventListener('click', function () {
         const tbody = document.getElementById('lineItems');
         const i = lineIdx++;
@@ -461,14 +509,24 @@
             <tr class="estimate-line">
                 <td class="ps-3">
                     ${buildCompSelect(`line_items[${i}][component_code_id]`)}
-                    <input type="hidden" name="line_items[${i}][tax_code_id]" class="tax-code-id-field" value="">
+                    <input type="hidden" name="line_items[${i}][damage_id]"         value="">
+                    <input type="hidden" name="line_items[${i}][mr_tariff_rule_id]" value="">
+                    <input type="hidden" name="line_items[${i}][location_code_id]"  value="">
+                    <input type="hidden" name="line_items[${i}][damage_code_id]"    value="">
+                    <input type="hidden" name="line_items[${i}][repair_code_id]"    value="">
+                    <input type="hidden" name="line_items[${i}][material_code_id]"  value="">
+                    <input type="hidden" name="line_items[${i}][cedex_code]"        value="">
+                    <input type="hidden" name="line_items[${i}][repair_category_id]" value="">
+                    <input type="hidden" name="line_items[${i}][std_labor_hours]"   value="0">
+                    <input type="hidden" name="line_items[${i}][labor_rate]"        value="0">
+                    <input type="hidden" name="line_items[${i}][labor_amount]"      value="0">
+                    <input type="hidden" name="line_items[${i}][material_qty]"      value="0">
+                    <input type="hidden" name="line_items[${i}][material_rate]"     value="0">
+                    <input type="hidden" name="line_items[${i}][material_amount]"   value="0">
+                    <input type="hidden" name="line_items[${i}][ancillary_amount]"  value="0">
                 </td>
-                <td>
-                    ${buildChargeCodeSelect(`line_items[${i}][charge_code_id]`)}
-                </td>
-                <td>
-                    <input type="text" name="line_items[${i}][component]" class="form-control form-control-sm comp-desc" placeholder="Description">
-                </td>
+                <td>${buildChargeCodeSelect(`line_items[${i}][charge_code_id]`)}</td>
+                <td><input type="text" name="line_items[${i}][component]" class="form-control form-control-sm comp-desc" placeholder="Description"></td>
                 <td>
                     <select name="line_items[${i}][repair_type]" class="form-select form-select-sm" required>
                         <option value="replace">Replace</option>
@@ -479,17 +537,20 @@
                         <option value="paint">Paint</option>
                     </select>
                 </td>
-                <td><input type="number" name="line_items[${i}][qty]" class="form-control form-control-sm qty" value="1" min="0.01" step="0.5" required></td>
-                <td><input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="0.00" step="0.01" min="0" required></td>
-                <td>
-                    <div class="tax-code-badge mb-1"></div>
-                    <input type="hidden" name="line_items[${i}][tax_code_id]" class="tax-code-id-field" value="">
-                    <input type="number" name="line_items[${i}][tax_percentage]" class="form-control form-control-sm tax-pct" value="0" min="0" max="100" style="width:65px;">
+                <td><input type="number" name="line_items[${i}][qty]"        class="form-control form-control-sm qty"        value="1"    min="0.01" step="0.5" required></td>
+                <td><input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="0.00" step="0.01" min="0"   required></td>
+                <td>${buildTaxCodeSelect(`line_items[${i}][tax_code_id]`)}</td>
+                <td class="text-end pe-2 small">
+                    <div class="fw-semibold line-net">${currency} 0.00</div>
+                    <div style="font-size:.68rem; line-height:1.4; color:#6c757d;">
+                        <span class="line-sscl-amt"></span>
+                        <span class="line-vat-amt"></span>
+                    </div>
                 </td>
-                <td class="fw-semibold line-amount text-end pe-2">${currency} 0.00</td>
                 <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button></td>
             </tr>
         `);
+        recalculate();
     });
 
     document.getElementById('lineItems').addEventListener('click', function (e) {
@@ -500,5 +561,9 @@
             }
         }
     });
+
+    // Initial calculation from Blade-rendered rows
+    recalculate();
+})();
 </script>
 @endpush

@@ -97,7 +97,7 @@
                             <input type="date" name="valid_until" class="form-control"
                                    value="{{ old('valid_until', date('Y-m-d', strtotime('+30 days'))) }}">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label class="form-label fw-semibold">Currency <span class="text-danger">*</span></label>
                             <select name="currency" class="form-select" required>
                                 <option value="LKR" {{ old('currency','LKR')==='LKR'?'selected':'' }}>LKR</option>
@@ -105,12 +105,7 @@
                                 <option value="SGD" {{ old('currency')==='SGD'?'selected':'' }}>SGD</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-semibold">Tax % <span class="text-danger">*</span></label>
-                            <input type="number" name="tax_percentage" id="globalTax" class="form-control"
-                                   value="{{ old('tax_percentage', 0) }}" min="0" max="100" step="0.01">
-                        </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label class="form-label fw-semibold">Priority <span class="text-danger">*</span></label>
                             <select name="priority" class="form-select" required>
                                 <option value="normal"   {{ old('priority','normal')==='normal'?'selected':'' }}>Normal</option>
@@ -154,8 +149,8 @@
                                     <th style="width:13%">Repair Type</th>
                                     <th style="width:6%">Qty</th>
                                     <th style="width:9%">Unit Price</th>
-                                    <th style="width:6%">Tax %</th>
-                                    <th style="width:9%" class="text-end pe-2">Amount</th>
+                                    <th style="width:11%">Tax Code</th>
+                                    <th style="width:9%" class="text-end pe-2">Net Amount</th>
                                     <th style="width:36px;"></th>
                                 </tr>
                             </thead>
@@ -169,8 +164,17 @@
                                     <td></td>
                                 </tr>
                                 <tr>
-                                    <td colspan="8" class="text-end fw-semibold pe-3 small">Tax:</td>
-                                    <td class="fw-semibold text-end pe-2 small" id="totalTax">0.00</td>
+                                    <td colspan="8" class="text-end pe-3 small text-muted">
+                                        SSCL <span id="ssclPctDisplay" class="text-muted"></span>:
+                                    </td>
+                                    <td class="text-end pe-2 small text-muted" id="totalSscl">0.00</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="8" class="text-end pe-3 small text-muted">
+                                        VAT <span id="vatPctDisplay" class="text-muted"></span>:
+                                    </td>
+                                    <td class="text-end pe-2 small text-muted" id="totalVat">0.00</td>
                                     <td></td>
                                 </tr>
                                 <tr class="table-primary">
@@ -241,9 +245,7 @@
                                     @endif
                                     <div class="text-muted" style="font-size:.78rem;">
                                         {{ $dmg->damageCode?->name ?? ucwords(str_replace('_', ' ', $dmg->damage_type ?? '')) }}
-                                        @if($dmg->repairCode)
-                                            → {{ $dmg->repairCode->name }}
-                                        @endif
+                                        @if($dmg->repairCode) → {{ $dmg->repairCode->name }} @endif
                                     </div>
                                 </div>
                                 <span class="badge bg-{{ $sc }}-subtle text-{{ $sc }} ms-2 flex-shrink-0">
@@ -363,12 +365,12 @@
     let lineIdx = 0;
 
     const REPAIR_TYPES = [
-        ['replace',       'Replace'],
-        ['repair',        'Repair'],
-        ['weld',          'Weld'],
-        ['straighten',    'Straighten'],
+        ['replace',        'Replace'],
+        ['repair',         'Repair'],
+        ['weld',           'Weld'],
+        ['straighten',     'Straighten'],
         ['clean_and_treat','Clean & Treat'],
-        ['paint',         'Paint'],
+        ['paint',          'Paint'],
     ];
 
     function repairTypeOptions(selected) {
@@ -377,24 +379,36 @@
         ).join('');
     }
 
-    // MR code options (injected from PHP)
+    // MR component code options
     const mrCmpCodeOpts = @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
-    const mrLocCodeOpts = @json($mrLocationCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
 
-    // Charge code options with embedded tax rate
+    // Charge code options — embed tax1/tax2 rates for cascade calculation
     @php
     $chargeCodeJson = $chargeCodes->map(fn($c) => [
         'id'          => $c->id,
         'code'        => $c->code,
         'description' => $c->description,
-        'tax_rate'    => $c->taxCode?->total_rate ?? 0,
+        'tax1_rate'   => $c->taxCode?->tax1_rate ?? 0,
+        'tax2_rate'   => $c->taxCode?->tax2_rate ?? 0,
         'tax_code_id' => $c->tax_code_id,
-        'tax_label'   => $c->taxCode
-                            ? ($c->taxCode->code . ' ' . number_format($c->taxCode->total_rate, 2) . '%')
-                            : null,
     ]);
     @endphp
     const chargeCodeOpts = @json($chargeCodeJson);
+
+    // Tax code options
+    @php
+    $taxCodeJson = $taxCodes->map(fn($tc) => [
+        'id'        => $tc->id,
+        'code'      => $tc->code,
+        'tax1_rate' => $tc->tax1_rate,
+        'tax2_rate' => $tc->tax2_rate,
+    ]);
+    @endphp
+    const taxCodeOpts = @json($taxCodeJson);
+
+    function esc(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
 
     function buildCodeSelect(name, options, selectedId) {
         let html = `<select name="${name}" class="form-select form-select-sm mb-1"><option value="">— any —</option>`;
@@ -404,44 +418,39 @@
         return html + '</select>';
     }
 
-    const resolveUrl = '{{ route("estimates.resolve-charge-code") }}';
-
     function buildChargeCodeSelect(name, selectedId) {
         let opts = '<option value="">— none —</option>';
         chargeCodeOpts.forEach(c => {
-            opts += `<option value="${c.id}" data-tax-rate="${c.tax_rate}" data-tax-code-id="${c.tax_code_id ?? ''}" data-tax-label="${esc(c.tax_label ?? '')}"${c.id == selectedId ? ' selected' : ''}>${c.code} — ${esc(c.description)}</option>`;
+            opts += `<option value="${c.id}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}"${c.id == selectedId ? ' selected' : ''}>${c.code} — ${esc(c.description)}</option>`;
         });
         return `<select name="${name}" class="form-select form-select-sm charge-code-sel">${opts}</select>`;
     }
 
-    function taxBadgeHtml(label) {
-        return label
-            ? `<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.68rem;">${esc(label)}</span>`
-            : '';
+    function buildTaxCodeSelect(name, selectedId) {
+        let opts = '<option value="">— none —</option>';
+        taxCodeOpts.forEach(tc => {
+            const label = `${tc.code} (SSCL ${tc.tax1_rate}% + VAT ${tc.tax2_rate}%)`;
+            opts += `<option value="${tc.id}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}"${tc.id == selectedId ? ' selected' : ''}>${esc(label)}</option>`;
+        });
+        return `<select name="${name}" class="form-select form-select-sm tax-code-sel">${opts}</select>`;
     }
 
-    function applyChargeToRow(row, chargeCodeId, taxRate, taxCodeId, taxLabel) {
-        const chargeSel = row.querySelector('.charge-code-sel');
-        const taxPctEl  = row.querySelector('.tax-pct');
-        const taxCodeEl = row.querySelector('.tax-code-id-field');
-        const badgeEl   = row.querySelector('.tax-code-badge');
-        if (chargeSel) chargeSel.value = chargeCodeId || '';
-        if (taxPctEl)  taxPctEl.value  = taxRate ?? 0;
-        if (taxCodeEl) taxCodeEl.value = taxCodeId ?? '';
-        if (badgeEl)   badgeEl.innerHTML = taxBadgeHtml(taxLabel);
+    const resolveUrl = '{{ route("estimates.resolve-charge-code") }}';
+
+    function applyChargeToRow(row, chargeCodeId, taxCodeId) {
+        const chargeSel  = row.querySelector('.charge-code-sel');
+        const taxCodeSel = row.querySelector('.tax-code-sel');
+        if (chargeSel)  chargeSel.value  = chargeCodeId || '';
+        if (taxCodeSel) taxCodeSel.value = taxCodeId ?? '';
         recalculate();
     }
 
     function buildRow(data = {}) {
-        const i = lineIdx++;
+        const i          = lineIdx++;
         const fromDamage = !!data.damage_id;
         const sourceBadge = fromDamage
             ? `<span class="badge bg-warning-subtle text-warning border source-badge" title="Imported from survey damage"><i class="bi bi-clipboard-data"></i></span>`
             : `<span class="badge bg-light text-muted border source-badge" title="Manual entry"><i class="bi bi-pencil"></i></span>`;
-        const defaultTax = data.tax_percentage !== undefined
-            ? data.tax_percentage
-            : (parseFloat(document.getElementById('globalTax')?.value) || 0);
-        const initialTaxBadge = taxBadgeHtml(data.tax_label ?? '');
 
         return `<tr class="estimate-line">
             <td class="ps-2 text-center">${sourceBadge}</td>
@@ -454,7 +463,6 @@
                 <input type="hidden" name="line_items[${i}][repair_code_id]"     value="${data.repair_code_id     ?? ''}">
                 <input type="hidden" name="line_items[${i}][material_code_id]"   value="${data.material_code_id   ?? ''}">
                 <input type="hidden" name="line_items[${i}][cedex_code]"         value="${esc(data.cedex_code     ?? '')}">
-                <input type="hidden" name="line_items[${i}][tax_code_id]"        class="tax-code-id-field" value="${data.tax_code_id ?? ''}">
                 <input type="hidden" name="line_items[${i}][std_labor_hours]"    value="${data.std_labor_hours    ?? 0}">
                 <input type="hidden" name="line_items[${i}][labor_rate]"         value="${data.labor_rate         ?? 0}">
                 <input type="hidden" name="line_items[${i}][labor_amount]"       value="${data.labor_amount       ?? 0}">
@@ -476,65 +484,91 @@
                 </select>
             </td>
             <td>
-                <input type="number" name="line_items[${i}][qty]"        class="form-control form-control-sm qty"        value="${data.qty       ?? 1}"    min="0.01" step="0.01">
+                <input type="number" name="line_items[${i}][qty]"        class="form-control form-control-sm qty"        value="${data.qty       ?? 1}"  min="0.01" step="0.01">
             </td>
             <td>
-                <input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="${data.unit_price ?? 0}"   min="0"    step="0.01">
+                <input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="${data.unit_price ?? 0}" min="0"    step="0.01">
             </td>
             <td>
-                <div class="tax-code-badge mb-1">${initialTaxBadge}</div>
-                <input type="number" name="line_items[${i}][tax_percentage]" class="form-control form-control-sm tax-pct" value="${defaultTax}" min="0" max="100" style="width:65px;">
+                ${buildTaxCodeSelect(`line_items[${i}][tax_code_id]`, data.tax_code_id ?? '')}
             </td>
-            <td class="fw-semibold line-amount text-end pe-2 small">0.00</td>
+            <td class="text-end pe-2 small">
+                <div class="fw-semibold line-net">0.00</div>
+                <div style="font-size:.68rem; line-height:1.4; color:#6c757d;">
+                    <span class="line-sscl-amt"></span>
+                    <span class="line-vat-amt"></span>
+                </div>
+            </td>
             <td class="pe-1">
                 <button type="button" class="btn btn-sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button>
             </td>
         </tr>`;
     }
 
-    function esc(str) {
-        return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
     // ── Totals ─────────────────────────────────────────────────────────────
     const currencyEl = document.querySelector('[name="currency"]');
     function currency() { return currencyEl?.value || 'LKR'; }
-
     function fmt(n) { return currency() + ' ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function fmtSmall(n) { return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
     function recalculate() {
-        let subtotal = 0, taxTotal = 0;
+        let subtotal = 0, ssclTotal = 0, vatTotal = 0;
+        let ssclRates = new Set(), vatRates = new Set();
+
         document.querySelectorAll('.estimate-line').forEach(row => {
-            const qty    = parseFloat(row.querySelector('.qty')?.value  || 0);
-            const price  = parseFloat(row.querySelector('.unit-price')?.value || 0);
-            const tax    = parseFloat(row.querySelector('.tax-pct')?.value  || 0);
-            const net    = qty * price;
-            const taxAmt = net * (tax / 100);
+            const qty   = parseFloat(row.querySelector('.qty')?.value       || 0);
+            const price = parseFloat(row.querySelector('.unit-price')?.value || 0);
+            const net   = qty * price;
+
+            const taxSel  = row.querySelector('.tax-code-sel');
+            const selOpt  = taxSel?.selectedOptions[0];
+            const t1Rate  = parseFloat(selOpt?.dataset.tax1Rate || 0);
+            const t2Rate  = parseFloat(selOpt?.dataset.tax2Rate || 0);
+
+            const t1 = net * (t1Rate / 100);
+            const t2 = (net + t1) * (t2Rate / 100);
+
             subtotal  += net;
-            taxTotal  += taxAmt;
-            const amtEl = row.querySelector('.line-amount');
-            if (amtEl) amtEl.textContent = fmt(net);
+            ssclTotal += t1;
+            vatTotal  += t2;
+
+            if (t1Rate > 0) ssclRates.add(t1Rate);
+            if (t2Rate > 0) vatRates.add(t2Rate);
+
+            // Per-line breakdown display
+            const netEl  = row.querySelector('.line-net');
+            const sEl    = row.querySelector('.line-sscl-amt');
+            const vEl    = row.querySelector('.line-vat-amt');
+            if (netEl) netEl.textContent = fmt(net);
+            if (sEl)   sEl.textContent  = t1 > 0 ? '+SSCL ' + fmtSmall(t1) : '';
+            if (vEl)   vEl.textContent  = t2 > 0 ? ' +VAT ' + fmtSmall(t2) : '';
         });
-        document.getElementById('subtotal').textContent  = fmt(subtotal);
-        document.getElementById('totalTax').textContent  = fmt(taxTotal);
-        document.getElementById('grandTotal').textContent = fmt(subtotal + taxTotal);
+
+        document.getElementById('subtotal').textContent   = fmt(subtotal);
+        document.getElementById('totalSscl').textContent  = fmt(ssclTotal);
+        document.getElementById('totalVat').textContent   = fmt(vatTotal);
+        document.getElementById('grandTotal').textContent  = fmt(subtotal + ssclTotal + vatTotal);
+
+        // Show rate hints in tfoot labels
+        const ssclRateLabel = ssclRates.size === 1 ? `(${[...ssclRates][0]}%)` : '';
+        const vatRateLabel  = vatRates.size  === 1 ? `(${[...vatRates][0]}%)`  : '';
+        document.getElementById('ssclPctDisplay').textContent = ssclRateLabel;
+        document.getElementById('vatPctDisplay').textContent  = vatRateLabel;
     }
 
-    // ── Component code: auto-fill description + AJAX resolve charge/tax ──────
-    // ── Charge code: auto-fill tax badge + tax % ──────────────────────────────
+    // ── Component code: auto-fill description + AJAX resolve charge/tax ──
+    // ── Charge code: auto-set matching tax code ───────────────────────────
     document.getElementById('lineItems').addEventListener('change', function (e) {
         const sel = e.target;
         const row = sel.closest('tr');
         if (!row) return;
 
         if (sel.name?.includes('[component_code_id]')) {
-            // Auto-fill description
             const descInput = row.querySelector('.comp-desc');
             if (descInput && !descInput.value.trim()) {
                 const opt = mrCmpCodeOpts.find(o => o.id == sel.value);
                 if (opt) descInput.value = opt.name;
             }
-            // AJAX resolve: find best matching charge code from MR mapping
             if (sel.value) {
                 const repairCodeId = row.querySelector('[name*="[repair_code_id]"]')?.value || '';
                 const url = resolveUrl + '?component_code_id=' + sel.value + (repairCodeId ? '&repair_code_id=' + repairCodeId : '');
@@ -542,7 +576,7 @@
                     .then(r => r.json())
                     .then(data => {
                         if (data.found) {
-                            applyChargeToRow(row, data.charge_code_id, data.tax_rate, data.tax_code_id, data.tax_label);
+                            applyChargeToRow(row, data.charge_code_id, data.tax_code_id);
                         }
                     })
                     .catch(() => {});
@@ -551,15 +585,15 @@
 
         if (sel.classList.contains('charge-code-sel')) {
             const opt = sel.selectedOptions[0];
-            if (opt?.value) {
-                applyChargeToRow(row, opt.value, opt.dataset.taxRate, opt.dataset.taxCodeId, opt.dataset.taxLabel);
-            } else {
-                applyChargeToRow(row, '', 0, '', '');
-            }
+            applyChargeToRow(row, opt?.value || '', opt?.dataset.taxCodeId || '');
+        }
+
+        if (sel.classList.contains('tax-code-sel')) {
+            recalculate();
         }
     });
 
-    // ── Add / Remove lines ─────────────────────────────────────────────────
+    // ── Add / Remove lines ────────────────────────────────────────────────
     const lineItems = document.getElementById('lineItems');
 
     document.getElementById('addLine').addEventListener('click', () => {
@@ -578,19 +612,12 @@
 
     document.getElementById('lineTable').addEventListener('input', recalculate);
 
-    // Also recalc when global tax changes
-    document.getElementById('globalTax')?.addEventListener('change', function () {
-        document.querySelectorAll('.tax-pct').forEach(el => el.value = this.value);
-        recalculate();
-    });
-
-    // ── Import damages ─────────────────────────────────────────────────────
+    // ── Import damages ────────────────────────────────────────────────────
     function importDamages(btn) {
         const url   = btn.dataset.url;
         const count = btn.dataset.count;
         if (!url) return;
 
-        // Confirm before wiping existing rows that have data
         const existingRows = document.querySelectorAll('.estimate-line');
         const hasData = Array.from(existingRows).some(row => {
             const price = parseFloat(row.querySelector('.unit-price')?.value || 0);
@@ -604,22 +631,19 @@
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Importing…';
 
-        const eqtId = document.getElementById('eqtSelect').value;
+        const eqtId    = document.getElementById('eqtSelect').value;
         const fetchUrl = url + (eqtId ? `?equipment_type_id=${eqtId}` : '');
 
         fetch(fetchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(r => r.json())
             .then(data => {
-                // Clear existing rows, add imported ones
                 lineItems.innerHTML = '';
                 lineIdx = 0;
                 data.lines.forEach(line => {
                     lineItems.insertAdjacentHTML('beforeend', buildRow(line));
                 });
-
                 recalculate();
 
-                // Show feedback
                 const alertEl   = document.getElementById('importAlert');
                 const alertText = document.getElementById('importAlertText');
                 let msg = `${data.lines.length} damage(s) imported as line items.`;
@@ -628,7 +652,7 @@
                     const noPrice = data.lines.filter(l => !l._tariff_matched).length;
                     if (noPrice > 0) msg += ` <span class="text-warning">${noPrice} line(s) had no matching tariff rule — unit price set to 0.</span>`;
                 } else {
-                    msg += ' <span class="text-warning">No active M&R tariff found for this customer — unit prices set to 0. Please fill them in manually.</span>';
+                    msg += ' <span class="text-warning">No active M&R tariff found — unit prices set to 0. Please fill them in manually.</span>';
                 }
                 alertText.innerHTML = msg;
                 alertEl.classList.remove('d-none');
@@ -649,7 +673,7 @@
         if (mainBtn) { importDamages(mainBtn); } else { importDamages(this); }
     });
 
-    // ── Initialise with one blank row if no old input ──────────────────────
+    // ── Initialise with one blank row ────────────────────────────────────
     if (lineItems.children.length === 0) {
         lineItems.insertAdjacentHTML('beforeend', buildRow());
         recalculate();

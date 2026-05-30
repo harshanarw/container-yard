@@ -11,6 +11,7 @@ class RepairInvoiceLine extends Model
         'location_code_id', 'component_code_id', 'damage_code_id', 'repair_code_id',
         'charge_code_id', 'tax_code_id',
         'cedex_code', 'description', 'qty', 'unit_price', 'tax_percentage', 'line_amount',
+        'tax1_rate', 'tax2_rate', 'tax1_amount', 'tax2_amount', 'gross_amount',
     ];
 
     protected $casts = [
@@ -18,6 +19,11 @@ class RepairInvoiceLine extends Model
         'unit_price'     => 'decimal:2',
         'tax_percentage' => 'decimal:2',
         'line_amount'    => 'decimal:2',
+        'tax1_rate'      => 'decimal:4',
+        'tax2_rate'      => 'decimal:4',
+        'tax1_amount'    => 'decimal:2',
+        'tax2_amount'    => 'decimal:2',
+        'gross_amount'   => 'decimal:2',
     ];
 
     public function invoice()

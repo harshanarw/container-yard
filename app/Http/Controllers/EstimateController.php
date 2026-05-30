@@ -16,6 +16,7 @@ use App\Models\Inquiry;
 use App\Models\MrCode;
 use App\Models\MrTariffHeader;
 use App\Models\PortalToken;
+use App\Models\TaxCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -69,10 +70,11 @@ class EstimateController extends Controller
             ->whereIn('category', ['repair', 'labour'])
             ->orderBy('sort_order')->orderBy('code')
             ->get();
+        $taxCodes         = TaxCode::where('is_active', true)->orderBy('sort_order')->get();
 
         return view('estimates.create', compact(
             'customers', 'containers', 'equipmentTypes', 'selectedInquiry', 'selectedContainer',
-            'mrComponentCodes', 'mrLocationCodes', 'chargeCodes'
+            'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes'
         ));
     }
 
@@ -80,10 +82,8 @@ class EstimateController extends Controller
     {
         $container = Container::findOrFail($request->container_id);
 
-        $totals = $this->calculateTotals(
-            $request->line_items,
-            (float) $request->tax_percentage
-        );
+        $lineItems = array_values($request->line_items);
+        $totals    = $this->calculateLineTotals($lineItems);
 
         $estimate = Estimate::create([
             'estimate_no'       => $this->generateEstimateNo(),
@@ -101,8 +101,10 @@ class EstimateController extends Controller
             'status'         => 'draft',
             'scope_of_work'  => $request->scope_of_work,
             'terms'          => $request->terms,
-            'tax_percentage' => $request->tax_percentage ?? 0,
             'subtotal'       => $totals['subtotal'],
+            'sscl_amount'    => $totals['sscl_amount'],
+            'vat_amount'     => $totals['vat_amount'],
+            'tax_percentage' => $totals['effective_tax_pct'],
             'tax_amount'     => $totals['tax_amount'],
             'grand_total'    => $totals['grand_total'],
             'send_to_email'  => $request->send_to_email,
@@ -113,15 +115,20 @@ class EstimateController extends Controller
             'created_by'     => auth()->id(),
         ]);
 
-        foreach ($request->line_items as $item) {
-            $lineAmount = round($item['qty'] * $item['unit_price'], 2);
+        foreach ($lineItems as $idx => $item) {
+            $meta = $totals['lines'][$idx];
             $estimate->lineItems()->create([
                 'component'           => $item['component'],
                 'repair_type'         => $item['repair_type'],
                 'qty'                 => $item['qty'],
                 'unit_price'          => $item['unit_price'],
-                'tax_percentage'      => $item['tax_percentage'] ?? 0,
-                'line_amount'         => $lineAmount,
+                'tax_percentage'      => $meta['tax1_rate'] + $meta['tax2_rate'],
+                'line_amount'         => $meta['line_amount'],
+                'tax1_rate'           => $meta['tax1_rate'],
+                'tax2_rate'           => $meta['tax2_rate'],
+                'tax1_amount'         => $meta['tax1_amount'],
+                'tax2_amount'         => $meta['tax2_amount'],
+                'gross_amount'        => $meta['gross_amount'],
                 // MR code traceability
                 'damage_id'           => $item['damage_id'] ?? null,
                 'mr_tariff_rule_id'   => $item['mr_tariff_rule_id'] ?? null,
@@ -195,9 +202,10 @@ class EstimateController extends Controller
             ->whereIn('category', ['repair', 'labour'])
             ->orderBy('sort_order')->orderBy('code')
             ->get();
+        $taxCodes         = TaxCode::where('is_active', true)->orderBy('sort_order')->get();
 
         return view('estimates.edit', compact('estimate', 'customers', 'containers', 'equipmentTypes',
-                                             'mrComponentCodes', 'mrLocationCodes', 'chargeCodes'));
+                                             'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes'));
     }
 
     public function update(UpdateEstimateRequest $request, Estimate $estimate)
@@ -206,10 +214,8 @@ class EstimateController extends Controller
             return back()->with('error', 'Approved or completed estimates cannot be edited.');
         }
 
-        $totals = $this->calculateTotals(
-            $request->line_items,
-            (float) $request->tax_percentage
-        );
+        $lineItems = array_values($request->line_items);
+        $totals    = $this->calculateLineTotals($lineItems);
 
         $estimate->update([
             'estimate_date'  => $request->estimate_date,
@@ -218,8 +224,10 @@ class EstimateController extends Controller
             'priority'       => $request->priority,
             'scope_of_work'  => $request->scope_of_work,
             'terms'          => $request->terms,
-            'tax_percentage' => $request->tax_percentage ?? 0,
             'subtotal'       => $totals['subtotal'],
+            'sscl_amount'    => $totals['sscl_amount'],
+            'vat_amount'     => $totals['vat_amount'],
+            'tax_percentage' => $totals['effective_tax_pct'],
             'tax_amount'     => $totals['tax_amount'],
             'grand_total'    => $totals['grand_total'],
             'send_to_email'  => $request->send_to_email,
@@ -230,15 +238,20 @@ class EstimateController extends Controller
         ]);
 
         $estimate->lineItems()->delete();
-        foreach ($request->line_items as $item) {
-            $lineAmount = round($item['qty'] * $item['unit_price'], 2);
+        foreach ($lineItems as $idx => $item) {
+            $meta = $totals['lines'][$idx];
             $estimate->lineItems()->create([
                 'component'           => $item['component'],
                 'repair_type'         => $item['repair_type'],
                 'qty'                 => $item['qty'],
                 'unit_price'          => $item['unit_price'],
-                'tax_percentage'      => $item['tax_percentage'] ?? 0,
-                'line_amount'         => $lineAmount,
+                'tax_percentage'      => $meta['tax1_rate'] + $meta['tax2_rate'],
+                'line_amount'         => $meta['line_amount'],
+                'tax1_rate'           => $meta['tax1_rate'],
+                'tax2_rate'           => $meta['tax2_rate'],
+                'tax1_amount'         => $meta['tax1_amount'],
+                'tax2_amount'         => $meta['tax2_amount'],
+                'gross_amount'        => $meta['gross_amount'],
                 // MR code traceability
                 'damage_id'           => $item['damage_id'] ?? null,
                 'mr_tariff_rule_id'   => $item['mr_tariff_rule_id'] ?? null,
@@ -292,9 +305,7 @@ class EstimateController extends Controller
         $isResend = in_array($estimate->status, ['sent', 'under_review', 'returned', 'rejected']);
 
         if ($isResend) {
-            // Auto-version the estimate
             $estimate->increment('version_no');
-            // Reset all line approval statuses
             $estimate->lineItems()->update(['approval_status' => 'pending']);
         }
 
@@ -306,13 +317,12 @@ class EstimateController extends Controller
             'email_message' => $request->email_message,
         ]);
 
-        // Revoke old tokens for this estimate
         PortalToken::where('tokenable_type', Estimate::class)
             ->where('tokenable_id', $estimate->id)
             ->whereNull('revoked_at')
             ->update(['revoked_at' => now()]);
 
-        $expiryDays = (int) ($request->expiry_days ?? 30);
+        $expiryDays  = (int) ($request->expiry_days ?? 30);
         $portalToken = PortalToken::generate($estimate, $request->send_to_email, $expiryDays);
 
         SendEstimateEmailJob::dispatch($estimate, $portalToken, $request->email_message);
@@ -388,7 +398,6 @@ class EstimateController extends Controller
 
     /**
      * AJAX: convert a survey's damage findings into pre-priced estimate line items.
-     * Looks up the best matching MR tariff rule for each damage.
      */
     public function importDamages(Request $request, Inquiry $inquiry)
     {
@@ -398,23 +407,14 @@ class EstimateController extends Controller
             'damages.materialCode',
         ]);
 
-        // Repair code → estimate repair_type enum
         $repairTypeMap = [
-            'RPL' => 'replace',
-            'SLR' => 'replace',
-            'WLD' => 'weld',
-            'STR' => 'straighten',
-            'TAP' => 'paint',
-            'CLN' => 'clean_and_treat',
-            'PAT' => 'repair',
-            'GRD' => 'repair',
-            'BLT' => 'repair',
-            'INS' => 'repair',
+            'RPL' => 'replace', 'SLR' => 'replace', 'WLD' => 'weld',
+            'STR' => 'straighten', 'TAP' => 'paint', 'CLN' => 'clean_and_treat',
+            'PAT' => 'repair', 'GRD' => 'repair', 'BLT' => 'repair', 'INS' => 'repair',
         ];
 
-        // Best tariff: customer-specific first, then default (null customer)
-        $customerId     = $inquiry->customer_id;
-        $containerSize  = $request->container_size ?? $inquiry->equipmentType?->size;
+        $customerId    = $inquiry->customer_id;
+        $containerSize = $request->container_size ?? $inquiry->equipmentType?->size;
 
         $tariffHeader = MrTariffHeader::with('rules')
             ->where('is_active', true)
@@ -430,24 +430,20 @@ class EstimateController extends Controller
         $lines = [];
 
         foreach ($inquiry->damages as $dmg) {
-            // Find the most specific tariff rule: component + repair > component only > repair only
             $tariffRule = null;
             if ($tariffHeader) {
-                // Try exact match on both codes
                 if ($dmg->component_code_id && $dmg->repair_code_id) {
                     $tariffRule = $tariffHeader->rules
                         ->where('component_code_id', $dmg->component_code_id)
                         ->where('repair_code_id', $dmg->repair_code_id)
                         ->first();
                 }
-                // Fallback: component only
                 if (!$tariffRule && $dmg->component_code_id) {
                     $tariffRule = $tariffHeader->rules
                         ->where('component_code_id', $dmg->component_code_id)
                         ->whereNull('repair_code_id')
                         ->first();
                 }
-                // Fallback: repair only
                 if (!$tariffRule && $dmg->repair_code_id) {
                     $tariffRule = $tariffHeader->rules
                         ->whereNull('component_code_id')
@@ -456,18 +452,16 @@ class EstimateController extends Controller
                 }
             }
 
-            $repairCode  = $dmg->repairCode?->code ?? '';
-            $repairType  = $repairTypeMap[$repairCode] ?? 'repair';
-            $qty         = max(1, (float) ($dmg->quantity ?? 1));
-            $unitPrice   = $tariffRule ? $tariffRule->computeAmount() : 0;
+            $repairCode = $dmg->repairCode?->code ?? '';
+            $repairType = $repairTypeMap[$repairCode] ?? 'repair';
+            $qty        = max(1, (float) ($dmg->quantity ?? 1));
+            $unitPrice  = $tariffRule ? $tariffRule->computeAmount() : 0;
 
-            // Resolve charge code + tax from MR code mapping
             $chargeMapping = MrCodeChargeMapping::resolve($dmg->component_code_id, $dmg->repair_code_id);
             $chargeCode    = $chargeMapping?->chargeCode;
             $taxCode       = $chargeCode?->taxCode;
 
             $lines[] = [
-                // Traceability
                 'damage_id'         => $dmg->id,
                 'mr_tariff_rule_id' => $tariffRule?->id,
                 'location_code_id'  => $dmg->location_code_id,
@@ -476,18 +470,15 @@ class EstimateController extends Controller
                 'repair_code_id'    => $dmg->repair_code_id,
                 'material_code_id'  => $dmg->material_code_id,
                 'cedex_code'        => $dmg->cedex_code,
-                // Charge code / tax code from mapping
                 'charge_code_id'    => $chargeCode?->id,
                 'tax_code_id'       => $taxCode?->id,
-                'tax_percentage'    => $taxCode?->total_rate ?? 0,
-                'tax_label'         => $taxCode ? ($taxCode->code . ' ' . number_format($taxCode->total_rate, 2) . '%') : null,
-                // Line data
+                'tax1_rate'         => $taxCode?->tax1_rate ?? 0,
+                'tax2_rate'         => $taxCode?->tax2_rate ?? 0,
                 'component'         => $dmg->componentCode?->name
                                         ?? ucwords(str_replace('_', ' ', $dmg->location ?? '')),
                 'repair_type'       => $repairType,
                 'qty'               => $qty,
                 'unit_price'        => $unitPrice,
-                // Labor / material breakdown from tariff
                 'std_labor_hours'   => (float) ($tariffRule?->std_labor_hours ?? 0),
                 'labor_rate'        => (float) ($tariffRule?->labor_rate ?? 0),
                 'labor_amount'      => round((float)($tariffRule?->std_labor_hours ?? 0) * (float)($tariffRule?->labor_rate ?? 0), 2),
@@ -495,7 +486,6 @@ class EstimateController extends Controller
                 'material_rate'     => (float) ($tariffRule?->material_rate ?? 0),
                 'material_amount'   => round((float)($tariffRule?->material_qty ?? 0) * (float)($tariffRule?->material_rate ?? 0), 2),
                 'ancillary_amount'  => (float) ($tariffRule?->ancillary ?? 0),
-                // Display labels (for the import preview, not submitted)
                 '_location'         => $dmg->locationCode?->name ?? ucwords(str_replace('_', ' ', $dmg->location ?? '')),
                 '_damage'           => $dmg->damageCode?->name ?? ucwords(str_replace('_', ' ', $dmg->damage_type ?? '')),
                 '_severity'         => $dmg->severity,
@@ -529,23 +519,64 @@ class EstimateController extends Controller
             'charge_code_id'     => $mapping->charge_code_id,
             'charge_code'        => $mapping->chargeCode->code,
             'charge_description' => $mapping->chargeCode->description,
-            'tax_rate'           => $taxCode?->total_rate ?? 0,
             'tax_code_id'        => $mapping->chargeCode->tax_code_id,
-            'tax_label'          => $taxCode
-                ? $taxCode->code . ' ' . number_format($taxCode->total_rate, 2) . '%'
-                : null,
+            'tax1_rate'          => $taxCode?->tax1_rate ?? 0,
+            'tax2_rate'          => $taxCode?->tax2_rate ?? 0,
         ]);
     }
 
-    private function calculateTotals(array $lineItems, float $taxPct): array
+    // ── Private helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Compute per-line SSCL (Tax1) and VAT (Tax2) from each line's tax_code_id.
+     * Tax1 applies to the net line amount; Tax2 applies to (net + Tax1).
+     */
+    private function calculateLineTotals(array $lineItems): array
     {
-        $subtotal = collect($lineItems)->sum(fn ($item) => $item['qty'] * $item['unit_price']);
-        $taxAmount = round($subtotal * $taxPct / 100, 2);
+        $taxCodeIds = collect($lineItems)->pluck('tax_code_id')->filter()->unique()->values()->all();
+        $taxCodes   = TaxCode::whereIn('id', $taxCodeIds)->get()->keyBy('id');
+
+        $subtotal  = 0;
+        $ssclAmt   = 0;
+        $vatAmt    = 0;
+        $lineMeta  = [];
+
+        foreach ($lineItems as $item) {
+            $net    = round((float)($item['qty'] ?? 0) * (float)($item['unit_price'] ?? 0), 2);
+            $tc     = $taxCodes[$item['tax_code_id'] ?? 0] ?? null;
+            $t1Rate = (float) ($tc?->tax1_rate ?? 0);
+            $t2Rate = (float) ($tc?->tax2_rate ?? 0);
+            $t1Amt  = round($net * $t1Rate / 100, 2);
+            $t2Amt  = round(($net + $t1Amt) * $t2Rate / 100, 2);
+            $gross  = round($net + $t1Amt + $t2Amt, 2);
+
+            $subtotal += $net;
+            $ssclAmt  += $t1Amt;
+            $vatAmt   += $t2Amt;
+
+            $lineMeta[] = [
+                'line_amount'  => $net,
+                'tax1_rate'    => $t1Rate,
+                'tax2_rate'    => $t2Rate,
+                'tax1_amount'  => $t1Amt,
+                'tax2_amount'  => $t2Amt,
+                'gross_amount' => $gross,
+            ];
+        }
+
+        $subtotal = round($subtotal, 2);
+        $ssclAmt  = round($ssclAmt,  2);
+        $vatAmt   = round($vatAmt,   2);
+        $taxAmt   = round($ssclAmt + $vatAmt, 2);
 
         return [
-            'subtotal'   => round($subtotal, 2),
-            'tax_amount' => $taxAmount,
-            'grand_total' => round($subtotal + $taxAmount, 2),
+            'subtotal'         => $subtotal,
+            'sscl_amount'      => $ssclAmt,
+            'vat_amount'       => $vatAmt,
+            'tax_amount'       => $taxAmt,
+            'grand_total'      => round($subtotal + $taxAmt, 2),
+            'effective_tax_pct'=> $subtotal > 0 ? round($taxAmt / $subtotal * 100, 4) : 0,
+            'lines'            => $lineMeta,
         ];
     }
 

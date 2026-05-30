@@ -52,7 +52,7 @@ class RepairInvoiceController extends Controller
             'notes'       => 'nullable|string|max:500',
         ]);
 
-        $estimate = \App\Models\Estimate::with('inquiry.container', 'customer', 'lineItems')->findOrFail($validated['estimate_id']);
+        $estimate = \App\Models\Estimate::with('inquiry.container', 'customer', 'lineItems.taxCode')->findOrFail($validated['estimate_id']);
 
         if ($estimate->status !== 'approved') {
             return back()->withErrors(['estimate_id' => 'Only approved estimates can generate repair invoices.'])->withInput();
@@ -62,7 +62,9 @@ class RepairInvoiceController extends Controller
         $nextNo  = $lastInv ? (int) substr($lastInv, 3) + 1 : 1;
         $invNo   = 'RI-' . str_pad($nextNo, 6, '0', STR_PAD_LEFT);
 
-        $subtotal = 0;
+        $subtotal    = 0;
+        $ssclTotal   = 0;
+        $vatTotal    = 0;
         $lineRecords = [];
 
         foreach ($estimate->lineItems as $line) {
@@ -70,7 +72,19 @@ class RepairInvoiceController extends Controller
             if ($lineAmount == 0) {
                 $lineAmount = ($line->unit_price ?? 0) * ($line->qty ?? 1);
             }
-            $subtotal += $lineAmount;
+            $lineAmount = round((float) $lineAmount, 2);
+
+            // Per-line SSCL/VAT cascade: Tax1 on net; Tax2 on (net + Tax1)
+            $tc      = $line->taxCode;
+            $t1Rate  = (float) ($tc?->tax1_rate ?? 0);
+            $t2Rate  = (float) ($tc?->tax2_rate ?? 0);
+            $t1Amt   = round($lineAmount * $t1Rate / 100, 2);
+            $t2Amt   = round(($lineAmount + $t1Amt) * $t2Rate / 100, 2);
+            $gross   = round($lineAmount + $t1Amt + $t2Amt, 2);
+
+            $subtotal  += $lineAmount;
+            $ssclTotal += $t1Amt;
+            $vatTotal  += $t2Amt;
 
             $lineRecords[] = [
                 'estimate_line_item_id' => $line->id,
@@ -84,14 +98,22 @@ class RepairInvoiceController extends Controller
                 'description'           => $line->component ?? 'Repair work item',
                 'qty'                   => $line->qty ?? 1,
                 'unit_price'            => $lineAmount,
-                'tax_percentage'        => $line->tax_percentage ?? $estimate->tax_percentage,
+                'tax_percentage'        => $t1Rate + $t2Rate,
                 'line_amount'           => $lineAmount,
+                'tax1_rate'             => $t1Rate,
+                'tax2_rate'             => $t2Rate,
+                'tax1_amount'           => $t1Amt,
+                'tax2_amount'           => $t2Amt,
+                'gross_amount'          => $gross,
             ];
         }
 
-        $taxPct     = (float) $estimate->tax_percentage;
-        $taxAmount  = round($subtotal * $taxPct / 100, 2);
+        $subtotal   = round($subtotal,   2);
+        $ssclTotal  = round($ssclTotal,  2);
+        $vatTotal   = round($vatTotal,   2);
+        $taxAmount  = round($ssclTotal + $vatTotal, 2);
         $grandTotal = round($subtotal + $taxAmount, 2);
+        $taxPct     = $subtotal > 0 ? round($taxAmount / $subtotal * 100, 4) : 0;
 
         $invoice = \App\Models\RepairInvoice::create([
             'invoice_no'     => $invNo,
@@ -104,6 +126,8 @@ class RepairInvoiceController extends Controller
             'currency'       => $estimate->customer->currency ?? 'USD',
             'status'         => 'draft',
             'subtotal'       => $subtotal,
+            'sscl_total'     => $ssclTotal,
+            'vat_total'      => $vatTotal,
             'tax_percentage' => $taxPct,
             'tax_amount'     => $taxAmount,
             'grand_total'    => $grandTotal,
@@ -125,7 +149,7 @@ class RepairInvoiceController extends Controller
     {
         $invoice->load([
             'estimate', 'workOrder', 'container', 'customer',
-            'lines.estimateLineItem', 'lines.chargeCode',
+            'lines.estimateLineItem', 'lines.chargeCode', 'lines.taxCode',
             'createdBy', 'issuedBy',
         ]);
 

@@ -132,8 +132,11 @@ $statusColors = [
                     <dt class="col-6">Subtotal</dt>
                     <dd class="col-6 text-end">{{ $invoice->currency }} {{ number_format($invoice->subtotal, 2) }}</dd>
 
-                    <dt class="col-6">Tax ({{ $invoice->tax_percentage }}%)</dt>
-                    <dd class="col-6 text-end">{{ $invoice->currency }} {{ number_format($invoice->tax_amount, 2) }}</dd>
+                    <dt class="col-6">SSCL</dt>
+                    <dd class="col-6 text-end">{{ $invoice->currency }} {{ number_format($invoice->sscl_total ?? 0, 2) }}</dd>
+
+                    <dt class="col-6">VAT</dt>
+                    <dd class="col-6 text-end">{{ $invoice->currency }} {{ number_format($invoice->vat_total ?? 0, 2) }}</dd>
                 </dl>
                 <hr>
                 <dl class="row mb-0">
@@ -188,11 +191,13 @@ $statusColors = [
                 <tr>
                     <th>#</th>
                     <th>Charge Code</th>
+                    <th>Tax Code</th>
                     <th>Component</th>
                     <th style="width: 60px" class="text-end">Qty</th>
-                    <th style="width: 100px" class="text-end">Unit Price</th>
-                    <th style="width: 70px" class="text-end">Tax %</th>
-                    <th style="width: 100px" class="text-end">Amount</th>
+                    <th style="width: 90px" class="text-end">Unit Price</th>
+                    <th style="width: 80px" class="text-end">SSCL</th>
+                    <th style="width: 80px" class="text-end">VAT</th>
+                    <th style="width: 90px" class="text-end">Amount</th>
                 </tr>
             </thead>
             <tbody>
@@ -202,7 +207,14 @@ $statusColors = [
                     <td class="small">
                         @if($line->chargeCode)
                             <span class="badge bg-warning-subtle text-warning border font-monospace">{{ $line->chargeCode->code }}</span>
-                            <span class="text-muted ms-1" style="font-size:.8rem;">{{ $line->chargeCode->description }}</span>
+                            <div class="text-muted" style="font-size:.75rem;">{{ $line->chargeCode->description }}</div>
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
+                    <td class="small">
+                        @if($line->taxCode)
+                            <span class="badge bg-info-subtle text-info border font-monospace">{{ $line->taxCode->code }}</span>
                         @else
                             <span class="text-muted">—</span>
                         @endif
@@ -210,13 +222,40 @@ $statusColors = [
                     <td class="small">{{ $line->description }}</td>
                     <td class="small text-end">{{ number_format($line->qty, 2) }}</td>
                     <td class="small text-end">{{ $invoice->currency }} {{ number_format($line->unit_price, 2) }}</td>
-                    <td class="small text-end text-muted">{{ number_format($line->tax_percentage, 2) }}%</td>
-                    <td class="small text-end fw-semibold">{{ $invoice->currency }} {{ number_format($line->line_amount, 2) }}</td>
+                    <td class="small text-end text-muted">
+                        @if(($line->tax1_amount ?? 0) > 0)
+                            {{ $invoice->currency }} {{ number_format($line->tax1_amount, 2) }}
+                            <div class="text-muted" style="font-size:.68rem;">{{ $line->tax1_rate ?? 0 }}%</div>
+                        @else
+                            —
+                        @endif
+                    </td>
+                    <td class="small text-end text-muted">
+                        @if(($line->tax2_amount ?? 0) > 0)
+                            {{ $invoice->currency }} {{ number_format($line->tax2_amount, 2) }}
+                            <div class="text-muted" style="font-size:.68rem;">{{ $line->tax2_rate ?? 0 }}%</div>
+                        @else
+                            —
+                        @endif
+                    </td>
+                    <td class="small text-end fw-semibold">{{ $invoice->currency }} {{ number_format($line->gross_amount ?? $line->line_amount, 2) }}</td>
                 </tr>
                 @endforeach
-                <tr class="table-light fw-bold">
-                    <td colspan="6" class="text-end">Subtotal</td>
-                    <td class="text-end">{{ $invoice->currency }} {{ number_format($invoice->subtotal, 2) }}</td>
+                <tr class="table-light">
+                    <td colspan="8" class="text-end text-muted small pe-2">Subtotal (net)</td>
+                    <td class="text-end small fw-semibold">{{ $invoice->currency }} {{ number_format($invoice->subtotal, 2) }}</td>
+                </tr>
+                <tr class="table-light">
+                    <td colspan="8" class="text-end text-muted small pe-2">SSCL</td>
+                    <td class="text-end small text-muted">{{ $invoice->currency }} {{ number_format($invoice->sscl_total ?? 0, 2) }}</td>
+                </tr>
+                <tr class="table-light">
+                    <td colspan="8" class="text-end text-muted small pe-2">VAT</td>
+                    <td class="text-end small text-muted">{{ $invoice->currency }} {{ number_format($invoice->vat_total ?? 0, 2) }}</td>
+                </tr>
+                <tr class="table-primary fw-bold">
+                    <td colspan="8" class="text-end pe-2">Grand Total</td>
+                    <td class="text-end">{{ $invoice->currency }} {{ number_format($invoice->grand_total, 2) }}</td>
                 </tr>
             </tbody>
         </table>
