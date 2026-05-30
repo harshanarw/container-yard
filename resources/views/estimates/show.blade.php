@@ -427,31 +427,71 @@
             <div class="card-header">
                 <i class="bi bi-clock-history me-2 text-primary"></i>Audit Trail
             </div>
-            <div class="card-body small">
-                <div class="mb-2">
-                    <div class="text-muted">Created by</div>
-                    <div>{{ $estimate->createdBy->name ?? '—' }}</div>
-                    <div class="text-muted">{{ $estimate->created_at->format('d M Y H:i') }}</div>
-                </div>
-                @if($estimate->sent_at)
-                <div class="mb-2">
-                    <div class="text-muted">Last sent</div>
-                    <div>{{ $estimate->sent_at->format('d M Y H:i') }}</div>
-                    @if($estimate->send_to_email)
-                    <div class="text-muted">To: {{ $estimate->send_to_email }}</div>
+            <div class="card-body small p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item py-2 px-3">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-plus-circle-fill text-success mt-1" style="font-size:.8rem;"></i>
+                            <div>
+                                <div class="fw-semibold">Created</div>
+                                <div class="text-muted">{{ $estimate->createdBy->name ?? '—' }}</div>
+                                <div class="text-muted" style="font-size:.75rem;">{{ $estimate->created_at->format('d M Y, H:i') }}</div>
+                            </div>
+                        </div>
+                    </li>
+                    @if($estimate->updated_by && $estimate->updated_at > $estimate->created_at)
+                    <li class="list-group-item py-2 px-3">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-pencil-fill text-primary mt-1" style="font-size:.8rem;"></i>
+                            <div>
+                                <div class="fw-semibold">Last Updated</div>
+                                <div class="text-muted">{{ $estimate->updatedBy->name ?? '—' }}</div>
+                                <div class="text-muted" style="font-size:.75rem;">{{ $estimate->updated_at->format('d M Y, H:i') }}</div>
+                            </div>
+                        </div>
+                    </li>
                     @endif
-                    @if(($estimate->version_no ?? 1) > 1)
-                    <div class="text-muted">Version: v{{ $estimate->version_no }}</div>
+                    @if($estimate->sent_at)
+                    <li class="list-group-item py-2 px-3">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-send-fill text-info mt-1" style="font-size:.8rem;"></i>
+                            <div>
+                                <div class="fw-semibold">Sent</div>
+                                @if($estimate->send_to_email)
+                                <div class="text-muted">To: {{ $estimate->send_to_email }}</div>
+                                @endif
+                                @if(($estimate->version_no ?? 1) > 1)
+                                <div class="text-muted">Version v{{ $estimate->version_no }}</div>
+                                @endif
+                                <div class="text-muted" style="font-size:.75rem;">{{ $estimate->sent_at->format('d M Y, H:i') }}</div>
+                            </div>
+                        </div>
+                    </li>
                     @endif
-                </div>
-                @endif
-                @if($estimate->approved_date)
-                <div class="mb-2">
-                    <div class="text-muted">Approved by</div>
-                    <div>{{ $estimate->approvedBy->name ?? 'Owner' }}</div>
-                    <div class="text-muted">{{ \Carbon\Carbon::parse($estimate->approved_date)->format('d M Y H:i') }}</div>
-                </div>
-                @endif
+                    @if($estimate->approved_date)
+                    <li class="list-group-item py-2 px-3">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-check-circle-fill text-success mt-1" style="font-size:.8rem;"></i>
+                            <div>
+                                <div class="fw-semibold">Approved</div>
+                                <div class="text-muted">{{ $estimate->approvedBy->name ?? 'Owner' }}</div>
+                                <div class="text-muted" style="font-size:.75rem;">{{ \Carbon\Carbon::parse($estimate->approved_date)->format('d M Y, H:i') }}</div>
+                            </div>
+                        </div>
+                    </li>
+                    @endif
+                    @if($estimate->status === 'rejected' && $estimate->rejected_reason)
+                    <li class="list-group-item py-2 px-3">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-x-circle-fill text-danger mt-1" style="font-size:.8rem;"></i>
+                            <div>
+                                <div class="fw-semibold">Rejected</div>
+                                <div class="text-muted">{{ $estimate->rejected_reason }}</div>
+                            </div>
+                        </div>
+                    </li>
+                    @endif
+                </ul>
             </div>
         </div>
 

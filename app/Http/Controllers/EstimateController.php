@@ -166,7 +166,7 @@ class EstimateController extends Controller
     {
         $estimate->load([
             'container', 'customer', 'inquiry', 'lineItems',
-            'createdBy', 'approvedBy', 'parentEstimate', 'revisions',
+            'createdBy', 'updatedBy', 'approvedBy', 'parentEstimate', 'revisions',
             'approvalActions.lineItem', 'approvalActions.actionedBy',
         ]);
 
@@ -235,6 +235,7 @@ class EstimateController extends Controller
             'email_message'  => $request->email_message,
             'attach_pdf'     => $request->boolean('attach_pdf'),
             'attach_photos'  => $request->boolean('attach_photos'),
+            'updated_by'     => auth()->id(),
         ]);
 
         $estimate->lineItems()->delete();

@@ -15,7 +15,7 @@ class Estimate extends Model
         'size', 'type_code', 'estimate_date', 'valid_until', 'currency', 'priority',
         'status', 'scope_of_work', 'terms', 'subtotal', 'sscl_amount', 'vat_amount',
         'tax_percentage', 'tax_amount', 'grand_total', 'send_to_email', 'send_cc_email', 'email_message', 'attach_pdf',
-        'attach_photos', 'created_by', 'approved_by', 'approved_date', 'rejected_reason',
+        'attach_photos', 'created_by', 'updated_by', 'approved_by', 'approved_date', 'rejected_reason',
         'sent_at',
     ];
 
@@ -78,6 +78,11 @@ class Estimate extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     public function approvedBy()
