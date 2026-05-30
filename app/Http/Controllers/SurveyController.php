@@ -174,7 +174,11 @@ class SurveyController extends Controller
 
     public function show(Inquiry $survey)
     {
-        $survey->load(['container', 'customer', 'inspector', 'damages', 'checklists', 'estimate']);
+        $survey->load([
+            'container', 'customer', 'inspector', 'checklists', 'estimate',
+            'damages.locationCode', 'damages.componentCode', 'damages.damageCode',
+            'damages.repairCode', 'damages.responsibilityCode', 'damages.estimateLineItem.estimate',
+        ]);
 
         return view('surveys.show', ['inquiry' => $survey]);
     }

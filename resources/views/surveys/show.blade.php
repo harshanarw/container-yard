@@ -162,7 +162,16 @@
         <div class="card content-card mb-4">
             <div class="card-header py-2 fw-semibold small d-flex align-items-center justify-content-between">
                 <span><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Damage Assessment</span>
-                <span class="badge bg-warning-subtle text-warning">{{ $inquiry->damages->count() }} item(s)</span>
+                @php
+                    $totalDmg   = $inquiry->damages->count();
+                    $coveredDmg = $inquiry->damages->filter(fn($d) => $d->estimateLineItem !== null)->count();
+                @endphp
+                <div class="d-flex gap-1">
+                    <span class="badge bg-warning-subtle text-warning">{{ $totalDmg }} item(s)</span>
+                    @if($coveredDmg > 0)
+                    <span class="badge bg-success-subtle text-success">{{ $coveredDmg }} in estimate</span>
+                    @endif
+                </div>
             </div>
             @if($inquiry->damages->isEmpty())
             <div class="card-body text-center text-muted py-4 small">
@@ -176,9 +185,14 @@
                             <tr>
                                 <th class="ps-3">#</th>
                                 <th>Location</th>
-                                <th>Damage Type</th>
+                                <th>Component</th>
+                                <th>Damage</th>
+                                <th>Repair</th>
+                                <th>Resp.</th>
                                 <th>Severity</th>
                                 <th>Dimensions</th>
+                                <th>CEDEX</th>
+                                <th>In Estimate</th>
                                 <th>Description</th>
                             </tr>
                         </thead>
@@ -186,11 +200,41 @@
                             @foreach($inquiry->damages as $i => $dmg)
                             <tr>
                                 <td class="ps-3 text-muted">{{ $i + 1 }}</td>
-                                <td class="fw-semibold">{{ ucwords(str_replace('_', ' ', $dmg->location)) }}</td>
-                                <td>{{ ucwords(str_replace('_', ' ', $dmg->damage_type)) }}</td>
+                                <td>
+                                    @if($dmg->locationCode)
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">{{ $dmg->locationCode->code }}</span>
+                                        <span class="ms-1">{{ $dmg->locationCode->name }}</span>
+                                    @else <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($dmg->componentCode)
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle font-monospace">{{ $dmg->componentCode->code }}</span>
+                                    @else <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($dmg->damageCode)
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace">{{ $dmg->damageCode->code }}</span>
+                                        <span class="ms-1">{{ $dmg->damageCode->name }}</span>
+                                    @else <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($dmg->repairCode)
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace">{{ $dmg->repairCode->code }}</span>
+                                    @else <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($dmg->responsibilityCode)
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle font-monospace">{{ $dmg->responsibilityCode->code }}</span>
+                                    @else <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                                 <td>
                                     @php
-                                        $sc = match($dmg->severity) {
+                                        $sc = match($dmg->severity ?? 'minor') {
                                             'minor'    => 'success',
                                             'moderate' => 'warning',
                                             'severe'   => 'danger',
@@ -198,10 +242,32 @@
                                         };
                                     @endphp
                                     <span class="badge bg-{{ $sc }}-subtle text-{{ $sc }}">
-                                        {{ ucfirst($dmg->severity) }}
+                                        {{ ucfirst($dmg->severity ?? '—') }}
                                     </span>
                                 </td>
-                                <td class="font-monospace text-muted">{{ $dmg->dimensions ?? '—' }}</td>
+                                <td class="font-monospace text-muted">
+                                    @if($dmg->dim_length)
+                                        {{ $dmg->dim_length }}×{{ $dmg->dim_width }}
+                                    @else —
+                                    @endif
+                                </td>
+                                <td class="font-monospace">
+                                    @if($dmg->cedex_code)
+                                        <span class="badge bg-dark text-white">{{ $dmg->cedex_code }}</span>
+                                    @else <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($dmg->estimateLineItem)
+                                        <a href="{{ route('estimates.show', $dmg->estimateLineItem->estimate_id) }}"
+                                           class="badge bg-success-subtle text-success border border-success-subtle text-decoration-none"
+                                           title="{{ $dmg->estimateLineItem->estimate->estimate_no }}">
+                                            <i class="bi bi-check-circle me-1"></i>{{ $dmg->estimateLineItem->estimate->estimate_no }}
+                                        </a>
+                                    @else
+                                        <span class="badge bg-secondary-subtle text-secondary">Not covered</span>
+                                    @endif
+                                </td>
                                 <td class="text-muted">{{ $dmg->description ?? '—' }}</td>
                             </tr>
                             @endforeach
