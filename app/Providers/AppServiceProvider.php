@@ -31,7 +31,7 @@ class AppServiceProvider extends ServiceProvider
         // Custom SMTP transport that skips SSL certificate peer verification.
         // Needed for shared hosting where the mail server certificate CN does
         // not match the configured hostname (e.g. *.gohsphere.com vs mail.example.com).
-        Mail::extend('smtp-no-verify', function ($app, array $config) {
+        Mail::extend('smtp-no-verify', function (array $config) {
             $tls = ($config['encryption'] ?? null) === 'ssl';
 
             $stream = new SocketStream();
