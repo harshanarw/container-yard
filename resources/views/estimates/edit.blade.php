@@ -356,13 +356,16 @@
 
     // MR code options and charge code options for new-row JS template
     const mrCmpCodeOpts = @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
-    const chargeCodeOpts = @json($chargeCodes->map(fn($c) => [
+    @php
+    $chargeCodeJson = $chargeCodes->map(fn($c) => [
         'id'          => $c->id,
         'code'        => $c->code,
         'description' => $c->description,
         'tax_rate'    => $c->taxCode?->total_rate ?? 0,
         'tax_code_id' => $c->tax_code_id,
-    ]));
+    ]);
+    @endphp
+    const chargeCodeOpts = @json($chargeCodeJson);
 
     function esc(str) {
         return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');

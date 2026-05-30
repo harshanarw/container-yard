@@ -382,13 +382,16 @@
     const mrLocCodeOpts = @json($mrLocationCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
 
     // Charge code options with embedded tax rate
-    const chargeCodeOpts = @json($chargeCodes->map(fn($c) => [
+    @php
+    $chargeCodeJson = $chargeCodes->map(fn($c) => [
         'id'          => $c->id,
         'code'        => $c->code,
         'description' => $c->description,
         'tax_rate'    => $c->taxCode?->total_rate ?? 0,
         'tax_code_id' => $c->tax_code_id,
-    ]));
+    ]);
+    @endphp
+    const chargeCodeOpts = @json($chargeCodeJson);
 
     function buildCodeSelect(name, options, selectedId) {
         let html = `<select name="${name}" class="form-select form-select-sm mb-1"><option value="">— any —</option>`;
