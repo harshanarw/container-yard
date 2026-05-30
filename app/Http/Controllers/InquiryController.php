@@ -146,6 +146,7 @@ class InquiryController extends Controller
             'container', 'customer', 'inspector', 'checklists', 'photos', 'estimate',
             'damages.locationCode', 'damages.componentCode', 'damages.damageCode',
             'damages.repairCode', 'damages.materialCode', 'damages.responsibilityCode',
+            'damages.estimateLineItem.estimate',
         ]);
 
         return view('inquiries.show', compact('inquiry'));

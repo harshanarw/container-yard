@@ -11,6 +11,7 @@ use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\Estimate;
 use App\Models\Inquiry;
+use App\Models\MrTariffHeader;
 use App\Models\PortalToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -100,14 +101,32 @@ class EstimateController extends Controller
         ]);
 
         foreach ($request->line_items as $item) {
-            $lineAmount = $item['qty'] * $item['unit_price'];
+            $lineAmount = round($item['qty'] * $item['unit_price'], 2);
             $estimate->lineItems()->create([
-                'component'      => $item['component'],
-                'repair_type'    => $item['repair_type'],
-                'qty'            => $item['qty'],
-                'unit_price'     => $item['unit_price'],
-                'tax_percentage' => $item['tax_percentage'] ?? 0,
-                'line_amount'    => $lineAmount,
+                'component'           => $item['component'],
+                'repair_type'         => $item['repair_type'],
+                'qty'                 => $item['qty'],
+                'unit_price'          => $item['unit_price'],
+                'tax_percentage'      => $item['tax_percentage'] ?? 0,
+                'line_amount'         => $lineAmount,
+                // MR code traceability
+                'damage_id'           => $item['damage_id'] ?? null,
+                'mr_tariff_rule_id'   => $item['mr_tariff_rule_id'] ?? null,
+                'location_code_id'    => $item['location_code_id'] ?? null,
+                'component_code_id'   => $item['component_code_id'] ?? null,
+                'damage_code_id'      => $item['damage_code_id'] ?? null,
+                'repair_code_id'      => $item['repair_code_id'] ?? null,
+                'material_code_id'    => $item['material_code_id'] ?? null,
+                'cedex_code'          => $item['cedex_code'] ?? null,
+                'repair_category_id'  => $item['repair_category_id'] ?? null,
+                // Labor / material breakdown
+                'std_labor_hours'     => $item['std_labor_hours'] ?? 0,
+                'labor_rate'          => $item['labor_rate'] ?? 0,
+                'labor_amount'        => $item['labor_amount'] ?? 0,
+                'material_qty'        => $item['material_qty'] ?? 0,
+                'material_rate'       => $item['material_rate'] ?? 0,
+                'material_amount'     => $item['material_amount'] ?? 0,
+                'ancillary_amount'    => $item['ancillary_amount'] ?? 0,
             ]);
         }
 
@@ -318,6 +337,122 @@ class EstimateController extends Controller
         $estimate->load(['container', 'customer', 'inquiry', 'lineItems', 'createdBy']);
 
         return view('estimates.pdf', compact('estimate'));
+    }
+
+    /**
+     * AJAX: convert a survey's damage findings into pre-priced estimate line items.
+     * Looks up the best matching MR tariff rule for each damage.
+     */
+    public function importDamages(Request $request, Inquiry $inquiry)
+    {
+        $inquiry->load([
+            'damages.locationCode', 'damages.componentCode',
+            'damages.damageCode',   'damages.repairCode',
+            'damages.materialCode',
+        ]);
+
+        // Repair code → estimate repair_type enum
+        $repairTypeMap = [
+            'RPL' => 'replace',
+            'SLR' => 'replace',
+            'WLD' => 'weld',
+            'STR' => 'straighten',
+            'TAP' => 'paint',
+            'CLN' => 'clean_and_treat',
+            'PAT' => 'repair',
+            'GRD' => 'repair',
+            'BLT' => 'repair',
+            'INS' => 'repair',
+        ];
+
+        // Best tariff: customer-specific first, then default (null customer)
+        $customerId     = $inquiry->customer_id;
+        $containerSize  = $request->container_size ?? $inquiry->equipmentType?->size;
+
+        $tariffHeader = MrTariffHeader::with('rules')
+            ->where('is_active', true)
+            ->where(function ($q) use ($customerId) {
+                $q->where('customer_id', $customerId)->orWhereNull('customer_id');
+            })
+            ->where(function ($q) {
+                $q->whereNull('valid_to')->orWhere('valid_to', '>=', now());
+            })
+            ->orderByRaw('CASE WHEN customer_id IS NOT NULL THEN 0 ELSE 1 END')
+            ->first();
+
+        $lines = [];
+
+        foreach ($inquiry->damages as $dmg) {
+            // Find the most specific tariff rule: component + repair > component only > repair only
+            $tariffRule = null;
+            if ($tariffHeader) {
+                // Try exact match on both codes
+                if ($dmg->component_code_id && $dmg->repair_code_id) {
+                    $tariffRule = $tariffHeader->rules
+                        ->where('component_code_id', $dmg->component_code_id)
+                        ->where('repair_code_id', $dmg->repair_code_id)
+                        ->first();
+                }
+                // Fallback: component only
+                if (!$tariffRule && $dmg->component_code_id) {
+                    $tariffRule = $tariffHeader->rules
+                        ->where('component_code_id', $dmg->component_code_id)
+                        ->whereNull('repair_code_id')
+                        ->first();
+                }
+                // Fallback: repair only
+                if (!$tariffRule && $dmg->repair_code_id) {
+                    $tariffRule = $tariffHeader->rules
+                        ->whereNull('component_code_id')
+                        ->where('repair_code_id', $dmg->repair_code_id)
+                        ->first();
+                }
+            }
+
+            $repairCode  = $dmg->repairCode?->code ?? '';
+            $repairType  = $repairTypeMap[$repairCode] ?? 'repair';
+            $qty         = max(1, (float) ($dmg->quantity ?? 1));
+            $unitPrice   = $tariffRule ? $tariffRule->computeAmount() : 0;
+
+            $lines[] = [
+                // Traceability
+                'damage_id'         => $dmg->id,
+                'mr_tariff_rule_id' => $tariffRule?->id,
+                'location_code_id'  => $dmg->location_code_id,
+                'component_code_id' => $dmg->component_code_id,
+                'damage_code_id'    => $dmg->damage_code_id,
+                'repair_code_id'    => $dmg->repair_code_id,
+                'material_code_id'  => $dmg->material_code_id,
+                'cedex_code'        => $dmg->cedex_code,
+                // Line data
+                'component'         => $dmg->componentCode?->name
+                                        ?? ucwords(str_replace('_', ' ', $dmg->location ?? '')),
+                'repair_type'       => $repairType,
+                'qty'               => $qty,
+                'unit_price'        => $unitPrice,
+                'tax_percentage'    => 0,
+                // Labor / material breakdown from tariff
+                'std_labor_hours'   => (float) ($tariffRule?->std_labor_hours ?? 0),
+                'labor_rate'        => (float) ($tariffRule?->labor_rate ?? 0),
+                'labor_amount'      => round((float)($tariffRule?->std_labor_hours ?? 0) * (float)($tariffRule?->labor_rate ?? 0), 2),
+                'material_qty'      => (float) ($tariffRule?->material_qty ?? 0),
+                'material_rate'     => (float) ($tariffRule?->material_rate ?? 0),
+                'material_amount'   => round((float)($tariffRule?->material_qty ?? 0) * (float)($tariffRule?->material_rate ?? 0), 2),
+                'ancillary_amount'  => (float) ($tariffRule?->ancillary ?? 0),
+                // Display labels (for the import preview, not submitted)
+                '_location'         => $dmg->locationCode?->name ?? ucwords(str_replace('_', ' ', $dmg->location ?? '')),
+                '_damage'           => $dmg->damageCode?->name ?? ucwords(str_replace('_', ' ', $dmg->damage_type ?? '')),
+                '_severity'         => $dmg->severity,
+                '_tariff_matched'   => $tariffRule !== null,
+            ];
+        }
+
+        return response()->json([
+            'lines'        => $lines,
+            'tariff_name'  => $tariffHeader?->name,
+            'tariff_found' => $tariffHeader !== null,
+            'damage_count' => count($lines),
+        ]);
     }
 
     private function calculateTotals(array $lineItems, float $taxPct): array

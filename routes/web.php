@@ -75,6 +75,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Repair Estimates
     Route::resource('estimates', EstimateController::class);
+    Route::get('estimates/import-damages/{inquiry}',   [EstimateController::class, 'importDamages'])->name('estimates.import-damages');
     Route::post('estimates/{estimate}/send',           [EstimateController::class, 'send'])->name('estimates.send');
     Route::post('estimates/{estimate}/send-reminder',  [EstimateController::class, 'sendReminder'])->name('estimates.send-reminder');
     Route::patch('estimates/{estimate}/revoke-token',  [EstimateController::class, 'revokeToken'])->name('estimates.revoke-token');

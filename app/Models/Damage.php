@@ -64,6 +64,11 @@ class Damage extends Model
         return $this->belongsTo(MrCode::class, 'responsibility_code_id');
     }
 
+    public function estimateLineItem()
+    {
+        return $this->hasOne(EstimateLineItem::class, 'damage_id');
+    }
+
     /** Generate CEDEX-compatible code string from the selected codes. */
     public function buildCedexCode(): string
     {

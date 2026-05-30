@@ -162,7 +162,16 @@
         <div class="card content-card mb-4">
             <div class="card-header py-2 fw-semibold small d-flex align-items-center justify-content-between">
                 <span><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Damage Assessment</span>
-                <span class="badge bg-warning-subtle text-warning">{{ $inquiry->damages->count() }} item(s)</span>
+                @php
+                    $totalDamages   = $inquiry->damages->count();
+                    $coveredDamages = $inquiry->damages->filter(fn($d) => $d->estimateLineItem !== null)->count();
+                @endphp
+                <div class="d-flex gap-1">
+                    <span class="badge bg-warning-subtle text-warning">{{ $totalDamages }} item(s)</span>
+                    @if($coveredDamages > 0)
+                    <span class="badge bg-success-subtle text-success">{{ $coveredDamages }} in estimate</span>
+                    @endif
+                </div>
             </div>
             @if($inquiry->damages->isEmpty())
             <div class="card-body text-center text-muted py-4 small">
@@ -183,6 +192,7 @@
                                 <th>Severity</th>
                                 <th>Dimensions</th>
                                 <th>CEDEX</th>
+                                <th>In Estimate</th>
                                 <th>Description</th>
                             </tr>
                         </thead>
@@ -252,6 +262,17 @@
                                     @if($dmg->cedex_code)
                                         <span class="badge bg-dark text-white">{{ $dmg->cedex_code }}</span>
                                     @else <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="small">
+                                    @if($dmg->estimateLineItem)
+                                        <a href="{{ route('estimates.show', $dmg->estimateLineItem->estimate_id) }}"
+                                           class="badge bg-success-subtle text-success border border-success-subtle text-decoration-none"
+                                           title="Covered in {{ $dmg->estimateLineItem->estimate->estimate_no }}">
+                                            <i class="bi bi-check-circle me-1"></i>{{ $dmg->estimateLineItem->estimate->estimate_no }}
+                                        </a>
+                                    @else
+                                        <span class="badge bg-secondary-subtle text-secondary">Not covered</span>
                                     @endif
                                 </td>
                                 <td class="text-muted small">{{ $dmg->description ?? '—' }}</td>
