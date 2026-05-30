@@ -33,6 +33,73 @@ class WorkOrderController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        $approvedEstimates = \App\Models\Estimate::with('inquiry.container', 'customer')
+            ->where('status', 'approved')
+            ->whereDoesntHave('workOrders')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $supervisors = \App\Models\User::whereIn('role', ['yard_supervisor', 'admin'])->get();
+
+        return view('work-orders.create', [
+            'approvedEstimates' => $approvedEstimates,
+            'supervisors'       => $supervisors,
+            'priorities'        => ['normal', 'urgent', 'critical'],
+        ]);
+    }
+
+    public function store(\Illuminate\Http\Request $request)
+    {
+        $validated = $request->validate([
+            'estimate_id'  => 'required|exists:estimates,id',
+            'assigned_to'  => 'nullable|exists:users,id',
+            'priority'     => 'required|in:normal,urgent,critical',
+            'target_date'  => 'nullable|date',
+            'instructions' => 'nullable|string|max:500',
+        ]);
+
+        $estimate = \App\Models\Estimate::with('inquiry.container', 'customer', 'lineItems')->findOrFail($validated['estimate_id']);
+
+        if ($estimate->status !== 'approved') {
+            return back()->withErrors(['estimate_id' => 'Only approved estimates can have work orders.'])->withInput();
+        }
+
+        $lastWo = \App\Models\WorkOrder::orderByDesc('id')->value('wo_no');
+        $nextNo = $lastWo ? (int) substr($lastWo, 3) + 1 : 1;
+        $woNo   = 'WO-' . str_pad($nextNo, 4, '0', STR_PAD_LEFT);
+
+        $workOrder = \App\Models\WorkOrder::create([
+            'wo_no'        => $woNo,
+            'estimate_id'  => $estimate->id,
+            'container_id' => $estimate->container_id,
+            'container_no' => $estimate->container_no,
+            'customer_id'  => $estimate->customer_id,
+            'assigned_to'  => $validated['assigned_to'],
+            'status'       => 'pending',
+            'priority'     => $validated['priority'],
+            'target_date'  => $validated['target_date'],
+            'instructions' => $validated['instructions'],
+            'created_by'   => auth()->id(),
+        ]);
+
+        foreach ($estimate->lineItems as $line) {
+            $workOrder->lines()->create([
+                'estimate_line_item_id' => $line->id,
+                'location_code_id'      => $line->location_code_id,
+                'component_code_id'     => $line->component_code_id,
+                'damage_code_id'        => $line->damage_code_id,
+                'repair_code_id'        => $line->repair_code_id,
+                'cedex_code'            => $line->cedex_code,
+                'qty'                   => $line->qty ?? 1,
+                'status'                => 'pending',
+            ]);
+        }
+
+        return redirect()->route('work-orders.show', $workOrder)->with('success', "Work order {$woNo} created successfully.");
+    }
+
     public function show(WorkOrder $workOrder)
     {
         $workOrder->load('estimate', 'container', 'customer', 'assignedTo', 'lines.componentCode', 'lines.damageCode', 'lines.repairCode', 'createdBy');

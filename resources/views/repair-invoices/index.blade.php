@@ -10,11 +10,14 @@
 
 @section('content')
 
-<div class="page-header d-flex align-items-center justify-content-between">
+<div class="page-header d-flex align-items-center justify-content-between mb-4">
     <div>
         <h4><i class="bi bi-receipt me-2 text-primary"></i>Repair Invoices</h4>
-        <p class="text-muted small">Manage repair service invoices</p>
+        <p class="text-muted small mb-0">Manage repair service invoices</p>
     </div>
+    <a href="{{ route('repair-invoices.create') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle me-1"></i>New Repair Invoice
+    </a>
 </div>
 
 <div class="card">

@@ -82,4 +82,14 @@ class Estimate extends Model
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
+
+    public function workOrders()
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
+
+    public function repairInvoices()
+    {
+        return $this->hasMany(RepairInvoice::class);
+    }
 }

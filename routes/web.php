@@ -83,11 +83,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('estimates/{estimate}/pdf',             [EstimateController::class, 'pdf'])->name('estimates.pdf');
 
     // Work Orders
-    Route::resource('work-orders', WorkOrderController::class)->except(['create', 'store']);
+    Route::resource('work-orders', WorkOrderController::class);
     Route::patch('work-orders/{workOrder}/status', [WorkOrderController::class, 'updateStatus'])->name('work-orders.update-status');
 
     // Repair Invoices
-    Route::resource('repair-invoices', RepairInvoiceController::class)->except(['create', 'store']);
+    Route::resource('repair-invoices', RepairInvoiceController::class);
     Route::patch('repair-invoices/{repairInvoice}/issue',          [RepairInvoiceController::class, 'issue'])->name('repair-invoices.issue');
     Route::patch('repair-invoices/{repairInvoice}/record-payment', [RepairInvoiceController::class, 'recordPayment'])->name('repair-invoices.record-payment');
     Route::patch('repair-invoices/{repairInvoice}/cancel',         [RepairInvoiceController::class, 'cancel'])->name('repair-invoices.cancel');

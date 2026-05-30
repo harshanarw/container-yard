@@ -10,11 +10,14 @@
 
 @section('content')
 
-<div class="page-header d-flex align-items-center justify-content-between">
+<div class="page-header d-flex align-items-center justify-content-between mb-4">
     <div>
         <h4><i class="bi bi-hammer me-2 text-primary"></i>Work Orders</h4>
-        <p class="text-muted small">Track maintenance and repair work orders</p>
+        <p class="text-muted small mb-0">Track maintenance and repair work orders</p>
     </div>
+    <a href="{{ route('work-orders.create') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle me-1"></i>New Work Order
+    </a>
 </div>
 
 <div class="card">

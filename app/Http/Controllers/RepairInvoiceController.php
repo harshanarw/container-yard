@@ -32,6 +32,92 @@ class RepairInvoiceController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        $approvedEstimates = \App\Models\Estimate::with('inquiry.container', 'customer')
+            ->where('status', 'approved')
+            ->whereDoesntHave('repairInvoices')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return view('repair-invoices.create', [
+            'approvedEstimates' => $approvedEstimates,
+        ]);
+    }
+
+    public function store(\Illuminate\Http\Request $request)
+    {
+        $validated = $request->validate([
+            'estimate_id' => 'required|exists:estimates,id',
+            'notes'       => 'nullable|string|max:500',
+        ]);
+
+        $estimate = \App\Models\Estimate::with('inquiry.container', 'customer', 'lineItems')->findOrFail($validated['estimate_id']);
+
+        if ($estimate->status !== 'approved') {
+            return back()->withErrors(['estimate_id' => 'Only approved estimates can generate repair invoices.'])->withInput();
+        }
+
+        $lastInv = \App\Models\RepairInvoice::orderByDesc('id')->value('invoice_no');
+        $nextNo  = $lastInv ? (int) substr($lastInv, 3) + 1 : 1;
+        $invNo   = 'RI-' . str_pad($nextNo, 6, '0', STR_PAD_LEFT);
+
+        $subtotal = 0;
+        $lineRecords = [];
+
+        foreach ($estimate->lineItems as $line) {
+            $lineAmount = ($line->labor_amount ?? 0) + ($line->material_amount ?? 0) + ($line->ancillary_amount ?? 0);
+            if ($lineAmount == 0) {
+                $lineAmount = ($line->unit_price ?? 0) * ($line->qty ?? 1);
+            }
+            $subtotal += $lineAmount;
+
+            $lineRecords[] = [
+                'estimate_line_item_id' => $line->id,
+                'location_code_id'      => $line->location_code_id,
+                'component_code_id'     => $line->component_code_id,
+                'damage_code_id'        => $line->damage_code_id,
+                'repair_code_id'        => $line->repair_code_id,
+                'cedex_code'            => $line->cedex_code,
+                'description'           => $line->component ?? 'Repair work item',
+                'qty'                   => $line->qty ?? 1,
+                'unit_price'            => $lineAmount,
+                'tax_percentage'        => 18.00,
+                'line_amount'           => $lineAmount,
+            ];
+        }
+
+        $taxAmount  = $subtotal * 18 / 100;
+        $grandTotal = $subtotal + $taxAmount;
+
+        $invoice = \App\Models\RepairInvoice::create([
+            'invoice_no'     => $invNo,
+            'estimate_id'    => $estimate->id,
+            'container_id'   => $estimate->container_id,
+            'container_no'   => $estimate->container_no,
+            'customer_id'    => $estimate->customer_id,
+            'invoice_date'   => now()->toDateString(),
+            'due_date'       => now()->addDays(30)->toDateString(),
+            'currency'       => $estimate->customer->currency ?? 'USD',
+            'status'         => 'draft',
+            'subtotal'       => $subtotal,
+            'tax_percentage' => 18.00,
+            'tax_amount'     => $taxAmount,
+            'grand_total'    => $grandTotal,
+            'amount_paid'    => 0,
+            'balance_due'    => $grandTotal,
+            'notes'          => $validated['notes'],
+            'created_by'     => auth()->id(),
+        ]);
+
+        foreach ($lineRecords as $lineData) {
+            $lineData['repair_invoice_id'] = $invoice->id;
+            \App\Models\RepairInvoiceLine::create($lineData);
+        }
+
+        return redirect()->route('repair-invoices.show', $invoice)->with('success', "Repair invoice {$invNo} created.");
+    }
+
     public function show(RepairInvoice $invoice)
     {
         $invoice->load('estimate', 'workOrder', 'container', 'customer', 'lines.estimateLineItem', 'createdBy', 'issuedBy');
