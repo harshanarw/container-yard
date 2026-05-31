@@ -540,8 +540,10 @@ btnOut.addEventListener('click', () => {
     const sizeBadge = document.getElementById('gateEqtSizeBadge'), typeBadge = document.getElementById('gateEqtTypeBadge');
     function applyEqt(opt) {
         if (!opt || !opt.value) { sizeHid.value = ''; typeHid.value = ''; sizeBadge.classList.add('d-none'); typeBadge.classList.add('d-none'); return; }
+        const isReefer = ['RF', 'RH'].includes(opt.dataset.type);
         sizeHid.value = opt.dataset.size; typeHid.value = opt.dataset.type;
         sizeBadge.textContent = opt.dataset.size + "'"; typeBadge.textContent = opt.dataset.type;
+        typeBadge.className = 'badge text-nowrap' + (isReefer ? ' badge-reefer' : ' bg-info-subtle text-info');
         sizeBadge.classList.remove('d-none'); typeBadge.classList.remove('d-none');
     }
     sel.addEventListener('change', () => applyEqt(sel.selectedOptions[0]));

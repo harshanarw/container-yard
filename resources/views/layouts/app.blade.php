@@ -472,6 +472,7 @@
         .s2-code-chip { display:inline-block; background:#dbeafe; color:#1d4ed8; border-radius:4px; padding:1px 6px; font-family:monospace; font-size:.72rem; font-weight:700; flex-shrink:0; }
         .s2-chip-reefer { background:#ccfbf1; color:#0d9488; }
         .s2-code-label { font-size:.85rem; color:#374151; overflow:hidden; text-overflow:ellipsis; }
+        .badge-reefer { background-color:#ccfbf1 !important; color:#0d9488 !important; border:1px solid #99f6e4 !important; }
     </style>
     @stack('styles')
 </head>
@@ -1208,7 +1209,12 @@
             window.s2CodeSelection = function(opt) {
                 if (!opt.id) return opt.text;
                 var el = opt.element;
-                return el && el.dataset.code ? el.dataset.code : opt.text;
+                if (!el || !el.dataset.code) return opt.text;
+                // Show a coloured chip in closed state when the option has a chip variant (e.g. reefer)
+                if (el.dataset.chipClass) {
+                    return $('<span class="' + el.dataset.chipClass + '">' + el.dataset.code + '</span>');
+                }
+                return el.dataset.code;
             };
             window.initS2Code = function($el, extraOpts) {
                 var $modal = $el.closest('.modal');

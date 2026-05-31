@@ -401,10 +401,12 @@
                 typeBadge.classList.add('d-none');
                 return;
             }
+            const isReefer = ['RF', 'RH'].includes(opt.dataset.type);
             sizeHid.value = opt.dataset.size;
             typeHid.value = opt.dataset.type;
             sizeBadge.textContent = opt.dataset.size + "'";
             typeBadge.textContent = opt.dataset.type;
+            typeBadge.className = 'badge text-nowrap' + (isReefer ? ' badge-reefer' : ' bg-info-subtle text-info');
             sizeBadge.classList.remove('d-none');
             typeBadge.classList.remove('d-none');
         }
