@@ -220,13 +220,13 @@
             <td class="text-center">
               @if(($line->approval_status ?? 'pending') === 'pending')
               <div class="d-flex gap-1 justify-content-center">
-                <form method="POST" action="{{ route('portal.estimate.line-action', ['token' => $token, 'lineItem' => $line->id]) }}">
-                  @csrf
-                  <input type="hidden" name="action" value="approved">
-                  <button type="submit" class="btn btn-success btn-sm py-0 px-2" title="Approve">
-                    <i class="bi bi-check-lg"></i>
-                  </button>
-                </form>
+                <button type="button" class="btn btn-success btn-sm py-0 px-2" title="Approve"
+                        data-bs-toggle="modal" data-bs-target="#approveLineModal"
+                        data-action="{{ route('portal.estimate.line-action', ['token' => $token, 'lineItem' => $line->id]) }}"
+                        data-label="{{ $line->component }}{{ $line->repair_type ? ' — ' . ucfirst(str_replace('_', ' ', $line->repair_type)) : '' }}"
+                        data-amount="{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}">
+                  <i class="bi bi-check-lg"></i>
+                </button>
                 <button type="button" class="btn btn-danger btn-sm py-0 px-2" title="Reject"
                         data-bs-toggle="modal" data-bs-target="#rejectLineModal{{ $line->id }}">
                   <i class="bi bi-x-lg"></i>
@@ -306,20 +306,12 @@
       <div class="card-header bg-success text-white fw-semibold">
         <i class="bi bi-check-all me-2"></i>Approve Entire Estimate
       </div>
-      <div class="card-body">
+      <div class="card-body d-flex flex-column">
         <p class="small text-muted mb-3">Approving will mark all line items as accepted and notify the depot to proceed with repairs.</p>
-        <form method="POST" action="{{ route('portal.estimate.approve', $token) }}">
-          @csrf
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">Notes <span class="text-muted fw-normal">(optional)</span></label>
-            <textarea name="notes" class="form-control form-control-sm" rows="3"
-                      placeholder="Any comments for the depot…"></textarea>
-          </div>
-          <button type="submit" class="btn btn-success w-100"
-                  onclick="return confirm('Approve all lines in this estimate?')">
-            <i class="bi bi-check-circle me-1"></i>Approve Entire Estimate
-          </button>
-        </form>
+        <button type="button" class="btn btn-success w-100 mt-auto"
+                data-bs-toggle="modal" data-bs-target="#bulkApproveModal">
+          <i class="bi bi-check-circle me-1"></i>Approve Entire Estimate
+        </button>
       </div>
     </div>
   </div>
@@ -329,20 +321,12 @@
       <div class="card-header bg-danger text-white fw-semibold">
         <i class="bi bi-x-circle me-2"></i>Reject Estimate
       </div>
-      <div class="card-body">
+      <div class="card-body d-flex flex-column">
         <p class="small text-muted mb-3">Rejecting will decline all repair work. The depot will be notified and may resubmit a revised estimate.</p>
-        <form method="POST" action="{{ route('portal.estimate.reject', $token) }}">
-          @csrf
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">Reason <span class="text-danger">*</span></label>
-            <textarea name="notes" class="form-control form-control-sm" rows="3"
-                      placeholder="Reason for rejection…" required></textarea>
-          </div>
-          <button type="submit" class="btn btn-danger w-100"
-                  onclick="return confirm('Reject this entire estimate?')">
-            <i class="bi bi-x-circle me-1"></i>Reject Entire Estimate
-          </button>
-        </form>
+        <button type="button" class="btn btn-danger w-100 mt-auto"
+                data-bs-toggle="modal" data-bs-target="#bulkRejectModal">
+          <i class="bi bi-x-circle me-1"></i>Reject Entire Estimate
+        </button>
       </div>
     </div>
   </div>
@@ -370,8 +354,18 @@
             @if($line->repair_type) — {{ ucfirst(str_replace('_', ' ', $line->repair_type)) }}@endif
             <span class="float-end fw-semibold">{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}</span>
           </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Full Name <span class="text-danger">*</span></label>
+              <input type="text" name="approver_name" class="form-control form-control-sm" placeholder="Your full name" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Designation <span class="text-danger">*</span></label>
+              <input type="text" name="approver_designation" class="form-control form-control-sm" placeholder="e.g. Operations Manager" required>
+            </div>
+          </div>
           <label class="form-label small fw-semibold">Reason <span class="text-muted fw-normal">(optional)</span></label>
-          <textarea name="notes" class="form-control form-control-sm" rows="3" placeholder="Describe why this line is being rejected…"></textarea>
+          <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Describe why this line is being rejected…"></textarea>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -398,8 +392,18 @@
             @if($line->repair_type) — {{ ucfirst(str_replace('_', ' ', $line->repair_type)) }}@endif
             <span class="float-end fw-semibold">{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}</span>
           </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Full Name <span class="text-danger">*</span></label>
+              <input type="text" name="approver_name" class="form-control form-control-sm" placeholder="Your full name" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Designation <span class="text-danger">*</span></label>
+              <input type="text" name="approver_designation" class="form-control form-control-sm" placeholder="e.g. Operations Manager" required>
+            </div>
+          </div>
           <label class="form-label small fw-semibold">Amendment Notes <span class="text-danger">*</span></label>
-          <textarea name="notes" class="form-control form-control-sm" rows="3"
+          <textarea name="notes" class="form-control form-control-sm" rows="2"
                     placeholder="Describe the changes you are requesting…" required></textarea>
         </div>
         <div class="modal-footer">
@@ -415,4 +419,154 @@
 @endforeach
 @endif
 
+@if($canAct)
+
+{{-- ── Shared: Line Approve Modal ── --}}
+<div class="modal fade" id="approveLineModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="approveLineForm">
+        @csrf
+        <input type="hidden" name="action" value="approved">
+        <div class="modal-header">
+          <h6 class="modal-title"><i class="bi bi-check-circle text-success me-2"></i>Approve Line Item</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="bg-light rounded p-2 mb-3 small" id="approveLineDetails"></div>
+          <div class="alert alert-success py-2 small mb-3">
+            <i class="bi bi-shield-check me-1"></i>
+            Your name and designation will be recorded as the authorising signatory for this action.
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Full Name <span class="text-danger">*</span></label>
+              <input type="text" name="approver_name" class="form-control form-control-sm" placeholder="Your full name" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Designation <span class="text-danger">*</span></label>
+              <input type="text" name="approver_designation" class="form-control form-control-sm" placeholder="e.g. Operations Manager" required>
+            </div>
+          </div>
+          <label class="form-label small fw-semibold">Notes <span class="text-muted fw-normal">(optional)</span></label>
+          <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Any comments…"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-circle me-1"></i>Confirm Approval</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{{-- ── Bulk Approve Modal ── --}}
+<div class="modal fade" id="bulkApproveModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ route('portal.estimate.approve', $token) }}">
+        @csrf
+        <div class="modal-header">
+          <h6 class="modal-title"><i class="bi bi-check-all text-success me-2"></i>Approve Entire Estimate</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-success py-2 small mb-3">
+            <i class="bi bi-shield-check me-1"></i>
+            By approving, you confirm that you are authorised to accept this estimate on behalf of your organisation.
+            Your name, designation, and IP address will be recorded.
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Full Name <span class="text-danger">*</span></label>
+              <input type="text" name="approver_name" class="form-control form-control-sm" placeholder="Your full name" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Designation <span class="text-danger">*</span></label>
+              <input type="text" name="approver_designation" class="form-control form-control-sm" placeholder="e.g. Operations Manager" required>
+            </div>
+          </div>
+          <label class="form-label small fw-semibold">Notes <span class="text-muted fw-normal">(optional)</span></label>
+          <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Any comments for the depot…"></textarea>
+          <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" id="approveDeclaration" required>
+            <label class="form-check-label small" for="approveDeclaration">
+              I confirm I am authorised to approve this repair estimate on behalf of my organisation.
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Confirm Approval</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{{-- ── Bulk Reject Modal ── --}}
+<div class="modal fade" id="bulkRejectModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ route('portal.estimate.reject', $token) }}">
+        @csrf
+        <div class="modal-header">
+          <h6 class="modal-title"><i class="bi bi-x-circle text-danger me-2"></i>Reject Entire Estimate</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning py-2 small mb-3">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            Your name, designation, and IP address will be recorded as the authorising signatory for this rejection.
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Full Name <span class="text-danger">*</span></label>
+              <input type="text" name="approver_name" class="form-control form-control-sm" placeholder="Your full name" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Designation <span class="text-danger">*</span></label>
+              <input type="text" name="approver_designation" class="form-control form-control-sm" placeholder="e.g. Operations Manager" required>
+            </div>
+          </div>
+          <label class="form-label small fw-semibold">Reason for Rejection <span class="text-danger">*</span></label>
+          <textarea name="notes" class="form-control form-control-sm" rows="3" placeholder="Reason for rejection…" required></textarea>
+          <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" id="rejectDeclaration" required>
+            <label class="form-check-label small" for="rejectDeclaration">
+              I confirm I am authorised to reject this repair estimate on behalf of my organisation.
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle me-1"></i>Confirm Rejection</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+@endif
+
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+  const approveLineModal = document.getElementById('approveLineModal');
+  if (!approveLineModal) return;
+
+  approveLineModal.addEventListener('show.bs.modal', function (e) {
+    const btn    = e.relatedTarget;
+    const form   = document.getElementById('approveLineForm');
+    form.action  = btn.dataset.action;
+    document.getElementById('approveLineDetails').innerHTML =
+      '<strong>' + btn.dataset.label + '</strong>' +
+      '<span class="float-end fw-semibold">' + btn.dataset.amount + '</span>';
+    // Reset fields each time modal opens
+    form.querySelectorAll('input[type=text], textarea').forEach(function(el) { el.value = ''; });
+  });
+})();
+</script>
+@endpush

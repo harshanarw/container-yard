@@ -46,7 +46,9 @@ class PortalEstimateController extends Controller
     public function bulkApprove(Request $request, string $token)
     {
         $request->validate([
-            'notes' => ['nullable', 'string', 'max:1000'],
+            'approver_name'        => ['required', 'string', 'max:150'],
+            'approver_designation' => ['required', 'string', 'max:150'],
+            'notes'                => ['nullable', 'string', 'max:1000'],
         ]);
 
         $portalToken = $this->resolveToken($token);
@@ -58,27 +60,33 @@ class PortalEstimateController extends Controller
 
         $estimate->load('lineItems');
 
+        $verificationData = [
+            'approver_name'        => $request->approver_name,
+            'approver_designation' => $request->approver_designation,
+            'ip_address'           => $request->ip(),
+            'user_agent'           => $request->userAgent(),
+            'performed_by_email'   => $portalToken->email,
+        ];
+
         foreach ($estimate->lineItems as $line) {
             if ($line->approval_status === 'pending') {
                 $line->update(['approval_status' => 'approved']);
-                EstimateApprovalAction::create([
+                EstimateApprovalAction::create(array_merge($verificationData, [
                     'estimate_id'          => $estimate->id,
                     'estimate_line_item_id'=> $line->id,
                     'action'               => 'line_approved',
                     'notes'                => $request->notes,
-                    'performed_by_email'   => $portalToken->email,
-                ]);
+                ]));
             }
         }
 
         $estimate->update(['status' => 'approved']);
 
-        EstimateApprovalAction::create([
-            'estimate_id'        => $estimate->id,
-            'action'             => 'fully_approved',
-            'notes'              => $request->notes,
-            'performed_by_email' => $portalToken->email,
-        ]);
+        EstimateApprovalAction::create(array_merge($verificationData, [
+            'estimate_id' => $estimate->id,
+            'action'      => 'fully_approved',
+            'notes'       => $request->notes,
+        ]));
 
         $this->notifyDepot($estimate, 'approved', $request->notes);
 
@@ -88,7 +96,9 @@ class PortalEstimateController extends Controller
     public function bulkReject(Request $request, string $token)
     {
         $request->validate([
-            'notes' => ['required', 'string', 'max:1000'],
+            'approver_name'        => ['required', 'string', 'max:150'],
+            'approver_designation' => ['required', 'string', 'max:150'],
+            'notes'                => ['required', 'string', 'max:1000'],
         ]);
 
         $portalToken = $this->resolveToken($token);
@@ -100,16 +110,23 @@ class PortalEstimateController extends Controller
 
         $estimate->load('lineItems');
 
+        $verificationData = [
+            'approver_name'        => $request->approver_name,
+            'approver_designation' => $request->approver_designation,
+            'ip_address'           => $request->ip(),
+            'user_agent'           => $request->userAgent(),
+            'performed_by_email'   => $portalToken->email,
+        ];
+
         foreach ($estimate->lineItems as $line) {
             if ($line->approval_status === 'pending') {
                 $line->update(['approval_status' => 'rejected']);
-                EstimateApprovalAction::create([
+                EstimateApprovalAction::create(array_merge($verificationData, [
                     'estimate_id'          => $estimate->id,
                     'estimate_line_item_id'=> $line->id,
                     'action'               => 'line_rejected',
                     'notes'                => $request->notes,
-                    'performed_by_email'   => $portalToken->email,
-                ]);
+                ]));
             }
         }
 
@@ -118,12 +135,11 @@ class PortalEstimateController extends Controller
             'rejected_reason' => $request->notes,
         ]);
 
-        EstimateApprovalAction::create([
-            'estimate_id'        => $estimate->id,
-            'action'             => 'returned',
-            'notes'              => $request->notes,
-            'performed_by_email' => $portalToken->email,
-        ]);
+        EstimateApprovalAction::create(array_merge($verificationData, [
+            'estimate_id' => $estimate->id,
+            'action'      => 'returned',
+            'notes'       => $request->notes,
+        ]));
 
         $this->notifyDepot($estimate, 'rejected', $request->notes);
 
@@ -133,8 +149,10 @@ class PortalEstimateController extends Controller
     public function lineAction(Request $request, string $token, EstimateLineItem $lineItem)
     {
         $request->validate([
-            'action' => ['required', 'in:approved,rejected,amended'],
-            'notes'  => ['nullable', 'string', 'max:1000'],
+            'action'               => ['required', 'in:approved,rejected,amended'],
+            'approver_name'        => ['required', 'string', 'max:150'],
+            'approver_designation' => ['required', 'string', 'max:150'],
+            'notes'                => ['nullable', 'string', 'max:1000'],
         ]);
 
         $portalToken = $this->resolveToken($token);
@@ -146,13 +164,20 @@ class PortalEstimateController extends Controller
 
         $lineItem->update(['approval_status' => $request->action]);
 
-        EstimateApprovalAction::create([
+        $verificationData = [
+            'approver_name'        => $request->approver_name,
+            'approver_designation' => $request->approver_designation,
+            'ip_address'           => $request->ip(),
+            'user_agent'           => $request->userAgent(),
+            'performed_by_email'   => $portalToken->email,
+        ];
+
+        EstimateApprovalAction::create(array_merge($verificationData, [
             'estimate_id'          => $estimate->id,
             'estimate_line_item_id'=> $lineItem->id,
             'action'               => 'line_' . $request->action,
             'notes'                => $request->notes,
-            'performed_by_email'   => $portalToken->email,
-        ]);
+        ]));
 
         // Recalculate overall estimate status
         $estimate->load('lineItems');
