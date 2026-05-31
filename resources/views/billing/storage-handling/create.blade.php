@@ -395,6 +395,15 @@ const exchRateUrl = '/billing/exchange-rate';
 
 let previewLines = [];
 
+function fmtEqt(l) {
+    if (!l.eqt_code) return l.equipment_type || '—';
+    const isReefer = l.type_code && ['RF','RH'].includes(l.type_code);
+    const chip = isReefer
+        ? '<span class="badge badge-reefer" style="font-size:.72rem;">' + l.eqt_code + '</span>'
+        : '<span class="fw-semibold">' + l.eqt_code + '</span>';
+    return chip + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '');
+}
+
 // Fetch USD → LKR exchange rate from master based on invoice date.
 // Always fetches USD→LKR regardless of invoice currency, because tariffs may be
 // USD-denominated even when the invoice is issued in LKR.
@@ -583,7 +592,7 @@ function renderPreview(data) {
             <td class="ps-2 text-muted">${i + 1}</td>
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
-            <td class="small">${l.eqt_code ? '<span class="fw-semibold">' + l.eqt_code + '</span>' + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '') : (l.equipment_type || '—')}</td>
+            <td class="small">${fmtEqt(l)}</td>
             <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
             <td class="small">${fmtDate(l.gate_in_date)}</td>
             <td class="text-center small">${fmtDate(l.storage_from)}</td>
@@ -632,7 +641,7 @@ function renderPreview(data) {
             <td class="ps-2 text-muted">${i + 1}</td>
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
-            <td class="small">${l.eqt_code ? '<span class="fw-semibold">' + l.eqt_code + '</span>' + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '') : (l.equipment_type || '—')}</td>
+            <td class="small">${fmtEqt(l)}</td>
             <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
             <td class="small">${fmtDate(l.gate_in_date)}</td>
             <td class="text-end bg-success-subtle small">${fmt(l.lift_off_rate_usd ?? 0)}</td>
@@ -658,7 +667,7 @@ function renderPreview(data) {
             <td class="ps-2 text-muted">${i + 1}</td>
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
-            <td class="small">${l.eqt_code ? '<span class="fw-semibold">' + l.eqt_code + '</span>' + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '') : (l.equipment_type || '—')}</td>
+            <td class="small">${fmtEqt(l)}</td>
             <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
             <td class="small">${l.gate_out_date ? fmtDate(l.gate_out_date) : '—'}</td>
             <td class="text-end bg-primary-subtle small">${fmt(l.lift_on_rate_usd ?? 0)}</td>

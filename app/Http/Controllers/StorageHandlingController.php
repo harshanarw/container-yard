@@ -275,6 +275,7 @@ class StorageHandlingController extends Controller
                 'equipment_type'           => $eqtLabel,
                 'eqt_code'                 => $eqtCode,
                 'iso_code'                 => $isoCode,
+                'type_code'                => $eqt ? $eqt->type_code : $container->type_code,
                 'cargo_status'             => $cargoStatus,
                 'gate_in_date'             => $gateIn->toDateString(),
                 'gate_out_date'            => $storage->gate_out_date?->toDateString() ?? '',

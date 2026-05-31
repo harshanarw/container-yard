@@ -279,6 +279,15 @@ const exchRateUrl = '/billing/exchange-rate';
 
 let previewLines = [];
 
+function fmtEqt(l) {
+    if (!l.eqt_code) return l.equipment_type || '—';
+    const isReefer = l.type_code && ['RF','RH'].includes(l.type_code);
+    const chip = isReefer
+        ? '<span class="badge badge-reefer" style="font-size:.72rem;">' + l.eqt_code + '</span>'
+        : '<span class="fw-semibold">' + l.eqt_code + '</span>';
+    return chip + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '');
+}
+
 // Fetch USD → LKR exchange rate from master based on invoice date.
 // Always fetches USD→LKR regardless of invoice currency, because tariffs may be
 // USD-denominated even when the invoice is issued in LKR.
@@ -456,7 +465,7 @@ function renderPreview(data) {
         <tr class="${l.chargeable_days === 0 ? 'text-muted' : ''}">
             <td class="ps-3">${i + 1}</td>
             <td class="font-monospace">${l.container_no}</td>
-            <td class="small">${l.eqt_code ? '<span class="fw-semibold">' + l.eqt_code + '</span>' + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '') : (l.equipment_type || '—')}</td>
+            <td class="small">${fmtEqt(l)}</td>
             <td class="text-center">${l.cargo_status === 'laden' ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.7rem;">Laden</span>' : '<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.7rem;">Empty</span>'}</td>
             <td class="small">${formatDate(l.gate_in_date)}</td>
             <td class="text-center small">${formatDate(l.from_date)} – ${formatDate(l.to_date)}</td>
