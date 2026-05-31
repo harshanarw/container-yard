@@ -452,10 +452,18 @@
             gateInfoBox.classList.toggle('d-none', !hasGateInfo);
         }
 
-        // Native addEventListener fires whether Select2 uses jQuery trigger or native dispatch
-        containerSel.addEventListener('change', function () {
-            fillFromContainer(this.selectedOptions[0]);
-        });
+        // select2:select fires when the user picks an option from the Select2 UI.
+        // e.params.data.element is the original <option> DOM node with all data-* attrs.
+        // Fallback to native 'change' when jQuery/Select2 is absent.
+        if (typeof $ !== 'undefined') {
+            $(containerSel).on('select2:select', function (e) {
+                fillFromContainer(e.params.data.element);
+            });
+        } else {
+            containerSel.addEventListener('change', function () {
+                fillFromContainer(this.selectedOptions[0]);
+            });
+        }
 
         // Pre-fill if a container is already selected on load (e.g. ?container_id=X)
         if (containerSel.value) fillFromContainer(containerSel.selectedOptions[0]);
