@@ -418,65 +418,46 @@
             typeBadge.classList.toggle('d-none', !opt.dataset.type);
         }
 
-        function fillFromContainer(opt) {
-            if (!opt || !opt.value) {
+        // Set native select value then notify Select2 to refresh its display
+        function setS2Val(el, val) {
+            el.value = val;
+            if (typeof $ !== 'undefined') $(el).trigger('change');
+        }
+
+        function fillFromContainer(containerOpt) {
+            if (!containerOpt || !containerOpt.value) {
                 gateInfoBox.classList.add('d-none');
                 return;
             }
 
-            // 1. Equipment Type (Select2 — must use jQuery val().trigger())
-            if (eqtSelect && opt.dataset.eqtId) {
-                if (typeof $ !== 'undefined') {
-                    $(eqtSelect).val(opt.dataset.eqtId).trigger('change');
-                } else {
-                    eqtSelect.value = opt.dataset.eqtId;
-                }
-                applyEqtBadges(eqtSelect.selectedOptions[0]);
+            // 1. Equipment Type
+            if (eqtSelect && containerOpt.dataset.eqtId) {
+                setS2Val(eqtSelect, containerOpt.dataset.eqtId);
+                const eqtOpt = eqtSelect.options[eqtSelect.selectedIndex];
+                applyEqtBadges(eqtOpt && eqtOpt.value ? eqtOpt : null);
             }
 
-            // 2. Customer (Select2 — must use jQuery val().trigger('change'))
-            if (customerSelect && opt.dataset.customerId) {
-                if (typeof $ !== 'undefined') {
-                    $(customerSelect).val(opt.dataset.customerId).trigger('change');
-                } else {
-                    customerSelect.value = opt.dataset.customerId;
-                }
+            // 2. Customer
+            if (customerSelect && containerOpt.dataset.customerId) {
+                setS2Val(customerSelect, containerOpt.dataset.customerId);
             }
 
             // 3. Gate-In Reference
-            if (gateRefInput) {
-                gateRefInput.value = opt.dataset.gateRef || '';
-            }
+            if (gateRefInput) gateRefInput.value = containerOpt.dataset.gateRef || '';
 
             // 4. Gate-in info strip
-            const hasGateInfo = opt.dataset.gateDate || opt.dataset.gateRef;
-            gateDateSpan.textContent = opt.dataset.gateDate || '—';
-            gateRefSpan.textContent  = opt.dataset.gateRef  || '—';
+            const hasGateInfo = containerOpt.dataset.gateDate || containerOpt.dataset.gateRef;
+            gateDateSpan.textContent = containerOpt.dataset.gateDate || '—';
+            gateRefSpan.textContent  = containerOpt.dataset.gateRef  || '—';
             gateInfoBox.classList.toggle('d-none', !hasGateInfo);
         }
 
-        // Select2 fires the native 'change' event — but binding via jQuery is
-        // more reliable when Select2 is initialised after this script runs.
-        function bindChange() {
-            if (typeof $ !== 'undefined') {
-                $(containerSel).on('change', function () {
-                    fillFromContainer(this.selectedOptions[0]);
-                });
-            } else {
-                containerSel.addEventListener('change', function () {
-                    fillFromContainer(this.selectedOptions[0]);
-                });
-            }
-        }
+        // Native addEventListener fires whether Select2 uses jQuery trigger or native dispatch
+        containerSel.addEventListener('change', function () {
+            fillFromContainer(this.selectedOptions[0]);
+        });
 
-        // Wait for Select2 init if jQuery is present, else bind immediately
-        if (typeof $ !== 'undefined') {
-            $(function () { bindChange(); });
-        } else {
-            bindChange();
-        }
-
-        // Apply on page load if a container is pre-selected (e.g. ?container_id=X)
+        // Pre-fill if a container is already selected on load (e.g. ?container_id=X)
         if (containerSel.value) fillFromContainer(containerSel.selectedOptions[0]);
     })();
 
