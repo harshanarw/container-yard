@@ -20,8 +20,16 @@
   .total-pill .label { font-size: .72rem; opacity: .8; text-transform: uppercase; letter-spacing: .5px; }
   .total-pill .value { font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
   .action-bar { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.07); padding: 20px 24px; margin-bottom: 16px; }
-  .tfoot-row td { font-size: .85rem; padding: 5px 10px; }
-  .tfoot-total td { font-size: .95rem; font-weight: 700; background: #eff6ff; color: #1a56db; padding: 10px 10px; border-top: 2px solid #1a56db !important; }
+  .tfoot-row td { font-size: .85rem; padding: 5px 10px; white-space: nowrap; }
+  .tfoot-total td { font-size: .95rem; font-weight: 700; background: #eff6ff; color: #1a56db; padding: 10px 10px; border-top: 2px solid #1a56db !important; white-space: nowrap; }
+  .col-hide-mobile { /* hidden below md */ }
+  @media (max-width: 767px) {
+    .col-hide-mobile { display: none !important; }
+    .tfoot-row td:first-child, .tfoot-total td:first-child { display: none; }
+    .summary-meta { gap: 14px; }
+    .summary-header { padding: 18px 16px; }
+    .total-pill .value { font-size: 1.25rem; }
+  }
 </style>
 @endpush
 
@@ -43,7 +51,6 @@
     'amended'  => 'warning',
   ];
   $canAct = in_array($estimate->status, ['sent', 'under_review']) && $portalToken->isValid();
-  $cols   = $canAct ? 9 : 8;
 @endphp
 
 {{-- ── Alerts ── --}}
@@ -147,13 +154,13 @@
         <thead class="table-light">
           <tr>
             <th class="ps-3" style="width:3%">#</th>
-            <th style="width:9%">MR Code</th>
-            <th style="width:10%">Charge Code</th>
+            <th class="col-hide-mobile" style="width:9%">MR Code</th>
+            <th class="col-hide-mobile" style="width:10%">Charge Code</th>
             <th>Description</th>
-            <th style="width:10%">Repair Type</th>
-            <th class="text-end" style="width:5%">Qty</th>
-            <th class="text-end" style="width:9%">Unit Price</th>
-            <th style="width:7%">Tax Code</th>
+            <th class="col-hide-mobile" style="width:10%">Repair Type</th>
+            <th class="text-end col-hide-mobile" style="width:5%">Qty</th>
+            <th class="text-end col-hide-mobile" style="width:9%">Unit Price</th>
+            <th class="col-hide-mobile" style="width:7%">Tax Code</th>
             <th class="text-end pe-3" style="width:9%">Amount</th>
             <th class="text-center" style="width:8%">Status</th>
             @if($canAct)<th class="text-center" style="width:9%">Action</th>@endif
@@ -165,7 +172,7 @@
             <td class="ps-3 text-muted">{{ $i + 1 }}</td>
 
             {{-- MR Code chip --}}
-            <td>
+            <td class="col-hide-mobile">
               @if($line->componentCode)
                 <span class="code-chip blue" title="{{ $line->componentCode->name }}">
                   {{ $line->componentCode->code }}
@@ -176,7 +183,7 @@
             </td>
 
             {{-- Charge Code chip --}}
-            <td>
+            <td class="col-hide-mobile">
               @if($line->chargeCode)
                 <span class="code-chip green" title="{{ $line->chargeCode->name }}">
                   {{ $line->chargeCode->code }}
@@ -190,13 +197,13 @@
             <td class="fw-semibold">{{ $line->component }}</td>
 
             {{-- Repair type --}}
-            <td class="text-muted">{{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}</td>
+            <td class="text-muted col-hide-mobile">{{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}</td>
 
-            <td class="text-end">{{ number_format($line->qty, 2) }}</td>
-            <td class="text-end">{{ number_format($line->unit_price, 2) }}</td>
+            <td class="text-end col-hide-mobile">{{ number_format($line->qty, 2) }}</td>
+            <td class="text-end col-hide-mobile">{{ number_format($line->unit_price, 2) }}</td>
 
             {{-- Tax Code --}}
-            <td>
+            <td class="col-hide-mobile">
               @if($line->taxCode)
                 <span class="code-chip orange" title="{{ $line->taxCode->name ?? $line->taxCode->code }}">
                   {{ $line->taxCode->code }}
@@ -206,8 +213,8 @@
               @endif
             </td>
 
-            <td class="text-end pe-3 fw-semibold">
-              {{ number_format($line->line_amount, 2) }}
+            <td class="text-end pe-3 fw-semibold" style="white-space:nowrap;">
+              {{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}
             </td>
 
             <td class="text-center">
@@ -246,32 +253,39 @@
         </tbody>
 
         {{-- ── Tax & Total footer ── --}}
+        @php
+          // total columns: # + MR + Charge + Desc + RepairType + Qty + UnitPrice + Tax + Amount + Status [+ Action]
+          $totalCols    = $canAct ? 11 : 10;
+          // Amount + Status [+ Action] stay visible; everything else is the label span
+          $amountCols   = $canAct ? 3 : 2; // Amount + Status [+ Action]
+          $labelCols    = $totalCols - $amountCols;
+        @endphp
         <tfoot>
           <tr class="tfoot-row">
-            <td colspan="{{ $cols }}" class="text-end text-muted border-top">Subtotal</td>
-            <td class="text-end border-top" colspan="{{ $canAct ? 2 : 1 }}">
+            <td colspan="{{ $labelCols }}" class="text-end text-muted border-top">Subtotal</td>
+            <td class="text-end border-top" colspan="{{ $amountCols }}">
               {{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}
             </td>
           </tr>
           @if($estimate->sscl_amount > 0)
           <tr class="tfoot-row">
-            <td colspan="{{ $cols }}" class="text-end text-muted">SSCL</td>
-            <td class="text-end" colspan="{{ $canAct ? 2 : 1 }}">
+            <td colspan="{{ $labelCols }}" class="text-end text-muted">SSCL</td>
+            <td class="text-end" colspan="{{ $amountCols }}">
               {{ $estimate->currency }} {{ number_format($estimate->sscl_amount, 2) }}
             </td>
           </tr>
           @endif
           @if($estimate->vat_amount > 0)
           <tr class="tfoot-row">
-            <td colspan="{{ $cols }}" class="text-end text-muted">VAT</td>
-            <td class="text-end" colspan="{{ $canAct ? 2 : 1 }}">
+            <td colspan="{{ $labelCols }}" class="text-end text-muted">VAT</td>
+            <td class="text-end" colspan="{{ $amountCols }}">
               {{ $estimate->currency }} {{ number_format($estimate->vat_amount, 2) }}
             </td>
           </tr>
           @endif
           <tr class="tfoot-total">
-            <td colspan="{{ $cols }}" class="text-end">Grand Total</td>
-            <td class="text-end" colspan="{{ $canAct ? 2 : 1 }}">
+            <td colspan="{{ $labelCols }}" class="text-end">Grand Total</td>
+            <td class="text-end" colspan="{{ $amountCols }}">
               {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}
             </td>
           </tr>
