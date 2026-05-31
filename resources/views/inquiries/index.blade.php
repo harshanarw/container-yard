@@ -65,7 +65,7 @@
                     </div>
                 </div>
                 <div class="col-12 col-md-2">
-                    <select name="customer_id" class="form-select form-select-sm s2-code">
+                    <select name="customer_id" class="form-select form-select-sm s2-code" data-s2-sel="name">
                         <option value="">All Customers</option>
                         @foreach($customers as $customer)
                             <option value="{{ $customer->id }}" data-code="{{ $customer->code }}" data-name="{{ $customer->name }}" {{ request('customer_id') == $customer->id ? 'selected' : '' }}>

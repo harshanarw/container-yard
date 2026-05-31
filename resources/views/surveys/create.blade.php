@@ -104,7 +104,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Customer / Owner <span class="text-danger">*</span></label>
-                            <select name="customer_id" id="customerSelect" class="form-select s2-code" required>
+                            <select name="customer_id" id="customerSelect" class="form-select s2-code" required data-s2-sel="name">
                                 <option value="">— Select Customer —</option>
                                 @foreach($customers as $c)
                                     <option value="{{ $c->id }}"

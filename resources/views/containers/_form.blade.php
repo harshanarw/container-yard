@@ -143,7 +143,7 @@
                                 Linked Customer
                                 <span class="text-muted fw-normal" style="font-size:.75rem;">(default)</span>
                             </label>
-                            <select name="customer_id" class="form-select s2-code @error('customer_id') is-invalid @enderror">
+                            <select name="customer_id" class="form-select s2-code @error('customer_id') is-invalid @enderror" data-s2-sel="name">
                                 <option value="">— None —</option>
                                 @foreach($customers as $cust)
                                     <option value="{{ $cust->id }}"

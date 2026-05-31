@@ -1210,9 +1210,15 @@
                 if (!opt.id) return opt.text;
                 var el = opt.element;
                 if (!el || !el.dataset.code) return opt.text;
-                // Show a coloured chip in closed state when the option has a chip variant (e.g. reefer)
+                var chipCls = el.dataset.chipClass ? el.dataset.chipClass : 's2-code-chip';
+                // "Name [CODE]" mode — triggered by data-s2-sel="name" on the <select>
+                if (el.parentElement && el.parentElement.dataset.s2Sel === 'name') {
+                    var name = el.dataset.name || opt.text;
+                    return $('<span>' + $('<span>').text(name)[0].innerHTML + ' <span class="' + chipCls + '" style="font-size:.7rem;vertical-align:middle;">' + el.dataset.code + '</span></span>');
+                }
+                // Reefer (or other chip-class variants) — show coloured chip only
                 if (el.dataset.chipClass) {
-                    return $('<span class="' + el.dataset.chipClass + '">' + el.dataset.code + '</span>');
+                    return $('<span class="' + chipCls + '">' + el.dataset.code + '</span>');
                 }
                 return el.dataset.code;
             };

@@ -220,7 +220,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Owner / Customer</label>
-                        <select name="customer_id" class="form-select s2-code">
+                        <select name="customer_id" class="form-select s2-code" data-s2-sel="name">
                             <option value="">— Default / All Customers —</option>
                             @foreach($customers as $c)
                                 <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $mrTariff->customer_id == $c->id ? 'selected' : '' }}>

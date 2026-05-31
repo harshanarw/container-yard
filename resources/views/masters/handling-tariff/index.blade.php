@@ -203,7 +203,7 @@
                             <label class="form-label fw-semibold">
                                 Customer <span class="text-danger">*</span>
                             </label>
-                            <select name="shipping_line_id" class="form-select select2-modal s2-code" required>
+                            <select name="shipping_line_id" class="form-select select2-modal s2-code" required data-s2-sel="name">
                                 <option value="">— Select Customer —</option>
                                 @foreach($customers as $line)
                                     <option value="{{ $line->id }}" data-code="{{ $line->code }}" data-name="{{ $line->name }}">

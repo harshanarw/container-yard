@@ -57,7 +57,7 @@
                     <label class="form-label fw-semibold">
                         Shipping Line / Operator <span class="text-danger">*</span>
                     </label>
-                    <select name="shipping_line_id" id="shippingLineId" class="form-select select2 s2-code" required>
+                    <select name="shipping_line_id" id="shippingLineId" class="form-select select2 s2-code" required data-s2-sel="name">
                         <option value="">— Select Operator —</option>
                         @foreach($shippingLines as $sl)
                             <option value="{{ $sl->id }}"
@@ -80,7 +80,7 @@
                 <!-- Billing Party (searchable dropdown, auto-set from Customer master, overridable) -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Billing Party</label>
-                    <select name="billing_party_id" id="billingPartyId" class="form-select select2 s2-code">
+                    <select name="billing_party_id" id="billingPartyId" class="form-select select2 s2-code" data-s2-sel="name">
                         <option value="">— Select Billing Party —</option>
                         @foreach($allCustomers as $c)
                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-address="{{ $c->address ?? '' }}">

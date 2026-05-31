@@ -111,7 +111,7 @@
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-3">
                     <label class="form-label form-label-sm mb-1">Customer</label>
-                    <select name="customer_id" class="form-select form-select-sm select2 s2-code">
+                    <select name="customer_id" class="form-select form-select-sm select2 s2-code" data-s2-sel="name">
                         <option value="">All Customers</option>
                         @foreach($customers as $c)
                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ request('customer_id') == $c->id ? 'selected' : '' }}>
