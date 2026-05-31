@@ -223,6 +223,90 @@ class PortalEstimateController extends Controller
         return Documents::stream($document, true);
     }
 
+    public function downloadPhoto(string $token, Document $document)
+    {
+        $portalToken = $this->resolveToken($token);
+        $estimate    = $portalToken->tokenable;
+        $inquiry     = $estimate?->inquiry;
+
+        abort_unless($inquiry, 404);
+        abort_unless(
+            $document->documentable_type === Inquiry::class
+            && $document->documentable_id === $inquiry->id
+            && $document->isImage(),
+            403
+        );
+
+        return Documents::stream($document, false); // false = attachment (download)
+    }
+
+    public function downloadAllPhotos(string $token)
+    {
+        $portalToken = $this->resolveToken($token);
+        $estimate    = $portalToken->tokenable;
+        $inquiry     = $estimate?->inquiry;
+
+        abort_unless($inquiry, 404);
+
+        $documents    = $inquiry->documents()->where('mime_type', 'like', 'image/%')->get();
+        $legacyPhotos = $inquiry->photos;
+
+        abort_if($documents->isEmpty() && $legacyPhotos->isEmpty(), 404, 'No photos available.');
+
+        // Ensure temp directory exists
+        $tempDir = storage_path('app/temp');
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $tempPath = $tempDir . '/survey-' . $estimate->estimate_no . '-' . time() . '.zip';
+
+        $zip = new \ZipArchive();
+        abort_unless($zip->open($tempPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true, 500);
+
+        $usedNames = [];
+        $idx       = 1;
+
+        // Document-manager based photos
+        foreach ($documents as $doc) {
+            try {
+                $content  = Documents::get($doc);
+                $name     = $doc->original_name ?: ('photo-' . $idx . '.jpg');
+                // Deduplicate filenames
+                if (isset($usedNames[$name])) {
+                    $info = pathinfo($name);
+                    $name = ($info['filename'] ?? 'photo') . '-' . $idx . '.' . ($info['extension'] ?? 'jpg');
+                }
+                $usedNames[$name] = true;
+                $zip->addFromString($name, $content);
+                $idx++;
+            } catch (\Throwable $e) {
+                \Log::warning('Portal ZIP: skipped document ' . $doc->id . ': ' . $e->getMessage());
+            }
+        }
+
+        // Legacy InquiryPhoto records (stored in public/storage)
+        foreach ($legacyPhotos as $photo) {
+            try {
+                $fullPath = public_path('storage/' . $photo->photo_path);
+                if (file_exists($fullPath)) {
+                    $ext  = pathinfo($photo->photo_path, PATHINFO_EXTENSION) ?: 'jpg';
+                    $name = 'photo-' . $idx . '.' . $ext;
+                    $zip->addFile($fullPath, $name);
+                    $idx++;
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Portal ZIP: skipped legacy photo ' . $photo->id . ': ' . $e->getMessage());
+            }
+        }
+
+        $zip->close();
+
+        $zipName = 'survey-photos-' . $estimate->estimate_no . '-' . $inquiry->inquiry_no . '.zip';
+
+        return response()->download($tempPath, $zipName)->deleteFileAfterSend(true);
+    }
+
     private function notifyDepot(mixed $estimate, string $action, ?string $notes): void
     {
         try {

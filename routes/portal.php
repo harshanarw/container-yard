@@ -23,5 +23,7 @@ Route::prefix('portal')->name('portal.')->group(function () {
     Route::post('estimate/{token}/reject',                      [PortalEstimateController::class, 'bulkReject'])->name('estimate.reject');
     Route::post('estimate/{token}/lines/{lineItem}/action',     [PortalEstimateController::class, 'lineAction'])->name('estimate.line-action');
     Route::get('estimate/{token}/photos',                       [PortalEstimateController::class, 'photos'])->name('estimate.photos');
+    Route::get('estimate/{token}/photos/download-all',          [PortalEstimateController::class, 'downloadAllPhotos'])->name('estimate.photos.download-all');
     Route::get('estimate/{token}/photos/{document}/view',       [PortalEstimateController::class, 'viewPhoto'])->name('estimate.photo.view');
+    Route::get('estimate/{token}/photos/{document}/download',   [PortalEstimateController::class, 'downloadPhoto'])->name('estimate.photo.download');
 });
