@@ -253,58 +253,99 @@ class PortalEstimateController extends Controller
 
         abort_if($documents->isEmpty() && $legacyPhotos->isEmpty(), 404, 'No photos available.');
 
-        // Ensure temp directory exists
-        $tempDir = storage_path('app/temp');
+        $tempDir  = storage_path('app/temp');
         if (!is_dir($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
 
-        $tempPath = $tempDir . '/survey-' . $estimate->estimate_no . '-' . time() . '.zip';
-
-        $zip = new \ZipArchive();
-        abort_unless($zip->open($tempPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true, 500);
-
+        $baseName  = 'survey-' . $estimate->estimate_no . '-' . time();
         $usedNames = [];
         $idx       = 1;
 
-        // Document-manager based photos
-        foreach ($documents as $doc) {
-            try {
-                $content  = Documents::get($doc);
-                $name     = $doc->original_name ?: ('photo-' . $idx . '.jpg');
-                // Deduplicate filenames
-                if (isset($usedNames[$name])) {
-                    $info = pathinfo($name);
-                    $name = ($info['filename'] ?? 'photo') . '-' . $idx . '.' . ($info['extension'] ?? 'jpg');
-                }
-                $usedNames[$name] = true;
-                $zip->addFromString($name, $content);
-                $idx++;
-            } catch (\Throwable $e) {
-                \Log::warning('Portal ZIP: skipped document ' . $doc->id . ': ' . $e->getMessage());
-            }
-        }
+        if (class_exists('ZipArchive')) {
+            // ZIP (preferred when extension is available)
+            $archivePath  = $tempDir . '/' . $baseName . '.zip';
+            $downloadName = 'survey-photos-' . $estimate->estimate_no . '-' . $inquiry->inquiry_no . '.zip';
 
-        // Legacy InquiryPhoto records (stored in public/storage)
-        foreach ($legacyPhotos as $photo) {
-            try {
-                $fullPath = public_path('storage/' . $photo->photo_path);
-                if (file_exists($fullPath)) {
-                    $ext  = pathinfo($photo->photo_path, PATHINFO_EXTENSION) ?: 'jpg';
-                    $name = 'photo-' . $idx . '.' . $ext;
-                    $zip->addFile($fullPath, $name);
+            $zip = new \ZipArchive();
+            abort_unless($zip->open($archivePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true, 500);
+
+            foreach ($documents as $doc) {
+                try {
+                    $content = Documents::get($doc);
+                    $name    = $doc->original_name ?: ('photo-' . $idx . '.jpg');
+                    if (isset($usedNames[$name])) {
+                        $info = pathinfo($name);
+                        $name = ($info['filename'] ?? 'photo') . '-' . $idx . '.' . ($info['extension'] ?? 'jpg');
+                    }
+                    $usedNames[$name] = true;
+                    $zip->addFromString($name, $content);
                     $idx++;
+                } catch (\Throwable $e) {
+                    \Log::warning('Portal ZIP: skipped document ' . $doc->id . ': ' . $e->getMessage());
                 }
-            } catch (\Throwable $e) {
-                \Log::warning('Portal ZIP: skipped legacy photo ' . $photo->id . ': ' . $e->getMessage());
             }
+
+            foreach ($legacyPhotos as $photo) {
+                try {
+                    $fullPath = public_path('storage/' . $photo->photo_path);
+                    if (file_exists($fullPath)) {
+                        $ext  = pathinfo($photo->photo_path, PATHINFO_EXTENSION) ?: 'jpg';
+                        $name = 'photo-' . $idx . '.' . $ext;
+                        $zip->addFile($fullPath, $name);
+                        $idx++;
+                    }
+                } catch (\Throwable $e) {
+                    \Log::warning('Portal ZIP: skipped legacy photo ' . $photo->id . ': ' . $e->getMessage());
+                }
+            }
+
+            $zip->close();
+
+        } else {
+            // Fallback: tar.gz (no php-zip extension required)
+            $tarPath      = $tempDir . '/' . $baseName . '.tar';
+            $archivePath  = $tarPath . '.gz';
+            $downloadName = 'survey-photos-' . $estimate->estimate_no . '-' . $inquiry->inquiry_no . '.tar.gz';
+
+            $phar = new \PharData($tarPath);
+
+            foreach ($documents as $doc) {
+                try {
+                    $content = Documents::get($doc);
+                    $name    = $doc->original_name ?: ('photo-' . $idx . '.jpg');
+                    if (isset($usedNames[$name])) {
+                        $info = pathinfo($name);
+                        $name = ($info['filename'] ?? 'photo') . '-' . $idx . '.' . ($info['extension'] ?? 'jpg');
+                    }
+                    $usedNames[$name] = true;
+                    $phar->addFromString($name, $content);
+                    $idx++;
+                } catch (\Throwable $e) {
+                    \Log::warning('Portal archive: skipped document ' . $doc->id . ': ' . $e->getMessage());
+                }
+            }
+
+            foreach ($legacyPhotos as $photo) {
+                try {
+                    $fullPath = public_path('storage/' . $photo->photo_path);
+                    if (file_exists($fullPath)) {
+                        $ext  = pathinfo($photo->photo_path, PATHINFO_EXTENSION) ?: 'jpg';
+                        $name = 'photo-' . $idx . '.' . $ext;
+                        $phar->addFile($fullPath, $name);
+                        $idx++;
+                    }
+                } catch (\Throwable $e) {
+                    \Log::warning('Portal archive: skipped legacy photo ' . $photo->id . ': ' . $e->getMessage());
+                }
+            }
+
+            $phar->compress(\Phar::GZ);
+            unset($phar);
+            @unlink($tarPath);
         }
 
-        $zip->close();
-
-        $zipName = 'survey-photos-' . $estimate->estimate_no . '-' . $inquiry->inquiry_no . '.zip';
-
-        return response()->download($tempPath, $zipName)->deleteFileAfterSend(true);
+        return response()->download($archivePath, $downloadName)->deleteFileAfterSend(true);
     }
 
     private function notifyDepot(mixed $estimate, string $action, ?string $notes): void

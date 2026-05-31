@@ -83,7 +83,7 @@
     @if($totalCount > 0)
     <a href="{{ route('portal.estimate.photos.download-all', $token) }}"
        class="btn btn-primary btn-sm">
-      <i class="bi bi-file-zip me-1"></i>Download All (ZIP)
+      <i class="bi bi-file-earmark-arrow-down me-1"></i>Download All
     </a>
     @endif
     <a href="{{ route('portal.estimate.show', $token) }}" class="btn btn-outline-secondary btn-sm">
