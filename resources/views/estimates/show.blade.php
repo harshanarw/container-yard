@@ -295,9 +295,24 @@
                         @if($action->notes)
                             <div class="text-muted" style="white-space:pre-line">{{ $action->notes }}</div>
                         @endif
-                        <div class="text-muted mt-1">
-                            {{ $action->performed_by_email ?? $action->actionedBy?->name ?? '—' }}
-                            &nbsp;·&nbsp; {{ $action->created_at->format('d M Y H:i') }}
+                        {{-- Approver identity (portal-submitted actions) --}}
+                        @if($action->approver_name)
+                        <div class="mt-1">
+                            <span class="fw-semibold text-dark">{{ $action->approver_name }}</span>
+                            @if($action->approver_designation)
+                                <span class="text-muted"> · {{ $action->approver_designation }}</span>
+                            @endif
+                        </div>
+                        @endif
+                        <div class="text-muted mt-1 d-flex flex-wrap align-items-center gap-2">
+                            <span>{{ $action->performed_by_email ?? $action->actionedBy?->name ?? '—' }}</span>
+                            <span>·</span>
+                            <span>{{ $action->created_at->format('d M Y H:i') }}</span>
+                            @if($action->ip_address)
+                                <span class="badge bg-light text-secondary border" style="font-size:.7rem;font-weight:500;">
+                                    <i class="bi bi-geo me-1"></i>{{ $action->ip_address }}
+                                </span>
+                            @endif
                         </div>
                     </div>
                 </div>
