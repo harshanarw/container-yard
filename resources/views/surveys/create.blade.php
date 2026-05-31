@@ -388,82 +388,95 @@
 @push('scripts')
 <script>
     // ── Container selection → auto-fill Equipment Type, Customer, Gate-In Ref ──
-    // Must run inside $(function(){}) so app.blade.php's DOMContentLoaded handler
-    // has already initialised all .s2-code elements via initS2Code before we try
-    // to programmatically set their values.
-    $(function () {
-        var containerSel   = document.getElementById('containerSelect');
-        var eqtSelect      = document.getElementById('eqtSelect');
-        var customerSelect = document.getElementById('customerSelect');
-        var gateRefInput   = document.querySelector('[name="gate_in_ref"]');
-        var gateInfoBox    = document.getElementById('containerGateInfo');
-        var gateDateSpan   = document.getElementById('containerGateDate');
-        var gateRefSpan    = document.getElementById('containerGateRef');
+    // setTimeout(fn, 0) schedules this as a macrotask that runs AFTER all
+    // DOMContentLoaded handlers have completed (including app.blade.php's
+    // Select2 init). This guarantees $(el).val().trigger('change') will update
+    // the Select2 display. No top-level $ call, so a CDN hiccup cannot crash
+    // the rest of this script block (Add Row, photo uploader, etc.).
+    (function () {
+        setTimeout(function () {
+            var containerSel   = document.getElementById('containerSelect');
+            if (!containerSel) return;
 
-        function applyEqtBadges(opt) {
-            var sizeHid   = document.getElementById('eqtSize');
-            var typeHid   = document.getElementById('eqtTypeCode');
-            var sizeBadge = document.getElementById('eqtSizeBadge');
-            var typeBadge = document.getElementById('eqtTypeBadge');
-            if (!opt || !opt.value) {
-                sizeHid.value = typeHid.value = '';
-                sizeBadge.classList.add('d-none');
-                typeBadge.classList.add('d-none');
-                return;
-            }
-            var isReefer = ['RF', 'RH'].indexOf(opt.dataset.type) >= 0;
-            sizeHid.value = opt.dataset.size || '';
-            typeHid.value = opt.dataset.type || '';
-            sizeBadge.textContent = opt.dataset.size ? opt.dataset.size + "'" : '';
-            typeBadge.textContent = opt.dataset.type || '';
-            typeBadge.className = 'badge text-nowrap' + (isReefer ? ' badge-reefer' : ' bg-info-subtle text-info');
-            sizeBadge.classList.toggle('d-none', !opt.dataset.size);
-            typeBadge.classList.toggle('d-none', !opt.dataset.type);
-        }
+            var eqtSelect      = document.getElementById('eqtSelect');
+            var customerSelect = document.getElementById('customerSelect');
+            var gateRefInput   = document.querySelector('[name="gate_in_ref"]');
+            var gateInfoBox    = document.getElementById('containerGateInfo');
+            var gateDateSpan   = document.getElementById('containerGateDate');
+            var gateRefSpan    = document.getElementById('containerGateRef');
 
-        function fillFromContainer(containerOpt) {
-            if (!containerOpt || !containerOpt.value) {
-                gateInfoBox.classList.add('d-none');
-                return;
-            }
-
-            // 1. Equipment Type — use $(el).val().trigger('change') so Select2
-            //    (already initialised at this point) updates its displayed value.
-            if (eqtSelect && containerOpt.dataset.eqtId) {
-                $(eqtSelect).val(containerOpt.dataset.eqtId).trigger('change');
-                var eqtOpt = eqtSelect.options[eqtSelect.selectedIndex];
-                applyEqtBadges(eqtOpt && eqtOpt.value ? eqtOpt : null);
+            function applyEqtBadges(opt) {
+                var sizeHid   = document.getElementById('eqtSize');
+                var typeHid   = document.getElementById('eqtTypeCode');
+                var sizeBadge = document.getElementById('eqtSizeBadge');
+                var typeBadge = document.getElementById('eqtTypeBadge');
+                if (!opt || !opt.value) {
+                    if (sizeHid) sizeHid.value = '';
+                    if (typeHid) typeHid.value = '';
+                    if (sizeBadge) sizeBadge.classList.add('d-none');
+                    if (typeBadge) typeBadge.classList.add('d-none');
+                    return;
+                }
+                var isReefer = opt.dataset.type === 'RF' || opt.dataset.type === 'RH';
+                if (sizeHid) sizeHid.value = opt.dataset.size || '';
+                if (typeHid) typeHid.value = opt.dataset.type || '';
+                if (sizeBadge) {
+                    sizeBadge.textContent = opt.dataset.size ? opt.dataset.size + "'" : '';
+                    sizeBadge.classList.toggle('d-none', !opt.dataset.size);
+                }
+                if (typeBadge) {
+                    typeBadge.textContent = opt.dataset.type || '';
+                    typeBadge.className   = 'badge text-nowrap' + (isReefer ? ' badge-reefer' : ' bg-info-subtle text-info');
+                    typeBadge.classList.toggle('d-none', !opt.dataset.type);
+                }
             }
 
-            // 2. Customer
-            if (customerSelect && containerOpt.dataset.customerId) {
-                $(customerSelect).val(containerOpt.dataset.customerId).trigger('change');
+            function s2set(el, val) {
+                if (!el || !val) return;
+                if (typeof $ !== 'undefined') {
+                    $(el).val(val).trigger('change');
+                } else {
+                    el.value = val;
+                }
             }
 
-            // 3. Gate-In Reference
-            if (gateRefInput) gateRefInput.value = containerOpt.dataset.gateRef || '';
+            function fillFromContainer(containerOpt) {
+                if (!containerOpt || !containerOpt.value) {
+                    if (gateInfoBox) gateInfoBox.classList.add('d-none');
+                    return;
+                }
+                // 1. Equipment Type
+                if (containerOpt.dataset.eqtId) {
+                    s2set(eqtSelect, containerOpt.dataset.eqtId);
+                    if (eqtSelect) applyEqtBadges(eqtSelect.options[eqtSelect.selectedIndex]);
+                }
+                // 2. Customer
+                if (containerOpt.dataset.customerId) {
+                    s2set(customerSelect, containerOpt.dataset.customerId);
+                }
+                // 3. Gate-In Reference
+                if (gateRefInput) gateRefInput.value = containerOpt.dataset.gateRef || '';
+                // 4. Gate-in info strip
+                if (gateInfoBox && gateDateSpan && gateRefSpan) {
+                    var hasGateInfo = containerOpt.dataset.gateDate || containerOpt.dataset.gateRef;
+                    gateDateSpan.textContent = containerOpt.dataset.gateDate || '—';
+                    gateRefSpan.textContent  = containerOpt.dataset.gateRef  || '—';
+                    gateInfoBox.classList.toggle('d-none', !hasGateInfo);
+                }
+            }
 
-            // 4. Gate-in info strip
-            var hasGateInfo = containerOpt.dataset.gateDate || containerOpt.dataset.gateRef;
-            gateDateSpan.textContent = containerOpt.dataset.gateDate || '—';
-            gateRefSpan.textContent  = containerOpt.dataset.gateRef  || '—';
-            gateInfoBox.classList.toggle('d-none', !hasGateInfo);
-        }
+            // Use native addEventListener — Select2 triggers a real DOM 'change'
+            // event so this fires whether or not Select2 is on this element.
+            containerSel.addEventListener('change', function () {
+                fillFromContainer(this.selectedOptions[0]);
+            });
 
-        // select2:select fires after Select2 has updated the underlying <select>;
-        // this.selectedOptions[0] reliably returns the chosen <option> with its
-        // data-eqt-id / data-customer-id / data-gate-* attributes.
-        $(containerSel).on('select2:select', function () {
-            fillFromContainer(this.selectedOptions[0]);
-        });
-
-        // Pre-fill if a container is already selected on load (e.g. ?container_id=X).
-        // Runs here (inside $(function(){})) so Select2 is already initialised and
-        // $(el).val().trigger('change') correctly updates the displayed value.
-        if (containerSel && containerSel.value) {
-            fillFromContainer(containerSel.selectedOptions[0]);
-        }
-    });
+            // Pre-fill if container already selected on load (e.g. ?container_id=X).
+            if (containerSel.value) {
+                fillFromContainer(containerSel.selectedOptions[0]);
+            }
+        }, 0);
+    })();
 
     // ── Equipment Type manual override (size/type badges) ─────────────────────
     (function () {

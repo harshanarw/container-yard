@@ -1192,7 +1192,7 @@
         }
     }
 
-    $(function () {
+    document.addEventListener('DOMContentLoaded', () => {
         openActivePath();
 
         // Init Select2
