@@ -290,37 +290,37 @@
                     <div class="row g-2 mb-3">
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Component</label>
-                            <select name="component_code_id" class="form-select form-select-sm select2">
+                            <select name="component_code_id" class="form-select form-select-sm select2 s2-code">
                                 <option value="">— Any —</option>
                                 @foreach($componentCodes as $c)
-                                    <option value="{{ $c->id }}">{{ $c->code }} — {{ $c->name }}</option>
+                                    <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} — {{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Damage</label>
-                            <select name="damage_code_id" class="form-select form-select-sm select2">
+                            <select name="damage_code_id" class="form-select form-select-sm select2 s2-code">
                                 <option value="">— Any —</option>
                                 @foreach($damageCodes as $d)
-                                    <option value="{{ $d->id }}">{{ $d->code }} — {{ $d->name }}</option>
+                                    <option value="{{ $d->id }}" data-code="{{ $d->code }}" data-name="{{ $d->name }}">{{ $d->code }} — {{ $d->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Repair <span class="text-danger">*</span></label>
-                            <select name="repair_code_id" class="form-select form-select-sm select2">
+                            <select name="repair_code_id" class="form-select form-select-sm select2 s2-code">
                                 <option value="">— Any —</option>
                                 @foreach($repairCodes as $r)
-                                    <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
+                                    <option value="{{ $r->id }}" data-code="{{ $r->code }}" data-name="{{ $r->name }}">{{ $r->code }} — {{ $r->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Material</label>
-                            <select name="material_code_id" class="form-select form-select-sm select2">
+                            <select name="material_code_id" class="form-select form-select-sm select2 s2-code">
                                 <option value="">— None —</option>
                                 @foreach($materialCodes as $m)
-                                    <option value="{{ $m->id }}">{{ $m->code }} — {{ $m->name }}</option>
+                                    <option value="{{ $m->id }}" data-code="{{ $m->code }}" data-name="{{ $m->name }}">{{ $m->code }} — {{ $m->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -394,37 +394,37 @@
                     <div class="row g-2 mb-3">
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Component</label>
-                            <select name="component_code_id" id="erComponent" class="form-select form-select-sm select2">
+                            <select name="component_code_id" id="erComponent" class="form-select form-select-sm select2 s2-code">
                                 <option value="">— Any —</option>
                                 @foreach($componentCodes as $c)
-                                    <option value="{{ $c->id }}">{{ $c->code }} — {{ $c->name }}</option>
+                                    <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} — {{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Damage</label>
-                            <select name="damage_code_id" id="erDamage" class="form-select form-select-sm select2">
+                            <select name="damage_code_id" id="erDamage" class="form-select form-select-sm select2 s2-code">
                                 <option value="">— Any —</option>
                                 @foreach($damageCodes as $d)
-                                    <option value="{{ $d->id }}">{{ $d->code }} — {{ $d->name }}</option>
+                                    <option value="{{ $d->id }}" data-code="{{ $d->code }}" data-name="{{ $d->name }}">{{ $d->code }} — {{ $d->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Repair</label>
-                            <select name="repair_code_id" id="erRepair" class="form-select form-select-sm select2">
+                            <select name="repair_code_id" id="erRepair" class="form-select form-select-sm select2 s2-code">
                                 <option value="">— Any —</option>
                                 @foreach($repairCodes as $r)
-                                    <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
+                                    <option value="{{ $r->id }}" data-code="{{ $r->code }}" data-name="{{ $r->name }}">{{ $r->code }} — {{ $r->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Material</label>
-                            <select name="material_code_id" id="erMaterial" class="form-select form-select-sm select2">
+                            <select name="material_code_id" id="erMaterial" class="form-select form-select-sm select2 s2-code">
                                 <option value="">— None —</option>
                                 @foreach($materialCodes as $m)
-                                    <option value="{{ $m->id }}">{{ $m->code }} — {{ $m->name }}</option>
+                                    <option value="{{ $m->id }}" data-code="{{ $m->code }}" data-name="{{ $m->name }}">{{ $m->code }} — {{ $m->name }}</option>
                                 @endforeach
                             </select>
                         </div>

@@ -57,10 +57,11 @@
                     <label class="form-label fw-semibold">
                         Shipping Line / Operator <span class="text-danger">*</span>
                     </label>
-                    <select name="shipping_line_id" id="shippingLineId" class="form-select select2" required>
+                    <select name="shipping_line_id" id="shippingLineId" class="form-select select2 s2-code" required>
                         <option value="">— Select Operator —</option>
                         @foreach($shippingLines as $sl)
                             <option value="{{ $sl->id }}"
+                                    data-code="{{ $sl->code }}" data-name="{{ $sl->name }}"
                                     data-tax-exempt="{{ $sl->tax_exempt ? '1' : '0' }}"
                                     data-billing-party-id="{{ $sl->billing_party_id ?? '' }}"
                                     data-billing-party-name="{{ $sl->billingParty->name ?? '' }}"
@@ -79,10 +80,10 @@
                 <!-- Billing Party (searchable dropdown, auto-set from Customer master, overridable) -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Billing Party</label>
-                    <select name="billing_party_id" id="billingPartyId" class="form-select select2">
+                    <select name="billing_party_id" id="billingPartyId" class="form-select select2 s2-code">
                         <option value="">— Select Billing Party —</option>
                         @foreach($allCustomers as $c)
-                            <option value="{{ $c->id }}" data-address="{{ $c->address ?? '' }}">
+                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-address="{{ $c->address ?? '' }}">
                                 [{{ $c->code }}] {{ $c->name }}
                             </option>
                         @endforeach

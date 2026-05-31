@@ -179,42 +179,42 @@
                                 @forelse($inquiry->damages as $di => $dmg)
                                 <tr class="damage-row">
                                     <td class="ps-3">
-                                        <select name="damages[{{ $di }}][location_code_id]" class="form-select form-select-sm s2">
+                                        <select name="damages[{{ $di }}][location_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrLocationCodes as $c)
-                                            <option value="{{ $c->id }}" {{ $dmg->location_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $dmg->location_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][component_code_id]" class="form-select form-select-sm s2">
+                                        <select name="damages[{{ $di }}][component_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrComponentCodes as $c)
-                                            <option value="{{ $c->id }}" {{ $dmg->component_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $dmg->component_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][damage_code_id]" class="form-select form-select-sm s2">
+                                        <select name="damages[{{ $di }}][damage_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrDamageCodes as $c)
-                                            <option value="{{ $c->id }}" {{ $dmg->damage_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $dmg->damage_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][repair_code_id]" class="form-select form-select-sm s2">
+                                        <select name="damages[{{ $di }}][repair_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrRepairCodes as $c)
-                                            <option value="{{ $c->id }}" {{ $dmg->repair_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $dmg->repair_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[{{ $di }}][responsibility_code_id]" class="form-select form-select-sm s2">
+                                        <select name="damages[{{ $di }}][responsibility_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrResponsibilityCodes as $c)
-                                            <option value="{{ $c->id }}" {{ $dmg->responsibility_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->code }}" {{ $dmg->responsibility_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }}</option>
                                             @endforeach
                                         </select>
                                     </td>
@@ -246,42 +246,42 @@
                                 @empty
                                 <tr class="damage-row">
                                     <td class="ps-3">
-                                        <select name="damages[0][location_code_id]" class="form-select form-select-sm s2">
+                                        <select name="damages[0][location_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrLocationCodes as $c)
-                                            <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][component_code_id]" class="form-select form-select-sm s2">
+                                        <select name="damages[0][component_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrComponentCodes as $c)
-                                            <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][damage_code_id]" class="form-select form-select-sm s2">
+                                        <select name="damages[0][damage_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrDamageCodes as $c)
-                                            <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][repair_code_id]" class="form-select form-select-sm s2">
+                                        <select name="damages[0][repair_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrRepairCodes as $c)
-                                            <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm s2">
+                                        <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrResponsibilityCodes as $c)
-                                            <option value="{{ $c->id }}">{{ $c->code }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->code }}">{{ $c->code }}</option>
                                             @endforeach
                                         </select>
                                     </td>
@@ -416,13 +416,13 @@
     const mrResOpts  = @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
 
     function buildSel(name, opts, codeOnly) {
-        let html = `<select name="${name}" class="form-select form-select-sm s2"><option value="">—</option>`;
-        opts.forEach(o => { html += `<option value="${o.id}">${o.code}${codeOnly ? '' : ' '+o.name}</option>`; });
+        let html = `<select name="${name}" class="form-select form-select-sm s2 s2-code"><option value="">—</option>`;
+        opts.forEach(o => { html += `<option value="${o.id}" data-code="${o.code}" data-name="${codeOnly ? o.code : o.name}">${o.code}${codeOnly ? '' : ' '+o.name}</option>`; });
         return html + '</select>';
     }
 
     function initRowSelects(tr) {
-        $(tr).find('select.s2').select2({ theme: 'bootstrap-5', width: '100%' });
+        $(tr).find('select.s2').each(function() { window.initS2Code($(this), { width: '100%' }); });
     }
 
     document.getElementById('addDamageRow').addEventListener('click', function () {

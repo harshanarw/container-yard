@@ -322,10 +322,10 @@
                         <label class="form-label small fw-semibold mb-1">
                             <i class="bi bi-tag me-1 text-primary"></i>Charge Code
                         </label>
-                        <select name="charge_code_id" class="form-select form-select-sm select2">
+                        <select name="charge_code_id" class="form-select form-select-sm select2 s2-code">
                             <option value="">— None —</option>
                             @foreach($chargeCodes as $cc)
-                                <option value="{{ $cc->id }}" {{ $cc->code === 'STC' ? 'selected' : '' }}>
+                                <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}" {{ $cc->code === 'STC' ? 'selected' : '' }}>
                                     {{ $cc->code }} — {{ $cc->description }}
                                     @if($cc->taxCode) ({{ $cc->taxCode->code }}) @endif
                                 </option>
@@ -427,10 +427,10 @@
                         <label class="form-label fw-semibold">
                             <i class="bi bi-tag me-1 text-primary"></i>Charge Code
                         </label>
-                        <select name="charge_code_id" id="editRateChargeCode" class="form-select select2-modal">
+                        <select name="charge_code_id" id="editRateChargeCode" class="form-select select2-modal s2-code">
                             <option value="">— None —</option>
                             @foreach($chargeCodes as $cc)
-                                <option value="{{ $cc->id }}">
+                                <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}">
                                     {{ $cc->code }} — {{ $cc->description }}
                                     @if($cc->taxCode) ({{ $cc->taxCode->code }}) @endif
                                 </option>
@@ -511,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialise select2 inside the edit modal after it fully opens
     $('#editRateModal').on('shown.bs.modal', function () {
-        $(this).find('.select2-modal').select2({ dropdownParent: $(this), width: '100%' });
+        $(this).find('.select2-modal').each(function() { window.initS2Code($(this), { width: '100%' }); });
     });
 
     // ── Delete rate modal ────────────────────────────────────────────────────

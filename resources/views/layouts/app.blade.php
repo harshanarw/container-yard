@@ -466,6 +466,12 @@
         }
         #sidebar-backdrop.show { display: block; }
     </style>
+    <style>
+        /* Select2 code+name formatting */
+        .s2-opt-row { display:flex; align-items:center; gap:8px; white-space:nowrap; overflow:hidden; }
+        .s2-code-chip { display:inline-block; background:#dbeafe; color:#1d4ed8; border-radius:4px; padding:1px 6px; font-family:monospace; font-size:.72rem; font-weight:700; flex-shrink:0; }
+        .s2-code-label { font-size:.85rem; color:#374151; overflow:hidden; text-overflow:ellipsis; }
+    </style>
     @stack('styles')
 </head>
 <body>
@@ -1179,7 +1185,32 @@
 
         // Init Select2
         if (typeof $.fn.select2 !== 'undefined') {
+            window.s2CodeResult = function(opt) {
+                if (!opt.id) return opt.text;
+                var el = opt.element;
+                var code = el && el.dataset.code ? el.dataset.code : opt.text;
+                var name = el && el.dataset.name ? el.dataset.name : '';
+                if (!name) return opt.text;
+                return $('<span class="s2-opt-row"><span class="s2-code-chip">'+code+'</span><span class="s2-code-label">'+name+'</span></span>');
+            };
+            window.s2CodeSelection = function(opt) {
+                if (!opt.id) return opt.text;
+                var el = opt.element;
+                return el && el.dataset.code ? el.dataset.code : opt.text;
+            };
+            window.initS2Code = function($el, extraOpts) {
+                var $modal = $el.closest('.modal');
+                $el.select2($.extend({
+                    theme: 'bootstrap-5',
+                    templateResult: window.s2CodeResult,
+                    templateSelection: window.s2CodeSelection,
+                    dropdownAutoWidth: true,
+                    dropdownParent: $modal.length ? $modal : $('body'),
+                    width: 'resolve',
+                }, extraOpts || {}));
+            };
             $('.select2').select2({ theme: 'bootstrap-5' });
+            $('.s2-code').each(function() { window.initS2Code($(this)); });
         }
 
         // Bootstrap Datepicker — convert type="date" inputs to text and init.

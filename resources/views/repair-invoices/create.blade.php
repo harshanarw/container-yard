@@ -43,11 +43,14 @@
             <div class="card-body">
                 <div class="mb-4">
                     <label for="estimate_id" class="form-label fw-semibold">Approved Estimate <span class="text-danger">*</span></label>
-                    <select class="form-select select2 @error('estimate_id') is-invalid @enderror"
+                    <select class="form-select select2 s2-code @error('estimate_id') is-invalid @enderror"
                             name="estimate_id" id="estimate_id" required>
                         <option value="">— Select an approved estimate —</option>
                         @foreach($approvedEstimates as $est)
-                        <option value="{{ $est->id }}" {{ old('estimate_id') == $est->id ? 'selected' : '' }}>
+                        <option value="{{ $est->id }}"
+                                data-code="{{ $est->estimate_no }}"
+                                data-name="{{ $est->container_no }} — {{ $est->customer->code ?? $est->customer->name }}"
+                                {{ old('estimate_id') == $est->id ? 'selected' : '' }}>
                             {{ $est->estimate_no }} — {{ $est->container_no }} — {{ $est->customer->code ?? $est->customer->name }}
                             ({{ $est->currency }} {{ number_format($est->grand_total, 2) }})
                         </option>

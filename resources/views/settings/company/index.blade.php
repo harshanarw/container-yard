@@ -246,10 +246,11 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Country</label>
                     <select name="country_id"
-                            class="form-select select2 @error('country_id') is-invalid @enderror">
+                            class="form-select select2 s2-code @error('country_id') is-invalid @enderror">
                         <option value="">— Select Country —</option>
                         @foreach($countries as $c)
                             <option value="{{ $c->id }}"
+                                data-code="{{ $c->iso2 }}" data-name="{{ $c->name }}"
                                 {{ old('country_id', $settings->country_id) == $c->id ? 'selected' : '' }}>
                                 {{ $c->flag_emoji }} {{ $c->name }} ({{ $c->iso2 }})
                             </option>
@@ -346,10 +347,10 @@
             @csrf @method('PATCH')
             <div class="col-md-5">
                 <label class="form-label fw-semibold">Default Currency <span class="text-danger">*</span></label>
-                <select name="currency_id" class="form-select select2" required>
+                <select name="currency_id" class="form-select select2 s2-code" required>
                     <option value="">— Select Currency —</option>
                     @foreach($currencies as $cur)
-                        <option value="{{ $cur->id }}" {{ $defaultCurrency?->id === $cur->id ? 'selected' : '' }}>
+                        <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}" {{ $defaultCurrency?->id === $cur->id ? 'selected' : '' }}>
                             [{{ $cur->code }}] {{ $cur->name }}{{ $cur->country ? ' — ' . $cur->country : '' }}
                         </option>
                     @endforeach

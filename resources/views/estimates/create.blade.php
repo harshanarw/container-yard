@@ -411,9 +411,9 @@
     }
 
     function buildCodeSelect(name, options, selectedId) {
-        let html = `<select name="${name}" class="form-select form-select-sm mb-1 s2"><option value="">— any —</option>`;
+        let html = `<select name="${name}" class="form-select form-select-sm mb-1 s2 s2-code"><option value="">— any —</option>`;
         options.forEach(o => {
-            html += `<option value="${o.id}"${o.id == selectedId ? ' selected' : ''}>${esc(o.code)} — ${esc(o.name)}</option>`;
+            html += `<option value="${o.id}" data-code="${esc(o.code)}" data-name="${esc(o.name)}"${o.id == selectedId ? ' selected' : ''}>${esc(o.code)} — ${esc(o.name)}</option>`;
         });
         return html + '</select>';
     }
@@ -421,30 +421,22 @@
     function buildChargeCodeSelect(name, selectedId) {
         let opts = '<option value="">— none —</option>';
         chargeCodeOpts.forEach(c => {
-            opts += `<option value="${c.id}" data-code="${esc(c.code)}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}"${c.id == selectedId ? ' selected' : ''}>${esc(c.code)} — ${esc(c.description)}</option>`;
+            opts += `<option value="${c.id}" data-code="${esc(c.code)}" data-name="${esc(c.description)}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}"${c.id == selectedId ? ' selected' : ''}>${esc(c.code)} — ${esc(c.description)}</option>`;
         });
-        return `<select name="${name}" class="form-select form-select-sm charge-code-sel s2">${opts}</select>`;
+        return `<select name="${name}" class="form-select form-select-sm charge-code-sel s2 s2-code">${opts}</select>`;
     }
 
     function buildTaxCodeSelect(name, selectedId) {
         let opts = '<option value="">— none —</option>';
         taxCodeOpts.forEach(tc => {
             const fullLabel = `${tc.code} (SSCL ${tc.tax1_rate}% + VAT ${tc.tax2_rate}%)`;
-            opts += `<option value="${tc.id}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}" title="${esc(fullLabel)}"${tc.id == selectedId ? ' selected' : ''}>${esc(tc.code)}</option>`;
+            opts += `<option value="${tc.id}" data-code="${esc(tc.code)}" data-name="${esc(fullLabel)}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}" title="${esc(fullLabel)}"${tc.id == selectedId ? ' selected' : ''}>${esc(tc.code)}</option>`;
         });
-        return `<select name="${name}" class="form-select form-select-sm tax-code-sel s2">${opts}</select>`;
+        return `<select name="${name}" class="form-select form-select-sm tax-code-sel s2 s2-code">${opts}</select>`;
     }
 
     function initLineSelects(tr) {
-        $(tr).find('select.s2:not(.charge-code-sel)').select2({ theme: 'bootstrap-5', width: '100%' });
-        $(tr).find('select.charge-code-sel.s2').select2({
-            theme: 'bootstrap-5',
-            width: '100%',
-            templateSelection: function (data) {
-                if (!data.id) return data.text;
-                return $(data.element).data('code') || data.text.split(' — ')[0] || data.text;
-            }
-        });
+        $(tr).find('select.s2').each(function() { window.initS2Code($(this), { width: '100%' }); });
     }
 
     const resolveUrl = '{{ route("estimates.resolve-charge-code") }}';

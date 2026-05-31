@@ -214,9 +214,10 @@
 
                         <div class="col-6">
                             <label class="form-label fw-semibold">From Currency <span class="text-danger">*</span></label>
-                            <select name="from_currency_code" id="addFromCurrency" class="form-select select2-modal" required>
+                            <select name="from_currency_code" id="addFromCurrency" class="form-select select2-modal s2-code" required>
                                 @foreach($currencies as $cur)
                                     <option value="{{ $cur->code }}"
+                                            data-code="{{ $cur->code }}" data-name="{{ $cur->name }}"
                                             {{ old('from_currency_code', 'USD') === $cur->code ? 'selected' : '' }}>
                                         {{ $cur->code }} — {{ $cur->name }}
                                     </option>
@@ -226,9 +227,10 @@
 
                         <div class="col-6">
                             <label class="form-label fw-semibold">To Currency <span class="text-danger">*</span></label>
-                            <select name="to_currency_code" id="addToCurrency" class="form-select select2-modal" required>
+                            <select name="to_currency_code" id="addToCurrency" class="form-select select2-modal s2-code" required>
                                 @foreach($currencies as $cur)
                                     <option value="{{ $cur->code }}"
+                                            data-code="{{ $cur->code }}" data-name="{{ $cur->name }}"
                                             {{ old('to_currency_code', $defaultCurrency) === $cur->code ? 'selected' : '' }}>
                                         {{ $cur->code }} — {{ $cur->name }}
                                     </option>
@@ -292,9 +294,9 @@
 
                         <div class="col-6">
                             <label class="form-label fw-semibold">From Currency <span class="text-danger">*</span></label>
-                            <select name="from_currency_code" id="editFromCurrency" class="form-select select2-modal" required>
+                            <select name="from_currency_code" id="editFromCurrency" class="form-select select2-modal s2-code" required>
                                 @foreach($currencies as $cur)
-                                    <option value="{{ $cur->code }}">
+                                    <option value="{{ $cur->code }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}">
                                         {{ $cur->code }} — {{ $cur->name }}
                                     </option>
                                 @endforeach
@@ -303,9 +305,9 @@
 
                         <div class="col-6">
                             <label class="form-label fw-semibold">To Currency <span class="text-danger">*</span></label>
-                            <select name="to_currency_code" id="editToCurrency" class="form-select select2-modal" required>
+                            <select name="to_currency_code" id="editToCurrency" class="form-select select2-modal s2-code" required>
                                 @foreach($currencies as $cur)
-                                    <option value="{{ $cur->code }}">
+                                    <option value="{{ $cur->code }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}">
                                         {{ $cur->code }} — {{ $cur->name }}
                                     </option>
                                 @endforeach
@@ -375,7 +377,7 @@ const s2Opts = { theme: 'bootstrap-5' };
 $('#addModal').on('shown.bs.modal', function () {
     $('#addFromCurrency, #addToCurrency', this).each(function () {
         if (!$(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2({ theme: 'bootstrap-5', dropdownParent: $('#addModal') });
+            window.initS2Code($(this));
         }
     });
     updateAddLabel();
@@ -384,7 +386,7 @@ $('#addModal').on('shown.bs.modal', function () {
 $('#editModal').on('shown.bs.modal', function () {
     $('#editFromCurrency, #editToCurrency', this).each(function () {
         if (!$(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2({ theme: 'bootstrap-5', dropdownParent: $('#editModal') });
+            window.initS2Code($(this));
         }
     });
     updateEditLabel();
