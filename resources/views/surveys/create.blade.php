@@ -388,101 +388,81 @@
 @push('scripts')
 <script>
     // ── Container selection → auto-fill Equipment Type, Customer, Gate-In Ref ──
-    // setTimeout(fn, 0) schedules this as a macrotask that runs AFTER all
-    // DOMContentLoaded handlers have completed (including app.blade.php's
-    // Select2 init). This guarantees $(el).val().trigger('change') will update
-    // the Select2 display. No top-level $ call, so a CDN hiccup cannot crash
-    // the rest of this script block (Add Row, photo uploader, etc.).
-    (function () {
-        setTimeout(function () {
-            var containerSel   = document.getElementById('containerSelect');
-            if (!containerSel) return;
+    // Push-script DOMContentLoaded listeners are registered AFTER app.blade.php's
+    // listener (DOM event listeners fire in registration order). This guarantees
+    // Select2 is already initialised on #eqtSelect and #customerSelect when
+    // this callback runs, so $(el).val(val).trigger('change') updates the display.
+    document.addEventListener('DOMContentLoaded', function () {
+        var containerSel   = document.getElementById('containerSelect');
+        if (!containerSel) return;
 
-            var eqtSelect      = document.getElementById('eqtSelect');
-            var customerSelect = document.getElementById('customerSelect');
-            var gateRefInput   = document.querySelector('[name="gate_in_ref"]');
-            var gateInfoBox    = document.getElementById('containerGateInfo');
-            var gateDateSpan   = document.getElementById('containerGateDate');
-            var gateRefSpan    = document.getElementById('containerGateRef');
+        var eqtSelect      = document.getElementById('eqtSelect');
+        var customerSelect = document.getElementById('customerSelect');
+        var gateRefInput   = document.querySelector('[name="gate_in_ref"]');
+        var gateInfoBox    = document.getElementById('containerGateInfo');
+        var gateDateSpan   = document.getElementById('containerGateDate');
+        var gateRefSpan    = document.getElementById('containerGateRef');
 
-            function applyEqtBadges(opt) {
-                var sizeHid   = document.getElementById('eqtSize');
-                var typeHid   = document.getElementById('eqtTypeCode');
-                var sizeBadge = document.getElementById('eqtSizeBadge');
-                var typeBadge = document.getElementById('eqtTypeBadge');
-                if (!opt || !opt.value) {
-                    if (sizeHid) sizeHid.value = '';
-                    if (typeHid) typeHid.value = '';
-                    if (sizeBadge) sizeBadge.classList.add('d-none');
-                    if (typeBadge) typeBadge.classList.add('d-none');
-                    return;
-                }
-                var isReefer = opt.dataset.type === 'RF' || opt.dataset.type === 'RH';
-                if (sizeHid) sizeHid.value = opt.dataset.size || '';
-                if (typeHid) typeHid.value = opt.dataset.type || '';
-                if (sizeBadge) {
-                    sizeBadge.textContent = opt.dataset.size ? opt.dataset.size + "'" : '';
-                    sizeBadge.classList.toggle('d-none', !opt.dataset.size);
-                }
-                if (typeBadge) {
-                    typeBadge.textContent = opt.dataset.type || '';
-                    typeBadge.className   = 'badge text-nowrap' + (isReefer ? ' badge-reefer' : ' bg-info-subtle text-info');
-                    typeBadge.classList.toggle('d-none', !opt.dataset.type);
-                }
+        function applyEqtBadges(opt) {
+            var sizeHid   = document.getElementById('eqtSize');
+            var typeHid   = document.getElementById('eqtTypeCode');
+            var sizeBadge = document.getElementById('eqtSizeBadge');
+            var typeBadge = document.getElementById('eqtTypeBadge');
+            if (!opt || !opt.value) {
+                if (sizeHid) sizeHid.value = '';
+                if (typeHid) typeHid.value = '';
+                if (sizeBadge) sizeBadge.classList.add('d-none');
+                if (typeBadge) typeBadge.classList.add('d-none');
+                return;
             }
-
-            function s2set(el, val) {
-                if (!el || !val) return;
-                if (typeof $ !== 'undefined') {
-                    $(el).val(val).trigger('change');
-                } else {
-                    el.value = val;
-                }
+            var isReefer = opt.dataset.type === 'RF' || opt.dataset.type === 'RH';
+            if (sizeHid) sizeHid.value = opt.dataset.size || '';
+            if (typeHid) typeHid.value = opt.dataset.type || '';
+            if (sizeBadge) {
+                sizeBadge.textContent = opt.dataset.size ? opt.dataset.size + "'" : '';
+                sizeBadge.classList.toggle('d-none', !opt.dataset.size);
             }
-
-            function fillFromContainer(containerOpt) {
-                if (!containerOpt || !containerOpt.value) {
-                    if (gateInfoBox) gateInfoBox.classList.add('d-none');
-                    return;
-                }
-                // 1. Equipment Type
-                if (containerOpt.dataset.eqtId) {
-                    s2set(eqtSelect, containerOpt.dataset.eqtId);
-                    if (eqtSelect) applyEqtBadges(eqtSelect.options[eqtSelect.selectedIndex]);
-                }
-                // 2. Customer
-                if (containerOpt.dataset.customerId) {
-                    s2set(customerSelect, containerOpt.dataset.customerId);
-                }
-                // 3. Gate-In Reference
-                if (gateRefInput) gateRefInput.value = containerOpt.dataset.gateRef || '';
-                // 4. Gate-in info strip
-                if (gateInfoBox && gateDateSpan && gateRefSpan) {
-                    var hasGateInfo = containerOpt.dataset.gateDate || containerOpt.dataset.gateRef;
-                    gateDateSpan.textContent = containerOpt.dataset.gateDate || '—';
-                    gateRefSpan.textContent  = containerOpt.dataset.gateRef  || '—';
-                    gateInfoBox.classList.toggle('d-none', !hasGateInfo);
-                }
+            if (typeBadge) {
+                typeBadge.textContent = opt.dataset.type || '';
+                typeBadge.className   = 'badge text-nowrap' + (isReefer ? ' badge-reefer' : ' bg-info-subtle text-info');
+                typeBadge.classList.toggle('d-none', !opt.dataset.type);
             }
+        }
 
-            // Select2 triggers 'change' via $(element).trigger('change') which only
-            // fires jQuery handlers — NOT native addEventListener. Must use jQuery .on().
-            if (typeof $ !== 'undefined') {
-                $(containerSel).on('change', function () {
-                    fillFromContainer(this.selectedOptions[0]);
-                });
-            } else {
-                containerSel.addEventListener('change', function () {
-                    fillFromContainer(this.selectedOptions[0]);
-                });
-            }
+        function s2set(el, val) {
+            if (!el || !val) return;
+            $(el).val(val).trigger('change');
+        }
 
-            // Pre-fill if container already selected on load (e.g. ?container_id=X).
-            if (containerSel.value) {
-                fillFromContainer(containerSel.selectedOptions[0]);
+        function fillFromContainer(containerOpt) {
+            if (!containerOpt || !containerOpt.value) {
+                if (gateInfoBox) gateInfoBox.classList.add('d-none');
+                return;
             }
-        }, 0);
-    })();
+            if (containerOpt.dataset.eqtId) {
+                s2set(eqtSelect, containerOpt.dataset.eqtId);
+                if (eqtSelect) applyEqtBadges(eqtSelect.options[eqtSelect.selectedIndex]);
+            }
+            if (containerOpt.dataset.customerId) {
+                s2set(customerSelect, containerOpt.dataset.customerId);
+            }
+            if (gateRefInput) gateRefInput.value = containerOpt.dataset.gateRef || '';
+            if (gateInfoBox && gateDateSpan && gateRefSpan) {
+                var hasGateInfo = containerOpt.dataset.gateDate || containerOpt.dataset.gateRef;
+                gateDateSpan.textContent = containerOpt.dataset.gateDate || '—';
+                gateRefSpan.textContent  = containerOpt.dataset.gateRef  || '—';
+                gateInfoBox.classList.toggle('d-none', !hasGateInfo);
+            }
+        }
+
+        $(containerSel).on('change', function () {
+            fillFromContainer(this.selectedOptions[0]);
+        });
+
+        if (containerSel.value) {
+            fillFromContainer(containerSel.selectedOptions[0]);
+        }
+    });
 
     // ── Equipment Type manual override (size/type badges) ─────────────────────
     (function () {
@@ -563,8 +543,10 @@
         }
     });
 
-    // Initialize Select2 on the first Blade-rendered damage row
-    $(function () {
+    // Initialize Select2 on the first Blade-rendered damage row.
+    // Must use document.addEventListener (not $(fn)) so it fires AFTER
+    // app.blade.php's DOMContentLoaded handler defines window.initS2Code.
+    document.addEventListener('DOMContentLoaded', function () {
         initRowSelects(document.querySelector('#damageRows .damage-row'));
     });
 
