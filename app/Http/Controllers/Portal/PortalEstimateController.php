@@ -180,6 +180,21 @@ class PortalEstimateController extends Controller
         return back()->with('success', 'Line item ' . $request->action . '.');
     }
 
+    public function pdf(string $token)
+    {
+        $portalToken = $this->resolveToken($token);
+        $estimate    = $portalToken->tokenable;
+
+        if (!$estimate) {
+            abort(404, 'Estimate not found.');
+        }
+
+        $estimate->load(['container', 'customer', 'inquiry', 'lineItems.componentCode',
+                         'lineItems.chargeCode', 'lineItems.taxCode', 'createdBy']);
+
+        return view('estimates.pdf', compact('estimate'));
+    }
+
     public function photos(string $token)
     {
         $portalToken = $this->resolveToken($token);

@@ -125,7 +125,7 @@
         </span>
       </div>
       <div class="ms-auto">
-        <a href="{{ route('estimates.pdf', $estimate) }}" class="btn btn-sm btn-light" target="_blank">
+        <a href="{{ route('portal.estimate.pdf', $token) }}" class="btn btn-sm btn-light" target="_blank">
           <i class="bi bi-file-pdf me-1"></i>Download PDF
         </a>
       </div>
