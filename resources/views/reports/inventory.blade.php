@@ -201,7 +201,7 @@
                         </td>
                         <td>
                             <span class="badge bg-light text-dark border">{{ $container->size }}ft</span>
-                            <span class="badge bg-info-subtle text-info">{{ $container->type_code }}</span>
+                            <span class="badge {{ in_array($container->type_code, ['RF','RH']) ? 'badge-reefer' : 'bg-info-subtle text-info' }}">{{ $container->type_code }}</span>
                         </td>
                         <td>
                             @if($container->customer)

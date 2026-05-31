@@ -152,7 +152,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="text-muted small">Size / Type</div>
-                        <div>{{ $estimate->size }}' {{ $estimate->type_code }}</div>
+                        <div>{{ $estimate->size }}' <span class="badge {{ in_array($estimate->type_code, ['RF','RH']) ? 'badge-reefer' : 'bg-info-subtle text-info' }}">{{ $estimate->type_code }}</span></div>
                     </div>
                     <div class="col-md-6">
                         <div class="text-muted small">Customer</div>

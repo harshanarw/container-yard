@@ -305,7 +305,7 @@
                                 </td>
                                 <td class="small">
                                     @if($line->equipmentType)
-                                        <span class="badge bg-dark" style="font-size:.72rem;">{{ $line->equipmentType->eqt_code }}</span>
+                                        <span class="badge {{ $line->equipmentType->isReefer() ? 'badge-reefer' : 'bg-dark' }}" style="font-size:.72rem;">{{ $line->equipmentType->eqt_code }}</span>
                                         <div class="text-muted" style="font-size:.65rem;">{{ $line->equipmentType->description }}</div>
                                     @else
                                         {{ $line->equipment_type }}
@@ -411,7 +411,7 @@
                                 </td>
                                 <td class="small">
                                     @if($l->equipmentType)
-                                        <span class="badge bg-dark" style="font-size:.72rem;">{{ $l->equipmentType->eqt_code }}</span>
+                                        <span class="badge {{ $l->equipmentType->isReefer() ? 'badge-reefer' : 'bg-dark' }}" style="font-size:.72rem;">{{ $l->equipmentType->eqt_code }}</span>
                                     @else
                                         {{ $l->equipment_type }}
                                     @endif
@@ -477,7 +477,7 @@
                                 </td>
                                 <td class="small">
                                     @if($l->equipmentType)
-                                        <span class="badge bg-dark" style="font-size:.72rem;">{{ $l->equipmentType->eqt_code }}</span>
+                                        <span class="badge {{ $l->equipmentType->isReefer() ? 'badge-reefer' : 'bg-dark' }}" style="font-size:.72rem;">{{ $l->equipmentType->eqt_code }}</span>
                                     @else
                                         {{ $l->equipment_type }}
                                     @endif

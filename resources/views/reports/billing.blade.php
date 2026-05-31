@@ -156,7 +156,7 @@
                             @if($record->container)
                                 <span class="font-monospace fw-semibold">{{ $record->container->container_no }}</span>
                                 <div class="text-muted" style="font-size:.72rem;">
-                                    {{ $record->container->size }}ft {{ $record->container->type_code }}
+                                    {{ $record->container->size }}ft <span class="badge {{ in_array($record->container->type_code, ['RF','RH']) ? 'badge-reefer' : 'bg-info-subtle text-info' }}">{{ $record->container->type_code }}</span>
                                 </div>
                             @else
                                 <span class="text-muted">—</span>

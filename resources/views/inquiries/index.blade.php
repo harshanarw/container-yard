@@ -146,7 +146,7 @@
                         <td class="ps-3 fw-semibold small">{{ $inquiry->inquiry_no }}</td>
                         <td class="font-monospace fw-semibold small">{{ $inquiry->container_no }}</td>
                         <td>
-                            <span class="badge bg-secondary-subtle text-secondary">
+                            <span class="badge {{ in_array($inquiry->type_code, ['RF','RH']) ? 'badge-reefer' : 'bg-secondary-subtle text-secondary' }}">
                                 {{ $inquiry->size }} {{ $inquiry->type_code }}
                             </span>
                         </td>

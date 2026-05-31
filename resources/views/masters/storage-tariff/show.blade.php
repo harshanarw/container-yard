@@ -193,7 +193,7 @@
                     @forelse($storageTariff->details as $detail)
                         <tr class="rate-row" data-detail-id="{{ $detail->id }}">
                             <td class="ps-3">
-                                <span class="badge bg-primary fw-bold me-2"
+                                <span class="badge {{ ($detail->equipmentType?->isReefer()) ? 'badge-reefer' : 'bg-primary' }} fw-bold me-2"
                                       style="font-size:.8rem;letter-spacing:.5px;">
                                     {{ $detail->equipmentType->eqt_code ?? '—' }}
                                 </span>

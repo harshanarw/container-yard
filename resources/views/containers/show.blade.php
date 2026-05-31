@@ -69,7 +69,12 @@
                             <tr><th class="text-muted fw-normal">Category</th>
                                 <td><span class="badge {{ $catBadge[$container->category] ?? 'bg-secondary' }}">{{ ucfirst($container->category) }}</span></td></tr>
                             <tr><th class="text-muted fw-normal">Equipment Type</th><td>{{ $container->equipmentType?->name ?? '—' }}</td></tr>
-                            <tr><th class="text-muted fw-normal">Size / Type</th><td>{{ $container->size ? $container->size.'ft '.$container->type_code : '—' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Size / Type</th><td>
+                                @if($container->size)
+                                    {{ $container->size }}ft <span class="badge {{ in_array($container->type_code, ['RF','RH']) ? 'badge-reefer' : 'bg-info-subtle text-info' }}">{{ $container->type_code }}</span>
+                                @else —
+                                @endif
+                            </td></tr>
                             <tr><th class="text-muted fw-normal">Mfr. Year</th><td>{{ $container->manufacture_year ?? '—' }}</td></tr>
                             <tr><th class="text-muted fw-normal">Manufacturer</th><td>{{ $container->manufacturer ?? '—' }}</td></tr>
                         </table>

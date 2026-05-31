@@ -354,7 +354,7 @@
                         {{ $c->container_no }}
                     </td>
                     <td>
-                        <span class="badge bg-secondary-subtle text-secondary">
+                        <span class="badge {{ ($c->equipmentType?->isReefer() ?? in_array($c->type_code, ['RF','RH'])) ? 'badge-reefer' : 'bg-secondary-subtle text-secondary' }}">
                             {{ $c->equipmentType?->eqt_code ?? ($c->size . "' " . $c->type_code) }}
                         </span>
                     </td>

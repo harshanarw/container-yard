@@ -153,7 +153,12 @@
                             {{ ucfirst($c->category) }}
                         </span>
                     </td>
-                    <td>{{ $c->size ? $c->size.'ft '.$c->type_code : '—' }}</td>
+                    <td>
+                        @if($c->size)
+                            {{ $c->size }}' <span class="badge {{ in_array($c->type_code, ['RF','RH']) ? 'badge-reefer' : 'bg-info-subtle text-info' }}">{{ $c->type_code }}</span>
+                        @else —
+                        @endif
+                    </td>
                     <td class="text-muted small">{{ $c->manufacture_year ?? '—' }}{{ $c->manufacturer ? ' / '.$c->manufacturer : '' }}</td>
                     <td class="small">
                         @if($c->category === 'leased' && $c->lessor_name)

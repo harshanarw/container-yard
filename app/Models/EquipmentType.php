@@ -32,4 +32,10 @@ class EquipmentType extends Model
             ? "{$this->eqt_code} — {$this->description}"
             : $this->eqt_code;
     }
+
+    /** True for Reefer (RF) and Reefer High Cube (RH) container types. */
+    public function isReefer(): bool
+    {
+        return in_array($this->type_code, ['RF', 'RH']);
+    }
 }

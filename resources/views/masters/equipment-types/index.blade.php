@@ -57,13 +57,13 @@
                     </td>
                     <td class="small text-muted fw-semibold">{{ $item->sort_order }}</td>
                     <td>
-                        <span class="badge bg-primary fw-bold" style="font-size:.8rem;letter-spacing:.5px;">
+                        <span class="badge {{ $item->isReefer() ? 'badge-reefer' : 'bg-primary' }} fw-bold" style="font-size:.8rem;letter-spacing:.5px;">
                             {{ $item->eqt_code }}
                         </span>
                     </td>
                     <td><code class="small">{{ $item->iso_code ?? '—' }}</code></td>
                     <td><span class="badge bg-light border text-dark">{{ $item->size }}'</span></td>
-                    <td><span class="badge bg-info-subtle text-info">{{ $item->type_code }}</span></td>
+                    <td><span class="badge {{ $item->isReefer() ? 'badge-reefer' : 'bg-info-subtle text-info' }}">{{ $item->type_code }}</span></td>
                     <td>
                         @if($item->height === 'High Cube')
                             <span class="badge bg-warning-subtle text-warning small">High Cube</span>

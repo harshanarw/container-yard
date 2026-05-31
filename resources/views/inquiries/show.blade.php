@@ -114,7 +114,7 @@
                         <div class="text-muted mb-1">Size / Type</div>
                         <div>
                             <span class="badge bg-light border text-dark me-1">{{ $inquiry->size }}ft</span>
-                            <span class="badge bg-info-subtle text-info">{{ $inquiry->type_code }}</span>
+                            <span class="badge {{ in_array($inquiry->type_code, ['RF','RH']) ? 'badge-reefer' : 'bg-info-subtle text-info' }}">{{ $inquiry->type_code }}</span>
                         </div>
                     </div>
                     <div class="col-sm-6">
