@@ -18,8 +18,10 @@ Route::prefix('portal')->name('portal.')->group(function () {
     Route::post('logout', [PortalAuthController::class, 'logout'])->name('logout');
 
     // Token-based direct estimate access (no login needed)
-    Route::get('estimate/{token}', [PortalEstimateController::class, 'show'])->name('estimate.show');
-    Route::post('estimate/{token}/approve', [PortalEstimateController::class, 'bulkApprove'])->name('estimate.approve');
-    Route::post('estimate/{token}/reject', [PortalEstimateController::class, 'bulkReject'])->name('estimate.reject');
-    Route::post('estimate/{token}/lines/{lineItem}/action', [PortalEstimateController::class, 'lineAction'])->name('estimate.line-action');
+    Route::get('estimate/{token}',                              [PortalEstimateController::class, 'show'])->name('estimate.show');
+    Route::post('estimate/{token}/approve',                     [PortalEstimateController::class, 'bulkApprove'])->name('estimate.approve');
+    Route::post('estimate/{token}/reject',                      [PortalEstimateController::class, 'bulkReject'])->name('estimate.reject');
+    Route::post('estimate/{token}/lines/{lineItem}/action',     [PortalEstimateController::class, 'lineAction'])->name('estimate.line-action');
+    Route::get('estimate/{token}/photos',                       [PortalEstimateController::class, 'photos'])->name('estimate.photos');
+    Route::get('estimate/{token}/photos/{document}/view',       [PortalEstimateController::class, 'viewPhoto'])->name('estimate.photo.view');
 });

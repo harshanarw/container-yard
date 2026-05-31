@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Portal;
 
+use App\Facades\Documents;
 use App\Http\Controllers\Controller;
 use App\Mail\EstimateApprovalReceivedMail;
 use App\Models\CompanySetting;
+use App\Models\Document;
 use App\Models\EstimateApprovalAction;
 use App\Models\EstimateLineItem;
+use App\Models\Inquiry;
 use App\Models\PortalToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -175,6 +178,49 @@ class PortalEstimateController extends Controller
         $estimate->update(['status' => $newStatus]);
 
         return back()->with('success', 'Line item ' . $request->action . '.');
+    }
+
+    public function photos(string $token)
+    {
+        $portalToken = $this->resolveToken($token);
+        $estimate    = $portalToken->tokenable;
+
+        if (!$estimate) {
+            abort(404, 'Estimate not found.');
+        }
+
+        $company = CompanySetting::current();
+        $inquiry = $estimate->inquiry;
+
+        // New document-manager photos (polymorphic Document records)
+        $documents    = $inquiry
+            ? $inquiry->documents()->where('mime_type', 'like', 'image/%')->latest()->get()
+            : collect();
+
+        // Legacy InquiryPhoto records
+        $legacyPhotos = $inquiry ? $inquiry->photos : collect();
+
+        $totalCount = $documents->count() + $legacyPhotos->count();
+
+        return view('portal.estimate.photos',
+            compact('estimate', 'portalToken', 'company', 'token', 'documents', 'legacyPhotos', 'totalCount'));
+    }
+
+    public function viewPhoto(string $token, Document $document)
+    {
+        $portalToken = $this->resolveToken($token);
+        $estimate    = $portalToken->tokenable;
+        $inquiry     = $estimate?->inquiry;
+
+        abort_unless($inquiry, 404);
+        abort_unless(
+            $document->documentable_type === Inquiry::class
+            && $document->documentable_id === $inquiry->id
+            && $document->isImage(),
+            403
+        );
+
+        return Documents::stream($document, true);
     }
 
     private function notifyDepot(mixed $estimate, string $action, ?string $notes): void

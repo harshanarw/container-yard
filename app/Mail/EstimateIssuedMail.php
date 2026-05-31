@@ -17,6 +17,7 @@ class EstimateIssuedMail extends Mailable
     use Queueable, SerializesModels;
 
     public CompanySetting $company;
+    public int $photoCount = 0;
 
     public function __construct(
         public Estimate $estimate,
@@ -24,6 +25,15 @@ class EstimateIssuedMail extends Mailable
         public ?string $customMessage = null,
     ) {
         $this->company = CompanySetting::current();
+
+        if ($this->estimate->attach_photos && $this->estimate->inquiry_id) {
+            $inquiry = $this->estimate->inquiry;
+            if ($inquiry) {
+                $this->photoCount =
+                    $inquiry->documents()->where('mime_type', 'like', 'image/%')->count()
+                    + $inquiry->photos()->count();
+            }
+        }
     }
 
     public function envelope(): Envelope

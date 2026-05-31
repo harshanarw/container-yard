@@ -121,15 +121,25 @@
         </tfoot>
       </table>
 
-      {{-- ── CTA button ── --}}
-      @php $portalUrl = url('/portal/estimate/' . $portalToken->token); @endphp
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0 20px;">
+      {{-- ── Primary CTA: Review & Approve ── --}}
+      @php
+        $portalUrl  = url('/portal/estimate/' . $portalToken->token);
+        $photosUrl  = url('/portal/estimate/' . $portalToken->token . '/photos');
+      @endphp
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0 0;">
         <tr>
           <td align="center">
-            <a href="{{ $portalUrl }}"
-               style="display:inline-block;background:#1a56db;color:#ffffff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:1rem;letter-spacing:.3px;border:none;">
-              &#x1F4CB;&nbsp; Review &amp; Approve / Reject
-            </a>
+            {{-- Table-cell button is the only reliable way to keep white text in Outlook --}}
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="border-radius:8px;background:#16a34a;mso-padding-alt:0;">
+                  <a href="{{ $portalUrl }}" target="_blank"
+                     style="display:inline-block;padding:14px 36px;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;font-size:1rem;font-weight:700;letter-spacing:.3px;text-decoration:none;border-radius:8px;color:#ffffff;">
+                    &#x2705;&nbsp; Review &amp; Approve / Reject
+                  </a>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
         @if($portalToken->expires_at)
@@ -141,7 +151,42 @@
         @endif
       </table>
 
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;background:#f8f9fa;border-radius:6px;border:1px solid #e9ecef;">
+      {{-- ── Survey Photos link (shown only when photos exist) ── --}}
+      @if($photoCount > 0)
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 0;">
+        <tr>
+          <td style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:14px 20px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <div style="font-size:.9rem;font-weight:600;color:#0c4a6e;margin-bottom:2px;">
+                    &#x1F4F7;&nbsp; Survey Photos Available
+                  </div>
+                  <div style="font-size:.8rem;color:#0369a1;">
+                    {{ $photoCount }} photo{{ $photoCount !== 1 ? 's' : '' }} from the damage survey are available for your review.
+                  </div>
+                </td>
+                <td align="right" style="vertical-align:middle;padding-left:16px;white-space:nowrap;">
+                  <table cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td align="center" style="border-radius:6px;background:#0284c7;mso-padding-alt:0;">
+                        <a href="{{ $photosUrl }}" target="_blank"
+                           style="display:inline-block;padding:8px 18px;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;font-size:.82rem;font-weight:700;text-decoration:none;border-radius:6px;color:#ffffff;">
+                          View Photos
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      @endif
+
+      {{-- ── Fallback URL ── --}}
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;background:#f8f9fa;border-radius:6px;border:1px solid #e9ecef;">
         <tr>
           <td style="padding:12px 16px;">
             <div style="font-size:.78rem;color:#6c757d;margin-bottom:4px;">If the button above does not work, copy and paste this link into your browser:</div>
