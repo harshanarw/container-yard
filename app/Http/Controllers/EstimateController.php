@@ -168,6 +168,7 @@ class EstimateController extends Controller
             'container', 'customer', 'inquiry', 'lineItems',
             'createdBy', 'updatedBy', 'approvedBy', 'parentEstimate', 'revisions',
             'approvalActions.lineItem', 'approvalActions.actionedBy',
+            'documents',
         ]);
 
         $activeToken = PortalToken::where('tokenable_type', Estimate::class)

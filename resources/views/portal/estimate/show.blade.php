@@ -298,6 +298,64 @@
 </div>
 @endif
 
+{{-- ── Signed Approval Document ── --}}
+@php
+  $signedDoc = $estimate->documents()->where('document_type', 'signed_approval')->latest()->first();
+@endphp
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span class="fw-semibold"><i class="bi bi-pen me-2 text-primary"></i>Signed Approval Document</span>
+    <a href="{{ route('portal.estimate.approval-form', $token) }}" target="_blank"
+       class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-printer me-1"></i>Download Approval Form
+    </a>
+  </div>
+  <div class="card-body">
+
+    @if($signedDoc)
+    {{-- Already uploaded --}}
+    <div class="d-flex align-items-center gap-3 p-3 bg-success-subtle border border-success rounded mb-3">
+      <i class="bi bi-file-earmark-check text-success" style="font-size:2rem;flex-shrink:0;"></i>
+      <div class="flex-grow-1 min-w-0">
+        <div class="fw-semibold text-success small">Signed document uploaded</div>
+        <div class="text-muted small text-truncate">{{ $signedDoc->original_name }}</div>
+        <div class="text-muted" style="font-size:.72rem;">
+          Uploaded {{ $signedDoc->created_at->format('d M Y H:i') }}
+        </div>
+      </div>
+      <a href="{{ route('portal.estimate.signed-doc.view', [$token, $signedDoc->id]) }}"
+         target="_blank" class="btn btn-sm btn-outline-success flex-shrink-0">
+        <i class="bi bi-eye me-1"></i>View
+      </a>
+    </div>
+    <p class="small text-muted mb-2">You can replace the document by uploading a new file below.</p>
+    @else
+    <p class="small text-muted mb-3">
+      <strong>How it works:</strong> Download and print the Approval Form, sign it manually, then scan or photograph it and upload below.
+      This provides a physical signed record of your approval.
+    </p>
+    @endif
+
+    <form method="POST" action="{{ route('portal.estimate.upload-signed', $token) }}"
+          enctype="multipart/form-data">
+      @csrf
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <input type="file" name="signed_document" id="signed_document"
+               class="form-control form-control-sm @error('signed_document') is-invalid @enderror"
+               accept=".pdf,.jpg,.jpeg,.png" style="max-width:340px;">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-upload me-1"></i>{{ $signedDoc ? 'Replace Document' : 'Upload Signed Document' }}
+        </button>
+      </div>
+      @error('signed_document')
+        <div class="invalid-feedback d-block mt-1">{{ $message }}</div>
+      @enderror
+      <div class="text-muted mt-1" style="font-size:.72rem;">Accepted: PDF, JPG, PNG &nbsp;·&nbsp; Max 10 MB</div>
+    </form>
+
+  </div>
+</div>
+
 {{-- ── Bulk Action cards ── --}}
 @if($canAct)
 <div class="row g-3 mb-4">

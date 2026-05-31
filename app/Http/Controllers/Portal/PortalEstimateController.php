@@ -220,6 +220,71 @@ class PortalEstimateController extends Controller
         return view('estimates.pdf', compact('estimate'));
     }
 
+    public function approvalForm(string $token)
+    {
+        $portalToken = $this->resolveToken($token);
+        $estimate    = $portalToken->tokenable;
+
+        if (!$estimate) {
+            abort(404, 'Estimate not found.');
+        }
+
+        $estimate->load(['container', 'customer', 'lineItems', 'createdBy']);
+        $company = CompanySetting::current();
+
+        return view('portal.estimate.approval-form', compact('estimate', 'company', 'portalToken'));
+    }
+
+    public function uploadSignedApproval(Request $request, string $token)
+    {
+        $request->validate([
+            'signed_document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+        ]);
+
+        $portalToken = $this->resolveToken($token);
+        $estimate    = $portalToken->tokenable;
+
+        if (!$estimate) {
+            abort(404, 'Estimate not found.');
+        }
+
+        // Remove any previous signed approval document for this estimate
+        $existing = $estimate->documents()
+            ->where('document_type', 'signed_approval')
+            ->get();
+        foreach ($existing as $doc) {
+            Documents::delete($doc);
+        }
+
+        Documents::uploadFor(
+            $estimate,
+            $request->file('signed_document'),
+            'estimates/signed-approvals/' . $estimate->id,
+            [
+                'document_type' => 'signed_approval',
+                'label'         => 'Signed Approval — ' . $estimate->estimate_no,
+            ]
+        );
+
+        return back()->with('success', 'Signed approval document uploaded successfully. The depot will be notified.');
+    }
+
+    public function viewSignedDoc(string $token, Document $document)
+    {
+        $portalToken = $this->resolveToken($token);
+        $estimate    = $portalToken->tokenable;
+
+        abort_unless($estimate, 404);
+        abort_unless(
+            $document->documentable_type === \App\Models\Estimate::class
+            && $document->documentable_id === $estimate->id
+            && $document->document_type   === 'signed_approval',
+            403
+        );
+
+        return Documents::stream($document, true);
+    }
+
     public function photos(string $token)
     {
         $portalToken = $this->resolveToken($token);

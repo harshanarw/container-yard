@@ -321,6 +321,38 @@
         </div>
         @endif
 
+        {{-- Signed Approval Documents --}}
+        @php $signedDocs = $estimate->documents->where('document_type', 'signed_approval')->sortByDesc('created_at'); @endphp
+        @if($signedDocs->count())
+        <div class="card content-card mb-3 border-success">
+            <div class="card-header bg-success-subtle">
+                <i class="bi bi-pen me-2 text-success"></i><span class="fw-semibold">Signed Approval Document</span>
+            </div>
+            <div class="card-body py-2">
+                @foreach($signedDocs as $doc)
+                <div class="d-flex align-items-center gap-2 py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
+                    <i class="bi bi-file-earmark-check text-success flex-shrink-0" style="font-size:1.4rem;"></i>
+                    <div class="flex-grow-1 min-w-0 small">
+                        <div class="fw-semibold text-truncate">{{ $doc->original_name }}</div>
+                        <div class="text-muted" style="font-size:.72rem;">
+                            Uploaded {{ $doc->created_at->format('d M Y H:i') }}
+                            @if($doc->uploadedBy) &nbsp;·&nbsp; {{ $doc->uploadedBy->name }} @endif
+                        </div>
+                    </div>
+                    <a href="{{ route('documents.preview', $doc) }}" target="_blank"
+                       class="btn btn-sm btn-outline-success flex-shrink-0" title="View">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{{ route('documents.download', $doc) }}"
+                       class="btn btn-sm btn-outline-secondary flex-shrink-0" title="Download">
+                        <i class="bi bi-download"></i>
+                    </a>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
     </div>
 
     <!-- Right Column -->
