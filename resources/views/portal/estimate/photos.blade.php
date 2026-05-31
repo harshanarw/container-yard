@@ -19,15 +19,30 @@
     display:flex; align-items:center; justify-content:center;
     transition:background .18s;
   }
-  .photo-thumb:hover .overlay { background:rgba(0,0,0,.28); }
-  .photo-thumb .overlay i { color:#fff; font-size:1.8rem; opacity:0; transition:opacity .18s; }
+  .photo-thumb:hover .overlay { background:rgba(0,0,0,.35); }
+  .photo-thumb .overlay i { color:#fff; font-size:2rem; opacity:0; transition:opacity .18s; }
   .photo-thumb:hover .overlay i { opacity:1; }
   .count-pill {
     display:inline-flex; align-items:center; gap:6px;
     background:#dbeafe; color:#1d4ed8; border-radius:20px;
     padding:3px 14px; font-size:.82rem; font-weight:600;
   }
-  #lightboxImg { max-width:100%; max-height:80vh; object-fit:contain; border-radius:4px; }
+
+  /* Lightbox */
+  #lightboxModal .modal-content { background:#0d0d0d; border:none; border-radius:12px; }
+  #lightboxModal .modal-body    { padding:0; min-height:200px; display:flex; align-items:center; justify-content:center; }
+  #lightboxImg  { max-width:100%; max-height:78vh; object-fit:contain; display:block; border-radius:0 0 10px 10px; }
+  .lb-nav-btn {
+    width:44px; height:44px; border-radius:50%; border:none;
+    background:rgba(255,255,255,.12); color:#fff; font-size:1.1rem;
+    display:inline-flex; align-items:center; justify-content:center;
+    transition:background .15s; cursor:pointer; flex-shrink:0;
+  }
+  .lb-nav-btn:hover  { background:rgba(255,255,255,.28); }
+  .lb-nav-btn:active { background:rgba(255,255,255,.45); }
+  .lb-spinner { display:none; color:#aaa; }
+  .lb-loading .lb-spinner { display:inline-block; }
+  .lb-loading #lightboxImg   { opacity:.2; }
 </style>
 @endpush
 
@@ -96,21 +111,35 @@
 </div>
 
 {{-- ── Lightbox modal ── --}}
-<div class="modal fade" id="lightboxModal" tabindex="-1">
+<div class="modal fade" id="lightboxModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content" style="background:#111;border:none;">
-      <div class="modal-header border-0 pb-0 px-3 pt-2">
-        <div class="d-flex align-items-center gap-3 flex-grow-1">
-          <button class="btn btn-sm btn-dark" id="prevBtn"><i class="bi bi-chevron-left"></i></button>
-          <button class="btn btn-sm btn-dark" id="nextBtn"><i class="bi bi-chevron-right"></i></button>
-          <span class="text-white small" id="lightboxCaption" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-          <span class="text-secondary small" id="lightboxCounter"></span>
+    <div class="modal-content">
+
+      {{-- Header: nav + caption + counter + close --}}
+      <div class="modal-header border-0 px-3 py-2" style="background:#0d0d0d;">
+        <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
+          <button class="lb-nav-btn" id="prevBtn" title="Previous (←)">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <button class="lb-nav-btn" id="nextBtn" title="Next (→)">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+          <span class="text-white small ms-1"
+                id="lightboxCaption"
+                style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+          <span class="text-secondary small me-1" id="lightboxCounter"></span>
+          <div class="lb-spinner spinner-border spinner-border-sm me-1" role="status">
+            <span class="visually-hidden">Loading…</span>
+          </div>
         </div>
-        <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close btn-close-white ms-1" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body text-center p-3">
-        <img id="lightboxImg" src="" alt="">
+
+      {{-- Full-size image --}}
+      <div class="modal-body" style="background:#0d0d0d;">
+        <img id="lightboxImg" src="" alt="" style="max-width:100%;max-height:78vh;object-fit:contain;display:block;margin:0 auto;border-radius:4px;">
       </div>
+
     </div>
   </div>
 </div>
@@ -122,38 +151,72 @@
 @push('scripts')
 <script>
 (function () {
-  const thumbs = Array.from(document.querySelectorAll('.photo-thumb'));
+  const thumbs     = Array.from(document.querySelectorAll('.photo-thumb'));
   if (!thumbs.length) return;
+
+  const modalEl    = document.getElementById('lightboxModal');
+  const imgEl      = document.getElementById('lightboxImg');
+  const captionEl  = document.getElementById('lightboxCaption');
+  const counterEl  = document.getElementById('lightboxCounter');
+  const spinnerEl  = document.querySelector('.lb-spinner');
+  const modal      = bootstrap.Modal.getOrCreateInstance(modalEl);   // ← fixed API
 
   let current = 0;
 
-  function open(index) {
+  function loadImage(index) {
     current = index;
     const el = thumbs[index];
-    document.getElementById('lightboxImg').src       = el.dataset.src;
-    document.getElementById('lightboxCaption').textContent = el.dataset.caption;
-    document.getElementById('lightboxCounter').textContent = (index + 1) + ' / ' + thumbs.length;
-    bootstrap.Modal.getOrCreate(document.getElementById('lightboxModal')).show();
+
+    // Show loading state
+    imgEl.style.opacity    = '0.15';
+    spinnerEl.style.display = 'inline-block';
+    captionEl.textContent  = el.dataset.caption;
+    counterEl.textContent  = (index + 1) + ' / ' + thumbs.length;
+
+    const tmp = new Image();
+    tmp.onload = function () {
+      imgEl.src              = tmp.src;
+      imgEl.style.opacity    = '1';
+      spinnerEl.style.display = 'none';
+    };
+    tmp.onerror = function () {
+      imgEl.style.opacity    = '1';
+      spinnerEl.style.display = 'none';
+    };
+    tmp.src = el.dataset.src;
   }
 
+  function open(index) {
+    loadImage(index);
+    modal.show();
+  }
+
+  function navigate(dir) {
+    loadImage((current + dir + thumbs.length) % thumbs.length);
+  }
+
+  // Thumbnail click
   thumbs.forEach(function (el, i) {
     el.addEventListener('click', function () { open(i); });
   });
 
-  document.getElementById('prevBtn').addEventListener('click', function () {
-    open((current - 1 + thumbs.length) % thumbs.length);
-  });
-  document.getElementById('nextBtn').addEventListener('click', function () {
-    open((current + 1) % thumbs.length);
+  // Prev / Next buttons
+  document.getElementById('prevBtn').addEventListener('click', function () { navigate(-1); });
+  document.getElementById('nextBtn').addEventListener('click', function () { navigate(+1); });
+
+  // Keyboard arrows (only when modal is open)
+  document.addEventListener('keydown', function (e) {
+    if (!modalEl.classList.contains('show')) return;
+    if (e.key === 'ArrowLeft')  navigate(-1);
+    if (e.key === 'ArrowRight') navigate(+1);
+    if (e.key === 'Escape')     modal.hide();
   });
 
-  // Keyboard navigation
-  document.addEventListener('keydown', function (e) {
-    const modal = document.getElementById('lightboxModal');
-    if (!modal.classList.contains('show')) return;
-    if (e.key === 'ArrowLeft')  document.getElementById('prevBtn').click();
-    if (e.key === 'ArrowRight') document.getElementById('nextBtn').click();
-  });
+  // Hide prev/next buttons when only one photo
+  if (thumbs.length === 1) {
+    document.getElementById('prevBtn').style.display = 'none';
+    document.getElementById('nextBtn').style.display = 'none';
+  }
 })();
 </script>
 @endpush
