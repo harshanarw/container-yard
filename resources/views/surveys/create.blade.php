@@ -465,11 +465,17 @@
                 }
             }
 
-            // Use native addEventListener — Select2 triggers a real DOM 'change'
-            // event so this fires whether or not Select2 is on this element.
-            containerSel.addEventListener('change', function () {
-                fillFromContainer(this.selectedOptions[0]);
-            });
+            // Select2 triggers 'change' via $(element).trigger('change') which only
+            // fires jQuery handlers — NOT native addEventListener. Must use jQuery .on().
+            if (typeof $ !== 'undefined') {
+                $(containerSel).on('change', function () {
+                    fillFromContainer(this.selectedOptions[0]);
+                });
+            } else {
+                containerSel.addEventListener('change', function () {
+                    fillFromContainer(this.selectedOptions[0]);
+                });
+            }
 
             // Pre-fill if container already selected on load (e.g. ?container_id=X).
             if (containerSel.value) {
