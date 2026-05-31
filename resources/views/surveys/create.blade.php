@@ -388,27 +388,30 @@
 @push('scripts')
 <script>
     // ── Container selection → auto-fill Equipment Type, Customer, Gate-In Ref ──
-    (function () {
-        const containerSel   = document.getElementById('containerSelect');
-        const eqtSelect      = document.getElementById('eqtSelect');
-        const customerSelect = document.getElementById('customerSelect');
-        const gateRefInput   = document.querySelector('[name="gate_in_ref"]');
-        const gateInfoBox    = document.getElementById('containerGateInfo');
-        const gateDateSpan   = document.getElementById('containerGateDate');
-        const gateRefSpan    = document.getElementById('containerGateRef');
+    // Must run inside $(function(){}) so app.blade.php's DOMContentLoaded handler
+    // has already initialised all .s2-code elements via initS2Code before we try
+    // to programmatically set their values.
+    $(function () {
+        var containerSel   = document.getElementById('containerSelect');
+        var eqtSelect      = document.getElementById('eqtSelect');
+        var customerSelect = document.getElementById('customerSelect');
+        var gateRefInput   = document.querySelector('[name="gate_in_ref"]');
+        var gateInfoBox    = document.getElementById('containerGateInfo');
+        var gateDateSpan   = document.getElementById('containerGateDate');
+        var gateRefSpan    = document.getElementById('containerGateRef');
 
         function applyEqtBadges(opt) {
-            const sizeHid   = document.getElementById('eqtSize');
-            const typeHid   = document.getElementById('eqtTypeCode');
-            const sizeBadge = document.getElementById('eqtSizeBadge');
-            const typeBadge = document.getElementById('eqtTypeBadge');
+            var sizeHid   = document.getElementById('eqtSize');
+            var typeHid   = document.getElementById('eqtTypeCode');
+            var sizeBadge = document.getElementById('eqtSizeBadge');
+            var typeBadge = document.getElementById('eqtTypeBadge');
             if (!opt || !opt.value) {
                 sizeHid.value = typeHid.value = '';
                 sizeBadge.classList.add('d-none');
                 typeBadge.classList.add('d-none');
                 return;
             }
-            const isReefer = ['RF', 'RH'].includes(opt.dataset.type);
+            var isReefer = ['RF', 'RH'].indexOf(opt.dataset.type) >= 0;
             sizeHid.value = opt.dataset.size || '';
             typeHid.value = opt.dataset.type || '';
             sizeBadge.textContent = opt.dataset.size ? opt.dataset.size + "'" : '';
@@ -418,56 +421,49 @@
             typeBadge.classList.toggle('d-none', !opt.dataset.type);
         }
 
-        // Set native select value then notify Select2 to refresh its display
-        function setS2Val(el, val) {
-            el.value = val;
-            if (typeof $ !== 'undefined') $(el).trigger('change');
-        }
-
         function fillFromContainer(containerOpt) {
             if (!containerOpt || !containerOpt.value) {
                 gateInfoBox.classList.add('d-none');
                 return;
             }
 
-            // 1. Equipment Type
+            // 1. Equipment Type — use $(el).val().trigger('change') so Select2
+            //    (already initialised at this point) updates its displayed value.
             if (eqtSelect && containerOpt.dataset.eqtId) {
-                setS2Val(eqtSelect, containerOpt.dataset.eqtId);
-                const eqtOpt = eqtSelect.options[eqtSelect.selectedIndex];
+                $(eqtSelect).val(containerOpt.dataset.eqtId).trigger('change');
+                var eqtOpt = eqtSelect.options[eqtSelect.selectedIndex];
                 applyEqtBadges(eqtOpt && eqtOpt.value ? eqtOpt : null);
             }
 
             // 2. Customer
             if (customerSelect && containerOpt.dataset.customerId) {
-                setS2Val(customerSelect, containerOpt.dataset.customerId);
+                $(customerSelect).val(containerOpt.dataset.customerId).trigger('change');
             }
 
             // 3. Gate-In Reference
             if (gateRefInput) gateRefInput.value = containerOpt.dataset.gateRef || '';
 
             // 4. Gate-in info strip
-            const hasGateInfo = containerOpt.dataset.gateDate || containerOpt.dataset.gateRef;
+            var hasGateInfo = containerOpt.dataset.gateDate || containerOpt.dataset.gateRef;
             gateDateSpan.textContent = containerOpt.dataset.gateDate || '—';
             gateRefSpan.textContent  = containerOpt.dataset.gateRef  || '—';
             gateInfoBox.classList.toggle('d-none', !hasGateInfo);
         }
 
-        // select2:select fires after Select2 has updated the underlying <select>,
-        // so this.selectedOptions[0] reliably returns the chosen option with all
-        // data-* attributes. Avoid e.params.data.element — unreliable on plain init.
-        if (typeof $ !== 'undefined') {
-            $(containerSel).on('select2:select', function () {
-                fillFromContainer(this.selectedOptions[0]);
-            });
-        } else {
-            containerSel.addEventListener('change', function () {
-                fillFromContainer(this.selectedOptions[0]);
-            });
-        }
+        // select2:select fires after Select2 has updated the underlying <select>;
+        // this.selectedOptions[0] reliably returns the chosen <option> with its
+        // data-eqt-id / data-customer-id / data-gate-* attributes.
+        $(containerSel).on('select2:select', function () {
+            fillFromContainer(this.selectedOptions[0]);
+        });
 
-        // Pre-fill if a container is already selected on load (e.g. ?container_id=X)
-        if (containerSel.value) fillFromContainer(containerSel.selectedOptions[0]);
-    })();
+        // Pre-fill if a container is already selected on load (e.g. ?container_id=X).
+        // Runs here (inside $(function(){})) so Select2 is already initialised and
+        // $(el).val().trigger('change') correctly updates the displayed value.
+        if (containerSel && containerSel.value) {
+            fillFromContainer(containerSel.selectedOptions[0]);
+        }
+    });
 
     // ── Equipment Type manual override (size/type badges) ─────────────────────
     (function () {
