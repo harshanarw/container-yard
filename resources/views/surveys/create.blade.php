@@ -452,12 +452,12 @@
             gateInfoBox.classList.toggle('d-none', !hasGateInfo);
         }
 
-        // select2:select fires when the user picks an option from the Select2 UI.
-        // e.params.data.element is the original <option> DOM node with all data-* attrs.
-        // Fallback to native 'change' when jQuery/Select2 is absent.
+        // select2:select fires after Select2 has updated the underlying <select>,
+        // so this.selectedOptions[0] reliably returns the chosen option with all
+        // data-* attributes. Avoid e.params.data.element — unreliable on plain init.
         if (typeof $ !== 'undefined') {
-            $(containerSel).on('select2:select', function (e) {
-                fillFromContainer(e.params.data.element);
+            $(containerSel).on('select2:select', function () {
+                fillFromContainer(this.selectedOptions[0]);
             });
         } else {
             containerSel.addEventListener('change', function () {
