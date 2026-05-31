@@ -281,11 +281,14 @@
                         <label class="form-label small fw-semibold mb-1">
                             Equipment Type <span class="text-danger">*</span>
                         </label>
-                        <select name="equipment_type_id" class="form-select form-select-sm select2" required>
+                        <select name="equipment_type_id" class="form-select form-select-sm s2-code" required>
                             <option value="">— Select —</option>
                             @foreach($allTypes as $eqt)
-                                <option value="{{ $eqt->id }}">
-                                    {{ $eqt->eqt_code }}{{ $eqt->iso_code ? ' · ' . $eqt->iso_code : '' }}
+                                <option value="{{ $eqt->id }}"
+                                    data-code="{{ $eqt->eqt_code }}"
+                                    data-name="{{ $eqt->description }}"
+                                    {{ $eqt->isReefer() ? 'data-chip-class="s2-code-chip s2-chip-reefer"' : '' }}>
+                                    {{ $eqt->eqt_code }} — {{ $eqt->description }}
                                 </option>
                             @endforeach
                         </select>
@@ -353,7 +356,7 @@
                     @foreach($storageTariff->details as $detail)
                     <div class="col-6 col-md-3">
                         <div class="border rounded p-2 text-center bg-light">
-                            <div class="badge bg-primary mb-1" style="font-size:.75rem;">
+                            <div class="badge {{ ($detail->equipmentType?->isReefer()) ? 'badge-reefer' : 'bg-primary' }} mb-1" style="font-size:.75rem;">
                                 {{ $detail->equipmentType->eqt_code ?? '—' }}
                             </div>
                             @if($detail->cargo_status === 'laden')
