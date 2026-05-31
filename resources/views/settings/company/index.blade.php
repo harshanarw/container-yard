@@ -246,11 +246,10 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Country</label>
                     <select name="country_id"
-                            class="form-select select2 s2-code @error('country_id') is-invalid @enderror">
+                            class="form-select select2 @error('country_id') is-invalid @enderror">
                         <option value="">— Select Country —</option>
                         @foreach($countries as $c)
                             <option value="{{ $c->id }}"
-                                data-code="{{ $c->iso2 }}" data-name="{{ $c->name }}"
                                 {{ old('country_id', $settings->country_id) == $c->id ? 'selected' : '' }}>
                                 {{ $c->flag_emoji }} {{ $c->name }} ({{ $c->iso2 }})
                             </option>

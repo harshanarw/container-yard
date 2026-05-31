@@ -78,7 +78,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">City</label>
                             <input type="text" name="city" class="form-control"
-                                   value="{{ old('city') }}" placeholder="Port Klang">
+                                   value="{{ old('city') }}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold" id="stateLabelCreate">State / Province</label>
