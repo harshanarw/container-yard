@@ -65,13 +65,16 @@
                         <div class="col-md-7">
                             <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
                             <div class="d-flex gap-2 align-items-center">
-                                <select name="equipment_type_id" id="eqtSelect" class="form-select select2" required>
+                                <select name="equipment_type_id" id="eqtSelect" class="form-select s2-code" required>
                                     <option value="">— Select Equipment Type —</option>
                                     @foreach($equipmentTypes as $eqt)
                                     <option value="{{ $eqt->id }}"
+                                            data-code="{{ $eqt->eqt_code }}"
+                                            data-name="{{ $eqt->description }}"
                                             data-size="{{ $eqt->size }}"
                                             data-type="{{ $eqt->type_code }}"
                                             data-eqt="{{ $eqt->eqt_code }}"
+                                            @if(in_array($eqt->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif
                                             {{ old('equipment_type_id') == $eqt->id ? 'selected' : '' }}>
                                         {{ $eqt->eqt_code }} — {{ $eqt->description }}
                                     </option>

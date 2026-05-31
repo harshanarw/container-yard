@@ -470,6 +470,7 @@
         /* Select2 code+name formatting */
         .s2-opt-row { display:flex; align-items:center; gap:8px; white-space:nowrap; overflow:hidden; }
         .s2-code-chip { display:inline-block; background:#dbeafe; color:#1d4ed8; border-radius:4px; padding:1px 6px; font-family:monospace; font-size:.72rem; font-weight:700; flex-shrink:0; }
+        .s2-chip-reefer { background:#ccfbf1; color:#0d9488; }
         .s2-code-label { font-size:.85rem; color:#374151; overflow:hidden; text-overflow:ellipsis; }
     </style>
     @stack('styles')
@@ -1201,7 +1202,8 @@
                 var code = el && el.dataset.code ? el.dataset.code : opt.text;
                 var name = el && el.dataset.name ? el.dataset.name : '';
                 if (!name) return opt.text;
-                return $('<span class="s2-opt-row"><span class="s2-code-chip">'+code+'</span><span class="s2-code-label">'+name+'</span></span>');
+                var chipClass = (el && el.dataset.chipClass) ? el.dataset.chipClass : 's2-code-chip';
+                return $('<span class="s2-opt-row"><span class="'+chipClass+'">'+code+'</span><span class="s2-code-label">'+name+'</span></span>');
             };
             window.s2CodeSelection = function(opt) {
                 if (!opt.id) return opt.text;

@@ -86,12 +86,15 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Equipment Type</label>
                             <select name="equipment_type_id" id="equipmentTypeSelect"
-                                    class="form-select @error('equipment_type_id') is-invalid @enderror">
+                                    class="form-select s2-code @error('equipment_type_id') is-invalid @enderror">
                                 <option value="">— Select —</option>
                                 @foreach($equipmentTypes as $et)
                                     <option value="{{ $et->id }}"
-                                        {{ old('equipment_type_id', $container?->equipment_type_id) == $et->id ? 'selected' : '' }}>
-                                        {{ $et->name }} ({{ $et->size }}ft {{ $et->type_code }})
+                                            data-code="{{ $et->eqt_code }}"
+                                            data-name="{{ $et->description }}"
+                                            @if(in_array($et->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif
+                                            {{ old('equipment_type_id', $container?->equipment_type_id) == $et->id ? 'selected' : '' }}>
+                                        {{ $et->eqt_code }} — {{ $et->description }}
                                     </option>
                                 @endforeach
                             </select>

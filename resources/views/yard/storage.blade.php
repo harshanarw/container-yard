@@ -66,12 +66,14 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Equipment Type</label>
-                    <select id="calcEquipmentType" class="form-select">
+                    <select id="calcEquipmentType" class="form-select s2-code">
                         <option value="">— Select Equipment Type —</option>
                         @foreach($equipmentTypes as $eqt)
                             <option value="{{ $eqt->id }}"
                                     data-code="{{ $eqt->eqt_code }}"
-                                    data-description="{{ $eqt->description }}">
+                                    data-name="{{ $eqt->description }}"
+                                    data-description="{{ $eqt->description }}"
+                                    @if(in_array($eqt->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif>
                                 {{ $eqt->eqt_code }} — {{ $eqt->description }}
                             </option>
                         @endforeach
