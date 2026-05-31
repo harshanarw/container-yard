@@ -7,7 +7,7 @@
 </head>
 <body style="margin:0;padding:0;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
 
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:32px 16px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:20px 8px;">
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.10);">
 
@@ -28,7 +28,7 @@
 
   {{-- ── BODY ── --}}
   <tr>
-    <td style="padding:36px 40px;color:#212529;">
+    <td style="padding:24px 20px;color:#212529;">
 
       <p style="margin:0 0 6px;font-size:.95rem;color:#495057;">Dear Owner / Principal,</p>
 
@@ -68,7 +68,7 @@
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="color:#cfe2ff;font-size:.85rem;font-weight:600;">Grand Total</td>
-                <td style="text-align:right;color:#ffffff;font-size:1.15rem;font-weight:700;">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
+                <td style="text-align:right;color:#ffffff;font-size:1.15rem;font-weight:700;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
               </tr>
             </table>
           </td>
@@ -93,30 +93,30 @@
             <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;">{{ $line->component }} — {{ $line->repair_type }}</td>
             <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;">{{ number_format($line->qty, 2) }}</td>
             <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;">{{ number_format($line->unit_price, 2) }}</td>
-            <td style="padding:7px 10px;text-align:right;font-weight:600;border-bottom:1px solid #f1f3f5;">{{ number_format($line->line_amount, 2) }}</td>
+            <td style="padding:7px 10px;text-align:right;font-weight:600;border-bottom:1px solid #f1f3f5;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}</td>
           </tr>
           @endforeach
         </tbody>
         <tfoot>
           <tr>
             <td colspan="4" style="padding:8px 10px;text-align:right;color:#6c757d;font-size:.82rem;border-top:1px solid #dee2e6;">Subtotal</td>
-            <td style="padding:8px 10px;text-align:right;border-top:1px solid #dee2e6;">{{ number_format($estimate->subtotal, 2) }}</td>
+            <td style="padding:8px 10px;text-align:right;border-top:1px solid #dee2e6;white-space:nowrap;">{{ number_format($estimate->subtotal, 2) }}</td>
           </tr>
           @if($estimate->sscl_amount > 0)
           <tr>
             <td colspan="4" style="padding:4px 10px;text-align:right;color:#6c757d;font-size:.82rem;">SSCL</td>
-            <td style="padding:4px 10px;text-align:right;">{{ number_format($estimate->sscl_amount, 2) }}</td>
+            <td style="padding:4px 10px;text-align:right;white-space:nowrap;">{{ number_format($estimate->sscl_amount, 2) }}</td>
           </tr>
           @endif
           @if($estimate->vat_amount > 0)
           <tr>
             <td colspan="4" style="padding:4px 10px;text-align:right;color:#6c757d;font-size:.82rem;">VAT</td>
-            <td style="padding:4px 10px;text-align:right;">{{ number_format($estimate->vat_amount, 2) }}</td>
+            <td style="padding:4px 10px;text-align:right;white-space:nowrap;">{{ number_format($estimate->vat_amount, 2) }}</td>
           </tr>
           @endif
           <tr style="background:#f0f4ff;">
             <td colspan="4" style="padding:10px 10px;text-align:right;font-weight:700;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;">Grand Total</td>
-            <td style="padding:10px 10px;text-align:right;font-weight:800;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
+            <td style="padding:10px 10px;text-align:right;font-weight:800;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
           </tr>
         </tfoot>
       </table>
@@ -200,7 +200,7 @@
 
   {{-- ── FOOTER ── --}}
   <tr>
-    <td style="background:#f8f9fa;padding:20px 40px;border-top:1px solid #e9ecef;text-align:center;">
+    <td style="background:#f8f9fa;padding:20px;border-top:1px solid #e9ecef;text-align:center;">
       <div style="color:#495057;font-size:.82rem;font-weight:600;margin-bottom:4px;">{{ $company->company_name }}</div>
       @if(!empty($company->address))
         <div style="color:#6c757d;font-size:.78rem;">{{ $company->address }}</div>
