@@ -87,11 +87,12 @@
 
                         <div class="col-12">
                             <label class="form-label fw-semibold">Customer / Owner</label>
-                            <select name="customer_id" class="form-select select2">
+                            <select name="customer_id" class="form-select s2-code">
                                 @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}"
+                                    data-code="{{ $customer->code }}" data-name="{{ $customer->name }}"
                                     {{ $movement->customer_id == $customer->id ? 'selected' : '' }}>
-                                    {{ $customer->name }}
+                                    {{ $customer->code }} — {{ $customer->name }}
                                 </option>
                                 @endforeach
                             </select>

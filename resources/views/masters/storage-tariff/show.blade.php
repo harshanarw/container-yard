@@ -85,11 +85,12 @@
                         <label class="form-label fw-semibold">
                             Customer <span class="text-danger">*</span>
                         </label>
-                        <select name="customer_id" class="form-select select2" required>
+                        <select name="customer_id" class="form-select s2-code" required>
                             @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}"
+                                    data-code="{{ $customer->code }}" data-name="{{ $customer->name }}"
                                     {{ $storageTariff->customer_id == $customer->id ? 'selected' : '' }}>
-                                    [{{ $customer->code }}] {{ $customer->name }}
+                                    {{ $customer->code }} — {{ $customer->name }}
                                 </option>
                             @endforeach
                         </select>

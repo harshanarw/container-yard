@@ -220,11 +220,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Owner / Customer</label>
-                        <select name="customer_id" class="form-select select2">
+                        <select name="customer_id" class="form-select s2-code">
                             <option value="">— Default / All Customers —</option>
                             @foreach($customers as $c)
-                                <option value="{{ $c->id }}" {{ $mrTariff->customer_id == $c->id ? 'selected' : '' }}>
-                                    {{ $c->name }} ({{ $c->code }})
+                                <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $mrTariff->customer_id == $c->id ? 'selected' : '' }}>
+                                    {{ $c->code }} — {{ $c->name }}
                                 </option>
                             @endforeach
                         </select>

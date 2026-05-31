@@ -65,11 +65,11 @@
                     </div>
                 </div>
                 <div class="col-6 col-md-2">
-                    <select name="customer_id" class="form-select form-select-sm">
+                    <select name="customer_id" class="form-select form-select-sm s2-code">
                         <option value="">All Customers</option>
                         @foreach($customers as $customer)
-                            <option value="{{ $customer->id }}" {{ request('customer_id') == $customer->id ? 'selected' : '' }}>
-                                {{ $customer->name }}
+                            <option value="{{ $customer->id }}" data-code="{{ $customer->code }}" data-name="{{ $customer->name }}" {{ request('customer_id') == $customer->id ? 'selected' : '' }}>
+                                {{ $customer->code }} — {{ $customer->name }}
                             </option>
                         @endforeach
                     </select>

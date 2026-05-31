@@ -95,10 +95,10 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Customer / Owner <span class="text-danger">*</span></label>
-                            <select name="customer_id" class="form-select select2" required>
+                            <select name="customer_id" class="form-select s2-code" required>
                                 <option value="">— Select Customer —</option>
                                 @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                                <option value="{{ $customer->id }}" data-code="{{ $customer->code }}" data-name="{{ $customer->name }}">{{ $customer->code }} — {{ $customer->name }}</option>
                                 @endforeach
                             </select>
                         </div>

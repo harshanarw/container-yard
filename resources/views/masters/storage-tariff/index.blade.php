@@ -214,11 +214,11 @@
                             <label class="form-label fw-semibold">
                                 Customer <span class="text-danger">*</span>
                             </label>
-                            <select name="customer_id" class="form-select select2-modal" required>
+                            <select name="customer_id" class="form-select select2-modal s2-code" required>
                                 <option value="">— Select Customer —</option>
                                 @foreach($customers as $customer)
-                                    <option value="{{ $customer->id }}">
-                                        [{{ $customer->code }}] {{ $customer->name }}
+                                    <option value="{{ $customer->id }}" data-code="{{ $customer->code }}" data-name="{{ $customer->name }}">
+                                        {{ $customer->code }} — {{ $customer->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -326,9 +326,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reinitialise Select2 inside #addModal with dropdownParent so the search
     // field remains focusable (Bootstrap's focus trap blocks typing otherwise).
     $('#addModal').on('shown.bs.modal', function () {
-        $(this).find('.select2-modal').select2({
-            theme: 'bootstrap-5',
-            dropdownParent: $(this),
+        var $modal = $(this);
+        $modal.find('.select2-modal').each(function () {
+            window.initS2Code($(this), { dropdownParent: $modal, width: '100%' });
         });
     });
 

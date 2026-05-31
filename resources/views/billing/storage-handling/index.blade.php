@@ -70,12 +70,13 @@
                        value="{{ request('search') }}">
             </div>
             <div class="col-md-3">
-                <select name="shipping_line_id" class="form-select form-select-sm">
+                <select name="shipping_line_id" class="form-select form-select-sm s2-code">
                     <option value="">All Shipping Lines</option>
                     @foreach($shippingLines as $sl)
                         <option value="{{ $sl->id }}"
+                            data-code="{{ $sl->code }}" data-name="{{ $sl->name }}"
                             {{ request('shipping_line_id') == $sl->id ? 'selected' : '' }}>
-                            {{ $sl->name }}
+                            {{ $sl->code }} — {{ $sl->name }}
                         </option>
                     @endforeach
                 </select>

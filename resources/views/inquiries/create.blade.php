@@ -88,10 +88,10 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Customer / Owner <span class="text-danger">*</span></label>
-                            <select name="customer_id" class="form-select select2" required>
+                            <select name="customer_id" class="form-select s2-code" required>
                                 <option value="">— Select Customer —</option>
                                 @foreach($customers ?? [] as $c)
-                                    <option value="{{ $c->id }}" {{ old('customer_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                                    <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ old('customer_id') == $c->id ? 'selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>

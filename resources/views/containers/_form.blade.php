@@ -143,12 +143,13 @@
                                 Linked Customer
                                 <span class="text-muted fw-normal" style="font-size:.75rem;">(default)</span>
                             </label>
-                            <select name="customer_id" class="form-select @error('customer_id') is-invalid @enderror">
+                            <select name="customer_id" class="form-select s2-code @error('customer_id') is-invalid @enderror">
                                 <option value="">— None —</option>
                                 @foreach($customers as $cust)
                                     <option value="{{ $cust->id }}"
+                                        data-code="{{ $cust->code }}" data-name="{{ $cust->name }}"
                                         {{ old('customer_id', $container?->customer_id) == $cust->id ? 'selected' : '' }}>
-                                        {{ $cust->name }}
+                                        {{ $cust->code }} — {{ $cust->name }}
                                     </option>
                                 @endforeach
                             </select>
