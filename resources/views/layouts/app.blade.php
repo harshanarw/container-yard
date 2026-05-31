@@ -755,11 +755,21 @@
             </button>
             <div class="collapse {{ $mrCodesActive ? 'show' : '' }}" id="nav-sub-setup-mr-codes">
                 <ul class="nav flex-column">
+                    @php
+                    $mrCodeIcons = [
+                        'location'       => 'bi-geo-alt',
+                        'component'      => 'bi-cpu',
+                        'damage'         => 'bi-shield-exclamation',
+                        'repair'         => 'bi-tools',
+                        'material'       => 'bi-box-seam',
+                        'responsibility' => 'bi-person-badge',
+                    ];
+                    @endphp
                     @foreach(\App\Models\MrCode::TYPES as $slug => $label)
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.mr-codes.index', $slug) }}"
                            class="nav-link {{ request()->routeIs('masters.mr-codes.*') && request()->route('mrCodeType') === $slug ? 'active' : '' }}">
-                            <i class="bi bi-code-square"></i><span>{{ $label }}</span>
+                            <i class="bi {{ $mrCodeIcons[$slug] ?? 'bi-code-square' }}"></i><span>{{ $label }}</span>
                         </a>
                     </li>
                     @endforeach
@@ -929,7 +939,7 @@
                     <li class="nav-item sub-item">
                         <a href="{{ route('settings.email-config.index') }}"
                            class="nav-link {{ request()->routeIs('settings.email-config.*') ? 'active' : '' }}">
-                            <i class="bi bi-envelope-gear"></i><span>Email Config</span>
+                            <i class="bi bi-envelope-at"></i><span>Email Config</span>
                         </a>
                     </li>
                     <li class="nav-item sub-item">
