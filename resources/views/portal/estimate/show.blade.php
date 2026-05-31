@@ -22,10 +22,7 @@
   .action-bar { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.07); padding: 20px 24px; margin-bottom: 16px; }
   .tfoot-row td { font-size: .85rem; padding: 5px 10px; white-space: nowrap; }
   .tfoot-total td { font-size: .95rem; font-weight: 700; background: #eff6ff; color: #1a56db; padding: 10px 10px; border-top: 2px solid #1a56db !important; white-space: nowrap; }
-  .col-hide-mobile { /* hidden below md */ }
   @media (max-width: 767px) {
-    .col-hide-mobile { display: none !important; }
-    .tfoot-row td:first-child, .tfoot-total td:first-child { display: none; }
     .summary-meta { gap: 14px; }
     .summary-header { padding: 18px 16px; }
     .total-pill .value { font-size: 1.25rem; }
@@ -154,13 +151,13 @@
         <thead class="table-light">
           <tr>
             <th class="ps-3" style="width:3%">#</th>
-            <th class="col-hide-mobile" style="width:9%">MR Code</th>
-            <th class="col-hide-mobile" style="width:10%">Charge Code</th>
+            <th style="width:9%">MR Code</th>
+            <th style="width:10%">Charge Code</th>
             <th>Description</th>
-            <th class="col-hide-mobile" style="width:10%">Repair Type</th>
-            <th class="text-end col-hide-mobile" style="width:5%">Qty</th>
-            <th class="text-end col-hide-mobile" style="width:9%">Unit Price</th>
-            <th class="col-hide-mobile" style="width:7%">Tax Code</th>
+            <th style="width:10%">Repair Type</th>
+            <th class="text-end" style="width:5%">Qty</th>
+            <th class="text-end" style="width:9%">Unit Price</th>
+            <th style="width:7%">Tax Code</th>
             <th class="text-end pe-3" style="width:9%">Amount</th>
             <th class="text-center" style="width:8%">Status</th>
             @if($canAct)<th class="text-center" style="width:9%">Action</th>@endif
@@ -172,7 +169,7 @@
             <td class="ps-3 text-muted">{{ $i + 1 }}</td>
 
             {{-- MR Code chip --}}
-            <td class="col-hide-mobile">
+            <td>
               @if($line->componentCode)
                 <span class="code-chip blue" title="{{ $line->componentCode->name }}">
                   {{ $line->componentCode->code }}
@@ -183,7 +180,7 @@
             </td>
 
             {{-- Charge Code chip --}}
-            <td class="col-hide-mobile">
+            <td>
               @if($line->chargeCode)
                 <span class="code-chip green" title="{{ $line->chargeCode->name }}">
                   {{ $line->chargeCode->code }}
@@ -197,13 +194,13 @@
             <td class="fw-semibold">{{ $line->component }}</td>
 
             {{-- Repair type --}}
-            <td class="text-muted col-hide-mobile">{{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}</td>
+            <td class="text-muted">{{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}</td>
 
-            <td class="text-end col-hide-mobile">{{ number_format($line->qty, 2) }}</td>
-            <td class="text-end col-hide-mobile">{{ number_format($line->unit_price, 2) }}</td>
+            <td class="text-end">{{ number_format($line->qty, 2) }}</td>
+            <td class="text-end">{{ number_format($line->unit_price, 2) }}</td>
 
             {{-- Tax Code --}}
-            <td class="col-hide-mobile">
+            <td>
               @if($line->taxCode)
                 <span class="code-chip orange" title="{{ $line->taxCode->name ?? $line->taxCode->code }}">
                   {{ $line->taxCode->code }}
