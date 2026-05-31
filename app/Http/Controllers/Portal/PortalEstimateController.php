@@ -229,10 +229,24 @@ class PortalEstimateController extends Controller
             abort(404, 'Estimate not found.');
         }
 
-        $estimate->load(['container', 'customer', 'lineItems', 'createdBy']);
+        $estimate->load(['container', 'customer', 'lineItems', 'createdBy', 'approvalActions']);
         $company = CompanySetting::current();
 
-        return view('portal.estimate.approval-form', compact('estimate', 'company', 'portalToken'));
+        // Latest action per line item (carries notes and approver info)
+        $lineActions = $estimate->approvalActions
+            ->whereNotNull('estimate_line_item_id')
+            ->sortByDesc('created_at')
+            ->groupBy('estimate_line_item_id')
+            ->map(fn ($group) => $group->first());
+
+        // Most recent approver identity for pre-filling the signature block
+        $latestApprover = $estimate->approvalActions
+            ->whereNotNull('approver_name')
+            ->sortByDesc('created_at')
+            ->first();
+
+        return view('portal.estimate.approval-form',
+            compact('estimate', 'company', 'portalToken', 'lineActions', 'latestApprover'));
     }
 
     public function uploadSignedApproval(Request $request, string $token)
