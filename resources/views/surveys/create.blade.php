@@ -388,20 +388,24 @@
 @push('scripts')
 <script>
     // ── Container selection → auto-fill Equipment Type, Customer, Gate-In Ref ──
-    (function () {
-        const containerSel   = document.getElementById('containerSelect');
-        const eqtSelect      = document.getElementById('eqtSelect');
-        const customerSelect = document.getElementById('customerSelect');
-        const gateRefInput   = document.querySelector('[name="gate_in_ref"]');
-        const gateInfoBox    = document.getElementById('containerGateInfo');
-        const gateDateSpan   = document.getElementById('containerGateDate');
-        const gateRefSpan    = document.getElementById('containerGateRef');
+    // Runs inside $(fn) so Select2 is fully initialised on all fields before we
+    // bind events or call fillFromContainer for a pre-selected container.
+    $(function () {
+        var containerSel   = document.getElementById('containerSelect');
+        if (!containerSel) return;
+
+        var eqtSelect      = document.getElementById('eqtSelect');
+        var customerSelect = document.getElementById('customerSelect');
+        var gateRefInput   = document.querySelector('[name="gate_in_ref"]');
+        var gateInfoBox    = document.getElementById('containerGateInfo');
+        var gateDateSpan   = document.getElementById('containerGateDate');
+        var gateRefSpan    = document.getElementById('containerGateRef');
 
         function applyEqtBadges(opt) {
-            const sizeHid   = document.getElementById('eqtSize');
-            const typeHid   = document.getElementById('eqtTypeCode');
-            const sizeBadge = document.getElementById('eqtSizeBadge');
-            const typeBadge = document.getElementById('eqtTypeBadge');
+            var sizeHid   = document.getElementById('eqtSize');
+            var typeHid   = document.getElementById('eqtTypeCode');
+            var sizeBadge = document.getElementById('eqtSizeBadge');
+            var typeBadge = document.getElementById('eqtTypeBadge');
             if (!opt || !opt.value) {
                 if (sizeHid) sizeHid.value = '';
                 if (typeHid) typeHid.value = '';
@@ -409,7 +413,7 @@
                 if (typeBadge) typeBadge.classList.add('d-none');
                 return;
             }
-            const isReefer = opt.dataset.type === 'RF' || opt.dataset.type === 'RH';
+            var isReefer = opt.dataset.type === 'RF' || opt.dataset.type === 'RH';
             if (sizeHid) sizeHid.value = opt.dataset.size || '';
             if (typeHid) typeHid.value = opt.dataset.type || '';
             if (sizeBadge) {
@@ -429,49 +433,37 @@
                 return;
             }
             if (eqtSelect && opt.dataset.eqtId) {
-                if (typeof $ !== 'undefined') {
-                    $(eqtSelect).val(opt.dataset.eqtId).trigger('change');
-                } else {
-                    eqtSelect.value = opt.dataset.eqtId;
-                }
+                $(eqtSelect).val(opt.dataset.eqtId).trigger('change');
                 applyEqtBadges(eqtSelect.selectedOptions[0]);
             }
             if (customerSelect && opt.dataset.customerId) {
-                if (typeof $ !== 'undefined') {
-                    $(customerSelect).val(opt.dataset.customerId).trigger('change');
-                } else {
-                    customerSelect.value = opt.dataset.customerId;
-                }
+                $(customerSelect).val(opt.dataset.customerId).trigger('change');
             }
             if (gateRefInput) gateRefInput.value = opt.dataset.gateRef || '';
             if (gateInfoBox && gateDateSpan && gateRefSpan) {
-                const hasGateInfo = opt.dataset.gateDate || opt.dataset.gateRef;
+                var hasGateInfo = opt.dataset.gateDate || opt.dataset.gateRef;
                 gateDateSpan.textContent = opt.dataset.gateDate || '—';
                 gateRefSpan.textContent  = opt.dataset.gateRef  || '—';
                 gateInfoBox.classList.toggle('d-none', !hasGateInfo);
             }
         }
 
-        function bindChange() {
-            if (typeof $ !== 'undefined') {
-                $(containerSel).on('change', function () {
-                    fillFromContainer(this.selectedOptions[0]);
-                });
-            } else {
-                containerSel.addEventListener('change', function () {
-                    fillFromContainer(this.selectedOptions[0]);
-                });
-            }
-        }
+        // select2:select fires when user picks from the dropdown
+        $(containerSel).on('select2:select', function (e) {
+            var opt = $(containerSel).find('option[value="' + e.params.data.id + '"]')[0];
+            fillFromContainer(opt);
+        });
 
-        if (typeof $ !== 'undefined') {
-            $(function () { bindChange(); });
-        } else {
-            bindChange();
-        }
+        // select2:clear fires when the × clear button is used
+        $(containerSel).on('select2:clear', function () {
+            fillFromContainer(null);
+        });
 
-        if (containerSel.value) fillFromContainer(containerSel.selectedOptions[0]);
-    })();
+        // Pre-selected container on page load (inside $(fn) so Select2 is ready)
+        if (containerSel.value) {
+            fillFromContainer(containerSel.options[containerSel.selectedIndex]);
+        }
+    });
 
     // ── Equipment Type manual override (size/type badges) ─────────────────────
     (function () {
