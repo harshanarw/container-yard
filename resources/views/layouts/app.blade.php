@@ -1140,8 +1140,8 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <!-- Bootstrap Datepicker (date-only inputs) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
-<!-- Tempus Dominus v6 (datetime inputs) -->
-<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.browser.min.js"></script>
+<!-- AirDatepicker v3 (datetime inputs) -->
+<script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.js"></script>
 
 <script>
     // Sidebar toggle
