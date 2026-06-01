@@ -169,7 +169,11 @@ class EstimateController extends Controller
             'createdBy', 'updatedBy', 'approvedBy', 'parentEstimate', 'revisions',
             'approvalActions.lineItem', 'approvalActions.actionedBy',
             'documents',
+            'workOrders.repairCategory', 'workOrders.assignedTo',
         ]);
+
+        $hasUnassignedLines = $estimate->status === 'approved'
+            && $estimate->lineItems()->whereDoesntHave('workOrderLine')->exists();
 
         $activeToken = PortalToken::where('tokenable_type', Estimate::class)
             ->where('tokenable_id', $estimate->id)
@@ -180,7 +184,7 @@ class EstimateController extends Controller
             ->latest()
             ->first();
 
-        return view('estimates.show', compact('estimate', 'activeToken'));
+        return view('estimates.show', compact('estimate', 'activeToken', 'hasUnassignedLines'));
     }
 
     public function edit(Estimate $estimate)

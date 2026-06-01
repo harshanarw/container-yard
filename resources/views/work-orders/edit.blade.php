@@ -147,6 +147,36 @@
     </div>
 
     <div class="col-md-4">
+        @if($workOrder->estimate)
+        <div class="card mb-3">
+            <div class="card-header bg-success-subtle">
+                <h6 class="mb-0"><i class="bi bi-file-earmark-check me-1 text-success"></i>Linked Estimate</h6>
+            </div>
+            <div class="card-body small">
+                <dl class="row mb-0">
+                    <dt class="col-5 fw-normal text-muted">Estimate #</dt>
+                    <dd class="col-7 fw-semibold mb-1">
+                        <a href="{{ route('estimates.show', $workOrder->estimate) }}" target="_blank">
+                            {{ $workOrder->estimate->estimate_no }}
+                            <i class="bi bi-box-arrow-up-right ms-1" style="font-size:.7rem;"></i>
+                        </a>
+                    </dd>
+                    <dt class="col-5 fw-normal text-muted">Status</dt>
+                    <dd class="col-7 mb-1">
+                        <span class="badge bg-{{ $workOrder->estimate->status === 'approved' ? 'success' : 'secondary' }}">
+                            {{ ucfirst($workOrder->estimate->status) }}
+                        </span>
+                    </dd>
+                    <dt class="col-5 fw-normal text-muted">Total Value</dt>
+                    <dd class="col-7 fw-semibold mb-0">
+                        {{ $workOrder->estimate->currency }}
+                        {{ number_format($workOrder->estimate->grand_total ?? 0, 2) }}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+        @endif
+
         <div class="card">
             <div class="card-header bg-light">
                 <h5 class="mb-0">Timeline</h5>

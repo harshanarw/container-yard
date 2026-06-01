@@ -67,6 +67,11 @@
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
         @endif
+        @if($hasUnassignedLines)
+        <a href="{{ route('work-orders.create', ['estimate_id' => $estimate->id]) }}" class="btn btn-success btn-sm">
+            <i class="bi bi-hammer me-1"></i>Create Work Order
+        </a>
+        @endif
         @if($estimate->status === 'sent')
         <form method="POST" action="{{ route('estimates.approve', $estimate) }}" class="d-inline">
             @csrf @method('PATCH')
@@ -246,6 +251,73 @@
                 </div>
             </div>
         </div>
+
+        <!-- Work Orders -->
+        @if($estimate->status === 'approved')
+        @php
+            $woStatusColors = ['pending'=>'secondary','in_progress'=>'primary','on_hold'=>'warning','completed'=>'info','closed'=>'success','cancelled'=>'danger'];
+        @endphp
+        <div class="card content-card mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-hammer me-2 text-primary"></i>Work Orders</span>
+                @if($estimate->workOrders->count())
+                <span class="badge bg-primary rounded-pill">{{ $estimate->workOrders->count() }}</span>
+                @endif
+            </div>
+            @if($estimate->workOrders->count())
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    @foreach($estimate->workOrders as $wo)
+                    <div class="list-group-item py-2 px-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{{ route('work-orders.show', $wo) }}"
+                                   class="fw-semibold text-decoration-none font-monospace small">{{ $wo->wo_no }}</a>
+                                @if($wo->repairCategory)
+                                <span class="badge bg-{{ $wo->repairCategory->color }}">{{ $wo->repairCategory->code }}</span>
+                                @endif
+                            </div>
+                            <span class="badge bg-{{ $woStatusColors[$wo->status] ?? 'secondary' }}">
+                                {{ ucfirst(str_replace('_', ' ', $wo->status)) }}
+                            </span>
+                        </div>
+                        @if($wo->assignedTo || $wo->target_date)
+                        <div class="text-muted small mt-1">
+                            @if($wo->assignedTo)
+                                <i class="bi bi-person me-1"></i>{{ $wo->assignedTo->name }}
+                            @endif
+                            @if($wo->target_date)
+                                <span class="{{ $wo->assignedTo ? 'ms-2' : '' }}">
+                                    <i class="bi bi-calendar me-1"></i>Due {{ $wo->target_date->format('d M Y') }}
+                                </span>
+                            @endif
+                        </div>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @if($hasUnassignedLines)
+            <div class="card-footer bg-white py-2">
+                <a href="{{ route('work-orders.create', ['estimate_id' => $estimate->id]) }}"
+                   class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i>Create Another Work Order
+                </a>
+            </div>
+            @endif
+            @else
+            <div class="card-body py-3">
+                <p class="text-muted small mb-2">No work orders have been created from this estimate yet.</p>
+                @if($hasUnassignedLines)
+                <a href="{{ route('work-orders.create', ['estimate_id' => $estimate->id]) }}"
+                   class="btn btn-success btn-sm">
+                    <i class="bi bi-hammer me-1"></i>Create Work Order
+                </a>
+                @endif
+            </div>
+            @endif
+        </div>
+        @endif
 
         <!-- Scope & Terms -->
         @if($estimate->scope_of_work || $estimate->terms)

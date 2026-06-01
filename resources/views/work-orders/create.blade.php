@@ -55,7 +55,7 @@
                             data-code="{{ $est->estimate_no }}"
                             data-name="{{ $est->container_no }} — {{ $est->customer->code ?? $est->customer->name }}"
                             data-categories-url="{{ route('work-orders.available-categories', $est) }}"
-                            {{ old('estimate_id') == $est->id ? 'selected' : '' }}>
+                            {{ old('estimate_id', $preselectedEstimateId ?? '') == $est->id ? 'selected' : '' }}>
                         {{ $est->estimate_no }} — {{ $est->container_no }} — {{ $est->customer->code ?? $est->customer->name }}
                         ({{ $est->currency }} {{ number_format($est->grand_total, 2) }})
                     </option>
@@ -210,6 +210,11 @@
     const submitBtn       = document.getElementById('submitBtn');
 
     if (!estimateSelect) return;
+
+    // Auto-trigger when pre-selected via ?estimate_id= query param
+    if (estimateSelect.value) {
+        estimateSelect.dispatchEvent(new Event('change'));
+    }
 
     estimateSelect.addEventListener('change', function () {
         const opt = this.options[this.selectedIndex];

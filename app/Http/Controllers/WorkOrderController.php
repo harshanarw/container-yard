@@ -34,7 +34,7 @@ class WorkOrderController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
         // Estimates eligible: approved + still have unassigned line items
         $approvedEstimates = \App\Models\Estimate::with('customer')
@@ -48,11 +48,15 @@ class WorkOrderController extends Controller
         $supervisors = User::whereIn('role', ['yard_supervisor', 'admin'])->get();
         $categories  = RepairCategory::active()->get();
 
+        // Pre-select estimate when coming from the estimate show page
+        $preselectedEstimateId = $request->query('estimate_id');
+
         return view('work-orders.create', [
-            'approvedEstimates' => $approvedEstimates,
-            'supervisors'       => $supervisors,
-            'priorities'        => ['normal', 'urgent', 'critical'],
-            'categories'        => $categories,
+            'approvedEstimates'     => $approvedEstimates,
+            'supervisors'           => $supervisors,
+            'priorities'            => ['normal', 'urgent', 'critical'],
+            'categories'            => $categories,
+            'preselectedEstimateId' => $preselectedEstimateId,
         ]);
     }
 
