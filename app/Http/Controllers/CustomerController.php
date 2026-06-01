@@ -94,6 +94,7 @@ class CustomerController extends Controller
         $data['tax_exempt']          = $request->boolean('tax_exempt');
         $data['local_agent_id']      = $request->input('local_agent_id') ?: null;
         $data['billing_party_id']    = $request->input('billing_party_id') ?: null;
+        $data['credit_limit']        = $data['credit_limit'] ?? 0;
 
         $customer = Customer::create($data);
         $customer->types()->sync($request->input('types', []));
@@ -151,6 +152,7 @@ class CustomerController extends Controller
         $data['tax_exempt']          = $request->boolean('tax_exempt');
         $data['local_agent_id']      = $request->input('local_agent_id') ?: null;
         $data['billing_party_id']    = $request->input('billing_party_id') ?: null;
+        $data['credit_limit']        = $data['credit_limit'] ?? 0;
 
         $customer->update($data);
         $customer->types()->sync($request->input('types', []));
