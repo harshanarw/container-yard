@@ -131,6 +131,7 @@
                     {{-- ═══════════════════════════════════════════════════════
                          SECTION 2 — Import Shipment Information (collapsible)
                     ════════════════════════════════════════════════════════ --}}
+                    <div class="mb-3">
                     <div class="gate-section-hdr gate-section-collapse rounded-top mb-0"
                          style="background:#ecfeff;border-left:3px solid #0ea5e9;"
                          data-bs-toggle="collapse" data-bs-target="#inImportSection"
@@ -142,7 +143,7 @@
                         </span>
                         <i class="bi bi-chevron-down text-info collapse-chevron"></i>
                     </div>
-                    <div class="collapse mb-3" id="inImportSection">
+                    <div class="collapse" id="inImportSection">
                         <div class="rounded-bottom p-3" style="border:1px solid #0ea5e9;border-top:none;">
                             <div class="row g-3">
                                 <div class="col-6">
@@ -176,6 +177,7 @@
                             </div>
                         </div>
                     </div>
+                    </div>{{-- end Import Shipment wrapper --}}
 
                     {{-- ═══════════════════════════════════════════════════════
                          SECTION 3 — Transport Details (always visible)
@@ -229,6 +231,7 @@
                     {{-- ═══════════════════════════════════════════════════════
                          SECTION 4 — Storage Location (collapsible)
                     ════════════════════════════════════════════════════════ --}}
+                    <div class="mb-3">
                     <div class="gate-section-hdr gate-section-collapse rounded-top mb-0"
                          style="background:#f0fdf4;border-left:3px solid #22c55e;"
                          data-bs-toggle="collapse" data-bs-target="#inLocationSection"
@@ -240,7 +243,7 @@
                         </span>
                         <i class="bi bi-chevron-down text-success collapse-chevron"></i>
                     </div>
-                    <div class="collapse mb-3" id="inLocationSection">
+                    <div class="collapse" id="inLocationSection">
                         <div class="rounded-bottom p-3" style="border:1px solid #22c55e;border-top:none;">
 
                             {{-- Hidden submission fields --}}
@@ -308,6 +311,7 @@
 
                         </div>
                     </div>
+                    </div>{{-- end Storage Location wrapper --}}
 
                     {{-- ═══════════════════════════════════════════════════════
                          SECTION 5 — Remarks & Date/Time (always visible)
@@ -410,6 +414,7 @@
                     {{-- ═══════════════════════════════════════════════════════
                          SECTION 2 — Export Information (collapsible)
                     ════════════════════════════════════════════════════════ --}}
+                    <div class="mb-3">
                     <div class="gate-section-hdr gate-section-collapse rounded-top mb-0"
                          style="background:#ecfeff;border-left:3px solid #0ea5e9;"
                          data-bs-toggle="collapse" data-bs-target="#outExportSection"
@@ -421,7 +426,7 @@
                         </span>
                         <i class="bi bi-chevron-down text-info collapse-chevron"></i>
                     </div>
-                    <div class="collapse mb-3" id="outExportSection">
+                    <div class="collapse" id="outExportSection">
                         <div class="rounded-bottom p-3" style="border:1px solid #0ea5e9;border-top:none;">
                             <div class="row g-3">
                                 <div class="col-6">
@@ -451,6 +456,7 @@
                             </div>
                         </div>
                     </div>
+                    </div>{{-- end Export Information wrapper --}}
 
                     {{-- ═══════════════════════════════════════════════════════
                          SECTION 3 — Transport Details (always visible)
