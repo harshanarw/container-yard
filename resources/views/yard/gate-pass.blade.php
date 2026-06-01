@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gate Pass {{ $movement->container_no }} — #{{ str_pad($movement->id, 5, '0', STR_PAD_LEFT) }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         /* ── Page setup ──────────────────────────────────────────────────── */
         @page {
@@ -126,6 +127,14 @@
             border-radius: 2px;
         }
 
+        /* ── QR Code ─────────────────────────────────────────────────────── */
+        .gp-qr { margin-top: 6px; text-align: right; line-height: 0; }
+        /* qrcodejs creates canvas + img; hide canvas, size the img */
+        .gp-qr canvas { display: none !important; }
+        .gp-qr img { display: inline-block; border: 1px solid #ccc;
+                     padding: 2px; background: #fff; width: 100px; height: 100px; }
+        .gp-qr-sm img { width: 78px; height: 78px; }
+
         /* ── Footer ──────────────────────────────────────────────────────── */
         .gp-footer {
             display: flex;
@@ -168,6 +177,23 @@
     $isEmpty  = !$isLaden;
     $softwareCopyright = '© ' . date('Y') . ' ' . ($companySetting?->software_provider ?? 'CYM Software');
     $printedAt = now()->format('d M Y H:i');
+
+    // Build QR payload — pipe-delimited structured data (offline-scannable)
+    $qrParts = array_filter([
+        'GP:'  . $gpNumber,
+        'CN:'  . $movement->container_no,
+        'SZ:'  . ($movement->size . "'" . $movement->container_type),
+        'ST:'  . strtoupper($movement->cargo_status ?? ''),
+        'DT:'  . ($movement->gate_out_time?->format('Y-m-d H:i') ?? ''),
+        'VH:'  . ($movement->vehicle_plate ?? ''),
+        'DR:'  . ($movement->driver_name ?? ''),
+        'CS:'  . ($gateIn?->customer?->name ?? $movement->customer?->name ?? ''),
+        'LS:'  . ($movement->loading_vessel ?? ''),
+        'VY:'  . ($movement->loading_voyage ?? ''),
+        'SL:'  . ($movement->seal_no ?? ''),
+        'YD:'  . ($companySetting?->company_name ?? ''),
+    ], fn($v) => strlen($v) > 3);
+    $qrData = implode('|', $qrParts);
 @endphp
 
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
@@ -195,6 +221,7 @@
         <div class="gp-pass-no">
             <div class="gp-pass-no-label">No.</div>
             <div class="gp-pass-no-value">{{ $gpNumber }}</div>
+            <div class="gp-qr"><div id="qr-full"></div></div>
         </div>
     </div>
 
@@ -334,6 +361,7 @@
         <div class="gp-pass-no">
             <div class="gp-pass-no-label">No.</div>
             <div class="gp-pass-no-value" style="font-size:18pt;">{{ $gpNumber }}</div>
+            <div class="gp-qr gp-qr-sm"><div id="qr-half"></div></div>
         </div>
     </div>
 
@@ -438,5 +466,24 @@
 </div>
 @endif
 
+<script>
+(function () {
+    var data = @json($qrData);
+    function makeQR(id, size) {
+        var el = document.getElementById(id);
+        if (!el || typeof QRCode === 'undefined') return;
+        new QRCode(el, {
+            text: data,
+            width: size,
+            height: size,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M,
+        });
+    }
+    makeQR('qr-full', 100);
+    makeQR('qr-half', 78);
+})();
+</script>
 </body>
 </html>
