@@ -17,6 +17,7 @@ use App\Models\MrCode;
 use App\Models\MrTariffHeader;
 use App\Models\PortalToken;
 use App\Models\TaxCode;
+use App\Services\RepairCategoryResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -115,8 +116,14 @@ class EstimateController extends Controller
             'created_by'     => auth()->id(),
         ]);
 
+        $resolver = new RepairCategoryResolver();
         foreach ($lineItems as $idx => $item) {
             $meta = $totals['lines'][$idx];
+            $repairCategoryId = $item['repair_category_id']
+                ?? $resolver->resolve(
+                    isset($item['component_code_id']) ? (int) $item['component_code_id'] : null,
+                    $item['repair_type'] ?? null
+                )?->id;
             $estimate->lineItems()->create([
                 'component'           => $item['component'],
                 'repair_type'         => $item['repair_type'],
@@ -138,7 +145,7 @@ class EstimateController extends Controller
                 'repair_code_id'      => $item['repair_code_id'] ?? null,
                 'material_code_id'    => $item['material_code_id'] ?? null,
                 'cedex_code'          => $item['cedex_code'] ?? null,
-                'repair_category_id'  => $item['repair_category_id'] ?? null,
+                'repair_category_id'  => $repairCategoryId,
                 // Charge / tax code
                 'charge_code_id'      => $item['charge_code_id'] ?? null,
                 'tax_code_id'         => $item['tax_code_id'] ?? null,
@@ -244,8 +251,14 @@ class EstimateController extends Controller
         ]);
 
         $estimate->lineItems()->delete();
+        $resolver = new RepairCategoryResolver();
         foreach ($lineItems as $idx => $item) {
             $meta = $totals['lines'][$idx];
+            $repairCategoryId = $item['repair_category_id']
+                ?? $resolver->resolve(
+                    isset($item['component_code_id']) ? (int) $item['component_code_id'] : null,
+                    $item['repair_type'] ?? null
+                )?->id;
             $estimate->lineItems()->create([
                 'component'           => $item['component'],
                 'repair_type'         => $item['repair_type'],
@@ -267,7 +280,7 @@ class EstimateController extends Controller
                 'repair_code_id'      => $item['repair_code_id'] ?? null,
                 'material_code_id'    => $item['material_code_id'] ?? null,
                 'cedex_code'          => $item['cedex_code'] ?? null,
-                'repair_category_id'  => $item['repair_category_id'] ?? null,
+                'repair_category_id'  => $repairCategoryId,
                 // Charge / tax code
                 'charge_code_id'      => $item['charge_code_id'] ?? null,
                 'tax_code_id'         => $item['tax_code_id'] ?? null,

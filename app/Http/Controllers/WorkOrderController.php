@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\RepairCategory;
 use App\Models\WorkOrder;
 use App\Models\User;
+use App\Services\RepairCategoryResolver;
 use Illuminate\Http\Request;
 
 class WorkOrderController extends Controller
@@ -65,6 +66,25 @@ class WorkOrderController extends Controller
      */
     public function availableCategories(\App\Models\Estimate $estimate)
     {
+        // Auto-resolve category for any unassigned lines that still have null repair_category_id
+        $uncategorised = $estimate->lineItems()
+            ->whereDoesntHave('workOrderLine')
+            ->whereNull('repair_category_id')
+            ->get();
+
+        if ($uncategorised->isNotEmpty()) {
+            $resolver = new RepairCategoryResolver();
+            foreach ($uncategorised as $line) {
+                $category = $resolver->resolve(
+                    $line->component_code_id ? (int) $line->component_code_id : null,
+                    $line->repair_type
+                );
+                if ($category) {
+                    $line->update(['repair_category_id' => $category->id]);
+                }
+            }
+        }
+
         $lines = $estimate->lineItems()
             ->whereDoesntHave('workOrderLine')
             ->whereNotNull('repair_category_id')
