@@ -123,6 +123,13 @@ class YardController extends Controller
             'driver_name'       => ['nullable', 'string', 'max:255'],
             'driver_ic'         => ['nullable', 'string', 'max:30'],
             'driver_phone'      => ['nullable', 'string', 'max:20'],
+            // Import shipment information
+            'vessel_name'       => ['nullable', 'string', 'max:100'],
+            'voyage_no'         => ['nullable', 'string', 'max:50'],
+            'berthing_date'     => ['nullable', 'date'],
+            'bl_number'         => ['nullable', 'string', 'max:50'],
+            'do_expiry_date'    => ['nullable', 'date'],
+            'consignee'         => ['nullable', 'string', 'max:150'],
             'remarks'           => ['nullable', 'string'],
             'gate_in_time'      => ['nullable', 'string', 'max:20'],
             'photos'            => ['nullable', 'array', 'max:5'],
@@ -195,6 +202,13 @@ class YardController extends Controller
             'movement_status' => 'done',
             'remarks'         => $validated['remarks'],
             'created_by'      => auth()->id(),
+            // Import shipment information
+            'vessel_name'     => $validated['vessel_name'] ?? null,
+            'voyage_no'       => $validated['voyage_no'] ?? null,
+            'berthing_date'   => $validated['berthing_date'] ?? null,
+            'bl_number'       => $validated['bl_number'] ?? null,
+            'do_expiry_date'  => $validated['do_expiry_date'] ?? null,
+            'consignee'       => $validated['consignee'] ?? null,
         ]);
 
         // Save gate-in photos via DocumentManager
@@ -245,7 +259,7 @@ class YardController extends Controller
             'daily_rate'   => $dailyRate,
         ]);
 
-        $redirect = redirect()->route('yard.gate')
+        $redirect = redirect()->to(route('yard.gate') . '?tab=in')
             ->with('success', "Gate IN recorded for {$container->container_no}.");
 
         if ($photoError) {
@@ -274,6 +288,12 @@ class YardController extends Controller
             'driver_ic'      => ['required', 'string', 'max:30'],
             'driver_phone'   => ['nullable', 'string', 'max:20'],
             'release_order'  => ['required', 'string', 'max:50'],
+            'seal_no'        => ['nullable', 'string', 'max:20'],
+            // Export information
+            'loading_vessel' => ['nullable', 'string', 'max:100'],
+            'loading_voyage' => ['nullable', 'string', 'max:50'],
+            'sailing_date'   => ['nullable', 'date'],
+            'shipper'        => ['nullable', 'string', 'max:150'],
             'remarks'        => ['nullable', 'string'],
             'gate_out_time'  => ['nullable', 'string', 'max:20'],
             'photos'         => ['nullable', 'array', 'max:5'],
@@ -308,10 +328,16 @@ class YardController extends Controller
             'driver_ic'       => $validated['driver_ic'],
             'driver_phone'    => $validated['driver_phone'] ?? null,
             'release_order'   => $validated['release_order'],
+            'seal_no'         => $validated['seal_no'] ?? null,
             'gate_out_time'   => $gateOutTime,
             'movement_status' => 'done',
             'remarks'         => $validated['remarks'],
             'created_by'      => auth()->id(),
+            // Export information
+            'loading_vessel'  => $validated['loading_vessel'] ?? null,
+            'loading_voyage'  => $validated['loading_voyage'] ?? null,
+            'sailing_date'    => $validated['sailing_date'] ?? null,
+            'shipper'         => $validated['shipper'] ?? null,
         ]);
 
         // Save gate-out photos via DocumentManager
@@ -362,7 +388,7 @@ class YardController extends Controller
             'location_tier' => null,
         ]);
 
-        $redirect = redirect()->route('yard.gate')
+        $redirect = redirect()->to(route('yard.gate') . '?tab=out')
             ->with('success', "Gate OUT recorded for {$container->container_no}.");
 
         if ($photoError) {

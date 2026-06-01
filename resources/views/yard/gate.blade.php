@@ -237,6 +237,39 @@
                         </div>
                         {{-- ── End Transporter & Driver ────────────────────────── --}}
 
+                        {{-- ── Import Shipment Information ─────────────────────── --}}
+                        <div class="col-12 mt-1">
+                            <div class="fw-semibold text-primary mb-1" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">
+                                <i class="bi bi-ship me-1"></i>Import Shipment Information
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.65rem;text-transform:none;">Optional</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Ex / Discharged Vessel</label>
+                            <input type="text" name="vessel_name" class="form-control" placeholder="Vessel name">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Voyage No.</label>
+                            <input type="text" name="voyage_no" class="form-control" placeholder="e.g. 001W">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">Berthing Date</label>
+                            <input type="date" name="berthing_date" class="form-control">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">BL Number</label>
+                            <input type="text" name="bl_number" class="form-control" placeholder="Bill of Lading No.">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">D/O Expiry Date</label>
+                            <input type="date" name="do_expiry_date" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Consignee</label>
+                            <input type="text" name="consignee" class="form-control" placeholder="Consignee name">
+                        </div>
+                        {{-- ── End Import Shipment Information ─────────────────── --}}
+
                         <div class="col-12">
                             <label class="form-label fw-semibold">Remarks</label>
                             <textarea name="remarks" class="form-control" rows="2" placeholder="Any remarks…"></textarea>
@@ -251,7 +284,6 @@
                             </label>
                             <input type="datetime-local" name="gate_in_time" id="gateInTime"
                                    class="form-control"
-                                   value="{{ now()->format('Y-m-d\TH:i') }}"
                                    {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
                             @if(!auth()->user()->isAdmin())
                                 <div class="form-text text-muted" style="font-size:.72rem;">
@@ -360,6 +392,36 @@
                             </label>
                             <input type="text" name="driver_phone" class="form-control" placeholder="+60 12-345 6789">
                         </div>
+
+                        {{-- ── Export Information ───────────────────────────────── --}}
+                        <div class="col-12 mt-1">
+                            <div class="fw-semibold text-success mb-1" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">
+                                <i class="bi bi-send me-1"></i>Export Information
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.65rem;text-transform:none;">Optional</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Loading Vessel</label>
+                            <input type="text" name="loading_vessel" class="form-control" placeholder="Loading vessel name">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Voyage No.</label>
+                            <input type="text" name="loading_voyage" class="form-control" placeholder="e.g. 002E">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Sailing Date</label>
+                            <input type="date" name="sailing_date" class="form-control">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Shipper</label>
+                            <input type="text" name="shipper" class="form-control" placeholder="Shipper name">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Seal Number</label>
+                            <input type="text" name="seal_no" class="form-control" placeholder="Optional">
+                        </div>
+                        {{-- ── End Export Information ───────────────────────────── --}}
+
                         <div class="col-12">
                             <label class="form-label fw-semibold">Remarks</label>
                             <textarea name="remarks" class="form-control" rows="2" placeholder="Any remarks…"></textarea>
@@ -374,7 +436,6 @@
                             </label>
                             <input type="datetime-local" name="gate_out_time" id="gateOutTime"
                                    class="form-control"
-                                   value="{{ now()->format('Y-m-d\TH:i') }}"
                                    {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
                             @if(!auth()->user()->isAdmin())
                                 <div class="form-text text-muted" style="font-size:.72rem;">
@@ -526,6 +587,22 @@ btnOut.addEventListener('click', () => {
     btnOut.classList.replace('btn-outline-success','btn-success');
     btnIn.classList.replace('btn-primary','btn-outline-primary');
 });
+
+// ── Restore active tab from URL ?tab= param ─────────────────────────────────
+(function () {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('tab') === 'out') btnOut.click();
+})();
+
+// ── Set datetime pickers to current client time ─────────────────────────────
+(function () {
+    const pad = n => String(n).padStart(2, '0');
+    const now = new Date();
+    const ts  = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
+              + 'T' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    document.getElementById('gateInTime').value  = ts;
+    document.getElementById('gateOutTime').value = ts;
+})();
 
 // ── Container number enforcer ───────────────────────────────────────────────
 (function () {
@@ -814,13 +891,13 @@ function initPhotoUploader(cfg) {
         const fd = new FormData(form);
         files.forEach(file => fd.append('photos[]', file));
         fetch(form.action, { method: 'POST', body: fd, redirect: 'manual' })
-            .then(() => window.location.reload())
+            .then(() => { window.location.href = cfg.redirectUrl || window.location.href; })
             .catch(() => { submitBtn.disabled = false; submitBtn.innerHTML = origHtml; });
     });
 }
 
-initPhotoUploader({ fileInput: document.getElementById('inPhotoInput'), cameraInput: document.getElementById('inCameraInput'), browseBtn: document.getElementById('inBrowseBtn'), cameraBtn: document.getElementById('inCameraBtn'), dropZone: document.getElementById('inDropZone'), errorEl: document.getElementById('inPhotoError'), previewGrid: document.getElementById('inPhotoPreview'), counterEl: document.getElementById('inPhotoCounter'), max: 5 });
-initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraInput: document.getElementById('outCameraInput'), browseBtn: document.getElementById('outBrowseBtn'), cameraBtn: document.getElementById('outCameraBtn'), dropZone: document.getElementById('outDropZone'), errorEl: document.getElementById('outPhotoError'), previewGrid: document.getElementById('outPhotoPreview'), counterEl: document.getElementById('outPhotoCounter'), max: 5 });
+initPhotoUploader({ fileInput: document.getElementById('inPhotoInput'), cameraInput: document.getElementById('inCameraInput'), browseBtn: document.getElementById('inBrowseBtn'), cameraBtn: document.getElementById('inCameraBtn'), dropZone: document.getElementById('inDropZone'), errorEl: document.getElementById('inPhotoError'), previewGrid: document.getElementById('inPhotoPreview'), counterEl: document.getElementById('inPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=in', max: 5 });
+initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraInput: document.getElementById('outCameraInput'), browseBtn: document.getElementById('outBrowseBtn'), cameraBtn: document.getElementById('outCameraBtn'), dropZone: document.getElementById('outDropZone'), errorEl: document.getElementById('outPhotoError'), previewGrid: document.getElementById('outPhotoPreview'), counterEl: document.getElementById('outPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=out', max: 5 });
 
 // ── Gate Out container AJAX lookup ──────────────────────────────────────────
 (function () {
