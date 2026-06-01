@@ -162,9 +162,14 @@
             <div class="card content-card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Damage Assessment</span>
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="addDamageRow">
-                        <i class="bi bi-plus-circle me-1"></i>Add Row
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-success" id="pullFromRulesBtn">
+                            <i class="bi bi-journal-check me-1"></i>Pull From Rules
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="addDamageRow">
+                            <i class="bi bi-plus-circle me-1"></i>Add Row
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -384,6 +389,85 @@
 
 @endsection
 
+{{-- Pull From Rules Modal (outside the form to avoid nesting) --}}
+<div class="modal fade" id="pullFromRulesModal" tabindex="-1" aria-labelledby="pullFromRulesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="pullFromRulesModalLabel">
+                    <i class="bi bi-journal-check me-2 text-primary"></i>Pull From Assessment Rules
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="p-3 border-bottom bg-light">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <input type="text" id="ruleSearchQ" class="form-control form-control-sm" placeholder="Search rule name…">
+                        </div>
+                        <div class="col-md-2">
+                            <select id="ruleFilterLoc" class="form-select form-select-sm">
+                                <option value="">All Locations</option>
+                                @foreach($mrLocationCodes as $c)
+                                <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="ruleFilterCmp" class="form-select form-select-sm">
+                                <option value="">All Components</option>
+                                @foreach($mrComponentCodes as $c)
+                                <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="ruleFilterDmg" class="form-select form-select-sm">
+                                <option value="">All Damage Types</option>
+                                @foreach($mrDamageCodes as $c)
+                                <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="clearRuleFilters">
+                                <i class="bi bi-x-circle me-1"></i>Clear Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive" style="max-height:420px;overflow-y:auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light" style="position:sticky;top:0;z-index:1;">
+                            <tr>
+                                <th class="ps-3" style="width:36px">
+                                    <input type="checkbox" class="form-check-input" id="selectAllRules" title="Select all">
+                                </th>
+                                <th>Rule Name</th>
+                                <th style="width:100px">Location</th>
+                                <th style="width:130px">Component</th>
+                                <th style="width:130px">Damage</th>
+                                <th style="width:130px">Repair</th>
+                                <th style="width:85px">Severity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ruleModalBody">
+                            <tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <span class="me-auto small text-muted" id="ruleSelectedCount">0 selected</span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="addSelectedRulesBtn" disabled>
+                    <i class="bi bi-plus-circle me-1"></i>Add Selected Lines
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
     // ── Container selection → auto-fill Customer, Gate-In Ref, Equipment Type display ──
@@ -518,6 +602,148 @@
             if (rows.length > 1) e.target.closest('.damage-row').remove();
         }
     });
+
+    // ── Pull From Rules ───────────────────────────────────────────────
+    (function () {
+        const modal      = new bootstrap.Modal(document.getElementById('pullFromRulesModal'));
+        const bodyEl     = document.getElementById('ruleModalBody');
+        const countEl    = document.getElementById('ruleSelectedCount');
+        const addBtn     = document.getElementById('addSelectedRulesBtn');
+        const selectAll  = document.getElementById('selectAllRules');
+        let debounceT    = null;
+
+        document.getElementById('pullFromRulesBtn').addEventListener('click', function () {
+            modal.show();
+            fetchRules();
+        });
+
+        function fetchRules() {
+            const params = new URLSearchParams({
+                q:                  document.getElementById('ruleSearchQ').value,
+                location_code_id:   document.getElementById('ruleFilterLoc').value,
+                component_code_id:  document.getElementById('ruleFilterCmp').value,
+                damage_code_id:     document.getElementById('ruleFilterDmg').value,
+            });
+            bodyEl.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Loading…</td></tr>';
+            fetch('/masters/damage-assessment-rules/search?' + params, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(data => renderRules(data.rules || []))
+                .catch(() => { bodyEl.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-danger">Failed to load rules.</td></tr>'; });
+        }
+
+        function renderRules(rules) {
+            if (!rules.length) {
+                bodyEl.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><i class="bi bi-journal-x me-1"></i>No matching rules found.</td></tr>';
+                updateCount(); return;
+            }
+            const sevClass = s => s === 'severe' ? 'bg-danger' : s === 'moderate' ? 'bg-warning text-dark' : 'bg-light text-dark border';
+            bodyEl.innerHTML = rules.map(r => `
+                <tr class="rule-row">
+                    <td class="ps-3"><input type="checkbox" class="form-check-input rule-chk" value="${r.id}" data-rule='${JSON.stringify(r).replace(/'/g, "&#39;")}'></td>
+                    <td class="small fw-semibold">${escHtml(r.name)}</td>
+                    <td class="small">${r.location_code ? `<span class="badge bg-secondary-subtle text-secondary border font-monospace">${escHtml(r.location_code)}</span>` : '<span class="text-muted fst-italic">Any</span>'}</td>
+                    <td class="small"><span class="badge bg-primary-subtle text-primary border font-monospace">${escHtml(r.component_code)}</span> <span class="text-muted">${escHtml(r.component_name)}</span></td>
+                    <td class="small"><span class="badge bg-warning-subtle text-warning-emphasis border font-monospace">${escHtml(r.damage_code)}</span> <span class="text-muted">${escHtml(r.damage_name)}</span></td>
+                    <td class="small"><span class="badge bg-info-subtle text-info-emphasis border font-monospace">${escHtml(r.repair_code)}</span> <span class="text-muted">${escHtml(r.repair_name)}</span></td>
+                    <td class="small">${r.default_severity ? `<span class="badge ${sevClass(r.default_severity)}">${r.default_severity.charAt(0).toUpperCase() + r.default_severity.slice(1)}</span>` : '<span class="text-muted">—</span>'}</td>
+                </tr>`).join('');
+            updateCount();
+        }
+
+        function escHtml(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+
+        function updateCount() {
+            const n = document.querySelectorAll('.rule-chk:checked').length;
+            countEl.textContent = n > 0 ? n + ' selected' : '0 selected';
+            addBtn.disabled = n === 0;
+            addBtn.textContent = n > 0 ? `Add ${n} Selected Line${n !== 1 ? 's' : ''}` : 'Add Selected Lines';
+            if (addBtn.disabled) addBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Add Selected Lines';
+            else addBtn.innerHTML = `<i class="bi bi-plus-circle me-1"></i>Add ${n} Selected Line${n !== 1 ? 's' : ''}`;
+        }
+
+        // Filter events
+        ['ruleSearchQ'].forEach(id => {
+            document.getElementById(id).addEventListener('input', function () {
+                clearTimeout(debounceT);
+                debounceT = setTimeout(fetchRules, 280);
+            });
+        });
+        ['ruleFilterLoc', 'ruleFilterCmp', 'ruleFilterDmg'].forEach(id => {
+            document.getElementById(id).addEventListener('change', fetchRules);
+        });
+
+        // Clear filters
+        document.getElementById('clearRuleFilters').addEventListener('click', function () {
+            document.getElementById('ruleSearchQ').value = '';
+            document.getElementById('ruleFilterLoc').value = '';
+            document.getElementById('ruleFilterCmp').value = '';
+            document.getElementById('ruleFilterDmg').value = '';
+            fetchRules();
+        });
+
+        // Select all
+        selectAll.addEventListener('change', function () {
+            document.querySelectorAll('.rule-chk').forEach(c => c.checked = this.checked);
+            updateCount();
+        });
+
+        // Individual checkbox
+        bodyEl.addEventListener('change', function (e) {
+            if (!e.target.classList.contains('rule-chk')) return;
+            updateCount();
+            const all = document.querySelectorAll('.rule-chk');
+            const chk = document.querySelectorAll('.rule-chk:checked');
+            selectAll.indeterminate = chk.length > 0 && chk.length < all.length;
+            selectAll.checked = chk.length === all.length && all.length > 0;
+        });
+
+        // Add selected rules as rows
+        addBtn.addEventListener('click', function () {
+            document.querySelectorAll('.rule-chk:checked').forEach(chk => {
+                addRuleAsRow(JSON.parse(chk.dataset.rule.replace(/&#39;/g, "'")));
+            });
+            modal.hide();
+            // Reset state
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+            document.querySelectorAll('.rule-chk').forEach(c => c.checked = false);
+            updateCount();
+        });
+
+        function addRuleAsRow(r) {
+            const i   = damageRowIndex++;
+            const row = document.createElement('tr');
+            row.className = 'damage-row';
+            const sevOpts = ['minor','moderate','severe'].map(s =>
+                `<option value="${s}"${r.default_severity === s ? ' selected' : ''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`
+            ).join('');
+            row.innerHTML = `
+                <td class="ps-3">${buildSel('damages['+i+'][location_code_id]', mrLocOpts)}</td>
+                <td>${buildSel('damages['+i+'][component_code_id]', mrCmpOpts)}</td>
+                <td>${buildSel('damages['+i+'][damage_code_id]', mrDmgOpts)}</td>
+                <td>${buildSel('damages['+i+'][repair_code_id]', mrRepOpts)}</td>
+                <td>${buildSel('damages['+i+'][responsibility_code_id]', mrResOpts, true)}</td>
+                <td><select name="damages[${i}][severity]" class="form-select form-select-sm">${sevOpts}</select></td>
+                <td><div class="d-flex gap-1">
+                    <input type="number" name="damages[${i}][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:58px">
+                    <input type="number" name="damages[${i}][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px">
+                </div></td>
+                <td><input type="number" name="damages[${i}][quantity]" class="form-control form-control-sm" value="1" step="0.5" min="0.5" style="width:58px"></td>
+                <td><input type="text" name="damages[${i}][description]" class="form-control form-control-sm" placeholder="Details…" value="${escHtml(r.description || '')}"></td>
+                <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>`;
+            document.getElementById('damageRows').appendChild(row);
+            initRowSelects(row);
+            // Pre-select codes via Select2
+            if (r.location_code_id) { const s = row.querySelector(`[name="damages[${i}][location_code_id]"]`); s.value = r.location_code_id; $(s).trigger('change'); }
+            const cs = row.querySelector(`[name="damages[${i}][component_code_id]"]`); cs.value = r.component_code_id; $(cs).trigger('change');
+            const ds = row.querySelector(`[name="damages[${i}][damage_code_id]"]`);    ds.value = r.damage_code_id;    $(ds).trigger('change');
+            const rs = row.querySelector(`[name="damages[${i}][repair_code_id]"]`);    rs.value = r.repair_code_id;    $(rs).trigger('change');
+            // Brief highlight to show the row was added from a rule
+            row.style.transition = 'background-color 0.6s';
+            row.style.backgroundColor = '#d1fae5';
+            setTimeout(() => { row.style.backgroundColor = ''; }, 1400);
+        }
+    })();
 
     // ── Photo Uploader ────────────────────────────────────────────────
     const MAX_FILES     = 10;

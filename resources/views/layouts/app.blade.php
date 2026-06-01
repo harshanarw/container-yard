@@ -701,19 +701,27 @@
             </div>
 
             {{-- Inspection sub-group --}}
+            @php $inspectionActive = request()->routeIs('masters.checklist.*') || request()->routeIs('masters.damage-assessment-rules.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-inspection"
-                    aria-expanded="false" aria-controls="nav-sub-setup-inspection">
+                    aria-expanded="{{ $inspectionActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-setup-inspection">
                 <i class="bi bi-clipboard-check nav-sub-icon"></i>
                 <span>Inspection</span>
                 <i class="bi bi-chevron-down sub-chevron"></i>
             </button>
-            <div class="collapse" id="nav-sub-setup-inspection">
+            <div class="collapse {{ $inspectionActive ? 'show' : '' }}" id="nav-sub-setup-inspection">
                 <ul class="nav flex-column">
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.checklist.index') }}"
                            class="nav-link {{ request()->routeIs('masters.checklist.*') ? 'active' : '' }}">
                             <i class="bi bi-list-check"></i><span>Checklist Items</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.damage-assessment-rules.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.damage-assessment-rules.*') ? 'active' : '' }}">
+                            <i class="bi bi-journal-check"></i><span>Assessment Rules</span>
                         </a>
                     </li>
                 </ul>

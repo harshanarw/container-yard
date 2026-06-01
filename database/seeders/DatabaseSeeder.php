@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             RepairCategorySeeder::class,    // Repair categories (STR, DR, FL, CLN, PNT, MCH)
             RepairCategoryMappingSeeder::class, // Auto-suggest rules: component+repair_type → category
             MrCodeChargeMappingSeeder::class,   // MR code → charge code auto-resolution rules
+            DamageAssessmentRuleSeeder::class,  // Pre-defined damage assessment rule combinations
 
             // ── Users ────────────────────────────────────────────────────────
             SystemAdminSeeder::class,       // sysadmin@containeryard.com

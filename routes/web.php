@@ -30,6 +30,7 @@ use App\Http\Controllers\StorageHandlingController;
 use App\Http\Controllers\HandlingTariffController;
 use App\Http\Controllers\StorageZoneController;
 use App\Http\Controllers\EmailConfigController;
+use App\Http\Controllers\DamageAssessmentRuleController;
 use App\Http\Controllers\MrCodeController;
 use App\Http\Controllers\MrCodeChargeMappingController;
 use App\Http\Controllers\MrTariffController;
@@ -190,6 +191,17 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{mrCodeChargeMapping}/toggle',  [MrCodeChargeMappingController::class, 'toggleActive'])->name('toggle');
             Route::patch('{mrCodeChargeMapping}',         [MrCodeChargeMappingController::class, 'update'])->name('update');
             Route::delete('{mrCodeChargeMapping}',        [MrCodeChargeMappingController::class, 'destroy'])->name('destroy');
+        });
+        // Damage Assessment Rules
+        Route::prefix('damage-assessment-rules')->name('damage-assessment-rules.')->group(function () {
+            Route::get('/search',                                    [DamageAssessmentRuleController::class, 'search'])->name('search');
+            Route::get('/',                                          [DamageAssessmentRuleController::class, 'index'])->name('index');
+            Route::get('/create',                                    [DamageAssessmentRuleController::class, 'create'])->name('create');
+            Route::post('/',                                         [DamageAssessmentRuleController::class, 'store'])->name('store');
+            Route::get('/{damageAssessmentRule}/edit',               [DamageAssessmentRuleController::class, 'edit'])->name('edit');
+            Route::put('/{damageAssessmentRule}',                    [DamageAssessmentRuleController::class, 'update'])->name('update');
+            Route::delete('/{damageAssessmentRule}',                 [DamageAssessmentRuleController::class, 'destroy'])->name('destroy');
+            Route::patch('/{damageAssessmentRule}/toggle',           [DamageAssessmentRuleController::class, 'toggleActive'])->name('toggle');
         });
         // M&R Codes (location / component / damage / repair / material / responsibility)
         Route::prefix('mr-codes/{mrCodeType}')->name('mr-codes.')->group(function () {
