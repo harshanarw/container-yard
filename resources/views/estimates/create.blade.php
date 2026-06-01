@@ -337,8 +337,6 @@
     </div>
 </form>
 
-@endsection
-
 {{-- ── Get Rate Modal ── --}}
 <div class="modal fade" id="getRateModal" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -420,6 +418,8 @@
         </div>
     </div>
 </div>
+
+@endsection
 
 @push('scripts')
 <script>
