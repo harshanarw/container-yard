@@ -47,7 +47,7 @@
             </div>
             <div class="card-body">
                 <label for="estimate_id" class="form-label fw-semibold">Approved Estimate <span class="text-danger">*</span></label>
-                <select class="form-select select2 s2-code @error('estimate_id') is-invalid @enderror"
+                <select class="form-select s2-code @error('estimate_id') is-invalid @enderror"
                         name="estimate_id" id="estimate_id" required>
                     <option value="">— Select an approved estimate —</option>
                     @foreach($approvedEstimates as $est)
@@ -195,7 +195,9 @@
 
 @push('scripts')
 <script>
-(function () {
+// Runs after app.blade.php's DOMContentLoaded (Select2 init) because this
+// listener is registered later in the DOM (line 1300 vs line 1195).
+document.addEventListener('DOMContentLoaded', function () {
     const estimateSelect  = document.getElementById('estimate_id');
     const categoryCard    = document.getElementById('categoryCard');
     const categoryLoading = document.getElementById('categoryLoading');
@@ -211,14 +213,9 @@
 
     if (!estimateSelect) return;
 
-    // Auto-trigger when pre-selected via ?estimate_id= query param
-    if (estimateSelect.value) {
-        estimateSelect.dispatchEvent(new Event('change'));
-    }
-
-    estimateSelect.addEventListener('change', function () {
-        const opt = this.options[this.selectedIndex];
-        const url = opt.dataset.categoriesUrl;
+    function loadCategories() {
+        const opt = estimateSelect.options[estimateSelect.selectedIndex];
+        const url = opt ? opt.dataset.categoriesUrl : null;
 
         resetFrom('category');
 
@@ -262,9 +259,21 @@
             })
             .catch(() => {
                 categoryLoading.classList.add('d-none');
-                categoryButtons.innerHTML = '<span class="text-danger small">Failed to load categories.</span>';
+                categoryButtons.innerHTML = '<span class="text-danger small"><i class="bi bi-wifi-off me-1"></i>Failed to load categories.</span>';
             });
+    }
+
+    // select2:select fires when the user picks an option from the Select2 UI
+    $(estimateSelect).on('select2:select', loadCategories);
+    $(estimateSelect).on('select2:clear', function () {
+        resetFrom('category');
+        categoryCard.classList.add('d-none');
     });
+
+    // Auto-load categories when page opens with a pre-selected estimate
+    if (estimateSelect.value) {
+        loadCategories();
+    }
 
     function selectCategory(btn, cat) {
         document.querySelectorAll('.category-btn').forEach(b => {
@@ -318,6 +327,6 @@
         detailsCard.classList.add('d-none');
         submitBtn.classList.add('d-none');
     }
-})();
+});
 </script>
 @endpush
