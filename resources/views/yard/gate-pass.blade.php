@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gate Pass {{ $movement->container_no }} — #{{ str_pad($movement->id, 5, '0', STR_PAD_LEFT) }}</title>
+    <title>Gate Pass — {{ $movement->container_no }}</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         /* ── Page setup ──────────────────────────────────────────────────── */
@@ -24,10 +24,10 @@
             font-size: 10.5pt;
             color: #000;
             margin: 0;
-            background: #fff;
+            background: #f0f2f5;
         }
 
-        /* ── Screen toolbar (hidden on print) ────────────────────────────── */
+        /* ── Screen toolbar ──────────────────────────────────────────────── */
         .screen-toolbar {
             background: #1e293b;
             color: #fff;
@@ -39,17 +39,13 @@
         }
         .screen-toolbar h6 { margin: 0; font-size: 13px; flex: 1; }
         .tb-btn {
-            padding: 6px 14px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-size: 12px;
-            text-decoration: none;
+            padding: 6px 14px; border-radius: 4px; border: none;
+            cursor: pointer; font-size: 12px; text-decoration: none;
             display: inline-block;
         }
-        .tb-btn-primary { background: #2563eb; color: #fff; }
+        .tb-btn-primary   { background: #2563eb; color: #fff; }
         .tb-btn-secondary { background: #fff; color: #1e293b; }
-        .tb-btn-outline { background: transparent; color: #cbd5e1; border: 1px solid #475569; }
+        .tb-btn-outline   { background: transparent; color: #cbd5e1; border: 1px solid #475569; }
 
         /* ── Document wrapper ────────────────────────────────────────────── */
         .gp-doc {
@@ -58,8 +54,10 @@
             @else
             max-width: 180mm;
             @endif
-            margin: 16px auto;
-            padding: 0 4px;
+            margin: 18px auto;
+            padding: 12px 14px;
+            background: #fff;
+            border: 1px solid #000;
         }
 
         /* ── Header ──────────────────────────────────────────────────────── */
@@ -68,19 +66,16 @@
             justify-content: space-between;
             align-items: flex-start;
             gap: 12px;
-            padding-bottom: 6px;
+            padding-bottom: 8px;
         }
-        .gp-company-logo {
-            max-height: 48px;
-            margin-bottom: 4px;
-            display: block;
-        }
-        .gp-company-name { font-size: 17pt; font-weight: 900; line-height: 1.15; }
-        .gp-tagline      { font-size: 9pt; color: #444; }
-        .gp-address      { font-size: 8.5pt; color: #333; margin-top: 2px; }
-        .gp-pass-no      { text-align: right; white-space: nowrap; }
-        .gp-pass-no-label { font-size: 9pt; color: #555; }
-        .gp-pass-no-value { font-size: 22pt; font-weight: 900; color: #c0392b; line-height: 1; }
+        .gp-company-logo  { max-height: 44px; margin-bottom: 4px; display: block; }
+        .gp-company-name  { font-size: 16pt; font-weight: 900; line-height: 1.15; }
+        .gp-tagline       { font-size: 8.5pt; color: #444; }
+        .gp-address       { font-size: 8pt; color: #333; margin-top: 3px; line-height: 1.45; }
+        .gp-pass-no       { text-align: right; white-space: nowrap; }
+        .gp-pass-no-label { font-size: 8.5pt; color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+        .gp-pass-no-value { font-size: 21pt; font-weight: 900; color: #c0392b; line-height: 1.05; }
+        .gp-pass-datetime { font-size: 8pt; color: #444; margin-top: 3px; }
 
         /* ── Title bar ───────────────────────────────────────────────────── */
         .gp-title {
@@ -88,72 +83,97 @@
             background: #1e293b;
             color: #fff;
             padding: 6px 12px;
-            font-size: 13pt;
+            font-size: 12.5pt;
             font-weight: 700;
             letter-spacing: .5px;
-            border-radius: 3px;
-            margin: 6px 0;
+            margin: 6px 0 0;
+        }
+
+        /* ── Section headers ─────────────────────────────────────────────── */
+        .sec { margin-top: 5px; }
+        .sec-hdr {
+            font-size: 8.5pt;
+            font-weight: 700;
+            background: #ebebeb;
+            border: 1px solid #333;
+            border-bottom: none;
+            padding: 4px 8px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
         }
 
         /* ── Tables ──────────────────────────────────────────────────────── */
-        table { width: 100%; border-collapse: collapse; margin-bottom: 3px; }
-        td, th { border: 1px solid #333; padding: 4px 7px; vertical-align: middle; }
-        .lbl { font-size: 9pt; color: #333; white-space: nowrap; width: 120px; }
-        .val { font-size: 10.5pt; font-weight: 700; }
-        .val-lg { font-size: 13pt; font-weight: 900; letter-spacing: .5px; }
+        table { width: 100%; border-collapse: collapse; }
+        td, th { border: 1px solid #333; padding: 5px 7px; vertical-align: top; word-break: break-word; }
+        .cell-lbl { font-size: 7.5pt; color: #444; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .2px; }
+        .cell-val { font-size: 10pt; font-weight: 700; }
+        .val-lg   { font-size: 14pt; font-weight: 900; letter-spacing: .5px; }
 
-        /* ── Status highlight ────────────────────────────────────────────── */
-        .status-cell { text-align: right; font-weight: 700; font-size: 10pt; letter-spacing: .5px; }
-        .status-badge {
-            display: inline-block;
-            padding: 1px 7px;
-            border: 1.5px solid #333;
-            border-radius: 2px;
-            font-size: 9.5pt;
+        /* ── Single status badge ─────────────────────────────────────────── */
+        .status-laden {
+            display: inline-block; padding: 2px 12px;
+            border: 2px solid #b45309; background: #fef3c7; color: #78350f;
+            font-weight: 900; font-size: 10.5pt; letter-spacing: .5px;
         }
-        .status-badge.active { background: #d1fae5; border-color: #059669; }
-
-        /* ── Signature rows ──────────────────────────────────────────────── */
-        .sig-row td { height: 52px; vertical-align: bottom; padding-bottom: 5px; }
-        .sig-line { border-bottom: 1px solid #333; min-width: 120px; display: inline-block; width: 70%; }
+        .status-empty {
+            display: inline-block; padding: 2px 12px;
+            border: 2px solid #059669; background: #d1fae5; color: #064e3b;
+            font-weight: 900; font-size: 10.5pt; letter-spacing: .5px;
+        }
 
         /* ── Declaration box ─────────────────────────────────────────────── */
         .declaration {
             border: 1px solid #333;
-            padding: 6px 10px;
+            padding: 5px 10px;
             font-size: 9pt;
             font-style: italic;
-            margin: 6px 0 4px;
-            border-radius: 2px;
+            margin: 0 0 0;
+            background: #fafafa;
+            border-bottom: none;
+        }
+
+        /* ── Signature cells ─────────────────────────────────────────────── */
+        .sig-cell { text-align: center; height: 66px; vertical-align: bottom; padding-bottom: 5px; }
+        .sig-label { font-size: 8.5pt; font-weight: 700; margin-bottom: 26px; }
+        .sig-line  { border-bottom: 1px solid #333; width: 78%; margin: 0 auto; }
+        .sig-name  { font-size: 8pt; color: #333; margin-top: 3px; }
+
+        /* ── Authorization stamp ─────────────────────────────────────────── */
+        .auth-stamp {
+            display: inline-block;
+            border: 2px solid #1e3a5f;
+            padding: 3px 14px;
+            font-weight: 900;
+            font-size: 9.5pt;
+            letter-spacing: .6px;
+            color: #1e3a5f;
         }
 
         /* ── QR Code ─────────────────────────────────────────────────────── */
         .gp-qr { margin-top: 6px; text-align: right; line-height: 0; }
-        /* qrcodejs creates canvas + img; hide canvas, size the img */
         .gp-qr canvas { display: none !important; }
-        .gp-qr img { display: inline-block; border: 1px solid #ccc;
-                     padding: 2px; background: #fff; width: 100px; height: 100px; }
-        .gp-qr-sm img { width: 78px; height: 78px; }
+        .gp-qr img { display: inline-block; border: 1px solid #bbb; padding: 2px; background: #fff; width: 88px; height: 88px; }
+        .gp-qr-sm img { width: 70px; height: 70px; }
+        .gp-qr-caption { font-size: 6.5pt; color: #666; text-align: center; margin-top: 2px; line-height: 1; }
 
         /* ── Footer ──────────────────────────────────────────────────────── */
         .gp-footer {
             display: flex;
             justify-content: space-between;
-            font-size: 8pt;
+            font-size: 7.5pt;
             color: #555;
             border-top: 1px solid #bbb;
             padding-top: 4px;
-            margin-top: 8px;
+            margin-top: 7px;
         }
 
         /* ── Divider ─────────────────────────────────────────────────────── */
         hr.gp-rule { border: none; border-top: 2px solid #000; margin: 6px 0; }
-        hr.gp-rule-thin { border: none; border-top: 1px dashed #999; margin: 8px 0; }
 
         @media print {
             .screen-toolbar { display: none !important; }
-            body { margin: 0; }
-            .gp-doc { margin: 0 auto; }
+            body { background: #fff; margin: 0; }
+            .gp-doc { margin: 0 auto; border: 1px solid #000; }
         }
     </style>
 </head>
@@ -161,29 +181,35 @@
 
 {{-- ── Screen-only toolbar ─────────────────────────────────────────────────── --}}
 <div class="screen-toolbar">
-    <h6><i>🖨</i> &nbsp; Gate Pass Preview — {{ $movement->container_no }}</h6>
+    <h6>&#128438; &nbsp; Gate Pass Preview — {{ $movement->container_no }}</h6>
     <button class="tb-btn tb-btn-primary" onclick="window.print()">Print / Save as PDF</button>
     <a href="{{ route('yard.movements.gate-pass', ['movement' => $movement->id, 'format' => $format === 'full' ? 'half' : 'full']) }}"
        class="tb-btn tb-btn-secondary">
        Switch to {{ $format === 'full' ? 'Half-page' : 'Full A4' }} format
     </a>
-    <a href="{{ route('yard.movements.edit', $movement) }}" class="tb-btn tb-btn-outline">← Back to Movement</a>
+    <a href="{{ route('yard.movements.edit', $movement) }}" class="tb-btn tb-btn-outline">&#8592; Back to Movement</a>
 </div>
 
 @php
-    $gpPrefix = $companySetting?->prefix_gate_out ?? 'GP';
-    $gpNumber = $gpPrefix . str_pad($movement->id, 5, '0', STR_PAD_LEFT);
-    $isLaden  = strtolower($movement->cargo_status ?? '') === 'laden';
-    $isEmpty  = !$isLaden;
+    $gpPrefix  = $companySetting?->prefix_gate_out ?? 'GP';
+    $gpNumber  = $gpPrefix . str_pad($movement->id, 5, '0', STR_PAD_LEFT);
+    $isLaden   = strtolower($movement->cargo_status ?? '') === 'laden';
     $softwareCopyright = '© ' . date('Y') . ' ' . ($companySetting?->software_provider ?? 'CYM Software');
     $printedAt = now()->format('d M Y H:i');
 
-    // QR encodes a verification URL with compact params for cross-checking
-    // Online: opens branded verification page from DB; Offline: URL+params are human-readable
+    // Yard location string
+    $yardLoc = collect([
+        $movement->location_zone ? 'Zone ' . $movement->location_zone : null,
+        $movement->location_row  ? 'Row '  . $movement->location_row  : null,
+        $movement->location_bay  ? 'Bay '  . $movement->location_bay  : null,
+        $movement->location_tier ? 'Tier ' . $movement->location_tier : null,
+    ])->filter()->implode(' / ');
+
+    // QR: verification URL with compact cross-check params
     $qrParams = array_filter([
         'cn' => $movement->container_no,
         'sz' => $movement->size . $movement->container_type,
-        'st' => strtolower($movement->cargo_status ?? '') === 'laden' ? 'L' : 'E',
+        'st' => $isLaden ? 'L' : 'E',
         'dt' => $movement->gate_out_time?->format('YmdHi'),
         'vh' => preg_replace('/[^A-Z0-9]/', '', strtoupper($movement->vehicle_plate ?? '')),
     ]);
@@ -191,12 +217,12 @@
 @endphp
 
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
-{{--  FULL A4 FORMAT                                                            --}}
+{{--  FULL A4 FORMAT                                                             --}}
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
 @if($format === 'full')
 <div class="gp-doc">
 
-    {{-- Header --}}
+    {{-- ── Header ── --}}
     <div class="gp-header">
         <div>
             @if($companySetting?->logo_url)
@@ -207,256 +233,353 @@
             <div class="gp-tagline">{{ $companySetting->tagline }}</div>
             @endif
             <div class="gp-address">
-                {{ $companySetting?->address }}{{ $companySetting?->city ? ', ' . $companySetting->city : '' }}
-                @if($companySetting?->telephone) &nbsp;&nbsp; Tel: {{ $companySetting->telephone }} @endif
-                @if($companySetting?->email) &nbsp; {{ $companySetting->email }} @endif
+                @if($companySetting?->address){{ $companySetting->address }}@endif
+                @if($companySetting?->city), {{ $companySetting->city }}@endif
+                @if($companySetting?->telephone)<br>Tel: {{ $companySetting->telephone }}@endif
+                @if($companySetting?->email) &nbsp; {{ $companySetting->email }}@endif
             </div>
         </div>
         <div class="gp-pass-no">
-            <div class="gp-pass-no-label">No.</div>
+            <div class="gp-pass-no-label">Gate Pass No.</div>
             <div class="gp-pass-no-value">{{ $gpNumber }}</div>
-            <div class="gp-qr"><div id="qr-full"></div></div>
+            <div class="gp-pass-datetime">
+                {{ $movement->gate_out_time?->format('d M Y') ?? '—' }}
+                &nbsp;&nbsp;
+                {{ $movement->gate_out_time?->format('H:i') ?? '—' }}
+            </div>
+            <div class="gp-qr">
+                <div id="qr-full"></div>
+                <div class="gp-qr-caption">Scan to verify</div>
+            </div>
         </div>
     </div>
 
     <hr class="gp-rule">
 
-    {{-- Document title --}}
+    {{-- ── Title bar ── --}}
     <div class="gp-title">Container Outward Gate Pass</div>
 
-    {{-- Ref / Date / Time --}}
-    <table>
-        <tr>
-            <td style="width:40%;">Ref. No. : <strong>{{ $movement->id }}</strong></td>
-            <td style="width:30%;">Date : <strong>{{ $movement->gate_out_time?->format('d M Y') ?? '—' }}</strong></td>
-            <td style="width:30%;">Time : <strong>{{ $movement->gate_out_time?->format('H:i') ?? '—' }}</strong></td>
-        </tr>
-    </table>
-
-    {{-- Release Order --}}
-    <table>
-        <tr>
-            <td>Release Order Ref. : <strong>{{ $movement->release_order ?? '—' }}</strong></td>
-        </tr>
-    </table>
-
-    {{-- Container / Size / Status --}}
-    <table>
-        <tr>
-            <td style="width:45%;">
-                Container No. : <span class="val-lg">{{ $movement->container_no }}</span>
-            </td>
-            <td style="width:25%;">
-                Size / Type : <strong>{{ $movement->size }}' {{ $movement->container_type }}</strong>
-            </td>
-            <td class="status-cell" style="width:30%;">
-                STATUS :&nbsp;
-                <span class="status-badge {{ $isLaden ? 'active' : '' }}">LADEN</span>
-                &nbsp;/&nbsp;
-                <span class="status-badge {{ $isEmpty ? 'active' : '' }}">EMPTY</span>
-            </td>
-        </tr>
-    </table>
-
-    {{-- Field rows --}}
-    <table>
-        <tr>
-            <td class="lbl">Shipper</td>
-            <td class="val">{{ $movement->shipper ?: '&nbsp;' }}</td>
-        </tr>
-        <tr>
-            <td class="lbl">Customer / Shipping Line</td>
-            <td class="val">{{ $movement->customer?->name ?: '&nbsp;' }}</td>
-        </tr>
-        <tr>
-            <td class="lbl">Ex. Vessel (Import)</td>
-            <td class="val">
-                {{ $gateIn?->vessel_name ?: '—' }}
-                @if($gateIn?->voyage_no) &nbsp; / &nbsp; {{ $gateIn->voyage_no }} @endif
-            </td>
-        </tr>
-        <tr>
-            <td class="lbl">Loading Vessel</td>
-            <td class="val">
-                {{ $movement->loading_vessel ?: '—' }}
-                @if($movement->loading_voyage) &nbsp; / &nbsp; {{ $movement->loading_voyage }} @endif
-                @if($movement->sailing_date) &nbsp;&nbsp; Sailing: <span style="font-weight:normal;">{{ $movement->sailing_date->format('d M Y') }}</span> @endif
-            </td>
-        </tr>
-        <tr>
-            <td class="lbl">Seal No.</td>
-            <td class="val">{{ $movement->seal_no ?: '—' }}</td>
-        </tr>
-        <tr>
-            <td class="lbl">Remarks</td>
-            <td class="val" style="font-weight:normal;">{{ $movement->remarks ?: '&nbsp;' }}</td>
-        </tr>
-    </table>
-
-    {{-- Vehicle row --}}
-    <table>
-        <tr>
-            <td>Vehicle No. &amp; Trailer No. : <strong>{{ $movement->vehicle_plate ?: '___________________________' }}</strong></td>
-        </tr>
-    </table>
-
-    {{-- Declaration --}}
-    <div class="declaration">
-        &ldquo;I checked and accepted the container in clean / sound condition&rdquo;
+    {{-- ── Section 1: Gate & Movement ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Gate &amp; Movement Information</div>
+        <table>
+            <tr>
+                <td style="width:22%">
+                    <div class="cell-lbl">Movement Type</div>
+                    <div class="cell-val">Gate Out</div>
+                </td>
+                <td style="width:38%">
+                    <div class="cell-lbl">Release Order Ref.</div>
+                    <div class="cell-val">{{ $movement->release_order ?: '—' }}</div>
+                </td>
+                <td style="width:20%">
+                    <div class="cell-lbl">Date</div>
+                    <div class="cell-val">{{ $movement->gate_out_time?->format('d M Y') ?? '—' }}</div>
+                </td>
+                <td style="width:20%">
+                    <div class="cell-lbl">Time</div>
+                    <div class="cell-val">{{ $movement->gate_out_time?->format('H:i') ?? '—' }}</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    {{-- Shipper / Operations signature --}}
-    <table class="sig-row">
-        <tr>
-            <td style="width:50%;">
-                <div style="font-size:9pt;margin-bottom:28px;font-weight:bold;">Shipper / On behalf of Shipper:</div>
-                <span class="sig-line"></span>
-            </td>
-            <td style="width:50%;text-align:right;">
-                <span class="sig-line"></span>
-                <div style="font-size:9pt;margin-top:3px;font-weight:bold;text-align:right;">Name &amp; Sig (Operations)</div>
-            </td>
-        </tr>
-    </table>
+    {{-- ── Section 2: Container Details ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Container Details</div>
+        <table>
+            <tr>
+                <td style="width:36%">
+                    <div class="cell-lbl">Container No.</div>
+                    <div class="val-lg">{{ $movement->container_no }}</div>
+                </td>
+                <td style="width:20%">
+                    <div class="cell-lbl">Size / Type</div>
+                    <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}</div>
+                </td>
+                <td style="width:20%">
+                    <div class="cell-lbl">Status</div>
+                    <div style="padding-top:1px;">
+                        <span class="{{ $isLaden ? 'status-laden' : 'status-empty' }}">
+                            {{ $isLaden ? 'LADEN' : 'EMPTY' }}
+                        </span>
+                    </div>
+                </td>
+                <td style="width:24%">
+                    <div class="cell-lbl">Seal No.</div>
+                    <div class="cell-val">{{ $movement->seal_no ?: '—' }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <div class="cell-lbl">Owner / Shipping Line</div>
+                    <div class="cell-val">{{ $gateIn?->customer?->name ?? $movement->customer?->name ?? '—' }}</div>
+                </td>
+                <td colspan="2">
+                    <div class="cell-lbl">Yard Location</div>
+                    <div class="cell-val">{{ $yardLoc ?: '—' }}</div>
+                </td>
+            </tr>
+        </table>
+    </div>
 
-    {{-- Driver row --}}
-    <table style="margin-top:6px;">
-        <tr>
-            <td style="width:34%;">Driver Name : <strong>{{ $movement->driver_name ?: '______________________' }}</strong></td>
-            <td style="width:33%;text-align:center;">Signature : _________________</td>
-            <td style="width:33%;text-align:right;">ID Number : <strong>{{ $movement->driver_ic ?: '______________' }}</strong></td>
-        </tr>
-    </table>
+    {{-- ── Section 3: Customer & Transport ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Customer &amp; Transport Information</div>
+        <table>
+            <tr>
+                <td style="width:38%">
+                    <div class="cell-lbl">Customer / Consignee</div>
+                    <div class="cell-val">{{ $movement->customer?->name ?: '—' }}</div>
+                </td>
+                <td style="width:32%">
+                    <div class="cell-lbl">Transporter</div>
+                    <div class="cell-val">{{ $movement->transporter?->name ?: '—' }}</div>
+                </td>
+                <td style="width:30%">
+                    <div class="cell-lbl">Shipper</div>
+                    <div class="cell-val">{{ $movement->shipper ?: '—' }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <div class="cell-lbl">Loading Vessel / Voyage</div>
+                    <div class="cell-val">
+                        {{ $movement->loading_vessel ?: '—' }}
+                        @if($movement->loading_voyage) &nbsp;/&nbsp; {{ $movement->loading_voyage }} @endif
+                        @if($movement->sailing_date)
+                            &nbsp;&nbsp;<span style="font-weight:normal;font-size:8.5pt;">Sailing: {{ $movement->sailing_date->format('d M Y') }}</span>
+                        @endif
+                    </div>
+                </td>
+                <td>
+                    <div class="cell-lbl">Ex. Vessel (Import)</div>
+                    <div class="cell-val">
+                        {{ $gateIn?->vessel_name ?: '—' }}
+                        @if($gateIn?->voyage_no) / {{ $gateIn->voyage_no }} @endif
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
 
-    {{-- Footer --}}
+    {{-- ── Section 4: Vehicle & Driver ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Vehicle &amp; Driver Details</div>
+        <table>
+            <tr>
+                <td style="width:28%">
+                    <div class="cell-lbl">Truck / Vehicle No.</div>
+                    <div class="cell-val">{{ $movement->vehicle_plate ?: '—' }}</div>
+                </td>
+                <td style="width:22%">
+                    <div class="cell-lbl">Trailer No.</div>
+                    <div class="cell-val">{{ $movement->trailer_no ?? '—' }}</div>
+                </td>
+                <td style="width:28%">
+                    <div class="cell-lbl">Driver Name</div>
+                    <div class="cell-val">{{ $movement->driver_name ?: '—' }}</div>
+                </td>
+                <td style="width:22%">
+                    <div class="cell-lbl">Driver NIC / ID</div>
+                    <div class="cell-val">{{ $movement->driver_ic ?: '—' }}</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {{-- ── Section 5: Remarks ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Remarks / Instructions</div>
+        <table>
+            <tr>
+                <td style="min-height:28px;font-size:9.5pt;font-weight:normal;">
+                    {{ $movement->remarks ?: '' }}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {{-- ── Section 6: Authorization ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Authorization</div>
+        <div class="declaration">
+            &ldquo;I checked and accepted the container in clean / sound condition&rdquo;
+        </div>
+        <table>
+            <tr>
+                <td class="sig-cell">
+                    <div class="sig-label">Issued By</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-name">{{ $movement->createdBy?->name ?? '&nbsp;' }}</div>
+                </td>
+                <td class="sig-cell">
+                    <div class="sig-label">Approved By</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-name">&nbsp;</div>
+                </td>
+                <td class="sig-cell">
+                    <div class="sig-label">Gate Officer</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-name">&nbsp;</div>
+                </td>
+            </tr>
+        </table>
+        {{-- Driver acknowledgement row --}}
+        <table style="margin-top:4px;">
+            <tr>
+                <td style="width:38%;font-size:9.5pt;">
+                    Driver: <strong>{{ $movement->driver_name ?: '______________________' }}</strong>
+                </td>
+                <td style="width:32%;text-align:center;font-size:9.5pt;">
+                    Signature: _______________
+                </td>
+                <td style="width:30%;text-align:right;font-size:9.5pt;">
+                    ID: <strong>{{ $movement->driver_ic ?: '______________' }}</strong>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {{-- ── Status stamp ── --}}
+    <div style="margin-top:8px;">
+        <span class="auth-stamp">&#10003; Authorized for Gate Out</span>
+    </div>
+
+    {{-- ── Footer ── --}}
     <div class="gp-footer">
-        <span>Printed: {{ $printedAt }}</span>
+        <span>Printed: {{ $printedAt }} &nbsp;·&nbsp; Issued by: {{ $movement->createdBy?->name ?? '—' }}</span>
         <span>{{ $softwareCopyright }}</span>
     </div>
+
 </div>
 
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
-{{--  HALF-PAGE SLIP FORMAT                                                     --}}
+{{--  HALF-PAGE SLIP FORMAT                                                      --}}
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
 @else
 <div class="gp-doc">
 
-    {{-- Compact header --}}
-    <div class="gp-header" style="padding-bottom:4px;">
+    {{-- ── Compact header ── --}}
+    <div class="gp-header" style="padding-bottom:5px;">
         <div>
             @if($companySetting?->logo_url)
-            <img src="{{ $companySetting->logo_url }}" style="max-height:36px;margin-bottom:3px;display:block;" alt="Logo">
+            <img src="{{ $companySetting->logo_url }}" style="max-height:34px;margin-bottom:3px;display:block;" alt="Logo">
             @endif
             <div style="font-size:13pt;font-weight:900;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
             @if($companySetting?->tagline)
-            <div style="font-size:8.5pt;color:#444;">{{ $companySetting->tagline }}</div>
+            <div style="font-size:8pt;color:#444;">{{ $companySetting->tagline }}</div>
+            @endif
+            @if($companySetting?->address)
+            <div style="font-size:7.5pt;color:#333;margin-top:2px;">{{ $companySetting->address }}</div>
             @endif
         </div>
         <div class="gp-pass-no">
-            <div class="gp-pass-no-label">No.</div>
-            <div class="gp-pass-no-value" style="font-size:18pt;">{{ $gpNumber }}</div>
-            <div class="gp-qr gp-qr-sm"><div id="qr-half"></div></div>
+            <div class="gp-pass-no-label">Gate Pass No.</div>
+            <div class="gp-pass-no-value" style="font-size:17pt;">{{ $gpNumber }}</div>
+            <div class="gp-pass-datetime">
+                {{ $movement->gate_out_time?->format('d M Y') ?? '—' }}
+                &nbsp;·&nbsp;
+                {{ $movement->gate_out_time?->format('H:i') ?? '—' }}
+            </div>
+            <div class="gp-qr gp-qr-sm">
+                <div id="qr-half"></div>
+                <div class="gp-qr-caption">Scan to verify</div>
+            </div>
         </div>
     </div>
 
     <hr class="gp-rule">
 
-    {{-- Compact title --}}
-    <div class="gp-title" style="font-size:11pt;padding:5px 10px;margin-bottom:5px;">
+    {{-- ── Compact title ── --}}
+    <div class="gp-title" style="font-size:10.5pt;padding:5px 10px;">
         Container Outward Gate Pass (Summary)
     </div>
 
-    {{-- Container block --}}
-    <table>
-        <tr>
-            <td style="width:50%;">
-                <div style="font-size:8pt;color:#555;">Container No.</div>
-                <div class="val-lg">{{ $movement->container_no }}</div>
-            </td>
-            <td style="width:25%;">
-                <div style="font-size:8pt;color:#555;">Size / Type</div>
-                <div style="font-weight:700;">{{ $movement->size }}' {{ $movement->container_type }}</div>
-            </td>
-            <td style="width:25%;text-align:center;">
-                <div style="font-size:8pt;color:#555;">Status</div>
-                <div style="font-weight:900;font-size:11pt;color:{{ $isLaden ? '#b45309' : '#065f46' }};">
-                    {{ $isLaden ? 'LADEN' : 'EMPTY' }}
-                </div>
-            </td>
-        </tr>
-    </table>
+    {{-- ── Container block ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Container Details</div>
+        <table>
+            <tr>
+                <td style="width:44%">
+                    <div class="cell-lbl">Container No.</div>
+                    <div style="font-size:13pt;font-weight:900;letter-spacing:.5px;">{{ $movement->container_no }}</div>
+                </td>
+                <td style="width:28%">
+                    <div class="cell-lbl">Size / Type</div>
+                    <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}</div>
+                </td>
+                <td style="width:28%">
+                    <div class="cell-lbl">Status</div>
+                    <div style="padding-top:1px;">
+                        <span class="{{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:9.5pt;padding:1px 8px;">
+                            {{ $isLaden ? 'LADEN' : 'EMPTY' }}
+                        </span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
 
-    {{-- Key details --}}
-    <table>
-        <tr>
-            <td class="lbl" style="width:110px;">Gate Out</td>
-            <td class="val">{{ $movement->gate_out_time?->format('d M Y, H:i') ?? '—' }}</td>
-        </tr>
-        <tr>
-            <td class="lbl">Release Order</td>
-            <td class="val">{{ $movement->release_order ?: '—' }}</td>
-        </tr>
-        <tr>
-            <td class="lbl">Seal No.</td>
-            <td class="val">{{ $movement->seal_no ?: '—' }}</td>
-        </tr>
-        <tr>
-            <td class="lbl">Vehicle No.</td>
-            <td class="val">{{ $movement->vehicle_plate ?: '—' }}</td>
-        </tr>
-        <tr>
-            <td class="lbl">Driver</td>
-            <td class="val">{{ $movement->driver_name ?: '—' }}
-                @if($movement->driver_ic)
-                    <span style="font-weight:normal;font-size:9pt;"> &nbsp; IC: {{ $movement->driver_ic }}</span>
-                @endif
-            </td>
-        </tr>
-        <tr>
-            <td class="lbl">Customer</td>
-            <td class="val">{{ $movement->customer?->name ?: '—' }}</td>
-        </tr>
-        @if($movement->shipper)
-        <tr>
-            <td class="lbl">Shipper</td>
-            <td class="val">{{ $movement->shipper }}</td>
-        </tr>
-        @endif
-        @if($movement->loading_vessel)
-        <tr>
-            <td class="lbl">Loading Vessel</td>
-            <td class="val">{{ $movement->loading_vessel }}
-                @if($movement->loading_voyage) / {{ $movement->loading_voyage }} @endif
-            </td>
-        </tr>
-        @endif
-        @if($movement->remarks)
-        <tr>
-            <td class="lbl">Remarks</td>
-            <td style="font-size:9.5pt;">{{ $movement->remarks }}</td>
-        </tr>
-        @endif
-    </table>
+    {{-- ── Key details ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Movement &amp; Transport Details</div>
+        <table>
+            @php $halfRows = [
+                ['Release Order', $movement->release_order ?: '—'],
+                ['Seal No.',      $movement->seal_no ?: '—'],
+                ['Owner / Shipping Line', $gateIn?->customer?->name ?? $movement->customer?->name ?? '—'],
+                ['Vehicle No.',   $movement->vehicle_plate ?: '—'],
+                ['Driver',        trim(($movement->driver_name ?: '—') . ($movement->driver_ic ? ' · ID: ' . $movement->driver_ic : ''))],
+            ];
+            if($movement->loading_vessel) $halfRows[] = ['Loading Vessel', $movement->loading_vessel . ($movement->loading_voyage ? ' / ' . $movement->loading_voyage : '')];
+            if($movement->remarks)        $halfRows[] = ['Remarks',        $movement->remarks];
+            @endphp
+            @foreach($halfRows as [$lbl, $val])
+            <tr>
+                <td style="width:110px;font-size:8pt;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.2px;">{{ $lbl }}</td>
+                <td style="font-size:9.5pt;font-weight:700;">{{ $val }}</td>
+            </tr>
+            @endforeach
+        </table>
+    </div>
 
-    {{-- Mini signature row --}}
-    <table style="margin-top:5px;">
-        <tr>
-            <td style="height:40px;width:50%;vertical-align:bottom;padding-bottom:3px;">
-                <div style="font-size:8.5pt;font-weight:bold;">Driver Signature:</div>
-                <div style="border-bottom:1px solid #000;margin-top:18px;"></div>
-            </td>
-            <td style="height:40px;width:50%;vertical-align:bottom;padding-bottom:3px;text-align:right;">
-                <div style="border-bottom:1px solid #000;margin-top:18px;"></div>
-                <div style="font-size:8.5pt;font-weight:bold;text-align:right;margin-top:2px;">Operations Signature</div>
-            </td>
-        </tr>
-    </table>
+    {{-- ── Compact authorization ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Authorization</div>
+        <div class="declaration" style="font-size:8.5pt;">&ldquo;I checked and accepted the container in clean / sound condition&rdquo;</div>
+        <table>
+            <tr>
+                <td class="sig-cell" style="height:52px;">
+                    <div class="sig-label" style="margin-bottom:18px;">Issued By</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-name">{{ $movement->createdBy?->name ?? '&nbsp;' }}</div>
+                </td>
+                <td class="sig-cell" style="height:52px;">
+                    <div class="sig-label" style="margin-bottom:18px;">Driver Signature</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-name">{{ $movement->driver_name ?? '&nbsp;' }}</div>
+                </td>
+                <td class="sig-cell" style="height:52px;">
+                    <div class="sig-label" style="margin-bottom:18px;">Gate Officer</div>
+                    <div class="sig-line"></div>
+                    <div class="sig-name">&nbsp;</div>
+                </td>
+            </tr>
+        </table>
+    </div>
 
-    {{-- Footer --}}
+    {{-- ── Status stamp ── --}}
+    <div style="margin-top:6px;">
+        <span class="auth-stamp" style="font-size:8.5pt;padding:2px 10px;">&#10003; Authorized for Gate Out</span>
+    </div>
+
+    {{-- ── Footer ── --}}
     <div class="gp-footer" style="margin-top:5px;">
-        <span>Printed: {{ $printedAt }}</span>
+        <span>Printed: {{ $printedAt }} &nbsp;·&nbsp; Issued by: {{ $movement->createdBy?->name ?? '—' }}</span>
         <span>{{ $softwareCopyright }}</span>
     </div>
+
 </div>
 @endif
 
@@ -467,16 +590,13 @@
         var el = document.getElementById(id);
         if (!el || typeof QRCode === 'undefined') return;
         new QRCode(el, {
-            text: data,
-            width: size,
-            height: size,
-            colorDark: '#000000',
-            colorLight: '#ffffff',
+            text: data, width: size, height: size,
+            colorDark: '#000000', colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.M,
         });
     }
-    makeQR('qr-full', 100);
-    makeQR('qr-half', 78);
+    makeQR('qr-full', 88);
+    makeQR('qr-half', 70);
 })();
 </script>
 </body>
