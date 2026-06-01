@@ -54,6 +54,8 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
+
+                        {{-- ── Container selector ── --}}
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Container (in yard) <span class="text-danger">*</span></label>
                             <select name="container_id" id="containerSelect" class="form-select select2" required>
@@ -61,6 +63,7 @@
                                 @foreach($containers as $c)
                                 <option value="{{ $c->id }}"
                                         data-customer-id="{{ $c->customer_id }}"
+                                        data-customer-name="{{ $c->customer?->name }}"
                                         data-gate-ref="{{ $c->gate_movement_ref }}"
                                         data-gate-date="{{ $c->gate_movement_date }}"
                                         data-eqt-code="{{ $c->equipmentType?->eqt_code }}"
@@ -74,45 +77,59 @@
                                 </option>
                                 @endforeach
                             </select>
-                            <div id="containerGateInfo" class="mt-1 small text-muted d-none">
-                                <i class="bi bi-info-circle me-1"></i>
-                                Gate-in: <span id="containerGateDate" class="fw-semibold"></span>
-                                &nbsp;·&nbsp; Ref: <span id="containerGateRef" class="font-monospace fw-semibold"></span>
-                            </div>
-                            <div id="containerEqtInfo" class="mt-1 small d-none">
-                                <i class="bi bi-tag me-1 text-muted"></i>
-                                <span class="text-muted">Equipment:</span>
-                                <span id="eqtCodeDisplay" class="fw-semibold font-monospace ms-1"></span>
-                                <span id="eqtNameDisplay" class="text-muted ms-1"></span>
-                                <span id="eqtSizeBadge" class="badge bg-light border text-dark text-nowrap ms-1 d-none"></span>
-                                <span id="eqtTypeBadge" class="badge bg-info-subtle text-info text-nowrap ms-1 d-none"></span>
-                            </div>
+                            {{-- Hidden inputs — values set by JS from the selected container --}}
+                            <input type="hidden" name="customer_id" id="customerIdHidden"
+                                   value="{{ old('customer_id', $selectedContainer?->customer_id) }}">
+                            <input type="hidden" name="gate_in_ref" id="gateRefHidden"
+                                   value="{{ old('gate_in_ref') }}">
                         </div>
+
+                        {{-- ── Container info panel (read-only, auto-filled) ── --}}
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Customer / Owner <span class="text-danger">*</span></label>
-                            <select name="customer_id" id="customerSelect" class="form-select select2" required>
-                                <option value="">— Select Customer —</option>
-                                @foreach($customers as $c)
-                                    <option value="{{ $c->id }}"
-                                            data-code="{{ $c->code }}" data-name="{{ $c->name }}"
-                                            {{ old('customer_id') == $c->id ? 'selected' : '' }}>
-                                        {{ $c->code }} — {{ $c->name }}
-                                    </option>
-                                @endforeach
-                            </select>
+                            <label class="form-label fw-semibold text-muted">Container Details</label>
+                            <div class="border rounded p-3 bg-light" style="min-height:72px">
+                                <div id="containerInfoEmpty" class="text-muted small d-flex align-items-center" style="min-height:32px">
+                                    <i class="bi bi-arrow-left-circle me-2"></i>Select a container to view its details
+                                </div>
+                                <div id="containerInfoFilled" class="d-none small">
+                                    <div class="d-flex align-items-baseline gap-2 mb-1">
+                                        <span class="text-muted" style="min-width:72px">Equipment</span>
+                                        <span>
+                                            <span id="eqtCodeDisplay" class="fw-semibold font-monospace"></span>
+                                            <span id="eqtNameDisplay" class="text-muted ms-1"></span>
+                                            <span id="eqtSizeBadge" class="badge bg-light border text-dark text-nowrap ms-1 d-none"></span>
+                                            <span id="eqtTypeBadge" class="badge bg-info-subtle text-info text-nowrap ms-1 d-none"></span>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex align-items-baseline gap-2 mb-1">
+                                        <span class="text-muted" style="min-width:72px">Customer</span>
+                                        <span id="customerDisplay" class="fw-semibold"></span>
+                                    </div>
+                                    <div class="d-flex align-items-baseline gap-2">
+                                        <span class="text-muted" style="min-width:72px">Gate-In</span>
+                                        <span>
+                                            <span id="containerGateDate" class="fw-semibold"></span>
+                                            <span class="text-muted mx-1">·</span>
+                                            <span id="containerGateRef" class="font-monospace fw-semibold"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-4">
+
+                        {{-- ── Survey-specific fields ── --}}
+                        <div class="col-md-3">
                             <label class="form-label fw-semibold">Survey Type <span class="text-danger">*</span></label>
                             <select name="inquiry_type" class="form-select" required>
                                 <option value="">— Select Type —</option>
-                                <option value="damage_survey"         {{ old('inquiry_type') === 'damage_survey'         ? 'selected' : '' }}>Damage Survey</option>
-                                <option value="pre_trip_inspection"   {{ old('inquiry_type') === 'pre_trip_inspection'   ? 'selected' : '' }}>Pre-trip Inspection</option>
-                                <option value="repair_assessment"     {{ old('inquiry_type') === 'repair_assessment'     ? 'selected' : '' }}>Repair Assessment</option>
-                                <option value="condition_survey"      {{ old('inquiry_type') === 'condition_survey'      ? 'selected' : '' }}>Condition Survey</option>
+                                <option value="damage_survey"           {{ old('inquiry_type') === 'damage_survey'           ? 'selected' : '' }}>Damage Survey</option>
+                                <option value="pre_trip_inspection"     {{ old('inquiry_type') === 'pre_trip_inspection'     ? 'selected' : '' }}>Pre-trip Inspection</option>
+                                <option value="repair_assessment"       {{ old('inquiry_type') === 'repair_assessment'       ? 'selected' : '' }}>Repair Assessment</option>
+                                <option value="condition_survey"        {{ old('inquiry_type') === 'condition_survey'        ? 'selected' : '' }}>Condition Survey</option>
                                 <option value="pre_delivery_inspection" {{ old('inquiry_type') === 'pre_delivery_inspection' ? 'selected' : '' }}>Pre-delivery Inspection</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label fw-semibold">Assigned Inspector</label>
                             <select name="inspector_id" class="form-select select2">
                                 <option value="">— Inspector —</option>
@@ -123,17 +140,12 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label fw-semibold">Inspection Date</label>
                             <input type="date" name="inspection_date" class="form-control"
                                    value="{{ old('inspection_date', date('Y-m-d')) }}">
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Gate-In Reference</label>
-                            <input type="text" name="gate_in_ref" class="form-control"
-                                   placeholder="GI-XXXX" value="{{ old('gate_in_ref') }}">
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label fw-semibold">Priority</label>
                             <select name="priority" class="form-select">
                                 <option value="normal"   {{ old('priority', 'normal') === 'normal'   ? 'selected' : '' }}>Normal</option>
@@ -141,6 +153,7 @@
                                 <option value="critical" {{ old('priority') === 'critical' ? 'selected' : '' }}>Critical</option>
                             </select>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -378,30 +391,37 @@
         var containerSel   = document.getElementById('containerSelect');
         if (!containerSel) return;
 
-        var customerSelect = document.getElementById('customerSelect');
-        var gateRefInput   = document.querySelector('[name="gate_in_ref"]');
-        var gateInfoBox    = document.getElementById('containerGateInfo');
-        var gateDateSpan   = document.getElementById('containerGateDate');
-        var gateRefSpan    = document.getElementById('containerGateRef');
-        var eqtInfoBox     = document.getElementById('containerEqtInfo');
-        var eqtCodeSpan    = document.getElementById('eqtCodeDisplay');
-        var eqtNameSpan    = document.getElementById('eqtNameDisplay');
-        var eqtSizeBadge   = document.getElementById('eqtSizeBadge');
-        var eqtTypeBadge   = document.getElementById('eqtTypeBadge');
+        var infoEmpty    = document.getElementById('containerInfoEmpty');
+        var infoFilled   = document.getElementById('containerInfoFilled');
+        var eqtCodeSpan  = document.getElementById('eqtCodeDisplay');
+        var eqtNameSpan  = document.getElementById('eqtNameDisplay');
+        var eqtSizeBadge = document.getElementById('eqtSizeBadge');
+        var eqtTypeBadge = document.getElementById('eqtTypeBadge');
+        var custDisplay  = document.getElementById('customerDisplay');
+        var gateDateSpan = document.getElementById('containerGateDate');
+        var gateRefSpan  = document.getElementById('containerGateRef');
+        var custHidden   = document.getElementById('customerIdHidden');
+        var gateRefHid   = document.getElementById('gateRefHidden');
 
         function fillFromContainer(opt) {
             if (!opt || !opt.value) {
-                if (gateInfoBox) gateInfoBox.classList.add('d-none');
-                if (eqtInfoBox)  eqtInfoBox.classList.add('d-none');
+                if (infoEmpty)  infoEmpty.classList.remove('d-none');
+                if (infoFilled) infoFilled.classList.add('d-none');
+                if (custHidden) custHidden.value = '';
+                if (gateRefHid) gateRefHid.value = '';
                 return;
             }
-            // Equipment type — read-only display from container data
+
+            // Hidden form values
+            if (custHidden) custHidden.value = opt.dataset.customerId || '';
+            if (gateRefHid) gateRefHid.value = opt.dataset.gateRef   || '';
+
+            // Equipment type
             var eqtCode = opt.dataset.eqtCode || '';
-            var eqtName = opt.dataset.eqtName || '';
             var eqtSize = opt.dataset.eqtSize || '';
             var eqtType = opt.dataset.eqtType || '';
             if (eqtCodeSpan) eqtCodeSpan.textContent = eqtCode;
-            if (eqtNameSpan) eqtNameSpan.textContent = eqtName ? '— ' + eqtName : '';
+            if (eqtNameSpan) eqtNameSpan.textContent = opt.dataset.eqtName ? '— ' + opt.dataset.eqtName : '';
             if (eqtSizeBadge) {
                 eqtSizeBadge.textContent = eqtSize ? eqtSize + "'" : '';
                 eqtSizeBadge.classList.toggle('d-none', !eqtSize);
@@ -412,20 +432,14 @@
                 eqtTypeBadge.className   = 'badge text-nowrap ms-1' + (isReefer ? ' badge-reefer' : ' bg-info-subtle text-info');
                 eqtTypeBadge.classList.toggle('d-none', !eqtType);
             }
-            if (eqtInfoBox) eqtInfoBox.classList.toggle('d-none', !eqtCode);
 
-            // Customer
-            if (customerSelect && opt.dataset.customerId) {
-                $(customerSelect).val(opt.dataset.customerId).trigger('change');
-            }
-            // Gate-In Reference
-            if (gateRefInput) gateRefInput.value = opt.dataset.gateRef || '';
-            if (gateInfoBox && gateDateSpan && gateRefSpan) {
-                var hasGateInfo = opt.dataset.gateDate || opt.dataset.gateRef;
-                gateDateSpan.textContent = opt.dataset.gateDate || '—';
-                gateRefSpan.textContent  = opt.dataset.gateRef  || '—';
-                gateInfoBox.classList.toggle('d-none', !hasGateInfo);
-            }
+            // Customer and Gate-In
+            if (custDisplay)  custDisplay.textContent  = opt.dataset.customerName || '—';
+            if (gateDateSpan) gateDateSpan.textContent = opt.dataset.gateDate     || '—';
+            if (gateRefSpan)  gateRefSpan.textContent  = opt.dataset.gateRef      || '—';
+
+            if (infoEmpty)  infoEmpty.classList.add('d-none');
+            if (infoFilled) infoFilled.classList.remove('d-none');
         }
 
         $(containerSel).on('select2:select', function (e) {
