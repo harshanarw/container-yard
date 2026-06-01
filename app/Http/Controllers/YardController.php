@@ -334,7 +334,7 @@ class YardController extends Controller
             'driver_name'    => ['required', 'string', 'max:255'],
             'driver_ic'      => ['required', 'string', 'max:30'],
             'driver_phone'   => ['nullable', 'string', 'max:20'],
-            'release_order'  => ['required', 'string', 'max:50'],
+            'release_order'  => ['nullable', 'string', 'max:50'],
             'seal_no'        => ['nullable', 'string', 'max:20'],
             // Export information
             'loading_vessel' => ['nullable', 'string', 'max:100'],

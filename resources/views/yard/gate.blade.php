@@ -441,7 +441,7 @@
                                     <input type="text" name="shipper" class="form-control" placeholder="Shipper name">
                                 </div>
                                 <div class="col-6">
-                                    <label class="form-label fw-semibold">Release Order No. <span class="text-danger">*</span></label>
+                                    <label class="form-label fw-semibold">Release Order No.</label>
                                     <input type="text" name="release_order" class="form-control" placeholder="RO-XXXX">
                                 </div>
                                 <div class="col-6">
