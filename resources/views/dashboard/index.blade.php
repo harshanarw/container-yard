@@ -219,8 +219,8 @@
                             <tr>
                                 <td class="ps-3">
                                     <div class="fw-semibold font-monospace small">{{ $mv->container_no }}</div>
-                                    <div class="text-muted" style="font-size:.68rem;">
-                                        {{ $mv->size }}' {{ $mv->container_type }}
+                                    <div style="font-size:.68rem;">
+                                        <span class="{{ in_array($mv->container_type, ['RF','RH']) ? 'badge badge-reefer' : 'text-muted' }}">{{ $mv->size }}' {{ $mv->container_type }}</span>
                                     </div>
                                 </td>
                                 <td class="small">{{ $mv->customer?->name ?? '—' }}</td>

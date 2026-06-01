@@ -581,7 +581,7 @@
                             <div class="flex-grow-1">
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                     <span class="font-monospace fw-semibold small">{{ $mv->container_no }}</span>
-                                    <span class="badge bg-secondary-subtle text-secondary" style="font-size:.65rem;">{{ $mv->size }}' {{ $mv->container_type }}</span>
+                                    <span class="badge bg-secondary-subtle text-secondary {{ in_array($mv->container_type, ['RF','RH']) ? 'badge-reefer' : '' }}" style="font-size:.65rem;">{{ $mv->size }}' {{ $mv->container_type }}</span>
                                     @if($mv->movement_type === 'in')
                                         <span class="badge bg-primary-subtle text-primary" style="font-size:.65rem;"><i class="bi bi-arrow-down-circle"></i> In</span>
                                     @else
