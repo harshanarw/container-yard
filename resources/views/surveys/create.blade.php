@@ -54,17 +54,19 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-5">
+                        <div class="col-md-6">
                             <label class="form-label fw-semibold">Container (in yard) <span class="text-danger">*</span></label>
                             <select name="container_id" id="containerSelect" class="form-select select2" required>
                                 <option value="">— Select Container —</option>
                                 @foreach($containers as $c)
                                 <option value="{{ $c->id }}"
-                                        data-container-no="{{ $c->container_no }}"
-                                        data-eqt-id="{{ $c->equipment_type_id }}"
                                         data-customer-id="{{ $c->customer_id }}"
                                         data-gate-ref="{{ $c->gate_movement_ref }}"
                                         data-gate-date="{{ $c->gate_movement_date }}"
+                                        data-eqt-code="{{ $c->equipmentType?->eqt_code }}"
+                                        data-eqt-name="{{ $c->equipmentType?->description }}"
+                                        data-eqt-size="{{ $c->size }}"
+                                        data-eqt-type="{{ $c->type_code }}"
                                         {{ (old('container_id') ?? $selectedContainer?->id) == $c->id ? 'selected' : '' }}>
                                     {{ $c->container_no }}
                                     @if($c->customer) — {{ $c->customer->name }} @endif
@@ -77,32 +79,16 @@
                                 Gate-in: <span id="containerGateDate" class="fw-semibold"></span>
                                 &nbsp;·&nbsp; Ref: <span id="containerGateRef" class="font-monospace fw-semibold"></span>
                             </div>
-                        </div>
-                        <div class="col-md-7">
-                            <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
-                            <div class="d-flex gap-2 align-items-center">
-                                <select name="equipment_type_id" id="eqtSelect" class="form-select select2" required>
-                                    <option value="">— Select Equipment Type —</option>
-                                    @foreach($equipmentTypes as $eqt)
-                                    <option value="{{ $eqt->id }}"
-                                            data-code="{{ $eqt->eqt_code }}"
-                                            data-name="{{ $eqt->description }}"
-                                            data-size="{{ $eqt->size }}"
-                                            data-type="{{ $eqt->type_code }}"
-                                            data-eqt="{{ $eqt->eqt_code }}"
-                                            @if(in_array($eqt->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif
-                                            {{ old('equipment_type_id') == $eqt->id ? 'selected' : '' }}>
-                                        {{ $eqt->eqt_code }} — {{ $eqt->description }}
-                                    </option>
-                                    @endforeach
-                                </select>
-                                <span id="eqtSizeBadge" class="badge bg-light border text-dark text-nowrap d-none"></span>
-                                <span id="eqtTypeBadge" class="badge bg-info-subtle text-info text-nowrap d-none"></span>
+                            <div id="containerEqtInfo" class="mt-1 small d-none">
+                                <i class="bi bi-tag me-1 text-muted"></i>
+                                <span class="text-muted">Equipment:</span>
+                                <span id="eqtCodeDisplay" class="fw-semibold font-monospace ms-1"></span>
+                                <span id="eqtNameDisplay" class="text-muted ms-1"></span>
+                                <span id="eqtSizeBadge" class="badge bg-light border text-dark text-nowrap ms-1 d-none"></span>
+                                <span id="eqtTypeBadge" class="badge bg-info-subtle text-info text-nowrap ms-1 d-none"></span>
                             </div>
-                            <input type="hidden" name="size" id="eqtSize">
-                            <input type="hidden" name="type_code" id="eqtTypeCode">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label fw-semibold">Customer / Owner <span class="text-danger">*</span></label>
                             <select name="customer_id" id="customerSelect" class="form-select select2" required>
                                 <option value="">— Select Customer —</option>
@@ -387,58 +373,52 @@
 
 @push('scripts')
 <script>
-    // ── Container selection → auto-fill Equipment Type, Customer, Gate-In Ref ──
-    // Runs inside $(fn) so Select2 is fully initialised on all fields before we
-    // bind events or call fillFromContainer for a pre-selected container.
+    // ── Container selection → auto-fill Customer, Gate-In Ref, Equipment Type display ──
     $(function () {
         var containerSel   = document.getElementById('containerSelect');
         if (!containerSel) return;
 
-        var eqtSelect      = document.getElementById('eqtSelect');
         var customerSelect = document.getElementById('customerSelect');
         var gateRefInput   = document.querySelector('[name="gate_in_ref"]');
         var gateInfoBox    = document.getElementById('containerGateInfo');
         var gateDateSpan   = document.getElementById('containerGateDate');
         var gateRefSpan    = document.getElementById('containerGateRef');
-
-        function applyEqtBadges(opt) {
-            var sizeHid   = document.getElementById('eqtSize');
-            var typeHid   = document.getElementById('eqtTypeCode');
-            var sizeBadge = document.getElementById('eqtSizeBadge');
-            var typeBadge = document.getElementById('eqtTypeBadge');
-            if (!opt || !opt.value) {
-                if (sizeHid) sizeHid.value = '';
-                if (typeHid) typeHid.value = '';
-                if (sizeBadge) sizeBadge.classList.add('d-none');
-                if (typeBadge) typeBadge.classList.add('d-none');
-                return;
-            }
-            var isReefer = opt.dataset.type === 'RF' || opt.dataset.type === 'RH';
-            if (sizeHid) sizeHid.value = opt.dataset.size || '';
-            if (typeHid) typeHid.value = opt.dataset.type || '';
-            if (sizeBadge) {
-                sizeBadge.textContent = opt.dataset.size ? opt.dataset.size + "'" : '';
-                sizeBadge.classList.toggle('d-none', !opt.dataset.size);
-            }
-            if (typeBadge) {
-                typeBadge.textContent = opt.dataset.type || '';
-                typeBadge.className   = 'badge text-nowrap' + (isReefer ? ' badge-reefer' : ' bg-info-subtle text-info');
-                typeBadge.classList.toggle('d-none', !opt.dataset.type);
-            }
-        }
+        var eqtInfoBox     = document.getElementById('containerEqtInfo');
+        var eqtCodeSpan    = document.getElementById('eqtCodeDisplay');
+        var eqtNameSpan    = document.getElementById('eqtNameDisplay');
+        var eqtSizeBadge   = document.getElementById('eqtSizeBadge');
+        var eqtTypeBadge   = document.getElementById('eqtTypeBadge');
 
         function fillFromContainer(opt) {
             if (!opt || !opt.value) {
                 if (gateInfoBox) gateInfoBox.classList.add('d-none');
+                if (eqtInfoBox)  eqtInfoBox.classList.add('d-none');
                 return;
             }
-            if (eqtSelect && opt.dataset.eqtId) {
-                $(eqtSelect).val(opt.dataset.eqtId).trigger('change');
-                applyEqtBadges(eqtSelect.selectedOptions[0]);
+            // Equipment type — read-only display from container data
+            var eqtCode = opt.dataset.eqtCode || '';
+            var eqtName = opt.dataset.eqtName || '';
+            var eqtSize = opt.dataset.eqtSize || '';
+            var eqtType = opt.dataset.eqtType || '';
+            if (eqtCodeSpan) eqtCodeSpan.textContent = eqtCode;
+            if (eqtNameSpan) eqtNameSpan.textContent = eqtName ? '— ' + eqtName : '';
+            if (eqtSizeBadge) {
+                eqtSizeBadge.textContent = eqtSize ? eqtSize + "'" : '';
+                eqtSizeBadge.classList.toggle('d-none', !eqtSize);
             }
+            if (eqtTypeBadge) {
+                var isReefer = eqtType === 'RF' || eqtType === 'RH';
+                eqtTypeBadge.textContent = eqtType;
+                eqtTypeBadge.className   = 'badge text-nowrap ms-1' + (isReefer ? ' badge-reefer' : ' bg-info-subtle text-info');
+                eqtTypeBadge.classList.toggle('d-none', !eqtType);
+            }
+            if (eqtInfoBox) eqtInfoBox.classList.toggle('d-none', !eqtCode);
+
+            // Customer
             if (customerSelect && opt.dataset.customerId) {
                 $(customerSelect).val(opt.dataset.customerId).trigger('change');
             }
+            // Gate-In Reference
             if (gateRefInput) gateRefInput.value = opt.dataset.gateRef || '';
             if (gateInfoBox && gateDateSpan && gateRefSpan) {
                 var hasGateInfo = opt.dataset.gateDate || opt.dataset.gateRef;
@@ -448,49 +428,19 @@
             }
         }
 
-        // select2:select fires when user picks from the dropdown
         $(containerSel).on('select2:select', function (e) {
             var opt = $(containerSel).find('option[value="' + e.params.data.id + '"]')[0];
             fillFromContainer(opt);
         });
 
-        // select2:clear fires when the × clear button is used
         $(containerSel).on('select2:clear', function () {
             fillFromContainer(null);
         });
 
-        // Pre-selected container on page load (inside $(fn) so Select2 is ready)
         if (containerSel.value) {
             fillFromContainer(containerSel.options[containerSel.selectedIndex]);
         }
     });
-
-    // ── Equipment Type manual override (size/type badges) ─────────────────────
-    (function () {
-        const sel       = document.getElementById('eqtSelect');
-        const sizeHid   = document.getElementById('eqtSize');
-        const typeHid   = document.getElementById('eqtTypeCode');
-        const sizeBadge = document.getElementById('eqtSizeBadge');
-        const typeBadge = document.getElementById('eqtTypeBadge');
-
-        function applyEqt(opt) {
-            if (!opt || !opt.value) {
-                sizeHid.value = typeHid.value = '';
-                sizeBadge.classList.add('d-none');
-                typeBadge.classList.add('d-none');
-                return;
-            }
-            sizeHid.value = opt.dataset.size;
-            typeHid.value = opt.dataset.type;
-            sizeBadge.textContent = opt.dataset.size + "'";
-            typeBadge.textContent = opt.dataset.type;
-            sizeBadge.classList.remove('d-none');
-            typeBadge.classList.remove('d-none');
-        }
-
-        sel.addEventListener('change', () => applyEqt(sel.selectedOptions[0]));
-        if (sel.value) applyEqt(sel.selectedOptions[0]);
-    })();
 
     // MrCode options injected from PHP
     const mrLocOpts  = `<option value="">—</option>` + @json($mrLocationCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]))->reduce((a,c) => a+`<option value="${c.id}" data-code="${c.code}" data-name="${c.name}">${c.code} ${c.name}</option>`,'');
