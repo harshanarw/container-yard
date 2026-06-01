@@ -11,10 +11,10 @@ class GateMovement extends Model
     use HasFactory, HasDocuments;
 
     protected $fillable = [
-        'container_id', 'survey_id', 'container_no', 'customer_id', 'movement_type', 'size',
+        'container_id', 'survey_id', 'container_no', 'customer_id', 'transporter_id', 'movement_type', 'size',
         'container_type', 'location_zone', 'location_row', 'location_bay', 'location_tier',
         'condition', 'cargo_status', 'seal_no', 'vehicle_plate', 'driver_name',
-        'driver_ic', 'release_order', 'gate_in_time', 'gate_out_time',
+        'driver_ic', 'driver_phone', 'release_order', 'gate_in_time', 'gate_out_time',
         'movement_status', 'remarks', 'created_by',
         'codeco_exported_at', 'csv_exported_at',
         'codeco_exported_by', 'csv_exported_by',
@@ -37,6 +37,11 @@ class GateMovement extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function transporter()
+    {
+        return $this->belongsTo(Customer::class, 'transporter_id');
     }
 
     public function createdBy()

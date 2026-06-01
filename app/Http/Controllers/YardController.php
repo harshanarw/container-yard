@@ -81,6 +81,8 @@ class YardController extends Controller
             ->get();
 
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $transporters   = Customer::whereHas('types', fn($q) => $q->where('name', 'Transporter'))
+                            ->where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->get();
         $zones          = StorageZone::active()->withCount([
             'yardLocations',
@@ -88,7 +90,7 @@ class YardController extends Controller
             'yardLocations as occupied_count' => fn($q) => $q->where('status', 'occupied'),
         ])->get();
 
-        return view('yard.gate', compact('recentMovements', 'customers', 'equipmentTypes', 'zones'));
+        return view('yard.gate', compact('recentMovements', 'customers', 'transporters', 'equipmentTypes', 'zones'));
     }
 
     public function gateIn(Request $request)
@@ -117,6 +119,10 @@ class YardController extends Controller
             'location_tier'     => ['nullable', 'integer', 'min:1', 'max:10'],
             'seal_no'           => ['nullable', 'string', 'max:20'],
             'vehicle_plate'     => ['nullable', 'string', 'max:20'],
+            'transporter_id'    => ['nullable', 'exists:customers,id'],
+            'driver_name'       => ['nullable', 'string', 'max:255'],
+            'driver_ic'         => ['nullable', 'string', 'max:30'],
+            'driver_phone'      => ['nullable', 'string', 'max:20'],
             'remarks'           => ['nullable', 'string'],
             'gate_in_time'      => ['nullable', 'string', 'max:20'],
             'photos'            => ['nullable', 'array', 'max:5'],
@@ -170,6 +176,7 @@ class YardController extends Controller
             'container_id'    => $container->id,
             'container_no'    => $container->container_no,
             'customer_id'     => $validated['customer_id'],
+            'transporter_id'  => $validated['transporter_id'] ?? null,
             'movement_type'   => 'in',
             'size'            => $eqt->size,
             'container_type'  => $eqt->type_code,
@@ -181,6 +188,9 @@ class YardController extends Controller
             'cargo_status'    => $validated['cargo_status'],
             'seal_no'         => $validated['seal_no'],
             'vehicle_plate'   => $validated['vehicle_plate'],
+            'driver_name'     => $validated['driver_name'] ?? null,
+            'driver_ic'       => $validated['driver_ic'] ?? null,
+            'driver_phone'    => $validated['driver_phone'] ?? null,
             'gate_in_time'    => $gateInTime,
             'movement_status' => 'done',
             'remarks'         => $validated['remarks'],
@@ -259,8 +269,10 @@ class YardController extends Controller
                 },
             ],
             'vehicle_plate'  => ['required', 'string', 'max:20'],
+            'transporter_id' => ['nullable', 'exists:customers,id'],
             'driver_name'    => ['required', 'string', 'max:255'],
             'driver_ic'      => ['required', 'string', 'max:30'],
+            'driver_phone'   => ['nullable', 'string', 'max:20'],
             'release_order'  => ['required', 'string', 'max:50'],
             'remarks'        => ['nullable', 'string'],
             'gate_out_time'  => ['nullable', 'string', 'max:20'],
@@ -281,6 +293,7 @@ class YardController extends Controller
             'container_id'    => $container->id,
             'container_no'    => $container->container_no,
             'customer_id'     => $container->customer_id,
+            'transporter_id'  => $validated['transporter_id'] ?? null,
             'movement_type'   => 'out',
             'size'            => $container->size,
             'container_type'  => $container->type_code,
@@ -293,6 +306,7 @@ class YardController extends Controller
             'vehicle_plate'   => $validated['vehicle_plate'],
             'driver_name'     => $validated['driver_name'],
             'driver_ic'       => $validated['driver_ic'],
+            'driver_phone'    => $validated['driver_phone'] ?? null,
             'release_order'   => $validated['release_order'],
             'gate_out_time'   => $gateOutTime,
             'movement_status' => 'done',
@@ -363,12 +377,14 @@ class YardController extends Controller
     // -------------------------------------------------------------------------
     public function editMovement(GateMovement $movement)
     {
-        $movement->load(['container', 'customer']);
+        $movement->load(['container', 'customer', 'transporter']);
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $transporters   = Customer::whereHas('types', fn($q) => $q->where('name', 'Transporter'))
+                            ->where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->get();
         $zones          = StorageZone::active()->get();
 
-        return view('yard.movement-edit', compact('movement', 'customers', 'equipmentTypes', 'zones'));
+        return view('yard.movement-edit', compact('movement', 'customers', 'transporters', 'equipmentTypes', 'zones'));
     }
 
     public function updateMovement(Request $request, GateMovement $movement)
@@ -386,6 +402,10 @@ class YardController extends Controller
         if ($movement->movement_type === 'in') {
             $rules['equipment_type_id']  = ['nullable', 'exists:equipment_types,id'];
             $rules['customer_id']        = ['nullable', 'exists:customers,id'];
+            $rules['transporter_id']     = ['nullable', 'exists:customers,id'];
+            $rules['driver_name']        = ['nullable', 'string', 'max:255'];
+            $rules['driver_ic']          = ['nullable', 'string', 'max:30'];
+            $rules['driver_phone']       = ['nullable', 'string', 'max:20'];
             $rules['location_zone']      = ['nullable', 'string', 'max:10', 'exists:storage_zones,code'];
             $rules['location_row']       = ['nullable', 'string', 'max:5'];
             $rules['location_bay']       = ['nullable', 'integer', 'min:1', 'max:99'];
@@ -394,8 +414,10 @@ class YardController extends Controller
                 $rules['gate_in_time']  = ['nullable', 'string', 'max:20'];
             }
         } else {
+            $rules['transporter_id'] = ['nullable', 'exists:customers,id'];
             $rules['driver_name']    = ['nullable', 'string', 'max:255'];
             $rules['driver_ic']      = ['nullable', 'string', 'max:30'];
+            $rules['driver_phone']   = ['nullable', 'string', 'max:20'];
             $rules['release_order']  = ['nullable', 'string', 'max:50'];
             if ($isAdmin) {
                 $rules['gate_out_time'] = ['nullable', 'string', 'max:20'];
@@ -421,6 +443,12 @@ class YardController extends Controller
             foreach (['customer_id'] as $field) {
                 if (!empty($validated[$field])) {
                     $updateData[$field] = $validated[$field];
+                }
+            }
+            // transporter and driver fields (allow clearing via empty string → null)
+            foreach (['transporter_id', 'driver_name', 'driver_ic', 'driver_phone'] as $field) {
+                if (array_key_exists($field, $validated)) {
+                    $updateData[$field] = $validated[$field] ?: null;
                 }
             }
 
@@ -495,6 +523,11 @@ class YardController extends Controller
             foreach (['driver_name', 'driver_ic', 'release_order'] as $field) {
                 if (!empty($validated[$field])) {
                     $updateData[$field] = $validated[$field];
+                }
+            }
+            foreach (['transporter_id', 'driver_phone'] as $field) {
+                if (array_key_exists($field, $validated)) {
+                    $updateData[$field] = $validated[$field] ?: null;
                 }
             }
             if ($isAdmin && !empty($validated['gate_out_time'])) {

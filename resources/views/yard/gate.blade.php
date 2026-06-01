@@ -198,6 +198,45 @@
                             <label class="form-label fw-semibold">Truck/Vehicle Plate</label>
                             <input type="text" name="vehicle_plate" class="form-control text-uppercase" placeholder="e.g. WQR 1234">
                         </div>
+
+                        {{-- ── Transporter & Driver ────────────────────────────── --}}
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                Transporter
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
+                            </label>
+                            <select name="transporter_id" class="form-select s2-code" data-s2-sel="name">
+                                <option value="">— Select Transporter —</option>
+                                @foreach($transporters as $t)
+                                <option value="{{ $t->id }}" data-code="{{ $t->code }}" data-name="{{ $t->name }}">
+                                    {{ $t->code }} — {{ $t->name }}
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">
+                                Driver Name
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
+                            </label>
+                            <input type="text" name="driver_name" class="form-control" placeholder="Driver's full name">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">
+                                Driver NIC
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
+                            </label>
+                            <input type="text" name="driver_ic" class="form-control" placeholder="IC / Passport No.">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">
+                                Driver Phone
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
+                            </label>
+                            <input type="text" name="driver_phone" class="form-control" placeholder="+60 12-345 6789">
+                        </div>
+                        {{-- ── End Transporter & Driver ────────────────────────── --}}
+
                         <div class="col-12">
                             <label class="form-label fw-semibold">Remarks</label>
                             <textarea name="remarks" class="form-control" rows="2" placeholder="Any remarks…"></textarea>
@@ -292,13 +331,34 @@
                             <label class="form-label fw-semibold">Truck/Vehicle Plate</label>
                             <input type="text" name="vehicle_plate" class="form-control text-uppercase" placeholder="e.g. JHQ 5678">
                         </div>
-                        <div class="col-6">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                Transporter
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
+                            </label>
+                            <select name="transporter_id" class="form-select s2-code" data-s2-sel="name">
+                                <option value="">— Select Transporter —</option>
+                                @foreach($transporters as $t)
+                                <option value="{{ $t->id }}" data-code="{{ $t->code }}" data-name="{{ $t->name }}">
+                                    {{ $t->code }} — {{ $t->name }}
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-4">
                             <label class="form-label fw-semibold">Driver Name</label>
                             <input type="text" name="driver_name" class="form-control" placeholder="Driver's name">
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <label class="form-label fw-semibold">Driver IC/Passport</label>
                             <input type="text" name="driver_ic" class="form-control" placeholder="ID number">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">
+                                Driver Phone
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
+                            </label>
+                            <input type="text" name="driver_phone" class="form-control" placeholder="+60 12-345 6789">
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Remarks</label>
