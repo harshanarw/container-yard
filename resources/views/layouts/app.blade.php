@@ -1144,6 +1144,20 @@
 <script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.js"></script>
 
 <script>
+    // English locale for AirDatepicker (library defaults to Russian)
+    window.ADP_EN = {
+        days:        ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+        daysShort:   ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+        daysMin:     ['Su','Mo','Tu','We','Th','Fr','Sa'],
+        months:      ['January','February','March','April','May','June','July','August','September','October','November','December'],
+        monthsShort: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+        today:       'Today',
+        clear:       'Clear',
+        dateFormat:  'yyyy-MM-dd',
+        timeFormat:  'HH:mm',
+        firstDay:    1,
+    };
+
     // Sidebar toggle
     const sidebar      = document.getElementById('sidebar');
     const topbar       = document.getElementById('topbar');
@@ -1281,6 +1295,7 @@
                 }
 
                 var dp = new AirDatepicker($el[0], {
+                    locale:            window.ADP_EN,
                     timepicker:        true,
                     autoClose:         false,
                     dateFormat:        'yyyy-MM-dd',

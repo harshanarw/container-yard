@@ -720,6 +720,7 @@ btnOut.addEventListener('click', () => {
         }
 
         var dp = new AirDatepicker(el, {
+            locale:            window.ADP_EN,
             timepicker:        true,
             autoClose:         false,
             dateFormat:        'yyyy-MM-dd',

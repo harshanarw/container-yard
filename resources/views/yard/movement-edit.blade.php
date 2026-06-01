@@ -579,6 +579,7 @@
         if (!el || el.readOnly) return;
         var raw = el.value;
         var dp = new AirDatepicker(el, {
+            locale:            window.ADP_EN,
             timepicker:        true,
             autoClose:         false,
             dateFormat:        'yyyy-MM-dd',
