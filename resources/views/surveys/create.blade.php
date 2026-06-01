@@ -699,9 +699,21 @@
 
         // Add selected rules as rows
         addBtn.addEventListener('click', function () {
-            document.querySelectorAll('.rule-chk:checked').forEach(chk => {
-                addRuleAsRow(JSON.parse(chk.dataset.rule.replace(/&#39;/g, "'")));
-            });
+            const rules = Array.from(document.querySelectorAll('.rule-chk:checked'))
+                               .map(chk => JSON.parse(chk.dataset.rule.replace(/&#39;/g, "'")));
+            if (!rules.length) return;
+
+            // If the first damage row is completely blank, fill it instead of appending
+            const firstRow = document.querySelector('#damageRows .damage-row');
+            let startIdx = 0;
+            if (firstRow && isRowBlank(firstRow)) {
+                fillExistingRow(firstRow, rules[0]);
+                startIdx = 1;
+            }
+            for (let i = startIdx; i < rules.length; i++) {
+                addRuleAsRow(rules[i]);
+            }
+
             modal.hide();
             // Reset state
             selectAll.checked = false;
@@ -709,6 +721,27 @@
             document.querySelectorAll('.rule-chk').forEach(c => c.checked = false);
             updateCount();
         });
+
+        function isRowBlank(row) {
+            return ['component_code_id','damage_code_id','repair_code_id'].every(f => {
+                const s = row.querySelector(`select[name*="[${f}]"]`);
+                return !s || !s.value;
+            });
+        }
+
+        function fillExistingRow(row, r) {
+            const sevSel = row.querySelector('select[name*="[severity]"]');
+            if (sevSel && r.default_severity) sevSel.value = r.default_severity;
+            const descInput = row.querySelector('input[name*="[description]"]');
+            if (descInput) descInput.value = r.description || '';
+            if (r.location_code_id) { const s = row.querySelector('select[name*="[location_code_id]"]'); if (s) { s.value = r.location_code_id; $(s).trigger('change'); } }
+            const cs = row.querySelector('select[name*="[component_code_id]"]'); if (cs) { cs.value = r.component_code_id; $(cs).trigger('change'); }
+            const ds = row.querySelector('select[name*="[damage_code_id]"]');    if (ds) { ds.value = r.damage_code_id;    $(ds).trigger('change'); }
+            const rs = row.querySelector('select[name*="[repair_code_id]"]');    if (rs) { rs.value = r.repair_code_id;    $(rs).trigger('change'); }
+            row.style.transition = 'background-color 0.6s';
+            row.style.backgroundColor = '#d1fae5';
+            setTimeout(() => { row.style.backgroundColor = ''; }, 1400);
+        }
 
         function addRuleAsRow(r) {
             const i   = damageRowIndex++;
