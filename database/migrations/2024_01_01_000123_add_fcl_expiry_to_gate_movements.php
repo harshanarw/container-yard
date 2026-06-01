@@ -1,0 +1,22 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('gate_movements', function (Blueprint $table) {
+            $table->date('fcl_expiry_date')->nullable()->after('do_expiry_date');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('gate_movements', function (Blueprint $table) {
+            $table->dropColumn('fcl_expiry_date');
+        });
+    }
+};

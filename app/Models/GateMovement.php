@@ -17,7 +17,7 @@ class GateMovement extends Model
         'driver_ic', 'driver_phone', 'release_order', 'gate_in_time', 'gate_out_time',
         'movement_status', 'remarks', 'created_by',
         // Gate-In: import shipment information
-        'vessel_name', 'voyage_no', 'berthing_date', 'bl_number', 'do_expiry_date', 'consignee',
+        'vessel_name', 'voyage_no', 'berthing_date', 'bl_number', 'do_expiry_date', 'fcl_expiry_date', 'consignee',
         // Gate-Out: export information
         'loading_vessel', 'loading_voyage', 'sailing_date', 'shipper',
         'codeco_exported_at', 'csv_exported_at',
@@ -30,6 +30,7 @@ class GateMovement extends Model
         'gate_out_time'      => 'datetime',
         'berthing_date'      => 'date',
         'do_expiry_date'     => 'date',
+        'fcl_expiry_date'    => 'date',
         'sailing_date'       => 'date',
         'codeco_exported_at' => 'datetime',
         'csv_exported_at'    => 'datetime',

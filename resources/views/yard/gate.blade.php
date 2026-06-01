@@ -252,17 +252,21 @@
                             <label class="form-label fw-semibold">Voyage No.</label>
                             <input type="text" name="voyage_no" class="form-control" placeholder="e.g. 001W">
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <label class="form-label fw-semibold">Berthing Date</label>
                             <input type="date" name="berthing_date" class="form-control">
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <label class="form-label fw-semibold">BL Number</label>
                             <input type="text" name="bl_number" class="form-control" placeholder="Bill of Lading No.">
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <label class="form-label fw-semibold">D/O Expiry Date</label>
                             <input type="date" name="do_expiry_date" class="form-control">
+                        </div>
+                        <div class="col-3">
+                            <label class="form-label fw-semibold">FCL Expiry Date</label>
+                            <input type="date" name="fcl_expiry_date" class="form-control">
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Consignee</label>

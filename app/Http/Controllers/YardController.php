@@ -129,6 +129,7 @@ class YardController extends Controller
             'berthing_date'     => ['nullable', 'date'],
             'bl_number'         => ['nullable', 'string', 'max:50'],
             'do_expiry_date'    => ['nullable', 'date'],
+            'fcl_expiry_date'   => ['nullable', 'date'],
             'consignee'         => ['nullable', 'string', 'max:150'],
             'remarks'           => ['nullable', 'string'],
             'gate_in_time'      => ['nullable', 'string', 'max:20'],
@@ -208,6 +209,7 @@ class YardController extends Controller
             'berthing_date'   => $validated['berthing_date'] ?? null,
             'bl_number'       => $validated['bl_number'] ?? null,
             'do_expiry_date'  => $validated['do_expiry_date'] ?? null,
+            'fcl_expiry_date' => $validated['fcl_expiry_date'] ?? null,
             'consignee'       => $validated['consignee'] ?? null,
         ]);
 
