@@ -129,6 +129,7 @@ class ContainerController extends Controller
             'csc_plate_no'     => $container->csc_plate_no,
             'csc_expiry_date'  => $container->csc_expiry_date?->format('Y-m-d'),
             'status'           => $container->status,
+            'gate_in_date'     => $container->gate_in_date?->format('d M Y'),
             'customer_id'      => $container->customer_id,
         ]);
     }

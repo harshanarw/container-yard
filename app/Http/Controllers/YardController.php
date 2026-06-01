@@ -144,6 +144,51 @@ class YardController extends Controller
 
         $validated = $validator->validated();
 
+        // ── Duplicate Gate-In guard ──────────────────────────────────────────
+        $existingContainer = Container::where('container_no', $validated['container_no'])->first();
+
+        // Check 1: container is currently in the yard
+        if ($existingContainer && $existingContainer->status === 'in_yard') {
+            $since = $existingContainer->gate_in_date
+                ? ' (since ' . $existingContainer->gate_in_date->format('d M Y') . ')'
+                : '';
+            return redirect()->back()
+                ->withErrors(['container_no' =>
+                    "{$validated['container_no']} is already in the yard{$since}. "
+                    . "Complete the Gate-Out before recording a new Gate-In."
+                ])
+                ->withInput();
+        }
+
+        // Check 2: backdated Gate-In overlaps an existing stay (open or closed)
+        if ($existingContainer) {
+            $proposedDate = (auth()->user()->isAdmin() && !empty($validated['gate_in_time']))
+                ? \Carbon\Carbon::parse($validated['gate_in_time'])->toDateString()
+                : today()->toDateString();
+
+            $conflict = YardStorage::where('container_id', $existingContainer->id)
+                ->where('gate_in_date', '<=', $proposedDate)
+                ->where(function ($q) use ($proposedDate) {
+                    $q->whereNull('gate_out_date')
+                      ->orWhere('gate_out_date', '>=', $proposedDate);
+                })
+                ->first();
+
+            if ($conflict) {
+                $from = $conflict->gate_in_date->format('d M Y');
+                $to   = $conflict->gate_out_date
+                    ? $conflict->gate_out_date->format('d M Y')
+                    : 'present';
+                return redirect()->back()
+                    ->withErrors(['gate_in_time' =>
+                        "The Gate-In date conflicts with an existing stay for this container "
+                        . "({$from} → {$to}). Adjust the date or gate out the existing record first."
+                    ])
+                    ->withInput();
+            }
+        }
+        // ── End duplicate guard ──────────────────────────────────────────────
+
         $eqt = EquipmentType::findOrFail($validated['equipment_type_id']);
 
         // Resolve actual gate-in datetime (admin can override; everyone else uses now())

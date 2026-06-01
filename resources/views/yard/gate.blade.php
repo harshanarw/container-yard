@@ -742,8 +742,20 @@ btnOut.addEventListener('click', () => {
             const res  = await fetch('{{ route("containers.master-lookup") }}?container_no=' + encodeURIComponent(val));
             const data = await res.json();
             if (data.found) {
-                infoBox.className = 'mt-1 small text-success';
-                infoBox.innerHTML = '<i class="bi bi-check-circle me-1"></i>Found in Container Master — profile pre-filled.';
+                // Block early if container is currently in yard
+                if (data.status === 'in_yard') {
+                    const since = data.gate_in_date ? ' since ' + data.gate_in_date : '';
+                    infoBox.className = 'mt-1 small';
+                    infoBox.innerHTML =
+                        '<div class="alert alert-danger py-2 mb-0 small">' +
+                        '<i class="bi bi-exclamation-triangle-fill me-1"></i>' +
+                        '<strong>Already in yard' + since + '.</strong> ' +
+                        'Gate-Out must be completed before a new Gate-In.' +
+                        '</div>';
+                } else {
+                    infoBox.className = 'mt-1 small text-success';
+                    infoBox.innerHTML = '<i class="bi bi-check-circle me-1"></i>Found in Container Master — profile pre-filled.';
+                }
                 // Pre-select equipment type if available
                 if (data.equipment_type_id) {
                     for (const opt of eqtSel.options) {
