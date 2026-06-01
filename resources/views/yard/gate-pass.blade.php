@@ -9,8 +9,8 @@
         /* ── Page setup ──────────────────────────────────────────────────── */
         @page {
             @if($format === 'half')
-            size: A5 portrait;
-            margin: 10mm 12mm;
+            size: A5 landscape;
+            margin: 8mm 10mm;
             @else
             size: A4 portrait;
             margin: 12mm 15mm;
@@ -50,7 +50,7 @@
         /* ── Document wrapper ────────────────────────────────────────────── */
         .gp-doc {
             @if($format === 'half')
-            max-width: 148mm;
+            max-width: 194mm;
             @else
             max-width: 180mm;
             @endif
@@ -185,7 +185,7 @@
     <button class="tb-btn tb-btn-primary" onclick="window.print()">Print / Save as PDF</button>
     <a href="{{ route('yard.movements.gate-pass', ['movement' => $movement->id, 'format' => $format === 'full' ? 'half' : 'full']) }}"
        class="tb-btn tb-btn-secondary">
-       Switch to {{ $format === 'full' ? 'Half-page' : 'Full A4' }} format
+       Switch to {{ $format === 'full' ? 'Landscape Half' : 'Full A4' }} format
     </a>
     <a href="{{ route('yard.movements.edit', $movement) }}" class="tb-btn tb-btn-outline">&#8592; Back to Movement</a>
 </div>
@@ -229,9 +229,6 @@
             <img src="{{ $companySetting->logo_url }}" class="gp-company-logo" alt="Logo">
             @endif
             <div class="gp-company-name">{{ $companySetting?->company_name ?? 'Container Yard Management' }}</div>
-            @if($companySetting?->tagline)
-            <div class="gp-tagline">{{ $companySetting->tagline }}</div>
-            @endif
             <div class="gp-address">
                 @if($companySetting?->address){{ $companySetting->address }}@endif
                 @if($companySetting?->city), {{ $companySetting->city }}@endif
@@ -455,26 +452,25 @@
 </div>
 
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
-{{--  HALF-PAGE SLIP FORMAT                                                      --}}
+{{--  LANDSCAPE HALF FORMAT  (A5 landscape = half of A4, 210mm × 148mm)         --}}
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
 @else
 <div class="gp-doc">
 
-    {{-- ── Compact header ── --}}
+    {{-- ── Header ── --}}
     <div class="gp-header" style="padding-bottom:5px;">
-        <div>
+        <div style="flex:1;">
             @if($companySetting?->logo_url)
-            <img src="{{ $companySetting->logo_url }}" style="max-height:34px;margin-bottom:3px;display:block;" alt="Logo">
+            <img src="{{ $companySetting->logo_url }}" style="max-height:26px;margin-bottom:3px;display:block;" alt="Logo">
             @endif
-            <div style="font-size:13pt;font-weight:900;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
-            @if($companySetting?->tagline)
-            <div style="font-size:8pt;color:#444;">{{ $companySetting->tagline }}</div>
-            @endif
-            @if($companySetting?->address)
-            <div style="font-size:7.5pt;color:#333;margin-top:2px;">{{ $companySetting->address }}</div>
-            @endif
+            <div style="font-size:13pt;font-weight:900;line-height:1.1;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
+            <div style="font-size:7.5pt;color:#333;margin-top:3px;line-height:1.5;">
+                @if($companySetting?->address){{ $companySetting->address }}@endif
+                @if($companySetting?->telephone) &nbsp;·&nbsp; Tel: {{ $companySetting->telephone }}@endif
+                @if($companySetting?->email) &nbsp;·&nbsp; {{ $companySetting->email }}@endif
+            </div>
         </div>
-        <div class="gp-pass-no">
+        <div class="gp-pass-no" style="flex:0 0 auto;min-width:130px;">
             <div class="gp-pass-no-label">Gate Pass No.</div>
             <div class="gp-pass-no-value" style="font-size:17pt;">{{ $gpNumber }}</div>
             <div class="gp-pass-datetime">
@@ -491,77 +487,106 @@
 
     <hr class="gp-rule">
 
-    {{-- ── Compact title ── --}}
-    <div class="gp-title" style="font-size:10.5pt;padding:5px 10px;">
-        Container Outward Gate Pass (Summary)
-    </div>
+    {{-- ── Title ── --}}
+    <div class="gp-title" style="font-size:10pt;padding:4px 10px;">Container Outward Gate Pass</div>
 
-    {{-- ── Container block ── --}}
+    {{-- ── Container Details ── --}}
     <div class="sec">
         <div class="sec-hdr">Container Details</div>
         <table>
             <tr>
-                <td style="width:44%">
+                <td style="width:27%">
                     <div class="cell-lbl">Container No.</div>
-                    <div style="font-size:13pt;font-weight:900;letter-spacing:.5px;">{{ $movement->container_no }}</div>
+                    <div style="font-size:12pt;font-weight:900;letter-spacing:.4px;">{{ $movement->container_no }}</div>
                 </td>
-                <td style="width:28%">
+                <td style="width:13%">
                     <div class="cell-lbl">Size / Type</div>
-                    <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->size }}' {{ $movement->container_type }}</div>
                 </td>
-                <td style="width:28%">
+                <td style="width:15%">
                     <div class="cell-lbl">Status</div>
-                    <div style="padding-top:1px;">
-                        <span class="{{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:9.5pt;padding:1px 8px;">
+                    <div style="padding-top:2px;">
+                        <span class="{{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:8.5pt;padding:1px 6px;">
                             {{ $isLaden ? 'LADEN' : 'EMPTY' }}
                         </span>
+                    </div>
+                </td>
+                <td style="width:19%">
+                    <div class="cell-lbl">Seal No.</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->seal_no ?: '—' }}</div>
+                </td>
+                <td style="width:26%">
+                    <div class="cell-lbl">Release Order Ref.</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->release_order ?: '—' }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <div class="cell-lbl">Owner / Shipping Line</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $gateIn?->customer?->name ?? $movement->customer?->name ?? '—' }}</div>
+                </td>
+                <td colspan="2">
+                    <div class="cell-lbl">Yard Location</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $yardLoc ?: '—' }}</div>
+                </td>
+                <td>
+                    <div class="cell-lbl">Date / Time</div>
+                    <div class="cell-val" style="font-size:9pt;">
+                        {{ $movement->gate_out_time?->format('d M Y') ?? '—' }}
+                        {{ $movement->gate_out_time?->format('H:i') ?? '' }}
                     </div>
                 </td>
             </tr>
         </table>
     </div>
 
-    {{-- ── Key details ── --}}
+    {{-- ── Customer & Vehicle ── --}}
     <div class="sec">
-        <div class="sec-hdr">Movement &amp; Transport Details</div>
+        <div class="sec-hdr">Customer &amp; Vehicle Details</div>
         <table>
-            @php $halfRows = [
-                ['Release Order', $movement->release_order ?: '—'],
-                ['Seal No.',      $movement->seal_no ?: '—'],
-                ['Owner / Shipping Line', $gateIn?->customer?->name ?? $movement->customer?->name ?? '—'],
-                ['Vehicle No.',   $movement->vehicle_plate ?: '—'],
-                ['Driver',        trim(($movement->driver_name ?: '—') . ($movement->driver_ic ? ' · ID: ' . $movement->driver_ic : ''))],
-            ];
-            if($movement->loading_vessel) $halfRows[] = ['Loading Vessel', $movement->loading_vessel . ($movement->loading_voyage ? ' / ' . $movement->loading_voyage : '')];
-            if($movement->remarks)        $halfRows[] = ['Remarks',        $movement->remarks];
-            @endphp
-            @foreach($halfRows as [$lbl, $val])
             <tr>
-                <td style="width:110px;font-size:8pt;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.2px;">{{ $lbl }}</td>
-                <td style="font-size:9.5pt;font-weight:700;">{{ $val }}</td>
+                <td style="width:28%">
+                    <div class="cell-lbl">Customer / Consignee</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?: '—' }}</div>
+                </td>
+                <td style="width:22%">
+                    <div class="cell-lbl">Transporter</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->transporter?->name ?: '—' }}</div>
+                </td>
+                <td style="width:18%">
+                    <div class="cell-lbl">Truck / Vehicle No.</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->vehicle_plate ?: '—' }}</div>
+                </td>
+                <td style="width:19%">
+                    <div class="cell-lbl">Driver Name</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_name ?: '—' }}</div>
+                </td>
+                <td style="width:13%">
+                    <div class="cell-lbl">Driver ID</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_ic ?: '—' }}</div>
+                </td>
             </tr>
-            @endforeach
         </table>
     </div>
 
-    {{-- ── Compact authorization ── --}}
+    {{-- ── Authorization ── --}}
     <div class="sec">
         <div class="sec-hdr">Authorization</div>
-        <div class="declaration" style="font-size:8.5pt;">&ldquo;I checked and accepted the container in clean / sound condition&rdquo;</div>
+        <div class="declaration" style="font-size:8pt;">&ldquo;I checked and accepted the container in clean / sound condition&rdquo;</div>
         <table>
             <tr>
-                <td class="sig-cell" style="height:52px;">
-                    <div class="sig-label" style="margin-bottom:18px;">Issued By</div>
+                <td class="sig-cell" style="height:44px;">
+                    <div class="sig-label" style="margin-bottom:14px;font-size:8pt;">Issued By</div>
                     <div class="sig-line"></div>
                     <div class="sig-name">{{ $movement->createdBy?->name ?? '&nbsp;' }}</div>
                 </td>
-                <td class="sig-cell" style="height:52px;">
-                    <div class="sig-label" style="margin-bottom:18px;">Driver Signature</div>
+                <td class="sig-cell" style="height:44px;">
+                    <div class="sig-label" style="margin-bottom:14px;font-size:8pt;">Driver Signature</div>
                     <div class="sig-line"></div>
                     <div class="sig-name">{{ $movement->driver_name ?? '&nbsp;' }}</div>
                 </td>
-                <td class="sig-cell" style="height:52px;">
-                    <div class="sig-label" style="margin-bottom:18px;">Gate Officer</div>
+                <td class="sig-cell" style="height:44px;">
+                    <div class="sig-label" style="margin-bottom:14px;font-size:8pt;">Gate Officer</div>
                     <div class="sig-line"></div>
                     <div class="sig-name">&nbsp;</div>
                 </td>
@@ -569,15 +594,11 @@
         </table>
     </div>
 
-    {{-- ── Status stamp ── --}}
-    <div style="margin-top:6px;">
-        <span class="auth-stamp" style="font-size:8.5pt;padding:2px 10px;">&#10003; Authorized for Gate Out</span>
-    </div>
-
-    {{-- ── Footer ── --}}
-    <div class="gp-footer" style="margin-top:5px;">
-        <span>Printed: {{ $printedAt }} &nbsp;·&nbsp; Issued by: {{ $movement->createdBy?->name ?? '—' }}</span>
-        <span>{{ $softwareCopyright }}</span>
+    {{-- ── Stamp + footer in one row ── --}}
+    <div style="margin-top:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <span class="auth-stamp" style="font-size:8pt;padding:2px 10px;">&#10003; Authorized for Gate Out</span>
+        <span style="font-size:7pt;color:#555;white-space:nowrap;">Printed: {{ $printedAt }} &nbsp;·&nbsp; Issued by: {{ $movement->createdBy?->name ?? '—' }}</span>
+        <span style="font-size:7pt;color:#555;white-space:nowrap;">{{ $softwareCopyright }}</span>
     </div>
 
 </div>
