@@ -26,9 +26,17 @@
             &nbsp;·&nbsp; By {{ $movement->createdBy?->name ?? '—' }}
         </p>
     </div>
-    <a href="{{ route('yard.gate') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Back
-    </a>
+    <div class="d-flex gap-2">
+        @if($movement->movement_type === 'out')
+        <a href="{{ route('yard.movements.gate-pass', $movement) }}" target="_blank"
+           class="btn btn-outline-success">
+            <i class="bi bi-printer me-1"></i>Gate Pass
+        </a>
+        @endif
+        <a href="{{ route('yard.gate') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
 </div>
 
 <div class="row g-3">

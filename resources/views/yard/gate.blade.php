@@ -597,6 +597,13 @@
                                     {{ $mv->customer?->name }} &nbsp;·&nbsp; {{ $mv->vehicle_plate }}
                                 </div>
                             </div>
+                            @if($mv->movement_type === 'out')
+                            <a href="{{ route('yard.movements.gate-pass', $mv) }}" target="_blank"
+                               class="btn btn-outline-success btn-sm py-0 px-1"
+                               style="font-size:.65rem;" title="Gate Pass">
+                                <i class="bi bi-printer"></i>
+                            </a>
+                            @endif
                             <a href="{{ route('yard.movements.edit', $mv) }}"
                                class="btn btn-outline-secondary btn-sm py-0 px-1"
                                style="font-size:.65rem;" title="Edit">

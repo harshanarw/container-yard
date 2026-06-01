@@ -646,6 +646,27 @@ class YardController extends Controller
             ->with('success', "Gate movement #{$movement->id} updated successfully.");
     }
 
+    public function gatePass(Request $request, GateMovement $movement)
+    {
+        if ($movement->movement_type !== 'out') {
+            abort(404, 'Gate pass is only available for Gate-Out movements.');
+        }
+
+        $movement->load(['container', 'customer', 'transporter', 'createdBy']);
+
+        // Pull the most recent Gate-In for this container to get import vessel / voyage
+        $gateIn = GateMovement::where('container_id', $movement->container_id)
+            ->where('movement_type', 'in')
+            ->latest('gate_in_time')
+            ->first();
+
+        $format = in_array($request->query('format'), ['full', 'half'])
+            ? $request->query('format')
+            : 'full';
+
+        return view('yard.gate-pass', compact('movement', 'gateIn', 'format'));
+    }
+
     public function destroyMovementPhoto(GateMovement $movement, GateMovementPhoto $photo)
     {
         if ($photo->gate_movement_id !== $movement->id) {
