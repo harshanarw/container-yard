@@ -572,7 +572,7 @@
 @push('scripts')
 <script>
 // ── Initialize AirDatepicker on datetime inputs ─────────────────────────────
-document.addEventListener('DOMContentLoaded', function () {
+(function () {
     if (typeof AirDatepicker === 'undefined') return;
     ['editGateInTime', 'editGateOutTime'].forEach(function (id) {
         var el = document.getElementById(id);
@@ -592,7 +592,7 @@ document.addEventListener('DOMContentLoaded', function () {
             dp.selectDate(new Date(raw.replace(' ', 'T')));
         }
     });
-});
+})();
 
 (function () {
     const form      = document.querySelector('form');

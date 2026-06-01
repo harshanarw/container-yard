@@ -701,19 +701,24 @@ btnOut.addEventListener('click', () => {
 })();
 
 // ── Initialize AirDatepicker on Gate In / Gate Out datetime inputs ───────────
-document.addEventListener('DOMContentLoaded', function () {
-    if (typeof AirDatepicker === 'undefined') return;
+// Runs synchronously — at this point (bottom of body) DOM is fully rendered
+// and all CDN scripts (including AirDatepicker) are already loaded.
+(function () {
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    var now = new Date();
+    var nowStr = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
+              + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+
     ['gateInTime', 'gateOutTime'].forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
-        if (el.readOnly) {
-            // Non-admin: show current time as plain text (informational)
-            var now = new Date();
-            var pad = function (n) { return String(n).padStart(2, '0'); };
-            el.value = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
-                     + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+
+        if (el.readOnly || typeof AirDatepicker === 'undefined') {
+            // Non-admin or picker unavailable: at least show current time as text
+            el.value = nowStr;
             return;
         }
+
         var dp = new AirDatepicker(el, {
             timepicker:        true,
             autoClose:         false,
@@ -727,7 +732,7 @@ document.addEventListener('DOMContentLoaded', function () {
         dp.selectDate(new Date());
         dp.setViewDate(new Date());
     });
-});
+})();
 
 // ── Container number enforcer ───────────────────────────────────────────────
 (function () {
