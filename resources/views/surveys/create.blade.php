@@ -81,7 +81,7 @@
                         <div class="col-md-7">
                             <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
                             <div class="d-flex gap-2 align-items-center">
-                                <select name="equipment_type_id" id="eqtSelect" class="form-select s2-code" required>
+                                <select name="equipment_type_id" id="eqtSelect" class="form-select select2" required>
                                     <option value="">— Select Equipment Type —</option>
                                     @foreach($equipmentTypes as $eqt)
                                     <option value="{{ $eqt->id }}"
@@ -104,7 +104,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Customer / Owner <span class="text-danger">*</span></label>
-                            <select name="customer_id" id="customerSelect" class="form-select s2-code" required data-s2-sel="name">
+                            <select name="customer_id" id="customerSelect" class="form-select select2" required>
                                 <option value="">— Select Customer —</option>
                                 @foreach($customers as $c)
                                     <option value="{{ $c->id }}"
@@ -388,36 +388,30 @@
 @push('scripts')
 <script>
     // ── Container selection → auto-fill Equipment Type, Customer, Gate-In Ref ──
-    // Uses select2:select (Select2's own event) so we get e.params.data.id
-    // reliably. We look up the <option> by value to access its data attributes.
-    // $(fn) wrapping confirmed to fire after app.blade.php's DOMContentLoaded
-    // (Select2 is initialised by then), matching the pattern used in edit.blade.php.
-    $(function () {
-        var containerSel   = document.getElementById('containerSelect');
-        if (!containerSel) return;
-
-        var eqtSel    = document.getElementById('eqtSelect');
-        var custSel   = document.getElementById('customerSelect');
-        var gateRef   = document.querySelector('[name="gate_in_ref"]');
-        var gateBox   = document.getElementById('containerGateInfo');
-        var gateDate  = document.getElementById('containerGateDate');
-        var gateRefSp = document.getElementById('containerGateRef');
+    (function () {
+        const containerSel   = document.getElementById('containerSelect');
+        const eqtSelect      = document.getElementById('eqtSelect');
+        const customerSelect = document.getElementById('customerSelect');
+        const gateRefInput   = document.querySelector('[name="gate_in_ref"]');
+        const gateInfoBox    = document.getElementById('containerGateInfo');
+        const gateDateSpan   = document.getElementById('containerGateDate');
+        const gateRefSpan    = document.getElementById('containerGateRef');
 
         function applyEqtBadges(opt) {
-            var sizeHid   = document.getElementById('eqtSize');
-            var typeHid   = document.getElementById('eqtTypeCode');
-            var sizeBadge = document.getElementById('eqtSizeBadge');
-            var typeBadge = document.getElementById('eqtTypeBadge');
+            const sizeHid   = document.getElementById('eqtSize');
+            const typeHid   = document.getElementById('eqtTypeCode');
+            const sizeBadge = document.getElementById('eqtSizeBadge');
+            const typeBadge = document.getElementById('eqtTypeBadge');
             if (!opt || !opt.value) {
-                if (sizeHid)   sizeHid.value = '';
-                if (typeHid)   typeHid.value = '';
+                if (sizeHid) sizeHid.value = '';
+                if (typeHid) typeHid.value = '';
                 if (sizeBadge) sizeBadge.classList.add('d-none');
                 if (typeBadge) typeBadge.classList.add('d-none');
                 return;
             }
-            var isReefer = opt.dataset.type === 'RF' || opt.dataset.type === 'RH';
-            if (sizeHid)   sizeHid.value = opt.dataset.size || '';
-            if (typeHid)   typeHid.value = opt.dataset.type || '';
+            const isReefer = opt.dataset.type === 'RF' || opt.dataset.type === 'RH';
+            if (sizeHid) sizeHid.value = opt.dataset.size || '';
+            if (typeHid) typeHid.value = opt.dataset.type || '';
             if (sizeBadge) {
                 sizeBadge.textContent = opt.dataset.size ? opt.dataset.size + "'" : '';
                 sizeBadge.classList.toggle('d-none', !opt.dataset.size);
@@ -431,46 +425,53 @@
 
         function fillFromContainer(opt) {
             if (!opt || !opt.value) {
-                if (gateBox) gateBox.classList.add('d-none');
+                if (gateInfoBox) gateInfoBox.classList.add('d-none');
                 return;
             }
-            if (opt.dataset.eqtId && eqtSel) {
-                $(eqtSel).val(opt.dataset.eqtId).trigger('change');
-                applyEqtBadges(eqtSel.options[eqtSel.selectedIndex]);
+            if (eqtSelect && opt.dataset.eqtId) {
+                if (typeof $ !== 'undefined') {
+                    $(eqtSelect).val(opt.dataset.eqtId).trigger('change');
+                } else {
+                    eqtSelect.value = opt.dataset.eqtId;
+                }
+                applyEqtBadges(eqtSelect.selectedOptions[0]);
             }
-            if (opt.dataset.customerId && custSel) {
-                $(custSel).val(opt.dataset.customerId).trigger('change');
+            if (customerSelect && opt.dataset.customerId) {
+                if (typeof $ !== 'undefined') {
+                    $(customerSelect).val(opt.dataset.customerId).trigger('change');
+                } else {
+                    customerSelect.value = opt.dataset.customerId;
+                }
             }
-            if (gateRef) gateRef.value = opt.dataset.gateRef || '';
-            if (gateBox && gateDate && gateRefSp) {
-                var hasGate = opt.dataset.gateDate || opt.dataset.gateRef;
-                gateDate.textContent  = opt.dataset.gateDate || '—';
-                gateRefSp.textContent = opt.dataset.gateRef  || '—';
-                gateBox.classList.toggle('d-none', !hasGate);
+            if (gateRefInput) gateRefInput.value = opt.dataset.gateRef || '';
+            if (gateInfoBox && gateDateSpan && gateRefSpan) {
+                const hasGateInfo = opt.dataset.gateDate || opt.dataset.gateRef;
+                gateDateSpan.textContent = opt.dataset.gateDate || '—';
+                gateRefSpan.textContent  = opt.dataset.gateRef  || '—';
+                gateInfoBox.classList.toggle('d-none', !hasGateInfo);
             }
         }
 
-        function optById(id) {
-            var s = String(id);
-            for (var i = 0; i < containerSel.options.length; i++) {
-                if (containerSel.options[i].value === s) return containerSel.options[i];
+        function bindChange() {
+            if (typeof $ !== 'undefined') {
+                $(containerSel).on('change', function () {
+                    fillFromContainer(this.selectedOptions[0]);
+                });
+            } else {
+                containerSel.addEventListener('change', function () {
+                    fillFromContainer(this.selectedOptions[0]);
+                });
             }
-            return null;
         }
 
-        // select2:select fires on every user pick; e.params.data.id is always set.
-        // data.element can be null for plain .select2() init so we look up by value.
-        $(containerSel).on('select2:select', function (e) {
-            fillFromContainer(optById(e.params.data.id));
-        });
+        if (typeof $ !== 'undefined') {
+            $(function () { bindChange(); });
+        } else {
+            bindChange();
+        }
 
-        // Handle clearing / picking the blank option
-        $(containerSel).on('select2:unselect change', function () {
-            if (!containerSel.value && gateBox) gateBox.classList.add('d-none');
-        });
-
-        if (containerSel.value) fillFromContainer(optById(containerSel.value));
-    });
+        if (containerSel.value) fillFromContainer(containerSel.selectedOptions[0]);
+    })();
 
     // ── Equipment Type manual override (size/type badges) ─────────────────────
     (function () {
