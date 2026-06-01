@@ -456,30 +456,41 @@
         }
     });
 
-    // MrCode options injected from PHP
-    const mrLocOpts  = `<option value="">—</option>` + @json($mrLocationCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]))->reduce((a,c) => a+`<option value="${c.id}" data-code="${c.code}" data-name="${c.name}">${c.code} ${c.name}</option>`,'');
-    const mrCmpOpts  = `<option value="">—</option>` + @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]))->reduce((a,c) => a+`<option value="${c.id}" data-code="${c.code}" data-name="${c.name}">${c.code} ${c.name}</option>`,'');
-    const mrDmgOpts  = `<option value="">—</option>` + @json($mrDamageCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]))->reduce((a,c) => a+`<option value="${c.id}" data-code="${c.code}" data-name="${c.name}">${c.code} ${c.name}</option>`,'');
-    const mrRepOpts  = `<option value="">—</option>` + @json($mrRepairCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]))->reduce((a,c) => a+`<option value="${c.id}" data-code="${c.code}" data-name="${c.name}">${c.code} ${c.name}</option>`,'');
-    const mrRespOpts = `<option value="">—</option>` + @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code]))->reduce((a,c) => a+`<option value="${c.id}" data-code="${c.code}" data-name="${c.code}">${c.code}</option>`,'');
+    // ── Damage rows ───────────────────────────────────────────────────────────
+    // Store as data arrays (same pattern as edit.blade.php — proven working).
+    // buildSel() is called from click handlers, which fire after DOMContentLoaded,
+    // so window.initS2Code is guaranteed to be defined by then.
+    const mrLocOpts  = @json($mrLocationCodes->map(fn($c)  => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+    const mrCmpOpts  = @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+    const mrDmgOpts  = @json($mrDamageCodes->map(fn($c)    => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+    const mrRepOpts  = @json($mrRepairCodes->map(fn($c)    => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
+    const mrResOpts  = @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->code]));
+
+    function buildSel(name, opts, codeOnly) {
+        let html = `<select name="${name}" class="form-select form-select-sm s2 s2-code"><option value="">—</option>`;
+        opts.forEach(o => {
+            html += `<option value="${o.id}" data-code="${o.code}" data-name="${codeOnly ? o.code : o.name}">${o.code}${codeOnly ? '' : ' ' + o.name}</option>`;
+        });
+        return html + '</select>';
+    }
 
     function initRowSelects(tr) {
-        $(tr).find('select.s2').each(function() { window.initS2Code($(this), { width: '100%' }); });
+        $(tr).find('select.s2').each(function () { window.initS2Code($(this), { width: '100%' }); });
     }
 
     let damageRowIndex = 1;
 
     document.getElementById('addDamageRow').addEventListener('click', function () {
         const tbody = document.getElementById('damageRows');
-        const i = damageRowIndex++;
-        const row = document.createElement('tr');
+        const i     = damageRowIndex++;
+        const row   = document.createElement('tr');
         row.className = 'damage-row';
         row.innerHTML = `
-            <td class="ps-3"><select name="damages[${i}][location_code_id]" class="form-select form-select-sm s2 s2-code">${mrLocOpts}</select></td>
-            <td><select name="damages[${i}][component_code_id]" class="form-select form-select-sm s2 s2-code">${mrCmpOpts}</select></td>
-            <td><select name="damages[${i}][damage_code_id]" class="form-select form-select-sm s2 s2-code">${mrDmgOpts}</select></td>
-            <td><select name="damages[${i}][repair_code_id]" class="form-select form-select-sm s2 s2-code">${mrRepOpts}</select></td>
-            <td><select name="damages[${i}][responsibility_code_id]" class="form-select form-select-sm s2 s2-code">${mrRespOpts}</select></td>
+            <td class="ps-3">${buildSel('damages['+i+'][location_code_id]',      mrLocOpts)}</td>
+            <td>${buildSel('damages['+i+'][component_code_id]',  mrCmpOpts)}</td>
+            <td>${buildSel('damages['+i+'][damage_code_id]',     mrDmgOpts)}</td>
+            <td>${buildSel('damages['+i+'][repair_code_id]',     mrRepOpts)}</td>
+            <td>${buildSel('damages['+i+'][responsibility_code_id]', mrResOpts, true)}</td>
             <td>
                 <select name="damages[${i}][severity]" class="form-select form-select-sm">
                     <option value="minor">Minor</option>
@@ -493,8 +504,8 @@
                     <input type="number" name="damages[${i}][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px">
                 </div>
             </td>
-            <td><input type="number" name="damages[${i}][quantity]" class="form-control form-control-sm" value="1" step="0.5" min="0.5" style="width:58px"></td>
-            <td><input type="text" name="damages[${i}][description]" class="form-control form-control-sm" placeholder="Details…"></td>
+            <td><input type="number" name="damages[${i}][quantity]"    class="form-control form-control-sm" value="1" step="0.5" min="0.5" style="width:58px"></td>
+            <td><input type="text"   name="damages[${i}][description]" class="form-control form-control-sm" placeholder="Details…"></td>
             <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>
         `;
         tbody.appendChild(row);
@@ -507,8 +518,6 @@
             if (rows.length > 1) e.target.closest('.damage-row').remove();
         }
     });
-
-    $(function () { initRowSelects(document.querySelector('#damageRows .damage-row')); });
 
     // ── Photo Uploader ────────────────────────────────────────────────
     const MAX_FILES     = 10;
