@@ -7,71 +7,128 @@ use App\Models\RepairCategory;
 use App\Models\RepairCategoryMapping;
 use Illuminate\Database\Seeder;
 
+/**
+ * Comprehensive mapping rules for the Survey → Estimate → Work Order workflow.
+ *
+ * Three-tier priority system:
+ *
+ *   Tier A (priority 5, resolver score 3) — component + repair_type exact match
+ *       Forces clean_and_treat and paint to CLN/PNT even when a component rule
+ *       would otherwise win (component-only rules score 2, these score 3).
+ *
+ *   Tier B (priority 10, resolver score 2) — component-only (any repair type)
+ *       Maps every component code to its logical category. Catches all repair
+ *       types not covered by Tier A (replace, repair, weld, straighten).
+ *
+ *   Tier C (priority 20, resolver score 1) — repair-type-only global fallback
+ *       Last-resort catch for components not explicitly listed in Tier B.
+ *
+ * Repair type enum: replace | repair | weld | straighten | clean_and_treat | paint
+ */
 class RepairCategoryMappingSeeder extends Seeder
 {
     public function run(): void
     {
-        $categories = RepairCategory::pluck('id', 'code');
-        $components = MrCode::where('type', 'component')->pluck('id', 'code');
+        $cat  = RepairCategory::pluck('id', 'code');
+        $comp = MrCode::where('type', 'component')->pluck('id', 'code');
 
-        if ($categories->isEmpty()) {
-            $this->command->warn('No repair categories found. Run RepairCategorySeeder first.');
+        if ($cat->isEmpty()) {
+            $this->command->warn('No repair categories found — run RepairCategorySeeder first.');
             return;
         }
 
-        $rules = [
-            // ── Repair-type rules (any component) ──────────────────────────
-            // clean_and_treat → CLN (priority 20 — specific repair type)
-            ['repair_category_id' => $categories['CLN'] ?? null, 'component_code_id' => null,               'repair_type' => 'clean_and_treat', 'priority' => 20],
-            // paint → PNT (priority 20)
-            ['repair_category_id' => $categories['PNT'] ?? null, 'component_code_id' => null,               'repair_type' => 'paint',           'priority' => 20],
+        // Wipe all existing rules so this seeder is fully idempotent.
+        RepairCategoryMapping::query()->delete();
+        $this->command->line('  Cleared existing mapping rules.');
 
-            // ── Door component codes → DR ────────────────────────────────
-            ['repair_category_id' => $categories['DR']  ?? null, 'component_code_id' => $components['DOR'] ?? null, 'repair_type' => null, 'priority' => 10],
-            ['repair_category_id' => $categories['DR']  ?? null, 'component_code_id' => $components['HNG'] ?? null, 'repair_type' => null, 'priority' => 10],
-            ['repair_category_id' => $categories['DR']  ?? null, 'component_code_id' => $components['LKR'] ?? null, 'repair_type' => null, 'priority' => 10],
-            ['repair_category_id' => $categories['DR']  ?? null, 'component_code_id' => $components['SEL'] ?? null, 'repair_type' => null, 'priority' => 10],
-            ['repair_category_id' => $categories['DR']  ?? null, 'component_code_id' => $components['SIL'] ?? null, 'repair_type' => null, 'priority' => 10],
+        // ── Helper to collect rules ─────────────────────────────────────────
+        $rules = [];
 
-            // ── Floor component codes → FL ────────────────────────────────
-            ['repair_category_id' => $categories['FL']  ?? null, 'component_code_id' => $components['FLB'] ?? null, 'repair_type' => null, 'priority' => 10],
-            ['repair_category_id' => $categories['FL']  ?? null, 'component_code_id' => $components['PLG'] ?? null, 'repair_type' => null, 'priority' => 10],
+        $add = function (string $catCode, ?string $compCode, ?string $repairType, int $priority)
+            use (&$rules, $cat, $comp)
+        {
+            $categoryId  = $cat[$catCode]  ?? null;
+            $componentId = $compCode ? ($comp[$compCode] ?? null) : null;
 
-            // ── Roof component codes → RF ─────────────────────────────────
-            ['repair_category_id' => $categories['RF']  ?? null, 'component_code_id' => $components['BOW'] ?? null, 'repair_type' => null, 'priority' => 10],
-
-            // ── Ventilation → MCH ─────────────────────────────────────────
-            ['repair_category_id' => $categories['MCH'] ?? null, 'component_code_id' => $components['VNT'] ?? null, 'repair_type' => null, 'priority' => 10],
-
-            // ── Structural fallback for remaining panel/post/rail components → STR ──
-            ['repair_category_id' => $categories['STR'] ?? null, 'component_code_id' => $components['PNL'] ?? null, 'repair_type' => null, 'priority' => 30],
-            ['repair_category_id' => $categories['STR'] ?? null, 'component_code_id' => $components['PST'] ?? null, 'repair_type' => null, 'priority' => 30],
-            ['repair_category_id' => $categories['STR'] ?? null, 'component_code_id' => $components['RAL'] ?? null, 'repair_type' => null, 'priority' => 30],
-        ];
-
-        $created = 0;
-        foreach ($rules as $rule) {
-            if (!$rule['repair_category_id']) {
-                continue; // skip if category or component not found
+            if (!$categoryId) {
+                return; // skip if category not seeded
             }
-            if (!$rule['component_code_id'] && !$rule['repair_type']) {
-                continue;
+            if ($compCode && !$componentId) {
+                return; // skip if component code not seeded
+            }
+            if (!$componentId && !$repairType) {
+                return; // DB constraint: at least one must be set
             }
 
-            RepairCategoryMapping::updateOrCreate(
-                [
-                    'repair_category_id' => $rule['repair_category_id'],
-                    'component_code_id'  => $rule['component_code_id'],
-                    'repair_type'        => $rule['repair_type'],
-                ],
-                [
-                    'priority'  => $rule['priority'],
-                    'is_active' => true,
-                ]
-            );
-            $created++;
+            $rules[] = [
+                'repair_category_id' => $categoryId,
+                'component_code_id'  => $componentId,
+                'repair_type'        => $repairType,
+                'priority'           => $priority,
+                'is_active'          => true,
+            ];
+        };
+
+        // ══════════════════════════════════════════════════════════════════
+        // TIER A — Component + repair_type (score 3, priority 5)
+        // Ensures clean_and_treat and paint always route to CLN / PNT
+        // regardless of what component is involved.
+        // ══════════════════════════════════════════════════════════════════
+
+        $allComponents = ['PNL', 'PST', 'RAL', 'SIL', 'DOR', 'HNG', 'LKR', 'SEL', 'FLB', 'PLG', 'BOW', 'VNT'];
+
+        foreach ($allComponents as $c) {
+            $add('CLN', $c, 'clean_and_treat', 5);
+            $add('PNT', $c, 'paint',           5);
         }
 
-        $this->command->info("Seeded {$created} repair category mapping rules.");
+        // ══════════════════════════════════════════════════════════════════
+        // TIER B — Component-only rules (score 2, priority 10)
+        // Catches replace / repair / weld / straighten by component.
+        // ══════════════════════════════════════════════════════════════════
+
+        // Structural — body panels, posts, rails
+        $add('STR', 'PNL', null, 10);   // Panel → Structural
+        $add('STR', 'PST', null, 10);   // Post → Structural
+        $add('STR', 'RAL', null, 10);   // Rail → Structural
+
+        // Doors — door assembly and all door hardware
+        $add('DR', 'DOR', null, 10);    // Door panel → Doors
+        $add('DR', 'HNG', null, 10);    // Hinge → Doors
+        $add('DR', 'LKR', null, 10);    // Locking rod → Doors
+        $add('DR', 'SEL', null, 10);    // Seal → Doors
+        $add('DR', 'SIL', null, 10);    // Sill → Doors
+
+        // Floor
+        $add('FL', 'FLB', null, 10);    // Floor board → Floor
+        $add('FL', 'PLG', null, 10);    // Floor plug → Floor
+
+        // Roof
+        $add('RF', 'BOW', null, 10);    // Roof bow → Roof
+
+        // Mechanical
+        $add('MCH', 'VNT', null, 10);   // Vent → Mechanical
+
+        // ══════════════════════════════════════════════════════════════════
+        // TIER C — Global repair-type fallbacks (score 1, priority 20)
+        // Catch-all for components not listed in Tier B (future additions).
+        // ══════════════════════════════════════════════════════════════════
+
+        $add('CLN', null, 'clean_and_treat', 20);
+        $add('PNT', null, 'paint',           20);
+
+        // ── Persist ────────────────────────────────────────────────────────
+        foreach ($rules as $rule) {
+            RepairCategoryMapping::create($rule);
+        }
+
+        $tierA = count($allComponents) * 2;
+        $tierB = 13; // PNL+PST+RAL + DOR+HNG+LKR+SEL+SIL + FLB+PLG + BOW + VNT
+        $tierC = 2;
+
+        $this->command->info(sprintf(
+            'Seeded %d mapping rules  (Tier A: %d component+type overrides  |  Tier B: %d component fallbacks  |  Tier C: %d global fallbacks)',
+            count($rules), $tierA, $tierB, $tierC
+        ));
     }
 }
