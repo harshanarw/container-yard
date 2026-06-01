@@ -100,7 +100,7 @@
 
     @if($invoices->hasPages())
         <div class="card-footer bg-light">
-            {{ $invoices->links() }}
+            {{ $invoices->links('pagination::bootstrap-5') }}
         </div>
     @endif
 </div>

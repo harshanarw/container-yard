@@ -113,7 +113,7 @@
 
     @if($workOrders->hasPages())
         <div class="card-footer bg-light">
-            {{ $workOrders->links() }}
+            {{ $workOrders->links('pagination::bootstrap-5') }}
         </div>
     @endif
 </div>

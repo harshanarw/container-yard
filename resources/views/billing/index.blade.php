@@ -165,7 +165,7 @@
         </div>
 
         <div class="px-3 py-2">
-            {{ $invoices->links() }}
+            {{ $invoices->links('pagination::bootstrap-5') }}
         </div>
         @endif
     </div>
