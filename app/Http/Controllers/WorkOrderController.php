@@ -46,7 +46,7 @@ class WorkOrderController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $supervisors = User::whereIn('role', ['yard_supervisor', 'admin'])->get();
+        $supervisors = User::whereIn('role', ['yard_supervisor', 'administrator'])->get();
         $categories  = RepairCategory::active()->get();
 
         // Pre-select estimate when coming from the estimate show page
@@ -213,7 +213,7 @@ class WorkOrderController extends Controller
             'createdBy', 'qcBy'
         );
 
-        $isQcRole = in_array(auth()->user()->role ?? '', ['yard_supervisor', 'admin']);
+        $isQcRole = in_array(auth()->user()->role ?? '', ['yard_supervisor', 'administrator']);
 
         return view('work-orders.show', [
             'workOrder'      => $workOrder,
@@ -233,7 +233,7 @@ class WorkOrderController extends Controller
                              ->with('error', 'Cannot edit a ' . $workOrder->status . ' work order.');
         }
 
-        $supervisors = User::where('role', 'yard_supervisor')->orWhere('role', 'admin')->get();
+        $supervisors = User::where('role', 'yard_supervisor')->orWhere('role', 'administrator')->get();
 
         return view('work-orders.edit', [
             'workOrder'   => $workOrder,
@@ -332,7 +332,7 @@ class WorkOrderController extends Controller
                              ->with('error', 'QC can only be submitted for completed work orders.');
         }
 
-        if (!in_array(auth()->user()->role ?? '', ['yard_supervisor', 'admin'])) {
+        if (!in_array(auth()->user()->role ?? '', ['yard_supervisor', 'administrator'])) {
             return redirect()->route('work-orders.show', $workOrder)
                              ->with('error', 'Only supervisors and administrators can perform QC reviews.');
         }
