@@ -388,20 +388,20 @@
 @push('scripts')
 <script>
     // ── Container selection → auto-fill Equipment Type, Customer, Gate-In Ref ──
-    // Push-script DOMContentLoaded listeners are registered AFTER app.blade.php's
-    // listener (DOM event listeners fire in registration order). This guarantees
-    // Select2 is already initialised on #eqtSelect and #customerSelect when
-    // this callback runs, so $(el).val(val).trigger('change') updates the display.
-    document.addEventListener('DOMContentLoaded', function () {
+    // Uses select2:select (Select2's own event) so we get e.params.data.id
+    // reliably. We look up the <option> by value to access its data attributes.
+    // $(fn) wrapping confirmed to fire after app.blade.php's DOMContentLoaded
+    // (Select2 is initialised by then), matching the pattern used in edit.blade.php.
+    $(function () {
         var containerSel   = document.getElementById('containerSelect');
         if (!containerSel) return;
 
-        var eqtSelect      = document.getElementById('eqtSelect');
-        var customerSelect = document.getElementById('customerSelect');
-        var gateRefInput   = document.querySelector('[name="gate_in_ref"]');
-        var gateInfoBox    = document.getElementById('containerGateInfo');
-        var gateDateSpan   = document.getElementById('containerGateDate');
-        var gateRefSpan    = document.getElementById('containerGateRef');
+        var eqtSel    = document.getElementById('eqtSelect');
+        var custSel   = document.getElementById('customerSelect');
+        var gateRef   = document.querySelector('[name="gate_in_ref"]');
+        var gateBox   = document.getElementById('containerGateInfo');
+        var gateDate  = document.getElementById('containerGateDate');
+        var gateRefSp = document.getElementById('containerGateRef');
 
         function applyEqtBadges(opt) {
             var sizeHid   = document.getElementById('eqtSize');
@@ -409,15 +409,15 @@
             var sizeBadge = document.getElementById('eqtSizeBadge');
             var typeBadge = document.getElementById('eqtTypeBadge');
             if (!opt || !opt.value) {
-                if (sizeHid) sizeHid.value = '';
-                if (typeHid) typeHid.value = '';
+                if (sizeHid)   sizeHid.value = '';
+                if (typeHid)   typeHid.value = '';
                 if (sizeBadge) sizeBadge.classList.add('d-none');
                 if (typeBadge) typeBadge.classList.add('d-none');
                 return;
             }
             var isReefer = opt.dataset.type === 'RF' || opt.dataset.type === 'RH';
-            if (sizeHid) sizeHid.value = opt.dataset.size || '';
-            if (typeHid) typeHid.value = opt.dataset.type || '';
+            if (sizeHid)   sizeHid.value = opt.dataset.size || '';
+            if (typeHid)   typeHid.value = opt.dataset.type || '';
             if (sizeBadge) {
                 sizeBadge.textContent = opt.dataset.size ? opt.dataset.size + "'" : '';
                 sizeBadge.classList.toggle('d-none', !opt.dataset.size);
@@ -429,39 +429,47 @@
             }
         }
 
-        function s2set(el, val) {
-            if (!el || !val) return;
-            $(el).val(val).trigger('change');
-        }
-
-        function fillFromContainer(containerOpt) {
-            if (!containerOpt || !containerOpt.value) {
-                if (gateInfoBox) gateInfoBox.classList.add('d-none');
+        function fillFromContainer(opt) {
+            if (!opt || !opt.value) {
+                if (gateBox) gateBox.classList.add('d-none');
                 return;
             }
-            if (containerOpt.dataset.eqtId) {
-                s2set(eqtSelect, containerOpt.dataset.eqtId);
-                if (eqtSelect) applyEqtBadges(eqtSelect.options[eqtSelect.selectedIndex]);
+            if (opt.dataset.eqtId && eqtSel) {
+                $(eqtSel).val(opt.dataset.eqtId).trigger('change');
+                applyEqtBadges(eqtSel.options[eqtSel.selectedIndex]);
             }
-            if (containerOpt.dataset.customerId) {
-                s2set(customerSelect, containerOpt.dataset.customerId);
+            if (opt.dataset.customerId && custSel) {
+                $(custSel).val(opt.dataset.customerId).trigger('change');
             }
-            if (gateRefInput) gateRefInput.value = containerOpt.dataset.gateRef || '';
-            if (gateInfoBox && gateDateSpan && gateRefSpan) {
-                var hasGateInfo = containerOpt.dataset.gateDate || containerOpt.dataset.gateRef;
-                gateDateSpan.textContent = containerOpt.dataset.gateDate || '—';
-                gateRefSpan.textContent  = containerOpt.dataset.gateRef  || '—';
-                gateInfoBox.classList.toggle('d-none', !hasGateInfo);
+            if (gateRef) gateRef.value = opt.dataset.gateRef || '';
+            if (gateBox && gateDate && gateRefSp) {
+                var hasGate = opt.dataset.gateDate || opt.dataset.gateRef;
+                gateDate.textContent  = opt.dataset.gateDate || '—';
+                gateRefSp.textContent = opt.dataset.gateRef  || '—';
+                gateBox.classList.toggle('d-none', !hasGate);
             }
         }
 
-        $(containerSel).on('change', function () {
-            fillFromContainer(this.selectedOptions[0]);
+        function optById(id) {
+            var s = String(id);
+            for (var i = 0; i < containerSel.options.length; i++) {
+                if (containerSel.options[i].value === s) return containerSel.options[i];
+            }
+            return null;
+        }
+
+        // select2:select fires on every user pick; e.params.data.id is always set.
+        // data.element can be null for plain .select2() init so we look up by value.
+        $(containerSel).on('select2:select', function (e) {
+            fillFromContainer(optById(e.params.data.id));
         });
 
-        if (containerSel.value) {
-            fillFromContainer(containerSel.selectedOptions[0]);
-        }
+        // Handle clearing / picking the blank option
+        $(containerSel).on('select2:unselect change', function () {
+            if (!containerSel.value && gateBox) gateBox.classList.add('d-none');
+        });
+
+        if (containerSel.value) fillFromContainer(optById(containerSel.value));
     });
 
     // ── Equipment Type manual override (size/type badges) ─────────────────────
@@ -543,12 +551,7 @@
         }
     });
 
-    // Initialize Select2 on the first Blade-rendered damage row.
-    // Must use document.addEventListener (not $(fn)) so it fires AFTER
-    // app.blade.php's DOMContentLoaded handler defines window.initS2Code.
-    document.addEventListener('DOMContentLoaded', function () {
-        initRowSelects(document.querySelector('#damageRows .damage-row'));
-    });
+    $(function () { initRowSelects(document.querySelector('#damageRows .damage-row')); });
 
     // ── Photo Uploader ────────────────────────────────────────────────
     const MAX_FILES     = 10;
