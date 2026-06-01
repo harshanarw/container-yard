@@ -224,7 +224,7 @@
                            class="form-control text-uppercase @error('company_prefix') is-invalid @enderror"
                            value="{{ old('company_prefix', $settings->company_prefix) }}"
                            maxlength="10" placeholder="e.g. ABC">
-                    <div class="form-text">Max 10 chars. Used in reference numbers.</div>
+                    <div class="form-text">Max 10 chars &nbsp;·&nbsp; Gate Pass No. format: <strong>PREFIX-GP-00001</strong></div>
                     @error('company_prefix')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-5">

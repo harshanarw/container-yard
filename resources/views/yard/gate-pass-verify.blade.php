@@ -125,8 +125,8 @@
 <body>
 
 @php
-    $gpPrefix  = $companySetting?->prefix_gate_out ?? 'GP';
-    $gpNumber  = $gpPrefix . str_pad($movement->id, 5, '0', STR_PAD_LEFT);
+    $companyPrefix = strtoupper(trim($companySetting?->company_prefix ?? ''));
+    $gpNumber = ($companyPrefix ? $companyPrefix . '-' : '') . 'GP-' . str_pad($movement->id, 5, '0', STR_PAD_LEFT);
     $isLaden   = strtolower($movement->cargo_status ?? '') === 'laden';
     $verifiedAt = now()->format('d M Y, H:i');
 @endphp
