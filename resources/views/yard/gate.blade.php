@@ -333,8 +333,8 @@
                                     </span>
                                 @endif
                             </label>
-                            <input type="datetime-local" name="gate_in_time" id="gateInTime"
-                                   class="form-control"
+                            <input type="text" name="gate_in_time" id="gateInTime"
+                                   class="form-control" autocomplete="off"
                                    {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
                             @if(!auth()->user()->isAdmin())
                                 <div class="form-text text-muted" style="font-size:.72rem;">
@@ -521,8 +521,8 @@
                                     </span>
                                 @endif
                             </label>
-                            <input type="datetime-local" name="gate_out_time" id="gateOutTime"
-                                   class="form-control"
+                            <input type="text" name="gate_out_time" id="gateOutTime"
+                                   class="form-control" autocomplete="off"
                                    {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
                             @if(!auth()->user()->isAdmin())
                                 <div class="form-text text-muted" style="font-size:.72rem;">
@@ -700,15 +700,34 @@ btnOut.addEventListener('click', () => {
     if (p.get('tab') === 'out') btnOut.click();
 })();
 
-// ── Set datetime pickers to current client time ─────────────────────────────
-(function () {
-    const pad = n => String(n).padStart(2, '0');
-    const now = new Date();
-    const ts  = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
-              + 'T' + pad(now.getHours()) + ':' + pad(now.getMinutes());
-    document.getElementById('gateInTime').value  = ts;
-    document.getElementById('gateOutTime').value = ts;
-})();
+// ── Initialize AirDatepicker on Gate In / Gate Out datetime inputs ───────────
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof AirDatepicker === 'undefined') return;
+    ['gateInTime', 'gateOutTime'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (el.readOnly) {
+            // Non-admin: show current time as plain text (informational)
+            var now = new Date();
+            var pad = function (n) { return String(n).padStart(2, '0'); };
+            el.value = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())
+                     + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+            return;
+        }
+        var dp = new AirDatepicker(el, {
+            timepicker:        true,
+            autoClose:         false,
+            dateFormat:        'yyyy-MM-dd',
+            timeFormat:        'HH:mm',
+            dateTimeSeparator: ' ',
+            position:          'bottom left',
+            container:         'body',
+            onSelect: function () { el.dispatchEvent(new Event('change')); },
+        });
+        dp.selectDate(new Date());
+        dp.setViewDate(new Date());
+    });
+});
 
 // ── Container number enforcer ───────────────────────────────────────────────
 (function () {

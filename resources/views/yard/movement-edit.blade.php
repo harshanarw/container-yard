@@ -333,9 +333,9 @@
                                     </span>
                                 @endif
                             </label>
-                            <input type="datetime-local" name="gate_in_time"
-                                   class="form-control"
-                                   value="{{ old('gate_in_time', $movement->gate_in_time?->format('Y-m-d\TH:i')) }}"
+                            <input type="text" name="gate_in_time" id="editGateInTime"
+                                   class="form-control" autocomplete="off"
+                                   value="{{ old('gate_in_time', $movement->gate_in_time?->format('Y-m-d H:i')) }}"
                                    {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
                         </div>
                         <div class="col-12">
@@ -486,9 +486,9 @@
                                     </span>
                                 @endif
                             </label>
-                            <input type="datetime-local" name="gate_out_time"
-                                   class="form-control"
-                                   value="{{ old('gate_out_time', $movement->gate_out_time?->format('Y-m-d\TH:i')) }}"
+                            <input type="text" name="gate_out_time" id="editGateOutTime"
+                                   class="form-control" autocomplete="off"
+                                   value="{{ old('gate_out_time', $movement->gate_out_time?->format('Y-m-d H:i')) }}"
                                    {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
                         </div>
                         <div class="col-12">
@@ -571,6 +571,29 @@
 
 @push('scripts')
 <script>
+// ── Initialize AirDatepicker on datetime inputs ─────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof AirDatepicker === 'undefined') return;
+    ['editGateInTime', 'editGateOutTime'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el || el.readOnly) return;
+        var raw = el.value;
+        var dp = new AirDatepicker(el, {
+            timepicker:        true,
+            autoClose:         false,
+            dateFormat:        'yyyy-MM-dd',
+            timeFormat:        'HH:mm',
+            dateTimeSeparator: ' ',
+            position:          'bottom left',
+            container:         'body',
+            onSelect: function () { el.dispatchEvent(new Event('change')); },
+        });
+        if (raw && /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw)) {
+            dp.selectDate(new Date(raw.replace(' ', 'T')));
+        }
+    });
+});
+
 (function () {
     const form      = document.querySelector('form');
     const submitBtn = form.querySelector('[type="submit"]');
