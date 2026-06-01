@@ -667,6 +667,78 @@ class YardController extends Controller
         return view('yard.gate-pass', compact('movement', 'gateIn', 'format'));
     }
 
+    public function verifyGatePass(Request $request, GateMovement $movement)
+    {
+        if ($movement->movement_type !== 'out') {
+            abort(404);
+        }
+
+        $movement->load(['customer', 'transporter']);
+        $gateIn = GateMovement::where('container_id', $movement->container_id)
+            ->where('movement_type', 'in')
+            ->latest('gate_in_time')
+            ->first();
+
+        // Cross-check URL params against the DB record to detect tampering
+        $checks = [];
+
+        if ($request->has('cn')) {
+            $urlCn = strtoupper($request->query('cn'));
+            $checks['Container No.'] = [
+                'url'   => $urlCn,
+                'db'    => $movement->container_no,
+                'match' => $urlCn === $movement->container_no,
+            ];
+        }
+
+        if ($request->has('sz')) {
+            $urlSz = strtoupper($request->query('sz'));
+            $dbSz  = $movement->size . $movement->container_type;
+            $checks['Size / Type'] = [
+                'url'   => $urlSz,
+                'db'    => $dbSz,
+                'match' => $urlSz === $dbSz,
+            ];
+        }
+
+        if ($request->has('st')) {
+            $urlSt  = strtoupper($request->query('st'));
+            $dbSt   = strtolower($movement->cargo_status ?? '') === 'laden' ? 'L' : 'E';
+            $checks['Status'] = [
+                'url'   => $urlSt === 'L' ? 'LADEN' : 'EMPTY',
+                'db'    => ucfirst(strtolower($movement->cargo_status ?? '—')),
+                'match' => $urlSt === $dbSt,
+            ];
+        }
+
+        if ($request->has('dt')) {
+            $urlDt = $request->query('dt');
+            $dbDt  = $movement->gate_out_time?->format('YmdHi');
+            $checks['Gate-Out Time'] = [
+                'url'   => $movement->gate_out_time
+                    ? \Carbon\Carbon::createFromFormat('YmdHi', $urlDt)?->format('d M Y H:i')
+                    : $urlDt,
+                'db'    => $movement->gate_out_time?->format('d M Y H:i') ?? '—',
+                'match' => $urlDt === $dbDt,
+            ];
+        }
+
+        if ($request->has('vh')) {
+            $normalize = fn($v) => preg_replace('/[^A-Z0-9]/', '', strtoupper($v ?? ''));
+            $urlVh = $request->query('vh');
+            $checks['Vehicle Plate'] = [
+                'url'   => strtoupper($urlVh),
+                'db'    => $movement->vehicle_plate ?? '—',
+                'match' => $normalize($urlVh) === $normalize($movement->vehicle_plate),
+            ];
+        }
+
+        $allMatch = !empty($checks) && collect($checks)->every(fn($c) => $c['match']);
+        $hasParams = !empty($checks);
+
+        return view('yard.gate-pass-verify', compact('movement', 'gateIn', 'checks', 'allMatch', 'hasParams'));
+    }
+
     public function destroyMovementPhoto(GateMovement $movement, GateMovementPhoto $photo)
     {
         if ($photo->gate_movement_id !== $movement->id) {

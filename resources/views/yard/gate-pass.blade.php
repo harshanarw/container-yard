@@ -178,22 +178,16 @@
     $softwareCopyright = '© ' . date('Y') . ' ' . ($companySetting?->software_provider ?? 'CYM Software');
     $printedAt = now()->format('d M Y H:i');
 
-    // Build QR payload — pipe-delimited structured data (offline-scannable)
-    $qrParts = array_filter([
-        'GP:'  . $gpNumber,
-        'CN:'  . $movement->container_no,
-        'SZ:'  . ($movement->size . "'" . $movement->container_type),
-        'ST:'  . strtoupper($movement->cargo_status ?? ''),
-        'DT:'  . ($movement->gate_out_time?->format('Y-m-d H:i') ?? ''),
-        'VH:'  . ($movement->vehicle_plate ?? ''),
-        'DR:'  . ($movement->driver_name ?? ''),
-        'CS:'  . ($gateIn?->customer?->name ?? $movement->customer?->name ?? ''),
-        'LS:'  . ($movement->loading_vessel ?? ''),
-        'VY:'  . ($movement->loading_voyage ?? ''),
-        'SL:'  . ($movement->seal_no ?? ''),
-        'YD:'  . ($companySetting?->company_name ?? ''),
-    ], fn($v) => strlen($v) > 3);
-    $qrData = implode('|', $qrParts);
+    // QR encodes a verification URL with compact params for cross-checking
+    // Online: opens branded verification page from DB; Offline: URL+params are human-readable
+    $qrParams = array_filter([
+        'cn' => $movement->container_no,
+        'sz' => $movement->size . $movement->container_type,
+        'st' => strtolower($movement->cargo_status ?? '') === 'laden' ? 'L' : 'E',
+        'dt' => $movement->gate_out_time?->format('YmdHi'),
+        'vh' => preg_replace('/[^A-Z0-9]/', '', strtoupper($movement->vehicle_plate ?? '')),
+    ]);
+    $qrData = route('gp.verify', $movement->id) . '?' . http_build_query($qrParams);
 @endphp
 
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
