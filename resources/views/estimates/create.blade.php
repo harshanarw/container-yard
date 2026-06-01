@@ -775,6 +775,7 @@
         } else {
             doImport();
         }
+    }   // end importDamages
 
     document.getElementById('importDamagesBtn')?.addEventListener('click', function () { importDamages(this); });
     document.getElementById('importDamagesSideBtn')?.addEventListener('click', function () {
