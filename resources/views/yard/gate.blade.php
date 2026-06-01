@@ -55,21 +55,26 @@
                     </div>
                     @endif
 
-                    {{-- Container Number --}}
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Container Number <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <input type="text" name="container_no" id="containerNoIn"
-                                   class="form-control font-monospace text-uppercase"
-                                   placeholder="XXXX0000000" required autocomplete="off" maxlength="11">
-                            <button type="button" class="btn btn-outline-secondary" id="scanBtn" title="Scan">
-                                <i class="bi bi-upc-scan"></i>
-                            </button>
-                        </div>
-                        <div id="masterLookupInfo" class="mt-1 small d-none"></div>
+                    {{-- ═══════════════════════════════════════════════════════
+                         SECTION 1 — Container Details (always visible)
+                    ════════════════════════════════════════════════════════ --}}
+                    <div class="gate-section-hdr mb-2" style="background:#eff6ff;border-left:3px solid #3b82f6;">
+                        <i class="bi bi-box-seam text-primary"></i>
+                        <span class="fw-semibold text-primary" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">Container Details</span>
                     </div>
-
-                    <div class="row g-3">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Container Number <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="text" name="container_no" id="containerNoIn"
+                                       class="form-control font-monospace text-uppercase"
+                                       placeholder="XXXX0000000" required autocomplete="off" maxlength="11">
+                                <button type="button" class="btn btn-outline-secondary" id="scanBtn" title="Scan">
+                                    <i class="bi bi-upc-scan"></i>
+                                </button>
+                            </div>
+                            <div id="masterLookupInfo" class="mt-1 small d-none"></div>
+                        </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
                             <div class="d-flex gap-2 align-items-center">
@@ -102,7 +107,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <label class="form-label fw-semibold">Condition</label>
                             <select name="condition" class="form-select">
                                 <option value="sound">Sound</option>
@@ -110,20 +115,133 @@
                                 <option value="require_repair">Requires Repair</option>
                             </select>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <label class="form-label fw-semibold">Empty / Laden</label>
                             <select name="cargo_status" class="form-select">
                                 <option value="empty">Empty</option>
                                 <option value="laden">Laden</option>
                             </select>
                         </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">Seal Number</label>
+                            <input type="text" name="seal_no" class="form-control" placeholder="Optional">
+                        </div>
+                    </div>
 
-                        {{-- ── Storage Location ──────────────────────────────── --}}
+                    {{-- ═══════════════════════════════════════════════════════
+                         SECTION 2 — Import Shipment Information (collapsible)
+                    ════════════════════════════════════════════════════════ --}}
+                    <div class="gate-section-hdr gate-section-collapse rounded-top mb-0"
+                         style="background:#ecfeff;border-left:3px solid #0ea5e9;"
+                         data-bs-toggle="collapse" data-bs-target="#inImportSection"
+                         aria-expanded="false" role="button">
+                        <span>
+                            <i class="bi bi-ship text-info me-2"></i>
+                            <span class="fw-semibold text-info" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">Import Shipment Information</span>
+                            <span class="badge bg-secondary-subtle text-secondary fw-normal ms-2" style="font-size:.65rem;text-transform:none;">Optional</span>
+                        </span>
+                        <i class="bi bi-chevron-down text-info collapse-chevron"></i>
+                    </div>
+                    <div class="collapse mb-3" id="inImportSection">
+                        <div class="rounded-bottom p-3" style="border:1px solid #0ea5e9;border-top:none;">
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Ex / Discharged Vessel</label>
+                                    <input type="text" name="vessel_name" class="form-control" placeholder="Vessel name">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Voyage No.</label>
+                                    <input type="text" name="voyage_no" class="form-control" placeholder="e.g. 001W">
+                                </div>
+                                <div class="col-3">
+                                    <label class="form-label fw-semibold">Berthing Date</label>
+                                    <input type="date" name="berthing_date" class="form-control">
+                                </div>
+                                <div class="col-3">
+                                    <label class="form-label fw-semibold">BL Number</label>
+                                    <input type="text" name="bl_number" class="form-control" placeholder="Bill of Lading No.">
+                                </div>
+                                <div class="col-3">
+                                    <label class="form-label fw-semibold">D/O Expiry Date</label>
+                                    <input type="date" name="do_expiry_date" class="form-control">
+                                </div>
+                                <div class="col-3">
+                                    <label class="form-label fw-semibold">FCL Expiry Date</label>
+                                    <input type="date" name="fcl_expiry_date" class="form-control">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">Consignee</label>
+                                    <input type="text" name="consignee" class="form-control" placeholder="Consignee name">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- ═══════════════════════════════════════════════════════
+                         SECTION 3 — Transport Details (always visible)
+                    ════════════════════════════════════════════════════════ --}}
+                    <div class="gate-section-hdr mb-2" style="background:#f3f4f6;border-left:3px solid #6b7280;">
+                        <i class="bi bi-truck text-secondary"></i>
+                        <span class="fw-semibold text-secondary" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">Transport Details</span>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Truck / Vehicle Plate</label>
+                            <input type="text" name="vehicle_plate" class="form-control text-uppercase" placeholder="e.g. WQR 1234">
+                        </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">
-                                <i class="bi bi-geo-alt me-1 text-primary"></i>Storage Location
+                                Transporter
                                 <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
                             </label>
+                            <select name="transporter_id" class="form-select s2-code" data-s2-sel="name">
+                                <option value="">— Select Transporter —</option>
+                                @foreach($transporters as $t)
+                                <option value="{{ $t->id }}" data-code="{{ $t->code }}" data-name="{{ $t->name }}">
+                                    {{ $t->code }} — {{ $t->name }}
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">
+                                Driver Name
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
+                            </label>
+                            <input type="text" name="driver_name" class="form-control" placeholder="Driver's full name">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">
+                                Driver NIC
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
+                            </label>
+                            <input type="text" name="driver_ic" class="form-control" placeholder="IC / Passport No.">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">
+                                Driver Phone
+                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
+                            </label>
+                            <input type="text" name="driver_phone" class="form-control" placeholder="+60 12-345 6789">
+                        </div>
+                    </div>
+
+                    {{-- ═══════════════════════════════════════════════════════
+                         SECTION 4 — Storage Location (collapsible)
+                    ════════════════════════════════════════════════════════ --}}
+                    <div class="gate-section-hdr gate-section-collapse rounded-top mb-0"
+                         style="background:#f0fdf4;border-left:3px solid #22c55e;"
+                         data-bs-toggle="collapse" data-bs-target="#inLocationSection"
+                         aria-expanded="false" role="button">
+                        <span>
+                            <i class="bi bi-geo-alt text-success me-2"></i>
+                            <span class="fw-semibold text-success" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">Storage Location</span>
+                            <span class="badge bg-secondary-subtle text-secondary fw-normal ms-2" style="font-size:.65rem;text-transform:none;">Optional — assign later</span>
+                        </span>
+                        <i class="bi bi-chevron-down text-success collapse-chevron"></i>
+                    </div>
+                    <div class="collapse mb-3" id="inLocationSection">
+                        <div class="rounded-bottom p-3" style="border:1px solid #22c55e;border-top:none;">
 
                             {{-- Hidden submission fields --}}
                             <input type="hidden" name="location_zone" id="loc_zone">
@@ -187,93 +305,18 @@
                                 </div>
                                 <div id="slotGridContent" style="overflow-x:auto; max-height:300px; overflow-y:auto;"></div>
                             </div>
-                        </div>
-                        {{-- ── End Storage Location ──────────────────────────── --}}
 
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Seal Number</label>
-                            <input type="text" name="seal_no" class="form-control" placeholder="Optional">
                         </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Truck/Vehicle Plate</label>
-                            <input type="text" name="vehicle_plate" class="form-control text-uppercase" placeholder="e.g. WQR 1234">
-                        </div>
+                    </div>
 
-                        {{-- ── Transporter & Driver ────────────────────────────── --}}
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">
-                                Transporter
-                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
-                            </label>
-                            <select name="transporter_id" class="form-select s2-code" data-s2-sel="name">
-                                <option value="">— Select Transporter —</option>
-                                @foreach($transporters as $t)
-                                <option value="{{ $t->id }}" data-code="{{ $t->code }}" data-name="{{ $t->name }}">
-                                    {{ $t->code }} — {{ $t->name }}
-                                </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label fw-semibold">
-                                Driver Name
-                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
-                            </label>
-                            <input type="text" name="driver_name" class="form-control" placeholder="Driver's full name">
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label fw-semibold">
-                                Driver NIC
-                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
-                            </label>
-                            <input type="text" name="driver_ic" class="form-control" placeholder="IC / Passport No.">
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label fw-semibold">
-                                Driver Phone
-                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
-                            </label>
-                            <input type="text" name="driver_phone" class="form-control" placeholder="+60 12-345 6789">
-                        </div>
-                        {{-- ── End Transporter & Driver ────────────────────────── --}}
-
-                        {{-- ── Import Shipment Information ─────────────────────── --}}
-                        <div class="col-12 mt-1">
-                            <div class="fw-semibold text-primary mb-1" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">
-                                <i class="bi bi-ship me-1"></i>Import Shipment Information
-                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.65rem;text-transform:none;">Optional</span>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Ex / Discharged Vessel</label>
-                            <input type="text" name="vessel_name" class="form-control" placeholder="Vessel name">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Voyage No.</label>
-                            <input type="text" name="voyage_no" class="form-control" placeholder="e.g. 001W">
-                        </div>
-                        <div class="col-3">
-                            <label class="form-label fw-semibold">Berthing Date</label>
-                            <input type="date" name="berthing_date" class="form-control">
-                        </div>
-                        <div class="col-3">
-                            <label class="form-label fw-semibold">BL Number</label>
-                            <input type="text" name="bl_number" class="form-control" placeholder="Bill of Lading No.">
-                        </div>
-                        <div class="col-3">
-                            <label class="form-label fw-semibold">D/O Expiry Date</label>
-                            <input type="date" name="do_expiry_date" class="form-control">
-                        </div>
-                        <div class="col-3">
-                            <label class="form-label fw-semibold">FCL Expiry Date</label>
-                            <input type="date" name="fcl_expiry_date" class="form-control">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Consignee</label>
-                            <input type="text" name="consignee" class="form-control" placeholder="Consignee name">
-                        </div>
-                        {{-- ── End Import Shipment Information ─────────────────── --}}
-
+                    {{-- ═══════════════════════════════════════════════════════
+                         SECTION 5 — Remarks & Date/Time (always visible)
+                    ════════════════════════════════════════════════════════ --}}
+                    <div class="gate-section-hdr mb-2" style="background:#f8f9fa;border-left:3px solid #9ca3af;">
+                        <i class="bi bi-calendar-event text-secondary"></i>
+                        <span class="fw-semibold text-secondary" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">Remarks &amp; Date / Time</span>
+                    </div>
+                    <div class="row g-3 mb-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Remarks</label>
                             <textarea name="remarks" class="form-control" rows="2" placeholder="Any remarks…"></textarea>
@@ -297,8 +340,8 @@
                         </div>
                     </div>
 
-                    <!-- Photo Evidence -->
-                    <div class="mt-3">
+                    {{-- ── Photo Evidence ───────────────────────────────────── --}}
+                    <div class="mt-1">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-camera me-1 text-primary"></i>Photo Evidence
                             <span class="text-muted fw-normal small">(optional, max 5)</span>
@@ -346,6 +389,13 @@
                     </div>
                     @endif
 
+                    {{-- ═══════════════════════════════════════════════════════
+                         SECTION 1 — Container (always visible)
+                    ════════════════════════════════════════════════════════ --}}
+                    <div class="gate-section-hdr mb-2" style="background:#eff6ff;border-left:3px solid #3b82f6;">
+                        <i class="bi bi-box-seam text-primary"></i>
+                        <span class="fw-semibold text-primary" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">Container</span>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Container Number <span class="text-danger">*</span></label>
                         <div class="input-group">
@@ -355,16 +405,63 @@
                         </div>
                         <div class="form-text text-muted" style="font-size:.72rem;">Enter and search to confirm the container is in yard.</div>
                     </div>
-
                     <div id="containerInfoBox" class="mb-3 d-none"></div>
 
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Release Order No.</label>
-                            <input type="text" name="release_order" class="form-control" placeholder="RO-XXXX">
+                    {{-- ═══════════════════════════════════════════════════════
+                         SECTION 2 — Export Information (collapsible)
+                    ════════════════════════════════════════════════════════ --}}
+                    <div class="gate-section-hdr gate-section-collapse rounded-top mb-0"
+                         style="background:#ecfeff;border-left:3px solid #0ea5e9;"
+                         data-bs-toggle="collapse" data-bs-target="#outExportSection"
+                         aria-expanded="false" role="button">
+                        <span>
+                            <i class="bi bi-send text-info me-2"></i>
+                            <span class="fw-semibold text-info" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">Export Information</span>
+                            <span class="badge bg-secondary-subtle text-secondary fw-normal ms-2" style="font-size:.65rem;text-transform:none;">Optional</span>
+                        </span>
+                        <i class="bi bi-chevron-down text-info collapse-chevron"></i>
+                    </div>
+                    <div class="collapse mb-3" id="outExportSection">
+                        <div class="rounded-bottom p-3" style="border:1px solid #0ea5e9;border-top:none;">
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Loading Vessel</label>
+                                    <input type="text" name="loading_vessel" class="form-control" placeholder="Loading vessel name">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Voyage No.</label>
+                                    <input type="text" name="loading_voyage" class="form-control" placeholder="e.g. 002E">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Sailing Date</label>
+                                    <input type="date" name="sailing_date" class="form-control">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Shipper</label>
+                                    <input type="text" name="shipper" class="form-control" placeholder="Shipper name">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Release Order No. <span class="text-danger">*</span></label>
+                                    <input type="text" name="release_order" class="form-control" placeholder="RO-XXXX">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Seal Number</label>
+                                    <input type="text" name="seal_no" class="form-control" placeholder="Optional">
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Truck/Vehicle Plate</label>
+                    </div>
+
+                    {{-- ═══════════════════════════════════════════════════════
+                         SECTION 3 — Transport Details (always visible)
+                    ════════════════════════════════════════════════════════ --}}
+                    <div class="gate-section-hdr mb-2" style="background:#f3f4f6;border-left:3px solid #6b7280;">
+                        <i class="bi bi-truck text-secondary"></i>
+                        <span class="fw-semibold text-secondary" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">Transport Details</span>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Truck / Vehicle Plate <span class="text-danger">*</span></label>
                             <input type="text" name="vehicle_plate" class="form-control text-uppercase" placeholder="e.g. JHQ 5678">
                         </div>
                         <div class="col-12">
@@ -382,11 +479,11 @@
                             </select>
                         </div>
                         <div class="col-4">
-                            <label class="form-label fw-semibold">Driver Name</label>
+                            <label class="form-label fw-semibold">Driver Name <span class="text-danger">*</span></label>
                             <input type="text" name="driver_name" class="form-control" placeholder="Driver's name">
                         </div>
                         <div class="col-4">
-                            <label class="form-label fw-semibold">Driver IC/Passport</label>
+                            <label class="form-label fw-semibold">Driver IC/Passport <span class="text-danger">*</span></label>
                             <input type="text" name="driver_ic" class="form-control" placeholder="ID number">
                         </div>
                         <div class="col-4">
@@ -396,36 +493,16 @@
                             </label>
                             <input type="text" name="driver_phone" class="form-control" placeholder="+60 12-345 6789">
                         </div>
+                    </div>
 
-                        {{-- ── Export Information ───────────────────────────────── --}}
-                        <div class="col-12 mt-1">
-                            <div class="fw-semibold text-success mb-1" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">
-                                <i class="bi bi-send me-1"></i>Export Information
-                                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.65rem;text-transform:none;">Optional</span>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Loading Vessel</label>
-                            <input type="text" name="loading_vessel" class="form-control" placeholder="Loading vessel name">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Voyage No.</label>
-                            <input type="text" name="loading_voyage" class="form-control" placeholder="e.g. 002E">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Sailing Date</label>
-                            <input type="date" name="sailing_date" class="form-control">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Shipper</label>
-                            <input type="text" name="shipper" class="form-control" placeholder="Shipper name">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Seal Number</label>
-                            <input type="text" name="seal_no" class="form-control" placeholder="Optional">
-                        </div>
-                        {{-- ── End Export Information ───────────────────────────── --}}
-
+                    {{-- ═══════════════════════════════════════════════════════
+                         SECTION 4 — Remarks & Date/Time (always visible)
+                    ════════════════════════════════════════════════════════ --}}
+                    <div class="gate-section-hdr mb-2" style="background:#f8f9fa;border-left:3px solid #9ca3af;">
+                        <i class="bi bi-calendar-event text-secondary"></i>
+                        <span class="fw-semibold text-secondary" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">Remarks &amp; Date / Time</span>
+                    </div>
+                    <div class="row g-3 mb-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Remarks</label>
                             <textarea name="remarks" class="form-control" rows="2" placeholder="Any remarks…"></textarea>
@@ -449,8 +526,8 @@
                         </div>
                     </div>
 
-                    <!-- Photo Evidence -->
-                    <div class="mt-3">
+                    {{-- ── Photo Evidence ───────────────────────────────────── --}}
+                    <div class="mt-1">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-camera me-1 text-success"></i>Photo Evidence
                             <span class="text-muted fw-normal small">(optional, max 5)</span>
@@ -543,6 +620,25 @@
 
 @push('styles')
 <style>
+/* ── Section header bands ──────────────────────────────────────────────────── */
+.gate-section-hdr {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .45rem .75rem;
+    border-radius: .375rem;
+}
+.gate-section-collapse {
+    cursor: pointer;
+    border-radius: .375rem .375rem 0 0 !important;
+    user-select: none;
+    justify-content: space-between;
+}
+.gate-section-collapse:hover { filter: brightness(.97); }
+.collapse-chevron { font-size: .9rem; transition: transform .2s ease; }
+.gate-section-collapse[aria-expanded="true"] .collapse-chevron { transform: rotate(180deg); }
+
+/* ── Zone / slot picker ────────────────────────────────────────────────────── */
 .zone-pick-btn { text-align:left; padding:.5rem .75rem; transition: all .15s; }
 .zone-pick-btn:hover, .zone-pick-btn.active { background: #eff6ff; border-color: #3b82f6 !important; }
 .zone-pick-btn.active { box-shadow: 0 0 0 3px rgba(59,130,246,.2); }
@@ -793,7 +889,6 @@ btnOut.addEventListener('click', () => {
                 html += '<div class="slot-cell">';
                 tiers.forEach(s => {
                     const cls = statusClass[s.status] || 'occupied';
-                    const clickable = s.status === 'empty' ? 'available' : '';
                     const tooltip  = s.status === 'empty'
                         ? `${s.full_code} — Available`
                         : `${s.full_code} — ${s.container_no || s.status}`;
