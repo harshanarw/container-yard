@@ -403,7 +403,10 @@
                                 <div class="delete-overlay">
                                     <form method="POST"
                                           action="{{ route('inquiries.photos.destroy', [$inquiry, $photo]) }}"
-                                          onsubmit="return confirm('Remove this photo?');">
+                                          data-confirm="Remove this photo?"
+                                          data-confirm-title="Remove Photo"
+                                          data-confirm-class="btn-danger"
+                                          data-confirm-label="Remove">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-danger btn-sm">
                                             <i class="bi bi-trash me-1"></i>Remove

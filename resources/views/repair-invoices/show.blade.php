@@ -45,7 +45,10 @@ $statusColors = [
         <form method="POST" action="{{ route('repair-invoices.issue', $invoice) }}" class="d-inline">
             @csrf @method('PATCH')
             <button type="submit" class="btn btn-success btn-sm"
-                    onclick="return confirm('Issue this invoice?')">
+                    data-confirm="Issue this invoice? It will be sent to the customer."
+                    data-confirm-title="Issue Invoice"
+                    data-confirm-class="btn-success"
+                    data-confirm-label="Issue">
                 <i class="bi bi-check-circle me-1"></i>Issue
             </button>
         </form>
@@ -61,7 +64,10 @@ $statusColors = [
         <form method="POST" action="{{ route('repair-invoices.cancel', $invoice) }}" class="d-inline">
             @csrf @method('PATCH')
             <button type="submit" class="btn btn-danger btn-sm"
-                    onclick="return confirm('Cancel this invoice?')">
+                    data-confirm="Cancel this invoice? This cannot be undone."
+                    data-confirm-title="Cancel Invoice"
+                    data-confirm-class="btn-danger"
+                    data-confirm-label="Cancel Invoice">
                 <i class="bi bi-x-circle me-1"></i>Cancel
             </button>
         </form>
@@ -71,7 +77,10 @@ $statusColors = [
         <form method="POST" action="{{ route('repair-invoices.destroy', $invoice) }}" class="d-inline">
             @csrf @method('DELETE')
             <button type="submit" class="btn btn-outline-danger btn-sm"
-                    onclick="return confirm('Delete this invoice?')">
+                    data-confirm="Delete this invoice? This cannot be undone."
+                    data-confirm-title="Delete Invoice"
+                    data-confirm-class="btn-danger"
+                    data-confirm-label="Delete">
                 <i class="bi bi-trash me-1"></i>Delete
             </button>
         </form>

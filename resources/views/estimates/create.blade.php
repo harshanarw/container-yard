@@ -640,49 +640,56 @@
             const desc  = row.querySelector('.comp-desc')?.value?.trim();
             return price > 0 || (desc && desc.length > 0);
         });
-        if (hasData && !confirm(`This will replace all ${existingRows.length} existing line item(s). Continue?`)) {
-            return;
-        }
+        const doImport = () => {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Importing…';
 
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Importing…';
+            const eqtId    = document.getElementById('eqtSelect').value;
+            const fetchUrl = url + (eqtId ? `?equipment_type_id=${eqtId}` : '');
 
-        const eqtId    = document.getElementById('eqtSelect').value;
-        const fetchUrl = url + (eqtId ? `?equipment_type_id=${eqtId}` : '');
+            fetch(fetchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(data => {
+                    lineItems.innerHTML = '';
+                    lineIdx = 0;
+                    data.lines.forEach(line => {
+                        lineItems.insertAdjacentHTML('beforeend', buildRow(line));
+                        initLineSelects(lineItems.lastElementChild);
+                    });
+                    recalculate();
 
-        fetch(fetchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(r => r.json())
-            .then(data => {
-                lineItems.innerHTML = '';
-                lineIdx = 0;
-                data.lines.forEach(line => {
-                    lineItems.insertAdjacentHTML('beforeend', buildRow(line));
-                    initLineSelects(lineItems.lastElementChild);
+                    const alertEl   = document.getElementById('importAlert');
+                    const alertText = document.getElementById('importAlertText');
+                    let msg = `${data.lines.length} damage(s) imported as line items.`;
+                    if (data.tariff_found) {
+                        msg += ` Prices pre-filled from tariff: <strong>${data.tariff_name}</strong>.`;
+                        const noPrice = data.lines.filter(l => !l._tariff_matched).length;
+                        if (noPrice > 0) msg += ` <span class="text-warning">${noPrice} line(s) had no matching tariff rule — unit price set to 0.</span>`;
+                    } else {
+                        msg += ' <span class="text-warning">No active M&R tariff found — unit prices set to 0. Please fill them in manually.</span>';
+                    }
+                    alertText.innerHTML = msg;
+                    alertEl.classList.remove('d-none');
+
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="bi bi-check-circle me-1"></i>Reimport ${count} Damage(s)`;
+                })
+                .catch(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="bi bi-download me-1"></i>Import ${count} Damage(s) as Lines`;
+                    showToast('Failed to import damages. Please try again.', 'danger');
                 });
-                recalculate();
+        };
 
-                const alertEl   = document.getElementById('importAlert');
-                const alertText = document.getElementById('importAlertText');
-                let msg = `${data.lines.length} damage(s) imported as line items.`;
-                if (data.tariff_found) {
-                    msg += ` Prices pre-filled from tariff: <strong>${data.tariff_name}</strong>.`;
-                    const noPrice = data.lines.filter(l => !l._tariff_matched).length;
-                    if (noPrice > 0) msg += ` <span class="text-warning">${noPrice} line(s) had no matching tariff rule — unit price set to 0.</span>`;
-                } else {
-                    msg += ' <span class="text-warning">No active M&R tariff found — unit prices set to 0. Please fill them in manually.</span>';
-                }
-                alertText.innerHTML = msg;
-                alertEl.classList.remove('d-none');
-
-                btn.disabled = false;
-                btn.innerHTML = `<i class="bi bi-check-circle me-1"></i>Reimport ${count} Damage(s)`;
-            })
-            .catch(() => {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="bi bi-download me-1"></i>Import ${count} Damage(s) as Lines`;
-                alert('Failed to import damages. Please try again.');
-            });
-    }
+        if (hasData) {
+            confirmAction(
+                `This will replace all ${existingRows.length} existing line item(s). Continue?`,
+                doImport,
+                { title: 'Import Damages', confirmClass: 'btn-warning', confirmLabel: 'Replace & Import' }
+            );
+        } else {
+            doImport();
+        }
 
     document.getElementById('importDamagesBtn')?.addEventListener('click', function () { importDamages(this); });
     document.getElementById('importDamagesSideBtn')?.addEventListener('click', function () {

@@ -361,10 +361,7 @@ function toggleOperator(master) {
 function submitExport(type) {
     const checked = document.querySelectorAll('.movement-check:checked');
     if (checked.length === 0) {
-        alert('Please select at least one movement to export.');
-        return;
-    }
-    if (!confirm(`Export ${checked.length} movement(s) as ${type.toUpperCase()}? This will mark them as exported.`)) {
+        showToast('Please select at least one movement to export.', 'warning');
         return;
     }
     const form = document.getElementById('exportForm');
@@ -372,13 +369,19 @@ function submitExport(type) {
         csv:    '{{ route('reports.daily-movements.export.csv') }}',
         codeco: '{{ route('reports.daily-movements.export.codeco') }}',
     };
-    form.action = routes[type];
-    // Open download in a new tab so the current page stays alive,
-    // then reload current page after a short delay to reflect updated export status.
-    form.target = '_blank';
-    form.submit();
-    form.target = '';
-    setTimeout(() => window.location.reload(), 1500);
+    confirmAction(
+        `Export ${checked.length} movement(s) as ${type.toUpperCase()}? This will mark them as exported.`,
+        () => {
+            form.action = routes[type];
+            // Open download in a new tab so the current page stays alive,
+            // then reload current page after a short delay to reflect updated export status.
+            form.target = '_blank';
+            form.submit();
+            form.target = '';
+            setTimeout(() => window.location.reload(), 1500);
+        },
+        { title: 'Export Movements', confirmClass: 'btn-primary', confirmLabel: `Export ${type.toUpperCase()}` }
+    );
 }
 </script>
 @endpush

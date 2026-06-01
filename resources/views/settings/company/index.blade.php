@@ -70,7 +70,10 @@
 
                 @if($settings->logo_path)
                 <form method="POST" action="{{ route('settings.company.logo.delete') }}" class="mt-2"
-                      onsubmit="return confirm('Remove the current logo?')">
+                      data-confirm="Remove the current logo?"
+                      data-confirm-title="Remove Logo"
+                      data-confirm-class="btn-danger"
+                      data-confirm-label="Remove">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-outline-danger btn-sm">
@@ -120,7 +123,10 @@
 
                 @if($settings->icon_path)
                 <form method="POST" action="{{ route('settings.company.icon.delete') }}" class="mt-2"
-                      onsubmit="return confirm('Remove the current icon?')">
+                      data-confirm="Remove the current icon?"
+                      data-confirm-title="Remove Icon"
+                      data-confirm-class="btn-danger"
+                      data-confirm-label="Remove">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-outline-danger btn-sm">
@@ -172,7 +178,10 @@
 
                 @if($settings->product_icon_path)
                 <form method="POST" action="{{ route('settings.company.product-icon.delete') }}" class="mt-2"
-                      onsubmit="return confirm('Remove the current product icon?')">
+                      data-confirm="Remove the current product icon?"
+                      data-confirm-title="Remove Product Icon"
+                      data-confirm-class="btn-danger"
+                      data-confirm-label="Remove">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-outline-danger btn-sm">

@@ -175,7 +175,11 @@
                                   action="{{ route('masters.mr-tariff.rules.destroy', [$mrTariff, $rule]) }}">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-xs btn-outline-danger"
-                                        onclick="return confirm('Delete this rule?')" title="Delete">
+                                        data-confirm="Delete this rule?"
+                                        data-confirm-title="Delete Rule"
+                                        data-confirm-class="btn-danger"
+                                        data-confirm-label="Delete"
+                                        title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>

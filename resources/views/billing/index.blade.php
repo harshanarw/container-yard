@@ -146,7 +146,10 @@
                                 </a>
                                 @if($inv->isDraft())
                                 <form method="POST" action="{{ route('billing.destroy', $inv) }}"
-                                      onsubmit="return confirm('Delete this draft invoice?')">
+                                      data-confirm="Delete this draft invoice?"
+                                      data-confirm-title="Delete Invoice"
+                                      data-confirm-class="btn-danger"
+                                      data-confirm-label="Delete">
                                     @csrf @method('DELETE')
                                     <button class="btn btn-outline-danger btn-sm" title="Delete">
                                         <i class="bi bi-trash"></i>

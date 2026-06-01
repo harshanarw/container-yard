@@ -291,25 +291,26 @@
     document.addEventListener('click', e => {
         const btn = e.target.closest('.dm-delete-btn');
         if (!btn || !btn.closest('#' + uid + '_grid')) return;
-        if (!confirm('Remove this file?')) return;
 
-        fetch(btn.dataset.url, {
-            method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
-        }).then(r => r.json()).then(resp => {
-            if (resp.success) {
-                const col = document.getElementById(btn.dataset.col);
-                if (col) col.remove();
-                updateCount();
-                if (!grid.children.length) {
-                    const empty = document.createElement('div');
-                    empty.id = uid + '_empty';
-                    empty.className = 'text-center text-muted py-3 small';
-                    empty.innerHTML = '<i class="bi bi-folder2-open fs-3 d-block mb-1"></i>No files attached yet.';
-                    document.getElementById(uid + '_list').prepend(empty);
+        confirmAction('Remove this file?', () => {
+            fetch(btn.dataset.url, {
+                method: 'DELETE',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+            }).then(r => r.json()).then(resp => {
+                if (resp.success) {
+                    const col = document.getElementById(btn.dataset.col);
+                    if (col) col.remove();
+                    updateCount();
+                    if (!grid.children.length) {
+                        const empty = document.createElement('div');
+                        empty.id = uid + '_empty';
+                        empty.className = 'text-center text-muted py-3 small';
+                        empty.innerHTML = '<i class="bi bi-folder2-open fs-3 d-block mb-1"></i>No files attached yet.';
+                        document.getElementById(uid + '_list').prepend(empty);
+                    }
                 }
-            }
-        });
+            });
+        }, { title: 'Remove File', confirmClass: 'btn-danger', confirmLabel: 'Remove' });
     });
 
     // ── Preview ───────────────────────────────────────────────────────────

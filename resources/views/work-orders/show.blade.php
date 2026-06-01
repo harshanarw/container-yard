@@ -49,7 +49,10 @@ $statusColors = [
             @csrf @method('PATCH')
             <input type="hidden" name="status" value="in_progress">
             <button type="submit" class="btn btn-success btn-sm"
-                    onclick="return confirm('Start this work order?')">
+                    data-confirm="Start this work order?"
+                    data-confirm-title="Start Work Order"
+                    data-confirm-class="btn-success"
+                    data-confirm-label="Start">
                 <i class="bi bi-play-circle me-1"></i>Start Work
             </button>
         </form>
@@ -60,7 +63,10 @@ $statusColors = [
             @csrf @method('PATCH')
             <input type="hidden" name="status" value="completed">
             <button type="submit" class="btn btn-info btn-sm"
-                    onclick="return confirm('Mark as complete? (Still needs QC)')">
+                    data-confirm="Mark as complete? The work order will still need QC before closing."
+                    data-confirm-title="Mark Complete"
+                    data-confirm-class="btn-info"
+                    data-confirm-label="Mark Complete">
                 <i class="bi bi-check-lg me-1"></i>Complete
             </button>
         </form>
@@ -71,7 +77,10 @@ $statusColors = [
             @csrf @method('PATCH')
             <input type="hidden" name="status" value="closed">
             <button type="submit" class="btn btn-check btn-sm"
-                    onclick="return confirm('Close this work order? (QC passed)')">
+                    data-confirm="Close this work order? This confirms QC has passed."
+                    data-confirm-title="Close Work Order"
+                    data-confirm-class="btn-secondary"
+                    data-confirm-label="Close">
                 <i class="bi bi-check-circle me-1"></i>Close
             </button>
         </form>
@@ -82,7 +91,10 @@ $statusColors = [
             @csrf @method('PATCH')
             <input type="hidden" name="status" value="cancelled">
             <button type="submit" class="btn btn-danger btn-sm"
-                    onclick="return confirm('Cancel this work order?')">
+                    data-confirm="Cancel this work order? This action cannot be undone."
+                    data-confirm-title="Cancel Work Order"
+                    data-confirm-class="btn-danger"
+                    data-confirm-label="Cancel Work Order">
                 <i class="bi bi-x-circle me-1"></i>Cancel
             </button>
         </form>
@@ -92,7 +104,10 @@ $statusColors = [
         <form method="POST" action="{{ route('work-orders.destroy', $workOrder) }}" class="d-inline">
             @csrf @method('DELETE')
             <button type="submit" class="btn btn-outline-danger btn-sm"
-                    onclick="return confirm('Delete this work order? This cannot be undone.')">
+                    data-confirm="Delete this work order? This cannot be undone."
+                    data-confirm-title="Delete Work Order"
+                    data-confirm-class="btn-danger"
+                    data-confirm-label="Delete">
                 <i class="bi bi-trash me-1"></i>Delete
             </button>
         </form>

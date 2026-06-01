@@ -76,7 +76,10 @@
         <form method="POST" action="{{ route('estimates.approve', $estimate) }}" class="d-inline">
             @csrf @method('PATCH')
             <button type="submit" class="btn btn-success btn-sm"
-                    onclick="return confirm('Mark this estimate as approved internally?')">
+                    data-confirm="Mark this estimate as approved internally?"
+                    data-confirm-title="Approve Estimate"
+                    data-confirm-class="btn-success"
+                    data-confirm-label="Approve">
                 <i class="bi bi-check-circle me-1"></i>Mark Approved
             </button>
         </form>
@@ -520,7 +523,10 @@
                     <form method="POST" action="{{ route('estimates.revoke-token', $estimate) }}">
                         @csrf @method('PATCH')
                         <button type="submit" class="btn btn-outline-danger btn-sm"
-                                onclick="return confirm('Revoke this portal link? The owner will no longer be able to access via this link.')">
+                                data-confirm="Revoke this portal link? The owner will no longer be able to access via this link."
+                                data-confirm-title="Revoke Portal Link"
+                                data-confirm-class="btn-danger"
+                                data-confirm-label="Revoke">
                             <i class="bi bi-shield-x"></i>
                         </button>
                     </form>
@@ -640,7 +646,10 @@
         <!-- Delete -->
         @if(!in_array($estimate->status, ['approved', 'completed']))
         <form method="POST" action="{{ route('estimates.destroy', $estimate) }}"
-              onsubmit="return confirm('Delete estimate {{ $estimate->estimate_no }}? This cannot be undone.')">
+              data-confirm="Delete estimate {{ $estimate->estimate_no }}? This cannot be undone."
+              data-confirm-title="Delete Estimate"
+              data-confirm-class="btn-danger"
+              data-confirm-label="Delete">
             @csrf
             @method('DELETE')
             <button type="submit" class="btn btn-outline-danger btn-sm w-100">

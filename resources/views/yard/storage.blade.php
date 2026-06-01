@@ -397,7 +397,7 @@
             .then(r => r.json())
             .then(data => {
                 if (!data.found) {
-                    alert('Container not found.');
+                    showToast('Container not found.', 'warning');
                     return;
                 }
 
@@ -425,7 +425,7 @@
                     document.getElementById('calcGateIn').value = data.gate_in_date;
                 }
             })
-            .catch(() => alert('Lookup failed.'));
+            .catch(() => showToast('Lookup failed.', 'danger'));
     });
 
     // ── Calculate ──────────────────────────────────────────────────────────────
@@ -441,11 +441,11 @@
         const currency  = document.getElementById('rateCurrencyLabel').textContent || 'LKR';
 
         if (!document.getElementById('calcGateIn').value || !document.getElementById('calcGateOut').value) {
-            alert('Please enter gate-in and gate-out dates.');
+            showToast('Please enter gate-in and gate-out dates.', 'warning');
             return;
         }
         if (gateOut < gateIn) {
-            alert('Gate-out date must be on or after gate-in date.');
+            showToast('Gate-out date must be on or after gate-in date.', 'warning');
             return;
         }
 

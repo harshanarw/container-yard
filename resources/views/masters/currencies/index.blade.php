@@ -95,7 +95,10 @@
                                 @csrf @method('PATCH')
                                 <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2"
                                         title="Set as default currency"
-                                        onclick="return confirm('Set {{ $cur->code }} as the system default currency?')">
+                                        data-confirm="Set {{ $cur->code }} as the system default currency?"
+                                        data-confirm-title="Set Default Currency"
+                                        data-confirm-class="btn-primary"
+                                        data-confirm-label="Set Default">
                                     <i class="bi bi-star me-1"></i>Set Default
                                 </button>
                             </form>
@@ -342,7 +345,7 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
 document.querySelectorAll('.btn-delete').forEach(btn => {
     btn.addEventListener('click', () => {
         if (btn.dataset.default === '1') {
-            alert('Cannot delete the default currency. Set another currency as default first.');
+            showToast('Cannot delete the default currency. Set another currency as default first.', 'warning');
             return;
         }
         document.getElementById('deleteLabel').textContent = btn.dataset.label;

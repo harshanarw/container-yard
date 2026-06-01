@@ -332,7 +332,10 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
 
         <!-- Delete -->
         <form action="{{ route('customers.destroy', $customer) }}" method="POST"
-              onsubmit="return confirm('Delete {{ addslashes($customer->name) }}? This cannot be undone.')">
+              data-confirm="Delete {{ addslashes($customer->name) }}? This cannot be undone."
+              data-confirm-title="Delete Customer"
+              data-confirm-class="btn-danger"
+              data-confirm-label="Delete">
             @csrf
             @method('DELETE')
             <button type="submit" class="btn btn-outline-danger btn-sm w-100">

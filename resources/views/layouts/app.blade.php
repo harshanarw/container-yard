@@ -1297,6 +1297,111 @@
         }
     });
 </script>
+{{-- ══════════════════════════════════════════════════════════════════════
+     GLOBAL CONFIRM MODAL
+     Usage (HTML): data-confirm="Question?" data-confirm-title="Title"
+                   data-confirm-class="btn-danger" data-confirm-label="Delete"
+     Usage (JS):   confirmAction('Question?', () => doSomething(), { title, confirmClass, confirmLabel })
+══════════════════════════════════════════════════════════════════════ --}}
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content shadow">
+            <div class="modal-header py-2 border-bottom-0">
+                <h6 class="modal-title fw-semibold" id="confirmModalTitle">Please Confirm</h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-2 small" id="confirmModalBody"></div>
+            <div class="modal-footer py-2 border-top-0 gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-primary" id="confirmModalOk">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ══════════════════════════════════════════════════════════════════════
+     TOAST CONTAINER (top-right, fixed)
+     Usage (JS): showToast('Message', 'warning')  — types: success|danger|warning|info
+══════════════════════════════════════════════════════════════════════ --}}
+<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1090;"></div>
+
+<script>
+(function () {
+    'use strict';
+
+    // ── Confirm modal ────────────────────────────────────────────────────────
+    var modalEl = document.getElementById('confirmModal');
+    var bsModal  = modalEl ? new bootstrap.Modal(modalEl) : null;
+    var titleEl  = modalEl ? modalEl.querySelector('#confirmModalTitle') : null;
+    var bodyEl   = modalEl ? modalEl.querySelector('#confirmModalBody')  : null;
+    var okBtn    = modalEl ? modalEl.querySelector('#confirmModalOk')    : null;
+
+    window.confirmAction = function (message, onConfirm, options) {
+        if (!bsModal) { if (window.confirm(message) && onConfirm) onConfirm(); return; }
+        options = options || {};
+        titleEl.textContent = options.title        || 'Please Confirm';
+        bodyEl.textContent  = message;
+        okBtn.textContent   = options.confirmLabel || 'Confirm';
+        okBtn.className     = 'btn btn-sm ' + (options.confirmClass || 'btn-primary');
+        okBtn.onclick = function () { bsModal.hide(); if (typeof onConfirm === 'function') onConfirm(); };
+        bsModal.show();
+    };
+
+    // Delegate — buttons with data-confirm (capture phase so we win over onclick)
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-confirm], a[data-confirm]');
+        if (!btn) return;
+        e.preventDefault();
+        var msg   = btn.getAttribute('data-confirm');
+        var title = btn.getAttribute('data-confirm-title') || 'Please Confirm';
+        var cls   = btn.getAttribute('data-confirm-class') || 'btn-primary';
+        var label = btn.getAttribute('data-confirm-label') || 'Confirm';
+        window.confirmAction(msg, function () {
+            btn.removeAttribute('data-confirm');
+            var form = btn.closest('form');
+            if (form) { try { form.requestSubmit(btn); } catch (_) { form.submit(); } }
+            else { btn.click(); }
+        }, { title: title, confirmClass: cls, confirmLabel: label });
+    }, true);
+
+    // Delegate — forms with data-confirm (catches onsubmit-style patterns)
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form.hasAttribute('data-confirm')) return;
+        e.preventDefault();
+        var msg   = form.getAttribute('data-confirm');
+        var title = form.getAttribute('data-confirm-title') || 'Please Confirm';
+        var cls   = form.getAttribute('data-confirm-class') || 'btn-primary';
+        var label = form.getAttribute('data-confirm-label') || 'Confirm';
+        window.confirmAction(msg, function () {
+            form.removeAttribute('data-confirm');
+            try { form.requestSubmit(); } catch (_) { form.submit(); }
+        }, { title: title, confirmClass: cls, confirmLabel: label });
+    }, true);
+
+    // ── Toast ────────────────────────────────────────────────────────────────
+    var toastContainer = document.getElementById('toastContainer');
+    var toastIcons = { success: 'bi-check-circle-fill', danger: 'bi-exclamation-circle-fill',
+                       warning: 'bi-exclamation-triangle-fill', info: 'bi-info-circle-fill' };
+
+    window.showToast = function (message, type) {
+        type = type || 'info';
+        if (!toastContainer) { window.alert(message); return; }
+        var id   = 'toast_' + Date.now();
+        var icon = toastIcons[type] || toastIcons.info;
+        var html = '<div id="' + id + '" class="toast align-items-center text-bg-' + type +
+                   ' border-0" role="alert" data-bs-autohide="true" data-bs-delay="5000">' +
+                   '<div class="d-flex"><div class="toast-body"><i class="bi ' + icon + ' me-2"></i>' +
+                   message + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto"' +
+                   ' data-bs-dismiss="toast"></button></div></div>';
+        toastContainer.insertAdjacentHTML('beforeend', html);
+        var el    = document.getElementById(id);
+        var toast = new bootstrap.Toast(el);
+        toast.show();
+        el.addEventListener('hidden.bs.toast', function () { el.remove(); });
+    };
+})();
+</script>
 @stack('scripts')
 </body>
 </html>

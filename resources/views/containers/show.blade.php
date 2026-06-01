@@ -36,7 +36,10 @@
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
         <form method="POST" action="{{ route('containers.destroy', $container) }}"
-              onsubmit="return confirm('Delete this container master record? This cannot be undone.')">
+              data-confirm="Delete this container master record? This cannot be undone."
+              data-confirm-title="Delete Container"
+              data-confirm-class="btn-danger"
+              data-confirm-label="Delete">
             @csrf @method('DELETE')
             <button type="submit" class="btn btn-outline-danger btn-sm">
                 <i class="bi bi-trash me-1"></i>Delete

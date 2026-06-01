@@ -233,7 +233,10 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
                     Occupied/reserved slots are not affected.
                 </p>
                 <form method="POST" action="{{ route('masters.zones.slots.clear', $zone) }}"
-                      onsubmit="return confirm('Remove all {{ $stats['empty'] }} empty slots from Zone {{ $zone->code }}?');">
+                      data-confirm="Remove all {{ $stats['empty'] }} empty slot(s) from Zone {{ $zone->code }}? Occupied and reserved slots are not affected."
+                      data-confirm-title="Clear Empty Slots"
+                      data-confirm-class="btn-danger"
+                      data-confirm-label="Clear Slots">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-outline-danger">
                         <i class="bi bi-trash me-1"></i>Clear Empty Slots
@@ -333,7 +336,11 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
                                                         @csrf @method('DELETE')
                                                         <button type="submit" class="del-slot"
                                                                 title="Delete slot {{ $slot->slot_code }}"
-                                                                onclick="event.stopPropagation(); return confirm('Delete slot {{ $slot->slot_code }}?');">
+                                                                onclick="event.stopPropagation();"
+                                                                data-confirm="Delete slot {{ $slot->slot_code }}?"
+                                                                data-confirm-title="Delete Slot"
+                                                                data-confirm-class="btn-danger"
+                                                                data-confirm-label="Delete">
                                                             &times;
                                                         </button>
                                                     </form>

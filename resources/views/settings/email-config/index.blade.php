@@ -65,7 +65,10 @@ $catColors = ['estimate' => 'primary', 'invoice' => 'success', 'stock_report' =>
             <form method="POST" action="{{ route('settings.email-config.destroy', $config) }}">
                 @csrf @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger btn-sm"
-                        onclick="return confirm('Delete this email configuration?')">
+                        data-confirm="Delete this email configuration?"
+                        data-confirm-title="Delete Email Config"
+                        data-confirm-class="btn-danger"
+                        data-confirm-label="Delete">
                     <i class="bi bi-trash"></i>
                 </button>
             </form>

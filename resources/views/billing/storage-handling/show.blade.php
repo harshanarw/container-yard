@@ -54,7 +54,10 @@
         <form method="POST" action="{{ route('billing.storage-handling.issue', $invoice) }}">
             @csrf @method('PATCH')
             <button class="btn btn-info btn-sm text-white"
-                    onclick="return confirm('Mark this invoice as issued?')">
+                    data-confirm="Mark this invoice as issued?"
+                    data-confirm-title="Mark as Issued"
+                    data-confirm-class="btn-info"
+                    data-confirm-label="Mark as Issued">
                 <i class="bi bi-send me-1"></i>Mark as Issued
             </button>
         </form>
@@ -64,7 +67,10 @@
         <form method="POST" action="{{ route('billing.storage-handling.pay', $invoice) }}">
             @csrf @method('PATCH')
             <button class="btn btn-success btn-sm"
-                    onclick="return confirm('Mark this invoice as paid?')">
+                    data-confirm="Mark this invoice as paid?"
+                    data-confirm-title="Mark as Paid"
+                    data-confirm-class="btn-success"
+                    data-confirm-label="Mark as Paid">
                 <i class="bi bi-check-circle me-1"></i>Mark as Paid
             </button>
         </form>
@@ -74,7 +80,10 @@
         <form method="POST" action="{{ route('billing.storage-handling.cancel', $invoice) }}">
             @csrf @method('PATCH')
             <button class="btn btn-outline-warning btn-sm"
-                    onclick="return confirm('Cancel this invoice?')">
+                    data-confirm="Cancel this invoice? This cannot be undone."
+                    data-confirm-title="Cancel Invoice"
+                    data-confirm-class="btn-warning"
+                    data-confirm-label="Cancel Invoice">
                 <i class="bi bi-x-circle me-1"></i>Cancel
             </button>
         </form>
@@ -82,7 +91,10 @@
 
         @if($invoice->isDraft())
         <form method="POST" action="{{ route('billing.storage-handling.destroy', $invoice) }}"
-              onsubmit="return confirm('Permanently delete this draft invoice?')">
+              data-confirm="Permanently delete this draft invoice?"
+              data-confirm-title="Delete Invoice"
+              data-confirm-class="btn-danger"
+              data-confirm-label="Delete">
             @csrf @method('DELETE')
             <button class="btn btn-outline-danger btn-sm">
                 <i class="bi bi-trash me-1"></i>Delete

@@ -486,8 +486,8 @@ async function runPreview() {
     const invoiceCurrency = document.getElementById('invoiceCurrency').value;
     const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
 
-    if (!shippingLineId) { alert('Please select a shipping line / operator.'); return; }
-    if (!periodFrom || !periodTo) { alert('Please enter the billing period dates.'); return; }
+    if (!shippingLineId) { showToast('Please select a shipping line / operator.', 'warning'); return; }
+    if (!periodFrom || !periodTo) { showToast('Please enter the billing period dates.', 'warning'); return; }
 
     const btn = document.getElementById('previewBtn');
     btn.disabled = true;
@@ -742,7 +742,7 @@ $(document).ready(function () {
     document.getElementById('billingForm').addEventListener('submit', function (e) {
         if (previewLines.length === 0) {
             e.preventDefault();
-            alert('Please run a preview first.');
+            showToast('Please run a preview first.', 'warning');
             return;
         }
 
