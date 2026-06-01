@@ -51,7 +51,10 @@
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="text-muted">Size / Type</div>
-                                <div class="fw-semibold">{{ $movement->size }}' {{ $movement->container_type }}</div>
+                                <div class="fw-semibold">
+                                    {{ $movement->size }}'
+                                    <span class="badge {{ in_array($movement->container_type, ['RF','RH']) ? 'badge-reefer' : 'bg-secondary-subtle text-secondary' }}">{{ $movement->container_type }}</span>
+                                </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="text-muted">Customer</div>
@@ -80,53 +83,116 @@
                         </div>
                     @endif
 
-                    <div class="row g-3">
+                    {{-- ══════════════════════════════════════════════════════════════ --}}
+                    {{-- GATE IN SECTIONS                                              --}}
+                    {{-- ══════════════════════════════════════════════════════════════ --}}
+                    @if($movement->movement_type === 'in')
 
-                        {{-- Gate In specific fields --}}
-                        @if($movement->movement_type === 'in')
-
+                    {{-- ── Section 1: Container Details ─────────────────────────── --}}
+                    <div class="gate-section-hdr gate-section-hdr--blue">
+                        <i class="bi bi-box-seam me-2"></i>Container Details
+                    </div>
+                    <div class="row g-3 mb-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Customer / Owner</label>
                             <select name="customer_id" class="form-select s2-code" data-s2-sel="name">
                                 @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}"
                                     data-code="{{ $customer->code }}" data-name="{{ $customer->name }}"
-                                    {{ $movement->customer_id == $customer->id ? 'selected' : '' }}>
+                                    {{ old('customer_id', $movement->customer_id) == $customer->id ? 'selected' : '' }}>
                                     {{ $customer->code }} — {{ $customer->name }}
                                 </option>
                                 @endforeach
                             </select>
                         </div>
-
                         <div class="col-6">
                             <label class="form-label fw-semibold">Condition</label>
                             <select name="condition" class="form-select">
-                                <option value="sound"          {{ $movement->condition === 'sound'          ? 'selected' : '' }}>Sound</option>
-                                <option value="damaged"        {{ $movement->condition === 'damaged'        ? 'selected' : '' }}>Damaged</option>
-                                <option value="require_repair" {{ $movement->condition === 'require_repair' ? 'selected' : '' }}>Requires Repair</option>
+                                <option value="sound"          {{ old('condition', $movement->condition) === 'sound'          ? 'selected' : '' }}>Sound</option>
+                                <option value="damaged"        {{ old('condition', $movement->condition) === 'damaged'        ? 'selected' : '' }}>Damaged</option>
+                                <option value="require_repair" {{ old('condition', $movement->condition) === 'require_repair' ? 'selected' : '' }}>Requires Repair</option>
                             </select>
                         </div>
-
                         <div class="col-6">
                             <label class="form-label fw-semibold">Empty / Laden</label>
                             <select name="cargo_status" class="form-select">
-                                <option value="empty"  {{ $movement->cargo_status === 'empty'  ? 'selected' : '' }}>Empty</option>
-                                <option value="laden"  {{ in_array($movement->cargo_status, ['laden','full']) ? 'selected' : '' }}>Laden</option>
+                                <option value="empty" {{ old('cargo_status', $movement->cargo_status) === 'empty'  ? 'selected' : '' }}>Empty</option>
+                                <option value="laden" {{ in_array(old('cargo_status', $movement->cargo_status), ['laden','full']) ? 'selected' : '' }}>Laden</option>
                             </select>
                         </div>
-
                         <div class="col-6">
-                            <label class="form-label fw-semibold">Seal Number</label>
+                            <label class="form-label fw-semibold">Seal Number <span class="text-muted fw-normal">(Optional)</span></label>
                             <input type="text" name="seal_no" class="form-control"
                                    value="{{ old('seal_no', $movement->seal_no) }}" placeholder="Optional">
                         </div>
-
                         <div class="col-6">
-                            <label class="form-label fw-semibold">Truck/Vehicle Plate</label>
+                            <label class="form-label fw-semibold">Truck / Vehicle Plate</label>
                             <input type="text" name="vehicle_plate" class="form-control text-uppercase"
                                    value="{{ old('vehicle_plate', $movement->vehicle_plate) }}">
                         </div>
+                    </div>
 
+                    {{-- ── Section 2: Import Shipment Information (collapsible) ─── --}}
+                    @php
+                        $hasImportData = $movement->vessel_name || $movement->voyage_no || $movement->berthing_date
+                            || $movement->bl_number || $movement->do_expiry_date || $movement->fcl_expiry_date || $movement->consignee;
+                    @endphp
+                    <div class="mb-3">
+                        <button type="button"
+                                class="gate-section-hdr gate-section-hdr--teal gate-section-collapse w-100 text-start"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#importShipmentCollapse"
+                                aria-expanded="{{ $hasImportData ? 'true' : 'false' }}"
+                                aria-controls="importShipmentCollapse">
+                            <span><i class="bi bi-ship me-2"></i>Import Shipment Information</span>
+                            <i class="bi bi-chevron-down collapse-chevron ms-auto"></i>
+                        </button>
+                        <div class="collapse {{ $hasImportData ? 'show' : '' }}" id="importShipmentCollapse">
+                            <div class="row g-3 pt-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Vessel Name</label>
+                                    <input type="text" name="vessel_name" class="form-control"
+                                           value="{{ old('vessel_name', $movement->vessel_name) }}" placeholder="e.g. EVER GIVEN">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Voyage No.</label>
+                                    <input type="text" name="voyage_no" class="form-control"
+                                           value="{{ old('voyage_no', $movement->voyage_no) }}" placeholder="e.g. 001E">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Berthing Date</label>
+                                    <input type="date" name="berthing_date" class="form-control"
+                                           value="{{ old('berthing_date', $movement->berthing_date?->format('Y-m-d')) }}">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">BL Number</label>
+                                    <input type="text" name="bl_number" class="form-control"
+                                           value="{{ old('bl_number', $movement->bl_number) }}" placeholder="Bill of Lading No.">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">D/O Expiry Date</label>
+                                    <input type="date" name="do_expiry_date" class="form-control"
+                                           value="{{ old('do_expiry_date', $movement->do_expiry_date?->format('Y-m-d')) }}">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">FCL Expiry Date</label>
+                                    <input type="date" name="fcl_expiry_date" class="form-control"
+                                           value="{{ old('fcl_expiry_date', $movement->fcl_expiry_date?->format('Y-m-d')) }}">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">Consignee</label>
+                                    <input type="text" name="consignee" class="form-control"
+                                           value="{{ old('consignee', $movement->consignee) }}" placeholder="Consignee name">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- ── Section 3: Transport Details ─────────────────────────── --}}
+                    <div class="gate-section-hdr gate-section-hdr--gray">
+                        <i class="bi bi-truck me-2"></i>Transport Details
+                    </div>
+                    <div class="row g-3 mb-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">
                                 Transporter
@@ -157,7 +223,108 @@
                             <input type="text" name="driver_phone" class="form-control"
                                    value="{{ old('driver_phone', $movement->driver_phone) }}" placeholder="Optional">
                         </div>
+                    </div>
 
+                    {{-- ── Section 4: Storage Location (collapsible) ────────────── --}}
+                    @php $hasLocation = $movement->location_row || old('location_zone'); @endphp
+                    <div class="mb-3">
+                        <button type="button"
+                                class="gate-section-hdr gate-section-hdr--green gate-section-collapse w-100 text-start"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#storageLocationCollapse"
+                                aria-expanded="{{ $hasLocation ? 'true' : 'false' }}"
+                                aria-controls="storageLocationCollapse">
+                            <span><i class="bi bi-geo-alt me-2"></i>Storage Location</span>
+                            <i class="bi bi-chevron-down collapse-chevron ms-auto"></i>
+                        </button>
+                        <div class="collapse {{ $hasLocation ? 'show' : '' }}" id="storageLocationCollapse">
+                            <div class="pt-3">
+                                {{-- Hidden submission fields --}}
+                                <input type="hidden" name="location_zone" id="edit_loc_zone"
+                                       value="{{ old('location_zone', $movement->location_zone) }}">
+                                <input type="hidden" name="location_row"  id="edit_loc_row"
+                                       value="{{ old('location_row',  $movement->location_row) }}">
+                                <input type="hidden" name="location_bay"  id="edit_loc_bay"
+                                       value="{{ old('location_bay',  $movement->location_bay) }}">
+                                <input type="hidden" name="location_tier" id="edit_loc_tier"
+                                       value="{{ old('location_tier', $movement->location_tier) }}">
+
+                                {{-- Current / selected slot display --}}
+                                <div id="editSelectedSlotDisplay"
+                                     class="alert py-2 small mb-2 {{ $hasLocation ? 'alert-primary' : 'd-none' }}">
+                                    <i class="bi bi-check-circle-fill me-1"></i>
+                                    Slot:
+                                    <strong id="editSelectedSlotCode" class="font-monospace">
+                                        @php
+                                            $loc_zone = old('location_zone', $movement->location_zone);
+                                            $loc_row  = old('location_row',  $movement->location_row);
+                                            $loc_bay  = old('location_bay',  $movement->location_bay);
+                                            $loc_tier = old('location_tier', $movement->location_tier);
+                                        @endphp
+                                        @if($loc_zone && $loc_row && $loc_bay && $loc_tier)
+                                            {{ $loc_zone }}-{{ $loc_row }}{{ $loc_bay }}-T{{ $loc_tier }}
+                                        @endif
+                                    </strong>
+                                    <button type="button" class="btn btn-sm btn-link py-0 ps-2 text-primary"
+                                            id="editChangeSlotBtn">
+                                        <i class="bi bi-pencil-fill"></i> Change
+                                    </button>
+                                </div>
+
+                                {{-- Zone + slot selector --}}
+                                <div id="editLocationSelector" class="{{ $hasLocation ? 'd-none' : '' }}">
+                                    <div id="editZoneSelectorPanel">
+                                        <p class="text-muted small mb-2">
+                                            <span class="badge bg-primary-subtle text-primary rounded-pill me-1">Step 1</span>
+                                            Select a storage zone:
+                                        </p>
+                                        <div class="d-flex gap-2 flex-wrap" id="editZoneCards">
+                                            @foreach($zones as $zone)
+                                            <button type="button" class="edit-zone-pick-btn btn btn-outline-secondary"
+                                                    data-zone="{{ $zone->code }}"
+                                                    data-name="{{ $zone->name }}"
+                                                    style="border-left: 4px solid {{ $zone->color }};">
+                                                <span class="fw-semibold">{{ $zone->name }}</span>
+                                                <span class="d-block" style="font-size:.7rem;">
+                                                    <span class="text-success">{{ $zone->empty_count ?? 0 }} free</span>
+                                                    &nbsp;/&nbsp;
+                                                    <span class="text-danger">{{ $zone->occupied_count ?? 0 }} occ.</span>
+                                                </span>
+                                            </button>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    <div id="editSlotGridPanel" class="d-none mt-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <p class="text-muted small mb-0">
+                                                <span class="badge bg-primary-subtle text-primary rounded-pill me-1">Step 2</span>
+                                                Click an <span class="text-success fw-semibold">available</span> slot:
+                                                <span id="editGridZoneLabel" class="fw-semibold"></span>
+                                            </p>
+                                            <button type="button" class="btn btn-sm btn-link p-0" id="editBackToZonesBtn">
+                                                <i class="bi bi-arrow-left me-1"></i>Change zone
+                                            </button>
+                                        </div>
+                                        <div class="d-flex gap-3 mb-2" style="font-size:.72rem;">
+                                            <span><span style="background:#22c55e;display:inline-block;width:10px;height:10px;border-radius:2px;"></span> Available</span>
+                                            <span><span style="background:#ef4444;display:inline-block;width:10px;height:10px;border-radius:2px;"></span> Occupied</span>
+                                            <span><span style="background:#3b82f6;border:2px solid #1d4ed8;display:inline-block;width:10px;height:10px;border-radius:2px;"></span> Selection</span>
+                                        </div>
+                                        <div id="editSlotGridLoading" class="text-center text-muted py-3 d-none">
+                                            <span class="spinner-border spinner-border-sm me-1"></span> Loading slots…
+                                        </div>
+                                        <div id="editSlotGridContent" style="overflow-x:auto; max-height:280px; overflow-y:auto;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- ── Section 5: Date, Time & Remarks ──────────────────────── --}}
+                    <div class="gate-section-hdr gate-section-hdr--light">
+                        <i class="bi bi-clock me-2"></i>Date, Time &amp; Remarks
+                    </div>
+                    <div class="row g-3 mb-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Gate In Date &amp; Time
                                 @if(!auth()->user()->isAdmin())
@@ -171,113 +338,106 @@
                                    value="{{ old('gate_in_time', $movement->gate_in_time?->format('Y-m-d\TH:i')) }}"
                                    {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
                         </div>
-
-                        {{-- ── Storage Location ──────────────────────────────── --}}
                         <div class="col-12">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-geo-alt me-1 text-primary"></i>Storage Location
-                            </label>
-
-                            {{-- Hidden submission fields (pre-filled with current values) --}}
-                            <input type="hidden" name="location_zone" id="edit_loc_zone"
-                                   value="{{ old('location_zone', $movement->location_zone) }}">
-                            <input type="hidden" name="location_row"  id="edit_loc_row"
-                                   value="{{ old('location_row',  $movement->location_row) }}">
-                            <input type="hidden" name="location_bay"  id="edit_loc_bay"
-                                   value="{{ old('location_bay',  $movement->location_bay) }}">
-                            <input type="hidden" name="location_tier" id="edit_loc_tier"
-                                   value="{{ old('location_tier', $movement->location_tier) }}">
-
-                            {{-- Current / selected slot display --}}
-                            <div id="editSelectedSlotDisplay"
-                                 class="alert py-2 small mb-2 {{ ($movement->location_row || old('location_zone')) ? 'alert-primary' : 'd-none' }}">
-                                <i class="bi bi-check-circle-fill me-1"></i>
-                                Slot:
-                                <strong id="editSelectedSlotCode" class="font-monospace">
-                                    @php
-                                        $loc_zone = old('location_zone', $movement->location_zone);
-                                        $loc_row  = old('location_row',  $movement->location_row);
-                                        $loc_bay  = old('location_bay',  $movement->location_bay);
-                                        $loc_tier = old('location_tier', $movement->location_tier);
-                                    @endphp
-                                    @if($loc_zone && $loc_row && $loc_bay && $loc_tier)
-                                        {{ $loc_zone }}-{{ $loc_row }}{{ $loc_bay }}-T{{ $loc_tier }}
-                                    @endif
-                                </strong>
-                                <button type="button" class="btn btn-sm btn-link py-0 ps-2 text-primary"
-                                        id="editChangeSlotBtn">
-                                    <i class="bi bi-pencil-fill"></i> Change
-                                </button>
-                            </div>
-
-                            {{-- Zone + slot selector (collapsed by default if slot already set) --}}
-                            <div id="editLocationSelector"
-                                 class="{{ ($movement->location_row || old('location_zone')) ? 'd-none' : '' }}">
-
-                                {{-- Step 1: Zone cards --}}
-                                <div id="editZoneSelectorPanel">
-                                    <p class="text-muted small mb-2">
-                                        <span class="badge bg-primary-subtle text-primary rounded-pill me-1">Step 1</span>
-                                        Select a storage zone:
-                                    </p>
-                                    <div class="d-flex gap-2 flex-wrap" id="editZoneCards">
-                                        @foreach($zones as $zone)
-                                        <button type="button" class="edit-zone-pick-btn btn btn-outline-secondary"
-                                                data-zone="{{ $zone->code }}"
-                                                data-name="{{ $zone->name }}"
-                                                style="border-left: 4px solid {{ $zone->color }};">
-                                            <span class="fw-semibold">{{ $zone->name }}</span>
-                                            <span class="d-block" style="font-size:.7rem;">
-                                                <span class="text-success">{{ $zone->empty_count }} free</span>
-                                                &nbsp;/&nbsp;
-                                                <span class="text-danger">{{ $zone->occupied_count }} occ.</span>
-                                            </span>
-                                        </button>
-                                        @endforeach
-                                    </div>
-                                </div>
-
-                                {{-- Step 2: Slot grid (loaded via AJAX) --}}
-                                <div id="editSlotGridPanel" class="d-none mt-3">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <p class="text-muted small mb-0">
-                                            <span class="badge bg-primary-subtle text-primary rounded-pill me-1">Step 2</span>
-                                            Click an <span class="text-success fw-semibold">available</span> slot:
-                                            <span id="editGridZoneLabel" class="fw-semibold"></span>
-                                        </p>
-                                        <button type="button" class="btn btn-sm btn-link p-0" id="editBackToZonesBtn">
-                                            <i class="bi bi-arrow-left me-1"></i>Change zone
-                                        </button>
-                                    </div>
-                                    <div class="d-flex gap-3 mb-2" style="font-size:.72rem;">
-                                        <span><span class="legend-dot" style="background:#22c55e;display:inline-block;width:10px;height:10px;border-radius:2px;"></span> Available</span>
-                                        <span><span class="legend-dot" style="background:#ef4444;display:inline-block;width:10px;height:10px;border-radius:2px;"></span> Occupied</span>
-                                        <span><span class="legend-dot" style="background:#3b82f6;border:2px solid #1d4ed8;display:inline-block;width:10px;height:10px;border-radius:2px;"></span> Selection</span>
-                                    </div>
-                                    <div id="editSlotGridLoading" class="text-center text-muted py-3 d-none">
-                                        <span class="spinner-border spinner-border-sm me-1"></span> Loading slots…
-                                    </div>
-                                    <div id="editSlotGridContent" style="overflow-x:auto; max-height:280px; overflow-y:auto;"></div>
-                                </div>
-
-                            </div>
+                            <label class="form-label fw-semibold">Remarks</label>
+                            <textarea name="remarks" class="form-control" rows="2">{{ old('remarks', $movement->remarks) }}</textarea>
                         </div>
-                        {{-- ── End Storage Location ──────────────────────────── --}}
+                    </div>
 
-                        @else {{-- Gate Out --}}
+                    {{-- ══════════════════════════════════════════════════════════════ --}}
+                    {{-- GATE OUT SECTIONS                                             --}}
+                    {{-- ══════════════════════════════════════════════════════════════ --}}
+                    @else
 
+                    {{-- ── Section 1: Container Details ─────────────────────────── --}}
+                    <div class="gate-section-hdr gate-section-hdr--blue">
+                        <i class="bi bi-box-seam me-2"></i>Container Details
+                    </div>
+                    <div class="row g-3 mb-3">
                         <div class="col-6">
-                            <label class="form-label fw-semibold">Release Order No.</label>
-                            <input type="text" name="release_order" class="form-control"
-                                   value="{{ old('release_order', $movement->release_order) }}">
-                        </div>
-
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Truck/Vehicle Plate</label>
+                            <label class="form-label fw-semibold">Truck / Vehicle Plate</label>
                             <input type="text" name="vehicle_plate" class="form-control text-uppercase"
                                    value="{{ old('vehicle_plate', $movement->vehicle_plate) }}">
                         </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Condition</label>
+                            <select name="condition" class="form-select">
+                                <option value="sound"          {{ old('condition', $movement->condition) === 'sound'          ? 'selected' : '' }}>Sound</option>
+                                <option value="damaged"        {{ old('condition', $movement->condition) === 'damaged'        ? 'selected' : '' }}>Damaged</option>
+                                <option value="require_repair" {{ old('condition', $movement->condition) === 'require_repair' ? 'selected' : '' }}>Requires Repair</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Empty / Laden</label>
+                            <select name="cargo_status" class="form-select">
+                                <option value="empty" {{ old('cargo_status', $movement->cargo_status) === 'empty'  ? 'selected' : '' }}>Empty</option>
+                                <option value="laden" {{ in_array(old('cargo_status', $movement->cargo_status), ['laden','full']) ? 'selected' : '' }}>Laden</option>
+                            </select>
+                        </div>
+                    </div>
 
+                    {{-- ── Section 2: Export Information (collapsible) ──────────── --}}
+                    @php
+                        $hasExportData = $movement->loading_vessel || $movement->loading_voyage || $movement->sailing_date
+                            || $movement->shipper || $movement->release_order || $movement->seal_no;
+                    @endphp
+                    <div class="mb-3">
+                        <button type="button"
+                                class="gate-section-hdr gate-section-hdr--teal gate-section-collapse w-100 text-start"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#exportInfoCollapse"
+                                aria-expanded="{{ $hasExportData ? 'true' : 'false' }}"
+                                aria-controls="exportInfoCollapse">
+                            <span><i class="bi bi-ship me-2"></i>Export Information</span>
+                            <i class="bi bi-chevron-down collapse-chevron ms-auto"></i>
+                        </button>
+                        <div class="collapse {{ $hasExportData ? 'show' : '' }}" id="exportInfoCollapse">
+                            <div class="row g-3 pt-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Loading Vessel</label>
+                                    <input type="text" name="loading_vessel" class="form-control"
+                                           value="{{ old('loading_vessel', $movement->loading_vessel) }}" placeholder="Vessel name">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Loading Voyage</label>
+                                    <input type="text" name="loading_voyage" class="form-control"
+                                           value="{{ old('loading_voyage', $movement->loading_voyage) }}" placeholder="Voyage no.">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Sailing Date</label>
+                                    <input type="date" name="sailing_date" class="form-control"
+                                           value="{{ old('sailing_date', $movement->sailing_date?->format('Y-m-d')) }}">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Shipper</label>
+                                    <input type="text" name="shipper" class="form-control"
+                                           value="{{ old('shipper', $movement->shipper) }}" placeholder="Shipper name">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">
+                                        Release Order No.
+                                        <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
+                                    </label>
+                                    <input type="text" name="release_order" class="form-control"
+                                           value="{{ old('release_order', $movement->release_order) }}">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">
+                                        Seal Number
+                                        <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
+                                    </label>
+                                    <input type="text" name="seal_no" class="form-control"
+                                           value="{{ old('seal_no', $movement->seal_no) }}" placeholder="Optional">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- ── Section 3: Transport Details ─────────────────────────── --}}
+                    <div class="gate-section-hdr gate-section-hdr--gray">
+                        <i class="bi bi-truck me-2"></i>Transport Details
+                    </div>
+                    <div class="row g-3 mb-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">
                                 Transporter
@@ -293,19 +453,16 @@
                                 @endforeach
                             </select>
                         </div>
-
                         <div class="col-4">
                             <label class="form-label fw-semibold">Driver Name</label>
                             <input type="text" name="driver_name" class="form-control"
                                    value="{{ old('driver_name', $movement->driver_name) }}">
                         </div>
-
                         <div class="col-4">
                             <label class="form-label fw-semibold">Driver IC/Passport</label>
                             <input type="text" name="driver_ic" class="form-control"
                                    value="{{ old('driver_ic', $movement->driver_ic) }}">
                         </div>
-
                         <div class="col-4">
                             <label class="form-label fw-semibold">
                                 Driver Phone
@@ -314,7 +471,13 @@
                             <input type="text" name="driver_phone" class="form-control"
                                    value="{{ old('driver_phone', $movement->driver_phone) }}" placeholder="+60 12-345 6789">
                         </div>
+                    </div>
 
+                    {{-- ── Section 4: Date, Time & Remarks ──────────────────────── --}}
+                    <div class="gate-section-hdr gate-section-hdr--light">
+                        <i class="bi bi-clock me-2"></i>Date, Time &amp; Remarks
+                    </div>
+                    <div class="row g-3 mb-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Gate Out Date &amp; Time
                                 @if(!auth()->user()->isAdmin())
@@ -328,16 +491,13 @@
                                    value="{{ old('gate_out_time', $movement->gate_out_time?->format('Y-m-d\TH:i')) }}"
                                    {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
                         </div>
-
-                        @endif
-
                         <div class="col-12">
                             <label class="form-label fw-semibold">Remarks</label>
                             <textarea name="remarks" class="form-control" rows="2">{{ old('remarks', $movement->remarks) }}</textarea>
                         </div>
-
-
                     </div>
+
+                    @endif
 
                     <div class="mt-4 d-flex gap-2">
                         <button type="submit" class="btn {{ $movement->movement_type === 'in' ? 'btn-primary' : 'btn-success' }}">
@@ -367,6 +527,29 @@
 
 @push('styles')
 <style>
+/* ── Section header bands ──────────────────────────────────────────── */
+.gate-section-hdr {
+    display: flex;
+    align-items: center;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: .45rem .85rem;
+    border-radius: 6px;
+    margin-bottom: .75rem;
+    border: none;
+}
+.gate-section-hdr--blue  { background: #eff6ff; color: #1d4ed8; }
+.gate-section-hdr--teal  { background: #f0fdfa; color: #0f766e; }
+.gate-section-hdr--gray  { background: #f3f4f6; color: #374151; }
+.gate-section-hdr--green { background: #f0fdf4; color: #15803d; }
+.gate-section-hdr--light { background: #f9fafb; color: #4b5563; }
+.gate-section-collapse { cursor: pointer; transition: opacity .15s; }
+.gate-section-collapse:hover { opacity: .85; }
+.collapse-chevron { transition: transform .2s ease; font-size: .9rem; }
+.gate-section-collapse[aria-expanded="true"] .collapse-chevron { transform: rotate(180deg); }
+/* ── Zone/slot grid ────────────────────────────────────────────────── */
 .edit-zone-pick-btn { text-align:left; padding:.5rem .75rem; transition: all .15s; }
 .edit-zone-pick-btn:hover, .edit-zone-pick-btn.active { background: #eff6ff; border-color: #3b82f6 !important; }
 .edit-zone-pick-btn.active { box-shadow: 0 0 0 3px rgba(59,130,246,.2); }
@@ -404,7 +587,7 @@
     });
 })();
 
-// ── Edit-movement zone / slot selector ──────────────────────────────────────
+// ── Edit-movement zone / slot selector ─────────────────────────────────────
 (function () {
     const zoneInput    = document.getElementById('edit_loc_zone');
     const rowInput     = document.getElementById('edit_loc_row');
@@ -424,8 +607,6 @@
     const gridZoneLabel     = document.getElementById('editGridZoneLabel');
     const backBtn           = document.getElementById('editBackToZonesBtn');
 
-    let currentZone = null;
-
     function showZoneSelector() {
         locationSelector.classList.remove('d-none');
         zoneSelectorPanel.classList.remove('d-none');
@@ -433,11 +614,8 @@
         document.querySelectorAll('.edit-zone-pick-btn').forEach(b => b.classList.remove('active'));
     }
 
-    changeBtn && changeBtn.addEventListener('click', function () {
-        showZoneSelector();
-    });
-
-    backBtn && backBtn.addEventListener('click', function () {
+    changeBtn && changeBtn.addEventListener('click', function () { showZoneSelector(); });
+    backBtn   && backBtn.addEventListener('click', function () {
         zoneSelectorPanel.classList.remove('d-none');
         slotGridPanel.classList.add('d-none');
         document.querySelectorAll('.edit-zone-pick-btn').forEach(b => b.classList.remove('active'));
@@ -452,7 +630,6 @@
     });
 
     async function loadZoneGrid(zoneCode, zoneName) {
-        currentZone = zoneCode;
         slotGridContent.innerHTML = '';
         slotGridLoading.classList.remove('d-none');
         zoneSelectorPanel.classList.add('d-none');
@@ -475,8 +652,8 @@
             slotGridContent.innerHTML = '<div class="text-muted small py-2"><i class="bi bi-info-circle me-1"></i>No slots configured in this zone.</div>';
             return;
         }
-        const rows = [...new Set(slots.map(s => s.row))].sort();
-        const bays = [...new Set(slots.map(s => parseInt(s.bay)))].sort((a,b) => a-b);
+        const rows  = [...new Set(slots.map(s => s.row))].sort();
+        const bays  = [...new Set(slots.map(s => parseInt(s.bay)))].sort((a, b) => a - b);
         const byKey = {};
         slots.forEach(s => {
             const k = s.row + '|' + s.bay;
@@ -490,11 +667,11 @@
         rows.forEach(row => {
             html += `<div class="slot-grid-row"><div class="slot-row-label">${row}</div>`;
             bays.forEach(bay => {
-                const cell = byKey[row + '|' + bay] || [];
+                const cell     = byKey[row + '|' + bay] || [];
+                const tiersAsc = [...cell].sort((a, b) => a.tier - b.tier);
                 html += '<div class="slot-cell">';
-                const tiersAsc = [...cell].sort((a,b) => a.tier - b.tier);
                 tiersAsc.forEach(s => {
-                    const cls = s.status === 'empty' ? 'available'
+                    const cls = s.status === 'empty'    ? 'available'
                               : s.status === 'occupied' ? 'occupied'
                               : s.status === 'reserved' ? 'reserved' : 'damaged';
                     const tip = s.status === 'occupied' ? (s.container_no || 'Occupied') : s.status;
@@ -518,12 +695,10 @@
                 });
                 this.classList.remove('available');
                 this.classList.add('selected');
-
                 zoneInput.value = this.dataset.zone;
                 rowInput.value  = this.dataset.row;
                 bayInput.value  = this.dataset.bay;
                 tierInput.value = this.dataset.tier;
-
                 const code = this.dataset.zone + '-' + this.dataset.row + this.dataset.bay + '-T' + this.dataset.tier;
                 slotCode.textContent = code;
                 slotDisplay.classList.remove('d-none');

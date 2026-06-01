@@ -455,7 +455,11 @@ class YardController extends Controller
         $transporters   = Customer::whereHas('types', fn($q) => $q->where('name', 'Transporter'))
                             ->where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->get();
-        $zones          = StorageZone::active()->get();
+        $zones = StorageZone::active()->withCount([
+            'yardLocations',
+            'yardLocations as empty_count'    => fn($q) => $q->where('status', 'empty'),
+            'yardLocations as occupied_count' => fn($q) => $q->where('status', 'occupied'),
+        ])->get();
 
         return view('yard.movement-edit', compact('movement', 'customers', 'transporters', 'equipmentTypes', 'zones'));
     }
@@ -483,15 +487,28 @@ class YardController extends Controller
             $rules['location_row']       = ['nullable', 'string', 'max:5'];
             $rules['location_bay']       = ['nullable', 'integer', 'min:1', 'max:99'];
             $rules['location_tier']      = ['nullable', 'integer', 'min:1', 'max:10'];
+            // Import shipment fields
+            $rules['vessel_name']        = ['nullable', 'string', 'max:100'];
+            $rules['voyage_no']          = ['nullable', 'string', 'max:50'];
+            $rules['berthing_date']      = ['nullable', 'date'];
+            $rules['bl_number']          = ['nullable', 'string', 'max:50'];
+            $rules['do_expiry_date']     = ['nullable', 'date'];
+            $rules['fcl_expiry_date']    = ['nullable', 'date'];
+            $rules['consignee']          = ['nullable', 'string', 'max:150'];
             if ($isAdmin) {
                 $rules['gate_in_time']  = ['nullable', 'string', 'max:20'];
             }
         } else {
-            $rules['transporter_id'] = ['nullable', 'exists:customers,id'];
-            $rules['driver_name']    = ['nullable', 'string', 'max:255'];
-            $rules['driver_ic']      = ['nullable', 'string', 'max:30'];
-            $rules['driver_phone']   = ['nullable', 'string', 'max:20'];
-            $rules['release_order']  = ['nullable', 'string', 'max:50'];
+            $rules['transporter_id']  = ['nullable', 'exists:customers,id'];
+            $rules['driver_name']     = ['nullable', 'string', 'max:255'];
+            $rules['driver_ic']       = ['nullable', 'string', 'max:30'];
+            $rules['driver_phone']    = ['nullable', 'string', 'max:20'];
+            $rules['release_order']   = ['nullable', 'string', 'max:50'];
+            // Export information fields
+            $rules['loading_vessel']  = ['nullable', 'string', 'max:100'];
+            $rules['loading_voyage']  = ['nullable', 'string', 'max:50'];
+            $rules['sailing_date']    = ['nullable', 'date'];
+            $rules['shipper']         = ['nullable', 'string', 'max:150'];
             if ($isAdmin) {
                 $rules['gate_out_time'] = ['nullable', 'string', 'max:20'];
             }
@@ -520,6 +537,13 @@ class YardController extends Controller
             }
             // transporter and driver fields (allow clearing via empty string → null)
             foreach (['transporter_id', 'driver_name', 'driver_ic', 'driver_phone'] as $field) {
+                if (array_key_exists($field, $validated)) {
+                    $updateData[$field] = $validated[$field] ?: null;
+                }
+            }
+
+            // Import shipment fields
+            foreach (['vessel_name', 'voyage_no', 'berthing_date', 'bl_number', 'do_expiry_date', 'fcl_expiry_date', 'consignee'] as $field) {
                 if (array_key_exists($field, $validated)) {
                     $updateData[$field] = $validated[$field] ?: null;
                 }
@@ -603,6 +627,14 @@ class YardController extends Controller
                     $updateData[$field] = $validated[$field] ?: null;
                 }
             }
+
+            // Export information fields
+            foreach (['loading_vessel', 'loading_voyage', 'sailing_date', 'shipper'] as $field) {
+                if (array_key_exists($field, $validated)) {
+                    $updateData[$field] = $validated[$field] ?: null;
+                }
+            }
+
             if ($isAdmin && !empty($validated['gate_out_time'])) {
                 $updateData['gate_out_time'] = \Carbon\Carbon::parse($validated['gate_out_time']);
             }
