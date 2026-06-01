@@ -782,7 +782,13 @@ btnOut.addEventListener('click', () => {
     }
 
     inp.addEventListener('input', function () {
-        if (this.value.length < 11) { infoBox.className = 'd-none'; lastVal = ''; }
+        if (this.value.length < 11) {
+            infoBox.className = 'd-none';
+            lastVal = '';
+            // Reset equipment type so stale pre-fill from previous container doesn't persist
+            eqtSel.value = '';
+            eqtSel.dispatchEvent(new Event('change'));
+        }
     });
     inp.addEventListener('blur', function () { lookupMaster(this.value); });
     inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') lookupMaster(this.value); });
