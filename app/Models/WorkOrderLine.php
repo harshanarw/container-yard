@@ -12,10 +12,12 @@ class WorkOrderLine extends Model
         'cedex_code', 'qty', 'status',
         'actual_labor_hours', 'actual_material_qty',
         'technician_notes', 'completed_at', 'completed_by',
+        'qc_status', 'qc_notes', 'qc_by', 'qc_at',
     ];
 
     protected $casts = [
         'completed_at'       => 'datetime',
+        'qc_at'              => 'datetime',
         'qty'                => 'decimal:2',
         'actual_labor_hours' => 'decimal:2',
         'actual_material_qty'=> 'decimal:3',
@@ -54,5 +56,10 @@ class WorkOrderLine extends Model
     public function completedBy()
     {
         return $this->belongsTo(User::class, 'completed_by');
+    }
+
+    public function qcBy()
+    {
+        return $this->belongsTo(User::class, 'qc_by');
     }
 }

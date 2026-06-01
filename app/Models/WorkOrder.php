@@ -14,12 +14,14 @@ class WorkOrder extends Model
         'repair_category_id', 'assigned_to', 'status', 'priority',
         'target_date', 'started_date', 'completed_date',
         'instructions', 'technician_notes', 'created_by', 'closed_by',
+        'qc_by', 'qc_at', 'qc_notes',
     ];
 
     protected $casts = [
         'target_date'    => 'date',
         'started_date'   => 'date',
         'completed_date' => 'date',
+        'qc_at'          => 'datetime',
     ];
 
     public function estimate()
@@ -55,6 +57,11 @@ class WorkOrder extends Model
     public function closedBy()
     {
         return $this->belongsTo(User::class, 'closed_by');
+    }
+
+    public function qcBy()
+    {
+        return $this->belongsTo(User::class, 'qc_by');
     }
 
     public function lines()

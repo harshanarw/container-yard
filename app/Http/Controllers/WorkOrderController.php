@@ -31,7 +31,7 @@ class WorkOrderController extends Controller
 
         return view('work-orders.index', [
             'workOrders' => $workOrders,
-            'statuses'   => ['pending', 'in_progress', 'on_hold', 'completed', 'closed', 'cancelled'],
+            'statuses'   => ['pending', 'in_progress', 'on_hold', 'completed', 'rejected', 'closed', 'cancelled'],
         ]);
     }
 
@@ -209,22 +209,26 @@ class WorkOrderController extends Controller
     {
         $workOrder->load(
             'estimate', 'container', 'customer', 'assignedTo', 'repairCategory',
-            'lines.componentCode', 'lines.damageCode', 'lines.repairCode', 'createdBy'
+            'lines.componentCode', 'lines.damageCode', 'lines.repairCode', 'lines.locationCode', 'lines.qcBy',
+            'createdBy', 'qcBy'
         );
 
+        $isQcRole = in_array(auth()->user()->role ?? '', ['yard_supervisor', 'admin']);
+
         return view('work-orders.show', [
-            'workOrder'   => $workOrder,
-            'canEdit'     => in_array($workOrder->status, ['pending', 'in_progress', 'on_hold']),
-            'canDelete'   => $workOrder->status === 'pending',
-            'canStart'    => $workOrder->status === 'pending',
-            'canComplete' => in_array($workOrder->status, ['in_progress', 'on_hold']),
-            'canClose'    => $workOrder->status === 'completed',
+            'workOrder'      => $workOrder,
+            'canEdit'        => in_array($workOrder->status, ['pending', 'in_progress', 'on_hold', 'rejected']),
+            'canDelete'      => $workOrder->status === 'pending',
+            'canStart'       => $workOrder->status === 'pending',
+            'canComplete'    => in_array($workOrder->status, ['in_progress', 'on_hold']),
+            'canQc'          => $workOrder->status === 'completed' && $isQcRole,
+            'canStartRework' => $workOrder->status === 'rejected',
         ]);
     }
 
     public function edit(WorkOrder $workOrder)
     {
-        if (!in_array($workOrder->status, ['pending', 'in_progress', 'on_hold'])) {
+        if (!in_array($workOrder->status, ['pending', 'in_progress', 'on_hold', 'rejected'])) {
             return redirect()->route('work-orders.show', $workOrder)
                              ->with('error', 'Cannot edit a ' . $workOrder->status . ' work order.');
         }
@@ -234,21 +238,21 @@ class WorkOrderController extends Controller
         return view('work-orders.edit', [
             'workOrder'   => $workOrder,
             'supervisors' => $supervisors,
-            'statuses'    => ['pending', 'in_progress', 'on_hold', 'completed', 'closed', 'cancelled'],
+            'statuses'    => ['pending', 'in_progress', 'on_hold', 'completed', 'rejected', 'closed', 'cancelled'],
             'priorities'  => ['normal', 'urgent', 'critical'],
         ]);
     }
 
     public function update(Request $request, WorkOrder $workOrder)
     {
-        if (!in_array($workOrder->status, ['pending', 'in_progress', 'on_hold'])) {
+        if (!in_array($workOrder->status, ['pending', 'in_progress', 'on_hold', 'rejected'])) {
             return redirect()->route('work-orders.show', $workOrder)
                              ->with('error', 'Cannot edit a ' . $workOrder->status . ' work order.');
         }
 
         $validated = $request->validate([
             'assigned_to'      => 'nullable|exists:users,id',
-            'status'           => 'required|in:pending,in_progress,on_hold,completed,closed,cancelled',
+            'status'           => 'required|in:pending,in_progress,on_hold,completed,rejected,closed,cancelled',
             'priority'         => 'required|in:normal,urgent,critical',
             'target_date'      => 'nullable|date',
             'instructions'     => 'nullable|string|max:500',
@@ -286,7 +290,8 @@ class WorkOrderController extends Controller
             'pending'     => ['in_progress', 'cancelled'],
             'in_progress' => ['on_hold', 'completed', 'cancelled'],
             'on_hold'     => ['in_progress', 'completed', 'cancelled'],
-            'completed'   => ['closed'],
+            'completed'   => [],        // closing only via submitQc()
+            'rejected'    => ['in_progress'],  // start rework
             'closed'      => [],
             'cancelled'   => [],
         ];
@@ -310,14 +315,78 @@ class WorkOrderController extends Controller
         $workOrder->update($updateData);
 
         $action = match($newStatus) {
-            'in_progress' => 'started',
-            'completed'   => 'completed',
-            'closed'      => 'closed',
+            'in_progress' => $oldStatus === 'rejected' ? 'sent back for rework' : 'started',
+            'completed'   => 'marked as complete — awaiting QC',
             'on_hold'     => 'put on hold',
             'cancelled'   => 'cancelled',
             default       => 'updated',
         };
 
         return redirect()->route('work-orders.show', $workOrder)->with('success', "Work order {$action}.");
+    }
+
+    public function submitQc(Request $request, WorkOrder $workOrder)
+    {
+        if ($workOrder->status !== 'completed') {
+            return redirect()->route('work-orders.show', $workOrder)
+                             ->with('error', 'QC can only be submitted for completed work orders.');
+        }
+
+        if (!in_array(auth()->user()->role ?? '', ['yard_supervisor', 'admin'])) {
+            return redirect()->route('work-orders.show', $workOrder)
+                             ->with('error', 'Only supervisors and administrators can perform QC reviews.');
+        }
+
+        $validated = $request->validate([
+            'line_results'    => 'required|array',
+            'line_results.*'  => 'required|in:passed,failed',
+            'line_qc_notes'   => 'nullable|array',
+            'line_qc_notes.*' => 'nullable|string|max:500',
+            'qc_notes'        => 'nullable|string|max:1000',
+        ]);
+
+        // Ensure every line has a result
+        $lineIds      = $workOrder->lines->pluck('id')->map(fn($id) => (string) $id)->toArray();
+        $submittedIds = array_keys($validated['line_results']);
+        if (array_diff($lineIds, $submittedIds)) {
+            return back()->withErrors(['line_results' => 'Every line must have a QC result.'])->withInput();
+        }
+
+        $now      = now();
+        $qcBy     = auth()->id();
+        $anyFailed = false;
+
+        foreach ($workOrder->lines as $line) {
+            $result = $validated['line_results'][(string) $line->id] ?? null;
+            $notes  = $validated['line_qc_notes'][(string) $line->id]  ?? null;
+
+            if ($result === 'failed') {
+                $anyFailed = true;
+            }
+
+            $line->update([
+                'qc_status' => $result,
+                'qc_notes'  => $notes,
+                'qc_by'     => $qcBy,
+                'qc_at'     => $now,
+            ]);
+        }
+
+        $workOrder->update([
+            'status'    => $anyFailed ? 'rejected' : 'closed',
+            'qc_by'     => $qcBy,
+            'qc_at'     => $now,
+            'qc_notes'  => $validated['qc_notes'] ?? null,
+            'closed_by' => $anyFailed ? null : $qcBy,
+        ]);
+
+        if ($anyFailed) {
+            $failCount = collect($validated['line_results'])->filter(fn($r) => $r === 'failed')->count();
+            return redirect()->route('work-orders.show', $workOrder)
+                             ->with('error', "QC rejected: {$failCount} line(s) failed inspection. Work order returned for rework.");
+        }
+
+        return redirect()->route('work-orders.show', $workOrder)
+                         ->with('success', 'QC passed — work order closed.');
     }
 }

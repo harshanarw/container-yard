@@ -89,6 +89,7 @@ Route::middleware(['auth'])->group(function () {
     // Work Orders
     Route::resource('work-orders', WorkOrderController::class);
     Route::patch('work-orders/{workOrder}/status',                                  [WorkOrderController::class, 'updateStatus'])->name('work-orders.update-status');
+    Route::post('work-orders/{workOrder}/qc',                                       [WorkOrderController::class, 'submitQc'])->name('work-orders.submit-qc');
     Route::get('work-orders/{estimate}/available-categories',                        [WorkOrderController::class, 'availableCategories'])->name('work-orders.available-categories');
     Route::get('work-orders/{estimate}/preview-lines/{repairCategory}',              [WorkOrderController::class, 'previewLines'])->name('work-orders.preview-lines');
 

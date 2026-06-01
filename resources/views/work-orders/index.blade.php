@@ -76,14 +76,19 @@
                             </span>
                         </td>
                         <td class="small">
-                            <span class="badge
-                                {{ $wo->status === 'closed'       ? 'bg-success'           : '' }}
-                                {{ $wo->status === 'completed'    ? 'bg-info'              : '' }}
-                                {{ $wo->status === 'in_progress'  ? 'bg-primary'           : '' }}
-                                {{ $wo->status === 'pending'      ? 'bg-secondary'         : '' }}
-                                {{ $wo->status === 'on_hold'      ? 'bg-warning text-dark' : '' }}
-                                {{ $wo->status === 'cancelled'    ? 'bg-danger'            : '' }}
-                            ">
+                            @php
+                                $sc = match($wo->status) {
+                                    'closed'      => 'bg-success',
+                                    'completed'   => 'bg-info',
+                                    'in_progress' => 'bg-primary',
+                                    'pending'     => 'bg-secondary',
+                                    'on_hold'     => 'bg-warning text-dark',
+                                    'rejected'    => 'bg-danger',
+                                    'cancelled'   => 'bg-danger',
+                                    default       => 'bg-secondary',
+                                };
+                            @endphp
+                            <span class="badge {{ $sc }}">
                                 {{ ucfirst(str_replace('_', ' ', $wo->status)) }}
                             </span>
                         </td>
