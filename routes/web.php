@@ -256,11 +256,25 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{mrTariff}',               [MrTariffController::class, 'update'])->name('update');
             Route::patch('{mrTariff}/toggle',        [MrTariffController::class, 'toggleActive'])->name('toggle');
             Route::delete('{mrTariff}',              [MrTariffController::class, 'destroy'])->name('destroy');
+            // AJAX endpoints (must be before parameterized routes)
+            Route::get('/item-search',   [MrTariffController::class, 'itemSearch'])->name('item-search');
+            Route::get('/rate-lookup',   [MrTariffController::class, 'rateLookup'])->name('rate-lookup');
             // Rule lines nested under header
             Route::prefix('{mrTariff}/rules')->name('rules.')->group(function () {
                 Route::post('/',         [MrTariffController::class, 'storeRule'])->name('store');
                 Route::patch('{rule}',   [MrTariffController::class, 'updateRule'])->name('update');
                 Route::delete('{rule}',  [MrTariffController::class, 'destroyRule'])->name('destroy');
+            });
+            // Slab items + slab tiers nested under header
+            Route::prefix('{mrTariff}/items')->name('items.')->group(function () {
+                Route::post('/',                          [MrTariffController::class, 'storeItem'])->name('store');
+                Route::patch('{item}',                    [MrTariffController::class, 'updateItem'])->name('update');
+                Route::delete('{item}',                   [MrTariffController::class, 'destroyItem'])->name('destroy');
+                Route::prefix('{item}/slabs')->name('slabs.')->group(function () {
+                    Route::post('/',        [MrTariffController::class, 'storeSlab'])->name('store');
+                    Route::patch('{slab}',  [MrTariffController::class, 'updateSlab'])->name('update');
+                    Route::delete('{slab}', [MrTariffController::class, 'destroySlab'])->name('destroy');
+                });
             });
         });
         // Handling Charges Tariff

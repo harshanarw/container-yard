@@ -132,6 +132,9 @@
                             <i class="bi bi-download me-1"></i>Import {{ $selectedInquiry->damages->count() }} Damage(s) as Lines
                         </button>
                         @endif
+                        <button type="button" class="btn btn-sm btn-outline-success" id="getRateBtn" data-bs-toggle="modal" data-bs-target="#getRateModal">
+                            <i class="bi bi-calculator me-1"></i>Get Rate
+                        </button>
                         <button type="button" class="btn btn-sm btn-outline-primary" id="addLine">
                             <i class="bi bi-plus-circle me-1"></i>Add Line
                         </button>
@@ -335,6 +338,88 @@
 </form>
 
 @endsection
+
+{{-- ── Get Rate Modal ── --}}
+<div class="modal fade" id="getRateModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title"><i class="bi bi-calculator me-2 text-success"></i>M&amp;R Tariff Rate Lookup</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {{-- Filters --}}
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <input type="text" id="grSearchQ" class="form-control form-control-sm" placeholder="Search item code or description…">
+                    </div>
+                    <div class="col-md-3">
+                        <select id="grOpFilter" class="form-select form-select-sm">
+                            <option value="">All Operations</option>
+                            <option value="straight">Straight</option>
+                            <option value="insert">Insert</option>
+                            <option value="section">Section</option>
+                            <option value="replace">Replace</option>
+                            <option value="weld">Weld</option>
+                            <option value="remove">Remove</option>
+                            <option value="paint">Paint</option>
+                            <option value="resecure">Resecure</option>
+                            <option value="free">Free / Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="grUnitFilter" class="form-select form-select-sm">
+                            <option value="">All Units</option>
+                            <option value="nos">NOS</option>
+                            <option value="lift">LIFT</option>
+                            <option value="sqft">SQFT</option>
+                            <option value="inches">INCHES</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-sm btn-primary w-100" id="grSearchBtn">
+                            <i class="bi bi-search me-1"></i>Search
+                        </button>
+                    </div>
+                </div>
+                {{-- Results --}}
+                <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+                    <table class="table table-hover table-sm align-middle mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="ps-2" style="width:100px">Code</th>
+                                <th style="width:90px">Operation</th>
+                                <th>Description</th>
+                                <th style="width:60px">Unit</th>
+                                <th style="width:60px">Slabs</th>
+                                <th style="width:90px">Qty</th>
+                                <th style="width:70px">Labor Rate</th>
+                                <th style="width:80px"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="grResultBody">
+                            <tr><td colspan="8" class="text-center text-muted py-4">Search for tariff items above.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                {{-- Rate result --}}
+                <div id="grRateResult" class="d-none mt-3 p-3 border rounded bg-light">
+                    <div class="row g-2 small">
+                        <div class="col-md-2"><div class="text-muted">Labor Hours</div><div class="fw-bold" id="grLaborHrs">—</div></div>
+                        <div class="col-md-2"><div class="text-muted">Labor Amount</div><div class="fw-bold" id="grLaborAmt">—</div></div>
+                        <div class="col-md-2"><div class="text-muted">Material Cost</div><div class="fw-bold" id="grMaterialAmt">—</div></div>
+                        <div class="col-md-2"><div class="text-muted">Total</div><div class="fw-bold text-success fs-6" id="grTotal">—</div></div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="button" class="btn btn-sm btn-success w-100" id="grApplyBtn">
+                                <i class="bi bi-check-circle me-1"></i>Apply Rate to New Line
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @push('scripts')
 <script>
@@ -705,6 +790,109 @@
             recalculate();
         }
     });
+
+    // ── Get Rate Modal ────────────────────────────────────────────────────────
+    (function () {
+        const searchBtn  = document.getElementById('grSearchBtn');
+        const resultBody = document.getElementById('grResultBody');
+        const rateResult = document.getElementById('grRateResult');
+        const applyBtn   = document.getElementById('grApplyBtn');
+        let   selectedItem = null;
+        let   selectedRate = null;
+        const opColors = {
+            straight:'info', insert:'success', section:'warning',
+            replace:'danger', weld:'secondary', remove:'dark',
+            paint:'primary', resecure:'info', free:'secondary'
+        };
+
+        function fetchItems() {
+            const q  = document.getElementById('grSearchQ').value;
+            const op = document.getElementById('grOpFilter').value;
+            const ut = document.getElementById('grUnitFilter').value;
+            const params = new URLSearchParams();
+            if (q)  params.set('q', q);
+            if (op) params.set('operation_type', op);
+            if (ut) params.set('unit_type', ut);
+
+            resultBody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></td></tr>';
+            rateResult.classList.add('d-none');
+
+            fetch('{{ route("masters.mr-tariff.item-search") }}?' + params)
+                .then(r => r.json())
+                .then(data => renderItems(data.items))
+                .catch(() => { resultBody.innerHTML = '<tr><td colspan="8" class="text-danger text-center py-3">Failed to load items.</td></tr>'; });
+        }
+
+        function renderItems(items) {
+            if (!items.length) {
+                resultBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No items found.</td></tr>';
+                return;
+            }
+            resultBody.innerHTML = items.map(item => {
+                const color = opColors[item.operation_type] || 'secondary';
+                return `<tr data-item-id="${item.id}" data-item-unit="${item.unit_type}" data-item-desc="${item.description}" style="cursor:pointer;">
+                    <td class="ps-2 font-monospace small">${item.tariff_code || '—'}</td>
+                    <td><span class="badge bg-${color}-subtle text-${color} border text-uppercase small">${item.operation_type}</span></td>
+                    <td class="small">${item.description}</td>
+                    <td class="small text-muted">${item.unit_type.toUpperCase()}</td>
+                    <td class="text-center small">${item.slab_count}</td>
+                    <td><input type="number" class="form-control form-control-sm gr-qty" value="1" min="0.01" step="0.01" style="width:70px" onclick="event.stopPropagation()"></td>
+                    <td><input type="number" class="form-control form-control-sm gr-labor-rate" value="0" min="0" step="0.01" style="width:65px" placeholder="Rate" onclick="event.stopPropagation()"></td>
+                    <td><button type="button" class="btn btn-xs btn-outline-success gr-calc-btn" onclick="event.stopPropagation()">
+                        <i class="bi bi-calculator"></i> Calc
+                    </button></td>
+                </tr>`;
+            }).join('');
+
+            resultBody.querySelectorAll('.gr-calc-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const row = this.closest('tr');
+                    const itemId    = row.dataset.itemId;
+                    const qty       = parseFloat(row.querySelector('.gr-qty').value) || 1;
+                    const laborRate = parseFloat(row.querySelector('.gr-labor-rate').value) || 0;
+                    const custId    = document.querySelector('[name="customer_id"]')?.value || '';
+
+                    const params = new URLSearchParams({ item_id: itemId, qty, labor_rate: laborRate });
+                    if (custId) params.set('customer_id', custId);
+
+                    fetch('{{ route("masters.mr-tariff.rate-lookup") }}?' + params)
+                        .then(r => r.json())
+                        .then(result => {
+                            selectedItem = { id: itemId, desc: row.dataset.itemDesc, unit: row.dataset.itemUnit, qty, laborRate };
+                            selectedRate = result;
+                            document.getElementById('grLaborHrs').textContent  = result.labor_hours.toFixed(3) + ' hrs';
+                            document.getElementById('grLaborAmt').textContent  = result.labor_amount.toFixed(2);
+                            document.getElementById('grMaterialAmt').textContent = result.material_cost.toFixed(2);
+                            document.getElementById('grTotal').textContent     = result.total.toFixed(2);
+                            rateResult.classList.remove('d-none');
+                        })
+                        .catch(() => alert('Rate lookup failed.'));
+                });
+            });
+        }
+
+        searchBtn.addEventListener('click', fetchItems);
+        document.getElementById('grSearchQ').addEventListener('keydown', e => { if (e.key === 'Enter') fetchItems(); });
+
+        applyBtn.addEventListener('click', function () {
+            if (!selectedItem || !selectedRate) return;
+            lineItems.insertAdjacentHTML('beforeend', buildRow({
+                component:       selectedItem.desc,
+                unit_price:      selectedRate.total,
+                qty:             selectedItem.qty,
+                std_labor_hours: selectedRate.labor_hours,
+                labor_rate:      selectedItem.laborRate,
+                labor_amount:    selectedRate.labor_amount,
+                material_amount: selectedRate.material_cost,
+            }));
+            initLineSelects(lineItems.lastElementChild);
+            recalculate();
+            bootstrap.Modal.getInstance(document.getElementById('getRateModal'))?.hide();
+            const tr = lineItems.lastElementChild;
+            tr.style.backgroundColor = '#d1fae5';
+            setTimeout(() => { tr.style.backgroundColor = ''; }, 1400);
+        });
+    })();
 })();
 </script>
 @endpush

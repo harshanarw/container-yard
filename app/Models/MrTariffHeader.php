@@ -28,6 +28,11 @@ class MrTariffHeader extends Model
         return $this->hasMany(MrTariffRule::class, 'mr_tariff_header_id');
     }
 
+    public function items()
+    {
+        return $this->hasMany(MrTariffItem::class, 'mr_tariff_header_id');
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');

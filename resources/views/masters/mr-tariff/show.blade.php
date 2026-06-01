@@ -206,6 +206,12 @@
     </div>
 </div>
 
+{{-- ── Slab Items Tab ── --}}
+<div class="mb-4">
+    <h6 class="fw-semibold mb-3"><i class="bi bi-grid-3x3-gap me-2 text-primary"></i>Slab-Based Tariff Items</h6>
+    @include('masters.mr-tariff._items_tab')
+</div>
+
 {{-- ── Edit Header Modal ── --}}
 <div class="modal fade" id="editHeaderModal" tabindex="-1">
     <div class="modal-dialog modal-lg">

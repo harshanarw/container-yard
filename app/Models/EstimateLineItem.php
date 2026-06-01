@@ -10,7 +10,7 @@ class EstimateLineItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'estimate_id', 'damage_id', 'mr_tariff_rule_id',
+        'estimate_id', 'damage_id', 'mr_tariff_rule_id', 'mr_tariff_item_id',
         'location_code_id', 'component_code_id', 'damage_code_id',
         'repair_code_id', 'material_code_id',
         'component', 'repair_type',
@@ -58,6 +58,11 @@ class EstimateLineItem extends Model
     public function tariffRule()
     {
         return $this->belongsTo(MrTariffRule::class, 'mr_tariff_rule_id');
+    }
+
+    public function tariffItem()
+    {
+        return $this->belongsTo(MrTariffItem::class, 'mr_tariff_item_id');
     }
 
     public function locationCode()
