@@ -545,29 +545,29 @@
             <tr>
                 <td style="width:20%">
                     <div class="cell-lbl">Size / Type</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->size }}' {{ $movement->container_type }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->size }}' {{ $movement->container_type }}</div>
                 </td>
                 <td style="width:18%">
                     <div class="cell-lbl">Status</div>
-                    <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:9pt;">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
+                    <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:8.5pt;">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
                 </td>
                 <td style="width:24%">
                     <div class="cell-lbl">Seal No.</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->seal_no ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->seal_no ?: '—' }}</div>
                 </td>
                 <td style="width:38%">
                     <div class="cell-lbl">Release Order Ref.</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->release_order ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->release_order ?: '—' }}</div>
                 </td>
             </tr>
             <tr>
                 <td colspan="3">
                     <div class="cell-lbl">Owner / Shipping Line</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $gateIn?->customer?->name ?? $movement->customer?->name ?? '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $gateIn?->customer?->name ?? $movement->customer?->name ?? '—' }}</div>
                 </td>
                 <td>
                     <div class="cell-lbl">Date / Time</div>
-                    <div class="cell-val" style="font-size:9pt;">
+                    <div class="cell-val" style="font-size:8.5pt;">
                         {{ $movement->gate_out_time?->format('d M Y') ?? '—' }}
                         {{ $movement->gate_out_time?->format('H:i') ?? '' }}
                     </div>
@@ -587,31 +587,31 @@
             <tr>
                 <td colspan="3">
                     <div class="cell-lbl">Customer</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->customer?->name ?: '—' }}</div>
                 </td>
                 <td colspan="3">
                     <div class="cell-lbl">Shipper</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->shipper ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->shipper ?: '—' }}</div>
                 </td>
             </tr>
             <tr>
                 <td colspan="2">
                     <div class="cell-lbl">Loading Vessel / Voyage</div>
-                    <div class="cell-val" style="font-size:9pt;">
+                    <div class="cell-val" style="font-size:8.5pt;">
                         {{ $movement->loading_vessel ?: '—' }}
                         @if($movement->loading_voyage) / {{ $movement->loading_voyage }} @endif
                         @if($movement->sailing_date)
-                            &nbsp;<span style="font-weight:normal;font-size:8pt;">Sailing: {{ $movement->sailing_date->format('d M Y') }}</span>
+                            &nbsp;<span style="font-weight:normal;font-size:7.5pt;">Sailing: {{ $movement->sailing_date->format('d M Y') }}</span>
                         @endif
                     </div>
                 </td>
                 <td colspan="2">
                     <div class="cell-lbl">Transporter</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->transporter?->name ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->transporter?->name ?: '—' }}</div>
                 </td>
                 <td colspan="2">
                     <div class="cell-lbl">Ex. Vessel (Import)</div>
-                    <div class="cell-val" style="font-size:9pt;">
+                    <div class="cell-val" style="font-size:8.5pt;">
                         {{ $gateIn?->vessel_name ?: '—' }}
                         @if($gateIn?->voyage_no) / {{ $gateIn->voyage_no }} @endif
                     </div>
@@ -627,40 +627,40 @@
             <tr>
                 <td style="width:28%">
                     <div class="cell-lbl">Truck / Vehicle No.</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->vehicle_plate ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->vehicle_plate ?: '—' }}</div>
                 </td>
                 <td style="width:22%">
                     <div class="cell-lbl">Trailer No.</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->trailer_no ?? '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->trailer_no ?? '—' }}</div>
                 </td>
                 <td style="width:30%">
                     <div class="cell-lbl">Driver Name</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_name ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->driver_name ?: '—' }}</div>
                 </td>
                 <td style="width:20%">
                     <div class="cell-lbl">Driver ID</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_ic ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->driver_ic ?: '—' }}</div>
                 </td>
             </tr>
         </table>
     </div>
 
-    {{-- ── Section 4: Authorization (compact 2-sig) ── --}}
+    {{-- ── Section 4: Authorization (name-above-line, no signing gap) ── --}}
     <div class="sec">
         <div class="sec-hdr">Authorization</div>
         <div class="declaration" style="font-size:8pt;">&ldquo;I authorize the release of the above Container.&rdquo;</div>
         @unless($showApprovalBlock)
         <table>
             <tr>
-                <td class="sig-cell" style="height:60px;">
-                    <div class="sig-label" style="margin-bottom:24px;font-size:8pt;">Issued By</div>
+                <td style="text-align:center;padding:7px;">
+                    <div class="cell-lbl">Issued By</div>
+                    <div style="font-size:8.5pt;font-weight:700;margin-bottom:5px;">{{ $movement->createdBy?->name ?? '—' }}</div>
                     <div class="sig-line"></div>
-                    <div class="sig-name">{{ $movement->createdBy?->name ?? '—' }}</div>
                 </td>
-                <td class="sig-cell" style="height:60px;">
-                    <div class="sig-label" style="margin-bottom:24px;font-size:8pt;">Received By (Driver)</div>
+                <td style="text-align:center;padding:7px;">
+                    <div class="cell-lbl">Received By (Driver)</div>
+                    <div style="font-size:8.5pt;font-weight:700;margin-bottom:5px;">{{ $movement->driver_name ?: '—' }}</div>
                     <div class="sig-line"></div>
-                    <div class="sig-name">{{ $movement->driver_name ?: '—' }}</div>
                 </td>
             </tr>
         </table>
