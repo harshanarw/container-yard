@@ -608,6 +608,12 @@
                                style="font-size:.65rem;" title="Gate Pass">
                                 <i class="bi bi-printer"></i>
                             </a>
+                            @elseif($mv->movement_type === 'in')
+                            <a href="{{ route('yard.movements.gate-pass', $mv) }}" target="_blank"
+                               class="btn btn-outline-primary btn-sm py-0 px-1"
+                               style="font-size:.65rem;" title="Inward Gate Pass">
+                                <i class="bi bi-printer"></i>
+                            </a>
                             @endif
                             <a href="{{ route('yard.movements.edit', $mv) }}"
                                class="btn btn-outline-secondary btn-sm py-0 px-1"

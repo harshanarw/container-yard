@@ -92,8 +92,11 @@
             font-size: 13px;
             font-weight: 700;
         }
-        .pill-laden  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
-        .pill-empty  { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .pill-laden   { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .pill-empty   { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .pill-sound   { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .pill-damaged { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .pill-repair  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
 
         /* ── Cross-check table ───────────────────────────────────────── */
         .check-row {
@@ -193,6 +196,19 @@
             </span>
         </div>
     </div>
+    @if($isInward)
+    @php
+        $dbCond = strtolower($movement->condition ?? 'sound');
+        $condDisplay = match($dbCond) { 'damaged' => 'DAMAGED', 'require_repair' => 'REQ. REPAIR', default => 'SOUND' };
+        $condPillClass = match($dbCond) { 'damaged' => 'pill-damaged', 'require_repair' => 'pill-repair', default => 'pill-sound' };
+    @endphp
+    <div class="vfy-row">
+        <div class="vfy-row-lbl">Condition</div>
+        <div class="vfy-row-val">
+            <span class="vfy-status-pill {{ $condPillClass }}">{{ $condDisplay }}</span>
+        </div>
+    </div>
+    @endif
     <div class="vfy-row">
         <div class="vfy-row-lbl">{{ $isInward ? 'Gate-In Time' : 'Gate-Out Time' }}</div>
         <div class="vfy-row-val">

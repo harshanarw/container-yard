@@ -131,8 +131,11 @@
             display: inline-block; padding: 2px 11px; border-radius: 10px;
             font-size: 8pt; font-weight: 900; letter-spacing: .6px; margin-top: 6px; white-space: nowrap;
         }
-        .gp-status-badge-laden { background: #fef3c7; color: #92400e; border: 1.5px solid #d97706; }
-        .gp-status-badge-empty { background: #d1fae5; color: #065f46; border: 1.5px solid #059669; }
+        .gp-status-badge-laden   { background: #fef3c7; color: #92400e; border: 1.5px solid #d97706; }
+        .gp-status-badge-empty   { background: #d1fae5; color: #065f46; border: 1.5px solid #059669; }
+        .gp-status-badge-sound   { background: #d1fae5; color: #065f46; border: 1.5px solid #059669; }
+        .gp-status-badge-damaged { background: #fee2e2; color: #991b1b; border: 1.5px solid #dc2626; }
+        .gp-status-badge-repair  { background: #fef3c7; color: #92400e; border: 1.5px solid #d97706; }
 
         /* ── Declaration box ─────────────────────────────────────────────── */
         .declaration {
@@ -197,6 +200,11 @@
     $printedAt = now()->format('d M Y H:i');
     $printedBy = $movement->createdBy?->name ?? '—';
 
+    $cond          = strtolower($movement->condition ?? 'sound');
+    $condLabel     = match($cond) { 'damaged' => 'DAMAGED', 'require_repair' => 'REQ. REPAIR', default => 'SOUND' };
+    $condTextClass = match($cond) { 'damaged' => 'cond-damaged', 'require_repair' => 'cond-repair', default => 'cond-sound' };
+    $condBadgeClass = match($cond) { 'damaged' => 'gp-status-badge-damaged', 'require_repair' => 'gp-status-badge-repair', default => 'gp-status-badge-sound' };
+
     $yardLoc = collect([
         $movement->location_zone ? 'Zone ' . $movement->location_zone : null,
         $movement->location_row  ? 'Row '  . $movement->location_row  : null,
@@ -208,6 +216,7 @@
         'cn' => $movement->container_no,
         'sz' => $movement->size . $movement->container_type,
         'st' => $isLaden ? 'L' : 'E',
+        'co' => match($cond) { 'damaged' => 'DAM', 'require_repair' => 'REQ', default => 'SOU' },
         'dt' => $movement->gate_in_time?->format('YmdHi'),
         'vh' => preg_replace('/[^A-Z0-9]/', '', strtoupper($movement->vehicle_plate ?? '')),
         'tp' => 'in',
@@ -246,10 +255,11 @@
         <div class="gp-header-mid">
             <div class="gp-pass-no-label">Inward Gate Pass No.</div>
             <div class="gp-pass-no-value">{{ $igpNumber }}</div>
-            <div>
+            <div style="display:flex;gap:5px;justify-content:flex-end;margin-top:4px;flex-wrap:wrap;">
                 <span class="gp-status-badge {{ $isLaden ? 'gp-status-badge-laden' : 'gp-status-badge-empty' }}">
                     {{ $isLaden ? 'LADEN' : 'EMPTY' }}
                 </span>
+                <span class="gp-status-badge {{ $condBadgeClass }}">{{ $condLabel }}</span>
             </div>
         </div>
         <div class="gp-header-qr">
@@ -301,10 +311,7 @@
                 </td>
                 <td style="width:16%">
                     <div class="cell-lbl">Condition</div>
-                    @php $cond = strtolower($movement->condition ?? 'sound'); @endphp
-                    <div class="cell-val {{ $cond === 'damaged' ? 'cond-damaged' : ($cond === 'require_repair' ? 'cond-repair' : 'cond-sound') }}">
-                        {{ $cond === 'damaged' ? 'Damaged' : ($cond === 'require_repair' ? 'Req. Repair' : 'Sound') }}
-                    </div>
+                    <div class="cell-val {{ $condTextClass }}">{{ $condLabel }}</div>
                 </td>
                 <td style="width:30%">
                     <div class="cell-lbl">Yard Location</div>
@@ -478,10 +485,11 @@
         <div style="flex:0 0 auto;text-align:right;white-space:nowrap;">
             <div class="gp-pass-no-label">Inward Gate Pass No.</div>
             <div class="gp-pass-no-value" style="font-size:14pt;">{{ $igpNumber }}</div>
-            <div>
-                <span class="gp-status-badge {{ $isLaden ? 'gp-status-badge-laden' : 'gp-status-badge-empty' }}" style="font-size:7.5pt;margin-top:4px;">
+            <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:4px;flex-wrap:wrap;">
+                <span class="gp-status-badge {{ $isLaden ? 'gp-status-badge-laden' : 'gp-status-badge-empty' }}" style="font-size:7.5pt;">
                     {{ $isLaden ? 'LADEN' : 'EMPTY' }}
                 </span>
+                <span class="gp-status-badge {{ $condBadgeClass }}" style="font-size:7.5pt;">{{ $condLabel }}</span>
             </div>
         </div>
         <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;">
@@ -512,10 +520,7 @@
                 </td>
                 <td style="width:16%">
                     <div class="cell-lbl">Condition</div>
-                    @php $cond = strtolower($movement->condition ?? 'sound'); @endphp
-                    <div class="cell-val {{ $cond === 'damaged' ? 'cond-damaged' : ($cond === 'require_repair' ? 'cond-repair' : 'cond-sound') }}" style="font-size:9pt;">
-                        {{ $cond === 'damaged' ? 'Damaged' : ($cond === 'require_repair' ? 'Req. Repair' : 'Sound') }}
-                    </div>
+                    <div class="cell-val {{ $condTextClass }}" style="font-size:9pt;">{{ $condLabel }}</div>
                 </td>
                 <td style="width:32%">
                     <div class="cell-lbl">Date / Time</div>

@@ -736,6 +736,17 @@ class YardController extends Controller
             ];
         }
 
+        if ($request->has('co') && $passType === 'in') {
+            $urlCo  = strtoupper($request->query('co'));
+            $dbCond = strtolower($movement->condition ?? 'sound');
+            $dbCo   = match($dbCond) { 'damaged' => 'DAM', 'require_repair' => 'REQ', default => 'SOU' };
+            $checks['Condition'] = [
+                'url'   => match($urlCo) { 'DAM' => 'DAMAGED', 'REQ' => 'REQ. REPAIR', default => 'SOUND' },
+                'db'    => match($dbCond) { 'damaged' => 'DAMAGED', 'require_repair' => 'REQ. REPAIR', default => 'SOUND' },
+                'match' => $urlCo === $dbCo,
+            ];
+        }
+
         $allMatch = !empty($checks) && collect($checks)->every(fn($c) => $c['match']);
         $hasParams = !empty($checks);
 
