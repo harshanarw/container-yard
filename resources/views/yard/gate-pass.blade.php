@@ -609,9 +609,9 @@
                     <div class="sig-name">{{ $movement->createdBy?->name ?? '' }}</div>
                 </td>
                 <td class="sig-cell" style="height:64px;">
-                    <div class="sig-label" style="margin-bottom:30px;font-size:8pt;">Driver Signature</div>
+                    <div class="sig-label" style="margin-bottom:30px;font-size:8pt;">Approved By</div>
                     <div class="sig-line"></div>
-                    <div class="sig-name">{{ $movement->driver_name ?? '' }}</div>
+                    <div class="sig-name">&nbsp;</div>
                 </td>
                 <td class="sig-cell" style="height:64px;">
                     <div class="sig-label" style="margin-bottom:30px;font-size:8pt;">Gate Officer</div>
