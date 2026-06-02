@@ -449,20 +449,6 @@
                 </td>
             </tr>
         </table>
-        {{-- Driver acknowledgement row --}}
-        <table style="margin-top:4px;">
-            <tr>
-                <td style="width:38%;font-size:9.5pt;">
-                    Driver: <strong>{{ $movement->driver_name ?: '______________________' }}</strong>
-                </td>
-                <td style="width:32%;text-align:center;font-size:9.5pt;">
-                    Signature: _______________
-                </td>
-                <td style="width:30%;text-align:right;font-size:9.5pt;">
-                    ID: <strong>{{ $movement->driver_ic ?: '______________' }}</strong>
-                </td>
-            </tr>
-        </table>
     </div>
 
     {{-- ── Digital Approval Block (full format) ── --}}
