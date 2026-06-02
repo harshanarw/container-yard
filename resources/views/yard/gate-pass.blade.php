@@ -84,7 +84,7 @@
         .gp-qr canvas { display: none !important; }
         .gp-qr img { display: inline-block; border: 1px solid #bbb; padding: 2px; background: #fff; width: 88px; height: 88px; }
         .gp-qr-sm img { width: 70px; height: 70px; }
-        .gp-qr-caption { font-size: 6.5pt; color: #666; text-align: right; margin-top: 3px; line-height: 1; }
+        .gp-qr-caption { font-size: 6.5pt; color: #666; text-align: center; margin-top: 3px; line-height: 1; width: 88px; }
 
         /* ── Title bar ───────────────────────────────────────────────────── */
         .gp-title {
@@ -512,7 +512,7 @@
             <div class="gp-qr gp-qr-sm">
                 <div id="qr-half"></div>
             </div>
-            <div class="gp-qr-caption">Scan to verify</div>
+            <div class="gp-qr-caption" style="width:70px;">Scan to verify</div>
         </div>
     </div>
 
