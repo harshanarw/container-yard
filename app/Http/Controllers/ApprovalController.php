@@ -23,16 +23,14 @@ class ApprovalController extends Controller
 
     public function initiateGatePass(Request $request, GateMovement $movement)
     {
-        if ($movement->movement_type !== 'out') {
-            abort(404);
-        }
-
         if ($movement->allApprovalRequests()->whereIn('status', ['pending', 'approved'])->exists()) {
             return back()->with('error', 'An approval request already exists for this gate pass.');
         }
 
+        $docType = $movement->movement_type === 'in' ? 'gate_pass_in' : 'gate_pass';
+
         try {
-            $this->approvalService->initiate($movement, 'gate_pass', Auth::user(), $request->ip());
+            $this->approvalService->initiate($movement, $docType, Auth::user(), $request->ip());
             return back()->with('success', 'Approval request submitted successfully.');
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());

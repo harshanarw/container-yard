@@ -648,11 +648,15 @@ class YardController extends Controller
 
     public function gatePass(Request $request, GateMovement $movement)
     {
-        if ($movement->movement_type !== 'out') {
-            abort(404, 'Gate pass is only available for Gate-Out movements.');
-        }
+        $format = in_array($request->query('format'), ['full', 'half', 'half-custom'])
+            ? $request->query('format')
+            : 'full';
 
         $movement->load(['container', 'customer', 'transporter', 'createdBy', 'approvalRequest.actions.actionedBy']);
+
+        if ($movement->movement_type === 'in') {
+            return view('yard.gate-pass-inward', compact('movement', 'format'));
+        }
 
         // Pull the most recent Gate-In for this container to get import vessel / voyage
         $gateIn = GateMovement::where('container_id', $movement->container_id)
@@ -660,24 +664,21 @@ class YardController extends Controller
             ->latest('gate_in_time')
             ->first();
 
-        $format = in_array($request->query('format'), ['full', 'half', 'half-custom'])
-            ? $request->query('format')
-            : 'full';
-
         return view('yard.gate-pass', compact('movement', 'gateIn', 'format'));
     }
 
     public function verifyGatePass(Request $request, GateMovement $movement)
     {
-        if ($movement->movement_type !== 'out') {
-            abort(404);
-        }
-
         $movement->load(['customer', 'transporter']);
-        $gateIn = GateMovement::where('container_id', $movement->container_id)
-            ->where('movement_type', 'in')
-            ->latest('gate_in_time')
-            ->first();
+        $passType = $movement->movement_type;
+
+        $gateIn = null;
+        if ($passType === 'out') {
+            $gateIn = GateMovement::where('container_id', $movement->container_id)
+                ->where('movement_type', 'in')
+                ->latest('gate_in_time')
+                ->first();
+        }
 
         // Cross-check URL params against the DB record to detect tampering
         $checks = [];
@@ -713,12 +714,14 @@ class YardController extends Controller
 
         if ($request->has('dt')) {
             $urlDt = $request->query('dt');
-            $dbDt  = $movement->gate_out_time?->format('YmdHi');
-            $checks['Gate-Out Time'] = [
-                'url'   => $movement->gate_out_time
+            $timeField = $passType === 'in' ? 'gate_in_time' : 'gate_out_time';
+            $dbDt  = $movement->$timeField?->format('YmdHi');
+            $label = $passType === 'in' ? 'Gate-In Time' : 'Gate-Out Time';
+            $checks[$label] = [
+                'url'   => $movement->$timeField
                     ? \Carbon\Carbon::createFromFormat('YmdHi', $urlDt)?->format('d M Y H:i')
                     : $urlDt,
-                'db'    => $movement->gate_out_time?->format('d M Y H:i') ?? '—',
+                'db'    => $movement->$timeField?->format('d M Y H:i') ?? '—',
                 'match' => $urlDt === $dbDt,
             ];
         }
@@ -736,7 +739,7 @@ class YardController extends Controller
         $allMatch = !empty($checks) && collect($checks)->every(fn($c) => $c['match']);
         $hasParams = !empty($checks);
 
-        return view('yard.gate-pass-verify', compact('movement', 'gateIn', 'checks', 'allMatch', 'hasParams'));
+        return view('yard.gate-pass-verify', compact('movement', 'gateIn', 'passType', 'checks', 'allMatch', 'hasParams'));
     }
 
     public function destroyMovementPhoto(GateMovement $movement, GateMovementPhoto $photo)

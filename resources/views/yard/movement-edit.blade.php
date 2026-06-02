@@ -45,6 +45,11 @@
            class="btn btn-outline-success">
             <i class="bi bi-printer me-1"></i>Gate Pass
         </a>
+        @elseif($movement->movement_type === 'in')
+        <a href="{{ route('yard.movements.gate-pass', $movement) }}" target="_blank"
+           class="btn btn-outline-primary">
+            <i class="bi bi-printer me-1"></i>Inward Gate Pass
+        </a>
         @endif
         <a href="{{ route('yard.gate') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back
@@ -534,12 +539,10 @@
     {{-- Right column: Approvals (gate-out only) + Photos & Documents --}}
     <div class="col-lg-5">
 
-        @if($movement->movement_type === 'out')
         @include('approvals._panel', [
             'approvalRequest' => $movement->approvalRequest,
             'movement'        => $movement,
         ])
-        @endif
 
         <x-document-manager
             model-type="App\Models\GateMovement"

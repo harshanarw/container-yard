@@ -126,7 +126,9 @@
 
 @php
     $companyPrefix = strtoupper(trim($companySetting?->company_prefix ?? ''));
-    $gpNumber = ($companyPrefix ? $companyPrefix . '-' : '') . 'GP-' . str_pad($movement->id, 5, '0', STR_PAD_LEFT);
+    $isInward  = ($passType ?? $movement->movement_type) === 'in';
+    $gpPrefix  = $isInward ? 'IGP' : 'GP';
+    $gpNumber  = ($companyPrefix ? $companyPrefix . '-' : '') . $gpPrefix . '-' . str_pad($movement->id, 5, '0', STR_PAD_LEFT);
     $isLaden   = strtolower($movement->cargo_status ?? '') === 'laden';
     $verifiedAt = now()->format('d M Y, H:i');
 @endphp
@@ -137,7 +139,7 @@
     <img src="{{ $companySetting->logo_url }}" class="vfy-logo" alt="Logo">
     @endif
     <div class="vfy-yard">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
-    <div class="vfy-label">Gate Pass Verification</div>
+    <div class="vfy-label">{{ $isInward ? 'Inward' : 'Outward' }} Gate Pass Verification</div>
 </div>
 
 {{-- Status banner --}}
@@ -192,8 +194,12 @@
         </div>
     </div>
     <div class="vfy-row">
-        <div class="vfy-row-lbl">Gate-Out Time</div>
-        <div class="vfy-row-val">{{ $movement->gate_out_time?->format('d M Y, H:i') ?? '—' }}</div>
+        <div class="vfy-row-lbl">{{ $isInward ? 'Gate-In Time' : 'Gate-Out Time' }}</div>
+        <div class="vfy-row-val">
+            {{ $isInward
+                ? ($movement->gate_in_time?->format('d M Y, H:i') ?? '—')
+                : ($movement->gate_out_time?->format('d M Y, H:i') ?? '—') }}
+        </div>
     </div>
     <div class="vfy-row">
         <div class="vfy-row-lbl">Vehicle Plate</div>
@@ -204,10 +210,18 @@
         <div class="vfy-row-val">{{ $movement->driver_name ?: '—' }}</div>
     </div>
     <div class="vfy-row">
-        <div class="vfy-row-lbl">Customer</div>
+        <div class="vfy-row-lbl">{{ $isInward ? 'Owner / Shipping Line' : 'Customer' }}</div>
         <div class="vfy-row-val">{{ $movement->customer?->name ?: ($gateIn?->customer?->name ?: '—') }}</div>
     </div>
-    @if($movement->loading_vessel)
+    @if($isInward && $movement->vessel_name)
+    <div class="vfy-row">
+        <div class="vfy-row-lbl">Ex. Vessel</div>
+        <div class="vfy-row-val">{{ $movement->vessel_name }}
+            @if($movement->voyage_no) / {{ $movement->voyage_no }} @endif
+        </div>
+    </div>
+    @endif
+    @if(!$isInward && $movement->loading_vessel)
     <div class="vfy-row">
         <div class="vfy-row-lbl">Loading Vessel</div>
         <div class="vfy-row-val">{{ $movement->loading_vessel }}
@@ -215,7 +229,7 @@
         </div>
     </div>
     @endif
-    @if($gateIn?->vessel_name)
+    @if(!$isInward && $gateIn?->vessel_name)
     <div class="vfy-row">
         <div class="vfy-row-lbl">Ex. Vessel</div>
         <div class="vfy-row-val">{{ $gateIn->vessel_name }}
