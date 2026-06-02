@@ -339,18 +339,22 @@
     <div class="sec">
         <div class="sec-hdr">Customer &amp; Transport Information</div>
         <table>
+            <colgroup>
+                <col style="width:16.67%"><col style="width:16.67%"><col style="width:16.66%">
+                <col style="width:16.67%"><col style="width:16.67%"><col style="width:16.66%">
+            </colgroup>
             <tr>
-                <td style="width:50%">
+                <td colspan="3">
                     <div class="cell-lbl">Customer</div>
                     <div class="cell-val">{{ $movement->customer?->name ?: '—' }}</div>
                 </td>
-                <td style="width:50%">
+                <td colspan="3">
                     <div class="cell-lbl">Shipper</div>
                     <div class="cell-val">{{ $movement->shipper ?: '—' }}</div>
                 </td>
             </tr>
             <tr>
-                <td style="width:34%">
+                <td colspan="2">
                     <div class="cell-lbl">Loading Vessel / Voyage</div>
                     <div class="cell-val">
                         {{ $movement->loading_vessel ?: '—' }}
@@ -360,11 +364,11 @@
                         @endif
                     </div>
                 </td>
-                <td style="width:33%">
+                <td colspan="2">
                     <div class="cell-lbl">Transporter</div>
                     <div class="cell-val">{{ $movement->transporter?->name ?: '—' }}</div>
                 </td>
-                <td style="width:33%">
+                <td colspan="2">
                     <div class="cell-lbl">Ex. Vessel (Import)</div>
                     <div class="cell-val">
                         {{ $gateIn?->vessel_name ?: '—' }}
