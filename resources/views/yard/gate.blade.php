@@ -587,6 +587,11 @@
                                     @else
                                         <span class="badge bg-success-subtle text-success" style="font-size:.65rem;"><i class="bi bi-arrow-up-circle"></i> Out</span>
                                     @endif
+                                    @if($mv->cargo_status)
+                                    <span class="badge rounded-pill {{ strtolower($mv->cargo_status) === 'laden' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-success-subtle text-success' }}" style="font-size:.62rem;">
+                                        {{ strtolower($mv->cargo_status) === 'laden' ? 'Laden' : 'Empty' }}
+                                    </span>
+                                    @endif
                                     @if($mv->location_zone)
                                         <span class="badge rounded-pill" style="font-size:.6rem;background:#e0e7ff;color:#3730a3;">
                                             {{ $mv->location_zone }}-{{ $mv->location_row }}{{ $mv->location_bay }}-T{{ $mv->location_tier }}

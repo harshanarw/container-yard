@@ -219,8 +219,13 @@
                             <tr>
                                 <td class="ps-3">
                                     <div class="fw-semibold font-monospace small">{{ $mv->container_no }}</div>
-                                    <div style="font-size:.68rem;">
+                                    <div style="font-size:.68rem;" class="d-flex align-items-center gap-1 flex-wrap">
                                         <span class="{{ in_array($mv->container_type, ['RF','RH']) ? 'badge badge-reefer' : 'text-muted' }}">{{ $mv->size }}' {{ $mv->container_type }}</span>
+                                        @if($mv->cargo_status)
+                                        <span class="badge rounded-pill {{ strtolower($mv->cargo_status) === 'laden' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-success-subtle text-success' }}" style="font-size:.6rem;">
+                                            {{ strtolower($mv->cargo_status) === 'laden' ? 'Laden' : 'Empty' }}
+                                        </span>
+                                        @endif
                                     </div>
                                 </td>
                                 <td class="small">{{ $mv->customer?->name ?? '—' }}</td>
