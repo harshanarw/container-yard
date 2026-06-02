@@ -561,23 +561,19 @@
         <div class="sec-hdr">Customer &amp; Vehicle Details</div>
         <table>
             <tr>
-                <td style="width:28%">
+                <td style="width:30%">
                     <div class="cell-lbl">Customer</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?: '—' }}</div>
                 </td>
-                <td style="width:22%">
-                    <div class="cell-lbl">Transporter</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->transporter?->name ?: '—' }}</div>
-                </td>
-                <td style="width:18%">
+                <td style="width:23%">
                     <div class="cell-lbl">Truck / Vehicle No.</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->vehicle_plate ?: '—' }}</div>
                 </td>
-                <td style="width:19%">
+                <td style="width:30%">
                     <div class="cell-lbl">Driver Name</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_name ?: '—' }}</div>
                 </td>
-                <td style="width:13%">
+                <td style="width:17%">
                     <div class="cell-lbl">Driver ID</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_ic ?: '—' }}</div>
                 </td>
