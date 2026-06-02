@@ -121,6 +121,11 @@
         .status-laden { color: #b45309; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
         .status-empty { color: #059669; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
 
+        /* ── Condition text ──────────────────────────────────────────────── */
+        .cond-sound   { color: #059669; font-weight: 900; letter-spacing: .5px; }
+        .cond-damaged { color: #dc2626; font-weight: 900; letter-spacing: .5px; }
+        .cond-repair  { color: #b45309; font-weight: 900; letter-spacing: .5px; }
+
         /* ── Status badge (header) ───────────────────────────────────────── */
         .gp-status-badge {
             display: inline-block; padding: 2px 11px; border-radius: 10px;
@@ -282,25 +287,32 @@
         <div class="sec-hdr">Container Details</div>
         <table>
             <tr>
-                <td style="width:22%">
+                <td style="width:18%">
                     <div class="cell-lbl">Size / Type</div>
                     <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}</div>
                 </td>
-                <td style="width:22%">
+                <td style="width:18%">
                     <div class="cell-lbl">Status</div>
                     <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
                 </td>
-                <td style="width:22%">
+                <td style="width:18%">
                     <div class="cell-lbl">Seal No.</div>
                     <div class="cell-val">{{ $movement->seal_no ?: '—' }}</div>
                 </td>
-                <td style="width:34%">
+                <td style="width:16%">
+                    <div class="cell-lbl">Condition</div>
+                    @php $cond = strtolower($movement->condition ?? 'sound'); @endphp
+                    <div class="cell-val {{ $cond === 'damaged' ? 'cond-damaged' : ($cond === 'require_repair' ? 'cond-repair' : 'cond-sound') }}">
+                        {{ $cond === 'damaged' ? 'Damaged' : ($cond === 'require_repair' ? 'Req. Repair' : 'Sound') }}
+                    </div>
+                </td>
+                <td style="width:30%">
                     <div class="cell-lbl">Yard Location</div>
                     <div class="cell-val">{{ $yardLoc ?: '—' }}</div>
                 </td>
             </tr>
             <tr>
-                <td colspan="4">
+                <td colspan="5">
                     <div class="cell-lbl">Owner / Shipping Line</div>
                     <div class="cell-val">{{ $movement->customer?->name ?? '—' }}</div>
                 </td>
@@ -490,19 +502,22 @@
                     <div class="cell-lbl">Size / Type</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->size }}' {{ $movement->container_type }}</div>
                 </td>
-                <td style="width:18%">
+                <td style="width:16%">
                     <div class="cell-lbl">Status</div>
                     <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:9pt;">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
                 </td>
-                <td style="width:22%">
+                <td style="width:20%">
                     <div class="cell-lbl">Seal No.</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->seal_no ?: '—' }}</div>
                 </td>
-                <td style="width:22%">
-                    <div class="cell-lbl">Yard Location</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $yardLoc ?: '—' }}</div>
+                <td style="width:16%">
+                    <div class="cell-lbl">Condition</div>
+                    @php $cond = strtolower($movement->condition ?? 'sound'); @endphp
+                    <div class="cell-val {{ $cond === 'damaged' ? 'cond-damaged' : ($cond === 'require_repair' ? 'cond-repair' : 'cond-sound') }}" style="font-size:9pt;">
+                        {{ $cond === 'damaged' ? 'Damaged' : ($cond === 'require_repair' ? 'Req. Repair' : 'Sound') }}
+                    </div>
                 </td>
-                <td style="width:22%">
+                <td style="width:32%">
                     <div class="cell-lbl">Date / Time</div>
                     <div class="cell-val" style="font-size:9pt;">
                         {{ $movement->gate_in_time?->format('d M Y') ?? '—' }}
@@ -511,9 +526,13 @@
                 </td>
             </tr>
             <tr>
-                <td colspan="5">
+                <td colspan="3">
                     <div class="cell-lbl">Owner / Shipping Line</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?? '—' }}</div>
+                </td>
+                <td colspan="2">
+                    <div class="cell-lbl">Yard Location</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $yardLoc ?: '—' }}</div>
                 </td>
             </tr>
         </table>
