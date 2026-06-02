@@ -429,6 +429,7 @@
         <div class="declaration">
             &ldquo;I authorize the release of the above Container.&rdquo;
         </div>
+        @unless($showApprovalBlock)
         <table>
             <tr>
                 <td class="sig-cell">
@@ -448,6 +449,7 @@
                 </td>
             </tr>
         </table>
+        @endunless
     </div>
 
     {{-- ── Digital Approval Block (full format) ── --}}
@@ -598,6 +600,7 @@
     <div class="sec">
         <div class="sec-hdr">Authorization</div>
         <div class="declaration" style="font-size:8pt;">&ldquo;I authorize the release of the above Container.&rdquo;</div>
+        @unless($showApprovalBlock)
         <table>
             <tr>
                 <td class="sig-cell" style="height:64px;">
@@ -617,6 +620,7 @@
                 </td>
             </tr>
         </table>
+        @endunless
     </div>
 
     {{-- ── Digital Approval Block (half format) ── --}}
