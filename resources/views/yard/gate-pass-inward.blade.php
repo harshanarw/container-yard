@@ -682,7 +682,7 @@
                 <col style="width:35%"><col style="width:65%">
             </colgroup>
             <tr>
-                <td style="background:#f8fafc;">
+                <td style="background:#f8fafc;vertical-align:middle;">
                     <div class="cell-lbl">Container No. / Type</div>
                 </td>
                 <td style="font-family:'Courier New',monospace;font-size:12pt;font-weight:900;letter-spacing:.5px;">
@@ -693,25 +693,25 @@
                 </td>
             </tr>
             <tr>
-                <td style="background:#f8fafc;"><div class="cell-lbl">Gate In Date</div></td>
+                <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">Gate In Date</div></td>
                 <td><div class="cell-val">{{ $movement->gate_in_time?->format('d M Y') ?? '—' }}</div></td>
             </tr>
             <tr>
-                <td style="background:#f8fafc;"><div class="cell-lbl">In Time</div></td>
+                <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">In Time</div></td>
                 <td><div class="cell-val">{{ $movement->gate_in_time?->format('H:i') ?? '—' }}</div></td>
             </tr>
             <tr>
-                <td style="background:#f8fafc;"><div class="cell-lbl">Vehicle No.</div></td>
+                <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">Vehicle No.</div></td>
                 <td style="font-family:'Courier New',monospace;"><div class="cell-val">{{ $movement->vehicle_plate ?: '—' }}</div></td>
             </tr>
             <tr>
-                <td style="background:#f8fafc;"><div class="cell-lbl">Status</div></td>
+                <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">Status</div></td>
                 <td>
                     <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:9pt;font-weight:700;">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
                 </td>
             </tr>
             <tr>
-                <td style="background:#f8fafc;"><div class="cell-lbl">Condition</div></td>
+                <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">Condition</div></td>
                 <td>
                     <div class="cell-val {{ $condTextClass }}" style="font-size:9pt;font-weight:700;">{{ $condShort }}</div>
                 </td>
