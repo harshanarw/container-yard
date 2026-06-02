@@ -73,7 +73,8 @@
         .gp-header-qr      { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; padding-left: 8px; }
         .gp-company-logo  { max-height: 60px; margin-bottom: 4px; display: block; }
         .gp-company-name  { font-size: 12pt; font-weight: 900; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-        .gp-address       { font-size: 7.5pt; color: #333; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+        .gp-address       { font-size: 7.5pt; color: #333; margin-top: 3px; line-height: 1.6; }
+        .gp-address-line  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .gp-pass-no-label { font-size: 8.5pt; color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
         .gp-pass-no-value { font-size: 16pt; font-weight: 900; color: #c0392b; line-height: 1.05; }
         .gp-pass-datetime { font-size: 8pt; color: #444; margin-top: 3px; }
@@ -258,9 +259,14 @@
             @endif
             <div class="gp-company-name">{{ $companySetting?->company_name ?? 'Container Yard Management' }}</div>
             <div class="gp-address">
-                @if($companySetting?->address){{ $companySetting->address }}@endif
-                @if($companySetting?->telephone) &nbsp;·&nbsp; Tel: {{ $companySetting->telephone }}@endif
-                @if($companySetting?->email) &nbsp;·&nbsp; {{ $companySetting->email }}@endif
+                <div class="gp-address-line">{{ $companySetting?->address }}</div>
+                @if($companySetting?->telephone || $companySetting?->email)
+                <div class="gp-address-line">
+                    @if($companySetting?->telephone)Tel: {{ $companySetting->telephone }}@endif
+                    @if($companySetting?->telephone && $companySetting?->email) &nbsp;·&nbsp; @endif
+                    @if($companySetting?->email){{ $companySetting->email }}@endif
+                </div>
+                @endif
             </div>
         </div>
         {{-- Centre-right: pass number + date --}}
@@ -490,10 +496,15 @@
             <img src="{{ $companySetting->logo_url }}" style="max-height:42px;margin-bottom:3px;display:block;" alt="Logo">
             @endif
             <div style="font-size:10pt;font-weight:900;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
-            <div style="font-size:7pt;color:#333;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">
-                @if($companySetting?->address){{ $companySetting->address }}@endif
-                @if($companySetting?->telephone) &nbsp;·&nbsp; Tel: {{ $companySetting->telephone }}@endif
-                @if($companySetting?->email) &nbsp;·&nbsp; {{ $companySetting->email }}@endif
+            <div style="font-size:7pt;color:#333;margin-top:2px;line-height:1.6;">
+                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $companySetting?->address }}</div>
+                @if($companySetting?->telephone || $companySetting?->email)
+                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">
+                    @if($companySetting?->telephone)Tel: {{ $companySetting->telephone }}@endif
+                    @if($companySetting?->telephone && $companySetting?->email) &nbsp;·&nbsp; @endif
+                    @if($companySetting?->email){{ $companySetting->email }}@endif
+                </div>
+                @endif
             </div>
         </div>
         {{-- Centre-right: pass number + date --}}
