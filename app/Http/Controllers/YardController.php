@@ -741,8 +741,8 @@ class YardController extends Controller
             $dbCond = strtolower($movement->condition ?? 'sound');
             $dbCo   = match($dbCond) { 'damaged' => 'DAM', 'require_repair' => 'REQ', default => 'SOU' };
             $checks['Condition'] = [
-                'url'   => match($urlCo) { 'DAM' => 'DAMAGED', 'REQ' => 'REQ. REPAIR', default => 'SOUND' },
-                'db'    => match($dbCond) { 'damaged' => 'DAMAGED', 'require_repair' => 'REQ. REPAIR', default => 'SOUND' },
+                'url'   => match($urlCo) { 'DAM' => 'DAMAGED', 'REQ' => 'REQ. REPAIR', default => 'GOOD' },
+                'db'    => match($dbCond) { 'damaged' => 'DAMAGED', 'require_repair' => 'REQ. REPAIR', default => 'GOOD' },
                 'match' => $urlCo === $dbCo,
             ];
         }

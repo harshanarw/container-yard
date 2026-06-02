@@ -199,7 +199,7 @@
     @if($isInward)
     @php
         $dbCond = strtolower($movement->condition ?? 'sound');
-        $condDisplay = match($dbCond) { 'damaged' => 'DAMAGED', 'require_repair' => 'REQ. REPAIR', default => 'SOUND' };
+        $condDisplay = match($dbCond) { 'damaged' => 'DAMAGED', 'require_repair' => 'REQ. REPAIR', default => 'GOOD' };
         $condPillClass = match($dbCond) { 'damaged' => 'pill-damaged', 'require_repair' => 'pill-repair', default => 'pill-sound' };
     @endphp
     <div class="vfy-row">

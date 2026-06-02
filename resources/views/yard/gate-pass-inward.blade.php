@@ -201,7 +201,7 @@
     $printedBy = $movement->createdBy?->name ?? '—';
 
     $cond          = strtolower($movement->condition ?? 'sound');
-    $condLabel     = match($cond) { 'damaged' => 'DAMAGED', 'require_repair' => 'REQ. REPAIR', default => 'SOUND' };
+    $condLabel     = match($cond) { 'damaged' => 'DAMAGED', 'require_repair' => 'REQ. REPAIR', default => 'GOOD' };
     $condTextClass = match($cond) { 'damaged' => 'cond-damaged', 'require_repair' => 'cond-repair', default => 'cond-sound' };
     $condBadgeClass = match($cond) { 'damaged' => 'gp-status-badge-damaged', 'require_repair' => 'gp-status-badge-repair', default => 'gp-status-badge-sound' };
 
