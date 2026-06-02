@@ -84,7 +84,7 @@
         .gp-qr canvas { display: none !important; }
         .gp-qr img { display: inline-block; border: 1px solid #bbb; padding: 2px; background: #fff; width: 88px; height: 88px; }
         .gp-qr-sm img { width: 70px; height: 70px; }
-        .gp-qr-caption { font-size: 6.5pt; color: #666; text-align: center; margin-top: 3px; line-height: 1; }
+        .gp-qr-caption { font-size: 6.5pt; color: #666; text-align: right; margin-top: 3px; line-height: 1; }
 
         /* ── Title bar ───────────────────────────────────────────────────── */
         .gp-title {
@@ -269,15 +269,10 @@
                 @endif
             </div>
         </div>
-        {{-- Centre-right: pass number + date --}}
+        {{-- Centre-right: pass number --}}
         <div class="gp-header-mid">
             <div class="gp-pass-no-label">Outward Gate Pass No.</div>
             <div class="gp-pass-no-value">{{ $gpNumber }}</div>
-            <div class="gp-pass-datetime">
-                {{ $movement->gate_out_time?->format('d M Y') ?? '—' }}
-                &nbsp;&nbsp;
-                {{ $movement->gate_out_time?->format('H:i') ?? '—' }}
-            </div>
         </div>
         {{-- Right: QR code --}}
         <div class="gp-header-qr">
@@ -507,15 +502,10 @@
                 @endif
             </div>
         </div>
-        {{-- Centre-right: pass number + date --}}
+        {{-- Centre-right: pass number --}}
         <div style="flex:0 0 auto;text-align:right;white-space:nowrap;">
             <div class="gp-pass-no-label">Outward Gate Pass No.</div>
             <div class="gp-pass-no-value" style="font-size:14pt;">{{ $gpNumber }}</div>
-            <div class="gp-pass-datetime">
-                {{ $movement->gate_out_time?->format('d M Y') ?? '—' }}
-                &nbsp;·&nbsp;
-                {{ $movement->gate_out_time?->format('H:i') ?? '—' }}
-            </div>
         </div>
         {{-- Right: QR code --}}
         <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;">
