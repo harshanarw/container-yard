@@ -119,17 +119,9 @@
         .cell-val { font-size: 10pt; font-weight: 700; }
         .val-lg   { font-size: 14pt; font-weight: 900; letter-spacing: .5px; }
 
-        /* ── Single status badge ─────────────────────────────────────────── */
-        .status-laden {
-            display: inline-block; padding: 2px 12px;
-            border: 2px solid #b45309; background: #fef3c7; color: #78350f;
-            font-weight: 900; font-size: 10.5pt; letter-spacing: .5px;
-        }
-        .status-empty {
-            display: inline-block; padding: 2px 12px;
-            border: 2px solid #059669; background: #d1fae5; color: #064e3b;
-            font-weight: 900; font-size: 10.5pt; letter-spacing: .5px;
-        }
+        /* ── Status text ─────────────────────────────────────────────────── */
+        .status-laden { color: #b45309; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
+        .status-empty { color: #059669; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
 
         /* ── Declaration box ─────────────────────────────────────────────── */
         .declaration {
@@ -323,11 +315,7 @@
                 </td>
                 <td style="width:24%">
                     <div class="cell-lbl">Status</div>
-                    <div style="padding-top:1px;">
-                        <span class="{{ $isLaden ? 'status-laden' : 'status-empty' }}">
-                            {{ $isLaden ? 'LADEN' : 'EMPTY' }}
-                        </span>
-                    </div>
+                    <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
                 </td>
                 <td style="width:24%">
                     <div class="cell-lbl">Seal No.</div>
@@ -533,11 +521,7 @@
                 </td>
                 <td style="width:18%">
                     <div class="cell-lbl">Status</div>
-                    <div style="padding-top:2px;">
-                        <span class="{{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:8.5pt;padding:1px 6px;">
-                            {{ $isLaden ? 'LADEN' : 'EMPTY' }}
-                        </span>
-                    </div>
+                    <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:9pt;">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
                 </td>
                 <td style="width:22%">
                     <div class="cell-lbl">Seal No.</div>
