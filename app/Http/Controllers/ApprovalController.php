@@ -27,10 +27,20 @@ class ApprovalController extends Controller
             return back()->with('error', 'An approval request already exists for this gate pass.');
         }
 
+        $request->validate([
+            'assignees'   => 'nullable|array',
+            'assignees.*' => 'nullable|exists:users,id',
+        ]);
+
+        $assignees = collect($request->input('assignees', []))
+            ->filter(fn($v) => !empty($v))
+            ->map(fn($v) => (int) $v)
+            ->toArray();
+
         $docType = $movement->movement_type === 'in' ? 'gate_pass_in' : 'gate_pass';
 
         try {
-            $this->approvalService->initiate($movement, $docType, Auth::user(), $request->ip());
+            $this->approvalService->initiate($movement, $docType, Auth::user(), $request->ip(), $assignees);
             return back()->with('success', 'Approval request submitted successfully.');
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());

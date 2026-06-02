@@ -14,7 +14,10 @@ class ApprovalService
     /**
      * Create a new approval request and auto-approve any steps flagged auto_approve_on_create.
      */
-    public function initiate(Model $approvable, string $workflowType, User $initiator, ?string $ipAddress = null): ApprovalRequest
+    /**
+     * @param array<string,int|null> $assignees  step_key → user_id (optional, per-step assignees)
+     */
+    public function initiate(Model $approvable, string $workflowType, User $initiator, ?string $ipAddress = null, array $assignees = []): ApprovalRequest
     {
         $steps = ApprovalWorkflow::stepsFor($workflowType);
 
@@ -22,7 +25,7 @@ class ApprovalService
             throw new \RuntimeException("No active workflow steps found for type [{$workflowType}].");
         }
 
-        return DB::transaction(function () use ($approvable, $workflowType, $steps, $initiator, $ipAddress) {
+        return DB::transaction(function () use ($approvable, $workflowType, $steps, $initiator, $ipAddress, $assignees) {
             $request = ApprovalRequest::create([
                 'approvable_type' => $approvable->getMorphClass(),
                 'approvable_id'   => $approvable->getKey(),
@@ -34,12 +37,14 @@ class ApprovalService
 
             foreach ($steps as $step) {
                 $isAutoApprove = $step->auto_approve_on_create;
+                $assignedTo    = !$isAutoApprove ? ($assignees[$step->step_key] ?? null) : null;
 
-                $action = ApprovalAction::create([
+                ApprovalAction::create([
                     'approval_request_id' => $request->id,
                     'step_order'          => $step->step_order,
                     'step_key'            => $step->step_key,
                     'step_label'          => $step->step_label,
+                    'assigned_to'         => $assignedTo ?: null,
                     'status'              => $isAutoApprove ? 'approved' : 'pending',
                     'actioned_by'         => $isAutoApprove ? $initiator->id : null,
                     'actioned_at'         => $isAutoApprove ? now() : null,
@@ -140,11 +145,19 @@ class ApprovalService
             return false;
         }
 
-        if ($step->required_role === null) {
-            return true;
+        if ($step->required_role !== null &&
+            !in_array($actor->role, [$step->required_role, 'system_administrator', 'administrator'], true)) {
+            return false;
         }
 
-        return in_array($actor->role, [$step->required_role, 'system_administrator', 'administrator'], true);
+        // If a specific assignee was set, only that user (or admins) may action
+        if ($action->assigned_to &&
+            $action->assigned_to !== $actor->id &&
+            !in_array($actor->role, ['system_administrator', 'administrator'], true)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -155,7 +168,7 @@ class ApprovalService
         $query = ApprovalAction::query()
             ->where('status', 'pending')
             ->whereHas('approvalRequest', fn($q) => $q->where('status', 'pending'))
-            ->with(['approvalRequest.approvable', 'approvalRequest.initiatedBy'])
+            ->with(['approvalRequest.approvable', 'approvalRequest.initiatedBy', 'assignedTo'])
             ->orderBy('created_at');
 
         if (!in_array($actor->role, ['system_administrator', 'administrator'], true)) {
@@ -169,6 +182,9 @@ class ApprovalService
                     WHERE a2.approval_request_id = approval_actions.approval_request_id
                       AND a2.status = ?
                 )', ['pending']);
+            })->where(function ($q) use ($actor) {
+                // Respect specific assignee — show only if assigned to this user or unassigned
+                $q->whereNull('assigned_to')->orWhere('assigned_to', $actor->id);
             });
         }
 

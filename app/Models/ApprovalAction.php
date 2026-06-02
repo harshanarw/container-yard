@@ -9,7 +9,7 @@ class ApprovalAction extends Model
 {
     protected $fillable = [
         'approval_request_id', 'step_order', 'step_key', 'step_label',
-        'status', 'actioned_by', 'actioned_at', 'remarks', 'ip_address',
+        'assigned_to', 'status', 'actioned_by', 'actioned_at', 'remarks', 'ip_address',
     ];
 
     protected $casts = [
@@ -24,6 +24,11 @@ class ApprovalAction extends Model
     public function actionedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'actioned_by');
+    }
+
+    public function assignedTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 
     public function isPending(): bool   { return $this->status === 'pending'; }

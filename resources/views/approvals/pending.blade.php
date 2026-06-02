@@ -81,6 +81,11 @@
                         <td>
                             <span class="badge bg-warning text-dark">Step {{ $action->step_order }}</span>
                             <div class="small mt-1">{{ $action->step_label }}</div>
+                            @if($action->assignedTo)
+                            <div class="small text-muted mt-1">
+                                <i class="bi bi-person-check me-1"></i>{{ $action->assignedTo->name }}
+                            </div>
+                            @endif
                         </td>
                         <td>
                             <div>{{ $req->initiatedBy?->name ?? '—' }}</div>

@@ -10,6 +10,24 @@
                    in_array(auth()->user()?->role, ['system_administrator','administrator']));
     $nextAction = $req?->nextPendingAction();
     $canAction  = $req && $nextAction && app(\App\Services\ApprovalService::class)->canAction($req, auth()->user());
+
+    // Workflow steps + eligible users per role — used by the Submit modal
+    $docType       = $movement->movement_type === 'in' ? 'gate_pass_in' : 'gate_pass';
+    $workflowSteps = \App\Models\ApprovalWorkflow::stepsFor($docType);
+    $usersByRole   = $workflowSteps
+        ->whereNotNull('required_role')
+        ->pluck('required_role')
+        ->unique()
+        ->mapWithKeys(fn($role) => [
+            $role => \App\Models\User::where('role', $role)
+                        ->where('status', 'active')
+                        ->orderBy('name')
+                        ->get(['id', 'name']),
+        ]);
+    $hasAssignableSteps = $workflowSteps
+        ->where('auto_approve_on_create', false)
+        ->whereNotNull('required_role')
+        ->isNotEmpty();
 @endphp
 
 <div class="card content-card">
@@ -90,6 +108,10 @@
                     <div class="small text-muted">
                         {{ $action->actionedBy?->name ?? '—' }} &nbsp;·&nbsp; {{ $action->actioned_at?->format('d M Y H:i') }}
                     </div>
+                    @elseif($action->assignedTo)
+                    <div class="small text-muted">
+                        <i class="bi bi-person-check me-1"></i>Assigned to <strong>{{ $action->assignedTo->name }}</strong>
+                    </div>
                     @endif
                     @if($action->remarks)
                     <div class="small text-muted fst-italic mt-1">{{ $action->remarks }}</div>
@@ -136,18 +158,43 @@
                 <h5 class="modal-title"><i class="bi bi-send me-2"></i>Submit for Approval</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <p class="mb-0">Submit this gate pass for digital approval? It will be routed through the approval workflow immediately.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="POST" action="{{ route('approvals.gate-pass.initiate', $movement) }}">
-                    @csrf
+            <form method="POST" action="{{ route('approvals.gate-pass.initiate', $movement) }}">
+                @csrf
+                <div class="modal-body">
+                    <p class="mb-0">Submit this gate pass for digital approval? It will be routed through the workflow immediately.</p>
+
+                    @if($hasAssignableSteps)
+                    <hr class="my-3">
+                    <p class="small text-muted mb-3">
+                        <i class="bi bi-person-check me-1"></i>
+                        Optionally assign a specific approver for each step. Leave blank to allow any eligible user to approve.
+                    </p>
+                    @foreach($workflowSteps->where('auto_approve_on_create', false) as $step)
+                    @php $eligibleUsers = $usersByRole[$step->required_role] ?? collect(); @endphp
+                    @if($step->required_role && $eligibleUsers->isNotEmpty())
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small mb-1">
+                            {{ $step->step_label }}
+                            <span class="text-muted fw-normal">({{ ucwords(str_replace('_', ' ', $step->required_role)) }})</span>
+                        </label>
+                        <select name="assignees[{{ $step->step_key }}]" class="form-select form-select-sm">
+                            <option value="">— Any eligible approver —</option>
+                            @foreach($eligibleUsers as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+                    @endforeach
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-send me-1"></i>Submit for Approval
                     </button>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
