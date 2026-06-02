@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasApprovals;
 use App\Traits\HasDocuments;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class GateMovement extends Model
 {
-    use HasFactory, HasDocuments;
+    use HasFactory, HasDocuments, HasApprovals;
 
     protected $fillable = [
         'container_id', 'survey_id', 'container_no', 'customer_id', 'transporter_id', 'movement_type', 'size',
