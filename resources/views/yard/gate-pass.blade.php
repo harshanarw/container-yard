@@ -72,7 +72,7 @@
         .gp-header-mid     { flex: 0 0 auto; text-align: right; white-space: nowrap; }
         .gp-header-qr      { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; }
         .gp-company-logo  { max-height: 60px; margin-bottom: 4px; display: block; }
-        .gp-company-name  { font-size: 16pt; font-weight: 900; line-height: 1.15; }
+        .gp-company-name  { font-size: 13pt; font-weight: 900; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .gp-address       { font-size: 8pt; color: #333; margin-top: 3px; line-height: 1.45; }
         .gp-pass-no-label { font-size: 8.5pt; color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
         .gp-pass-no-value { font-size: 21pt; font-weight: 900; color: #c0392b; line-height: 1.05; }
@@ -491,7 +491,7 @@
             @if($companySetting?->logo_url)
             <img src="{{ $companySetting->logo_url }}" style="max-height:42px;margin-bottom:3px;display:block;" alt="Logo">
             @endif
-            <div style="font-size:13pt;font-weight:900;line-height:1.1;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
+            <div style="font-size:11pt;font-weight:900;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
             <div style="font-size:7.5pt;color:#333;margin-top:3px;line-height:1.5;">
                 @if($companySetting?->address){{ $companySetting->address }}@endif
                 @if($companySetting?->telephone) &nbsp;·&nbsp; Tel: {{ $companySetting->telephone }}@endif
