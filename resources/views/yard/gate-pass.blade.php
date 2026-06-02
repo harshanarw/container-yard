@@ -68,14 +68,20 @@
             gap: 12px;
             padding-bottom: 8px;
         }
-        .gp-company-logo  { max-height: 44px; margin-bottom: 4px; display: block; }
+        .gp-company-logo  { max-height: 60px; margin-bottom: 4px; display: block; }
         .gp-company-name  { font-size: 16pt; font-weight: 900; line-height: 1.15; }
-        .gp-tagline       { font-size: 8.5pt; color: #444; }
         .gp-address       { font-size: 8pt; color: #333; margin-top: 3px; line-height: 1.45; }
         .gp-pass-no       { text-align: right; white-space: nowrap; }
         .gp-pass-no-label { font-size: 8.5pt; color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
         .gp-pass-no-value { font-size: 21pt; font-weight: 900; color: #c0392b; line-height: 1.05; }
         .gp-pass-datetime { font-size: 8pt; color: #444; margin-top: 3px; }
+
+        /* ── QR Code ─────────────────────────────────────────────────────── */
+        .gp-qr { margin-top: 6px; text-align: right; line-height: 0; }
+        .gp-qr canvas { display: none !important; }
+        .gp-qr img { display: inline-block; border: 1px solid #bbb; padding: 2px; background: #fff; width: 88px; height: 88px; }
+        .gp-qr-sm img { width: 70px; height: 70px; }
+        .gp-qr-caption { font-size: 6.5pt; color: #666; text-align: right; margin-top: 3px; line-height: 1; }
 
         /* ── Title bar ───────────────────────────────────────────────────── */
         .gp-title {
@@ -138,24 +144,6 @@
         .sig-line  { border-bottom: 1px solid #333; width: 78%; margin: 0 auto; }
         .sig-name  { font-size: 8pt; color: #333; margin-top: 3px; }
 
-        /* ── Authorization stamp ─────────────────────────────────────────── */
-        .auth-stamp {
-            display: inline-block;
-            border: 2px solid #1e3a5f;
-            padding: 3px 14px;
-            font-weight: 900;
-            font-size: 9.5pt;
-            letter-spacing: .6px;
-            color: #1e3a5f;
-        }
-
-        /* ── QR Code ─────────────────────────────────────────────────────── */
-        .gp-qr { margin-top: 6px; text-align: right; line-height: 0; }
-        .gp-qr canvas { display: none !important; }
-        .gp-qr img { display: inline-block; border: 1px solid #bbb; padding: 2px; background: #fff; width: 88px; height: 88px; }
-        .gp-qr-sm img { width: 70px; height: 70px; }
-        .gp-qr-caption { font-size: 6.5pt; color: #666; text-align: center; margin-top: 2px; line-height: 1; }
-
         /* ── Footer ──────────────────────────────────────────────────────── */
         .gp-footer {
             display: flex;
@@ -196,6 +184,7 @@
     $isLaden   = strtolower($movement->cargo_status ?? '') === 'laden';
     $softwareCopyright = '© ' . date('Y') . ' ' . ($companySetting?->software_provider ?? 'CYM Software');
     $printedAt = now()->format('d M Y H:i');
+    $printedBy = $movement->createdBy?->name ?? '—';
 
     // Yard location string
     $yardLoc = collect([
@@ -231,13 +220,12 @@
             <div class="gp-company-name">{{ $companySetting?->company_name ?? 'Container Yard Management' }}</div>
             <div class="gp-address">
                 @if($companySetting?->address){{ $companySetting->address }}@endif
-                @if($companySetting?->city), {{ $companySetting->city }}@endif
                 @if($companySetting?->telephone)<br>Tel: {{ $companySetting->telephone }}@endif
                 @if($companySetting?->email) &nbsp; {{ $companySetting->email }}@endif
             </div>
         </div>
         <div class="gp-pass-no">
-            <div class="gp-pass-no-label">Gate Pass No.</div>
+            <div class="gp-pass-no-label">Outward Gate Pass No.</div>
             <div class="gp-pass-no-value">{{ $gpNumber }}</div>
             <div class="gp-pass-datetime">
                 {{ $movement->gate_out_time?->format('d M Y') ?? '—' }}
@@ -254,7 +242,7 @@
     <hr class="gp-rule">
 
     {{-- ── Title bar ── --}}
-    <div class="gp-title">Container Outward Gate Pass</div>
+    <div class="gp-title">Outward Gate Pass &mdash; Container No. {{ $movement->container_no }}</div>
 
     {{-- ── Section 1: Gate & Movement ── --}}
     <div class="sec">
@@ -286,15 +274,11 @@
         <div class="sec-hdr">Container Details</div>
         <table>
             <tr>
-                <td style="width:36%">
-                    <div class="cell-lbl">Container No.</div>
-                    <div class="val-lg">{{ $movement->container_no }}</div>
-                </td>
-                <td style="width:20%">
+                <td style="width:28%">
                     <div class="cell-lbl">Size / Type</div>
                     <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}</div>
                 </td>
-                <td style="width:20%">
+                <td style="width:24%">
                     <div class="cell-lbl">Status</div>
                     <div style="padding-top:1px;">
                         <span class="{{ $isLaden ? 'status-laden' : 'status-empty' }}">
@@ -306,15 +290,15 @@
                     <div class="cell-lbl">Seal No.</div>
                     <div class="cell-val">{{ $movement->seal_no ?: '—' }}</div>
                 </td>
-            </tr>
-            <tr>
-                <td colspan="2">
-                    <div class="cell-lbl">Owner / Shipping Line</div>
-                    <div class="cell-val">{{ $gateIn?->customer?->name ?? $movement->customer?->name ?? '—' }}</div>
-                </td>
-                <td colspan="2">
+                <td style="width:24%">
                     <div class="cell-lbl">Yard Location</div>
                     <div class="cell-val">{{ $yardLoc ?: '—' }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4">
+                    <div class="cell-lbl">Owner / Shipping Line</div>
+                    <div class="cell-val">{{ $gateIn?->customer?->name ?? $movement->customer?->name ?? '—' }}</div>
                 </td>
             </tr>
         </table>
@@ -401,14 +385,14 @@
     <div class="sec">
         <div class="sec-hdr">Authorization</div>
         <div class="declaration">
-            &ldquo;I checked and accepted the container in clean / sound condition&rdquo;
+            &ldquo;I authorize the release of the above Container.&rdquo;
         </div>
         <table>
             <tr>
                 <td class="sig-cell">
                     <div class="sig-label">Issued By</div>
                     <div class="sig-line"></div>
-                    <div class="sig-name">{{ $movement->createdBy?->name ?? '&nbsp;' }}</div>
+                    <div class="sig-name">{{ $movement->createdBy?->name ?? '' }}</div>
                 </td>
                 <td class="sig-cell">
                     <div class="sig-label">Approved By</div>
@@ -438,14 +422,9 @@
         </table>
     </div>
 
-    {{-- ── Status stamp ── --}}
-    <div style="margin-top:8px;">
-        <span class="auth-stamp">&#10003; Authorized for Gate Out</span>
-    </div>
-
     {{-- ── Footer ── --}}
     <div class="gp-footer">
-        <span>Printed: {{ $printedAt }} &nbsp;·&nbsp; Issued by: {{ $movement->createdBy?->name ?? '—' }}</span>
+        <span>Printed {{ $printedAt }} by {{ $printedBy }}</span>
         <span>{{ $softwareCopyright }}</span>
     </div>
 
@@ -461,7 +440,7 @@
     <div class="gp-header" style="padding-bottom:5px;">
         <div style="flex:1;">
             @if($companySetting?->logo_url)
-            <img src="{{ $companySetting->logo_url }}" style="max-height:26px;margin-bottom:3px;display:block;" alt="Logo">
+            <img src="{{ $companySetting->logo_url }}" style="max-height:42px;margin-bottom:3px;display:block;" alt="Logo">
             @endif
             <div style="font-size:13pt;font-weight:900;line-height:1.1;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
             <div style="font-size:7.5pt;color:#333;margin-top:3px;line-height:1.5;">
@@ -470,15 +449,15 @@
                 @if($companySetting?->email) &nbsp;·&nbsp; {{ $companySetting->email }}@endif
             </div>
         </div>
-        <div class="gp-pass-no" style="flex:0 0 auto;min-width:130px;">
-            <div class="gp-pass-no-label">Gate Pass No.</div>
+        <div class="gp-pass-no" style="flex:0 0 auto;min-width:140px;">
+            <div class="gp-pass-no-label">Outward Gate Pass No.</div>
             <div class="gp-pass-no-value" style="font-size:17pt;">{{ $gpNumber }}</div>
             <div class="gp-pass-datetime">
                 {{ $movement->gate_out_time?->format('d M Y') ?? '—' }}
                 &nbsp;·&nbsp;
                 {{ $movement->gate_out_time?->format('H:i') ?? '—' }}
             </div>
-            <div class="gp-qr gp-qr-sm">
+            <div class="gp-qr gp-qr-sm" style="margin-top:5px;">
                 <div id="qr-half"></div>
                 <div class="gp-qr-caption">Scan to verify</div>
             </div>
@@ -488,22 +467,18 @@
     <hr class="gp-rule">
 
     {{-- ── Title ── --}}
-    <div class="gp-title" style="font-size:10pt;padding:4px 10px;">Container Outward Gate Pass</div>
+    <div class="gp-title" style="font-size:10pt;padding:4px 10px;">Outward Gate Pass &mdash; Container No. {{ $movement->container_no }}</div>
 
     {{-- ── Container Details ── --}}
     <div class="sec">
         <div class="sec-hdr">Container Details</div>
         <table>
             <tr>
-                <td style="width:27%">
-                    <div class="cell-lbl">Container No.</div>
-                    <div style="font-size:12pt;font-weight:900;letter-spacing:.4px;">{{ $movement->container_no }}</div>
-                </td>
-                <td style="width:13%">
+                <td style="width:16%">
                     <div class="cell-lbl">Size / Type</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->size }}' {{ $movement->container_type }}</div>
                 </td>
-                <td style="width:15%">
+                <td style="width:18%">
                     <div class="cell-lbl">Status</div>
                     <div style="padding-top:2px;">
                         <span class="{{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:8.5pt;padding:1px 6px;">
@@ -511,25 +486,25 @@
                         </span>
                     </div>
                 </td>
-                <td style="width:19%">
+                <td style="width:22%">
                     <div class="cell-lbl">Seal No.</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->seal_no ?: '—' }}</div>
                 </td>
-                <td style="width:26%">
+                <td style="width:22%">
                     <div class="cell-lbl">Release Order Ref.</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->release_order ?: '—' }}</div>
                 </td>
+                <td style="width:22%">
+                    <div class="cell-lbl">Yard Location</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $yardLoc ?: '—' }}</div>
+                </td>
             </tr>
             <tr>
-                <td colspan="2">
+                <td colspan="3">
                     <div class="cell-lbl">Owner / Shipping Line</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $gateIn?->customer?->name ?? $movement->customer?->name ?? '—' }}</div>
                 </td>
                 <td colspan="2">
-                    <div class="cell-lbl">Yard Location</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $yardLoc ?: '—' }}</div>
-                </td>
-                <td>
                     <div class="cell-lbl">Date / Time</div>
                     <div class="cell-val" style="font-size:9pt;">
                         {{ $movement->gate_out_time?->format('d M Y') ?? '—' }}
@@ -572,18 +547,18 @@
     {{-- ── Authorization ── --}}
     <div class="sec">
         <div class="sec-hdr">Authorization</div>
-        <div class="declaration" style="font-size:8pt;">&ldquo;I checked and accepted the container in clean / sound condition&rdquo;</div>
+        <div class="declaration" style="font-size:8pt;">&ldquo;I authorize the release of the above Container.&rdquo;</div>
         <table>
             <tr>
                 <td class="sig-cell" style="height:44px;">
                     <div class="sig-label" style="margin-bottom:14px;font-size:8pt;">Issued By</div>
                     <div class="sig-line"></div>
-                    <div class="sig-name">{{ $movement->createdBy?->name ?? '&nbsp;' }}</div>
+                    <div class="sig-name">{{ $movement->createdBy?->name ?? '' }}</div>
                 </td>
                 <td class="sig-cell" style="height:44px;">
                     <div class="sig-label" style="margin-bottom:14px;font-size:8pt;">Driver Signature</div>
                     <div class="sig-line"></div>
-                    <div class="sig-name">{{ $movement->driver_name ?? '&nbsp;' }}</div>
+                    <div class="sig-name">{{ $movement->driver_name ?? '' }}</div>
                 </td>
                 <td class="sig-cell" style="height:44px;">
                     <div class="sig-label" style="margin-bottom:14px;font-size:8pt;">Gate Officer</div>
@@ -594,10 +569,9 @@
         </table>
     </div>
 
-    {{-- ── Stamp + footer in one row ── --}}
+    {{-- ── Footer ── --}}
     <div style="margin-top:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <span class="auth-stamp" style="font-size:8pt;padding:2px 10px;">&#10003; Authorized for Gate Out</span>
-        <span style="font-size:7pt;color:#555;white-space:nowrap;">Printed: {{ $printedAt }} &nbsp;·&nbsp; Issued by: {{ $movement->createdBy?->name ?? '—' }}</span>
+        <span style="font-size:7pt;color:#555;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
         <span style="font-size:7pt;color:#555;white-space:nowrap;">{{ $softwareCopyright }}</span>
     </div>
 

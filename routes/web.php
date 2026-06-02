@@ -35,6 +35,7 @@ use App\Http\Controllers\MrCodeController;
 use App\Http\Controllers\MrCodeChargeMappingController;
 use App\Http\Controllers\MrTariffController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\YardController;
 
 /*
@@ -124,6 +125,15 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/movements/{movement}',             [YardController::class, 'updateMovement'])->name('movements.update');
         Route::delete('/movements/{movement}/photos/{photo}', [YardController::class, 'destroyMovementPhoto'])->name('movements.photo.destroy');
         Route::get('/movements/{movement}/gate-pass',     [YardController::class, 'gatePass'])->name('movements.gate-pass');
+    });
+
+    // Approvals
+    Route::prefix('approvals')->name('approvals.')->group(function () {
+        Route::get('/pending',                                       [ApprovalController::class, 'pending'])->name('pending');
+        Route::post('/gate-pass/{movement}/initiate',               [ApprovalController::class, 'initiateGatePass'])->name('gate-pass.initiate');
+        Route::post('/actions/{action}/approve',                    [ApprovalController::class, 'approve'])->name('actions.approve');
+        Route::post('/actions/{action}/reject',                     [ApprovalController::class, 'reject'])->name('actions.reject');
+        Route::post('/requests/{approvalRequest}/cancel',           [ApprovalController::class, 'cancel'])->name('requests.cancel');
     });
 
     // Reports

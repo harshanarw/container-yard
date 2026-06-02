@@ -509,6 +509,22 @@
                         <i class="bi bi-speedometer2"></i><span>Dashboard</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    @php
+                        $pendingApprovalCount = \App\Models\ApprovalAction::query()
+                            ->where('status', 'pending')
+                            ->whereHas('approvalRequest', fn($q) => $q->where('status', 'pending'))
+                            ->count();
+                    @endphp
+                    <a href="{{ route('approvals.pending') }}"
+                       class="nav-link {{ request()->routeIs('approvals.*') ? 'active' : '' }}">
+                        <i class="bi bi-check2-circle"></i>
+                        <span>My Approvals</span>
+                        @if($pendingApprovalCount > 0)
+                        <span class="badge bg-warning text-dark ms-auto">{{ $pendingApprovalCount }}</span>
+                        @endif
+                    </a>
+                </li>
             </ul>
         </div>
 

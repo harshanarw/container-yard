@@ -9,6 +9,19 @@
 
 @section('content')
 
+@if(session('success'))
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+@endif
+@if(session('error'))
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle me-2"></i>{{ session('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+@endif
+
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
         <h4>
@@ -518,8 +531,16 @@
         </div>
     </div>
 
-    {{-- Photos & Documents --}}
+    {{-- Right column: Approvals (gate-out only) + Photos & Documents --}}
     <div class="col-lg-5">
+
+        @if($movement->movement_type === 'out')
+        @include('approvals._panel', [
+            'approvalRequest' => $movement->approvalRequest,
+            'movement'        => $movement,
+        ])
+        @endif
+
         <x-document-manager
             model-type="App\Models\GateMovement"
             :model-id="$movement->id"

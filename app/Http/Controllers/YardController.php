@@ -450,7 +450,7 @@ class YardController extends Controller
     // -------------------------------------------------------------------------
     public function editMovement(GateMovement $movement)
     {
-        $movement->load(['container', 'customer', 'transporter']);
+        $movement->load(['container', 'customer', 'transporter', 'createdBy', 'approvalRequest.actions.actionedBy', 'approvalRequest.initiatedBy', 'approvalRequest.cancelledBy']);
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
         $transporters   = Customer::whereHas('types', fn($q) => $q->where('name', 'Transporter'))
                             ->where('status', 'active')->orderBy('name')->get();
