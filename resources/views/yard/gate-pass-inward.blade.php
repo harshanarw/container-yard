@@ -686,9 +686,9 @@
                     <div class="cell-lbl">Container No. / Type</div>
                 </td>
                 <td style="font-family:'Courier New',monospace;font-size:12pt;font-weight:900;letter-spacing:.5px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                    <div style="display:flex;justify-content:flex-start;align-items:center;gap:10px;">
                         <span>{{ $movement->container_no }}</span>
-                        <span style="font-size:9pt;font-weight:700;letter-spacing:.3px;color:#555;">{{ $movement->size }}'{{ $movement->container_type }}</span>
+                        <span style="font-family:Arial,sans-serif;font-size:8pt;font-weight:900;letter-spacing:.5px;color:#fff;background:#1e3a8a;padding:2px 7px;border-radius:2px;">{{ $movement->size }}'{{ $movement->container_type }}</span>
                     </div>
                 </td>
             </tr>
@@ -707,13 +707,13 @@
             <tr>
                 <td style="background:#f8fafc;"><div class="cell-lbl">Status</div></td>
                 <td>
-                    <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
+                    <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:9pt;font-weight:700;">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
                 </td>
             </tr>
             <tr>
                 <td style="background:#f8fafc;"><div class="cell-lbl">Condition</div></td>
                 <td>
-                    <div class="cell-val {{ $condTextClass }}">{{ $condShort }}</div>
+                    <div class="cell-val {{ $condTextClass }}" style="font-size:9pt;font-weight:700;">{{ $condShort }}</div>
                 </td>
             </tr>
         </table>
