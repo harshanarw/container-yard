@@ -65,19 +65,21 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            gap: 12px;
+            gap: 10px;
             padding-bottom: 8px;
         }
+        .gp-header-company { flex: 1; }
+        .gp-header-mid     { flex: 0 0 auto; text-align: right; white-space: nowrap; }
+        .gp-header-qr      { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; }
         .gp-company-logo  { max-height: 60px; margin-bottom: 4px; display: block; }
         .gp-company-name  { font-size: 16pt; font-weight: 900; line-height: 1.15; }
         .gp-address       { font-size: 8pt; color: #333; margin-top: 3px; line-height: 1.45; }
-        .gp-pass-no       { text-align: right; white-space: nowrap; }
         .gp-pass-no-label { font-size: 8.5pt; color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
         .gp-pass-no-value { font-size: 21pt; font-weight: 900; color: #c0392b; line-height: 1.05; }
         .gp-pass-datetime { font-size: 8pt; color: #444; margin-top: 3px; }
 
         /* ── QR Code ─────────────────────────────────────────────────────── */
-        .gp-qr { margin-top: 6px; text-align: right; line-height: 0; }
+        .gp-qr { line-height: 0; text-align: right; }
         .gp-qr canvas { display: none !important; }
         .gp-qr img { display: inline-block; border: 1px solid #bbb; padding: 2px; background: #fff; width: 88px; height: 88px; }
         .gp-qr-sm img { width: 70px; height: 70px; }
@@ -139,8 +141,8 @@
         }
 
         /* ── Signature cells ─────────────────────────────────────────────── */
-        .sig-cell { text-align: center; height: 66px; vertical-align: bottom; padding-bottom: 5px; }
-        .sig-label { font-size: 8.5pt; font-weight: 700; margin-bottom: 26px; }
+        .sig-cell  { text-align: center; height: 90px; vertical-align: bottom; padding-bottom: 6px; }
+        .sig-label { font-size: 8.5pt; font-weight: 700; margin-bottom: 44px; }
         .sig-line  { border-bottom: 1px solid #333; width: 78%; margin: 0 auto; }
         .sig-name  { font-size: 8pt; color: #333; margin-top: 3px; }
 
@@ -247,9 +249,10 @@
 @if($format === 'full')
 <div class="gp-doc">
 
-    {{-- ── Header ── --}}
+    {{-- ── Header: 3 columns — company | pass number | QR ── --}}
     <div class="gp-header">
-        <div>
+        {{-- Left: company info --}}
+        <div class="gp-header-company">
             @if($companySetting?->logo_url)
             <img src="{{ $companySetting->logo_url }}" class="gp-company-logo" alt="Logo">
             @endif
@@ -260,7 +263,8 @@
                 @if($companySetting?->email) &nbsp; {{ $companySetting->email }}@endif
             </div>
         </div>
-        <div class="gp-pass-no">
+        {{-- Centre-right: pass number + date --}}
+        <div class="gp-header-mid">
             <div class="gp-pass-no-label">Outward Gate Pass No.</div>
             <div class="gp-pass-no-value">{{ $gpNumber }}</div>
             <div class="gp-pass-datetime">
@@ -268,10 +272,13 @@
                 &nbsp;&nbsp;
                 {{ $movement->gate_out_time?->format('H:i') ?? '—' }}
             </div>
+        </div>
+        {{-- Right: QR code --}}
+        <div class="gp-header-qr">
             <div class="gp-qr">
                 <div id="qr-full"></div>
-                <div class="gp-qr-caption">Scan to verify</div>
             </div>
+            <div class="gp-qr-caption">Scan to verify</div>
         </div>
     </div>
 
@@ -491,8 +498,9 @@
 @else
 <div class="gp-doc">
 
-    {{-- ── Header ── --}}
+    {{-- ── Header: 3 columns — company | pass number | QR ── --}}
     <div class="gp-header" style="padding-bottom:5px;">
+        {{-- Left: company info --}}
         <div style="flex:1;">
             @if($companySetting?->logo_url)
             <img src="{{ $companySetting->logo_url }}" style="max-height:42px;margin-bottom:3px;display:block;" alt="Logo">
@@ -504,7 +512,8 @@
                 @if($companySetting?->email) &nbsp;·&nbsp; {{ $companySetting->email }}@endif
             </div>
         </div>
-        <div class="gp-pass-no" style="flex:0 0 auto;min-width:140px;">
+        {{-- Centre-right: pass number + date --}}
+        <div style="flex:0 0 auto;text-align:right;white-space:nowrap;">
             <div class="gp-pass-no-label">Outward Gate Pass No.</div>
             <div class="gp-pass-no-value" style="font-size:17pt;">{{ $gpNumber }}</div>
             <div class="gp-pass-datetime">
@@ -512,10 +521,13 @@
                 &nbsp;·&nbsp;
                 {{ $movement->gate_out_time?->format('H:i') ?? '—' }}
             </div>
-            <div class="gp-qr gp-qr-sm" style="margin-top:5px;">
+        </div>
+        {{-- Right: QR code --}}
+        <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;">
+            <div class="gp-qr gp-qr-sm">
                 <div id="qr-half"></div>
-                <div class="gp-qr-caption">Scan to verify</div>
             </div>
+            <div class="gp-qr-caption">Scan to verify</div>
         </div>
     </div>
 
@@ -605,18 +617,18 @@
         <div class="declaration" style="font-size:8pt;">&ldquo;I authorize the release of the above Container.&rdquo;</div>
         <table>
             <tr>
-                <td class="sig-cell" style="height:44px;">
-                    <div class="sig-label" style="margin-bottom:14px;font-size:8pt;">Issued By</div>
+                <td class="sig-cell" style="height:64px;">
+                    <div class="sig-label" style="margin-bottom:30px;font-size:8pt;">Issued By</div>
                     <div class="sig-line"></div>
                     <div class="sig-name">{{ $movement->createdBy?->name ?? '' }}</div>
                 </td>
-                <td class="sig-cell" style="height:44px;">
-                    <div class="sig-label" style="margin-bottom:14px;font-size:8pt;">Driver Signature</div>
+                <td class="sig-cell" style="height:64px;">
+                    <div class="sig-label" style="margin-bottom:30px;font-size:8pt;">Driver Signature</div>
                     <div class="sig-line"></div>
                     <div class="sig-name">{{ $movement->driver_name ?? '' }}</div>
                 </td>
-                <td class="sig-cell" style="height:44px;">
-                    <div class="sig-label" style="margin-bottom:14px;font-size:8pt;">Gate Officer</div>
+                <td class="sig-cell" style="height:64px;">
+                    <div class="sig-label" style="margin-bottom:30px;font-size:8pt;">Gate Officer</div>
                     <div class="sig-line"></div>
                     <div class="sig-name">&nbsp;</div>
                 </td>
