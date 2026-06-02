@@ -119,9 +119,23 @@
         .cell-val { font-size: 10pt; font-weight: 700; }
         .val-lg   { font-size: 14pt; font-weight: 900; letter-spacing: .5px; }
 
-        /* ── Status text ─────────────────────────────────────────────────── */
+        /* ── Status text (container details table) ───────────────────────── */
         .status-laden { color: #b45309; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
         .status-empty { color: #059669; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
+
+        /* ── Status badge (header, below pass number) ────────────────────── */
+        .gp-status-badge {
+            display: inline-block;
+            padding: 2px 11px;
+            border-radius: 10px;
+            font-size: 8pt;
+            font-weight: 900;
+            letter-spacing: .6px;
+            margin-top: 6px;
+            white-space: nowrap;
+        }
+        .gp-status-badge-laden { background: #fef3c7; color: #92400e; border: 1.5px solid #d97706; }
+        .gp-status-badge-empty { background: #d1fae5; color: #065f46; border: 1.5px solid #059669; }
 
         /* ── Declaration box ─────────────────────────────────────────────── */
         .declaration {
@@ -262,10 +276,15 @@
                 @endif
             </div>
         </div>
-        {{-- Centre-right: pass number --}}
+        {{-- Centre-right: pass number + cargo status badge --}}
         <div class="gp-header-mid">
             <div class="gp-pass-no-label">Outward Gate Pass No.</div>
             <div class="gp-pass-no-value">{{ $gpNumber }}</div>
+            <div>
+                <span class="gp-status-badge {{ $isLaden ? 'gp-status-badge-laden' : 'gp-status-badge-empty' }}">
+                    {{ $isLaden ? 'LADEN' : 'EMPTY' }}
+                </span>
+            </div>
         </div>
         {{-- Right: QR code --}}
         <div class="gp-header-qr">
@@ -497,10 +516,15 @@
                 @endif
             </div>
         </div>
-        {{-- Centre-right: pass number --}}
+        {{-- Centre-right: pass number + cargo status badge --}}
         <div style="flex:0 0 auto;text-align:right;white-space:nowrap;">
             <div class="gp-pass-no-label">Outward Gate Pass No.</div>
             <div class="gp-pass-no-value" style="font-size:14pt;">{{ $gpNumber }}</div>
+            <div>
+                <span class="gp-status-badge {{ $isLaden ? 'gp-status-badge-laden' : 'gp-status-badge-empty' }}" style="font-size:7.5pt;margin-top:4px;">
+                    {{ $isLaden ? 'LADEN' : 'EMPTY' }}
+                </span>
+            </div>
         </div>
         {{-- Right: QR code --}}
         <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;">
