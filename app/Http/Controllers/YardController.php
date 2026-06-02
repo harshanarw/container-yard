@@ -660,7 +660,7 @@ class YardController extends Controller
             ->latest('gate_in_time')
             ->first();
 
-        $format = in_array($request->query('format'), ['full', 'half'])
+        $format = in_array($request->query('format'), ['full', 'half', 'half-custom'])
             ? $request->query('format')
             : 'full';
 
