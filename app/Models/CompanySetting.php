@@ -46,6 +46,11 @@ class CompanySetting extends Model
         'default_tax_rate',
         'surcharge_overtime',
         'surcharge_night',
+        'enable_digital_approvals',
+    ];
+
+    protected $casts = [
+        'enable_digital_approvals' => 'boolean',
     ];
 
     public static function current(): static

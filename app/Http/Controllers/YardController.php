@@ -652,7 +652,7 @@ class YardController extends Controller
             abort(404, 'Gate pass is only available for Gate-Out movements.');
         }
 
-        $movement->load(['container', 'customer', 'transporter', 'createdBy']);
+        $movement->load(['container', 'customer', 'transporter', 'createdBy', 'approvalRequest.actions.actionedBy']);
 
         // Pull the most recent Gate-In for this container to get import vessel / voyage
         $gateIn = GateMovement::where('container_id', $movement->container_id)

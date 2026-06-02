@@ -61,14 +61,16 @@ class CompanySettingController extends Controller
             'website'      => ['nullable', 'string', 'max:200'],
             'vat_number'        => ['nullable', 'string', 'max:100'],
             'tin_number'        => ['nullable', 'string', 'max:100'],
-            'software_provider' => ['nullable', 'string', 'max:200'],
-            'logo'              => ['nullable', 'image', 'max:2048'],
+            'software_provider'        => ['nullable', 'string', 'max:200'],
+            'enable_digital_approvals' => ['nullable', 'boolean'],
+            'logo'                     => ['nullable', 'image', 'max:2048'],
             'icon'            => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
             'product_icon'    => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
         ]);
 
         $settings = CompanySetting::current();
         $data = collect($validated)->except(['logo', 'icon', 'product_icon'])->toArray();
+        $data['enable_digital_approvals'] = $request->boolean('enable_digital_approvals');
 
         if ($request->hasFile('logo')) {
             if ($settings->logo_path) {

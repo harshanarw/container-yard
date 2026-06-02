@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovalAction;
+use App\Models\ApprovalRequest;
+use App\Models\CompanySetting;
 use App\Models\Container;
 use App\Models\Customer;
 use App\Models\Estimate;
@@ -9,6 +12,7 @@ use App\Models\GateMovement;
 use App\Models\Inquiry;
 use App\Models\StorageZone;
 use App\Models\YardLocation;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
@@ -30,6 +34,27 @@ class DashboardController extends Controller
             'pending_estimates' => Estimate::where('status', 'draft')->count(),
             'unallocated'       => Container::where('status', 'in_yard')->whereNull('location_row')->count(),
         ];
+
+        $approvalEnabled = CompanySetting::current()->enable_digital_approvals ?? false;
+
+        $approvalStats = $approvalEnabled ? [
+            'total_pending'   => ApprovalRequest::where('status', 'pending')->count(),
+            'approved_today'  => ApprovalRequest::where('status', 'approved')
+                                    ->whereDate('completed_at', today())->count(),
+            'rejected_today'  => ApprovalRequest::where('status', 'rejected')
+                                    ->whereDate('completed_at', today())->count(),
+            'my_pending'      => ApprovalAction::where('status', 'pending')
+                                    ->whereHas('approvalRequest', fn($q) => $q->where('status', 'pending'))
+                                    ->count(),
+        ] : null;
+
+        $recentApprovals = $approvalEnabled
+            ? ApprovalRequest::with(['approvable', 'initiatedBy'])
+                ->whereIn('status', ['approved', 'rejected', 'pending'])
+                ->latest('updated_at')
+                ->take(5)
+                ->get()
+            : collect();
 
         $recentGateMovements = GateMovement::with(['customer'])
             ->latest()
@@ -60,7 +85,10 @@ class DashboardController extends Controller
             'recentGateMovements',
             'recentInquiries',
             'pendingEstimates',
-            'zones'
+            'zones',
+            'approvalEnabled',
+            'approvalStats',
+            'recentApprovals'
         ));
     }
 }

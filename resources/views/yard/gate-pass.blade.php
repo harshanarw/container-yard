@@ -144,6 +144,37 @@
         .sig-line  { border-bottom: 1px solid #333; width: 78%; margin: 0 auto; }
         .sig-name  { font-size: 8pt; color: #333; margin-top: 3px; }
 
+        /* ── Digital Approval Block ──────────────────────────────────────── */
+        .da-block {
+            border: 2px solid #15803d;
+            border-radius: 4px;
+            margin-top: 7px;
+            overflow: hidden;
+        }
+        .da-header {
+            background: #15803d;
+            color: #fff;
+            padding: 4px 10px;
+            font-size: 9pt;
+            font-weight: 900;
+            letter-spacing: .6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .da-steps { display: flex; gap: 0; }
+        .da-step {
+            flex: 1;
+            border-right: 1px solid #bbf7d0;
+            padding: 5px 8px;
+            background: #f0fdf4;
+        }
+        .da-step:last-child { border-right: none; }
+        .da-step-lbl  { font-size: 6.5pt; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+        .da-step-name { font-size: 8pt; font-weight: 700; margin-top: 1px; }
+        .da-step-time { font-size: 6.5pt; color: #555; margin-top: 1px; }
+        .da-req-id    { font-size: 6.5pt; opacity: .8; }
+
         /* ── Footer ──────────────────────────────────────────────────────── */
         .gp-footer {
             display: flex;
@@ -203,6 +234,11 @@
         'vh' => preg_replace('/[^A-Z0-9]/', '', strtoupper($movement->vehicle_plate ?? '')),
     ]);
     $qrData = route('gp.verify', $movement->id) . '?' . http_build_query($qrParams);
+
+    // Digital approval
+    $approvalEnabled = $companySetting?->enable_digital_approvals ?? false;
+    $approvalReq     = $movement->approvalRequest;
+    $showApprovalBlock = $approvalEnabled && $approvalReq?->isApproved();
 @endphp
 
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
@@ -422,6 +458,25 @@
         </table>
     </div>
 
+    {{-- ── Digital Approval Block (full format) ── --}}
+    @if($showApprovalBlock)
+    <div class="da-block">
+        <div class="da-header">
+            <span>&#10003;&nbsp; Digitally Approved</span>
+            <span class="da-req-id">Approval Ref: #{{ $approvalReq->id }}</span>
+        </div>
+        <div class="da-steps">
+            @foreach($approvalReq->actions->where('status', 'approved') as $step)
+            <div class="da-step">
+                <div class="da-step-lbl">{{ $step->step_label }}</div>
+                <div class="da-step-name">{{ $step->actionedBy?->name ?? '—' }}</div>
+                <div class="da-step-time">{{ $step->actioned_at?->format('d M Y H:i') }}</div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     {{-- ── Footer ── --}}
     <div class="gp-footer">
         <span>Printed {{ $printedAt }} by {{ $printedBy }}</span>
@@ -568,6 +623,25 @@
             </tr>
         </table>
     </div>
+
+    {{-- ── Digital Approval Block (half format) ── --}}
+    @if($showApprovalBlock)
+    <div class="da-block" style="margin-top:4px;">
+        <div class="da-header" style="padding:3px 8px;font-size:7.5pt;">
+            <span>&#10003;&nbsp; Digitally Approved</span>
+            <span class="da-req-id">Ref: #{{ $approvalReq->id }}</span>
+        </div>
+        <div class="da-steps">
+            @foreach($approvalReq->actions->where('status', 'approved') as $step)
+            <div class="da-step" style="padding:3px 6px;">
+                <div class="da-step-lbl">{{ $step->step_label }}</div>
+                <div class="da-step-name">{{ $step->actionedBy?->name ?? '—' }}</div>
+                <div class="da-step-time">{{ $step->actioned_at?->format('d M Y H:i') }}</div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 
     {{-- ── Footer ── --}}
     <div style="margin-top:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">

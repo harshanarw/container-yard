@@ -334,6 +334,33 @@
         </div>
     </div>
 
+    {{-- Digital Approvals --}}
+    <div class="card content-card mb-4">
+        <div class="card-header py-2">
+            <i class="bi bi-check2-circle me-2 text-primary"></i>Digital Approval Workflow
+        </div>
+        <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="enableDigitalApprovals" name="enable_digital_approvals" value="1"
+                           {{ old('enable_digital_approvals', $settings->enable_digital_approvals) ? 'checked' : '' }}>
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="enableDigitalApprovals">
+                        Enable Digital Gate Pass Approvals
+                    </label>
+                    <div class="form-text mt-1">
+                        When enabled, gate-out movements can be submitted through a digital approval workflow
+                        (Operations → Supervisor → Gate Officer). When all steps are approved the gate pass
+                        will display a digital approval stamp on the printed document.
+                        This is optional — manual printed signatures remain available regardless.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary">
             <i class="bi bi-check-circle me-1"></i>Save Settings

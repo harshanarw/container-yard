@@ -448,6 +448,116 @@
 
 </div>
 
+{{-- ── Approval Widget (only when digital approvals are enabled) ── --}}
+@if($approvalEnabled)
+<div class="row g-3 mt-0">
+    <div class="col-12">
+        <div class="card content-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-check2-circle me-2 text-success"></i>Digital Approval Status</span>
+                <a href="{{ route('approvals.pending') }}" class="btn btn-outline-success btn-sm">
+                    My Approvals
+                    @if($approvalStats['my_pending'] > 0)
+                    <span class="badge bg-warning text-dark ms-1">{{ $approvalStats['my_pending'] }}</span>
+                    @endif
+                </a>
+            </div>
+            <div class="card-body">
+
+                {{-- KPI mini row --}}
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 rounded text-center" style="background:#fef9c3;border:1px solid #fde68a;">
+                            <div class="fs-4 fw-bold text-warning count-up" data-target="{{ $approvalStats['total_pending'] }}">0</div>
+                            <div class="small text-muted">Pending Requests</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 rounded text-center" style="background:#dcfce7;border:1px solid #bbf7d0;">
+                            <div class="fs-4 fw-bold text-success count-up" data-target="{{ $approvalStats['approved_today'] }}">0</div>
+                            <div class="small text-muted">Approved Today</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 rounded text-center" style="background:#fee2e2;border:1px solid #fecaca;">
+                            <div class="fs-4 fw-bold text-danger count-up" data-target="{{ $approvalStats['rejected_today'] }}">0</div>
+                            <div class="small text-muted">Rejected Today</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 rounded text-center" style="background:#eff6ff;border:1px solid #bfdbfe;">
+                            <div class="fs-4 fw-bold text-primary count-up" data-target="{{ $approvalStats['my_pending'] }}">0</div>
+                            <div class="small text-muted">Awaiting My Action</div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Recent activity list --}}
+                @if($recentApprovals->isNotEmpty())
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Document</th>
+                                <th>Initiated By</th>
+                                <th>Initiated</th>
+                                <th class="text-center">Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($recentApprovals as $req)
+                            @php
+                                $doc = $req->approvable;
+                                $isGatePass = $req->workflow_type === 'gate_pass';
+                                $docLabel = $isGatePass
+                                    ? 'Gate Pass — ' . ($doc?->container_no ?? '#' . $req->approvable_id)
+                                    : ucfirst(str_replace('_', ' ', $req->workflow_type)) . ' #' . $req->approvable_id;
+                                $docLink = ($isGatePass && $doc) ? route('yard.movements.edit', $doc) : null;
+                            @endphp
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold small">{{ $docLabel }}</div>
+                                    <div class="text-muted" style="font-size:.68rem;">Req #{{ $req->id }}</div>
+                                </td>
+                                <td class="small">{{ $req->initiatedBy?->name ?? '—' }}</td>
+                                <td class="small text-muted text-nowrap">{{ $req->initiated_at?->format('d M Y') }}</td>
+                                <td class="text-center">
+                                    @if($req->isPending())
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    @elseif($req->isApproved())
+                                        <span class="badge bg-success">Approved</span>
+                                    @elseif($req->isRejected())
+                                        <span class="badge bg-danger">Rejected</span>
+                                    @else
+                                        <span class="badge bg-secondary">Cancelled</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($docLink)
+                                    <a href="{{ $docLink }}" class="btn btn-outline-secondary btn-sm py-0 px-2">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @else
+                <div class="text-center text-muted py-3 small">
+                    <i class="bi bi-check2-all fs-2 d-block mb-1 text-success opacity-50"></i>
+                    No approval requests yet.
+                </div>
+                @endif
+
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 @endsection
 
 @push('scripts')
