@@ -55,7 +55,7 @@
             max-width: 180mm;
             @endif
             margin: 18px auto;
-            padding: 20px 14px 12px;
+            padding: 28px 14px 12px;
             background: #fff;
             border: 1px solid #000;
         }
@@ -195,7 +195,7 @@
         @media print {
             .screen-toolbar { display: none !important; }
             body { background: #fff; margin: 0; }
-            .gp-doc { margin: 2mm auto 0; border: 1px solid #000; }
+            .gp-doc { margin: 4mm auto 0; border: 1px solid #000; }
         }
     </style>
 </head>
