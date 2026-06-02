@@ -630,7 +630,7 @@
 </div>
 
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
-{{--  CUSTOM HALF FORMAT — provision (coming soon)                               --}}
+{{--  CUSTOM HALF FORMAT — A5 landscape, label / value pairs                     --}}
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
 @else
 <div class="gp-doc">
@@ -642,21 +642,123 @@
             <img src="{{ $companySetting->logo_url }}" style="max-height:42px;margin-bottom:3px;display:block;" alt="Logo">
             @endif
             <div style="font-size:10pt;font-weight:900;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
+            <div style="font-size:7pt;color:#333;margin-top:2px;line-height:1.6;">
+                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $companySetting?->address }}</div>
+                @if($companySetting?->telephone || $companySetting?->email)
+                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">
+                    @if($companySetting?->telephone)Tel: {{ $companySetting->telephone }}@endif
+                    @if($companySetting?->telephone && $companySetting?->email) &nbsp;·&nbsp; @endif
+                    @if($companySetting?->email){{ $companySetting->email }}@endif
+                </div>
+                @endif
+            </div>
         </div>
         <div style="flex:0 0 auto;text-align:right;white-space:nowrap;">
             <div class="gp-pass-no-label">Inward Gate Pass No.</div>
             <div class="gp-pass-no-value" style="font-size:14pt;">{{ $igpNumber }}</div>
+            <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:4px;flex-wrap:wrap;">
+                <span class="gp-status-badge {{ $isLaden ? 'gp-status-badge-laden' : 'gp-status-badge-empty' }}" style="font-size:7.5pt;">
+                    {{ $isLaden ? 'LADEN' : 'EMPTY' }}
+                </span>
+                <span class="gp-status-badge {{ $condBadgeClass }}" style="font-size:7.5pt;">{{ $condLabel }}</span>
+            </div>
+        </div>
+        <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;">
+            <div class="gp-qr gp-qr-sm"><div id="qr-custom"></div></div>
+            <div class="gp-qr-caption" style="width:70px;">Scan to verify</div>
         </div>
     </div>
 
-    <div class="gp-title" style="font-size:10pt;padding:4px 10px;text-transform:uppercase;">Inward Gate Pass &mdash; Container No. {{ $movement->container_no }}</div>
+    {{-- ── Title ── --}}
+    <div class="gp-title" style="font-size:10pt;padding:4px 10px;">INWARD GATE PASS &mdash; CONTAINER NO. {{ $movement->container_no }}</div>
 
-    <div style="text-align:center;padding:30px 20px;color:#64748b;">
-        <div style="font-size:20pt;">&#128679;</div>
-        <div style="font-size:11pt;font-weight:700;margin-top:8px;">Custom Inward Gate Pass</div>
-        <div style="font-size:9pt;margin-top:4px;">This format is coming soon. Please use Full A4 or Landscape.</div>
+    {{-- ── Label / Value pair table ── --}}
+    @php
+        $condShort = match($cond) { 'damaged' => 'DM', 'require_repair' => 'REP.', default => 'GOOD' };
+    @endphp
+    <div class="sec" style="margin-top:6px;">
+        <table>
+            <colgroup>
+                <col style="width:35%"><col style="width:65%">
+            </colgroup>
+            <tr>
+                <td style="background:#f8fafc;">
+                    <div class="cell-lbl">Container No.</div>
+                </td>
+                <td style="font-family:'Courier New',monospace;font-size:12pt;font-weight:900;letter-spacing:.5px;">
+                    {{ $movement->container_no }}
+                </td>
+            </tr>
+            <tr>
+                <td style="background:#f8fafc;"><div class="cell-lbl">Gate In Date</div></td>
+                <td><div class="cell-val">{{ $movement->gate_in_time?->format('d M Y') ?? '—' }}</div></td>
+            </tr>
+            <tr>
+                <td style="background:#f8fafc;"><div class="cell-lbl">In Time</div></td>
+                <td><div class="cell-val">{{ $movement->gate_in_time?->format('H:i') ?? '—' }}</div></td>
+            </tr>
+            <tr>
+                <td style="background:#f8fafc;"><div class="cell-lbl">Vehicle No.</div></td>
+                <td style="font-family:'Courier New',monospace;"><div class="cell-val">{{ $movement->vehicle_plate ?: '—' }}</div></td>
+            </tr>
+            <tr>
+                <td style="background:#f8fafc;"><div class="cell-lbl">Status</div></td>
+                <td style="padding-top:4px;padding-bottom:4px;">
+                    <span class="gp-status-badge {{ $isLaden ? 'gp-status-badge-laden' : 'gp-status-badge-empty' }}" style="font-size:8pt;margin-top:0;">
+                        {{ $isLaden ? 'LADEN' : 'EMPTY' }}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td style="background:#f8fafc;"><div class="cell-lbl">Condition</div></td>
+                <td style="padding-top:4px;padding-bottom:4px;">
+                    <span class="gp-status-badge {{ $condBadgeClass }}" style="font-size:8pt;margin-top:0;">
+                        {{ $condShort }}
+                    </span>
+                </td>
+            </tr>
+        </table>
     </div>
 
+    {{-- ── Authorization ── --}}
+    <div class="sec" style="margin-top:6px;">
+        <div class="sec-hdr">Authorization</div>
+        <table>
+            <tr>
+                <td style="text-align:center;vertical-align:bottom;padding:8px 6px;">
+                    <div style="font-size:8.5pt;font-weight:700;margin-bottom:4px;">Received By (Gate Officer)</div>
+                    <div style="font-size:9pt;font-weight:700;margin-bottom:4px;">{{ $movement->createdBy?->name ?? '&nbsp;' }}</div>
+                    <div style="border-bottom:1px solid #333;width:78%;margin:0 auto;"></div>
+                </td>
+                <td style="text-align:center;vertical-align:bottom;padding:8px 6px;">
+                    <div style="font-size:8.5pt;font-weight:700;margin-bottom:4px;">Driver / Agent</div>
+                    <div style="font-size:9pt;font-weight:700;margin-bottom:4px;">{{ $movement->driver_name ?: '&nbsp;' }}</div>
+                    <div style="border-bottom:1px solid #333;width:78%;margin:0 auto;"></div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {{-- ── Digital Approval Block ── --}}
+    @if($showApprovalBlock)
+    <div class="da-block" style="margin-top:4px;">
+        <div class="da-header" style="padding:3px 8px;font-size:7.5pt;">
+            <span>&#10003;&nbsp; Digitally Approved</span>
+            <span class="da-req-id">Ref: #{{ $approvalReq->id }}</span>
+        </div>
+        <div class="da-steps">
+            @foreach($approvalReq->actions->where('status', 'approved') as $step)
+            <div class="da-step" style="padding:3px 6px;">
+                <div class="da-step-lbl">{{ $step->step_label }}</div>
+                <div class="da-step-name">{{ $step->actionedBy?->name ?? '—' }}</div>
+                <div class="da-step-time">{{ $step->actioned_at?->format('d M Y H:i') }}</div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- ── Footer ── --}}
     <div style="margin-top:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
         <span style="font-size:7pt;color:#555;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
         <span style="font-size:7pt;color:#555;white-space:nowrap;">{{ $softwareCopyright }}</span>
@@ -679,6 +781,7 @@
     }
     makeQR('qr-full', 88);
     makeQR('qr-half', 70);
+    makeQR('qr-custom', 70);
 })();
 </script>
 </body>
