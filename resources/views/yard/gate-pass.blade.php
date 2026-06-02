@@ -199,6 +199,10 @@
         /* ── Divider ─────────────────────────────────────────────────────── */
         hr.gp-rule { border: none; border-top: 2px solid #000; margin: 6px 0; }
 
+        /* ── Custom Half compact overrides ──────────────────────────────── */
+        .gp-compact td, .gp-compact th { padding: 4px 6px; }
+        .gp-compact .sec { margin-top: 3px; }
+
         @media print {
             .screen-toolbar { display: none !important; }
             body { background: #fff; margin: 0; }
@@ -498,7 +502,7 @@
 {{--  CUSTOM HALF FORMAT  (A5 landscape — shipper / vessel / compact sigs)       --}}
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
 @elseif($format === 'half-custom')
-<div class="gp-doc">
+<div class="gp-doc gp-compact">
 
     {{-- ── Header: 3 columns — company | pass number + badge | QR ── --}}
     <div class="gp-header" style="padding-bottom:5px;">
@@ -576,14 +580,15 @@
         </table>
     </div>
 
-    {{-- ── Section 2: Customer & Transport ── --}}
+    {{-- ── Section 2: Customer, Transport & Vehicle (merged, 6-col grid) ── --}}
     <div class="sec">
-        <div class="sec-hdr">Customer &amp; Transport Information</div>
+        <div class="sec-hdr">Customer, Transport &amp; Vehicle</div>
         <table>
             <colgroup>
                 <col style="width:16.67%"><col style="width:16.67%"><col style="width:16.66%">
                 <col style="width:16.67%"><col style="width:16.67%"><col style="width:16.66%">
             </colgroup>
+            {{-- Row 1: Customer | Shipper --}}
             <tr>
                 <td colspan="3">
                     <div class="cell-lbl">Customer</div>
@@ -594,8 +599,9 @@
                     <div class="cell-val" style="font-size:8.5pt;">{{ $movement->shipper ?: '—' }}</div>
                 </td>
             </tr>
+            {{-- Row 2: Loading Vessel/Voyage | Ex Vessel (Transporter removed) --}}
             <tr>
-                <td colspan="2">
+                <td colspan="3">
                     <div class="cell-lbl">Loading Vessel / Voyage</div>
                     <div class="cell-val" style="font-size:8.5pt;">
                         {{ $movement->loading_vessel ?: '—' }}
@@ -605,11 +611,7 @@
                         @endif
                     </div>
                 </td>
-                <td colspan="2">
-                    <div class="cell-lbl">Transporter</div>
-                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->transporter?->name ?: '—' }}</div>
-                </td>
-                <td colspan="2">
+                <td colspan="3">
                     <div class="cell-lbl">Ex. Vessel (Import)</div>
                     <div class="cell-val" style="font-size:8.5pt;">
                         {{ $gateIn?->vessel_name ?: '—' }}
@@ -617,27 +619,17 @@
                     </div>
                 </td>
             </tr>
-        </table>
-    </div>
-
-    {{-- ── Section 3: Vehicle & Driver ── --}}
-    <div class="sec">
-        <div class="sec-hdr">Vehicle &amp; Driver Details</div>
-        <table>
+            {{-- Row 3: Truck | Driver Name | Driver ID (Trailer removed) --}}
             <tr>
-                <td style="width:28%">
+                <td colspan="2">
                     <div class="cell-lbl">Truck / Vehicle No.</div>
                     <div class="cell-val" style="font-size:8.5pt;">{{ $movement->vehicle_plate ?: '—' }}</div>
                 </td>
-                <td style="width:22%">
-                    <div class="cell-lbl">Trailer No.</div>
-                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->trailer_no ?? '—' }}</div>
-                </td>
-                <td style="width:30%">
+                <td colspan="2">
                     <div class="cell-lbl">Driver Name</div>
                     <div class="cell-val" style="font-size:8.5pt;">{{ $movement->driver_name ?: '—' }}</div>
                 </td>
-                <td style="width:20%">
+                <td colspan="2">
                     <div class="cell-lbl">Driver ID</div>
                     <div class="cell-val" style="font-size:8.5pt;">{{ $movement->driver_ic ?: '—' }}</div>
                 </td>
@@ -645,19 +637,18 @@
         </table>
     </div>
 
-    {{-- ── Section 4: Authorization (name-above-line, no signing gap) ── --}}
+    {{-- ── Section 3: Authorization (name-above-line, no declaration, no signing gap) ── --}}
     <div class="sec">
         <div class="sec-hdr">Authorization</div>
-        <div class="declaration" style="font-size:8pt;">&ldquo;I authorize the release of the above Container.&rdquo;</div>
         @unless($showApprovalBlock)
         <table>
             <tr>
-                <td style="text-align:center;padding:7px;">
+                <td style="text-align:center;">
                     <div class="cell-lbl">Issued By</div>
                     <div style="font-size:8.5pt;font-weight:700;margin-bottom:5px;">{{ $movement->createdBy?->name ?? '—' }}</div>
                     <div class="sig-line"></div>
                 </td>
-                <td style="text-align:center;padding:7px;">
+                <td style="text-align:center;">
                     <div class="cell-lbl">Received By (Driver)</div>
                     <div style="font-size:8.5pt;font-weight:700;margin-bottom:5px;">{{ $movement->driver_name ?: '—' }}</div>
                     <div class="sig-line"></div>
@@ -669,7 +660,7 @@
 
     {{-- ── Digital Approval Block (custom half) ── --}}
     @if($showApprovalBlock)
-    <div class="da-block" style="margin-top:4px;">
+    <div class="da-block" style="margin-top:3px;">
         <div class="da-header" style="padding:3px 8px;font-size:7.5pt;">
             <span>&#10003;&nbsp; Digitally Approved</span>
             <span class="da-req-id">Ref: #{{ $approvalReq->id }}</span>
@@ -687,7 +678,7 @@
     @endif
 
     {{-- ── Footer ── --}}
-    <div style="margin-top:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+    <div style="margin-top:4px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
         <span style="font-size:7pt;color:#555;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
         <span style="font-size:7pt;color:#555;white-space:nowrap;">{{ $softwareCopyright }}</span>
     </div>
