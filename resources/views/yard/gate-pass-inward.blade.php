@@ -732,7 +732,12 @@
                 </td>
                 <td style="text-align:center;vertical-align:bottom;padding:8px 6px;">
                     <div style="font-size:8.5pt;font-weight:700;margin-bottom:4px;">Driver / Agent</div>
-                    <div style="font-size:9pt;font-weight:700;margin-bottom:4px;">{{ $movement->driver_name ?: '&nbsp;' }}</div>
+                    <div style="font-size:9pt;font-weight:700;margin-bottom:2px;">{{ $movement->driver_name ?: '&nbsp;' }}</div>
+                    @if($movement->driver_ic)
+                    <div style="font-size:7.5pt;color:#444;margin-bottom:4px;">ID: {{ $movement->driver_ic }}</div>
+                    @else
+                    <div style="margin-bottom:4px;">&nbsp;</div>
+                    @endif
                     <div style="border-bottom:1px solid #333;width:78%;margin:0 auto;"></div>
                 </td>
             </tr>
