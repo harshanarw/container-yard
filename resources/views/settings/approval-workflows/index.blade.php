@@ -3,7 +3,8 @@
 @section('title', 'Approval Workflows')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item">Masters</li>
+    <li class="breadcrumb-item">Settings</li>
+    <li class="breadcrumb-item">Configuration</li>
     <li class="breadcrumb-item active">Approval Workflows</li>
 @endsection
 
@@ -79,7 +80,7 @@
                     @endif
                 </td>
                 <td class="text-center">
-                    <form method="POST" action="{{ route('masters.approval-workflows.toggle', $step) }}">
+                    <form method="POST" action="{{ route('settings.approval-workflows.toggle', $step) }}">
                         @csrf @method('PATCH')
                         <button type="submit"
                                 class="btn btn-sm {{ $step->is_active ? 'btn-success' : 'btn-outline-secondary' }}"
@@ -121,7 +122,7 @@
                 <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Workflow Step</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ route('masters.approval-workflows.store') }}">
+            <form method="POST" action="{{ route('settings.approval-workflows.store') }}">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">
@@ -218,7 +219,7 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
         document.getElementById('editRole').value     = role;
         document.getElementById('editAutoApprove').checked = autoApp;
         document.getElementById('editStepForm').action =
-            '{{ url("masters/approval-workflows") }}/' + id;
+            '{{ url("settings/approval-workflows") }}/' + id;
 
         new bootstrap.Modal(document.getElementById('editStepModal')).show();
     });

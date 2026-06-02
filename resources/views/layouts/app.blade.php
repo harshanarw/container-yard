@@ -861,14 +861,6 @@
                 </ul>
             </div>
 
-            {{-- Approval Workflows --}}
-            <li class="nav-item">
-                <a href="{{ route('masters.approval-workflows.index') }}"
-                   class="nav-link {{ request()->routeIs('masters.approval-workflows.*') ? 'active' : '' }}">
-                    <i class="bi bi-diagram-3"></i><span>Approval Workflows</span>
-                </a>
-            </li>
-
             {{-- Invoice sub-group --}}
             @php $invoiceActive = request()->routeIs('masters.tax-codes.*') || request()->routeIs('masters.charge-codes.*') || request()->routeIs('masters.currencies.*') || request()->routeIs('masters.exchange-rates.*'); @endphp
             <button class="nav-sub-toggle"
@@ -986,6 +978,12 @@
                         <a href="{{ route('settings.cloud-storage.index') }}"
                            class="nav-link {{ request()->routeIs('settings.cloud-storage.*') ? 'active' : '' }}">
                             <i class="bi bi-cloud-upload"></i><span>Storage</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('settings.approval-workflows.index') }}"
+                           class="nav-link {{ request()->routeIs('settings.approval-workflows.*') ? 'active' : '' }}">
+                            <i class="bi bi-diagram-3"></i><span>Approval Workflows</span>
                         </a>
                     </li>
                     @endif

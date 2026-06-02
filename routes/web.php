@@ -326,13 +326,6 @@ Route::middleware(['auth'])->group(function () {
                 Route::delete('{detail}', [StorageTariffController::class, 'destroyDetail'])->name('destroy');
             });
         });
-        // Approval Workflows
-        Route::prefix('approval-workflows')->name('approval-workflows.')->group(function () {
-            Route::get('/',                              [ApprovalWorkflowController::class, 'index'])->name('index');
-            Route::post('/',                             [ApprovalWorkflowController::class, 'store'])->name('store');
-            Route::patch('{approvalWorkflow}',           [ApprovalWorkflowController::class, 'update'])->name('update');
-            Route::patch('{approvalWorkflow}/toggle',    [ApprovalWorkflowController::class, 'toggleActive'])->name('toggle');
-        });
     });
 
     // Billing — Storage Invoice generation and management
@@ -386,6 +379,14 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/{country}',        [CountryController::class, 'update'])->name('update');
         Route::patch('/{country}/toggle', [CountryController::class, 'toggleActive'])->name('toggle');
         Route::delete('/{country}',       [CountryController::class, 'destroy'])->name('destroy');
+    });
+
+    // Approval Workflows — System Administrator only
+    Route::prefix('settings/approval-workflows')->name('settings.approval-workflows.')->group(function () {
+        Route::get('/',                              [ApprovalWorkflowController::class, 'index'])->name('index');
+        Route::post('/',                             [ApprovalWorkflowController::class, 'store'])->name('store');
+        Route::patch('{approvalWorkflow}',           [ApprovalWorkflowController::class, 'update'])->name('update');
+        Route::patch('{approvalWorkflow}/toggle',    [ApprovalWorkflowController::class, 'toggleActive'])->name('toggle');
     });
 
     // Company Settings — System Administrator only

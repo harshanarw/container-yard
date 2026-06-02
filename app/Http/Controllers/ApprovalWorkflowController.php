@@ -22,19 +22,26 @@ class ApprovalWorkflowController extends Controller
         'gate_pass_in' => 'Gate Pass (Inward)',
     ];
 
+    private function authorise(): void
+    {
+        abort_unless(auth()->user()?->isSystemAdmin(), 403, 'System Administrator access required.');
+    }
+
     public function index()
     {
-        $steps = ApprovalWorkflow::orderBy('document_type')->orderBy('step_order')->get()
-            ->groupBy('document_type');
+        $this->authorise();
 
+        $steps        = ApprovalWorkflow::orderBy('document_type')->orderBy('step_order')->get()
+                            ->groupBy('document_type');
         $roles        = self::ROLES;
         $docTypeLabels = self::DOC_TYPE_LABELS;
 
-        return view('masters.approval-workflows.index', compact('steps', 'roles', 'docTypeLabels'));
+        return view('settings.approval-workflows.index', compact('steps', 'roles', 'docTypeLabels'));
     }
 
     public function store(Request $request)
     {
+        $this->authorise();
         $data = $request->validate([
             'document_type'          => 'required|string|max:50',
             'step_label'             => 'required|string|max:100',
@@ -68,6 +75,7 @@ class ApprovalWorkflowController extends Controller
 
     public function update(Request $request, ApprovalWorkflow $approvalWorkflow)
     {
+        $this->authorise();
         $data = $request->validate([
             'step_label'             => 'required|string|max:100',
             'required_role'          => 'nullable|string|max:60',
@@ -85,6 +93,7 @@ class ApprovalWorkflowController extends Controller
 
     public function toggleActive(ApprovalWorkflow $approvalWorkflow)
     {
+        $this->authorise();
         $approvalWorkflow->update(['is_active' => !$approvalWorkflow->is_active]);
 
         $state = $approvalWorkflow->is_active ? 'activated' : 'deactivated';
