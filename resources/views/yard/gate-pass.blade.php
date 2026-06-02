@@ -652,15 +652,15 @@
         @unless($showApprovalBlock)
         <table>
             <tr>
-                <td style="text-align:center;height:62px;vertical-align:bottom;padding-bottom:6px;">
-                    <div style="font-size:8pt;font-weight:700;margin-bottom:6px;">Issued By</div>
+                <td class="sig-cell" style="height:60px;">
+                    <div class="sig-label" style="margin-bottom:24px;font-size:8pt;">Issued By</div>
                     <div class="sig-line"></div>
-                    <div style="font-size:8pt;color:#333;margin-top:3px;">{{ $movement->createdBy?->name ?? '—' }}</div>
+                    <div class="sig-name">{{ $movement->createdBy?->name ?? '—' }}</div>
                 </td>
-                <td style="text-align:center;height:62px;vertical-align:bottom;padding-bottom:6px;">
-                    <div style="font-size:8pt;font-weight:700;margin-bottom:6px;">Received By (Driver)</div>
+                <td class="sig-cell" style="height:60px;">
+                    <div class="sig-label" style="margin-bottom:24px;font-size:8pt;">Received By (Driver)</div>
                     <div class="sig-line"></div>
-                    <div style="font-size:8pt;color:#333;margin-top:3px;">{{ $movement->driver_name ?: '—' }}</div>
+                    <div class="sig-name">{{ $movement->driver_name ?: '—' }}</div>
                 </td>
             </tr>
         </table>
