@@ -683,10 +683,13 @@
             </colgroup>
             <tr>
                 <td style="background:#f8fafc;">
-                    <div class="cell-lbl">Container No.</div>
+                    <div class="cell-lbl">Container No. / Type</div>
                 </td>
                 <td style="font-family:'Courier New',monospace;font-size:12pt;font-weight:900;letter-spacing:.5px;">
-                    {{ $movement->container_no }}
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                        <span>{{ $movement->container_no }}</span>
+                        <span style="font-size:9pt;font-weight:700;letter-spacing:.3px;color:#555;">{{ $movement->size }}'{{ $movement->container_type }}</span>
+                    </div>
                 </td>
             </tr>
             <tr>
@@ -703,18 +706,14 @@
             </tr>
             <tr>
                 <td style="background:#f8fafc;"><div class="cell-lbl">Status</div></td>
-                <td style="padding-top:4px;padding-bottom:4px;">
-                    <span class="gp-status-badge {{ $isLaden ? 'gp-status-badge-laden' : 'gp-status-badge-empty' }}" style="font-size:8pt;margin-top:0;">
-                        {{ $isLaden ? 'LADEN' : 'EMPTY' }}
-                    </span>
+                <td>
+                    <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
                 </td>
             </tr>
             <tr>
                 <td style="background:#f8fafc;"><div class="cell-lbl">Condition</div></td>
-                <td style="padding-top:4px;padding-bottom:4px;">
-                    <span class="gp-status-badge {{ $condBadgeClass }}" style="font-size:8pt;margin-top:0;">
-                        {{ $condShort }}
-                    </span>
+                <td>
+                    <div class="cell-val {{ $condTextClass }}">{{ $condShort }}</div>
                 </td>
             </tr>
         </table>
