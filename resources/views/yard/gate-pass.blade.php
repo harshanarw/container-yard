@@ -8,7 +8,7 @@
     <style>
         /* ── Page setup ──────────────────────────────────────────────────── */
         @page {
-            @if($format === 'half')
+            @if($format === 'half' || $format === 'half-custom')
             size: A5 landscape;
             margin: 8mm 10mm;
             @else
@@ -49,7 +49,7 @@
 
         /* ── Document wrapper ────────────────────────────────────────────── */
         .gp-doc {
-            @if($format === 'half')
+            @if($format === 'half' || $format === 'half-custom')
             max-width: 194mm;
             @else
             max-width: 180mm;
@@ -211,12 +211,15 @@
 {{-- ── Screen-only toolbar ─────────────────────────────────────────────────── --}}
 <div class="screen-toolbar">
     <h6>&#128438; &nbsp; Gate Pass Preview — {{ $movement->container_no }}</h6>
-    <button class="tb-btn tb-btn-primary" onclick="window.print()">Print / Save as PDF</button>
-    <a href="{{ route('yard.movements.gate-pass', ['movement' => $movement->id, 'format' => $format === 'full' ? 'half' : 'full']) }}"
-       class="tb-btn tb-btn-secondary">
-       Switch to {{ $format === 'full' ? 'Landscape Half' : 'Full A4' }} format
-    </a>
-    <a href="{{ route('yard.movements.edit', $movement) }}" class="tb-btn tb-btn-outline">&#8592; Back to Movement</a>
+    <button class="tb-btn tb-btn-primary" onclick="window.print()">&#128438; Print / Save PDF</button>
+    <span style="color:#94a3b8;font-size:11px;margin:0 2px;">Format:</span>
+    <a href="{{ route('yard.movements.gate-pass', ['movement' => $movement->id, 'format' => 'full']) }}"
+       class="tb-btn {{ $format === 'full' ? 'tb-btn-primary' : 'tb-btn-secondary' }}">Full A4</a>
+    <a href="{{ route('yard.movements.gate-pass', ['movement' => $movement->id, 'format' => 'half']) }}"
+       class="tb-btn {{ $format === 'half' ? 'tb-btn-primary' : 'tb-btn-secondary' }}">Landscape</a>
+    <a href="{{ route('yard.movements.gate-pass', ['movement' => $movement->id, 'format' => 'half-custom']) }}"
+       class="tb-btn {{ $format === 'half-custom' ? 'tb-btn-primary' : 'tb-btn-secondary' }}">Custom Half</a>
+    <a href="{{ route('yard.movements.edit', $movement) }}" class="tb-btn tb-btn-outline">&#8592; Back</a>
 </div>
 
 @php
@@ -492,9 +495,209 @@
 </div>
 
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
+{{--  CUSTOM HALF FORMAT  (A5 landscape — shipper / vessel / compact sigs)       --}}
+{{-- ═══════════════════════════════════════════════════════════════════════════ --}}
+@elseif($format === 'half-custom')
+<div class="gp-doc">
+
+    {{-- ── Header: 3 columns — company | pass number + badge | QR ── --}}
+    <div class="gp-header" style="padding-bottom:5px;">
+        <div style="flex:1;min-width:0;">
+            @if($companySetting?->logo_url)
+            <img src="{{ $companySetting->logo_url }}" style="max-height:42px;margin-bottom:3px;display:block;" alt="Logo">
+            @endif
+            <div style="font-size:10pt;font-weight:900;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
+            <div style="font-size:7pt;color:#333;margin-top:2px;line-height:1.6;">
+                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $companySetting?->address }}</div>
+                @if($companySetting?->telephone || $companySetting?->email)
+                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">
+                    @if($companySetting?->telephone)Tel: {{ $companySetting->telephone }}@endif
+                    @if($companySetting?->telephone && $companySetting?->email) &nbsp;·&nbsp; @endif
+                    @if($companySetting?->email){{ $companySetting->email }}@endif
+                </div>
+                @endif
+            </div>
+        </div>
+        <div style="flex:0 0 auto;text-align:right;white-space:nowrap;">
+            <div class="gp-pass-no-label">Outward Gate Pass No.</div>
+            <div class="gp-pass-no-value" style="font-size:14pt;">{{ $gpNumber }}</div>
+            <div>
+                <span class="gp-status-badge {{ $isLaden ? 'gp-status-badge-laden' : 'gp-status-badge-empty' }}" style="font-size:7.5pt;margin-top:4px;">
+                    {{ $isLaden ? 'LADEN' : 'EMPTY' }}
+                </span>
+            </div>
+        </div>
+        <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;">
+            <div class="gp-qr gp-qr-sm">
+                <div id="qr-hc"></div>
+            </div>
+            <div class="gp-qr-caption" style="width:70px;">Scan to verify</div>
+        </div>
+    </div>
+
+    {{-- ── Title ── --}}
+    <div class="gp-title" style="font-size:10pt;padding:4px 10px;text-transform:uppercase;">Outward Gate Pass &mdash; Container No. {{ $movement->container_no }}</div>
+
+    {{-- ── Section 1: Container Details (no Yard Location) ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Container Details</div>
+        <table>
+            <tr>
+                <td style="width:20%">
+                    <div class="cell-lbl">Size / Type</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->size }}' {{ $movement->container_type }}</div>
+                </td>
+                <td style="width:18%">
+                    <div class="cell-lbl">Status</div>
+                    <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:9pt;">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
+                </td>
+                <td style="width:24%">
+                    <div class="cell-lbl">Seal No.</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->seal_no ?: '—' }}</div>
+                </td>
+                <td style="width:38%">
+                    <div class="cell-lbl">Release Order Ref.</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->release_order ?: '—' }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3">
+                    <div class="cell-lbl">Owner / Shipping Line</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $gateIn?->customer?->name ?? $movement->customer?->name ?? '—' }}</div>
+                </td>
+                <td>
+                    <div class="cell-lbl">Date / Time</div>
+                    <div class="cell-val" style="font-size:9pt;">
+                        {{ $movement->gate_out_time?->format('d M Y') ?? '—' }}
+                        {{ $movement->gate_out_time?->format('H:i') ?? '' }}
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {{-- ── Section 2: Customer & Transport ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Customer &amp; Transport Information</div>
+        <table>
+            <colgroup>
+                <col style="width:16.67%"><col style="width:16.67%"><col style="width:16.66%">
+                <col style="width:16.67%"><col style="width:16.67%"><col style="width:16.66%">
+            </colgroup>
+            <tr>
+                <td colspan="3">
+                    <div class="cell-lbl">Customer</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?: '—' }}</div>
+                </td>
+                <td colspan="3">
+                    <div class="cell-lbl">Shipper</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->shipper ?: '—' }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <div class="cell-lbl">Loading Vessel / Voyage</div>
+                    <div class="cell-val" style="font-size:9pt;">
+                        {{ $movement->loading_vessel ?: '—' }}
+                        @if($movement->loading_voyage) / {{ $movement->loading_voyage }} @endif
+                        @if($movement->sailing_date)
+                            &nbsp;<span style="font-weight:normal;font-size:8pt;">Sailing: {{ $movement->sailing_date->format('d M Y') }}</span>
+                        @endif
+                    </div>
+                </td>
+                <td colspan="2">
+                    <div class="cell-lbl">Transporter</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->transporter?->name ?: '—' }}</div>
+                </td>
+                <td colspan="2">
+                    <div class="cell-lbl">Ex. Vessel (Import)</div>
+                    <div class="cell-val" style="font-size:9pt;">
+                        {{ $gateIn?->vessel_name ?: '—' }}
+                        @if($gateIn?->voyage_no) / {{ $gateIn->voyage_no }} @endif
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {{-- ── Section 3: Vehicle & Driver ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Vehicle &amp; Driver Details</div>
+        <table>
+            <tr>
+                <td style="width:28%">
+                    <div class="cell-lbl">Truck / Vehicle No.</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->vehicle_plate ?: '—' }}</div>
+                </td>
+                <td style="width:22%">
+                    <div class="cell-lbl">Trailer No.</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->trailer_no ?? '—' }}</div>
+                </td>
+                <td style="width:30%">
+                    <div class="cell-lbl">Driver Name</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_name ?: '—' }}</div>
+                </td>
+                <td style="width:20%">
+                    <div class="cell-lbl">Driver ID</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_ic ?: '—' }}</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {{-- ── Section 4: Authorization (compact 2-sig) ── --}}
+    <div class="sec">
+        <div class="sec-hdr">Authorization</div>
+        <div class="declaration" style="font-size:8pt;">&ldquo;I authorize the release of the above Container.&rdquo;</div>
+        @unless($showApprovalBlock)
+        <table>
+            <tr>
+                <td style="text-align:center;height:62px;vertical-align:bottom;padding-bottom:6px;">
+                    <div style="font-size:8pt;font-weight:700;margin-bottom:6px;">Issued By</div>
+                    <div class="sig-line"></div>
+                    <div style="font-size:8pt;color:#333;margin-top:3px;">{{ $movement->createdBy?->name ?? '—' }}</div>
+                </td>
+                <td style="text-align:center;height:62px;vertical-align:bottom;padding-bottom:6px;">
+                    <div style="font-size:8pt;font-weight:700;margin-bottom:6px;">Received By (Driver)</div>
+                    <div class="sig-line"></div>
+                    <div style="font-size:8pt;color:#333;margin-top:3px;">{{ $movement->driver_name ?: '—' }}</div>
+                </td>
+            </tr>
+        </table>
+        @endunless
+    </div>
+
+    {{-- ── Digital Approval Block (custom half) ── --}}
+    @if($showApprovalBlock)
+    <div class="da-block" style="margin-top:4px;">
+        <div class="da-header" style="padding:3px 8px;font-size:7.5pt;">
+            <span>&#10003;&nbsp; Digitally Approved</span>
+            <span class="da-req-id">Ref: #{{ $approvalReq->id }}</span>
+        </div>
+        <div class="da-steps">
+            @foreach($approvalReq->actions->where('status', 'approved') as $step)
+            <div class="da-step" style="padding:3px 6px;">
+                <div class="da-step-lbl">{{ $step->step_label }}</div>
+                <div class="da-step-name">{{ $step->actionedBy?->name ?? '—' }}</div>
+                <div class="da-step-time">{{ $step->actioned_at?->format('d M Y H:i') }}</div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- ── Footer ── --}}
+    <div style="margin-top:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <span style="font-size:7pt;color:#555;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
+        <span style="font-size:7pt;color:#555;white-space:nowrap;">{{ $softwareCopyright }}</span>
+    </div>
+
+</div>
+
+{{-- ═══════════════════════════════════════════════════════════════════════════ --}}
 {{--  LANDSCAPE HALF FORMAT  (A5 landscape = half of A4, 210mm × 148mm)         --}}
 {{-- ═══════════════════════════════════════════════════════════════════════════ --}}
-@else
+@elseif($format === 'half')
 <div class="gp-doc">
 
     {{-- ── Header: 3 columns — company | pass number | QR ── --}}
@@ -674,6 +877,7 @@
     }
     makeQR('qr-full', 88);
     makeQR('qr-half', 70);
+    makeQR('qr-hc',   70);
 })();
 </script>
 </body>
