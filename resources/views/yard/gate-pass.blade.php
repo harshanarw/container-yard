@@ -96,6 +96,7 @@
             font-weight: 700;
             letter-spacing: .5px;
             margin: 6px 0 0;
+            text-transform: uppercase;
         }
 
         /* ── Section headers ─────────────────────────────────────────────── */
@@ -351,21 +352,17 @@
         <div class="sec-hdr">Customer &amp; Transport Information</div>
         <table>
             <tr>
-                <td style="width:38%">
+                <td style="width:50%">
                     <div class="cell-lbl">Customer</div>
                     <div class="cell-val">{{ $movement->customer?->name ?: '—' }}</div>
                 </td>
-                <td style="width:32%">
-                    <div class="cell-lbl">Transporter</div>
-                    <div class="cell-val">{{ $movement->transporter?->name ?: '—' }}</div>
-                </td>
-                <td style="width:30%">
+                <td style="width:50%">
                     <div class="cell-lbl">Shipper</div>
                     <div class="cell-val">{{ $movement->shipper ?: '—' }}</div>
                 </td>
             </tr>
             <tr>
-                <td colspan="2">
+                <td style="width:34%">
                     <div class="cell-lbl">Loading Vessel / Voyage</div>
                     <div class="cell-val">
                         {{ $movement->loading_vessel ?: '—' }}
@@ -375,7 +372,11 @@
                         @endif
                     </div>
                 </td>
-                <td>
+                <td style="width:33%">
+                    <div class="cell-lbl">Transporter</div>
+                    <div class="cell-val">{{ $movement->transporter?->name ?: '—' }}</div>
+                </td>
+                <td style="width:33%">
                     <div class="cell-lbl">Ex. Vessel (Import)</div>
                     <div class="cell-val">
                         {{ $gateIn?->vessel_name ?: '—' }}
@@ -519,7 +520,7 @@
     </div>
 
     {{-- ── Title ── --}}
-    <div class="gp-title" style="font-size:10pt;padding:4px 10px;">Outward Gate Pass &mdash; Container No. {{ $movement->container_no }}</div>
+    <div class="gp-title" style="font-size:10pt;padding:4px 10px;text-transform:uppercase;">Outward Gate Pass &mdash; Container No. {{ $movement->container_no }}</div>
 
     {{-- ── Container Details ── --}}
     <div class="sec">
