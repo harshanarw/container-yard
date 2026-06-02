@@ -55,7 +55,7 @@
             max-width: 180mm;
             @endif
             margin: 18px auto;
-            padding: 12px 14px;
+            padding: 16px 14px 12px;
             background: #fff;
             border: 1px solid #000;
         }
@@ -66,7 +66,7 @@
             justify-content: space-between;
             align-items: flex-start;
             gap: 10px;
-            padding-bottom: 8px;
+            padding-bottom: 6px;
         }
         .gp-header-company { flex: 1; min-width: 0; }
         .gp-header-mid     { flex: 0 0 auto; text-align: right; white-space: nowrap; padding-left: 8px; }
@@ -83,7 +83,7 @@
         .gp-qr canvas { display: none !important; }
         .gp-qr img { display: inline-block; border: 1px solid #bbb; padding: 2px; background: #fff; width: 88px; height: 88px; }
         .gp-qr-sm img { width: 70px; height: 70px; }
-        .gp-qr-caption { font-size: 6.5pt; color: #666; text-align: right; margin-top: 3px; line-height: 1; }
+        .gp-qr-caption { font-size: 6.5pt; color: #666; text-align: center; margin-top: 3px; line-height: 1; }
 
         /* ── Title bar ───────────────────────────────────────────────────── */
         .gp-title {
@@ -259,8 +259,10 @@
             <div class="gp-company-name">{{ $companySetting?->company_name ?? 'Container Yard Management' }}</div>
             <div class="gp-address">
                 @if($companySetting?->address){{ $companySetting->address }}@endif
-                @if($companySetting?->telephone)<br>Tel: {{ $companySetting->telephone }}@endif
-                @if($companySetting?->email) &nbsp; {{ $companySetting->email }}@endif
+                @if($companySetting?->telephone || $companySetting?->email)<br>@endif
+                @if($companySetting?->telephone)Tel: {{ $companySetting->telephone }}@endif
+                @if($companySetting?->telephone && $companySetting?->email) &nbsp;·&nbsp; @endif
+                @if($companySetting?->email){{ $companySetting->email }}@endif
             </div>
         </div>
         {{-- Centre-right: pass number + date --}}
@@ -281,8 +283,6 @@
             <div class="gp-qr-caption">Scan to verify</div>
         </div>
     </div>
-
-    <hr class="gp-rule">
 
     {{-- ── Title bar ── --}}
     <div class="gp-title">Outward Gate Pass &mdash; Container No. {{ $movement->container_no }}</div>
@@ -494,8 +494,10 @@
             <div style="font-size:10pt;font-weight:900;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
             <div style="font-size:7.5pt;color:#333;margin-top:3px;line-height:1.5;">
                 @if($companySetting?->address){{ $companySetting->address }}@endif
-                @if($companySetting?->telephone) &nbsp;·&nbsp; Tel: {{ $companySetting->telephone }}@endif
-                @if($companySetting?->email) &nbsp;·&nbsp; {{ $companySetting->email }}@endif
+                @if($companySetting?->telephone || $companySetting?->email)<br>@endif
+                @if($companySetting?->telephone)Tel: {{ $companySetting->telephone }}@endif
+                @if($companySetting?->telephone && $companySetting?->email) &nbsp;·&nbsp; @endif
+                @if($companySetting?->email){{ $companySetting->email }}@endif
             </div>
         </div>
         {{-- Centre-right: pass number + date --}}
@@ -516,8 +518,6 @@
             <div class="gp-qr-caption">Scan to verify</div>
         </div>
     </div>
-
-    <hr class="gp-rule">
 
     {{-- ── Title ── --}}
     <div class="gp-title" style="font-size:10pt;padding:4px 10px;">Outward Gate Pass &mdash; Container No. {{ $movement->container_no }}</div>
