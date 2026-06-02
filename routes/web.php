@@ -36,6 +36,7 @@ use App\Http\Controllers\MrCodeChargeMappingController;
 use App\Http\Controllers\MrTariffController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\ApprovalWorkflowController;
 use App\Http\Controllers\YardController;
 
 /*
@@ -324,6 +325,13 @@ Route::middleware(['auth'])->group(function () {
                 Route::patch('{detail}',  [StorageTariffController::class, 'updateDetail'])->name('update');
                 Route::delete('{detail}', [StorageTariffController::class, 'destroyDetail'])->name('destroy');
             });
+        });
+        // Approval Workflows
+        Route::prefix('approval-workflows')->name('approval-workflows.')->group(function () {
+            Route::get('/',                              [ApprovalWorkflowController::class, 'index'])->name('index');
+            Route::post('/',                             [ApprovalWorkflowController::class, 'store'])->name('store');
+            Route::patch('{approvalWorkflow}',           [ApprovalWorkflowController::class, 'update'])->name('update');
+            Route::patch('{approvalWorkflow}/toggle',    [ApprovalWorkflowController::class, 'toggleActive'])->name('toggle');
         });
     });
 

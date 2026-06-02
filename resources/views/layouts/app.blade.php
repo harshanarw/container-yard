@@ -861,6 +861,14 @@
                 </ul>
             </div>
 
+            {{-- Approval Workflows --}}
+            <li class="nav-item">
+                <a href="{{ route('masters.approval-workflows.index') }}"
+                   class="nav-link {{ request()->routeIs('masters.approval-workflows.*') ? 'active' : '' }}">
+                    <i class="bi bi-diagram-3"></i><span>Approval Workflows</span>
+                </a>
+            </li>
+
             {{-- Invoice sub-group --}}
             @php $invoiceActive = request()->routeIs('masters.tax-codes.*') || request()->routeIs('masters.charge-codes.*') || request()->routeIs('masters.currencies.*') || request()->routeIs('masters.exchange-rates.*'); @endphp
             <button class="nav-sub-toggle"
