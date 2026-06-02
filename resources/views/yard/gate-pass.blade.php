@@ -353,7 +353,7 @@
         <table>
             <tr>
                 <td style="width:38%">
-                    <div class="cell-lbl">Customer / Consignee</div>
+                    <div class="cell-lbl">Customer</div>
                     <div class="cell-val">{{ $movement->customer?->name ?: '—' }}</div>
                 </td>
                 <td style="width:32%">
@@ -588,7 +588,7 @@
         <table>
             <tr>
                 <td style="width:28%">
-                    <div class="cell-lbl">Customer / Consignee</div>
+                    <div class="cell-lbl">Customer</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?: '—' }}</div>
                 </td>
                 <td style="width:22%">
