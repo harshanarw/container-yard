@@ -130,7 +130,7 @@
 @php
     $companyPrefix = strtoupper(trim($companySetting?->company_prefix ?? ''));
     $isInward  = ($passType ?? $movement->movement_type) === 'in';
-    $gpPrefix  = $isInward ? 'IGP' : 'GP';
+    $gpPrefix  = $isInward ? 'IGP' : 'OGP';
     $gpNumber  = ($companyPrefix ? $companyPrefix . '-' : '') . $gpPrefix . '-' . str_pad($movement->id, 5, '0', STR_PAD_LEFT);
     $isLaden   = strtolower($movement->cargo_status ?? '') === 'laden';
     $verifiedAt = now()->format('d M Y, H:i');
