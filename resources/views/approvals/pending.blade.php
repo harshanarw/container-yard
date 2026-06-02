@@ -92,13 +92,11 @@
                         <td class="text-end">
                             <div class="d-flex gap-2 justify-content-end">
                                 {{-- Approve --}}
-                                <form method="POST" action="{{ route('approvals.actions.approve', $action) }}">
-                                    @csrf
-                                    <button type="submit" class="btn btn-success btn-sm"
-                                            onclick="return confirm('Approve this step?')">
-                                        <i class="bi bi-check-lg me-1"></i>Approve
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-success btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#approveModal{{ $action->id }}">
+                                    <i class="bi bi-check-lg me-1"></i>Approve
+                                </button>
 
                                 {{-- Reject --}}
                                 <button type="button" class="btn btn-danger btn-sm"
@@ -115,6 +113,31 @@
                             </div>
                         </td>
                     </tr>
+
+                    {{-- Approve Modal --}}
+                    <div class="modal fade" id="approveModal{{ $action->id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-success text-white">
+                                    <h5 class="modal-title"><i class="bi bi-check-circle me-2"></i>Approve Step</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="mb-1">Approve <strong>{{ $action->step_label }}</strong> for {{ $docLabel }}?</p>
+                                    <p class="text-muted small mb-0">This will mark this step as approved and advance the workflow.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <form method="POST" action="{{ route('approvals.actions.approve', $action) }}">
+                                        @csrf
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-check-lg me-1"></i>Confirm Approval
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     {{-- Reject Modal --}}
                     <div class="modal fade" id="rejectModal{{ $action->id }}" tabindex="-1">

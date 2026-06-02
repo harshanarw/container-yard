@@ -22,13 +22,10 @@
         @endif text-white">
         <span><i class="bi bi-check2-circle me-2"></i>Digital Approval</span>
         @if(!$req || $canInitiate)
-            <form method="POST" action="{{ route('approvals.gate-pass.initiate', $movement) }}">
-                @csrf
-                <button type="submit" class="btn btn-sm btn-light fw-semibold"
-                        onclick="return confirm('Submit this gate pass for digital approval?')">
-                    <i class="bi bi-send me-1"></i>Submit for Approval
-                </button>
-            </form>
+            <button type="button" class="btn btn-sm btn-light fw-semibold"
+                    data-bs-toggle="modal" data-bs-target="#submitApprovalModal">
+                <i class="bi bi-send me-1"></i>Submit for Approval
+            </button>
         @elseif($req->isPending() && $canCancel)
             <button type="button" class="btn btn-sm btn-outline-light"
                     data-bs-toggle="modal" data-bs-target="#cancelApprovalModal">
@@ -102,13 +99,10 @@
                 {{-- Inline action buttons for the next pending step --}}
                 @if($isNext && $canAction)
                 <div class="d-flex gap-2 flex-shrink-0">
-                    <form method="POST" action="{{ route('approvals.actions.approve', $action) }}">
-                        @csrf
-                        <button type="submit" class="btn btn-success btn-sm"
-                                onclick="return confirm('Approve this step?')">
-                            <i class="bi bi-check-lg me-1"></i>Approve
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-success btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#approveStepModal">
+                        <i class="bi bi-check-lg me-1"></i>Approve
+                    </button>
                     <button type="button" class="btn btn-danger btn-sm"
                             data-bs-toggle="modal" data-bs-target="#rejectStepModal">
                         <i class="bi bi-x-lg me-1"></i>Reject
@@ -132,6 +126,59 @@
         @endif
     </div>
 </div>
+
+{{-- Submit for Approval Modal --}}
+@if(!$req || $canInitiate)
+<div class="modal fade" id="submitApprovalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-send me-2"></i>Submit for Approval</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Submit this gate pass for digital approval? It will be routed through the approval workflow immediately.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ route('approvals.gate-pass.initiate', $movement) }}">
+                    @csrf
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send me-1"></i>Submit for Approval
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- Approve Step Modal --}}
+@if($nextAction && $canAction)
+<div class="modal fade" id="approveStepModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-check-circle me-2"></i>Approve Step</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-1">Approve <strong>{{ $nextAction->step_label }}</strong>?</p>
+                <p class="text-muted small mb-0">This will mark this step as approved and advance the workflow.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ route('approvals.actions.approve', $nextAction) }}">
+                    @csrf
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-lg me-1"></i>Confirm Approval
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 {{-- Cancel Modal --}}
 @if($req && $canCancel)
