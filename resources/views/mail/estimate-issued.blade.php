@@ -76,47 +76,94 @@
       </table>
 
       {{-- ── Line items ── --}}
+      {{-- columns: # | Component | Repair Type | Labour | Materials | Line Total --}}
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:.875rem;margin-bottom:4px;">
         <thead>
           <tr style="background:#e9ecef;">
-            <th style="padding:8px 10px;text-align:left;color:#495057;font-size:.78rem;font-weight:700;border-bottom:2px solid #dee2e6;">#</th>
-            <th style="padding:8px 10px;text-align:left;color:#495057;font-size:.78rem;font-weight:700;border-bottom:2px solid #dee2e6;">Description</th>
-            <th style="padding:8px 10px;text-align:right;color:#495057;font-size:.78rem;font-weight:700;border-bottom:2px solid #dee2e6;">Qty</th>
-            <th style="padding:8px 10px;text-align:right;color:#495057;font-size:.78rem;font-weight:700;border-bottom:2px solid #dee2e6;">Unit Price</th>
-            <th style="padding:8px 10px;text-align:right;color:#495057;font-size:.78rem;font-weight:700;border-bottom:2px solid #dee2e6;">Amount</th>
+            <th style="padding:8px 6px;text-align:left;color:#495057;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:4%;">#</th>
+            <th style="padding:8px 8px;text-align:left;color:#495057;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;">Component</th>
+            <th style="padding:8px 8px;text-align:left;color:#495057;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:14%;">Repair Type</th>
+            <th style="padding:8px 8px;text-align:right;color:#1a56db;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:16%;">&#x1F527; Labour</th>
+            <th style="padding:8px 8px;text-align:right;color:#166534;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:14%;">&#x1F4E6; Materials</th>
+            <th style="padding:8px 8px;text-align:right;color:#495057;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:14%;">Line Total</th>
           </tr>
         </thead>
         <tbody>
           @foreach($estimate->lineItems as $i => $line)
           <tr style="background:{{ $loop->even ? '#f8f9fa' : '#ffffff' }};">
-            <td style="padding:7px 10px;color:#6c757d;border-bottom:1px solid #f1f3f5;">{{ $i + 1 }}</td>
-            <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;">{{ $line->component }} — {{ $line->repair_type }}</td>
-            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;">{{ number_format($line->qty, 2) }}</td>
-            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;">{{ number_format($line->unit_price, 2) }}</td>
-            <td style="padding:7px 10px;text-align:right;font-weight:600;border-bottom:1px solid #f1f3f5;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}</td>
+            <td style="padding:9px 6px;color:#6c757d;border-bottom:1px solid #f1f3f5;vertical-align:top;">{{ $i + 1 }}</td>
+
+            {{-- Component --}}
+            <td style="padding:9px 8px;border-bottom:1px solid #f1f3f5;vertical-align:top;">
+              <div style="font-weight:600;color:#212529;">{{ $line->component }}</div>
+              @if($line->componentCode || $line->chargeCode)
+              <div style="margin-top:3px;">
+                @if($line->componentCode)
+                  <span style="display:inline-block;font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:20px;background:#dbeafe;color:#1d4ed8;font-family:monospace;">{{ $line->componentCode->code }}</span>
+                @endif
+                @if($line->chargeCode)
+                  <span style="display:inline-block;font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:20px;background:#d1fae5;color:#065f46;font-family:monospace;margin-left:3px;">{{ $line->chargeCode->code }}</span>
+                @endif
+              </div>
+              @endif
+            </td>
+
+            {{-- Repair Type --}}
+            <td style="padding:9px 8px;border-bottom:1px solid #f1f3f5;vertical-align:top;color:#6c757d;">
+              {{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}
+            </td>
+
+            {{-- Labour: hrs + cost stacked --}}
+            <td style="padding:9px 8px;text-align:right;border-bottom:1px solid #f1f3f5;vertical-align:top;white-space:nowrap;">
+              @if($line->std_labor_hours > 0 || $line->labor_amount > 0)
+                @if($line->std_labor_hours > 0)
+                  <div style="font-weight:700;color:#1a56db;font-size:.88rem;">{{ number_format($line->std_labor_hours, 2) }} <span style="font-size:.72rem;font-weight:500;">hrs</span></div>
+                @endif
+                <div style="color:#6c757d;font-size:.76rem;">{{ $estimate->currency }} {{ number_format($line->labor_amount, 2) }}</div>
+              @else
+                <span style="color:#adb5bd;">—</span>
+              @endif
+            </td>
+
+            {{-- Materials cost --}}
+            <td style="padding:9px 8px;text-align:right;border-bottom:1px solid #f1f3f5;vertical-align:top;white-space:nowrap;">
+              @if($line->material_amount > 0)
+                <div style="font-weight:600;color:#166534;">{{ $estimate->currency }} {{ number_format($line->material_amount, 2) }}</div>
+                @if($line->ancillary_amount > 0)
+                  <div style="color:#6c757d;font-size:.76rem;" title="Ancillary">+ {{ $estimate->currency }} {{ number_format($line->ancillary_amount, 2) }}</div>
+                @endif
+              @elseif($line->ancillary_amount > 0)
+                <div style="color:#6c757d;font-size:.82rem;">{{ $estimate->currency }} {{ number_format($line->ancillary_amount, 2) }}</div>
+              @else
+                <span style="color:#adb5bd;">—</span>
+              @endif
+            </td>
+
+            {{-- Line total --}}
+            <td style="padding:9px 8px;text-align:right;font-weight:700;border-bottom:1px solid #f1f3f5;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}</td>
           </tr>
           @endforeach
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="4" style="padding:8px 10px;text-align:right;color:#6c757d;font-size:.82rem;border-top:1px solid #dee2e6;">Subtotal</td>
-            <td style="padding:8px 10px;text-align:right;border-top:1px solid #dee2e6;white-space:nowrap;">{{ number_format($estimate->subtotal, 2) }}</td>
+            <td colspan="5" style="padding:8px 8px;text-align:right;color:#6c757d;font-size:.82rem;border-top:1px solid #dee2e6;">Subtotal</td>
+            <td style="padding:8px 8px;text-align:right;border-top:1px solid #dee2e6;white-space:nowrap;">{{ number_format($estimate->subtotal, 2) }}</td>
           </tr>
           @if($estimate->sscl_amount > 0)
           <tr>
-            <td colspan="4" style="padding:4px 10px;text-align:right;color:#6c757d;font-size:.82rem;">SSCL</td>
-            <td style="padding:4px 10px;text-align:right;white-space:nowrap;">{{ number_format($estimate->sscl_amount, 2) }}</td>
+            <td colspan="5" style="padding:4px 8px;text-align:right;color:#6c757d;font-size:.82rem;">SSCL</td>
+            <td style="padding:4px 8px;text-align:right;white-space:nowrap;">{{ number_format($estimate->sscl_amount, 2) }}</td>
           </tr>
           @endif
           @if($estimate->vat_amount > 0)
           <tr>
-            <td colspan="4" style="padding:4px 10px;text-align:right;color:#6c757d;font-size:.82rem;">VAT</td>
-            <td style="padding:4px 10px;text-align:right;white-space:nowrap;">{{ number_format($estimate->vat_amount, 2) }}</td>
+            <td colspan="5" style="padding:4px 8px;text-align:right;color:#6c757d;font-size:.82rem;">VAT</td>
+            <td style="padding:4px 8px;text-align:right;white-space:nowrap;">{{ number_format($estimate->vat_amount, 2) }}</td>
           </tr>
           @endif
           <tr style="background:#f0f4ff;">
-            <td colspan="4" style="padding:10px 10px;text-align:right;font-weight:700;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;">Grand Total</td>
-            <td style="padding:10px 10px;text-align:right;font-weight:800;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
+            <td colspan="5" style="padding:10px 8px;text-align:right;font-weight:700;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;">Grand Total</td>
+            <td style="padding:10px 8px;text-align:right;font-weight:800;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
           </tr>
         </tfoot>
       </table>

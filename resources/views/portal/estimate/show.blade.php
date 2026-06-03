@@ -147,22 +147,22 @@
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
+      {{-- columns: # | Component | Repair Type | Labour | Materials | Line Total | Status | [Action] --}}
       <table class="table align-middle mb-0 small">
         <thead class="table-light">
           <tr>
             <th class="ps-3" style="width:3%">#</th>
-            <th style="width:8%">MR Code</th>
-            <th style="width:9%">Charge Code</th>
-            <th>Description</th>
-            <th style="width:9%">Repair Type</th>
-            <th class="text-end" style="width:5%">Qty</th>
-            <th class="text-end" style="width:7%">Unit Price</th>
-            <th class="text-end" style="width:6%">Labor Hrs</th>
-            <th class="text-end" style="width:8%">Material</th>
-            <th style="width:6%">Tax</th>
-            <th class="text-end pe-3" style="width:8%">Amount</th>
-            <th class="text-center" style="width:7%">Status</th>
-            @if($canAct)<th class="text-center" style="width:9%">Action</th>@endif
+            <th>Component</th>
+            <th style="width:12%">Repair Type</th>
+            <th class="text-end" style="width:14%">
+              <i class="bi bi-person-gear me-1 text-primary"></i>Labour
+            </th>
+            <th class="text-end" style="width:12%">
+              <i class="bi bi-box me-1 text-success"></i>Materials
+            </th>
+            <th class="text-end pe-3" style="width:10%">Line Total</th>
+            <th class="text-center" style="width:8%">Status</th>
+            @if($canAct)<th class="text-center" style="width:10%">Action</th>@endif
           </tr>
         </thead>
         <tbody>
@@ -170,73 +170,68 @@
           <tr class="{{ $loop->even ? 'table-light' : '' }}">
             <td class="ps-3 text-muted">{{ $i + 1 }}</td>
 
-            {{-- MR Code chip --}}
+            {{-- Component: description + MR/Charge code chips underneath --}}
             <td>
-              @if($line->componentCode)
-                <span class="code-chip blue" title="{{ $line->componentCode->name }}">
-                  {{ $line->componentCode->code }}
-                </span>
-              @else
-                <span class="text-muted">—</span>
-              @endif
+              <div class="fw-semibold">{{ $line->component }}</div>
+              <div class="mt-1 d-flex flex-wrap gap-1">
+                @if($line->componentCode)
+                  <span class="code-chip blue" title="{{ $line->componentCode->name }}">
+                    {{ $line->componentCode->code }}
+                  </span>
+                @endif
+                @if($line->chargeCode)
+                  <span class="code-chip green" title="{{ $line->chargeCode->name }}">
+                    {{ $line->chargeCode->code }}
+                  </span>
+                @endif
+              </div>
             </td>
-
-            {{-- Charge Code chip --}}
-            <td>
-              @if($line->chargeCode)
-                <span class="code-chip green" title="{{ $line->chargeCode->name }}">
-                  {{ $line->chargeCode->code }}
-                </span>
-              @else
-                <span class="text-muted">—</span>
-              @endif
-            </td>
-
-            {{-- Description --}}
-            <td class="fw-semibold">{{ $line->component }}</td>
 
             {{-- Repair type --}}
             <td class="text-muted">{{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}</td>
 
-            <td class="text-end">{{ number_format($line->qty, 2) }}</td>
-            <td class="text-end">{{ number_format($line->unit_price, 2) }}</td>
-
-            {{-- Labor Hours --}}
+            {{-- Labour: hours + cost stacked --}}
             <td class="text-end">
-              @if($line->std_labor_hours > 0)
-                <span class="text-primary fw-semibold">{{ number_format($line->std_labor_hours, 2) }}</span>
-                <div style="font-size:.7rem;color:#6c757d;">hrs</div>
+              @if($line->std_labor_hours > 0 || $line->labor_amount > 0)
+                @if($line->std_labor_hours > 0)
+                  <div class="fw-bold text-primary" style="font-size:.9rem;">
+                    {{ number_format($line->std_labor_hours, 2) }} <span style="font-size:.75rem;font-weight:500;">hrs</span>
+                  </div>
+                @endif
+                <div class="text-muted" style="font-size:.78rem;white-space:nowrap;">
+                  {{ $estimate->currency }} {{ number_format($line->labor_amount, 2) }}
+                </div>
               @else
                 <span class="text-muted">—</span>
               @endif
             </td>
 
-            {{-- Material Cost --}}
+            {{-- Materials cost --}}
             <td class="text-end">
               @if($line->material_amount > 0)
-                <span class="text-success fw-semibold" style="font-size:.82rem;white-space:nowrap;">
-                  {{ number_format($line->material_amount, 2) }}
-                </span>
+                <div class="fw-semibold text-success" style="white-space:nowrap;">
+                  {{ $estimate->currency }} {{ number_format($line->material_amount, 2) }}
+                </div>
+                @if($line->ancillary_amount > 0)
+                  <div class="text-muted" style="font-size:.75rem;white-space:nowrap;" title="Ancillary / Overhead">
+                    + {{ $estimate->currency }} {{ number_format($line->ancillary_amount, 2) }}
+                  </div>
+                @endif
+              @elseif($line->ancillary_amount > 0)
+                <div class="text-muted" style="font-size:.82rem;white-space:nowrap;">
+                  {{ $estimate->currency }} {{ number_format($line->ancillary_amount, 2) }}
+                </div>
               @else
                 <span class="text-muted">—</span>
               @endif
             </td>
 
-            {{-- Tax Code --}}
-            <td>
-              @if($line->taxCode)
-                <span class="code-chip orange" title="{{ $line->taxCode->name ?? $line->taxCode->code }}">
-                  {{ $line->taxCode->code }}
-                </span>
-              @else
-                <span class="text-muted">—</span>
-              @endif
-            </td>
-
-            <td class="text-end pe-3 fw-semibold" style="white-space:nowrap;">
+            {{-- Line total --}}
+            <td class="text-end pe-3 fw-bold" style="white-space:nowrap;">
               {{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}
             </td>
 
+            {{-- Status badge --}}
             <td class="text-center">
               <span class="badge bg-{{ $lineStatusColors[$line->approval_status ?? 'pending'] ?? 'secondary' }}">
                 {{ ucfirst($line->approval_status ?? 'pending') }}
@@ -273,12 +268,11 @@
         </tbody>
 
         {{-- ── Tax & Total footer ── --}}
+        {{-- columns: # + Component + RepairType + Labour + Materials + LineTotal + Status [+ Action] = 7 or 8 --}}
         @php
-          // columns: # + MR + Charge + Desc + RepairType + Qty + UnitPrice + LaborHrs + Material + Tax + Amount + Status [+ Action]
-          $totalCols    = $canAct ? 13 : 12;
-          // Amount + Status [+ Action] stay right-aligned
-          $amountCols   = $canAct ? 3 : 2;
-          $labelCols    = $totalCols - $amountCols;
+          $totalCols  = $canAct ? 8 : 7;
+          $amountCols = $canAct ? 3 : 2;   // LineTotal + Status [+ Action]
+          $labelCols  = $totalCols - $amountCols; // 5
         @endphp
         <tfoot>
           <tr class="tfoot-row">
