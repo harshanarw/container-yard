@@ -546,22 +546,33 @@
     const YARD_DIM_UOM = '{{ $dimUom ?? "ft_in" }}';
     const DIM_UOM_LABEL = { ft_in: 'ft', cm: 'cm', m: 'm' }[YARD_DIM_UOM] || 'ft';
 
-    // Convert entered dimensions (in YARD_DIM_UOM) to the tariff's unit_type
+    // dimL / dimW units depend on YARD_DIM_UOM:
+    //   ft_in → total decimal inches (e.g. 1 ft 2 in = 14.0)
+    //   cm    → centimetres
+    //   m     → metres
     function dimsToQty(unitType, dimL, dimW) {
         dimL = parseFloat(dimL) || 0;
         dimW = parseFloat(dimW) || 0;
         if (unitType === 'sqft') {
-            const area = dimL * dimW;
-            if (YARD_DIM_UOM === 'cm')  return area / 929.0304;
-            if (YARD_DIM_UOM === 'm')   return area / 0.09290304;
-            return area; // ft_in: ft × ft = sqft
+            if (YARD_DIM_UOM === 'ft_in') return (dimL * dimW) / 144;   // in² → sqft
+            if (YARD_DIM_UOM === 'cm')    return (dimL * dimW) / 929.0304;
+            if (YARD_DIM_UOM === 'm')     return (dimL * dimW) / 0.09290304;
+            return dimL * dimW;
         }
         if (unitType === 'inches') {
-            if (YARD_DIM_UOM === 'cm')  return dimL / 2.54;
-            if (YARD_DIM_UOM === 'm')   return dimL / 0.0254;
-            return dimL * 12; // ft_in: ft → inches
+            if (YARD_DIM_UOM === 'ft_in') return dimL;           // already total inches
+            if (YARD_DIM_UOM === 'cm')    return dimL / 2.54;
+            if (YARD_DIM_UOM === 'm')     return dimL / 0.0254;
+            return dimL;
         }
         return null; // nos / lift: no conversion
+    }
+
+    // Read the ft+in pair inputs from a Get Rate modal row and return total inches
+    function grReadTotalIn(row, axis) {
+        const ft = parseFloat(row.querySelector(`.gr-ft-${axis}`)?.value) || 0;
+        const inch = parseFloat(row.querySelector(`.gr-in-${axis}`)?.value) || 0;
+        return ft * 12 + inch;
     }
 
     // ── Equipment Type badges ──────────────────────────────────────────────
@@ -976,18 +987,46 @@
 
         function dimQtyCell(unitType) {
             if (unitType === 'sqft') {
+                if (YARD_DIM_UOM === 'ft_in') {
+                    return `<div class="d-flex flex-column gap-1" style="min-width:135px;" onclick="event.stopPropagation()">
+                        <div class="d-flex align-items-center gap-1">
+                            <input type="number" class="form-control form-control-sm gr-ft-l" placeholder="ft" min="0" step="1" style="width:38px" title="Length feet">
+                            <small class="text-muted">′</small>
+                            <input type="number" class="form-control form-control-sm gr-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:38px" title="Length inches">
+                            <small class="text-muted fw-bold">L</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <input type="number" class="form-control form-control-sm gr-ft-w" placeholder="ft" min="0" step="1" style="width:38px" title="Width feet">
+                            <small class="text-muted">′</small>
+                            <input type="number" class="form-control form-control-sm gr-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:38px" title="Width inches">
+                            <small class="text-muted fw-bold">W</small>
+                        </div>
+                        <input type="hidden" class="gr-qty" value="">
+                        <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;sqft</div>
+                    </div>`;
+                }
                 return `<div class="d-flex align-items-center gap-1 flex-wrap" onclick="event.stopPropagation()">
-                    <input type="number" class="form-control form-control-sm gr-dim-l" placeholder="L" min="0.01" step="0.01" style="width:58px" title="Length (${DIM_UOM_LABEL})">
+                    <input type="number" class="form-control form-control-sm gr-dim-l" placeholder="L" min="0.01" step="0.01" style="width:52px" title="Length (${DIM_UOM_LABEL})">
                     <span class="text-muted small">×</span>
-                    <input type="number" class="form-control form-control-sm gr-dim-w" placeholder="W" min="0.01" step="0.01" style="width:58px" title="Width (${DIM_UOM_LABEL})">
+                    <input type="number" class="form-control form-control-sm gr-dim-w" placeholder="W" min="0.01" step="0.01" style="width:52px" title="Width (${DIM_UOM_LABEL})">
                     <span class="text-muted" style="font-size:.72rem;">${DIM_UOM_LABEL}</span>
                     <input type="hidden" class="gr-qty" value="1">
                     <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;sqft</div>
                 </div>`;
             }
             if (unitType === 'inches') {
+                if (YARD_DIM_UOM === 'ft_in') {
+                    return `<div class="d-flex align-items-center gap-1" onclick="event.stopPropagation()">
+                        <input type="number" class="form-control form-control-sm gr-ft-l" placeholder="ft" min="0" step="1" style="width:38px">
+                        <small class="text-muted">′</small>
+                        <input type="number" class="form-control form-control-sm gr-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:38px">
+                        <small class="text-muted">″</small>
+                        <input type="hidden" class="gr-qty" value="">
+                        <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;in</div>
+                    </div>`;
+                }
                 return `<div class="d-flex align-items-center gap-1" onclick="event.stopPropagation()">
-                    <input type="number" class="form-control form-control-sm gr-dim-l" placeholder="Length" min="0.01" step="0.01" style="width:72px" title="Length (${DIM_UOM_LABEL})">
+                    <input type="number" class="form-control form-control-sm gr-dim-l" placeholder="Length" min="0.01" step="0.01" style="width:68px" title="Length (${DIM_UOM_LABEL})">
                     <span class="text-muted" style="font-size:.72rem;">${DIM_UOM_LABEL}</span>
                     <input type="hidden" class="gr-qty" value="1">
                     <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;in</div>
@@ -1018,13 +1057,25 @@
             }).join('');
 
             // Auto-convert dimensions to qty as user types
+            // Re-usable: read dimL and dimW as total inches (ft_in) or raw value (cm/m)
+            function grReadDims(row) {
+                if (YARD_DIM_UOM === 'ft_in') {
+                    return { dimL: grReadTotalIn(row, 'l'), dimW: grReadTotalIn(row, 'w') };
+                }
+                return {
+                    dimL: parseFloat(row.querySelector('.gr-dim-l')?.value) || 0,
+                    dimW: parseFloat(row.querySelector('.gr-dim-w')?.value) || 0,
+                };
+            }
+
             resultBody.addEventListener('input', function (e) {
                 const inp = e.target;
-                if (!inp.classList.contains('gr-dim-l') && !inp.classList.contains('gr-dim-w')) return;
+                const isDim = ['gr-dim-l','gr-dim-w','gr-ft-l','gr-in-l','gr-ft-w','gr-in-w']
+                              .some(c => inp.classList.contains(c));
+                if (!isDim) return;
                 const row  = inp.closest('tr');
                 const unit = row?.dataset.itemUnit;
-                const dimL = parseFloat(row.querySelector('.gr-dim-l')?.value) || 0;
-                const dimW = parseFloat(row.querySelector('.gr-dim-w')?.value) || 0;
+                const { dimL, dimW } = grReadDims(row);
                 const computed = dimsToQty(unit, dimL, dimW);
                 if (computed !== null && computed > 0) {
                     const qtyHidden = row.querySelector('.gr-qty');
@@ -1039,11 +1090,13 @@
 
             resultBody.querySelectorAll('.gr-calc-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
-                    const row = this.closest('tr');
+                    const row       = this.closest('tr');
                     const itemId    = row.dataset.itemId;
                     const qty       = parseFloat(row.querySelector('.gr-qty').value) || 1;
                     const laborRate = parseFloat(row.querySelector('.gr-labor-rate').value) || 0;
                     const custId    = document.querySelector('[name="customer_id"]')?.value || '';
+                    const { dimL, dimW } = grReadDims(row);
+                    const hasDim = dimL > 0;
 
                     const params = new URLSearchParams({ item_id: itemId, qty, labor_rate: laborRate });
                     if (custId) params.set('customer_id', custId);
@@ -1051,19 +1104,18 @@
                     fetch('{{ route("masters.mr-tariff.rate-lookup") }}?' + params)
                         .then(r => r.json())
                         .then(result => {
-                            const dimL = parseFloat(row.querySelector('.gr-dim-l')?.value) || null;
-                            const dimW = parseFloat(row.querySelector('.gr-dim-w')?.value) || null;
                             selectedItem = {
                                 id: itemId, desc: row.dataset.itemDesc,
                                 unit: row.dataset.itemUnit, qty, laborRate,
-                                dimL, dimW,
-                                dimUom: (dimL && (row.dataset.itemUnit === 'sqft' || row.dataset.itemUnit === 'inches')) ? YARD_DIM_UOM : null,
+                                dimL: hasDim ? dimL : null,
+                                dimW: hasDim ? dimW : null,
+                                dimUom: hasDim ? YARD_DIM_UOM : null,
                             };
                             selectedRate = result;
-                            document.getElementById('grLaborHrs').textContent  = result.labor_hours.toFixed(3) + ' hrs';
-                            document.getElementById('grLaborAmt').textContent  = result.labor_amount.toFixed(2);
+                            document.getElementById('grLaborHrs').textContent    = result.labor_hours.toFixed(3) + ' hrs';
+                            document.getElementById('grLaborAmt').textContent    = result.labor_amount.toFixed(2);
                             document.getElementById('grMaterialAmt').textContent = result.material_cost.toFixed(2);
-                            document.getElementById('grTotal').textContent     = result.total.toFixed(2);
+                            document.getElementById('grTotal').textContent       = result.total.toFixed(2);
                             rateResult.classList.remove('d-none');
                         })
                         .catch(() => alert('Rate lookup failed.'));

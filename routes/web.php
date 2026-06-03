@@ -272,13 +272,13 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('mr-tariff')->name('mr-tariff.')->group(function () {
             Route::get('/',                          [MrTariffController::class, 'index'])->name('index');
             Route::post('/',                         [MrTariffController::class, 'store'])->name('store');
+            // AJAX endpoints MUST come before the {mrTariff} wildcard to avoid route shadowing
+            Route::get('item-search',    [MrTariffController::class, 'itemSearch'])->name('item-search');
+            Route::get('rate-lookup',    [MrTariffController::class, 'rateLookup'])->name('rate-lookup');
             Route::get('{mrTariff}',                 [MrTariffController::class, 'show'])->name('show');
             Route::patch('{mrTariff}',               [MrTariffController::class, 'update'])->name('update');
             Route::patch('{mrTariff}/toggle',        [MrTariffController::class, 'toggleActive'])->name('toggle');
             Route::delete('{mrTariff}',              [MrTariffController::class, 'destroy'])->name('destroy');
-            // AJAX endpoints (must be before parameterized routes)
-            Route::get('/item-search',   [MrTariffController::class, 'itemSearch'])->name('item-search');
-            Route::get('/rate-lookup',   [MrTariffController::class, 'rateLookup'])->name('rate-lookup');
             // Rule lines nested under header
             Route::prefix('{mrTariff}/rules')->name('rules.')->group(function () {
                 Route::post('/',         [MrTariffController::class, 'storeRule'])->name('store');
