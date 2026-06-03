@@ -151,15 +151,17 @@
         <thead class="table-light">
           <tr>
             <th class="ps-3" style="width:3%">#</th>
-            <th style="width:9%">MR Code</th>
-            <th style="width:10%">Charge Code</th>
+            <th style="width:8%">MR Code</th>
+            <th style="width:9%">Charge Code</th>
             <th>Description</th>
-            <th style="width:10%">Repair Type</th>
+            <th style="width:9%">Repair Type</th>
             <th class="text-end" style="width:5%">Qty</th>
-            <th class="text-end" style="width:9%">Unit Price</th>
-            <th style="width:7%">Tax Code</th>
-            <th class="text-end pe-3" style="width:9%">Amount</th>
-            <th class="text-center" style="width:8%">Status</th>
+            <th class="text-end" style="width:7%">Unit Price</th>
+            <th class="text-end" style="width:6%">Labor Hrs</th>
+            <th class="text-end" style="width:8%">Material</th>
+            <th style="width:6%">Tax</th>
+            <th class="text-end pe-3" style="width:8%">Amount</th>
+            <th class="text-center" style="width:7%">Status</th>
             @if($canAct)<th class="text-center" style="width:9%">Action</th>@endif
           </tr>
         </thead>
@@ -198,6 +200,27 @@
 
             <td class="text-end">{{ number_format($line->qty, 2) }}</td>
             <td class="text-end">{{ number_format($line->unit_price, 2) }}</td>
+
+            {{-- Labor Hours --}}
+            <td class="text-end">
+              @if($line->std_labor_hours > 0)
+                <span class="text-primary fw-semibold">{{ number_format($line->std_labor_hours, 2) }}</span>
+                <div style="font-size:.7rem;color:#6c757d;">hrs</div>
+              @else
+                <span class="text-muted">—</span>
+              @endif
+            </td>
+
+            {{-- Material Cost --}}
+            <td class="text-end">
+              @if($line->material_amount > 0)
+                <span class="text-success fw-semibold" style="font-size:.82rem;white-space:nowrap;">
+                  {{ number_format($line->material_amount, 2) }}
+                </span>
+              @else
+                <span class="text-muted">—</span>
+              @endif
+            </td>
 
             {{-- Tax Code --}}
             <td>
@@ -251,10 +274,10 @@
 
         {{-- ── Tax & Total footer ── --}}
         @php
-          // total columns: # + MR + Charge + Desc + RepairType + Qty + UnitPrice + Tax + Amount + Status [+ Action]
-          $totalCols    = $canAct ? 11 : 10;
-          // Amount + Status [+ Action] stay visible; everything else is the label span
-          $amountCols   = $canAct ? 3 : 2; // Amount + Status [+ Action]
+          // columns: # + MR + Charge + Desc + RepairType + Qty + UnitPrice + LaborHrs + Material + Tax + Amount + Status [+ Action]
+          $totalCols    = $canAct ? 13 : 12;
+          // Amount + Status [+ Action] stay right-aligned
+          $amountCols   = $canAct ? 3 : 2;
           $labelCols    = $totalCols - $amountCols;
         @endphp
         <tfoot>
@@ -291,6 +314,82 @@
     </div>
   </div>
 </div>
+
+{{-- ── Cost Breakdown Summary ── --}}
+@php
+  $sumLaborHrs  = $estimate->lineItems->sum('std_labor_hours');
+  $sumLaborCost = $estimate->lineItems->sum('labor_amount');
+  $sumMaterial  = $estimate->lineItems->sum('material_amount');
+  $sumAncillary = $estimate->lineItems->sum('ancillary_amount');
+@endphp
+@if($sumLaborHrs > 0 || $sumLaborCost > 0 || $sumMaterial > 0)
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-bar-chart-line me-2 text-primary"></i>Cost Breakdown Summary
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm align-middle mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Component</th>
+          <th class="text-end">Total Hours / Qty</th>
+          <th class="text-end pe-3">Total Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if($sumLaborHrs > 0 || $sumLaborCost > 0)
+        <tr>
+          <td class="ps-3">
+            <i class="bi bi-person-gear me-2 text-primary"></i>Labour
+          </td>
+          <td class="text-end">
+            @if($sumLaborHrs > 0)
+              <span class="badge bg-primary-subtle text-primary fw-semibold">{{ number_format($sumLaborHrs, 2) }} hrs</span>
+            @else
+              <span class="text-muted">—</span>
+            @endif
+          </td>
+          <td class="text-end pe-3 fw-semibold">
+            {{ $estimate->currency }} {{ number_format($sumLaborCost, 2) }}
+          </td>
+        </tr>
+        @endif
+        @if($sumMaterial > 0)
+        <tr>
+          <td class="ps-3">
+            <i class="bi bi-box me-2 text-success"></i>Materials
+          </td>
+          <td class="text-end text-muted">—</td>
+          <td class="text-end pe-3 fw-semibold">
+            {{ $estimate->currency }} {{ number_format($sumMaterial, 2) }}
+          </td>
+        </tr>
+        @endif
+        @if($sumAncillary > 0)
+        <tr>
+          <td class="ps-3">
+            <i class="bi bi-plus-circle me-2 text-secondary"></i>Ancillary / Overhead
+          </td>
+          <td class="text-end text-muted">—</td>
+          <td class="text-end pe-3 fw-semibold">
+            {{ $estimate->currency }} {{ number_format($sumAncillary, 2) }}
+          </td>
+        </tr>
+        @endif
+      </tbody>
+      <tfoot>
+        <tr style="background:#eff6ff;border-top:2px solid #1a56db;">
+          <td class="ps-3 fw-bold text-primary">Grand Total</td>
+          <td></td>
+          <td class="text-end pe-3 fw-bold text-primary">
+            {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+@endif
 
 {{-- ── Scope & Terms ── --}}
 @if($estimate->scope_of_work || $estimate->terms)

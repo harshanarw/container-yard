@@ -121,6 +121,61 @@
         </tfoot>
       </table>
 
+      {{-- ── Cost Breakdown Summary ── --}}
+      @php
+        $emailLaborHrs  = $estimate->lineItems->sum('std_labor_hours');
+        $emailLaborCost = $estimate->lineItems->sum('labor_amount');
+        $emailMaterial  = $estimate->lineItems->sum('material_amount');
+        $emailAncillary = $estimate->lineItems->sum('ancillary_amount');
+      @endphp
+      @if($emailLaborHrs > 0 || $emailLaborCost > 0 || $emailMaterial > 0)
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border-collapse:collapse;font-size:.875rem;">
+        <thead>
+          <tr style="background:#e9ecef;">
+            <th colspan="3" style="padding:8px 10px;text-align:left;color:#495057;font-size:.78rem;font-weight:700;border-bottom:2px solid #dee2e6;letter-spacing:.3px;">
+              &#x1F4CA;&nbsp; Cost Breakdown Summary
+            </th>
+          </tr>
+          <tr style="background:#f8f9fa;">
+            <th style="padding:6px 10px;text-align:left;color:#6c757d;font-size:.75rem;font-weight:600;border-bottom:1px solid #dee2e6;">Component</th>
+            <th style="padding:6px 10px;text-align:right;color:#6c757d;font-size:.75rem;font-weight:600;border-bottom:1px solid #dee2e6;">Hours / Qty</th>
+            <th style="padding:6px 10px;text-align:right;color:#6c757d;font-size:.75rem;font-weight:600;border-bottom:1px solid #dee2e6;">Total Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if($emailLaborHrs > 0 || $emailLaborCost > 0)
+          <tr style="background:#ffffff;">
+            <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;color:#1a56db;font-weight:600;">Labour</td>
+            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;color:#1a56db;font-weight:600;white-space:nowrap;">
+              @if($emailLaborHrs > 0){{ number_format($emailLaborHrs, 2) }} hrs@else —@endif
+            </td>
+            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;font-weight:600;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($emailLaborCost, 2) }}</td>
+          </tr>
+          @endif
+          @if($emailMaterial > 0)
+          <tr style="background:#f8f9fa;">
+            <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;color:#166534;font-weight:600;">Materials</td>
+            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;color:#6c757d;">—</td>
+            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;font-weight:600;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($emailMaterial, 2) }}</td>
+          </tr>
+          @endif
+          @if($emailAncillary > 0)
+          <tr style="background:#ffffff;">
+            <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;color:#495057;font-weight:600;">Ancillary / Overhead</td>
+            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;color:#6c757d;">—</td>
+            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;font-weight:600;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($emailAncillary, 2) }}</td>
+          </tr>
+          @endif
+        </tbody>
+        <tfoot>
+          <tr style="background:#f0f4ff;">
+            <td colspan="2" style="padding:9px 10px;font-weight:700;font-size:.9rem;border-top:2px solid #1a56db;color:#1a56db;">Grand Total</td>
+            <td style="padding:9px 10px;text-align:right;font-weight:800;font-size:.9rem;border-top:2px solid #1a56db;color:#1a56db;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
+          </tr>
+        </tfoot>
+      </table>
+      @endif
+
       {{-- ── Primary CTA: Review & Approve ── --}}
       @php
         $portalUrl  = url('/portal/estimate/' . $portalToken->token);
