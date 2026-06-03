@@ -8,6 +8,15 @@
     <li class="breadcrumb-item active">Edit</li>
 @endsection
 
+@push('styles')
+<style>
+    .dim-no-spin::-webkit-inner-spin-button,
+    .dim-no-spin::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .dim-no-spin { -moz-appearance: textfield; appearance: textfield; }
+    .dim-unit-lbl { font-size: .72rem; color: #6c757d; }
+    .dim-axis-lbl { font-size: .72rem; font-weight: 700; color: #0d6efd; min-width: 10px; }
+</style>
+@endpush
 
 @section('content')
 
@@ -237,23 +246,25 @@
                                             $storedW   = (float)($dmg->dim_width  ?? 0);
                                         @endphp
                                         @if($storedUom === 'ft_in')
-                                        <div class="dim-cell d-flex flex-column gap-1" style="min-width:130px;">
+                                        <div class="dim-cell d-flex flex-column gap-1" style="min-width:145px;">
                                             <div class="d-flex align-items-center gap-1">
-                                                <input type="number" class="form-control form-control-sm dim-ft-l" placeholder="ft" min="0" step="1" style="width:40px"
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-l" placeholder="0" min="0" step="1" style="width:42px" title="Length feet"
                                                        value="{{ $storedL > 0 ? (int)floor($storedL / 12) : '' }}">
-                                                <small class="text-muted">′</small>
-                                                <input type="number" class="form-control form-control-sm dim-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px"
+                                                <span class="dim-unit-lbl">ft</span>
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-in-l" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px" title="Length inches"
                                                        value="{{ $storedL > 0 ? round(fmod($storedL, 12), 2) : '' }}">
-                                                <small class="text-muted fw-bold">L</small>
+                                                <span class="dim-unit-lbl">in</span>
+                                                <span class="dim-axis-lbl">L</span>
                                                 <input type="hidden" name="damages[{{ $di }}][dim_length]" class="dim-hidden-l" value="{{ $storedL ?: '' }}">
                                             </div>
                                             <div class="d-flex align-items-center gap-1">
-                                                <input type="number" class="form-control form-control-sm dim-ft-w" placeholder="ft" min="0" step="1" style="width:40px"
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-w" placeholder="0" min="0" step="1" style="width:42px" title="Width feet"
                                                        value="{{ $storedW > 0 ? (int)floor($storedW / 12) : '' }}">
-                                                <small class="text-muted">′</small>
-                                                <input type="number" class="form-control form-control-sm dim-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px"
+                                                <span class="dim-unit-lbl">ft</span>
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-in-w" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px" title="Width inches"
                                                        value="{{ $storedW > 0 ? round(fmod($storedW, 12), 2) : '' }}">
-                                                <small class="text-muted fw-bold">W</small>
+                                                <span class="dim-unit-lbl">in</span>
+                                                <span class="dim-axis-lbl">W</span>
                                                 <input type="hidden" name="damages[{{ $di }}][dim_width]" class="dim-hidden-w" value="{{ $storedW ?: '' }}">
                                             </div>
                                         </div>
@@ -327,19 +338,21 @@
                                     </td>
                                     <td>
                                         @if($dimUom === 'ft_in')
-                                        <div class="dim-cell d-flex flex-column gap-1" style="min-width:130px;">
+                                        <div class="dim-cell d-flex flex-column gap-1" style="min-width:145px;">
                                             <div class="d-flex align-items-center gap-1">
-                                                <input type="number" class="form-control form-control-sm dim-ft-l" placeholder="ft" min="0" step="1" style="width:40px">
-                                                <small class="text-muted">′</small>
-                                                <input type="number" class="form-control form-control-sm dim-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px">
-                                                <small class="text-muted fw-bold">L</small>
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-l" placeholder="0" min="0" step="1" style="width:42px">
+                                                <span class="dim-unit-lbl">ft</span>
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-in-l" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px">
+                                                <span class="dim-unit-lbl">in</span>
+                                                <span class="dim-axis-lbl">L</span>
                                                 <input type="hidden" name="damages[0][dim_length]" class="dim-hidden-l">
                                             </div>
                                             <div class="d-flex align-items-center gap-1">
-                                                <input type="number" class="form-control form-control-sm dim-ft-w" placeholder="ft" min="0" step="1" style="width:40px">
-                                                <small class="text-muted">′</small>
-                                                <input type="number" class="form-control form-control-sm dim-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px">
-                                                <small class="text-muted fw-bold">W</small>
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-w" placeholder="0" min="0" step="1" style="width:42px">
+                                                <span class="dim-unit-lbl">ft</span>
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-in-w" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px">
+                                                <span class="dim-unit-lbl">in</span>
+                                                <span class="dim-axis-lbl">W</span>
                                                 <input type="hidden" name="damages[0][dim_width]" class="dim-hidden-w">
                                             </div>
                                         </div>
@@ -560,19 +573,21 @@
 
     function buildDimCell(i) {
         if (DIM_UOM === 'ft_in') {
-            return `<div class="dim-cell d-flex flex-column gap-1" style="min-width:130px;">
+            return `<div class="dim-cell d-flex flex-column gap-1" style="min-width:145px;">
                 <div class="d-flex align-items-center gap-1">
-                    <input type="number" class="form-control form-control-sm dim-ft-l" placeholder="ft" min="0" step="1" style="width:40px">
-                    <small class="text-muted">′</small>
-                    <input type="number" class="form-control form-control-sm dim-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px">
-                    <small class="text-muted fw-bold">L</small>
+                    <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-l" placeholder="0" min="0" step="1" style="width:42px" title="Length feet">
+                    <span class="dim-unit-lbl">ft</span>
+                    <input type="number" class="form-control form-control-sm dim-no-spin dim-in-l" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px" title="Length inches">
+                    <span class="dim-unit-lbl">in</span>
+                    <span class="dim-axis-lbl">L</span>
                     <input type="hidden" name="damages[${i}][dim_length]" class="dim-hidden-l">
                 </div>
                 <div class="d-flex align-items-center gap-1">
-                    <input type="number" class="form-control form-control-sm dim-ft-w" placeholder="ft" min="0" step="1" style="width:40px">
-                    <small class="text-muted">′</small>
-                    <input type="number" class="form-control form-control-sm dim-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px">
-                    <small class="text-muted fw-bold">W</small>
+                    <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-w" placeholder="0" min="0" step="1" style="width:42px" title="Width feet">
+                    <span class="dim-unit-lbl">ft</span>
+                    <input type="number" class="form-control form-control-sm dim-no-spin dim-in-w" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px" title="Width inches">
+                    <span class="dim-unit-lbl">in</span>
+                    <span class="dim-axis-lbl">W</span>
                     <input type="hidden" name="damages[${i}][dim_width]" class="dim-hidden-w">
                 </div>
             </div>`;

@@ -13,6 +13,12 @@
     #photoDropZone:hover { background: #f0f4ff; border-color: #2196F3 !important; }
     .photo-card { transition: transform .15s; }
     .photo-card:hover { transform: translateY(-2px); }
+    /* Dimension ft/in inputs — hide browser spinner arrows so labels fit */
+    .dim-no-spin::-webkit-inner-spin-button,
+    .dim-no-spin::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .dim-no-spin { -moz-appearance: textfield; appearance: textfield; }
+    .dim-unit-lbl { font-size: .72rem; color: #6c757d; }
+    .dim-axis-lbl { font-size: .72rem; font-weight: 700; color: #0d6efd; min-width: 10px; }
 </style>
 @endpush
 
@@ -239,19 +245,21 @@
                                     </td>
                                     <td>
                                         @if($dimUom === 'ft_in')
-                                        <div class="dim-cell d-flex flex-column gap-1" style="min-width:130px;">
+                                        <div class="dim-cell d-flex flex-column gap-1" style="min-width:145px;">
                                             <div class="d-flex align-items-center gap-1">
-                                                <input type="number" class="form-control form-control-sm dim-ft-l" placeholder="ft" min="0" step="1" style="width:40px" title="Length feet">
-                                                <small class="text-muted">′</small>
-                                                <input type="number" class="form-control form-control-sm dim-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px" title="Length inches">
-                                                <small class="text-muted fw-bold">L</small>
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-l" placeholder="0" min="0" step="1" style="width:42px" title="Length feet">
+                                                <span class="dim-unit-lbl">ft</span>
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-in-l" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px" title="Length inches">
+                                                <span class="dim-unit-lbl">in</span>
+                                                <span class="dim-axis-lbl">L</span>
                                                 <input type="hidden" name="damages[0][dim_length]" class="dim-hidden-l">
                                             </div>
                                             <div class="d-flex align-items-center gap-1">
-                                                <input type="number" class="form-control form-control-sm dim-ft-w" placeholder="ft" min="0" step="1" style="width:40px" title="Width feet">
-                                                <small class="text-muted">′</small>
-                                                <input type="number" class="form-control form-control-sm dim-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px" title="Width inches">
-                                                <small class="text-muted fw-bold">W</small>
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-w" placeholder="0" min="0" step="1" style="width:42px" title="Width feet">
+                                                <span class="dim-unit-lbl">ft</span>
+                                                <input type="number" class="form-control form-control-sm dim-no-spin dim-in-w" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px" title="Width inches">
+                                                <span class="dim-unit-lbl">in</span>
+                                                <span class="dim-axis-lbl">W</span>
                                                 <input type="hidden" name="damages[0][dim_width]" class="dim-hidden-w">
                                             </div>
                                         </div>
@@ -515,19 +523,21 @@
     // Build the dim cell HTML for JS-injected rows
     function buildDimCell(i) {
         if (DIM_UOM === 'ft_in') {
-            return `<div class="dim-cell d-flex flex-column gap-1" style="min-width:130px;">
+            return `<div class="dim-cell d-flex flex-column gap-1" style="min-width:145px;">
                 <div class="d-flex align-items-center gap-1">
-                    <input type="number" class="form-control form-control-sm dim-ft-l" placeholder="ft" min="0" step="1" style="width:40px" title="Length feet">
-                    <small class="text-muted">′</small>
-                    <input type="number" class="form-control form-control-sm dim-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px" title="Length inches">
-                    <small class="text-muted fw-bold">L</small>
+                    <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-l" placeholder="0" min="0" step="1" style="width:42px" title="Length feet">
+                    <span class="dim-unit-lbl">ft</span>
+                    <input type="number" class="form-control form-control-sm dim-no-spin dim-in-l" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px" title="Length inches">
+                    <span class="dim-unit-lbl">in</span>
+                    <span class="dim-axis-lbl">L</span>
                     <input type="hidden" name="damages[${i}][dim_length]" class="dim-hidden-l">
                 </div>
                 <div class="d-flex align-items-center gap-1">
-                    <input type="number" class="form-control form-control-sm dim-ft-w" placeholder="ft" min="0" step="1" style="width:40px" title="Width feet">
-                    <small class="text-muted">′</small>
-                    <input type="number" class="form-control form-control-sm dim-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px" title="Width inches">
-                    <small class="text-muted fw-bold">W</small>
+                    <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-w" placeholder="0" min="0" step="1" style="width:42px" title="Width feet">
+                    <span class="dim-unit-lbl">ft</span>
+                    <input type="number" class="form-control form-control-sm dim-no-spin dim-in-w" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px" title="Width inches">
+                    <span class="dim-unit-lbl">in</span>
+                    <span class="dim-axis-lbl">W</span>
                     <input type="hidden" name="damages[${i}][dim_width]" class="dim-hidden-w">
                 </div>
             </div>`;

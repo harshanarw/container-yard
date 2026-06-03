@@ -13,6 +13,11 @@
     .estimate-line:hover { background: #f8f9fa; }
     .bd-row > td { border-top: 0 !important; }
     .bd-panel { border-left: 3px solid #0d6efd !important; }
+    .dim-no-spin::-webkit-inner-spin-button,
+    .dim-no-spin::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .dim-no-spin { -moz-appearance: textfield; appearance: textfield; }
+    .dim-unit-lbl { font-size: .72rem; color: #6c757d; }
+    .dim-axis-lbl { font-size: .72rem; font-weight: 700; color: #0d6efd; min-width: 10px; }
 </style>
 @endpush
 
@@ -978,18 +983,20 @@
         function dimQtyCell(unitType) {
             if (unitType === 'sqft') {
                 if (YARD_DIM_UOM === 'ft_in') {
-                    return `<div class="d-flex flex-column gap-1" style="min-width:135px;" onclick="event.stopPropagation()">
+                    return `<div class="d-flex flex-column gap-1" style="min-width:148px;" onclick="event.stopPropagation()">
                         <div class="d-flex align-items-center gap-1">
-                            <input type="number" class="form-control form-control-sm gr-ft-l" placeholder="ft" min="0" step="1" style="width:38px" title="Length feet">
-                            <small class="text-muted">′</small>
-                            <input type="number" class="form-control form-control-sm gr-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:38px" title="Length inches">
-                            <small class="text-muted fw-bold">L</small>
+                            <input type="number" class="form-control form-control-sm dim-no-spin gr-ft-l" placeholder="0" min="0" step="1" style="width:40px" title="Length feet">
+                            <span class="dim-unit-lbl">ft</span>
+                            <input type="number" class="form-control form-control-sm dim-no-spin gr-in-l" placeholder="0" min="0" max="11.75" step="0.25" style="width:40px" title="Length inches">
+                            <span class="dim-unit-lbl">in</span>
+                            <span class="dim-axis-lbl">L</span>
                         </div>
                         <div class="d-flex align-items-center gap-1">
-                            <input type="number" class="form-control form-control-sm gr-ft-w" placeholder="ft" min="0" step="1" style="width:38px" title="Width feet">
-                            <small class="text-muted">′</small>
-                            <input type="number" class="form-control form-control-sm gr-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:38px" title="Width inches">
-                            <small class="text-muted fw-bold">W</small>
+                            <input type="number" class="form-control form-control-sm dim-no-spin gr-ft-w" placeholder="0" min="0" step="1" style="width:40px" title="Width feet">
+                            <span class="dim-unit-lbl">ft</span>
+                            <input type="number" class="form-control form-control-sm dim-no-spin gr-in-w" placeholder="0" min="0" max="11.75" step="0.25" style="width:40px" title="Width inches">
+                            <span class="dim-unit-lbl">in</span>
+                            <span class="dim-axis-lbl">W</span>
                         </div>
                         <input type="hidden" class="gr-qty" value="">
                         <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;sqft</div>
@@ -1007,10 +1014,10 @@
             if (unitType === 'inches') {
                 if (YARD_DIM_UOM === 'ft_in') {
                     return `<div class="d-flex align-items-center gap-1" onclick="event.stopPropagation()">
-                        <input type="number" class="form-control form-control-sm gr-ft-l" placeholder="ft" min="0" step="1" style="width:38px">
-                        <small class="text-muted">′</small>
-                        <input type="number" class="form-control form-control-sm gr-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:38px">
-                        <small class="text-muted">″</small>
+                        <input type="number" class="form-control form-control-sm dim-no-spin gr-ft-l" placeholder="0" min="0" step="1" style="width:40px" title="Length feet">
+                        <span class="dim-unit-lbl">ft</span>
+                        <input type="number" class="form-control form-control-sm dim-no-spin gr-in-l" placeholder="0" min="0" max="11.75" step="0.25" style="width:40px" title="Length inches">
+                        <span class="dim-unit-lbl">in</span>
                         <input type="hidden" class="gr-qty" value="">
                         <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;in</div>
                     </div>`;
