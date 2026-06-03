@@ -478,7 +478,7 @@
         const group    = document.getElementById('exchangeRateGroup');
 
         if (currency === 'USD') {
-            if (input)  { input.value = '1.0000'; input.disabled = true; }
+            if (input)  { input.value = '1.0000'; input.readOnly = true; }
             if (label)  label.textContent = 'No conversion (USD tariff)';
             if (prefix) prefix.textContent = '';
             if (suffix) suffix.textContent = '';
@@ -486,7 +486,7 @@
             return;
         }
 
-        if (input)  input.disabled = false;
+        if (input)  input.readOnly = false;
         if (label)  label.textContent = `1 USD = ? ${currency}`;
         if (prefix) prefix.textContent = '1 USD =';
         if (suffix) suffix.textContent = currency;
@@ -531,7 +531,7 @@
         const suffix   = document.getElementById('estRateSuffix');
         const label    = document.getElementById('estRateLabel');
         if (currency === 'USD') {
-            if (input)  input.disabled = true;
+            if (input)  input.readOnly = true;
             if (label)  label.textContent = 'No conversion (USD tariff)';
             if (prefix) prefix.textContent = '';
             if (suffix) suffix.textContent = '';

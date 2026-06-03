@@ -236,10 +236,11 @@ class EstimateController extends Controller
         $dimUom          = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'ft_in';
         $defaultCurrency = CurrencyService::defaultCurrency();
         $todayRate       = ExchangeRate::getRate('USD', $defaultCurrency, $estimate->estimate_date->toDateString());
+        $rateLocked      = in_array($estimate->status, ['sent', 'under_review', 'partially_approved', 'approved']);
 
         return view('estimates.edit', compact('estimate', 'customers', 'containers', 'equipmentTypes',
                                              'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes', 'dimUom',
-                                             'defaultCurrency', 'todayRate'));
+                                             'defaultCurrency', 'todayRate', 'rateLocked'));
     }
 
     public function update(UpdateEstimateRequest $request, Estimate $estimate)

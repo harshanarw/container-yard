@@ -78,10 +78,10 @@
                                    value="{{ $estimate->customer->name ?? '—' }}" readonly>
                         </div>
                         @php
-                            $editCur  = old('currency', $estimate->currency);
-                            $editRate = old('exchange_rate', $estimate->exchange_rate ?? ($todayRate ?? '1.0000'));
+                            $editCur     = old('currency', $estimate->currency);
+                            $editRate    = old('exchange_rate', $estimate->exchange_rate ?? ($todayRate ?? '1.0000'));
                             $editRateFmt = number_format((float)$editRate, 4, '.', '');
-                            $rateLocked  = in_array($estimate->status, ['sent','under_review','partially_approved','approved']);
+                            // $rateLocked is passed from EstimateController::edit()
                         @endphp
                         <div class="col-md-2">
                             <label class="form-label fw-semibold">Estimate Date <span class="text-danger">*</span></label>
