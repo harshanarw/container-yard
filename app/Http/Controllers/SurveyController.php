@@ -82,11 +82,14 @@ class SurveyController extends Controller
         $mrRepairCodes         = MrCode::ofType('repair')->active()->orderBy('sort_order')->get();
         $mrResponsibilityCodes = MrCode::ofType('responsibility')->active()->orderBy('sort_order')->get();
 
+        $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'cm';
+
         return view('surveys.create', compact(
             'customers', 'inspectors', 'containers', 'selectedContainer',
             'checklistItems', 'equipmentTypes',
             'mrLocationCodes', 'mrComponentCodes', 'mrDamageCodes',
-            'mrRepairCodes', 'mrResponsibilityCodes'
+            'mrRepairCodes', 'mrResponsibilityCodes',
+            'dimUom'
         ));
     }
 
@@ -185,7 +188,9 @@ class SurveyController extends Controller
             'damages.repairCode', 'damages.responsibilityCode', 'damages.estimateLineItem.estimate',
         ]);
 
-        return view('surveys.show', ['inquiry' => $survey]);
+        $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'cm';
+
+        return view('surveys.show', ['inquiry' => $survey, 'dimUom' => $dimUom]);
     }
 
     public function edit(Inquiry $survey)
@@ -201,6 +206,8 @@ class SurveyController extends Controller
         $mrRepairCodes         = MrCode::ofType('repair')->active()->orderBy('sort_order')->get();
         $mrResponsibilityCodes = MrCode::ofType('responsibility')->active()->orderBy('sort_order')->get();
 
+        $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'cm';
+
         return view('surveys.edit', [
             'inquiry'              => $survey,
             'inspectors'           => $inspectors,
@@ -210,6 +217,7 @@ class SurveyController extends Controller
             'mrDamageCodes'        => $mrDamageCodes,
             'mrRepairCodes'        => $mrRepairCodes,
             'mrResponsibilityCodes'=> $mrResponsibilityCodes,
+            'dimUom'               => $dimUom,
         ]);
     }
 
@@ -286,7 +294,9 @@ class SurveyController extends Controller
             'damages.repairCode', 'damages.responsibilityCode',
         ]);
 
-        return view('surveys.pdf', ['inquiry' => $survey]);
+        $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'cm';
+
+        return view('surveys.pdf', ['inquiry' => $survey, 'dimUom' => $dimUom]);
     }
 
     public function destroyPhoto(Inquiry $survey, InquiryPhoto $photo)

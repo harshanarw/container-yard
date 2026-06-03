@@ -190,7 +190,7 @@
                                 <th>Repair</th>
                                 <th>Resp.</th>
                                 <th>Severity</th>
-                                <th>Dimensions</th>
+                                <th>Dimensions ({{ $dimUom === 'ft_in' ? 'ft/in' : 'cm' }})</th>
                                 <th>CEDEX</th>
                                 <th>In Estimate</th>
                                 <th>Description</th>
@@ -248,6 +248,7 @@
                                 <td class="font-monospace text-muted">
                                     @if($dmg->dim_length)
                                         {{ $dmg->dim_length }}×{{ $dmg->dim_width }}
+                                        <span class="text-muted" style="font-size:.75em"> {{ $dimUom === 'ft_in' ? 'ft/in' : 'cm' }}</span>
                                     @else —
                                     @endif
                                 </td>

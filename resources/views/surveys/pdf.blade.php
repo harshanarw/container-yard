@@ -222,7 +222,7 @@
                     <th style="width:7%">Repair</th>
                     <th style="width:6%">Resp.</th>
                     <th style="width:9%">Severity</th>
-                    <th style="width:10%">Dimensions</th>
+                    <th style="width:10%">Dimensions ({{ $dimUom === 'ft_in' ? 'ft/in' : 'cm' }})</th>
                     <th style="width:10%">CEDEX</th>
                     <th style="width:15%">Description</th>
                 </tr>
@@ -277,6 +277,7 @@
                     <td style="font-family:monospace;font-size:10px;">
                         @if($dmg->dim_length)
                             {{ $dmg->dim_length }}×{{ $dmg->dim_width }}
+                            <span style="color:#999;font-size:9px;"> {{ $dimUom === 'ft_in' ? 'ft/in' : 'cm' }}</span>
                             @if($dmg->dim_area)
                                 <span style="color:#777;display:block;">({{ $dmg->dim_area }} m²)</span>
                             @endif

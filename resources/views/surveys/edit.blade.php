@@ -174,7 +174,7 @@
                                     <th style="min-width:110px">Repair</th>
                                     <th style="min-width:80px">Resp.</th>
                                     <th style="min-width:90px">Severity</th>
-                                    <th style="min-width:130px">Dim. L / W (cm)</th>
+                                    <th style="min-width:130px">Dim. L / W ({{ $dimUom === 'ft_in' ? 'ft/in' : 'cm' }})</th>
                                     <th style="min-width:60px">Qty</th>
                                     <th>Description</th>
                                     <th style="width:40px"></th>
