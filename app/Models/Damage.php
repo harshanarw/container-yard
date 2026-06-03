@@ -14,7 +14,7 @@ class Damage extends Model
         'location_code_id', 'component_code_id', 'damage_code_id',
         'repair_code_id', 'material_code_id', 'responsibility_code_id',
         'location', 'damage_type', 'severity',
-        'dimensions', 'dim_length', 'dim_width', 'dim_depth', 'dim_area',
+        'dimensions', 'dim_length', 'dim_width', 'dim_depth', 'dim_area', 'dim_uom',
         'quantity', 'cedex_code', 'description',
         'repair_cost', 'repaired',
     ];

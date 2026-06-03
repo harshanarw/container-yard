@@ -231,13 +231,41 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <div class="d-flex gap-1">
-                                            <input type="number" name="damages[{{ $di }}][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:58px" value="{{ $dmg->dim_length }}">
-                                            <input type="number" name="damages[{{ $di }}][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px" value="{{ $dmg->dim_width }}">
+                                        @php
+                                            $storedUom = $dmg->dim_uom ?? 'cm';
+                                            $storedL   = (float)($dmg->dim_length ?? 0);
+                                            $storedW   = (float)($dmg->dim_width  ?? 0);
+                                        @endphp
+                                        @if($storedUom === 'ft_in')
+                                        <div class="dim-cell d-flex flex-column gap-1" style="min-width:130px;">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <input type="number" class="form-control form-control-sm dim-ft-l" placeholder="ft" min="0" step="1" style="width:40px"
+                                                       value="{{ $storedL > 0 ? (int)floor($storedL / 12) : '' }}">
+                                                <small class="text-muted">′</small>
+                                                <input type="number" class="form-control form-control-sm dim-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px"
+                                                       value="{{ $storedL > 0 ? round(fmod($storedL, 12), 2) : '' }}">
+                                                <small class="text-muted fw-bold">L</small>
+                                                <input type="hidden" name="damages[{{ $di }}][dim_length]" class="dim-hidden-l" value="{{ $storedL ?: '' }}">
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <input type="number" class="form-control form-control-sm dim-ft-w" placeholder="ft" min="0" step="1" style="width:40px"
+                                                       value="{{ $storedW > 0 ? (int)floor($storedW / 12) : '' }}">
+                                                <small class="text-muted">′</small>
+                                                <input type="number" class="form-control form-control-sm dim-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px"
+                                                       value="{{ $storedW > 0 ? round(fmod($storedW, 12), 2) : '' }}">
+                                                <small class="text-muted fw-bold">W</small>
+                                                <input type="hidden" name="damages[{{ $di }}][dim_width]" class="dim-hidden-w" value="{{ $storedW ?: '' }}">
+                                            </div>
                                         </div>
+                                        @else
+                                        <div class="d-flex gap-1">
+                                            <input type="number" name="damages[{{ $di }}][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:58px" value="{{ $storedL ?: '' }}">
+                                            <input type="number" name="damages[{{ $di }}][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px" value="{{ $storedW ?: '' }}">
+                                        </div>
+                                        @endif
                                     </td>
                                     <td>
-                                        <input type="number" name="damages[{{ $di }}][quantity]" class="form-control form-control-sm" value="{{ $dmg->quantity ?? 1 }}" step="0.5" min="0.5" style="width:58px">
+                                        <input type="number" name="damages[{{ $di }}][quantity]" class="form-control form-control-sm" value="{{ $dmg->quantity ?? 1 }}" step="0.01" min="0.01" style="width:64px">
                                     </td>
                                     <td>
                                         <input type="text" name="damages[{{ $di }}][description]" class="form-control form-control-sm" placeholder="Details…" value="{{ $dmg->description }}">
@@ -298,12 +326,31 @@
                                         </select>
                                     </td>
                                     <td>
+                                        @if($dimUom === 'ft_in')
+                                        <div class="dim-cell d-flex flex-column gap-1" style="min-width:130px;">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <input type="number" class="form-control form-control-sm dim-ft-l" placeholder="ft" min="0" step="1" style="width:40px">
+                                                <small class="text-muted">′</small>
+                                                <input type="number" class="form-control form-control-sm dim-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px">
+                                                <small class="text-muted fw-bold">L</small>
+                                                <input type="hidden" name="damages[0][dim_length]" class="dim-hidden-l">
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <input type="number" class="form-control form-control-sm dim-ft-w" placeholder="ft" min="0" step="1" style="width:40px">
+                                                <small class="text-muted">′</small>
+                                                <input type="number" class="form-control form-control-sm dim-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px">
+                                                <small class="text-muted fw-bold">W</small>
+                                                <input type="hidden" name="damages[0][dim_width]" class="dim-hidden-w">
+                                            </div>
+                                        </div>
+                                        @else
                                         <div class="d-flex gap-1">
                                             <input type="number" name="damages[0][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:58px">
                                             <input type="number" name="damages[0][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px">
                                         </div>
+                                        @endif
                                     </td>
-                                    <td><input type="number" name="damages[0][quantity]" class="form-control form-control-sm" value="1" step="0.5" min="0.5" style="width:58px"></td>
+                                    <td><input type="number" name="damages[0][quantity]" class="form-control form-control-sm" value="1" step="0.01" min="0.01" style="width:64px"></td>
                                     <td><input type="text" name="damages[0][description]" class="form-control form-control-sm" placeholder="Details…"></td>
                                     <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>
                                 </tr>
@@ -490,6 +537,55 @@
 
 @push('scripts')
 <script>
+    const DIM_UOM = '{{ $dimUom }}';
+
+    function syncDimHidden(cell) {
+        const ftL  = parseFloat(cell.querySelector('.dim-ft-l')?.value) || 0;
+        const inL  = parseFloat(cell.querySelector('.dim-in-l')?.value) || 0;
+        const ftW  = parseFloat(cell.querySelector('.dim-ft-w')?.value) || 0;
+        const inW  = parseFloat(cell.querySelector('.dim-in-w')?.value) || 0;
+        const hidL = cell.querySelector('.dim-hidden-l');
+        const hidW = cell.querySelector('.dim-hidden-w');
+        if (hidL) hidL.value = ftL * 12 + inL || '';
+        if (hidW) hidW.value = ftW * 12 + inW || '';
+    }
+
+    function initDimInputs(row) {
+        row.querySelectorAll('.dim-cell').forEach(cell => {
+            cell.querySelectorAll('input[type=number]').forEach(inp => {
+                inp.addEventListener('input', () => syncDimHidden(cell));
+            });
+        });
+    }
+
+    function buildDimCell(i) {
+        if (DIM_UOM === 'ft_in') {
+            return `<div class="dim-cell d-flex flex-column gap-1" style="min-width:130px;">
+                <div class="d-flex align-items-center gap-1">
+                    <input type="number" class="form-control form-control-sm dim-ft-l" placeholder="ft" min="0" step="1" style="width:40px">
+                    <small class="text-muted">′</small>
+                    <input type="number" class="form-control form-control-sm dim-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px">
+                    <small class="text-muted fw-bold">L</small>
+                    <input type="hidden" name="damages[${i}][dim_length]" class="dim-hidden-l">
+                </div>
+                <div class="d-flex align-items-center gap-1">
+                    <input type="number" class="form-control form-control-sm dim-ft-w" placeholder="ft" min="0" step="1" style="width:40px">
+                    <small class="text-muted">′</small>
+                    <input type="number" class="form-control form-control-sm dim-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px">
+                    <small class="text-muted fw-bold">W</small>
+                    <input type="hidden" name="damages[${i}][dim_width]" class="dim-hidden-w">
+                </div>
+            </div>`;
+        }
+        return `<div class="d-flex gap-1">
+            <input type="number" name="damages[${i}][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:58px">
+            <input type="number" name="damages[${i}][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px">
+        </div>`;
+    }
+
+    // Wire up ft/in inputs on existing rows rendered from PHP
+    document.querySelectorAll('#damageRows .damage-row').forEach(row => initDimInputs(row));
+
     // ── Damage rows ───────────────────────────────────────────
     let damageRowIndex = {{ $inquiry->damages->count() ?: 1 }};
 
@@ -526,17 +622,13 @@
                     <option value="severe">Severe</option>
                 </select>
             </td>
-            <td>
-                <div class="d-flex gap-1">
-                    <input type="number" name="damages[${i}][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:58px">
-                    <input type="number" name="damages[${i}][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px">
-                </div>
-            </td>
-            <td><input type="number" name="damages[${i}][quantity]" class="form-control form-control-sm" value="1" step="0.5" min="0.5" style="width:58px"></td>
+            <td>${buildDimCell(i)}</td>
+            <td><input type="number" name="damages[${i}][quantity]" class="form-control form-control-sm" value="1" step="0.01" min="0.01" style="width:64px"></td>
             <td><input type="text" name="damages[${i}][description]" class="form-control form-control-sm" placeholder="Details…"></td>
             <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>`;
         document.getElementById('damageRows').appendChild(row);
         initRowSelects(row);
+        initDimInputs(row);
     });
 
     document.getElementById('damageRows').addEventListener('click', function (e) {
@@ -692,15 +784,13 @@
                 <td>${buildSel('damages['+i+'][repair_code_id]', mrRepOpts)}</td>
                 <td>${buildSel('damages['+i+'][responsibility_code_id]', mrResOpts, true)}</td>
                 <td><select name="damages[${i}][severity]" class="form-select form-select-sm">${sevOpts}</select></td>
-                <td><div class="d-flex gap-1">
-                    <input type="number" name="damages[${i}][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:58px">
-                    <input type="number" name="damages[${i}][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px">
-                </div></td>
-                <td><input type="number" name="damages[${i}][quantity]" class="form-control form-control-sm" value="1" step="0.5" min="0.5" style="width:58px"></td>
+                <td>${buildDimCell(i)}</td>
+                <td><input type="number" name="damages[${i}][quantity]" class="form-control form-control-sm" value="1" step="0.01" min="0.01" style="width:64px"></td>
                 <td><input type="text" name="damages[${i}][description]" class="form-control form-control-sm" placeholder="Details…" value="${escHtml(r.description || '')}"></td>
                 <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>`;
             document.getElementById('damageRows').appendChild(row);
             initRowSelects(row);
+            initDimInputs(row);
             if (r.location_code_id) { const s = row.querySelector(`[name="damages[${i}][location_code_id]"]`); s.value = r.location_code_id; $(s).trigger('change'); }
             const cs = row.querySelector(`[name="damages[${i}][component_code_id]"]`); cs.value = r.component_code_id; $(cs).trigger('change');
             const ds = row.querySelector(`[name="damages[${i}][damage_code_id]"]`);    ds.value = r.damage_code_id;    $(ds).trigger('change');

@@ -511,7 +511,24 @@ class EstimateController extends Controller
 
             $repairCode = $dmg->repairCode?->code ?? '';
             $repairType = $repairTypeMap[$repairCode] ?? 'repair';
-            $qty        = max(1, (float) ($dmg->quantity ?? 1));
+
+            // Derive the effective quantity from dimensions when the tariff rule's unit_type
+            // is area- or length-based; otherwise use the manually-entered damage quantity.
+            $unitType = $tariffRule?->unit_type ?? 'nos';
+            if ($unitType === 'sqft' && (float)($dmg->dim_area ?? 0) > 0) {
+                // dim_area is sq ft for ft_in UOM, m² for cm UOM
+                $qty = $dmg->dim_uom === 'ft_in'
+                    ? max(0.01, round((float)$dmg->dim_area, 4))
+                    : max(0.01, round((float)$dmg->dim_area * 10.764, 4)); // m² → sqft
+            } elseif ($unitType === 'inches' && (float)($dmg->dim_length ?? 0) > 0) {
+                // dim_length is total inches for ft_in UOM, cm for cm UOM
+                $qty = $dmg->dim_uom === 'ft_in'
+                    ? max(0.01, (float)$dmg->dim_length)
+                    : max(0.01, round((float)$dmg->dim_length / 2.54, 2)); // cm → inches
+            } else {
+                $qty = max(1, (float)($dmg->quantity ?? 1));
+            }
+
             // Amounts multiplied by $factor: 1.0 for USD estimates, exchange_rate for local currency
             $unitPrice  = $tariffRule ? round($tariffRule->computeAmount() * $factor, 2) : 0;
             $laborHrs   = (float) ($tariffRule?->std_labor_hours ?? 0);
@@ -548,6 +565,10 @@ class EstimateController extends Controller
                 'material_rate'     => $matRate,
                 'material_amount'   => round($matQty * $matRate, 2),
                 'ancillary_amount'  => round((float)($tariffRule?->ancillary ?? 0) * $factor, 2),
+                'dim_length'        => $dmg->dim_length,
+                'dim_width'         => $dmg->dim_width,
+                'dim_uom'           => $dmg->dim_uom,
+                '_unit_type'        => $unitType,
                 '_location'         => $dmg->locationCode?->name ?? ucwords(str_replace('_', ' ', $dmg->location ?? '')),
                 '_damage'           => $dmg->damageCode?->name ?? ucwords(str_replace('_', ' ', $dmg->damage_type ?? '')),
                 '_severity'         => $dmg->severity,

@@ -139,6 +139,7 @@ class MrTariffController extends Controller
             'min_charge'        => 'required|numeric|min:0|max:99999.99',
             'max_charge'        => 'nullable|numeric|min:0|max:99999.99',
             'notes'             => 'nullable|string|max:500',
+            'unit_type'         => 'nullable|in:nos,lift,sqft,inches',
         ]);
 
         $data['mr_tariff_header_id'] = $mrTariff->id;
@@ -166,6 +167,7 @@ class MrTariffController extends Controller
             'min_charge'        => 'required|numeric|min:0|max:99999.99',
             'max_charge'        => 'nullable|numeric|min:0|max:99999.99',
             'notes'             => 'nullable|string|max:500',
+            'unit_type'         => 'nullable|in:nos,lift,sqft,inches',
         ]);
 
         $rule->update($data);

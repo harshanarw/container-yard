@@ -238,13 +238,32 @@
                                         </select>
                                     </td>
                                     <td>
+                                        @if($dimUom === 'ft_in')
+                                        <div class="dim-cell d-flex flex-column gap-1" style="min-width:130px;">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <input type="number" class="form-control form-control-sm dim-ft-l" placeholder="ft" min="0" step="1" style="width:40px" title="Length feet">
+                                                <small class="text-muted">′</small>
+                                                <input type="number" class="form-control form-control-sm dim-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px" title="Length inches">
+                                                <small class="text-muted fw-bold">L</small>
+                                                <input type="hidden" name="damages[0][dim_length]" class="dim-hidden-l">
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <input type="number" class="form-control form-control-sm dim-ft-w" placeholder="ft" min="0" step="1" style="width:40px" title="Width feet">
+                                                <small class="text-muted">′</small>
+                                                <input type="number" class="form-control form-control-sm dim-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px" title="Width inches">
+                                                <small class="text-muted fw-bold">W</small>
+                                                <input type="hidden" name="damages[0][dim_width]" class="dim-hidden-w">
+                                            </div>
+                                        </div>
+                                        @else
                                         <div class="d-flex gap-1">
                                             <input type="number" name="damages[0][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:58px">
                                             <input type="number" name="damages[0][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px">
                                         </div>
+                                        @endif
                                     </td>
                                     <td>
-                                        <input type="number" name="damages[0][quantity]" class="form-control form-control-sm" value="1" step="0.5" min="0.5" style="width:58px">
+                                        <input type="number" name="damages[0][quantity]" class="form-control form-control-sm" value="1" step="0.01" min="0.01" style="width:64px">
                                     </td>
                                     <td>
                                         <input type="text" name="damages[0][description]" class="form-control form-control-sm" placeholder="Details…">
@@ -470,6 +489,55 @@
 
 @push('scripts')
 <script>
+    const DIM_UOM = '{{ $dimUom }}';
+
+    // Convert ft+in sub-inputs → total decimal inches in hidden field
+    function syncDimHidden(cell) {
+        const ftL  = parseFloat(cell.querySelector('.dim-ft-l')?.value) || 0;
+        const inL  = parseFloat(cell.querySelector('.dim-in-l')?.value) || 0;
+        const ftW  = parseFloat(cell.querySelector('.dim-ft-w')?.value) || 0;
+        const inW  = parseFloat(cell.querySelector('.dim-in-w')?.value) || 0;
+        const hidL = cell.querySelector('.dim-hidden-l');
+        const hidW = cell.querySelector('.dim-hidden-w');
+        if (hidL) hidL.value = ftL * 12 + inL || '';
+        if (hidW) hidW.value = ftW * 12 + inW || '';
+    }
+
+    // Wire up ft/in inputs inside a newly-added row
+    function initDimInputs(row) {
+        row.querySelectorAll('.dim-cell').forEach(cell => {
+            cell.querySelectorAll('input[type=number]').forEach(inp => {
+                inp.addEventListener('input', () => syncDimHidden(cell));
+            });
+        });
+    }
+
+    // Build the dim cell HTML for JS-injected rows
+    function buildDimCell(i) {
+        if (DIM_UOM === 'ft_in') {
+            return `<div class="dim-cell d-flex flex-column gap-1" style="min-width:130px;">
+                <div class="d-flex align-items-center gap-1">
+                    <input type="number" class="form-control form-control-sm dim-ft-l" placeholder="ft" min="0" step="1" style="width:40px" title="Length feet">
+                    <small class="text-muted">′</small>
+                    <input type="number" class="form-control form-control-sm dim-in-l" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px" title="Length inches">
+                    <small class="text-muted fw-bold">L</small>
+                    <input type="hidden" name="damages[${i}][dim_length]" class="dim-hidden-l">
+                </div>
+                <div class="d-flex align-items-center gap-1">
+                    <input type="number" class="form-control form-control-sm dim-ft-w" placeholder="ft" min="0" step="1" style="width:40px" title="Width feet">
+                    <small class="text-muted">′</small>
+                    <input type="number" class="form-control form-control-sm dim-in-w" placeholder="in" min="0" max="11.75" step="0.25" style="width:40px" title="Width inches">
+                    <small class="text-muted fw-bold">W</small>
+                    <input type="hidden" name="damages[${i}][dim_width]" class="dim-hidden-w">
+                </div>
+            </div>`;
+        }
+        return `<div class="d-flex gap-1">
+            <input type="number" name="damages[${i}][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:58px">
+            <input type="number" name="damages[${i}][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px">
+        </div>`;
+    }
+
     // ── Container selection → auto-fill Customer, Gate-In Ref, Equipment Type display ──
     $(function () {
         var containerSel   = document.getElementById('containerSelect');
@@ -562,6 +630,9 @@
         $(tr).find('select.s2').each(function () { window.initS2Code($(this), { width: '100%' }); });
     }
 
+    // Wire up ft/in inputs on the initial static row
+    document.querySelectorAll('#damageRows .damage-row').forEach(row => initDimInputs(row));
+
     let damageRowIndex = 1;
 
     document.getElementById('addDamageRow').addEventListener('click', function () {
@@ -582,18 +653,14 @@
                     <option value="severe">Severe</option>
                 </select>
             </td>
-            <td>
-                <div class="d-flex gap-1">
-                    <input type="number" name="damages[${i}][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:58px">
-                    <input type="number" name="damages[${i}][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px">
-                </div>
-            </td>
-            <td><input type="number" name="damages[${i}][quantity]"    class="form-control form-control-sm" value="1" step="0.5" min="0.5" style="width:58px"></td>
+            <td>${buildDimCell(i)}</td>
+            <td><input type="number" name="damages[${i}][quantity]" class="form-control form-control-sm" value="1" step="0.01" min="0.01" style="width:64px"></td>
             <td><input type="text"   name="damages[${i}][description]" class="form-control form-control-sm" placeholder="Details…"></td>
             <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>
         `;
         tbody.appendChild(row);
         initRowSelects(row);
+        initDimInputs(row);
     });
 
     document.getElementById('damageRows').addEventListener('click', function (e) {
@@ -757,15 +824,13 @@
                 <td>${buildSel('damages['+i+'][repair_code_id]', mrRepOpts)}</td>
                 <td>${buildSel('damages['+i+'][responsibility_code_id]', mrResOpts, true)}</td>
                 <td><select name="damages[${i}][severity]" class="form-select form-select-sm">${sevOpts}</select></td>
-                <td><div class="d-flex gap-1">
-                    <input type="number" name="damages[${i}][dim_length]" class="form-control form-control-sm" placeholder="L" step="0.1" min="0" style="width:58px">
-                    <input type="number" name="damages[${i}][dim_width]"  class="form-control form-control-sm" placeholder="W" step="0.1" min="0" style="width:58px">
-                </div></td>
-                <td><input type="number" name="damages[${i}][quantity]" class="form-control form-control-sm" value="1" step="0.5" min="0.5" style="width:58px"></td>
+                <td>${buildDimCell(i)}</td>
+                <td><input type="number" name="damages[${i}][quantity]" class="form-control form-control-sm" value="1" step="0.01" min="0.01" style="width:64px"></td>
                 <td><input type="text" name="damages[${i}][description]" class="form-control form-control-sm" placeholder="Details…" value="${escHtml(r.description || '')}"></td>
                 <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-trash"></i></button></td>`;
             document.getElementById('damageRows').appendChild(row);
             initRowSelects(row);
+            initDimInputs(row);
             // Pre-select codes via Select2
             if (r.location_code_id) { const s = row.querySelector(`[name="damages[${i}][location_code_id]"]`); s.value = r.location_code_id; $(s).trigger('change'); }
             const cs = row.querySelector(`[name="damages[${i}][component_code_id]"]`); cs.value = r.component_code_id; $(cs).trigger('change');

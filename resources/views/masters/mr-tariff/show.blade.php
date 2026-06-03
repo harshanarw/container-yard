@@ -100,6 +100,7 @@
                         <th>Damage</th>
                         <th>Repair</th>
                         <th>Material</th>
+                        <th>Unit</th>
                         <th class="text-end">Hrs</th>
                         <th class="text-end">Labour<br><span class="text-muted fw-normal">/hr</span></th>
                         <th class="text-end">Qty</th>
@@ -145,6 +146,11 @@
                             <span class="text-muted">—</span>
                         @endif
                     </td>
+                    <td>
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle font-monospace" title="Quantity unit type">
+                            {{ strtoupper($rule->unit_type ?? 'nos') }}
+                        </span>
+                    </td>
                     <td class="text-end font-monospace">{{ number_format($rule->std_labor_hours, 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($rule->labor_rate, 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($rule->material_qty, 3) }}</td>
@@ -167,6 +173,7 @@
                                     data-ancillary="{{ $rule->ancillary }}"
                                     data-min_charge="{{ $rule->min_charge }}"
                                     data-max_charge="{{ $rule->max_charge }}"
+                                    data-unit_type="{{ $rule->unit_type ?? 'nos' }}"
                                     data-notes="{{ $rule->notes }}"
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
@@ -188,7 +195,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="13" class="text-center text-muted py-4">
+                    <td colspan="14" class="text-center text-muted py-4">
                         <i class="bi bi-list-ul fs-3 d-block mb-1"></i>
                         No rules yet. Click <strong>Add Rule</strong> to define rates.
                     </td>
@@ -373,7 +380,16 @@
                             <input type="number" name="max_charge" class="form-control form-control-sm"
                                    step="0.01" min="0" placeholder="(no cap)">
                         </div>
-                        <div class="col-md-10">
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold" title="How quantity is derived from damage dimensions">Qty Unit <i class="bi bi-info-circle text-muted small"></i></label>
+                            <select name="unit_type" class="form-select form-select-sm">
+                                <option value="nos">NOS — count</option>
+                                <option value="lift">LIFT — lifts</option>
+                                <option value="sqft">SQFT — sq ft (area)</option>
+                                <option value="inches">INCHES — linear in</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
                             <label class="form-label fw-semibold">Notes</label>
                             <input type="text" name="notes" class="form-control form-control-sm" maxlength="500">
                         </div>
@@ -477,7 +493,16 @@
                             <input type="number" name="max_charge" id="erMaxCharge"
                                    class="form-control form-control-sm" step="0.01" min="0" placeholder="(no cap)">
                         </div>
-                        <div class="col-md-10">
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold" title="How quantity is derived from damage dimensions">Qty Unit <i class="bi bi-info-circle text-muted small"></i></label>
+                            <select name="unit_type" id="erUnitType" class="form-select form-select-sm">
+                                <option value="nos">NOS — count</option>
+                                <option value="lift">LIFT — lifts</option>
+                                <option value="sqft">SQFT — sq ft (area)</option>
+                                <option value="inches">INCHES — linear in</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
                             <label class="form-label fw-semibold">Notes</label>
                             <input type="text" name="notes" id="erNotes" class="form-control form-control-sm" maxlength="500">
                         </div>
@@ -512,6 +537,7 @@ document.querySelectorAll('.btn-edit-rule').forEach(btn => {
         document.getElementById('erAncillary').value  = d.ancillary;
         document.getElementById('erMinCharge').value  = d.min_charge;
         document.getElementById('erMaxCharge').value  = d.max_charge || '';
+        document.getElementById('erUnitType').value   = d.unit_type  || 'nos';
         document.getElementById('erNotes').value      = d.notes || '';
         document.getElementById('editRuleForm').action =
             '{{ url("masters/mr-tariff/" . $mrTariff->id . "/rules") }}/' + d.id;

@@ -129,10 +129,18 @@ class SurveyController extends Controller
             \Log::debug('[StoreSurvey] Inquiry created: id=' . $inquiry->id . ' no=' . $inquiry->inquiry_no);
 
             // Save damages
+            $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'cm';
             if ($request->damages) {
                 foreach ($request->damages as $damage) {
+                    $damage['dim_uom'] = $dimUom;
                     if (!empty($damage['dim_length']) && !empty($damage['dim_width'])) {
-                        $damage['dim_area'] = round($damage['dim_length'] * $damage['dim_width'] / 10000, 4);
+                        $l = (float)$damage['dim_length'];
+                        $w = (float)$damage['dim_width'];
+                        // ft_in: dim_length/dim_width are total decimal inches → area in sq ft
+                        // cm:    dim_length/dim_width are centimetres → area in m²
+                        $damage['dim_area'] = $dimUom === 'ft_in'
+                            ? round($l * $w / 144, 4)
+                            : round($l * $w / 10000, 4);
                     }
                     $dmg   = $inquiry->damages()->create($damage);
                     $cedex = $dmg->buildCedexCode();
@@ -242,11 +250,17 @@ class SurveyController extends Controller
             \Log::debug('[UpdateSurvey] Survey fields updated');
 
             // Replace damages
+            $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'cm';
             if ($request->has('damages')) {
                 $survey->damages()->delete();
                 foreach ($request->damages as $damage) {
+                    $damage['dim_uom'] = $dimUom;
                     if (!empty($damage['dim_length']) && !empty($damage['dim_width'])) {
-                        $damage['dim_area'] = round($damage['dim_length'] * $damage['dim_width'] / 10000, 4);
+                        $l = (float)$damage['dim_length'];
+                        $w = (float)$damage['dim_width'];
+                        $damage['dim_area'] = $dimUom === 'ft_in'
+                            ? round($l * $w / 144, 4)
+                            : round($l * $w / 10000, 4);
                     }
                     $dmg   = $survey->damages()->create($damage);
                     $cedex = $dmg->buildCedexCode();

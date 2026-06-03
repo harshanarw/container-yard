@@ -12,8 +12,10 @@ class MrTariffRule extends Model
         'std_labor_hours', 'labor_rate',
         'material_qty', 'material_rate',
         'ancillary', 'min_charge', 'max_charge',
-        'notes',
+        'notes', 'unit_type',
     ];
+
+    const UNIT_TYPES = ['nos', 'lift', 'sqft', 'inches'];
 
     protected $casts = [
         'std_labor_hours' => 'decimal:2',
