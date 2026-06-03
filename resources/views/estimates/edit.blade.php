@@ -11,6 +11,8 @@
 @push('styles')
 <style>
     .estimate-line:hover { background: #f8f9fa; }
+    .bd-row > td { border-top: 0 !important; }
+    .bd-panel { border-left: 3px solid #0d6efd !important; }
 </style>
 @endpush
 
@@ -288,9 +290,50 @@
                                         </div>
                                     </td>
                                     <td class="pe-2">
-                                        <button type="button" class="btn btn-sm btn-outline-danger remove-line">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
+                                        <div class="d-flex flex-column gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary btn-breakdown" title="Cost breakdown"><i class="bi bi-sliders2-vertical"></i></button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger remove-line">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @php $bdTotal = ($item->labor_amount ?? 0) + ($item->material_amount ?? 0) + ($item->ancillary_amount ?? 0); @endphp
+                                <tr class="bd-row{{ $bdTotal > 0 ? '' : ' d-none' }}">
+                                    <td colspan="99" class="pt-0 pb-2 ps-4 pe-3">
+                                        <div class="rounded border bg-light px-3 py-2 bd-panel">
+                                            <div class="d-flex flex-wrap align-items-end gap-3 small">
+                                                <div class="d-flex align-items-end gap-2">
+                                                    <div>
+                                                        <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Labor Hrs</div>
+                                                        <input type="number" class="form-control form-control-sm bd-labor-hrs" value="{{ $item->std_labor_hours ?? 0 }}" min="0" step="0.25" style="width:65px">
+                                                    </div>
+                                                    <span class="text-muted mb-1" style="font-size:.85rem;">×</span>
+                                                    <div>
+                                                        <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Rate / hr</div>
+                                                        <input type="number" class="form-control form-control-sm bd-labor-rate" value="{{ $item->labor_rate ?? 0 }}" min="0" step="0.01" style="width:75px">
+                                                    </div>
+                                                    <span class="text-muted mb-1" style="font-size:.85rem;">=</span>
+                                                    <div>
+                                                        <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Labor Amt</div>
+                                                        <input type="number" class="form-control form-control-sm bd-labor-amt" value="{{ number_format($item->labor_amount ?? 0, 2, '.', '') }}" min="0" step="0.01" style="width:85px">
+                                                    </div>
+                                                </div>
+                                                <div class="vr mx-1"></div>
+                                                <div>
+                                                    <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Material Amt</div>
+                                                    <input type="number" class="form-control form-control-sm bd-material-amt" value="{{ number_format($item->material_amount ?? 0, 2, '.', '') }}" min="0" step="0.01" style="width:90px">
+                                                </div>
+                                                <div>
+                                                    <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Ancillary Amt</div>
+                                                    <input type="number" class="form-control form-control-sm bd-ancillary-amt" value="{{ number_format($item->ancillary_amount ?? 0, 2, '.', '') }}" min="0" step="0.01" style="width:90px">
+                                                </div>
+                                                <div class="ms-auto text-end">
+                                                    <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Total ÷ Qty → Unit Price</div>
+                                                    <strong class="bd-total text-primary fs-6">{{ number_format($bdTotal, 2, '.', '') }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                                 @endforeach
@@ -625,6 +668,30 @@
         recalculate();
     }
 
+    function syncBreakdown(bdRow, changedInput) {
+        const hrs  = parseFloat(bdRow.querySelector('.bd-labor-hrs').value)  || 0;
+        const rate = parseFloat(bdRow.querySelector('.bd-labor-rate').value) || 0;
+        if (!changedInput?.classList.contains('bd-labor-amt')) {
+            bdRow.querySelector('.bd-labor-amt').value = (hrs * rate).toFixed(2);
+        }
+        const laborAmt = parseFloat(bdRow.querySelector('.bd-labor-amt').value)    || 0;
+        const matAmt   = parseFloat(bdRow.querySelector('.bd-material-amt').value)  || 0;
+        const ancAmt   = parseFloat(bdRow.querySelector('.bd-ancillary-amt').value) || 0;
+        const total    = laborAmt + matAmt + ancAmt;
+        bdRow.querySelector('.bd-total').textContent = total.toFixed(2);
+
+        const mainRow = bdRow.previousElementSibling;
+        const qty     = parseFloat(mainRow?.querySelector('.qty')?.value) || 1;
+        if (mainRow) {
+            mainRow.querySelector('.unit-price').value                    = (qty > 0 ? total / qty : total).toFixed(4);
+            mainRow.querySelector('[name$="[std_labor_hours]"]').value    = hrs;
+            mainRow.querySelector('[name$="[labor_rate]"]').value         = rate;
+            mainRow.querySelector('[name$="[labor_amount]"]').value       = laborAmt.toFixed(4);
+            mainRow.querySelector('[name$="[material_amount]"]').value    = matAmt.toFixed(4);
+            mainRow.querySelector('[name$="[ancillary_amount]"]').value   = ancAmt.toFixed(4);
+        }
+    }
+
     function recalculate() {
         let subtotal = 0, ssclTotal = 0, vatTotal = 0;
         let ssclRates = new Set(), vatRates = new Set();
@@ -702,7 +769,22 @@
         }
     });
 
-    document.getElementById('lineTable').addEventListener('input', recalculate);
+    document.getElementById('lineTable').addEventListener('input', function (e) {
+        const bdRow = e.target.closest('.bd-row');
+        if (bdRow) {
+            syncBreakdown(bdRow, e.target);
+        } else if (e.target.classList.contains('qty')) {
+            const mainRow = e.target.closest('.estimate-line');
+            const sibBd   = mainRow?.nextElementSibling;
+            if (sibBd?.classList.contains('bd-row')) {
+                const total = parseFloat(sibBd.querySelector('.bd-total')?.textContent) || 0;
+                if (total > 0) {
+                    mainRow.querySelector('.unit-price').value = (total / (parseFloat(e.target.value) || 1)).toFixed(4);
+                }
+            }
+        }
+        recalculate();
+    });
 
     // Add new row
     document.getElementById('addLine').addEventListener('click', function () {
@@ -753,17 +835,67 @@
                         <span class="line-vat-amt"></span>
                     </div>
                 </td>
-                <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button></td>
+                <td class="pe-2">
+                    <div class="d-flex flex-column gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-breakdown" title="Cost breakdown"><i class="bi bi-sliders2-vertical"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+            <tr class="bd-row d-none">
+                <td colspan="99" class="pt-0 pb-2 ps-4 pe-3">
+                    <div class="rounded border bg-light px-3 py-2 bd-panel">
+                        <div class="d-flex flex-wrap align-items-end gap-3 small">
+                            <div class="d-flex align-items-end gap-2">
+                                <div>
+                                    <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Labor Hrs</div>
+                                    <input type="number" class="form-control form-control-sm bd-labor-hrs" value="0" min="0" step="0.25" style="width:65px">
+                                </div>
+                                <span class="text-muted mb-1" style="font-size:.85rem;">×</span>
+                                <div>
+                                    <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Rate / hr</div>
+                                    <input type="number" class="form-control form-control-sm bd-labor-rate" value="0" min="0" step="0.01" style="width:75px">
+                                </div>
+                                <span class="text-muted mb-1" style="font-size:.85rem;">=</span>
+                                <div>
+                                    <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Labor Amt</div>
+                                    <input type="number" class="form-control form-control-sm bd-labor-amt" value="0" min="0" step="0.01" style="width:85px">
+                                </div>
+                            </div>
+                            <div class="vr mx-1"></div>
+                            <div>
+                                <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Material Amt</div>
+                                <input type="number" class="form-control form-control-sm bd-material-amt" value="0" min="0" step="0.01" style="width:90px">
+                            </div>
+                            <div>
+                                <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Ancillary Amt</div>
+                                <input type="number" class="form-control form-control-sm bd-ancillary-amt" value="0" min="0" step="0.01" style="width:90px">
+                            </div>
+                            <div class="ms-auto text-end">
+                                <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Total ÷ Qty → Unit Price</div>
+                                <strong class="bd-total text-primary fs-6">0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+                </td>
             </tr>
         `);
-        initLineSelects(tbody.lastElementChild);
+        initLineSelects(tbody.lastElementChild.previousElementSibling);
         recalculate();
     });
 
     document.getElementById('lineItems').addEventListener('click', function (e) {
+        if (e.target.closest('.btn-breakdown')) {
+            const mainRow = e.target.closest('.estimate-line');
+            mainRow?.nextElementSibling?.classList.toggle('d-none');
+            return;
+        }
         if (e.target.closest('.remove-line')) {
             if (document.querySelectorAll('.estimate-line').length > 1) {
-                e.target.closest('.estimate-line').remove();
+                const mainRow = e.target.closest('.estimate-line');
+                const bdRow   = mainRow.nextElementSibling;
+                if (bdRow?.classList.contains('bd-row')) bdRow.remove();
+                mainRow.remove();
                 recalculate();
             }
         }
@@ -1022,12 +1154,54 @@
                 <td><input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="${selectedRate.total}" min="0" step="0.01"></td>
                 <td><select name="line_items[${i}][tax_code_id]" class="form-select form-select-sm tax-code-sel"></select></td>
                 <td class="text-end pe-2 small"><div class="fw-semibold line-net">${currency} 0.00</div></td>
-                <td class="pe-2"><button type="button" class="btn btn-sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button></td>
+                <td class="pe-2">
+                    <div class="d-flex flex-column gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-breakdown" title="Cost breakdown"><i class="bi bi-sliders2-vertical"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+            <tr class="bd-row">
+                <td colspan="99" class="pt-0 pb-2 ps-4 pe-3">
+                    <div class="rounded border bg-light px-3 py-2 bd-panel">
+                        <div class="d-flex flex-wrap align-items-end gap-3 small">
+                            <div class="d-flex align-items-end gap-2">
+                                <div>
+                                    <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Labor Hrs</div>
+                                    <input type="number" class="form-control form-control-sm bd-labor-hrs" value="${selectedRate.labor_hours}" min="0" step="0.25" style="width:65px">
+                                </div>
+                                <span class="text-muted mb-1" style="font-size:.85rem;">×</span>
+                                <div>
+                                    <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Rate / hr</div>
+                                    <input type="number" class="form-control form-control-sm bd-labor-rate" value="${selectedItem.laborRate}" min="0" step="0.01" style="width:75px">
+                                </div>
+                                <span class="text-muted mb-1" style="font-size:.85rem;">=</span>
+                                <div>
+                                    <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Labor Amt</div>
+                                    <input type="number" class="form-control form-control-sm bd-labor-amt" value="${selectedRate.labor_amount.toFixed(2)}" min="0" step="0.01" style="width:85px">
+                                </div>
+                            </div>
+                            <div class="vr mx-1"></div>
+                            <div>
+                                <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Material Amt</div>
+                                <input type="number" class="form-control form-control-sm bd-material-amt" value="${selectedRate.material_cost.toFixed(2)}" min="0" step="0.01" style="width:90px">
+                            </div>
+                            <div>
+                                <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Ancillary Amt</div>
+                                <input type="number" class="form-control form-control-sm bd-ancillary-amt" value="0" min="0" step="0.01" style="width:90px">
+                            </div>
+                            <div class="ms-auto text-end">
+                                <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Total ÷ Qty → Unit Price</div>
+                                <strong class="bd-total text-primary fs-6">${selectedRate.total.toFixed(2)}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </td>
             </tr>`);
-            initLineSelects(tbody.lastElementChild);
+            initLineSelects(tbody.lastElementChild.previousElementSibling);
             recalculate();
             bootstrap.Modal.getInstance(document.getElementById('getRateModal'))?.hide();
-            const addedRow = tbody.lastElementChild;
+            const addedRow = tbody.lastElementChild.previousElementSibling;
             addedRow.style.backgroundColor = '#d1fae5';
             setTimeout(() => { addedRow.style.backgroundColor = ''; }, 1400);
         });
