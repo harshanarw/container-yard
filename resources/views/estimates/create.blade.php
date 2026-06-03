@@ -723,6 +723,7 @@
                 <input type="hidden" name="line_items[${i}][repair_code_id]"     value="${data.repair_code_id     ?? ''}">
                 <input type="hidden" name="line_items[${i}][material_code_id]"   value="${data.material_code_id   ?? ''}">
                 <input type="hidden" name="line_items[${i}][cedex_code]"         value="${esc(data.cedex_code     ?? '')}">
+                <input type="hidden" name="line_items[${i}][repair_category_id]" value="${data.repair_category_id ?? ''}">
                 <input type="hidden" name="line_items[${i}][std_labor_hours]"    value="${bdLaborHrs}">
                 <input type="hidden" name="line_items[${i}][labor_rate]"         value="${bdLaborRate}">
                 <input type="hidden" name="line_items[${i}][labor_amount]"       value="${bdLaborAmt.toFixed(4)}">

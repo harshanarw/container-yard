@@ -1130,6 +1130,7 @@
                     <input type="hidden" name="line_items[${i}][repair_code_id]" value="">
                     <input type="hidden" name="line_items[${i}][material_code_id]" value="">
                     <input type="hidden" name="line_items[${i}][cedex_code]" value="">
+                    <input type="hidden" name="line_items[${i}][repair_category_id]" value="">
                     <input type="hidden" name="line_items[${i}][std_labor_hours]" value="${selectedRate.labor_hours}">
                     <input type="hidden" name="line_items[${i}][labor_rate]" value="${selectedItem.laborRate}">
                     <input type="hidden" name="line_items[${i}][labor_amount]" value="${selectedRate.labor_amount}">
@@ -1145,15 +1146,22 @@
                 <td><input type="text" name="line_items[${i}][component]" class="form-control form-control-sm comp-desc" value="${selectedItem.desc}"></td>
                 <td><select name="line_items[${i}][repair_type]" class="form-select form-select-sm">
                     <option value="repair" selected>Repair</option>
-                    <option value="cleaning">Cleaning</option>
+                    <option value="replace">Replace</option>
+                    <option value="weld">Weld</option>
+                    <option value="straighten">Straighten</option>
+                    <option value="clean_and_treat">Clean &amp; Treat</option>
                     <option value="paint">Paint</option>
-                    <option value="replacement">Replacement</option>
-                    <option value="other">Other</option>
                 </select></td>
                 <td><input type="number" name="line_items[${i}][qty]" class="form-control form-control-sm qty" value="${selectedItem.qty}" min="0.01" step="0.01"></td>
                 <td><input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="${selectedRate.total}" min="0" step="0.01"></td>
                 <td><select name="line_items[${i}][tax_code_id]" class="form-select form-select-sm tax-code-sel"></select></td>
-                <td class="text-end pe-2 small"><div class="fw-semibold line-net">${currency} 0.00</div></td>
+                <td class="text-end pe-2 small">
+                    <div class="fw-semibold line-net">${currency} 0.00</div>
+                    <div style="font-size:.68rem; line-height:1.4; color:#6c757d;">
+                        <span class="line-sscl-amt"></span>
+                        <span class="line-vat-amt"></span>
+                    </div>
+                </td>
                 <td class="pe-2">
                     <div class="d-flex flex-column gap-1">
                         <button type="button" class="btn btn-sm btn-outline-secondary btn-breakdown" title="Cost breakdown"><i class="bi bi-sliders2-vertical"></i></button>
