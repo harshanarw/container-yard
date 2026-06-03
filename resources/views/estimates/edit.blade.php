@@ -77,25 +77,72 @@
                             <input type="text" class="form-control"
                                    value="{{ $estimate->customer->name ?? '—' }}" readonly>
                         </div>
-                        <div class="col-md-3">
+                        @php
+                            $editCur  = old('currency', $estimate->currency);
+                            $editRate = old('exchange_rate', $estimate->exchange_rate ?? ($todayRate ?? '1.0000'));
+                            $editRateFmt = number_format((float)$editRate, 4, '.', '');
+                            $rateLocked  = in_array($estimate->status, ['sent','under_review','partially_approved','approved']);
+                        @endphp
+                        <div class="col-md-2">
                             <label class="form-label fw-semibold">Estimate Date <span class="text-danger">*</span></label>
-                            <input type="date" name="estimate_date" class="form-control"
+                            <input type="date" name="estimate_date" id="estimateDate" class="form-control"
                                    value="{{ old('estimate_date', $estimate->estimate_date->format('Y-m-d')) }}" required>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label fw-semibold">Valid Until <span class="text-danger">*</span></label>
                             <input type="date" name="valid_until" class="form-control"
                                    value="{{ old('valid_until', $estimate->valid_until->format('Y-m-d')) }}" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-2">
                             <label class="form-label fw-semibold">Currency <span class="text-danger">*</span></label>
-                            <select name="currency" class="form-select" required>
-                                <option value="LKR" {{ old('currency', $estimate->currency) === 'LKR' ? 'selected' : '' }}>LKR — Sri Lankan Rupee</option>
-                                <option value="USD" {{ old('currency', $estimate->currency) === 'USD' ? 'selected' : '' }}>USD — US Dollar</option>
-                                <option value="SGD" {{ old('currency', $estimate->currency) === 'SGD' ? 'selected' : '' }}>SGD — Singapore Dollar</option>
+                            <select name="currency" id="estimateCurrency" class="form-select" {{ $rateLocked ? 'disabled' : '' }} required>
+                                <option value="USD" {{ $editCur==='USD'?'selected':'' }}>USD — US Dollar</option>
+                                <option value="{{ $defaultCurrency }}" {{ $editCur===$defaultCurrency && $defaultCurrency!=='USD'?'selected':'' }}>{{ $defaultCurrency }} — Local</option>
+                                <option value="EUR" {{ $editCur==='EUR'?'selected':'' }}>EUR — Euro</option>
+                                <option value="GBP" {{ $editCur==='GBP'?'selected':'' }}>GBP — British Pound</option>
+                                <option value="SGD" {{ $editCur==='SGD'?'selected':'' }}>SGD — Singapore Dollar</option>
+                                <option value="AUD" {{ $editCur==='AUD'?'selected':'' }}>AUD — Australian Dollar</option>
                             </select>
+                            @if($rateLocked)
+                                {{-- keep the value in the form even when select is disabled --}}
+                                <input type="hidden" name="currency" value="{{ $editCur }}">
+                            @endif
+                            <div class="form-text">Tariffs are in USD</div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4" id="exchangeRateGroup">
+                            <label class="form-label fw-semibold">
+                                <span id="estRateLabel">
+                                    @if($editCur === 'USD') No conversion (USD tariff)
+                                    @else 1 USD = ? {{ $editCur }}
+                                    @endif
+                                </span>
+                                @if(!$rateLocked)<span class="text-danger">*</span>@endif
+                                <span id="estRateSpinner" class="spinner-border spinner-border-sm ms-1 d-none" style="width:.7rem;height:.7rem;"></span>
+                                @if($rateLocked)
+                                    <span class="badge bg-secondary ms-1" style="font-size:.68rem;">Locked</span>
+                                @endif
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text small px-2" id="estRatePrefix">
+                                    {{ $editCur === 'USD' ? '' : '1 USD =' }}
+                                </span>
+                                <input type="number" name="exchange_rate" id="estimateExchangeRate"
+                                       class="form-control" value="{{ $editRateFmt }}"
+                                       min="0.0001" step="0.0001"
+                                       {{ ($rateLocked || $editCur === 'USD') ? 'readonly' : '' }}>
+                                <span class="input-group-text" id="estRateSuffix">{{ $editCur === 'USD' ? '' : $editCur }}</span>
+                            </div>
+                            <div id="estRateNote" class="form-text">
+                                @if($rateLocked)
+                                    <span class="text-muted"><i class="bi bi-lock me-1"></i>Rate locked — estimate has been sent to customer</span>
+                                @elseif($editCur === 'USD')
+                                    <span class="text-muted">Estimate is in USD — no conversion applied</span>
+                                @else
+                                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>Rate as at estimate date</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-md-2">
                             <label class="form-label fw-semibold">Repair Priority <span class="text-danger">*</span></label>
                             <select name="priority" class="form-select" required>
                                 <option value="normal"   {{ old('priority', $estimate->priority) === 'normal'   ? 'selected' : '' }}>Normal (7–14 days)</option>
@@ -445,6 +492,62 @@
 @push('scripts')
 <script>
 (function () {
+    // ── Exchange rate auto-fetch ───────────────────────────────────────────
+    const EXCH_RATE_URL    = '{{ route("estimates.exchange-rate") }}';
+    const DEFAULT_CURRENCY = '{{ $defaultCurrency }}';
+    const RATE_LOCKED      = {{ $rateLocked ? 'true' : 'false' }};
+
+    async function fetchEstimateExchangeRate() {
+        if (RATE_LOCKED) return;
+        const currency = document.getElementById('estimateCurrency')?.value || 'USD';
+        const date     = document.getElementById('estimateDate')?.value;
+        const note     = document.getElementById('estRateNote');
+        const spinner  = document.getElementById('estRateSpinner');
+        const input    = document.getElementById('estimateExchangeRate');
+        const prefix   = document.getElementById('estRatePrefix');
+        const suffix   = document.getElementById('estRateSuffix');
+        const label    = document.getElementById('estRateLabel');
+
+        if (currency === 'USD') {
+            if (input)  { input.value = '1.0000'; input.readOnly = true; }
+            if (label)  label.textContent = 'No conversion (USD tariff)';
+            if (prefix) prefix.textContent = '';
+            if (suffix) suffix.textContent = '';
+            if (note)   note.innerHTML = '<span class="text-muted">Estimate is in USD — no conversion applied.</span>';
+            return;
+        }
+
+        if (input) input.readOnly = false;
+        if (label)  label.textContent = `1 USD = ? ${currency}`;
+        if (prefix) prefix.textContent = '1 USD =';
+        if (suffix) suffix.textContent = currency;
+
+        if (!date) return;
+        if (spinner) spinner.classList.remove('d-none');
+        try {
+            const res  = await fetch(`${EXCH_RATE_URL}?currency=USD&target=${encodeURIComponent(currency)}&date=${encodeURIComponent(date)}`);
+            const data = await res.json();
+            if (data.found && data.rate) {
+                if (input) input.value = parseFloat(data.rate).toFixed(4);
+                if (note)  note.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Rate auto-loaded: 1 USD = ${parseFloat(data.rate).toFixed(4)} ${currency}</span>`;
+            } else {
+                if (note)  note.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No rate found — enter manually</span>`;
+            }
+        } catch (_) {
+            if (note) note.innerHTML = '<span class="text-danger">Failed to fetch rate</span>';
+        } finally {
+            if (spinner) spinner.classList.add('d-none');
+        }
+    }
+
+    if (!RATE_LOCKED) {
+        document.getElementById('estimateCurrency')?.addEventListener('change', fetchEstimateExchangeRate);
+        document.getElementById('estimateDate')?.addEventListener('change', function () {
+            const currency = document.getElementById('estimateCurrency')?.value || 'USD';
+            if (currency !== 'USD') fetchEstimateExchangeRate();
+        });
+    }
+
     let lineIdx  = {{ $estimate->lineItems->count() }};
     const currency = '{{ $estimate->currency }}';
 

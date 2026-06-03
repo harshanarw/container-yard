@@ -137,6 +137,16 @@
   </div>
 </div>
 
+{{-- ── Exchange rate notice ── --}}
+@if($estimate->exchange_rate && $estimate->exchange_rate != 1 && $estimate->currency !== 'USD')
+<div class="alert alert-info py-2 small mt-2 mb-3">
+  <i class="bi bi-currency-exchange me-1"></i>
+  All amounts are shown in <strong>{{ $estimate->currency }}</strong>.
+  Rates converted from USD at <strong>1 USD = {{ number_format((float)$estimate->exchange_rate, 4) }} {{ $estimate->currency }}</strong>
+  as at {{ $estimate->estimate_date->format('d M Y') }}.
+</div>
+@endif
+
 {{-- ── Line Items card ── --}}
 <div class="card shadow-sm mb-4">
   <div class="card-header d-flex align-items-center justify-content-between">

@@ -75,6 +75,20 @@
         </tr>
       </table>
 
+      {{-- ── Exchange rate notice ── --}}
+      @if($estimate->exchange_rate && $estimate->exchange_rate != 1 && $estimate->currency !== 'USD')
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+        <tr>
+          <td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 14px;font-size:.8rem;color:#1e40af;">
+            <strong>&#x1F4B1; Currency Notice:</strong>
+            All amounts are in <strong>{{ $estimate->currency }}</strong>.
+            Rates converted from USD at <strong>1 USD = {{ number_format((float)$estimate->exchange_rate, 4) }} {{ $estimate->currency }}</strong>
+            as at {{ $estimate->estimate_date->format('d M Y') }}.
+          </td>
+        </tr>
+      </table>
+      @endif
+
       {{-- ── Line items ── --}}
       {{-- columns: # | Component | Repair Type | Labour | Materials | Line Total --}}
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:.875rem;margin-bottom:4px;">

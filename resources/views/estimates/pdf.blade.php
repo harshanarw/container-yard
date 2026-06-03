@@ -115,7 +115,11 @@
             </div>
             <div class="info-row">
                 <span class="info-label">Currency</span>
-                <span class="info-value">{{ $estimate->currency }}</span>
+                <span class="info-value">{{ $estimate->currency }}
+                    @if($estimate->exchange_rate && $estimate->exchange_rate != 1 && $estimate->currency !== 'USD')
+                        <span style="font-size:10px;color:#666;display:block;">1 USD = {{ number_format((float)$estimate->exchange_rate, 4) }} {{ $estimate->currency }}</span>
+                    @endif
+                </span>
             </div>
             <div class="info-row">
                 <span class="info-label">Priority</span>

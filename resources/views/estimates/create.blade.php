@@ -90,31 +90,69 @@
                             <input type="hidden" name="size" id="eqtSize">
                             <input type="hidden" name="type_code" id="eqtTypeCode">
                         </div>
-                        <div class="col-md-3">
+                        @php
+                            $selCur = old('currency', $defaultEstimateCurrency ?? 'USD');
+                            $selRate = old('exchange_rate', $todayRate ? number_format((float)$todayRate, 4, '.', '') : '1.0000');
+                        @endphp
+                        <div class="col-md-2">
                             <label class="form-label fw-semibold">Estimate Date <span class="text-danger">*</span></label>
-                            <input type="date" name="estimate_date" class="form-control"
-                                   value="{{ old('estimate_date', date('Y-m-d')) }}">
+                            <input type="date" name="estimate_date" id="estimateDate" class="form-control"
+                                   value="{{ old('estimate_date', date('Y-m-d')) }}" required>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label fw-semibold">Valid Until <span class="text-danger">*</span></label>
                             <input type="date" name="valid_until" class="form-control"
-                                   value="{{ old('valid_until', date('Y-m-d', strtotime('+30 days'))) }}">
+                                   value="{{ old('valid_until', date('Y-m-d', strtotime('+30 days'))) }}" required>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label fw-semibold">Currency <span class="text-danger">*</span></label>
-                            <select name="currency" class="form-select" required>
-                                <option value="LKR" {{ old('currency','LKR')==='LKR'?'selected':'' }}>LKR</option>
-                                <option value="USD" {{ old('currency')==='USD'?'selected':'' }}>USD</option>
-                                <option value="SGD" {{ old('currency')==='SGD'?'selected':'' }}>SGD</option>
+                            <select name="currency" id="estimateCurrency" class="form-select" required>
+                                <option value="USD" {{ $selCur==='USD'?'selected':'' }}>USD — US Dollar</option>
+                                <option value="{{ $defaultCurrency }}" {{ $selCur===$defaultCurrency && $defaultCurrency!=='USD'?'selected':'' }}>{{ $defaultCurrency }} — Local</option>
+                                <option value="EUR" {{ $selCur==='EUR'?'selected':'' }}>EUR — Euro</option>
+                                <option value="GBP" {{ $selCur==='GBP'?'selected':'' }}>GBP — British Pound</option>
+                                <option value="SGD" {{ $selCur==='SGD'?'selected':'' }}>SGD — Singapore Dollar</option>
+                                <option value="AUD" {{ $selCur==='AUD'?'selected':'' }}>AUD — Australian Dollar</option>
                             </select>
+                            <div class="form-text">Tariffs are in USD</div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4" id="exchangeRateGroup">
+                            <label class="form-label fw-semibold">
+                                <span id="estRateLabel">1 USD = ? {{ $defaultCurrency }}</span>
+                                <span class="text-danger">*</span>
+                                <span id="estRateSpinner" class="spinner-border spinner-border-sm ms-1 d-none" style="width:.7rem;height:.7rem;"></span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text small px-2" id="estRatePrefix">1 USD =</span>
+                                <input type="number" name="exchange_rate" id="estimateExchangeRate"
+                                       class="form-control" value="{{ $selRate }}"
+                                       min="0.0001" step="0.0001" placeholder="e.g. 302.50">
+                                <span class="input-group-text" id="estRateSuffix">{{ $defaultCurrency }}</span>
+                            </div>
+                            <div id="estRateNote" class="form-text">
+                                @if($selCur === 'USD')
+                                    <span class="text-muted">No conversion — estimate is in USD (same as tariff)</span>
+                                @elseif($todayRate)
+                                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>Rate auto-loaded for today</span>
+                                @else
+                                    <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No rate found — enter manually</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-md-2">
                             <label class="form-label fw-semibold">Priority <span class="text-danger">*</span></label>
                             <select name="priority" class="form-select" required>
                                 <option value="normal"   {{ old('priority','normal')==='normal'?'selected':'' }}>Normal</option>
                                 <option value="urgent"   {{ old('priority')==='urgent'?'selected':'' }}>Urgent</option>
                                 <option value="critical" {{ old('priority')==='critical'?'selected':'' }}>Critical</option>
                             </select>
+                        </div>
+                        {{-- Warning shown when currency/rate changes after line items are imported --}}
+                        <div class="col-12 d-none" id="currencyChangedWarn">
+                            <div class="alert alert-warning py-2 small mb-0">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                Currency or exchange rate changed. <strong>Re-import damages</strong> (or re-enter line items) to recalculate amounts in the new currency.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -424,6 +462,86 @@
 @push('scripts')
 <script>
 (function () {
+    // ── Exchange rate auto-fetch ───────────────────────────────────────────
+    const EXCH_RATE_URL      = '{{ route("estimates.exchange-rate") }}';
+    const DEFAULT_CURRENCY   = '{{ $defaultCurrency }}';
+
+    async function fetchEstimateExchangeRate() {
+        const currency = document.getElementById('estimateCurrency')?.value || 'USD';
+        const date     = document.getElementById('estimateDate')?.value || '{{ date("Y-m-d") }}';
+        const note     = document.getElementById('estRateNote');
+        const spinner  = document.getElementById('estRateSpinner');
+        const input    = document.getElementById('estimateExchangeRate');
+        const prefix   = document.getElementById('estRatePrefix');
+        const suffix   = document.getElementById('estRateSuffix');
+        const label    = document.getElementById('estRateLabel');
+        const group    = document.getElementById('exchangeRateGroup');
+
+        if (currency === 'USD') {
+            if (input)  { input.value = '1.0000'; input.disabled = true; }
+            if (label)  label.textContent = 'No conversion (USD tariff)';
+            if (prefix) prefix.textContent = '';
+            if (suffix) suffix.textContent = '';
+            if (note)   note.innerHTML = '<span class="text-muted">Estimate is in USD — same as tariff currency, no conversion applied.</span>';
+            return;
+        }
+
+        if (input)  input.disabled = false;
+        if (label)  label.textContent = `1 USD = ? ${currency}`;
+        if (prefix) prefix.textContent = '1 USD =';
+        if (suffix) suffix.textContent = currency;
+
+        if (!date) return;
+        if (spinner) spinner.classList.remove('d-none');
+
+        try {
+            const res  = await fetch(`${EXCH_RATE_URL}?currency=USD&target=${encodeURIComponent(currency)}&date=${encodeURIComponent(date)}`);
+            const data = await res.json();
+            if (data.found && data.rate) {
+                if (input) input.value = parseFloat(data.rate).toFixed(4);
+                if (note)  note.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Rate auto-loaded: 1 USD = ${parseFloat(data.rate).toFixed(4)} ${currency}</span>`;
+            } else {
+                if (note)  note.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No rate found for ${date} — please enter manually or add in Exchange Rate master</span>`;
+            }
+        } catch (_) {
+            if (note) note.innerHTML = '<span class="text-danger">Failed to fetch rate</span>';
+        } finally {
+            if (spinner) spinner.classList.add('d-none');
+        }
+    }
+
+    function showCurrencyChangedWarning() {
+        const hasLines = document.querySelectorAll('.estimate-line').length > 0;
+        if (hasLines) document.getElementById('currencyChangedWarn')?.classList.remove('d-none');
+    }
+
+    document.getElementById('estimateCurrency')?.addEventListener('change', function () {
+        showCurrencyChangedWarning();
+        fetchEstimateExchangeRate();
+    });
+    document.getElementById('estimateDate')?.addEventListener('change', function () {
+        const currency = document.getElementById('estimateCurrency')?.value || 'USD';
+        if (currency !== 'USD') fetchEstimateExchangeRate();
+    });
+    // On first load, ensure UI reflects the default currency
+    (function initExchangeRateUI() {
+        const currency = document.getElementById('estimateCurrency')?.value || 'USD';
+        const input    = document.getElementById('estimateExchangeRate');
+        const prefix   = document.getElementById('estRatePrefix');
+        const suffix   = document.getElementById('estRateSuffix');
+        const label    = document.getElementById('estRateLabel');
+        if (currency === 'USD') {
+            if (input)  input.disabled = true;
+            if (label)  label.textContent = 'No conversion (USD tariff)';
+            if (prefix) prefix.textContent = '';
+            if (suffix) suffix.textContent = '';
+        } else {
+            if (label)  label.textContent = `1 USD = ? ${currency}`;
+            if (prefix) prefix.textContent = '1 USD =';
+            if (suffix) suffix.textContent = currency;
+        }
+    })();
+
     // ── Yard dimension UOM (from system settings) ──────────────────────────
     const YARD_DIM_UOM = '{{ $dimUom ?? "ft_in" }}';
     const DIM_UOM_LABEL = { ft_in: 'ft', cm: 'cm', m: 'm' }[YARD_DIM_UOM] || 'ft';
@@ -754,8 +872,15 @@
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Importing…';
 
-            const eqtId    = document.getElementById('eqtSelect').value;
-            const fetchUrl = url + (eqtId ? `?equipment_type_id=${eqtId}` : '');
+            const eqtId   = document.getElementById('eqtSelect').value;
+            const estCur  = document.getElementById('estimateCurrency')?.value || 'USD';
+            const estRate = document.getElementById('estimateExchangeRate')?.value || '1.0';
+            const params  = new URLSearchParams({ currency: estCur, exchange_rate: estRate });
+            if (eqtId) params.set('equipment_type_id', eqtId);
+            const fetchUrl = url + '?' + params.toString();
+
+            // Hide the currency-changed warning since we're re-importing with the current rate
+            document.getElementById('currencyChangedWarn')?.classList.add('d-none');
 
             fetch(fetchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then(r => r.json())

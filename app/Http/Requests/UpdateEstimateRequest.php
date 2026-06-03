@@ -16,7 +16,8 @@ class UpdateEstimateRequest extends FormRequest
         return [
             'estimate_date'  => ['required', 'date'],
             'valid_until'    => ['required', 'date', 'after_or_equal:estimate_date'],
-            'currency'       => ['required', 'in:LKR,USD,SGD'],
+            'currency'       => ['required', 'in:LKR,USD,EUR,GBP,SGD,AUD'],
+            'exchange_rate'  => ['required', 'numeric', 'min:0.000001'],
             'priority'       => ['required', 'in:normal,urgent,critical'],
             'scope_of_work'  => ['nullable', 'string'],
             'terms'          => ['nullable', 'string'],

@@ -16,7 +16,9 @@ use App\Models\Inquiry;
 use App\Models\MrCode;
 use App\Models\MrTariffHeader;
 use App\Models\PortalToken;
+use App\Models\ExchangeRate;
 use App\Models\TaxCode;
+use App\Services\CurrencyService;
 use App\Services\RepairCategoryResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -73,11 +75,19 @@ class EstimateController extends Controller
             ->get();
         $taxCodes         = TaxCode::where('is_active', true)->orderBy('sort_order')->get();
 
-        $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'ft_in';
+        $dimUom          = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'ft_in';
+        $defaultCurrency = CurrencyService::defaultCurrency();
+        $todayRate       = ExchangeRate::getRate('USD', $defaultCurrency, today()->toDateString());
+
+        // Auto-default estimate currency from the linked customer (overseas → USD, local → default)
+        $defaultEstimateCurrency = $selectedInquiry?->customer?->currency
+            ?? $selectedContainer?->customer?->currency
+            ?? 'USD';
 
         return view('estimates.create', compact(
             'customers', 'containers', 'equipmentTypes', 'selectedInquiry', 'selectedContainer',
-            'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes', 'dimUom'
+            'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes', 'dimUom',
+            'defaultCurrency', 'todayRate', 'defaultEstimateCurrency'
         ));
     }
 
@@ -100,6 +110,7 @@ class EstimateController extends Controller
             'estimate_date'  => $request->estimate_date,
             'valid_until'    => $request->valid_until,
             'currency'       => $request->currency,
+            'exchange_rate'  => $request->exchange_rate ?? 1.0,
             'priority'       => $request->priority,
             'status'         => 'draft',
             'scope_of_work'  => $request->scope_of_work,
@@ -222,10 +233,13 @@ class EstimateController extends Controller
             ->get();
         $taxCodes         = TaxCode::where('is_active', true)->orderBy('sort_order')->get();
 
-        $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'ft_in';
+        $dimUom          = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'ft_in';
+        $defaultCurrency = CurrencyService::defaultCurrency();
+        $todayRate       = ExchangeRate::getRate('USD', $defaultCurrency, $estimate->estimate_date->toDateString());
 
         return view('estimates.edit', compact('estimate', 'customers', 'containers', 'equipmentTypes',
-                                             'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes', 'dimUom'));
+                                             'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes', 'dimUom',
+                                             'defaultCurrency', 'todayRate'));
     }
 
     public function update(UpdateEstimateRequest $request, Estimate $estimate)
@@ -237,10 +251,14 @@ class EstimateController extends Controller
         $lineItems = array_values($request->line_items);
         $totals    = $this->calculateLineTotals($lineItems);
 
+        // Lock exchange_rate once sent to customer; only allow changes while still a draft
+        $lockRate = in_array($estimate->status, ['sent', 'under_review', 'partially_approved']);
+
         $estimate->update([
             'estimate_date'  => $request->estimate_date,
             'valid_until'    => $request->valid_until,
             'currency'       => $request->currency,
+            'exchange_rate'  => $lockRate ? $estimate->exchange_rate : ($request->exchange_rate ?? 1.0),
             'priority'       => $request->priority,
             'scope_of_work'  => $request->scope_of_work,
             'terms'          => $request->terms,
@@ -448,6 +466,12 @@ class EstimateController extends Controller
         $customerId    = $inquiry->customer_id;
         $containerSize = $request->container_size ?? $inquiry->equipmentType?->size;
 
+        // Currency conversion: tariff rates are in USD.
+        // If estimate currency is different, multiply all monetary amounts by the exchange rate.
+        $estCurrency  = strtoupper($request->get('currency', 'USD'));
+        $exchangeRate = max(0.000001, (float) $request->get('exchange_rate', 1.0));
+        $factor       = ($estCurrency === 'USD') ? 1.0 : $exchangeRate;
+
         $tariffHeader = MrTariffHeader::with('rules')
             ->where('is_active', true)
             ->where(function ($q) use ($customerId) {
@@ -487,7 +511,12 @@ class EstimateController extends Controller
             $repairCode = $dmg->repairCode?->code ?? '';
             $repairType = $repairTypeMap[$repairCode] ?? 'repair';
             $qty        = max(1, (float) ($dmg->quantity ?? 1));
-            $unitPrice  = $tariffRule ? $tariffRule->computeAmount() : 0;
+            // Amounts multiplied by $factor: 1.0 for USD estimates, exchange_rate for local currency
+            $unitPrice  = $tariffRule ? round($tariffRule->computeAmount() * $factor, 2) : 0;
+            $laborHrs   = (float) ($tariffRule?->std_labor_hours ?? 0);
+            $laborRate  = round((float)($tariffRule?->labor_rate ?? 0) * $factor, 2);
+            $matQty     = (float) ($tariffRule?->material_qty ?? 0);
+            $matRate    = round((float)($tariffRule?->material_rate ?? 0) * $factor, 2);
 
             $chargeMapping = MrCodeChargeMapping::resolve($dmg->component_code_id, $dmg->repair_code_id);
             $chargeCode    = $chargeMapping?->chargeCode;
@@ -511,13 +540,13 @@ class EstimateController extends Controller
                 'repair_type'       => $repairType,
                 'qty'               => $qty,
                 'unit_price'        => $unitPrice,
-                'std_labor_hours'   => (float) ($tariffRule?->std_labor_hours ?? 0),
-                'labor_rate'        => (float) ($tariffRule?->labor_rate ?? 0),
-                'labor_amount'      => round((float)($tariffRule?->std_labor_hours ?? 0) * (float)($tariffRule?->labor_rate ?? 0), 2),
-                'material_qty'      => (float) ($tariffRule?->material_qty ?? 0),
-                'material_rate'     => (float) ($tariffRule?->material_rate ?? 0),
-                'material_amount'   => round((float)($tariffRule?->material_qty ?? 0) * (float)($tariffRule?->material_rate ?? 0), 2),
-                'ancillary_amount'  => (float) ($tariffRule?->ancillary ?? 0),
+                'std_labor_hours'   => $laborHrs,
+                'labor_rate'        => $laborRate,
+                'labor_amount'      => round($laborHrs * $laborRate, 2),
+                'material_qty'      => $matQty,
+                'material_rate'     => $matRate,
+                'material_amount'   => round($matQty * $matRate, 2),
+                'ancillary_amount'  => round((float)($tariffRule?->ancillary ?? 0) * $factor, 2),
                 '_location'         => $dmg->locationCode?->name ?? ucwords(str_replace('_', ' ', $dmg->location ?? '')),
                 '_damage'           => $dmg->damageCode?->name ?? ucwords(str_replace('_', ' ', $dmg->damage_type ?? '')),
                 '_severity'         => $dmg->severity,
@@ -555,6 +584,24 @@ class EstimateController extends Controller
             'tax1_rate'          => $taxCode?->tax1_rate ?? 0,
             'tax2_rate'          => $taxCode?->tax2_rate ?? 0,
         ]);
+    }
+
+    /**
+     * AJAX: look up the USD → target-currency exchange rate for a given date.
+     * Used by the estimate create/edit form to auto-populate the rate field.
+     */
+    public function exchangeRateLookup(Request $request)
+    {
+        $from   = strtoupper($request->get('currency', 'USD'));
+        $to     = strtoupper($request->get('target', CurrencyService::defaultCurrency()));
+        $date   = $request->get('date', today()->toDateString());
+
+        if ($from === $to) {
+            return response()->json(['rate' => 1.0, 'found' => true, 'from' => $from, 'to' => $to]);
+        }
+
+        $rate = ExchangeRate::getRate($from, $to, $date);
+        return response()->json(['rate' => $rate, 'found' => $rate !== null, 'from' => $from, 'to' => $to]);
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────

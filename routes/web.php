@@ -87,6 +87,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Repair Estimates
     Route::get('estimates/resolve-charge-code', [EstimateController::class, 'resolveChargeCode'])->name('estimates.resolve-charge-code');
+    Route::get('estimates/exchange-rate',        [EstimateController::class, 'exchangeRateLookup'])->name('estimates.exchange-rate');
     Route::resource('estimates', EstimateController::class);
     Route::get('estimates/import-damages/{inquiry}',   [EstimateController::class, 'importDamages'])->name('estimates.import-damages');
     Route::post('estimates/{estimate}/send',           [EstimateController::class, 'send'])->name('estimates.send');
