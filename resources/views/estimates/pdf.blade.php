@@ -162,17 +162,16 @@
     <div class="section">
         <div class="section-title">Repair Line Items</div>
         <table>
+            {{-- columns: # | Description (+ code chips) | Repair Type | Labour Hrs | Labour Cost | Materials | Line Total --}}
             <thead>
                 <tr>
                     <th style="width:3%">#</th>
-                    <th style="width:9%">MR Code</th>
-                    <th style="width:10%">Charge Code</th>
-                    <th style="width:22%">Description</th>
-                    <th style="width:11%">Repair Type</th>
-                    <th class="text-right" style="width:5%">Qty</th>
-                    <th class="text-right" style="width:11%">Unit Price</th>
-                    <th style="width:8%">Tax Code</th>
-                    <th class="text-right" style="width:21%">Amount</th>
+                    <th style="width:30%">Description</th>
+                    <th style="width:13%">Repair Type</th>
+                    <th class="text-right" style="width:10%">Labour Hrs</th>
+                    <th class="text-right" style="width:13%">Labour Cost</th>
+                    <th class="text-right" style="width:13%">Materials</th>
+                    <th class="text-right" style="width:18%">Line Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -180,29 +179,40 @@
                 <tr>
                     <td>{{ $i + 1 }}</td>
                     <td>
-                        @if($item->componentCode)
-                            <span class="code-chip">{{ $item->componentCode->code }}</span>
-                            <span style="font-size:9px;color:#666;display:block;margin-top:2px;">{{ $item->componentCode->name }}</span>
-                        @else
-                            <span style="color:#adb5bd">—</span>
-                        @endif
+                        <div style="font-weight:600;">{{ $item->component }}</div>
+                        <div style="margin-top:3px;">
+                            @if($item->componentCode)
+                                <span class="code-chip">{{ $item->componentCode->code }}</span>
+                            @endif
+                            @if($item->chargeCode)
+                                <span class="code-chip code-chip-green" style="margin-left:3px;">{{ $item->chargeCode->code }}</span>
+                            @endif
+                        </div>
                     </td>
-                    <td>
-                        @if($item->chargeCode)
-                            <span class="code-chip code-chip-green">{{ $item->chargeCode->code }}</span>
-                        @else
-                            <span style="color:#adb5bd">—</span>
-                        @endif
-                    </td>
-                    <td>{{ $item->component }}</td>
                     <td>{{ ucfirst(str_replace('_', ' ', $item->repair_type)) }}</td>
-                    <td class="text-right">{{ $item->qty }}</td>
-                    <td class="text-right">{{ number_format($item->unit_price, 2) }}</td>
-                    <td>
-                        @if($item->taxCode)
-                            <span class="code-chip" title="{{ $item->taxCode->code }} (SSCL {{ $item->taxCode->tax1_rate }}% + VAT {{ $item->taxCode->tax2_rate }}%)">
-                                {{ $item->taxCode->code }}
-                            </span>
+                    <td class="text-right">
+                        @if($item->std_labor_hours > 0)
+                            <strong style="color:#1a56db;">{{ number_format($item->std_labor_hours, 2) }}</strong>
+                            <span style="font-size:9px;color:#666;">hrs</span>
+                        @else
+                            <span style="color:#adb5bd">—</span>
+                        @endif
+                    </td>
+                    <td class="text-right">
+                        @if($item->labor_amount > 0)
+                            <span style="color:#1a56db;font-weight:600;">{{ number_format($item->labor_amount, 2) }}</span>
+                        @else
+                            <span style="color:#adb5bd">—</span>
+                        @endif
+                    </td>
+                    <td class="text-right">
+                        @if($item->material_amount > 0)
+                            <span style="color:#166534;font-weight:600;">{{ number_format($item->material_amount, 2) }}</span>
+                            @if(($item->ancillary_amount ?? 0) > 0)
+                                <span style="display:block;font-size:9px;color:#666;">+{{ number_format($item->ancillary_amount, 2) }}</span>
+                            @endif
+                        @elseif(($item->ancillary_amount ?? 0) > 0)
+                            <span style="color:#666;font-size:10px;">{{ number_format($item->ancillary_amount, 2) }}</span>
                         @else
                             <span style="color:#adb5bd">—</span>
                         @endif
@@ -221,12 +231,12 @@
             </tbody>
             <tfoot>
                 <tr class="subtax-row">
-                    <td colspan="8" style="text-align:right; padding-right:10px">Subtotal:</td>
+                    <td colspan="6" style="text-align:right; padding-right:10px">Subtotal:</td>
                     <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}</td>
                 </tr>
                 @if(($estimate->sscl_amount ?? 0) > 0)
                 <tr class="subtax-row">
-                    <td colspan="8" style="text-align:right; padding-right:10px">
+                    <td colspan="6" style="text-align:right; padding-right:10px">
                         SSCL:
                     </td>
                     <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->sscl_amount, 2) }}</td>
@@ -234,19 +244,78 @@
                 @endif
                 @if(($estimate->vat_amount ?? 0) > 0)
                 <tr class="subtax-row">
-                    <td colspan="8" style="text-align:right; padding-right:10px">
+                    <td colspan="6" style="text-align:right; padding-right:10px">
                         VAT:
                     </td>
                     <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->vat_amount, 2) }}</td>
                 </tr>
                 @endif
                 <tr class="total-row">
-                    <td colspan="8" style="text-align:right; padding-right:10px">GRAND TOTAL:</td>
+                    <td colspan="6" style="text-align:right; padding-right:10px">GRAND TOTAL:</td>
                     <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
                 </tr>
             </tfoot>
         </table>
     </div>
+
+    {{-- Cost Breakdown Summary --}}
+    @php
+      $pdfLaborHrs  = $estimate->lineItems->sum('std_labor_hours');
+      $pdfLaborCost = $estimate->lineItems->sum('labor_amount');
+      $pdfMaterial  = $estimate->lineItems->sum('material_amount');
+      $pdfAncillary = $estimate->lineItems->sum('ancillary_amount');
+    @endphp
+    @if($pdfLaborHrs > 0 || $pdfLaborCost > 0 || $pdfMaterial > 0)
+    <div class="section">
+        <div class="section-title">Cost Breakdown Summary</div>
+        <table style="width:40%;margin-left:auto;">
+            <thead>
+                <tr>
+                    <th style="text-align:left;width:50%;">Component</th>
+                    <th class="text-right" style="width:25%;">Hours / Qty</th>
+                    <th class="text-right" style="width:25%;">Total Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if($pdfLaborHrs > 0 || $pdfLaborCost > 0)
+                <tr>
+                    <td style="color:#1a56db;font-weight:600;">Labour</td>
+                    <td class="text-right" style="color:#1a56db;font-weight:600;">
+                        @if($pdfLaborHrs > 0){{ number_format($pdfLaborHrs, 2) }} hrs@else —@endif
+                    </td>
+                    <td class="text-right" style="color:#1a56db;font-weight:600;">
+                        {{ $estimate->currency }} {{ number_format($pdfLaborCost, 2) }}
+                    </td>
+                </tr>
+                @endif
+                @if($pdfMaterial > 0)
+                <tr>
+                    <td style="color:#166534;font-weight:600;">Materials</td>
+                    <td class="text-right" style="color:#555;">—</td>
+                    <td class="text-right" style="color:#166534;font-weight:600;">
+                        {{ $estimate->currency }} {{ number_format($pdfMaterial, 2) }}
+                    </td>
+                </tr>
+                @endif
+                @if($pdfAncillary > 0)
+                <tr>
+                    <td style="color:#555;">Ancillary / Overhead</td>
+                    <td class="text-right" style="color:#555;">—</td>
+                    <td class="text-right" style="color:#555;">
+                        {{ $estimate->currency }} {{ number_format($pdfAncillary, 2) }}
+                    </td>
+                </tr>
+                @endif
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="2" style="text-align:right;padding-right:8px;">Grand Total</td>
+                    <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    @endif
 
     @if($estimate->scope_of_work)
     <div class="section">

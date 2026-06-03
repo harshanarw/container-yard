@@ -202,6 +202,9 @@
                                 <th>Repair Type</th>
                                 <th class="text-end">Qty</th>
                                 <th class="text-end">Unit Price</th>
+                                <th class="text-end text-primary">Labour Hrs</th>
+                                <th class="text-end text-primary">Labour Cost</th>
+                                <th class="text-end text-success">Materials</th>
                                 <th class="text-end">Tax %</th>
                                 <th class="text-end">Amount</th>
                                 <th class="text-center pe-3">Approval</th>
@@ -215,6 +218,33 @@
                                 <td class="small">{{ ucfirst(str_replace('_', ' ', $item->repair_type)) }}</td>
                                 <td class="text-end small">{{ $item->qty }}</td>
                                 <td class="text-end small">{{ number_format($item->unit_price, 2) }}</td>
+                                <td class="text-end small">
+                                    @if($item->std_labor_hours > 0)
+                                        <span class="fw-semibold text-primary">{{ number_format($item->std_labor_hours, 2) }}</span>
+                                        <span class="text-muted" style="font-size:.75rem;">hrs</span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="text-end small">
+                                    @if($item->labor_amount > 0)
+                                        <span class="text-primary">{{ number_format($item->labor_amount, 2) }}</span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="text-end small">
+                                    @if($item->material_amount > 0)
+                                        <span class="text-success fw-semibold">{{ number_format($item->material_amount, 2) }}</span>
+                                        @if($item->ancillary_amount > 0)
+                                            <div class="text-muted" style="font-size:.72rem;" title="Ancillary">+{{ number_format($item->ancillary_amount, 2) }}</div>
+                                        @endif
+                                    @elseif($item->ancillary_amount > 0)
+                                        <span class="text-muted small">{{ number_format($item->ancillary_amount, 2) }}</span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                                 <td class="text-end small">{{ $item->tax_percentage }}%</td>
                                 <td class="text-end fw-semibold small">
                                     {{ $estimate->currency }} {{ number_format($item->line_amount, 2) }}
@@ -230,13 +260,13 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="7" class="text-end fw-semibold pe-3">Subtotal:</td>
+                                <td colspan="9" class="text-end fw-semibold pe-3">Subtotal:</td>
                                 <td class="text-end fw-semibold pe-3">
                                     {{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="7" class="text-end fw-semibold pe-3">
+                                <td colspan="9" class="text-end fw-semibold pe-3">
                                     Tax ({{ $estimate->tax_percentage }}%):
                                 </td>
                                 <td class="text-end fw-semibold pe-3">
@@ -244,7 +274,7 @@
                                 </td>
                             </tr>
                             <tr class="table-primary">
-                                <td colspan="7" class="text-end fw-bold pe-3 fs-6">TOTAL:</td>
+                                <td colspan="9" class="text-end fw-bold pe-3 fs-6">TOTAL:</td>
                                 <td class="text-end fw-bold pe-3 fs-6">
                                     {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}
                                 </td>
