@@ -154,6 +154,9 @@
                                         <input type="hidden" name="line_items[{{ $i }}][material_rate]"     value="{{ $item->material_rate ?? 0 }}">
                                         <input type="hidden" name="line_items[{{ $i }}][material_amount]"   value="{{ $item->material_amount ?? 0 }}">
                                         <input type="hidden" name="line_items[{{ $i }}][ancillary_amount]"  value="{{ $item->ancillary_amount ?? 0 }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][dim_length]"        value="{{ $item->dim_length ?? '' }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][dim_width]"         value="{{ $item->dim_width ?? '' }}">
+                                        <input type="hidden" name="line_items[{{ $i }}][dim_uom]"           value="{{ $item->dim_uom ?? '' }}">
                                         <select name="line_items[{{ $i }}][component_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">— any —</option>
                                             @foreach($mrComponentCodes as $c)
@@ -621,6 +624,9 @@
                     <input type="hidden" name="line_items[${i}][material_rate]"     value="0">
                     <input type="hidden" name="line_items[${i}][material_amount]"   value="0">
                     <input type="hidden" name="line_items[${i}][ancillary_amount]"  value="0">
+                    <input type="hidden" name="line_items[${i}][dim_length]"        value="">
+                    <input type="hidden" name="line_items[${i}][dim_width]"         value="">
+                    <input type="hidden" name="line_items[${i}][dim_uom]"           value="">
                 </td>
                 <td>${buildChargeCodeSelect(`line_items[${i}][charge_code_id]`)}</td>
                 <td><input type="text" name="line_items[${i}][component]" class="form-control form-control-sm comp-desc" placeholder="Description"></td>
@@ -702,6 +708,48 @@
                 .catch(() => { resultBody.innerHTML = '<tr><td colspan="8" class="text-danger text-center py-3">Failed to load items.</td></tr>'; });
         }
 
+        const YARD_DIM_UOM = '{{ $dimUom ?? "ft_in" }}';
+        const DIM_UOM_LABEL = { ft_in: 'ft', cm: 'cm', m: 'm' }[YARD_DIM_UOM] || 'ft';
+
+        function dimsToQty(unitType, dimL, dimW) {
+            dimL = parseFloat(dimL) || 0;
+            dimW = parseFloat(dimW) || 0;
+            if (unitType === 'sqft') {
+                const area = dimL * dimW;
+                if (YARD_DIM_UOM === 'cm')  return area / 929.0304;
+                if (YARD_DIM_UOM === 'm')   return area / 0.09290304;
+                return area;
+            }
+            if (unitType === 'inches') {
+                if (YARD_DIM_UOM === 'cm')  return dimL / 2.54;
+                if (YARD_DIM_UOM === 'm')   return dimL / 0.0254;
+                return dimL * 12;
+            }
+            return null;
+        }
+
+        function dimQtyCell(unitType) {
+            if (unitType === 'sqft') {
+                return `<div class="d-flex align-items-center gap-1 flex-wrap" onclick="event.stopPropagation()">
+                    <input type="number" class="form-control form-control-sm gr-dim-l" placeholder="L" min="0.01" step="0.01" style="width:58px" title="Length (${DIM_UOM_LABEL})">
+                    <span class="text-muted small">×</span>
+                    <input type="number" class="form-control form-control-sm gr-dim-w" placeholder="W" min="0.01" step="0.01" style="width:58px" title="Width (${DIM_UOM_LABEL})">
+                    <span class="text-muted" style="font-size:.72rem;">${DIM_UOM_LABEL}</span>
+                    <input type="hidden" class="gr-qty" value="1">
+                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;sqft</div>
+                </div>`;
+            }
+            if (unitType === 'inches') {
+                return `<div class="d-flex align-items-center gap-1" onclick="event.stopPropagation()">
+                    <input type="number" class="form-control form-control-sm gr-dim-l" placeholder="Length" min="0.01" step="0.01" style="width:72px" title="Length (${DIM_UOM_LABEL})">
+                    <span class="text-muted" style="font-size:.72rem;">${DIM_UOM_LABEL}</span>
+                    <input type="hidden" class="gr-qty" value="1">
+                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;in</div>
+                </div>`;
+            }
+            return `<input type="number" class="form-control form-control-sm gr-qty" value="1" min="0.01" step="0.01" style="width:70px" onclick="event.stopPropagation()">`;
+        }
+
         function renderItems(items) {
             if (!items.length) {
                 resultBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No items found.</td></tr>';
@@ -715,13 +763,29 @@
                     <td class="small">${item.description}</td>
                     <td class="small text-muted">${item.unit_type.toUpperCase()}</td>
                     <td class="text-center small">${item.slab_count}</td>
-                    <td><input type="number" class="form-control form-control-sm gr-qty" value="1" min="0.01" step="0.01" style="width:70px" onclick="event.stopPropagation()"></td>
+                    <td>${dimQtyCell(item.unit_type)}</td>
                     <td><input type="number" class="form-control form-control-sm gr-labor-rate" value="0" min="0" step="0.01" style="width:65px" placeholder="Rate" onclick="event.stopPropagation()"></td>
                     <td><button type="button" class="btn btn-xs btn-outline-success gr-calc-btn" onclick="event.stopPropagation()">
                         <i class="bi bi-calculator"></i> Calc
                     </button></td>
                 </tr>`;
             }).join('');
+
+            resultBody.addEventListener('input', function (e) {
+                const inp = e.target;
+                if (!inp.classList.contains('gr-dim-l') && !inp.classList.contains('gr-dim-w')) return;
+                const row  = inp.closest('tr');
+                const unit = row?.dataset.itemUnit;
+                const dimL = parseFloat(row.querySelector('.gr-dim-l')?.value) || 0;
+                const dimW = parseFloat(row.querySelector('.gr-dim-w')?.value) || 0;
+                const computed = dimsToQty(unit, dimL, dimW);
+                if (computed !== null && computed > 0) {
+                    const qtyHidden = row.querySelector('.gr-qty');
+                    if (qtyHidden) qtyHidden.value = computed.toFixed(4);
+                    const display = row.querySelector('[data-dim-display]');
+                    if (display) display.textContent = computed.toFixed(3) + (unit === 'sqft' ? ' sqft' : ' in');
+                }
+            });
 
             resultBody.querySelectorAll('.gr-calc-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
@@ -737,7 +801,14 @@
                     fetch('{{ route("masters.mr-tariff.rate-lookup") }}?' + params)
                         .then(r => r.json())
                         .then(result => {
-                            selectedItem = { id: itemId, desc: row.dataset.itemDesc, unit: row.dataset.itemUnit, qty, laborRate };
+                            const dimL = parseFloat(row.querySelector('.gr-dim-l')?.value) || null;
+                            const dimW = parseFloat(row.querySelector('.gr-dim-w')?.value) || null;
+                            selectedItem = {
+                                id: itemId, desc: row.dataset.itemDesc,
+                                unit: row.dataset.itemUnit, qty, laborRate,
+                                dimL, dimW,
+                                dimUom: (dimL && (row.dataset.itemUnit === 'sqft' || row.dataset.itemUnit === 'inches')) ? YARD_DIM_UOM : null,
+                            };
                             selectedRate = result;
                             document.getElementById('grLaborHrs').textContent  = result.labor_hours.toFixed(3) + ' hrs';
                             document.getElementById('grLaborAmt').textContent  = result.labor_amount.toFixed(2);
@@ -775,6 +846,9 @@
                     <input type="hidden" name="line_items[${i}][material_rate]" value="${selectedRate.material_cost}">
                     <input type="hidden" name="line_items[${i}][material_amount]" value="${selectedRate.material_cost}">
                     <input type="hidden" name="line_items[${i}][ancillary_amount]" value="0">
+                    <input type="hidden" name="line_items[${i}][dim_length]"     value="${selectedItem.dimL ?? ''}">
+                    <input type="hidden" name="line_items[${i}][dim_width]"      value="${selectedItem.dimW ?? ''}">
+                    <input type="hidden" name="line_items[${i}][dim_uom]"        value="${selectedItem.dimUom ?? ''}">
                 </td>
                 <td><select name="line_items[${i}][charge_code_id]" class="form-select form-select-sm charge-code-sel"></select></td>
                 <td><input type="text" name="line_items[${i}][component]" class="form-control form-control-sm comp-desc" value="${selectedItem.desc}"></td>

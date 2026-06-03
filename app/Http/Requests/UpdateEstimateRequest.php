@@ -34,6 +34,10 @@ class UpdateEstimateRequest extends FormRequest
             'line_items.*.qty'             => ['required', 'numeric', 'min:0.01'],
             'line_items.*.unit_price'      => ['required', 'numeric', 'min:0'],
             'line_items.*.tax_percentage'  => ['nullable', 'numeric', 'min:0', 'max:100'],
+
+            'line_items.*.dim_length'      => ['nullable', 'numeric', 'min:0'],
+            'line_items.*.dim_width'       => ['nullable', 'numeric', 'min:0'],
+            'line_items.*.dim_uom'         => ['nullable', 'in:ft_in,cm,m'],
         ];
     }
 }

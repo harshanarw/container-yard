@@ -57,6 +57,11 @@ class StoreEstimateRequest extends FormRequest
             'line_items.*.material_rate'          => ['nullable', 'numeric', 'min:0'],
             'line_items.*.material_amount'        => ['nullable', 'numeric', 'min:0'],
             'line_items.*.ancillary_amount'       => ['nullable', 'numeric', 'min:0'],
+
+            // Dimension fields (stored for audit; qty already converted to tariff UOM)
+            'line_items.*.dim_length'             => ['nullable', 'numeric', 'min:0'],
+            'line_items.*.dim_width'              => ['nullable', 'numeric', 'min:0'],
+            'line_items.*.dim_uom'                => ['nullable', 'in:ft_in,cm,m'],
         ];
     }
 }

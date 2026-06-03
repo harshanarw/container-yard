@@ -47,6 +47,7 @@ class CompanySetting extends Model
         'surcharge_overtime',
         'surcharge_night',
         'enable_digital_approvals',
+        'mr_dimension_uom',
     ];
 
     protected $casts = [

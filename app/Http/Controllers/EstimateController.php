@@ -73,9 +73,11 @@ class EstimateController extends Controller
             ->get();
         $taxCodes         = TaxCode::where('is_active', true)->orderBy('sort_order')->get();
 
+        $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'ft_in';
+
         return view('estimates.create', compact(
             'customers', 'containers', 'equipmentTypes', 'selectedInquiry', 'selectedContainer',
-            'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes'
+            'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes', 'dimUom'
         ));
     }
 
@@ -157,6 +159,10 @@ class EstimateController extends Controller
                 'material_rate'       => $item['material_rate'] ?? 0,
                 'material_amount'     => $item['material_amount'] ?? 0,
                 'ancillary_amount'    => $item['ancillary_amount'] ?? 0,
+                // Dimension audit trail
+                'dim_length'          => $item['dim_length'] ?? null,
+                'dim_width'           => $item['dim_width'] ?? null,
+                'dim_uom'             => $item['dim_uom'] ?? null,
             ]);
         }
 
@@ -216,8 +222,10 @@ class EstimateController extends Controller
             ->get();
         $taxCodes         = TaxCode::where('is_active', true)->orderBy('sort_order')->get();
 
+        $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'ft_in';
+
         return view('estimates.edit', compact('estimate', 'customers', 'containers', 'equipmentTypes',
-                                             'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes'));
+                                             'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes', 'dimUom'));
     }
 
     public function update(UpdateEstimateRequest $request, Estimate $estimate)
@@ -292,6 +300,10 @@ class EstimateController extends Controller
                 'material_rate'       => $item['material_rate'] ?? 0,
                 'material_amount'     => $item['material_amount'] ?? 0,
                 'ancillary_amount'    => $item['ancillary_amount'] ?? 0,
+                // Dimension audit trail
+                'dim_length'          => $item['dim_length'] ?? null,
+                'dim_width'           => $item['dim_width'] ?? null,
+                'dim_uom'             => $item['dim_uom'] ?? null,
             ]);
         }
 

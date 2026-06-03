@@ -22,6 +22,7 @@ class EstimateLineItem extends Model
         'cedex_code', 'repair_category_id',
         'charge_code_id', 'tax_code_id',
         'tax1_rate', 'tax2_rate', 'tax1_amount', 'tax2_amount', 'gross_amount',
+        'dim_length', 'dim_width', 'dim_uom',
     ];
 
     protected $casts = [
@@ -41,8 +42,10 @@ class EstimateLineItem extends Model
         'tax1_amount'      => 'decimal:2',
         'tax2_amount'      => 'decimal:2',
         'gross_amount'     => 'decimal:2',
-        'is_override'      => 'boolean',
-        'override_at'     => 'datetime',
+        'is_override'  => 'boolean',
+        'override_at'  => 'datetime',
+        'dim_length'   => 'decimal:3',
+        'dim_width'    => 'decimal:3',
     ];
 
     public function estimate()

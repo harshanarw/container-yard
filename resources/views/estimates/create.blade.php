@@ -424,6 +424,28 @@
 @push('scripts')
 <script>
 (function () {
+    // ── Yard dimension UOM (from system settings) ──────────────────────────
+    const YARD_DIM_UOM = '{{ $dimUom ?? "ft_in" }}';
+    const DIM_UOM_LABEL = { ft_in: 'ft', cm: 'cm', m: 'm' }[YARD_DIM_UOM] || 'ft';
+
+    // Convert entered dimensions (in YARD_DIM_UOM) to the tariff's unit_type
+    function dimsToQty(unitType, dimL, dimW) {
+        dimL = parseFloat(dimL) || 0;
+        dimW = parseFloat(dimW) || 0;
+        if (unitType === 'sqft') {
+            const area = dimL * dimW;
+            if (YARD_DIM_UOM === 'cm')  return area / 929.0304;
+            if (YARD_DIM_UOM === 'm')   return area / 0.09290304;
+            return area; // ft_in: ft × ft = sqft
+        }
+        if (unitType === 'inches') {
+            if (YARD_DIM_UOM === 'cm')  return dimL / 2.54;
+            if (YARD_DIM_UOM === 'm')   return dimL / 0.0254;
+            return dimL * 12; // ft_in: ft → inches
+        }
+        return null; // nos / lift: no conversion
+    }
+
     // ── Equipment Type badges ──────────────────────────────────────────────
     const eqtSel    = document.getElementById('eqtSelect');
     const eqtSize   = document.getElementById('eqtSize');
@@ -570,6 +592,9 @@
                 <input type="hidden" name="line_items[${i}][material_rate]"      value="${data.material_rate      ?? 0}">
                 <input type="hidden" name="line_items[${i}][material_amount]"    value="${data.material_amount    ?? 0}">
                 <input type="hidden" name="line_items[${i}][ancillary_amount]"   value="${data.ancillary_amount   ?? 0}">
+                <input type="hidden" name="line_items[${i}][dim_length]"         value="${data.dim_length         ?? ''}">
+                <input type="hidden" name="line_items[${i}][dim_width]"          value="${data.dim_width          ?? ''}">
+                <input type="hidden" name="line_items[${i}][dim_uom]"            value="${data.dim_uom            ?? ''}">
                 ${fromDamage && data.cedex_code ? `<small class="text-muted font-monospace" style="font-size:.68rem;">${esc(data.cedex_code)}</small>` : ''}
             </td>
             <td>
@@ -824,6 +849,28 @@
                 .catch(() => { resultBody.innerHTML = '<tr><td colspan="8" class="text-danger text-center py-3">Failed to load items.</td></tr>'; });
         }
 
+        function dimQtyCell(unitType) {
+            if (unitType === 'sqft') {
+                return `<div class="d-flex align-items-center gap-1 flex-wrap" onclick="event.stopPropagation()">
+                    <input type="number" class="form-control form-control-sm gr-dim-l" placeholder="L" min="0.01" step="0.01" style="width:58px" title="Length (${DIM_UOM_LABEL})">
+                    <span class="text-muted small">×</span>
+                    <input type="number" class="form-control form-control-sm gr-dim-w" placeholder="W" min="0.01" step="0.01" style="width:58px" title="Width (${DIM_UOM_LABEL})">
+                    <span class="text-muted" style="font-size:.72rem;">${DIM_UOM_LABEL}</span>
+                    <input type="hidden" class="gr-qty" value="1">
+                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;sqft</div>
+                </div>`;
+            }
+            if (unitType === 'inches') {
+                return `<div class="d-flex align-items-center gap-1" onclick="event.stopPropagation()">
+                    <input type="number" class="form-control form-control-sm gr-dim-l" placeholder="Length" min="0.01" step="0.01" style="width:72px" title="Length (${DIM_UOM_LABEL})">
+                    <span class="text-muted" style="font-size:.72rem;">${DIM_UOM_LABEL}</span>
+                    <input type="hidden" class="gr-qty" value="1">
+                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;in</div>
+                </div>`;
+            }
+            return `<input type="number" class="form-control form-control-sm gr-qty" value="1" min="0.01" step="0.01" style="width:70px" onclick="event.stopPropagation()">`;
+        }
+
         function renderItems(items) {
             if (!items.length) {
                 resultBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No items found.</td></tr>';
@@ -837,13 +884,33 @@
                     <td class="small">${item.description}</td>
                     <td class="small text-muted">${item.unit_type.toUpperCase()}</td>
                     <td class="text-center small">${item.slab_count}</td>
-                    <td><input type="number" class="form-control form-control-sm gr-qty" value="1" min="0.01" step="0.01" style="width:70px" onclick="event.stopPropagation()"></td>
+                    <td>${dimQtyCell(item.unit_type)}</td>
                     <td><input type="number" class="form-control form-control-sm gr-labor-rate" value="0" min="0" step="0.01" style="width:65px" placeholder="Rate" onclick="event.stopPropagation()"></td>
                     <td><button type="button" class="btn btn-xs btn-outline-success gr-calc-btn" onclick="event.stopPropagation()">
                         <i class="bi bi-calculator"></i> Calc
                     </button></td>
                 </tr>`;
             }).join('');
+
+            // Auto-convert dimensions to qty as user types
+            resultBody.addEventListener('input', function (e) {
+                const inp = e.target;
+                if (!inp.classList.contains('gr-dim-l') && !inp.classList.contains('gr-dim-w')) return;
+                const row  = inp.closest('tr');
+                const unit = row?.dataset.itemUnit;
+                const dimL = parseFloat(row.querySelector('.gr-dim-l')?.value) || 0;
+                const dimW = parseFloat(row.querySelector('.gr-dim-w')?.value) || 0;
+                const computed = dimsToQty(unit, dimL, dimW);
+                if (computed !== null && computed > 0) {
+                    const qtyHidden = row.querySelector('.gr-qty');
+                    if (qtyHidden) qtyHidden.value = computed.toFixed(4);
+                    const display = row.querySelector('[data-dim-display]');
+                    if (display) {
+                        const suffix = unit === 'sqft' ? ' sqft' : ' in';
+                        display.textContent = computed.toFixed(3) + suffix;
+                    }
+                }
+            });
 
             resultBody.querySelectorAll('.gr-calc-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
@@ -859,7 +926,14 @@
                     fetch('{{ route("masters.mr-tariff.rate-lookup") }}?' + params)
                         .then(r => r.json())
                         .then(result => {
-                            selectedItem = { id: itemId, desc: row.dataset.itemDesc, unit: row.dataset.itemUnit, qty, laborRate };
+                            const dimL = parseFloat(row.querySelector('.gr-dim-l')?.value) || null;
+                            const dimW = parseFloat(row.querySelector('.gr-dim-w')?.value) || null;
+                            selectedItem = {
+                                id: itemId, desc: row.dataset.itemDesc,
+                                unit: row.dataset.itemUnit, qty, laborRate,
+                                dimL, dimW,
+                                dimUom: (dimL && (row.dataset.itemUnit === 'sqft' || row.dataset.itemUnit === 'inches')) ? YARD_DIM_UOM : null,
+                            };
                             selectedRate = result;
                             document.getElementById('grLaborHrs').textContent  = result.labor_hours.toFixed(3) + ' hrs';
                             document.getElementById('grLaborAmt').textContent  = result.labor_amount.toFixed(2);
@@ -885,6 +959,9 @@
                 labor_rate:      selectedItem.laborRate,
                 labor_amount:    selectedRate.labor_amount,
                 material_amount: selectedRate.material_cost,
+                dim_length:      selectedItem.dimL ?? '',
+                dim_width:       selectedItem.dimW ?? '',
+                dim_uom:         selectedItem.dimUom ?? '',
             }));
             initLineSelects(lineItems.lastElementChild);
             recalculate();

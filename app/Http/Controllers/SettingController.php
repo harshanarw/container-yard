@@ -43,6 +43,9 @@ class SettingController extends Controller
             'default_tax_rate'  => ['required', 'numeric', 'min:0', 'max:100'],
             'surcharge_overtime' => ['required', 'numeric', 'min:0', 'max:500'],
             'surcharge_night'   => ['required', 'numeric', 'min:0', 'max:500'],
+
+            // M&R dimension measurement
+            'mr_dimension_uom'  => ['required', 'in:ft_in,cm,m'],
         ]);
 
         $settings = CompanySetting::current();

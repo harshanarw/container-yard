@@ -104,6 +104,24 @@
                     @error('timezone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">
+                        M&amp;R Dimension Input Unit
+                        <i class="bi bi-info-circle text-muted ms-1"
+                           title="Unit staff use when measuring damage dimensions (L × W) on M&amp;R estimates. The system converts to the tariff's unit (sqft or inches) automatically."></i>
+                    </label>
+                    @php $curDimUom = old('mr_dimension_uom', $settings->mr_dimension_uom ?? 'ft_in'); @endphp
+                    <select name="mr_dimension_uom" class="form-select @error('mr_dimension_uom') is-invalid @enderror" required>
+                        <option value="ft_in" {{ $curDimUom === 'ft_in' ? 'selected' : '' }}>Feet &amp; Inches (ft)</option>
+                        <option value="cm"    {{ $curDimUom === 'cm'    ? 'selected' : '' }}>Centimetres (cm)</option>
+                        <option value="m"     {{ $curDimUom === 'm'     ? 'selected' : '' }}>Metres (m)</option>
+                    </select>
+                    <div class="form-text">
+                        Tariff items denominated in <code>sqft</code> or <code>inches</code> — dimensions are auto-converted on save.
+                    </div>
+                    @error('mr_dimension_uom')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
             </div>
         </div>
     </div>

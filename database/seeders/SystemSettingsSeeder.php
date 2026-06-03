@@ -31,6 +31,9 @@ class SystemSettingsSeeder extends Seeder
             'surcharge_overtime' => 50.00,  // 50% markup on after-hours labour
             'surcharge_night'    => 75.00,  // 75% markup on night shift labour
 
+            // ── M&R Dimension UOM ────────────────────────────────────────────
+            'mr_dimension_uom'   => 'ft_in', // feet & inches (imperial) — matches tariff sqft/inches units
+
         ]);
 
         CompanySetting::flushCache();
