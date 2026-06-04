@@ -241,31 +241,34 @@
                                     </td>
                                     <td>
                                         @php
-                                            $storedUom = $dmg->dim_uom ?? 'cm';
-                                            $storedL   = (float)($dmg->dim_length ?? 0);
-                                            $storedW   = (float)($dmg->dim_width  ?? 0);
+                                            $storedUom  = $dmg->dim_uom ?? 'cm';
+                                            $storedL    = (float)($dmg->dim_length ?? 0);
+                                            $storedW    = (float)($dmg->dim_width  ?? 0);
+                                            // Only back-populate ft/in values when they were saved as ft_in;
+                                            // old records with dim_uom=null/'cm' show blank inputs in the new format.
+                                            $popInches  = $storedUom === 'ft_in';
                                         @endphp
-                                        @if($storedUom === 'ft_in')
+                                        @if($dimUom === 'ft_in')
                                         <div class="dim-cell d-flex flex-column gap-1" style="min-width:145px;">
                                             <div class="d-flex align-items-center gap-1">
                                                 <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-l" placeholder="0" min="0" step="1" style="width:42px" title="Length feet"
-                                                       value="{{ $storedL > 0 ? (int)floor($storedL / 12) : '' }}">
+                                                       value="{{ $popInches && $storedL > 0 ? (int)floor($storedL / 12) : '' }}">
                                                 <span class="dim-unit-lbl">ft</span>
                                                 <input type="number" class="form-control form-control-sm dim-no-spin dim-in-l" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px" title="Length inches"
-                                                       value="{{ $storedL > 0 ? round(fmod($storedL, 12), 2) : '' }}">
+                                                       value="{{ $popInches && $storedL > 0 ? round(fmod($storedL, 12), 2) : '' }}">
                                                 <span class="dim-unit-lbl">in</span>
                                                 <span class="dim-axis-lbl">L</span>
-                                                <input type="hidden" name="damages[{{ $di }}][dim_length]" class="dim-hidden-l" value="{{ $storedL ?: '' }}">
+                                                <input type="hidden" name="damages[{{ $di }}][dim_length]" class="dim-hidden-l" value="{{ $popInches ? ($storedL ?: '') : '' }}">
                                             </div>
                                             <div class="d-flex align-items-center gap-1">
                                                 <input type="number" class="form-control form-control-sm dim-no-spin dim-ft-w" placeholder="0" min="0" step="1" style="width:42px" title="Width feet"
-                                                       value="{{ $storedW > 0 ? (int)floor($storedW / 12) : '' }}">
+                                                       value="{{ $popInches && $storedW > 0 ? (int)floor($storedW / 12) : '' }}">
                                                 <span class="dim-unit-lbl">ft</span>
                                                 <input type="number" class="form-control form-control-sm dim-no-spin dim-in-w" placeholder="0" min="0" max="11.75" step="0.25" style="width:42px" title="Width inches"
-                                                       value="{{ $storedW > 0 ? round(fmod($storedW, 12), 2) : '' }}">
+                                                       value="{{ $popInches && $storedW > 0 ? round(fmod($storedW, 12), 2) : '' }}">
                                                 <span class="dim-unit-lbl">in</span>
                                                 <span class="dim-axis-lbl">W</span>
-                                                <input type="hidden" name="damages[{{ $di }}][dim_width]" class="dim-hidden-w" value="{{ $storedW ?: '' }}">
+                                                <input type="hidden" name="damages[{{ $di }}][dim_width]" class="dim-hidden-w" value="{{ $popInches ? ($storedW ?: '') : '' }}">
                                             </div>
                                         </div>
                                         @else
