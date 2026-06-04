@@ -973,12 +973,15 @@ btnOut.addEventListener('click', () => {
     }
 
     function isEmpty(v) {
-        return v === null || v === undefined || String(v).trim() === '' || Number(v) === 0;
+        return v === null || v === undefined || String(v).trim() === '';
     }
 
     function valEq(a, b) {
         const sa = String(a).trim(), sb = String(b).trim();
         if (sa.toUpperCase() === sb.toUpperCase()) return true;
+        // Date strings (YYYY-MM-DD) must not be compared numerically —
+        // parseFloat('2025-12-31') === 2025 which would wrongly equate different dates.
+        if (/^\d{4}-\d{2}-\d{2}/.test(sa) || /^\d{4}-\d{2}-\d{2}/.test(sb)) return false;
         const fa = parseFloat(sa), fb = parseFloat(sb);
         return !isNaN(fa) && !isNaN(fb) && Math.abs(fa - fb) < 0.05;
     }
@@ -1025,8 +1028,11 @@ btnOut.addEventListener('click', () => {
         const tare  = parseFloat(g('add_tare_weight_kg')?.value)  || 0;
         const gross = parseFloat(g('add_gross_weight_kg')?.value) || 0;
         const payEl = g('add_max_payload_kg');
-        if (payEl && tare > 0 && gross > tare) {
+        if (!payEl) return;
+        if (tare > 0 && gross > tare) {
             payEl.value = Math.round(gross - tare);
+        } else if (tare > 0 || gross > 0) {
+            payEl.value = ''; // clear stale payload if weights are invalid/incomplete
         }
     }
     g('add_tare_weight_kg')?.addEventListener('input',  calcPayload);
@@ -1483,10 +1489,9 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     );
                 } else {
                     showOcrResult(resultEl, 'success', resultHtml);
+                    // Fill additional details from OCR tare/gross data only for valid gate-in
+                    window.additionalDetails?.fillFromOcr(data);
                 }
-
-                // Fill additional details from OCR tare/gross data
-                window.additionalDetails?.fillFromOcr(data);
 
                 // Pre-fill equipment type from master or OCR ISO type
                 const eqtSel = document.getElementById('gateEqtSelect');
