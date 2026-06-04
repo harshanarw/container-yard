@@ -132,6 +132,101 @@
                     </div>
 
                     {{-- ═══════════════════════════════════════════════════════
+                         SECTION 1b — Additional Container Details (collapsible)
+                    ════════════════════════════════════════════════════════ --}}
+                    @php
+                        $additionalHasOld = old('tare_weight_kg') || old('gross_weight_kg') || old('max_payload_kg')
+                            || old('manufacture_year') || old('manufacturer') || old('owner_code')
+                            || old('owner_name') || old('csc_plate_no') || old('csc_expiry_date');
+                    @endphp
+                    <div class="mb-3">
+                    <div class="gate-section-hdr gate-section-collapse rounded-top mb-0"
+                         style="background:#f5f3ff;border-left:3px solid #8b5cf6;"
+                         data-bs-toggle="collapse" data-bs-target="#inAdditionalSection"
+                         aria-expanded="{{ $additionalHasOld ? 'true' : 'false' }}" role="button">
+                        <span>
+                            <i class="bi bi-database me-2" style="color:#8b5cf6;"></i>
+                            <span class="fw-semibold" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;color:#6d28d9;">Additional Container Details</span>
+                            <span class="badge bg-secondary-subtle text-secondary fw-normal ms-2" style="font-size:.65rem;text-transform:none;">Optional</span>
+                            <span id="additionalPrefillBadge" class="badge ms-1 d-none" style="font-size:.65rem;text-transform:none;background:#ddd4fe;color:#5b21b6;"></span>
+                        </span>
+                        <i class="bi bi-chevron-down collapse-chevron" style="color:#8b5cf6;"></i>
+                    </div>
+                    <div class="collapse {{ $additionalHasOld ? 'show' : '' }}" id="inAdditionalSection">
+                        <div class="rounded-bottom p-3" style="border:1px solid #8b5cf6;border-top:none;">
+                            <div class="row g-3">
+                                {{-- Weights --}}
+                                <div class="col-4">
+                                    <label class="form-label fw-semibold" style="font-size:.85rem;">Tare Weight <span class="text-muted fw-normal">(kg)</span></label>
+                                    <input type="number" name="tare_weight_kg" id="add_tare_weight_kg"
+                                           class="form-control" placeholder="e.g. 2200"
+                                           min="0" max="99999" step="1" value="{{ old('tare_weight_kg') }}">
+                                    <div id="hint_add_tare_weight_kg" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label fw-semibold" style="font-size:.85rem;">Max Gross Weight <span class="text-muted fw-normal">(kg)</span></label>
+                                    <input type="number" name="gross_weight_kg" id="add_gross_weight_kg"
+                                           class="form-control" placeholder="e.g. 30480"
+                                           min="0" max="99999" step="1" value="{{ old('gross_weight_kg') }}">
+                                    <div id="hint_add_gross_weight_kg" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label fw-semibold" style="font-size:.85rem;">Max Payload <span class="text-muted fw-normal">(kg, auto)</span></label>
+                                    <input type="number" name="max_payload_kg" id="add_max_payload_kg"
+                                           class="form-control" placeholder="Auto-calculated"
+                                           min="0" max="99999" step="1" value="{{ old('max_payload_kg') }}">
+                                    <div id="hint_add_max_payload_kg" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
+                                </div>
+                                {{-- Manufacture --}}
+                                <div class="col-3">
+                                    <label class="form-label fw-semibold" style="font-size:.85rem;">Year of Manufacture</label>
+                                    <input type="number" name="manufacture_year" id="add_manufacture_year"
+                                           class="form-control" placeholder="{{ date('Y') }}"
+                                           min="1970" max="{{ date('Y') + 1 }}" value="{{ old('manufacture_year') }}">
+                                    <div id="hint_add_manufacture_year" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
+                                </div>
+                                <div class="col-9">
+                                    <label class="form-label fw-semibold" style="font-size:.85rem;">Manufacturer</label>
+                                    <input type="text" name="manufacturer" id="add_manufacturer"
+                                           class="form-control" placeholder="e.g. Triton, Florens, Maersk Container Industry"
+                                           maxlength="100" value="{{ old('manufacturer') }}">
+                                    <div id="hint_add_manufacturer" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
+                                </div>
+                                {{-- Owner --}}
+                                <div class="col-3">
+                                    <label class="form-label fw-semibold" style="font-size:.85rem;">Owner Code</label>
+                                    <input type="text" name="owner_code" id="add_owner_code"
+                                           class="form-control font-monospace text-uppercase"
+                                           placeholder="e.g. MSC" maxlength="20" value="{{ old('owner_code') }}">
+                                    <div id="hint_add_owner_code" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
+                                </div>
+                                <div class="col-9">
+                                    <label class="form-label fw-semibold" style="font-size:.85rem;">Owner / Operator Name</label>
+                                    <input type="text" name="owner_name" id="add_owner_name"
+                                           class="form-control" placeholder="e.g. Mediterranean Shipping Company"
+                                           maxlength="100" value="{{ old('owner_name') }}">
+                                    <div id="hint_add_owner_name" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
+                                </div>
+                                {{-- CSC --}}
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold" style="font-size:.85rem;">CSC Plate No.</label>
+                                    <input type="text" name="csc_plate_no" id="add_csc_plate_no"
+                                           class="form-control font-monospace" placeholder="CSC plate serial"
+                                           maxlength="50" value="{{ old('csc_plate_no') }}">
+                                    <div id="hint_add_csc_plate_no" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold" style="font-size:.85rem;">CSC Expiry Date</label>
+                                    <input type="date" name="csc_expiry_date" id="add_csc_expiry_date"
+                                           class="form-control" value="{{ old('csc_expiry_date') }}">
+                                    <div id="hint_add_csc_expiry_date" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>{{-- end Additional Container Details wrapper --}}
+
+                    {{-- ═══════════════════════════════════════════════════════
                          SECTION 2 — Import Shipment Information (collapsible)
                     ════════════════════════════════════════════════════════ --}}
                     <div class="mb-3">
@@ -824,6 +919,8 @@ btnOut.addEventListener('click', () => {
                         }
                     }
                 }
+                // Fill additional container details from master record
+                window.additionalDetails?.fillFromMaster(data);
             } else {
                 infoBox.className = 'mt-1 small text-muted';
                 infoBox.innerHTML = '<i class="bi bi-info-circle me-1"></i>New container — a master record will be created automatically.';
@@ -840,10 +937,171 @@ btnOut.addEventListener('click', () => {
             // Reset equipment type so stale pre-fill from previous container doesn't persist
             eqtSel.value = '';
             eqtSel.dispatchEvent(new Event('change'));
+            // Clear additional details filled by previous master lookup
+            window.additionalDetails?.reset();
         }
     });
     inp.addEventListener('blur', function () { lookupMaster(this.value); });
     inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') lookupMaster(this.value); });
+})();
+
+// ── Additional Container Details — fill / conflict logic ────────────────────
+(function () {
+    let masterRecord = null; // stores last master lookup response
+
+    const FIELD_IDS = [
+        'add_tare_weight_kg', 'add_gross_weight_kg', 'add_max_payload_kg',
+        'add_manufacture_year', 'add_manufacturer',
+        'add_owner_code', 'add_owner_name',
+        'add_csc_plate_no', 'add_csc_expiry_date',
+    ];
+
+    const collapseEl = document.getElementById('inAdditionalSection');
+    const badgeEl    = document.getElementById('additionalPrefillBadge');
+
+    function g(id)    { return document.getElementById(id); }
+    function hint(id) { return document.getElementById('hint_' + id); }
+
+    function expandSection() {
+        bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();
+    }
+
+    function updateBadge(count, source) {
+        if (!count) { badgeEl.classList.add('d-none'); return; }
+        badgeEl.textContent = count + ' field' + (count > 1 ? 's' : '') + ' from ' + source;
+        badgeEl.classList.remove('d-none');
+    }
+
+    function isEmpty(v) {
+        return v === null || v === undefined || String(v).trim() === '' || Number(v) === 0;
+    }
+
+    function valEq(a, b) {
+        const sa = String(a).trim(), sb = String(b).trim();
+        if (sa.toUpperCase() === sb.toUpperCase()) return true;
+        const fa = parseFloat(sa), fb = parseFloat(sb);
+        return !isNaN(fa) && !isNaN(fb) && Math.abs(fa - fb) < 0.05;
+    }
+
+    function clearHint(id) { hint(id).innerHTML = ''; }
+
+    function showMatchHint(id) {
+        hint(id).innerHTML =
+            '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Matches master record</span>';
+    }
+
+    function showConflictHint(id, masterVal) {
+        const el = g(id);
+        hint(id).innerHTML =
+            '<span class="text-warning-emphasis">' +
+            '<i class="bi bi-exclamation-triangle me-1"></i>' +
+            'Master has <strong>' + masterVal + '</strong> — ' +
+            '<button type="button" class="btn btn-link btn-sm p-0 fw-semibold text-warning-emphasis" ' +
+            'style="font-size:.72rem;vertical-align:baseline;">' +
+            'Use master</button></span>';
+        hint(id).querySelector('button').addEventListener('click', function () {
+            el.value = masterVal;
+            el.dispatchEvent(new Event('input'));
+            clearHint(id);
+        });
+    }
+
+    // Core fill: applies a value to one field, choosing the correct state
+    function applyField(id, newVal, masterVal) {
+        const el = g(id);
+        if (!el || isEmpty(newVal)) return false;
+        if (isEmpty(masterVal)) {
+            el.value = newVal; clearHint(id);           // State 1: master empty — silent
+        } else if (valEq(newVal, masterVal)) {
+            el.value = newVal; showMatchHint(id);        // State 2: agrees with master
+        } else {
+            el.value = newVal; showConflictHint(id, masterVal); // State 3: conflict
+        }
+        return true;
+    }
+
+    // ── Auto-calculate max payload ───────────────────────────────────────────
+    function calcPayload() {
+        const tare  = parseFloat(g('add_tare_weight_kg')?.value)  || 0;
+        const gross = parseFloat(g('add_gross_weight_kg')?.value) || 0;
+        const payEl = g('add_max_payload_kg');
+        if (payEl && tare > 0 && gross > tare) {
+            payEl.value = Math.round(gross - tare);
+        }
+    }
+    g('add_tare_weight_kg')?.addEventListener('input',  calcPayload);
+    g('add_gross_weight_kg')?.addEventListener('input', calcPayload);
+
+    // ── Auto-derive owner code from container number ─────────────────────────
+    document.getElementById('containerNoIn')?.addEventListener('input', function () {
+        const ownerEl = g('add_owner_code');
+        if (!ownerEl || ownerEl.value) return; // only fill if empty
+        if (this.value.length >= 3) ownerEl.value = this.value.substring(0, 3).toUpperCase();
+    });
+
+    // ── Public API ───────────────────────────────────────────────────────────
+    window.additionalDetails = {
+
+        fillFromMaster(data) {
+            masterRecord = data;
+            const map = {
+                add_tare_weight_kg:   data.tare_weight_kg,
+                add_gross_weight_kg:  data.gross_weight_kg,
+                add_max_payload_kg:   data.max_payload_kg,
+                add_manufacture_year: data.manufacture_year,
+                add_manufacturer:     data.manufacturer,
+                add_owner_code:       data.owner_code,
+                add_owner_name:       data.owner_name,
+                add_csc_plate_no:     data.csc_plate_no,
+                add_csc_expiry_date:  data.csc_expiry_date,
+            };
+            let filled = 0;
+            for (const [id, masterVal] of Object.entries(map)) {
+                if (isEmpty(masterVal)) continue;
+                const el = g(id);
+                if (!el) continue;
+                if (isEmpty(el.value)) {
+                    // Field is currently empty — fill from master silently
+                    el.value = masterVal; clearHint(id); filled++;
+                } else if (valEq(el.value, masterVal)) {
+                    // Field already has the same value (e.g. OCR matched) — show green
+                    showMatchHint(id);
+                } else {
+                    // Field has a different value (OCR filled it differently) — conflict
+                    showConflictHint(id, masterVal);
+                }
+            }
+            calcPayload();
+            if (filled > 0) { expandSection(); updateBadge(filled, 'master'); }
+        },
+
+        fillFromOcr(ocrData) {
+            const map = {
+                add_tare_weight_kg:  ocrData.tare_kg,
+                add_gross_weight_kg: ocrData.max_gross_kg,
+            };
+            let filled = 0;
+            for (const [id, ocrVal] of Object.entries(map)) {
+                if (isEmpty(ocrVal)) continue;
+                const masterVal = masterRecord
+                    ? (id === 'add_tare_weight_kg' ? masterRecord.tare_weight_kg : masterRecord.gross_weight_kg)
+                    : null;
+                if (applyField(id, ocrVal, masterVal)) filled++;
+            }
+            calcPayload();
+            if (filled > 0) { expandSection(); updateBadge(filled, 'OCR'); }
+        },
+
+        reset() {
+            masterRecord = null;
+            FIELD_IDS.forEach(id => {
+                const el = g(id);
+                if (el) el.value = '';
+                clearHint(id);
+            });
+            badgeEl.classList.add('d-none');
+        },
+    };
 })();
 
 // ── Equipment Type badges ───────────────────────────────────────────────────
@@ -1226,6 +1484,9 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 } else {
                     showOcrResult(resultEl, 'success', resultHtml);
                 }
+
+                // Fill additional details from OCR tare/gross data
+                window.additionalDetails?.fillFromOcr(data);
 
                 // Pre-fill equipment type from master or OCR ISO type
                 const eqtSel = document.getElementById('gateEqtSelect');

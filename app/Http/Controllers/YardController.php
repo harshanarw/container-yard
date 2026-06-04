@@ -135,6 +135,16 @@ class YardController extends Controller
             'gate_in_time'      => ['nullable', 'string', 'max:20'],
             'photos'            => ['nullable', 'array', 'max:5'],
             'photos.*'          => ['image', 'max:20480'],
+            // Additional container details (master profile enrichment)
+            'tare_weight_kg'    => ['nullable', 'numeric', 'min:0', 'max:99999'],
+            'gross_weight_kg'   => ['nullable', 'numeric', 'min:0', 'max:99999'],
+            'max_payload_kg'    => ['nullable', 'numeric', 'min:0', 'max:99999'],
+            'manufacture_year'  => ['nullable', 'integer', 'min:1970', 'max:' . (date('Y') + 1)],
+            'manufacturer'      => ['nullable', 'string', 'max:100'],
+            'owner_code'        => ['nullable', 'string', 'max:20'],
+            'owner_name'        => ['nullable', 'string', 'max:100'],
+            'csc_plate_no'      => ['nullable', 'string', 'max:50'],
+            'csc_expiry_date'   => ['nullable', 'date'],
         ]);
 
         if ($validator->fails()) {
@@ -218,6 +228,15 @@ class YardController extends Controller
         // Only set category on first creation (new container gets consignee default)
         if (!$existing) {
             $containerData['category'] = 'consignee';
+        }
+        // Master profile enrichment — only write fields that were actually submitted
+        // (never overwrite existing master data with a blank value from the form)
+        foreach (['tare_weight_kg', 'gross_weight_kg', 'max_payload_kg',
+                  'manufacture_year', 'manufacturer', 'owner_code', 'owner_name',
+                  'csc_plate_no', 'csc_expiry_date'] as $profileField) {
+            if (isset($validated[$profileField]) && $validated[$profileField] !== null && $validated[$profileField] !== '') {
+                $containerData[$profileField] = $validated[$profileField];
+            }
         }
         $container = Container::updateOrCreate(
             ['container_no' => $validated['container_no']],
