@@ -387,7 +387,10 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header border-0 pb-0">
-                <h6 class="modal-title"><i class="bi bi-calculator me-2 text-success"></i>M&amp;R Tariff Rate Lookup</h6>
+                <h6 class="modal-title">
+                    <i class="bi bi-calculator me-2 text-success"></i>M&amp;R Tariff Rate Lookup
+                    <span id="grCurrencyBadge" class="badge bg-primary-subtle text-primary border ms-2 fw-normal d-none" style="font-size:.72rem;"></span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -458,6 +461,7 @@
                             </button>
                         </div>
                     </div>
+                    <div id="grFxNote" class="d-none mt-2" style="font-size:.72rem;color:#6c757d;"></div>
                 </div>
             </div>
         </div>
@@ -1067,6 +1071,36 @@
         const applyBtn   = document.getElementById('grApplyBtn');
         let   selectedItem = null;
         let   selectedRate = null;
+
+        // Returns the USD→estimate-currency factor (1.0 when estimate is in USD).
+        function grFxFactor() {
+            const cur  = document.getElementById('estimateCurrency')?.value || 'USD';
+            const rate = parseFloat(document.getElementById('estimateExchangeRate')?.value) || 1.0;
+            return cur !== 'USD' ? rate : 1.0;
+        }
+
+        // Update the currency badge and show/hide the FX note.
+        function grUpdateCurrencyUI() {
+            const cur  = document.getElementById('estimateCurrency')?.value || 'USD';
+            const rate = parseFloat(document.getElementById('estimateExchangeRate')?.value) || 1.0;
+            const badge = document.getElementById('grCurrencyBadge');
+            const note  = document.getElementById('grFxNote');
+            if (badge) {
+                badge.textContent = cur;
+                badge.classList.toggle('d-none', false);
+            }
+            if (note) {
+                if (cur !== 'USD' && rate !== 1.0) {
+                    note.innerHTML = `<i class="bi bi-info-circle me-1"></i>Tariff rates are in USD. Amounts above are converted at <strong>1 USD = ${rate.toFixed(4)} ${cur}</strong>.`;
+                    note.classList.remove('d-none');
+                } else {
+                    note.classList.add('d-none');
+                }
+            }
+        }
+
+        // Refresh the badge whenever the modal opens.
+        document.getElementById('getRateModal')?.addEventListener('show.bs.modal', grUpdateCurrencyUI);
         const opColors = {
             straight:'info', insert:'success', section:'warning',
             replace:'danger', weld:'secondary', remove:'dark',
@@ -1220,10 +1254,12 @@
                                 dimUom: hasDim ? YARD_DIM_UOM : null,
                             };
                             selectedRate = result;
+                            const fx = grFxFactor();
                             document.getElementById('grLaborHrs').textContent    = result.labor_hours.toFixed(3) + ' hrs';
-                            document.getElementById('grLaborAmt').textContent    = result.labor_amount.toFixed(2);
-                            document.getElementById('grMaterialAmt').textContent = result.material_cost.toFixed(2);
-                            document.getElementById('grTotal').textContent       = result.total.toFixed(2);
+                            document.getElementById('grLaborAmt').textContent    = (result.labor_amount  * fx).toFixed(2);
+                            document.getElementById('grMaterialAmt').textContent = (result.material_cost * fx).toFixed(2);
+                            document.getElementById('grTotal').textContent       = (result.total         * fx).toFixed(2);
+                            grUpdateCurrencyUI();
                             rateResult.classList.remove('d-none');
                         })
                         .catch(() => alert('Rate lookup failed.'));
@@ -1236,14 +1272,15 @@
 
         applyBtn.addEventListener('click', function () {
             if (!selectedItem || !selectedRate) return;
+            const fx = grFxFactor();
             const tr = insertRow({
                 component:       selectedItem.desc,
-                unit_price:      selectedRate.total,
+                unit_price:      selectedRate.total         * fx,
                 qty:             selectedItem.qty,
                 std_labor_hours: selectedRate.labor_hours,
-                labor_rate:      selectedItem.laborRate,
-                labor_amount:    selectedRate.labor_amount,
-                material_amount: selectedRate.material_cost,
+                labor_rate:      selectedItem.laborRate      * fx,
+                labor_amount:    selectedRate.labor_amount   * fx,
+                material_amount: selectedRate.material_cost  * fx,
                 dim_length:      selectedItem.dimL ?? '',
                 dim_width:       selectedItem.dimW ?? '',
                 dim_uom:         selectedItem.dimUom ?? '',

@@ -461,7 +461,10 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header border-0 pb-0">
-                <h6 class="modal-title"><i class="bi bi-calculator me-2 text-success"></i>M&amp;R Tariff Rate Lookup</h6>
+                <h6 class="modal-title">
+                    <i class="bi bi-calculator me-2 text-success"></i>M&amp;R Tariff Rate Lookup
+                    <span id="grCurrencyBadge" class="badge bg-primary-subtle text-primary border ms-2 fw-normal d-none" style="font-size:.72rem;"></span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -529,6 +532,7 @@
                             </button>
                         </div>
                     </div>
+                    <div id="grFxNote" class="d-none mt-2" style="font-size:.72rem;color:#6c757d;"></div>
                 </div>
             </div>
         </div>
@@ -924,6 +928,33 @@
         const applyBtn   = document.getElementById('grApplyBtn');
         let   selectedItem = null;
         let   selectedRate = null;
+
+        function grFxFactor() {
+            const cur  = document.getElementById('estimateCurrency')?.value || 'USD';
+            const rate = parseFloat(document.getElementById('estimateExchangeRate')?.value) || 1.0;
+            return cur !== 'USD' ? rate : 1.0;
+        }
+
+        function grUpdateCurrencyUI() {
+            const cur   = document.getElementById('estimateCurrency')?.value || 'USD';
+            const rate  = parseFloat(document.getElementById('estimateExchangeRate')?.value) || 1.0;
+            const badge = document.getElementById('grCurrencyBadge');
+            const note  = document.getElementById('grFxNote');
+            if (badge) {
+                badge.textContent = cur;
+                badge.classList.remove('d-none');
+            }
+            if (note) {
+                if (cur !== 'USD' && rate !== 1.0) {
+                    note.innerHTML = `<i class="bi bi-info-circle me-1"></i>Tariff rates are in USD. Amounts above are converted at <strong>1 USD = ${rate.toFixed(4)} ${cur}</strong>.`;
+                    note.classList.remove('d-none');
+                } else {
+                    note.classList.add('d-none');
+                }
+            }
+        }
+
+        document.getElementById('getRateModal')?.addEventListener('show.bs.modal', grUpdateCurrencyUI);
         const opColors = {
             straight:'info', insert:'success', section:'warning',
             replace:'danger', weld:'secondary', remove:'dark',
@@ -1108,10 +1139,12 @@
                                 dimUom: hasDim ? YARD_DIM_UOM : null,
                             };
                             selectedRate = result;
+                            const fx = grFxFactor();
                             document.getElementById('grLaborHrs').textContent    = result.labor_hours.toFixed(3) + ' hrs';
-                            document.getElementById('grLaborAmt').textContent    = result.labor_amount.toFixed(2);
-                            document.getElementById('grMaterialAmt').textContent = result.material_cost.toFixed(2);
-                            document.getElementById('grTotal').textContent       = result.total.toFixed(2);
+                            document.getElementById('grLaborAmt').textContent    = (result.labor_amount  * fx).toFixed(2);
+                            document.getElementById('grMaterialAmt').textContent = (result.material_cost * fx).toFixed(2);
+                            document.getElementById('grTotal').textContent       = (result.total         * fx).toFixed(2);
+                            grUpdateCurrencyUI();
                             rateResult.classList.remove('d-none');
                         })
                         .catch(() => alert('Rate lookup failed.'));
@@ -1124,6 +1157,7 @@
 
         applyBtn.addEventListener('click', function () {
             if (!selectedItem || !selectedRate) return;
+            const fx    = grFxFactor();
             const tbody = document.getElementById('lineItems');
             const i = lineIdx++;
             tbody.insertAdjacentHTML('beforeend', `<tr class="estimate-line">
@@ -1139,11 +1173,11 @@
                     <input type="hidden" name="line_items[${i}][cedex_code]" value="">
                     <input type="hidden" name="line_items[${i}][repair_category_id]" value="">
                     <input type="hidden" name="line_items[${i}][std_labor_hours]" value="${selectedRate.labor_hours}">
-                    <input type="hidden" name="line_items[${i}][labor_rate]" value="${selectedItem.laborRate}">
-                    <input type="hidden" name="line_items[${i}][labor_amount]" value="${selectedRate.labor_amount}">
+                    <input type="hidden" name="line_items[${i}][labor_rate]" value="${(selectedItem.laborRate * fx).toFixed(4)}">
+                    <input type="hidden" name="line_items[${i}][labor_amount]" value="${(selectedRate.labor_amount * fx).toFixed(4)}">
                     <input type="hidden" name="line_items[${i}][material_qty]" value="1">
-                    <input type="hidden" name="line_items[${i}][material_rate]" value="${selectedRate.material_cost}">
-                    <input type="hidden" name="line_items[${i}][material_amount]" value="${selectedRate.material_cost}">
+                    <input type="hidden" name="line_items[${i}][material_rate]" value="${(selectedRate.material_cost * fx).toFixed(4)}">
+                    <input type="hidden" name="line_items[${i}][material_amount]" value="${(selectedRate.material_cost * fx).toFixed(4)}">
                     <input type="hidden" name="line_items[${i}][ancillary_amount]" value="0">
                     <input type="hidden" name="line_items[${i}][dim_length]"     value="${selectedItem.dimL ?? ''}">
                     <input type="hidden" name="line_items[${i}][dim_width]"      value="${selectedItem.dimW ?? ''}">
@@ -1160,7 +1194,7 @@
                     <option value="paint">Paint</option>
                 </select></td>
                 <td><input type="number" name="line_items[${i}][qty]" class="form-control form-control-sm qty" value="${selectedItem.qty}" min="0.01" step="0.01"></td>
-                <td><input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="${selectedRate.total}" min="0" step="0.01"></td>
+                <td><input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="${(selectedRate.total * fx).toFixed(4)}" min="0" step="0.01"></td>
                 <td><select name="line_items[${i}][tax_code_id]" class="form-select form-select-sm tax-code-sel"></select></td>
                 <td class="text-end pe-2 small">
                     <div class="fw-semibold line-net">${currency} 0.00</div>
@@ -1188,18 +1222,18 @@
                                 <span class="text-muted mb-1" style="font-size:.85rem;">×</span>
                                 <div>
                                     <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Rate / hr</div>
-                                    <input type="number" class="form-control form-control-sm bd-labor-rate" value="${selectedItem.laborRate}" min="0" step="0.01" style="width:75px">
+                                    <input type="number" class="form-control form-control-sm bd-labor-rate" value="${(selectedItem.laborRate * fx).toFixed(4)}" min="0" step="0.01" style="width:75px">
                                 </div>
                                 <span class="text-muted mb-1" style="font-size:.85rem;">=</span>
                                 <div>
                                     <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Labor Amt</div>
-                                    <input type="number" class="form-control form-control-sm bd-labor-amt" value="${selectedRate.labor_amount.toFixed(2)}" min="0" step="0.01" style="width:85px">
+                                    <input type="number" class="form-control form-control-sm bd-labor-amt" value="${(selectedRate.labor_amount * fx).toFixed(2)}" min="0" step="0.01" style="width:85px">
                                 </div>
                             </div>
                             <div class="vr mx-1"></div>
                             <div>
                                 <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Material Amt</div>
-                                <input type="number" class="form-control form-control-sm bd-material-amt" value="${selectedRate.material_cost.toFixed(2)}" min="0" step="0.01" style="width:90px">
+                                <input type="number" class="form-control form-control-sm bd-material-amt" value="${(selectedRate.material_cost * fx).toFixed(2)}" min="0" step="0.01" style="width:90px">
                             </div>
                             <div>
                                 <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Ancillary Amt</div>
@@ -1207,7 +1241,7 @@
                             </div>
                             <div class="ms-auto text-end">
                                 <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Total ÷ Qty → Unit Price</div>
-                                <strong class="bd-total text-primary fs-6">${selectedRate.total.toFixed(2)}</strong>
+                                <strong class="bd-total text-primary fs-6">${(selectedRate.total * fx).toFixed(2)}</strong>
                             </div>
                         </div>
                     </div>
