@@ -95,15 +95,16 @@ class ContainerOcrService
         // tesseract <image> stdout -l eng --psm 11 --oem 3
         // psm 11 = sparse text (good for container plates mixed with other content)
         // whitelist A-Z 0-9 space hyphen
-        $escaped = escapeshellarg($imagePath);
-        $config  = escapeshellarg('tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .-/\nKGT');
+        $escaped  = escapeshellarg($imagePath);
+        $config   = escapeshellarg('tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .-/\nKGT');
+        $nullDev  = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
 
-        $cmd    = "tesseract {$escaped} stdout -l eng --psm 11 --oem 3 -c {$config} 2>/dev/null";
+        $cmd    = "tesseract {$escaped} stdout -l eng --psm 11 --oem 3 -c {$config} {$nullDev}";
         $output = shell_exec($cmd);
 
         if ($output === null || $output === '') {
             // Fallback: try without whitelist restriction for better coverage
-            $cmd    = "tesseract {$escaped} stdout -l eng --psm 6 --oem 3 2>/dev/null";
+            $cmd    = "tesseract {$escaped} stdout -l eng --psm 6 --oem 3 {$nullDev}";
             $output = shell_exec($cmd) ?? '';
         }
 
