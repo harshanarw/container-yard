@@ -69,11 +69,14 @@
                                 <input type="text" name="container_no" id="containerNoIn"
                                        class="form-control font-monospace text-uppercase"
                                        placeholder="XXXX0000000" required autocomplete="off" maxlength="11">
-                                <button type="button" class="btn btn-outline-secondary" id="scanBtn" title="Scan">
-                                    <i class="bi bi-upc-scan"></i>
+                                <button type="button" class="btn btn-outline-secondary" id="ocrBtnIn" title="Scan container with camera">
+                                    <i class="bi bi-camera" id="ocrIconIn"></i>
                                 </button>
                             </div>
+                            {{-- Hidden file input for Gate-In OCR camera --}}
+                            <input type="file" id="ocrInputIn" accept="image/*" capture="environment" class="d-none">
                             <div id="masterLookupInfo" class="mt-1 small d-none"></div>
+                            <div id="ocrResultIn" class="mt-1 small d-none"></div>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
@@ -405,11 +408,17 @@
                         <div class="input-group">
                             <input type="text" name="container_no" class="form-control font-monospace text-uppercase"
                                    placeholder="XXXX0000000" required id="containerSearch" maxlength="11" autocomplete="off">
+                            <button type="button" class="btn btn-outline-secondary" id="ocrBtnOut" title="Scan container with camera">
+                                <i class="bi bi-camera" id="ocrIconOut"></i>
+                            </button>
                             <button type="button" class="btn btn-outline-primary" id="containerSearchBtn"><i class="bi bi-search"></i></button>
                         </div>
+                        {{-- Hidden file input for Gate-Out OCR camera --}}
+                        <input type="file" id="ocrInputOut" accept="image/*" capture="environment" class="d-none">
                         <div class="form-text text-muted" style="font-size:.72rem;">Enter and search to confirm the container is in yard.</div>
                     </div>
                     <div id="containerInfoBox" class="mb-3 d-none"></div>
+                    <div id="ocrResultOut" class="mt-n2 mb-3 small d-none"></div>
 
                     {{-- ═══════════════════════════════════════════════════════
                          SECTION 2 — Export Information (collapsible)
@@ -1120,6 +1129,165 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     document.getElementById('gateOutForm').addEventListener('submit', function (e) {
         if (!lookupDone) { e.preventDefault(); setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please search and confirm the container is in yard.'); inp.focus(); }
     }, true);
+})();
+
+// ── Container OCR Scan ───────────────────────────────────────────────────────
+(function () {
+    const OCR_URL = '{{ route("yard.ocr-scan") }}';
+    const CSRF    = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function setSpinner(iconEl, btnEl, on) {
+        if (on) {
+            iconEl.className = 'spinner-border spinner-border-sm';
+            btnEl.disabled   = true;
+        } else {
+            iconEl.className = 'bi bi-camera';
+            btnEl.disabled   = false;
+        }
+    }
+
+    function showOcrResult(resultEl, type, html) {
+        resultEl.className = 'mt-1 small alert alert-' + type + ' py-2 px-3';
+        resultEl.innerHTML = html;
+        resultEl.classList.remove('d-none');
+    }
+
+    function hideOcrResult(resultEl) {
+        resultEl.className = 'd-none';
+        resultEl.innerHTML = '';
+    }
+
+    // Pre-select equipment type in a Select2 or plain select
+    function preselectEqt(selectEl, equipmentTypeId) {
+        if (!equipmentTypeId || !selectEl) return;
+        for (const opt of selectEl.options) {
+            if (String(opt.value) === String(equipmentTypeId)) {
+                selectEl.value = equipmentTypeId;
+                selectEl.dispatchEvent(new Event('change'));
+                break;
+            }
+        }
+    }
+
+    async function processImage(file, mode) {
+        const isIn      = mode === 'in';
+        const iconEl    = document.getElementById(isIn ? 'ocrIconIn'    : 'ocrIconOut');
+        const btnEl     = document.getElementById(isIn ? 'ocrBtnIn'     : 'ocrBtnOut');
+        const resultEl  = document.getElementById(isIn ? 'ocrResultIn'  : 'ocrResultOut');
+        const infoEl    = isIn ? document.getElementById('masterLookupInfo') : null;
+        const containerInp = document.getElementById(isIn ? 'containerNoIn' : 'containerSearch');
+
+        setSpinner(iconEl, btnEl, true);
+        hideOcrResult(resultEl);
+
+        const fd = new FormData();
+        fd.append('image', file);
+        fd.append('_token', CSRF);
+
+        try {
+            const res  = await fetch(OCR_URL, { method: 'POST', body: fd });
+            const data = await res.json();
+
+            if (!data.success || !data.container_no) {
+                showOcrResult(resultEl, 'warning',
+                    '<i class="bi bi-exclamation-triangle me-1"></i>' +
+                    (data.message || 'Could not read container number. Please enter manually.') +
+                    (data.raw_text ? ' <small class="text-muted d-block mt-1">Raw OCR: ' + data.raw_text.substring(0, 80) + '</small>' : '')
+                );
+                return;
+            }
+
+            // Fill container number field
+            containerInp.value = data.container_no;
+            containerInp.dispatchEvent(new Event('input'));
+
+            let resultHtml = '<i class="bi bi-check-circle-fill text-success me-1"></i>' +
+                '<strong class="font-monospace">' + data.container_no + '</strong> extracted from image.';
+
+            // Append OCR extra data if found
+            const extras = [];
+            if (data.iso_type)    extras.push('ISO: <strong>' + data.iso_type + '</strong>');
+            if (data.tare_kg)     extras.push('Tare: <strong>' + data.tare_kg.toLocaleString() + ' kg</strong>');
+            if (data.max_gross_kg) extras.push('Max Gross: <strong>' + data.max_gross_kg.toLocaleString() + ' kg</strong>');
+            if (extras.length) resultHtml += ' <span class="text-muted">|</span> ' + extras.join(' &nbsp; ');
+
+            if (isIn) {
+                // Gate-In specific actions
+                if (data.in_yard) {
+                    // Already in yard — show warning
+                    showOcrResult(resultEl, 'danger',
+                        '<i class="bi bi-exclamation-triangle-fill me-1"></i>' +
+                        '<strong>' + data.container_no + ' is already in yard' +
+                        (data.in_yard_since ? ' since ' + data.in_yard_since : '') + '.</strong> ' +
+                        'Gate-Out must be completed before a new Gate-In.'
+                    );
+                } else {
+                    showOcrResult(resultEl, 'success', resultHtml);
+                }
+
+                // Pre-fill equipment type from master or OCR ISO type
+                const eqtSel = document.getElementById('gateEqtSelect');
+                if (data.master?.equipment_type_id) {
+                    preselectEqt(eqtSel, data.master.equipment_type_id);
+                } else if (data.equipment_match?.id) {
+                    preselectEqt(eqtSel, data.equipment_match.id);
+                }
+
+                // Trigger master lookup for in-yard check + equipment pre-fill
+                // Use internal lookupMaster if available via custom event
+                containerInp.dispatchEvent(new Event('blur'));
+
+            } else {
+                // Gate-Out: just show result and trigger search
+                showOcrResult(resultEl, 'success', resultHtml);
+                // Trigger the container-lookup search automatically
+                document.getElementById('containerSearchBtn').click();
+            }
+
+        } catch (err) {
+            showOcrResult(resultEl, 'danger',
+                '<i class="bi bi-wifi-off me-1"></i>OCR request failed. Please try again or enter manually.'
+            );
+        } finally {
+            setSpinner(iconEl, btnEl, false);
+        }
+    }
+
+    // ── Wire up Gate-In OCR button ────────────────────────────────────────────
+    const ocrBtnIn  = document.getElementById('ocrBtnIn');
+    const ocrInputIn = document.getElementById('ocrInputIn');
+
+    ocrBtnIn.addEventListener('click', () => ocrInputIn.click());
+    ocrInputIn.addEventListener('change', function () {
+        if (this.files && this.files[0]) {
+            processImage(this.files[0], 'in');
+            this.value = ''; // Reset so same image can be re-scanned
+        }
+    });
+
+    // Hide OCR result when user manually edits the container number
+    document.getElementById('containerNoIn').addEventListener('input', function () {
+        hideOcrResult(document.getElementById('ocrResultIn'));
+    });
+
+    // ── Wire up Gate-Out OCR button ───────────────────────────────────────────
+    const ocrBtnOut   = document.getElementById('ocrBtnOut');
+    const ocrInputOut = document.getElementById('ocrInputOut');
+
+    ocrBtnOut.addEventListener('click', () => ocrInputOut.click());
+    ocrInputOut.addEventListener('change', function () {
+        if (this.files && this.files[0]) {
+            processImage(this.files[0], 'out');
+            this.value = '';
+        }
+    });
+
+    document.getElementById('containerSearch').addEventListener('input', function () {
+        hideOcrResult(document.getElementById('ocrResultOut'));
+    });
+
 })();
 </script>
 @endpush
