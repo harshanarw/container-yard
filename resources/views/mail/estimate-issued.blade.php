@@ -208,7 +208,7 @@
           <tr style="background:#ffffff;">
             <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;color:#1a56db;font-weight:600;">&#x1F527;&nbsp;Labour</td>
             <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;color:#1a56db;font-weight:600;white-space:nowrap;">
-              @if($emailLaborHrs > 0){{ number_format($emailLaborHrs, 2) }} hrs@else —@endif
+              @if($emailLaborHrs > 0){{ number_format($emailLaborHrs, 2) }} hrs @else — @endif
             </td>
             <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;font-weight:600;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($emailLaborCost, 2) }}</td>
           </tr>
