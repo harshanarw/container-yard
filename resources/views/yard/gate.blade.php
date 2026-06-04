@@ -417,8 +417,8 @@
                         <input type="file" id="ocrInputOut" accept="image/*" capture="environment" class="d-none">
                         <div class="form-text text-muted" style="font-size:.72rem;">Enter and search to confirm the container is in yard.</div>
                     </div>
+                    <div id="ocrResultOut" class="mb-2 small d-none"></div>
                     <div id="containerInfoBox" class="mb-3 d-none"></div>
-                    <div id="ocrResultOut" class="mt-n2 mb-3 small d-none"></div>
 
                     {{-- ═══════════════════════════════════════════════════════
                          SECTION 2 — Export Information (collapsible)
@@ -1235,9 +1235,11 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     preselectEqt(eqtSel, data.equipment_match.id);
                 }
 
-                // Trigger master lookup for in-yard check + equipment pre-fill
-                // Use internal lookupMaster if available via custom event
-                containerInp.dispatchEvent(new Event('blur'));
+                // Only trigger master lookup when not already in-yard — if it IS in-yard
+                // the warning is already shown above; firing blur would duplicate it.
+                if (!data.in_yard) {
+                    containerInp.dispatchEvent(new Event('blur'));
+                }
 
             } else {
                 // Gate-Out: just show result and trigger search

@@ -38,15 +38,10 @@ class ContainerOcrController extends Controller
                     'max_gross_weight'  => $master->max_gross_weight,
                 ];
 
-                // Check in-yard status
-                $latestMovement = $master->movements()
-                    ->orderByDesc('created_at')
-                    ->first();
-
-                if ($latestMovement && $latestMovement->movement_type === 'in' && !$latestMovement->gate_out_time) {
+                // Use the Container status field — same source of truth as containerLookup
+                if ($master->status === 'in_yard') {
                     $inYard      = true;
-                    $inYardSince = $latestMovement->gate_in_time?->format('d M Y H:i')
-                                ?? $latestMovement->created_at->format('d M Y H:i');
+                    $inYardSince = $master->gate_in_date?->format('d M Y');
                 }
             }
 
