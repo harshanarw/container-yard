@@ -206,7 +206,7 @@
         <tbody>
           @if($emailLaborHrs > 0 || $emailLaborCost > 0)
           <tr style="background:#ffffff;">
-            <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;color:#1a56db;font-weight:600;">Labour</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;color:#1a56db;font-weight:600;">&#x1F527;&nbsp;Labour</td>
             <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;color:#1a56db;font-weight:600;white-space:nowrap;">
               @if($emailLaborHrs > 0){{ number_format($emailLaborHrs, 2) }} hrs@else —@endif
             </td>
@@ -215,7 +215,7 @@
           @endif
           @if($emailMaterial > 0)
           <tr style="background:#f8f9fa;">
-            <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;color:#166534;font-weight:600;">Materials</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;color:#166534;font-weight:600;">&#x1F4E6;&nbsp;Materials</td>
             <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;color:#6c757d;">—</td>
             <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;font-weight:600;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($emailMaterial, 2) }}</td>
           </tr>

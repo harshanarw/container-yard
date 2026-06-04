@@ -37,7 +37,9 @@ class PortalEstimateController extends Controller
             abort(404, 'Estimate not found.');
         }
 
-        $estimate->load(['lineItems.componentCode', 'lineItems.chargeCode', 'lineItems.taxCode', 'container', 'customer']);
+        $estimate->load(['lineItems.componentCode', 'lineItems.chargeCode', 'lineItems.taxCode',
+                         'lineItems.damage', 'lineItems.locationCode', 'lineItems.damageCode',
+                         'container', 'customer']);
         $company = CompanySetting::current();
 
         return view('portal.estimate.show', compact('estimate', 'portalToken', 'company', 'token'));

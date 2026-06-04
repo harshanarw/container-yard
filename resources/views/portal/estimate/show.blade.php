@@ -165,7 +165,7 @@
             <th>Component</th>
             <th style="width:12%">Repair Type</th>
             <th class="text-end" style="width:14%">
-              <i class="bi bi-person-gear me-1 text-primary"></i>Labour
+              <i class="bi bi-tools me-1 text-primary"></i>Labour
             </th>
             <th class="text-end" style="width:12%">
               <i class="bi bi-box me-1 text-success"></i>Materials
@@ -183,16 +183,39 @@
             {{-- Component: description + MR/Charge code chips underneath --}}
             <td>
               <div class="fw-semibold">{{ $line->component }}</div>
+              {{-- Damage description from linked survey damage --}}
+              @if($line->damage?->description)
+                <div class="text-muted mt-1" style="font-size:.78rem;line-height:1.4;">{{ $line->damage->description }}</div>
+              @endif
+              {{-- Dimensions (for area-based repairs) --}}
+              @if($line->dim_length > 0 && $line->dim_width > 0)
+                @php
+                  $tL = (float) $line->dim_length; $tW = (float) $line->dim_width;
+                  if ($line->dim_uom === 'ft_in') {
+                    $ftL = (int) floor($tL / 12); $inL = round(fmod($tL, 12), 2);
+                    $ftW = (int) floor($tW / 12); $inW = round(fmod($tW, 12), 2);
+                    $dimStr = ($ftL > 0 ? $ftL.' ft ' : '').$inL.' in × '.($ftW > 0 ? $ftW.' ft ' : '').$inW.' in';
+                  } else {
+                    $dimStr = number_format($tL, 1).' × '.number_format($tW, 1).' cm';
+                  }
+                @endphp
+                <div class="text-muted" style="font-size:.72rem;white-space:nowrap;">&#x1F4CF; {{ $dimStr }}</div>
+              @endif
               <div class="mt-1 d-flex flex-wrap gap-1">
+                @if($line->locationCode)
+                  <span class="code-chip orange" title="{{ $line->locationCode->name }}">{{ $line->locationCode->code }}</span>
+                @endif
                 @if($line->componentCode)
-                  <span class="code-chip blue" title="{{ $line->componentCode->name }}">
-                    {{ $line->componentCode->code }}
-                  </span>
+                  <span class="code-chip blue" title="{{ $line->componentCode->name }}">{{ $line->componentCode->code }}</span>
+                @endif
+                @if($line->damageCode)
+                  <span class="code-chip orange" title="{{ $line->damageCode->name }}">{{ $line->damageCode->code }}</span>
                 @endif
                 @if($line->chargeCode)
-                  <span class="code-chip green" title="{{ $line->chargeCode->name }}">
-                    {{ $line->chargeCode->code }}
-                  </span>
+                  <span class="code-chip green" title="{{ $line->chargeCode->name }}">{{ $line->chargeCode->code }}</span>
+                @endif
+                @if($line->cedex_code)
+                  <span class="code-chip orange" title="CEDEX Reference">{{ $line->cedex_code }}</span>
                 @endif
               </div>
             </td>
@@ -200,7 +223,7 @@
             {{-- Repair type --}}
             <td class="text-muted">{{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}</td>
 
-            {{-- Labour: hours + cost stacked --}}
+            {{-- Labour: hours × rate = cost stacked --}}
             <td class="text-end">
               @if($line->std_labor_hours > 0 || $line->labor_amount > 0)
                 @if($line->std_labor_hours > 0)
@@ -208,8 +231,13 @@
                     {{ number_format($line->std_labor_hours, 2) }} <span style="font-size:.75rem;font-weight:500;">hrs</span>
                   </div>
                 @endif
+                @if($line->labor_rate > 0 && $line->std_labor_hours > 0)
+                  <div class="text-muted" style="font-size:.72rem;white-space:nowrap;">
+                    &#64; {{ $estimate->currency }} {{ number_format($line->labor_rate, 2) }}/hr
+                  </div>
+                @endif
                 <div class="text-muted" style="font-size:.78rem;white-space:nowrap;">
-                  {{ $estimate->currency }} {{ number_format($line->labor_amount, 2) }}
+                  {{ ($line->labor_rate > 0 && $line->std_labor_hours > 0) ? '= ' : '' }}{{ $estimate->currency }} {{ number_format($line->labor_amount, 2) }}
                 </div>
               @else
                 <span class="text-muted">—</span>
@@ -344,7 +372,7 @@
         @if($sumLaborHrs > 0 || $sumLaborCost > 0)
         <tr>
           <td class="ps-3">
-            <i class="bi bi-person-gear me-2 text-primary"></i>Labour
+            <i class="bi bi-tools me-2 text-primary"></i>Labour
           </td>
           <td class="text-end">
             @if($sumLaborHrs > 0)
