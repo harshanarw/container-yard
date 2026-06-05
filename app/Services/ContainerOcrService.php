@@ -244,18 +244,25 @@ class ContainerOcrService
 
     private function extractTareKg(string $text): ?int
     {
-        // Normal order: "TARE  2 180 KGS", "TARE: 2,180 KG", "TARE 2.180 KG", "T: 2180KG"
-        // Space/comma/dot are all valid thousands separators on container plates.
-        if (preg_match('/\bTARE\b[\s:]*([0-9][0-9\s,\.]+)\s*KGS?/i', $text, $m)) {
+        // Normal order: "TARE  2 180 KGS", "TARE: 2,180 KG", "TARE | 2.180 KG", "T: 2180KG"
+        // [\s:|]* handles pipe separators OCR inserts between two-column label/value cells.
+        // K[GE]S? handles the common OCR misread G→E in blocky stencil fonts.
+        if (preg_match('/\bTARE\b[\s:|]*([0-9][0-9\s,\.]+)\s*K[GE]S?/i', $text, $m)) {
             return (int) preg_replace('/[^0-9]/', '', $m[1]);
         }
-        if (preg_match('/\bT\s*:\s*([0-9][0-9\s,\.]+)\s*KGS?\b/i', $text, $m)) {
+        if (preg_match('/\bT\s*:\s*([0-9][0-9\s,\.]+)\s*K[GE]S?\b/i', $text, $m)) {
             return (int) preg_replace('/[^0-9]/', '', $m[1]);
+        }
+        // LBS fallback: KG value garbled but LBS line readable → convert (no spaces in
+        // the capture group to avoid spanning onto the NET line).
+        if (preg_match('/\bTARE\b[\s:|]*([0-9][0-9,\.]+)\s*LBS?\b/i', $text, $m)) {
+            $kg = (int) round((int) preg_replace('/[^0-9]/', '', $m[1]) / 2.20462);
+            if ($kg >= 1500 && $kg <= 6000) return $kg;
         }
         // Reversed column order (PSM 3 reads right column before left on two-column doors):
         // value "2 180 KGS" appears in text before the "TARE" label.
         // Only accept if the extracted kg is in a realistic tare range (1 500–6 000 kg).
-        if (preg_match('/([0-9][0-9\s,\.]+)\s*KGS?[\s\S]{0,80}?\bTARE\b/i', $text, $m)) {
+        if (preg_match('/([0-9][0-9\s,\.]+)\s*K[GE]S?[\s\S]{0,80}?\bTARE\b/i', $text, $m)) {
             $kg = (int) preg_replace('/[^0-9]/', '', $m[1]);
             if ($kg >= 1500 && $kg <= 6000) return $kg;
         }
@@ -264,19 +271,28 @@ class ContainerOcrService
 
     private function extractMaxGrossKg(string $text): ?int
     {
-        // Normal order: "MGW  30 480 KGS", "MAX. GROSS 30,480 KG"
-        if (preg_match('/\bMGW\b[\s:]*([0-9][0-9\s,\.]+)\s*KGS?/i', $text, $m)) {
+        // Normal order: "MGW  30 480 KGS", "MAX. GROSS 30,480 KG", "MAX. GROSS | 30,480 KG"
+        if (preg_match('/\bMGW\b[\s:|]*([0-9][0-9\s,\.]+)\s*K[GE]S?/i', $text, $m)) {
             return (int) preg_replace('/[^0-9]/', '', $m[1]);
         }
-        if (preg_match('/\bMAX\.?\s*GROSS\b[\s:]*([0-9][0-9\s,\.]+)\s*KGS?/i', $text, $m)) {
+        if (preg_match('/\bMAX\.?\s*GROSS\b[\s:|]*([0-9][0-9\s,\.]+)\s*K[GE]S?/i', $text, $m)) {
             return (int) preg_replace('/[^0-9]/', '', $m[1]);
         }
-        if (preg_match('/\bGROSS\s*WEIGHT\b[\s:]*([0-9][0-9\s,\.]+)\s*KGS?/i', $text, $m)) {
+        if (preg_match('/\bGROSS\s*WEIGHT\b[\s:|]*([0-9][0-9\s,\.]+)\s*K[GE]S?/i', $text, $m)) {
             return (int) preg_replace('/[^0-9]/', '', $m[1]);
+        }
+        // LBS fallback: convert lbs→kg when KG value is garbled.
+        if (preg_match('/\bMAX\.?\s*GROSS\b[\s:|]*([0-9][0-9,\.]+)\s*LBS?\b/i', $text, $m)) {
+            $kg = (int) round((int) preg_replace('/[^0-9]/', '', $m[1]) / 2.20462);
+            if ($kg > 10000) return $kg;
+        }
+        if (preg_match('/\bMGW\b[\s:|]*([0-9][0-9,\.]+)\s*LBS?\b/i', $text, $m)) {
+            $kg = (int) round((int) preg_replace('/[^0-9]/', '', $m[1]) / 2.20462);
+            if ($kg > 10000) return $kg;
         }
         // Reversed column order: value "30 480 KGS" appears before the "MGW" label.
         // Sanity-check: max gross weight is always > 10 000 kg for any shipping container.
-        if (preg_match('/([0-9][0-9\s,\.]+)\s*KGS?[\s\S]{0,80}?\bMGW\b/i', $text, $m)) {
+        if (preg_match('/([0-9][0-9\s,\.]+)\s*K[GE]S?[\s\S]{0,80}?\bMGW\b/i', $text, $m)) {
             $kg = (int) preg_replace('/[^0-9]/', '', $m[1]);
             if ($kg > 10000) return $kg;
         }
