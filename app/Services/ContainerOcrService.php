@@ -9,7 +9,7 @@ class ContainerOcrService
     /**
      * Extract container data from an image file using Tesseract OCR.
      *
-     * @return array{container_no: string|null, iso_type: string|null, tare_kg: int|null, max_gross_kg: int|null, raw_text: string}
+     * @return array{container_no: string|null, check_digit_valid: bool, iso_type: string|null, tare_kg: int|null, max_gross_kg: int|null, raw_text: string}
      */
     public function extractFromImage(UploadedFile $image): array
     {
@@ -36,12 +36,15 @@ class ContainerOcrService
             @unlink($enhanced);
         }
 
+        [$containerNo, $checkDigitValid] = $this->extractContainerNo($text);
+
         return [
-            'container_no' => $this->extractContainerNo($text),
-            'iso_type'     => $this->extractIsoType($text),
-            'tare_kg'      => $this->extractTareKg($text),
-            'max_gross_kg' => $this->extractMaxGrossKg($text),
-            'raw_text'     => $text,
+            'container_no'      => $containerNo,
+            'check_digit_valid' => $checkDigitValid,
+            'iso_type'          => $this->extractIsoType($text),
+            'tare_kg'           => $this->extractTareKg($text),
+            'max_gross_kg'      => $this->extractMaxGrossKg($text),
+            'raw_text'          => $text,
         ];
     }
 
@@ -102,62 +105,89 @@ class ContainerOcrService
         $escaped = escapeshellarg($imagePath);
         $nullDev = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
 
-        // PSM 11 = sparse text, good for container plates with mixed content
-        $cmd    = "tesseract {$escaped} stdout -l eng --psm 11 --oem 3 {$nullDev}";
-        $output = shell_exec($cmd);
-
-        if ($output === null || trim($output) === '') {
-            // Fallback: PSM 6 = single uniform block of text
-            $cmd    = "tesseract {$escaped} stdout -l eng --psm 6 --oem 3 {$nullDev}";
-            $output = shell_exec($cmd) ?? '';
+        // Try three PSM modes and prefer whichever output already contains a
+        // container-number pattern (4 letters + 7 digits) in its compacted form.
+        // PSM 3 = full auto (good for complex door layouts),
+        // PSM 11 = sparse text (good for mixed-content plates),
+        // PSM 6  = uniform block (fallback for clean label images).
+        $candidates = [];
+        foreach ([3, 11, 6] as $psm) {
+            $cmd = "tesseract {$escaped} stdout -l eng --psm {$psm} --oem 3 {$nullDev}";
+            $out = shell_exec($cmd);
+            if ($out !== null && trim($out) !== '') {
+                $candidates[] = strtoupper(trim($out));
+            }
         }
 
-        return strtoupper(trim($output));
+        foreach ($candidates as $up) {
+            if (preg_match('/[A-Z]{4}\d{7}/', preg_replace('/[^A-Z0-9]/', '', $up))) {
+                return $up;
+            }
+        }
+
+        return $candidates[0] ?? '';
     }
 
     // ── Container number extraction ──────────────────────────────────────────
 
-    private function extractContainerNo(string $text): ?string
+    /**
+     * Returns [containerNo|null, checkDigitValid].
+     * Uses any 4-letter prefix to match manual validation (^[A-Z]{4}[0-9]{7}$).
+     */
+    private function extractContainerNo(string $text): array
     {
-        // Collapse to alphanumeric only — removes spaces that OCR inserts between
-        // the prefix, serial, and boxed check digit on container plates.
-        // e.g. "SEGU 111192 3" and "SEGU 1111923" and "SEGU1111923" all → "SEGU11111923"
+        // Collapse to alphanumeric only — strips spaces OCR inserts between prefix,
+        // serial, and boxed check digit: "SEGU 111192 3" → "SEGU1111923"
         $compact = preg_replace('/[^A-Z0-9]/', '', strtoupper($text));
 
-        // Find every 4-letter prefix (3 owner + 1 category) followed by 6–9 digits,
-        // then slide a 7-digit window over those digits and validate the check digit.
-        // This handles OCR merging the serial and boxed check as 8 consecutive digits.
-        if (preg_match_all('/([A-Z]{3}[UJZRLTE])(\d{6,9})/', $compact, $sets, PREG_SET_ORDER)) {
+        // Any 4-letter prefix + 6–9 digits; slide 7-digit window, validate check digit
+        if (preg_match_all('/([A-Z]{4})(\d{6,9})/', $compact, $sets, PREG_SET_ORDER)) {
             foreach ($sets as $set) {
                 $prefix = $set[1];
                 $digits = $set[2];
                 $len    = strlen($digits);
-                // Try each 7-digit window; check digit is last in each candidate
+
                 for ($offset = 0; $offset <= $len - 7; $offset++) {
                     $candidate = $prefix . substr($digits, $offset, 7);
                     if ($this->validateCheckDigit($candidate)) {
-                        return $candidate;
+                        return [$candidate, true];
                     }
                 }
-                // No window validated — return the rightmost 7 digits as best guess
-                // (check digit is usually printed last / rightmost)
-                return $prefix . substr($digits, -7);
+
+                // No window validated — try correcting common OCR misreads in the prefix
+                $sub = $this->tryPrefixSubstitution($prefix, $digits);
+                if ($sub !== null) {
+                    return [$sub, true];
+                }
+
+                // Best guess: rightmost 7 digits; check digit usually printed last
+                return [$prefix . substr($digits, -7), false];
             }
         }
 
-        // Broader fallback: any 4 letters + 7 digits
-        if (preg_match('/([A-Z]{4})(\d{6,9})/', $compact, $m)) {
-            $digits = $m[2];
-            $len    = strlen($digits);
+        return [null, false];
+    }
+
+    // ── OCR character-substitution fallback ──────────────────────────────────
+
+    private function tryPrefixSubstitution(string $prefix, string $digits): ?string
+    {
+        // Single-character swaps for letters commonly confused in blocky plate fonts
+        static $swaps = ['C' => 'G', 'G' => 'C', 'O' => 'Q', 'Q' => 'O', 'I' => 'L', 'L' => 'I'];
+        $len = strlen($digits);
+        for ($pos = 0; $pos < 4; $pos++) {
+            $ch = $prefix[$pos];
+            if (!isset($swaps[$ch])) {
+                continue;
+            }
+            $alt = substr_replace($prefix, $swaps[$ch], $pos, 1);
             for ($offset = 0; $offset <= $len - 7; $offset++) {
-                $candidate = $m[1] . substr($digits, $offset, 7);
+                $candidate = $alt . substr($digits, $offset, 7);
                 if ($this->validateCheckDigit($candidate)) {
                     return $candidate;
                 }
             }
-            return $m[1] . substr($digits, -7);
         }
-
         return null;
     }
 

@@ -1467,8 +1467,14 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             containerInp.value = data.container_no;
             containerInp.dispatchEvent(new Event('input'));
 
+            // Show amber "Please verify" badge when OCR couldn't confirm the check digit
+            let containerLabel = '<strong class="font-monospace">' + data.container_no + '</strong>';
+            if (data.check_digit_valid === false) {
+                containerLabel += ' <span class="badge ms-1" style="background:#fef3c7;color:#92400e;border:1px solid #fbbf24;font-size:.68rem;">' +
+                    '<i class="bi bi-exclamation-triangle-fill me-1"></i>Please verify number</span>';
+            }
             let resultHtml = '<i class="bi bi-check-circle-fill text-success me-1"></i>' +
-                '<strong class="font-monospace">' + data.container_no + '</strong> extracted from image.';
+                containerLabel + ' extracted from image.';
 
             // Append OCR extra data if found
             const extras = [];

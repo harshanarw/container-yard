@@ -61,17 +61,18 @@ class ContainerOcrController extends Controller
         }
 
         return response()->json([
-            'success'        => $containerNo !== null,
-            'container_no'   => $containerNo,
-            'iso_type'       => $result['iso_type'],
-            'tare_kg'        => $result['tare_kg'],
-            'max_gross_kg'   => $result['max_gross_kg'],
-            'in_yard'        => $inYard,
-            'in_yard_since'  => $inYardSince,
-            'master'         => $masterData,
-            'equipment_match'=> $equipmentMatch,
-            'raw_text'       => $result['raw_text'],
-            'message'        => $containerNo
+            'success'           => $containerNo !== null,
+            'container_no'      => $containerNo,
+            'check_digit_valid' => $result['check_digit_valid'],
+            'iso_type'          => $result['iso_type'],
+            'tare_kg'           => $result['tare_kg'],
+            'max_gross_kg'      => $result['max_gross_kg'],
+            'in_yard'           => $inYard,
+            'in_yard_since'     => $inYardSince,
+            'master'            => $masterData,
+            'equipment_match'   => $equipmentMatch,
+            'raw_text'          => $result['raw_text'],
+            'message'           => $containerNo
                 ? 'Container number extracted successfully.'
                 : 'Could not read a container number from the image. Please try again or enter manually.',
         ]);
