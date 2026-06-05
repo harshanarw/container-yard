@@ -117,13 +117,14 @@ class ContainerOcrService
             }
         }
 
-        // Focused crop pass: container numbers are always in the upper-right corner.
-        // Vertical door locking rods can bisect "TGHU" so that PSM 3 column detection
-        // places "TG" in one reading region and "HU 482917 3" in another, losing the
-        // first two characters. A tight crop on that quadrant + PSM 6 (uniform block)
-        // prevents column splitting and lets Tesseract read the prefix intact.
+        // Focused crop pass: container numbers sit in the upper portion of the door.
+        // Vertical locking rods bisect the prefix — PSM 3 column detection places
+        // e.g. "TG" in one column and "HU 482917 3" in another, losing the first two
+        // characters.  A wider crop (x from 25 %) + PSM 6 (uniform block, no column
+        // detection) keeps both halves of the prefix in one reading region.  The rod
+        // character is stripped during compaction so "TG|HU 482917 A" → "TGHU482917A".
         if (extension_loaded('gd')) {
-            $cropText = $this->runTesseractOnCrop($imagePath, 0.45, 0.0, 1.0, 0.30, 6);
+            $cropText = $this->runTesseractOnCrop($imagePath, 0.20, 0.0, 1.0, 0.30, 6);
             if ($cropText !== '') {
                 $candidates[] = $cropText;
             }
