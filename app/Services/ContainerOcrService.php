@@ -152,13 +152,22 @@ class ContainerOcrService
         // serial, and boxed check digit: "SEGU 111192 3" → "SEGU1111923"
         $compact = preg_replace('/[^A-Z0-9]/', '', strtoupper($text));
 
-        // Any 4-letter prefix + 6–9 digits; slide 7-digit window, validate check digit
+        // Any 4-letter prefix + 6–9 digits; slide 7-digit window, validate check digit.
+        // ISO 6346 requires position 3 (category code) to be U, J, or Z; V→U is
+        // applied first since V and U are indistinguishable in many stencil fonts.
         if (preg_match_all('/([A-Z]{4})(\d{6,9})/', $compact, $sets, PREG_SET_ORDER)) {
             foreach ($sets as $set) {
-                $prefix = $set[1];
+                $prefix = $this->normalizeCategoryChar($set[1]);
                 $digits = $set[2];
-                $len    = strlen($digits);
 
+                // Skip anything that isn't a real container category code — prevents
+                // false positives like "LATA2177777" formed by compacting scattered
+                // OCR fragments (ZM+TG+IL+AT+A → ZMTGILATA before a dataplate number).
+                if (!in_array($prefix[3], ['U', 'J', 'Z'], true)) {
+                    continue;
+                }
+
+                $len = strlen($digits);
                 for ($offset = 0; $offset <= $len - 7; $offset++) {
                     $candidate = $prefix . substr($digits, $offset, 7);
                     if ($this->validateCheckDigit($candidate)) {
@@ -177,6 +186,59 @@ class ContainerOcrService
             }
         }
 
+        // Fallback: search raw OCR text for "ABCU 123456 7" as printed on the door.
+        // Useful when PSM modes preserve spacing but compact-merging loses adjacency
+        // between the prefix and serial (e.g. "TGH 482917 3" → validates as TGHU).
+        return $this->extractFormattedContainerNo($text);
+    }
+
+    /** Normalise V→U and W→U at the ISO 6346 category-code position (index 3). */
+    private function normalizeCategoryChar(string $prefix): string
+    {
+        static $map = ['V' => 'U', 'W' => 'U'];
+        return isset($map[$prefix[3]])
+            ? substr($prefix, 0, 3) . $map[$prefix[3]]
+            : $prefix;
+    }
+
+    /**
+     * Fallback: scan raw OCR text for "PREFIX SERIAL CHECK" as printed on the door.
+     * Accepts 3-char raw prefixes where the category letter was cut off — tries U/J/Z.
+     * Also handles V→U at the category position via normalizeCategoryChar.
+     */
+    private function extractFormattedContainerNo(string $text): array
+    {
+        // 3–4 letters (prefix), optional pipe/space separators, 6 serial digits,
+        // optional separator, 1 check digit.
+        if (!preg_match_all(
+            '/\b([A-Z]{3,4})[\s|]+(\d{6})[\s|]+(\d)\b/i',
+            strtoupper($text),
+            $sets,
+            PREG_SET_ORDER
+        )) {
+            return [null, false];
+        }
+
+        foreach ($sets as $set) {
+            $rawPrefix = strtoupper($set[1]);
+            $serial    = $set[2];
+            $check     = $set[3];
+
+            if (strlen($rawPrefix) === 4) {
+                $prefix = $this->normalizeCategoryChar($rawPrefix);
+                if (!in_array($prefix[3], ['U', 'J', 'Z'], true)) continue;
+                $candidate = $prefix . $serial . $check;
+                if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+            } else {
+                // 3-char raw prefix — category letter may have been cut off by OCR;
+                // try appending each valid category code and validate check digit.
+                foreach (['U', 'J', 'Z'] as $cat) {
+                    $candidate = $rawPrefix . $cat . $serial . $check;
+                    if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                }
+            }
+        }
+
         return [null, false];
     }
 
@@ -184,8 +246,14 @@ class ContainerOcrService
 
     private function tryPrefixSubstitution(string $prefix, string $digits): ?string
     {
-        // Single-character swaps for letters commonly confused in blocky plate fonts
-        static $swaps = ['C' => 'G', 'G' => 'C', 'O' => 'Q', 'Q' => 'O', 'I' => 'L', 'L' => 'I'];
+        // Single-character swaps for letters commonly confused in blocky plate fonts.
+        // V↔U added: stencil V and U are often identical in shape.
+        static $swaps = [
+            'C' => 'G', 'G' => 'C',
+            'O' => 'Q', 'Q' => 'O',
+            'I' => 'L', 'L' => 'I',
+            'V' => 'U', 'U' => 'V',
+        ];
         $len = strlen($digits);
         for ($pos = 0; $pos < 4; $pos++) {
             $ch = $prefix[$pos];
@@ -193,6 +261,8 @@ class ContainerOcrService
                 continue;
             }
             $alt = substr_replace($prefix, $swaps[$ch], $pos, 1);
+            // Category code must remain valid after substitution
+            if (!in_array($alt[3], ['U', 'J', 'Z'], true)) continue;
             for ($offset = 0; $offset <= $len - 7; $offset++) {
                 $candidate = $alt . substr($digits, $offset, 7);
                 if ($this->validateCheckDigit($candidate)) {
