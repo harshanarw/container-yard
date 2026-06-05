@@ -911,13 +911,7 @@ btnOut.addEventListener('click', () => {
                 }
                 // Pre-select equipment type if available
                 if (data.equipment_type_id) {
-                    for (const opt of eqtSel.options) {
-                        if (opt.value == data.equipment_type_id) {
-                            eqtSel.value = data.equipment_type_id;
-                            eqtSel.dispatchEvent(new Event('change'));
-                            break;
-                        }
-                    }
+                    preselectEqt(eqtSel, data.equipment_type_id);
                 }
                 // Fill additional container details from master record
                 window.additionalDetails?.fillFromMaster(data);
@@ -935,8 +929,12 @@ btnOut.addEventListener('click', () => {
             infoBox.className = 'd-none';
             lastVal = '';
             // Reset equipment type so stale pre-fill from previous container doesn't persist
-            eqtSel.value = '';
-            eqtSel.dispatchEvent(new Event('change'));
+            if (typeof $ !== 'undefined' && $(eqtSel).data('select2')) {
+                $(eqtSel).val(null).trigger('change');
+            } else {
+                eqtSel.value = '';
+                eqtSel.dispatchEvent(new Event('change'));
+            }
             // Clear additional details filled by previous master lookup
             window.additionalDetails?.reset();
         }
@@ -1423,13 +1421,20 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         resultEl.innerHTML = '';
     }
 
-    // Pre-select equipment type in a Select2 or plain select
+    // Set a <select> value and notify both Select2 (jQuery) and plain listeners.
+    // Select2 v4 with jQuery requires $(el).trigger('change') — native dispatchEvent
+    // is not reliably caught by jQuery's event delegation in all configurations.
     function preselectEqt(selectEl, equipmentTypeId) {
         if (!equipmentTypeId || !selectEl) return;
+        const id = String(equipmentTypeId);
         for (const opt of selectEl.options) {
-            if (String(opt.value) === String(equipmentTypeId)) {
-                selectEl.value = equipmentTypeId;
-                selectEl.dispatchEvent(new Event('change'));
+            if (String(opt.value) === id) {
+                if (typeof $ !== 'undefined' && $(selectEl).data('select2')) {
+                    $(selectEl).val(id).trigger('change');
+                } else {
+                    selectEl.value = id;
+                    selectEl.dispatchEvent(new Event('change'));
+                }
                 break;
             }
         }
@@ -1478,8 +1483,13 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
 
             // Append OCR extra data if found
             const extras = [];
-            if (data.iso_type)    extras.push('ISO: <strong>' + data.iso_type + '</strong>');
-            if (data.tare_kg)     extras.push('Tare: <strong>' + data.tare_kg.toLocaleString() + ' kg</strong>');
+            if (data.iso_type) {
+                const eqtLabel = data.equipment_match
+                    ? data.iso_type + ' → <strong>' + data.equipment_match.code + '</strong>'
+                    : data.iso_type + ' <small class="text-muted">(no equipment match)</small>';
+                extras.push('ISO: ' + eqtLabel);
+            }
+            if (data.tare_kg)      extras.push('Tare: <strong>' + data.tare_kg.toLocaleString() + ' kg</strong>');
             if (data.max_gross_kg) extras.push('Max Gross: <strong>' + data.max_gross_kg.toLocaleString() + ' kg</strong>');
             if (extras.length) resultHtml += ' <span class="text-muted">|</span> ' + extras.join(' &nbsp; ');
 
