@@ -555,46 +555,62 @@ class ContainerOcrService
      */
     private function findLabelledWeightKg(string $text, string $labelAlt, int $minKg, int $maxKg): ?int
     {
-        if (!preg_match('/\b(?:' . $labelAlt . ')\b/i', $text, $lm, PREG_OFFSET_CAPTURE)) {
+        // Scan every occurrence of the label — the combined OCR string may contain
+        // several passes; early passes (e.g. a reversed-column right-panel crop) can
+        // have the value BEFORE the label, while later passes have the normal order.
+        // Using preg_match_all ensures we reach the pass whose value follows the label.
+        // Window shrunk to 120 chars so it does not bleed into the next pass (passes
+        // are separated by "\n\n" and are typically < 100 chars of noise before the
+        // separator).
+        if (!preg_match_all('/\b(?:' . $labelAlt . ')\b/i', $text, $allMatches, PREG_OFFSET_CAPTURE)) {
             return null;
         }
-        $after = substr($text, $lm[0][1] + strlen($lm[0][0]), 200);
 
-        // KG candidate: number + 2-char unit resembling "KG"
-        // K[A-Z] covers KG/KE/KI/KA; [A-Z]G covers AG/RG etc.
-        $kg = null;
-        if (preg_match('/[\s:|]*([0-9][0-9\s,\.]+)\s*(?:K[A-Z]|[A-Z]G)S?\b/i', $after, $m)) {
-            $v = (int) preg_replace('/[^0-9]/', '', $m[1]);
-            if ($v >= $minKg && $v <= $maxKg) $kg = $v;
-        }
+        $lbsFallback = null;
 
-        // LBS candidate: number + unit resembling "LBS"
-        $lbs = null;
-        if (preg_match('/([0-9][0-9\s,\.]+)\s*(?:LBS?|L[A-Z]S?)\b/i', $after, $m)) {
-            $lbs = (int) preg_replace('/[^0-9]/', '', $m[1]);
-        }
+        foreach ($allMatches[0] as $match) {
+            $after = substr($text, $match[1] + strlen($match[0]), 120);
 
-        // Cross-validate the KG/LBS pair — expected ratio ≈ 2.20462.
-        // If the ratio deviates > 20 % a digit was likely misread in the KG value;
-        // prefer the LBS-derived figure in that case.
-        if ($kg !== null && $lbs !== null && $lbs > $kg) {
-            $ratio = $lbs / $kg;
-            if ($ratio < 1.75 || $ratio > 2.65) {
-                $derived = (int) round($lbs / 2.20462);
-                if ($derived >= $minKg && $derived <= $maxKg) return $derived;
+            // KG candidate
+            $kg = null;
+            if (preg_match('/[\s:|]*([0-9][0-9\s,\.]+)\s*(?:K[A-Z]|[A-Z]G)S?\b/i', $after, $m)) {
+                $v = (int) preg_replace('/[^0-9]/', '', $m[1]);
+                if ($v >= $minKg && $v <= $maxKg) $kg = $v;
             }
-            return $kg;
+
+            // LBS candidate
+            $lbs = null;
+            if (preg_match('/([0-9][0-9\s,\.]+)\s*(?:LBS?|L[A-Z]S?)\b/i', $after, $m)) {
+                $lbs = (int) preg_replace('/[^0-9]/', '', $m[1]);
+            }
+
+            // Cross-validate KG/LBS pair (ratio ≈ 2.20462; >20 % deviation means a
+            // digit was likely misread in the KG value — prefer the LBS-derived figure).
+            if ($kg !== null && $lbs !== null && $lbs > $kg) {
+                $ratio = $lbs / $kg;
+                if ($ratio < 1.75 || $ratio > 2.65) {
+                    $derived = (int) round($lbs / 2.20462);
+                    if ($derived >= $minKg && $derived <= $maxKg) return $derived;
+                }
+                return $kg;
+            }
+
+            // Direct KG reading — highest confidence; return immediately.
+            if ($kg !== null) {
+                return $kg;
+            }
+
+            // Only LBS available for this occurrence — save as fallback and keep
+            // looking for an occurrence that has a direct KG reading.
+            if ($lbs !== null && $lbsFallback === null) {
+                $derived = (int) round($lbs / 2.20462);
+                if ($derived >= $minKg && $derived <= $maxKg) {
+                    $lbsFallback = $derived;
+                }
+            }
         }
 
-        if ($kg !== null) return $kg;
-
-        // KG unit absent or fully garbled — convert from LBS as last resort
-        if ($lbs !== null) {
-            $derived = (int) round($lbs / 2.20462);
-            if ($derived >= $minKg && $derived <= $maxKg) return $derived;
-        }
-
-        return null;
+        return $lbsFallback;
     }
 
     /**
