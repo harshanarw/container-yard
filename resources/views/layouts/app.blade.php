@@ -1261,6 +1261,12 @@
                     var name = el.dataset.name || opt.text;
                     return $('<span>' + $('<span>').text(name)[0].innerHTML + ' <span class="' + chipCls + '" style="font-size:.7rem;vertical-align:middle;">' + el.dataset.code + '</span></span>');
                 }
+                // Equipment type options — show code chip + ISO chip (if set) + description
+                if (el.dataset.eqt !== undefined) {
+                    var name = el.dataset.name || opt.text;
+                    var isoHtml = el.dataset.iso ? '<span style="display:inline-block;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:3px;padding:0 4px;font-family:monospace;font-size:.68rem;font-weight:600;flex-shrink:0;">' + el.dataset.iso + '</span>' : '';
+                    return $('<span class="s2-opt-row"><span class="' + chipCls + '">' + el.dataset.code + '</span>' + isoHtml + '<span class="s2-code-label">' + name + '</span></span>');
+                }
                 // Reefer (or other chip-class variants) — show coloured chip only
                 if (el.dataset.chipClass) {
                     return $('<span class="' + chipCls + '">' + el.dataset.code + '</span>');
