@@ -912,7 +912,12 @@ btnOut.addEventListener('click', () => {
                 }
                 // Pre-select equipment type if available
                 if (data.equipment_type_id) {
-                    preselectEqt(eqtSel, data.equipment_type_id);
+                    if (typeof $ !== 'undefined') {
+                        $(eqtSel).val(String(data.equipment_type_id)).trigger('change');
+                    } else {
+                        eqtSel.value = String(data.equipment_type_id);
+                        eqtSel.dispatchEvent(new Event('change'));
+                    }
                 }
                 // Fill additional container details from master record
                 window.additionalDetails?.fillFromMaster(data);
@@ -930,7 +935,7 @@ btnOut.addEventListener('click', () => {
             infoBox.className = 'd-none';
             lastVal = '';
             // Reset equipment type so stale pre-fill from previous container doesn't persist
-            if (typeof $ !== 'undefined' && $(eqtSel).data('select2')) {
+            if (typeof $ !== 'undefined') {
                 $(eqtSel).val(null).trigger('change');
             } else {
                 eqtSel.value = '';
@@ -1422,22 +1427,18 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         resultEl.innerHTML = '';
     }
 
-    // Set a <select> value and notify both Select2 (jQuery) and plain listeners.
-    // Select2 v4 with jQuery requires $(el).trigger('change') — native dispatchEvent
-    // is not reliably caught by jQuery's event delegation in all configurations.
+    // Set a <select> value and notify Select2 + plain listeners.
+    // Always use jQuery's .val().trigger('change') when jQuery is available —
+    // native dispatchEvent is NOT caught by jQuery's Select2 handlers.
+    // No need to check data('select2') — jQuery trigger works for plain selects too.
     function preselectEqt(selectEl, equipmentTypeId) {
         if (!equipmentTypeId || !selectEl) return;
         const id = String(equipmentTypeId);
-        for (const opt of selectEl.options) {
-            if (String(opt.value) === id) {
-                if (typeof $ !== 'undefined' && $(selectEl).data('select2')) {
-                    $(selectEl).val(id).trigger('change');
-                } else {
-                    selectEl.value = id;
-                    selectEl.dispatchEvent(new Event('change'));
-                }
-                break;
-            }
+        if (typeof $ !== 'undefined') {
+            $(selectEl).val(id).trigger('change');
+        } else {
+            selectEl.value = id;
+            selectEl.dispatchEvent(new Event('change'));
         }
     }
 
@@ -1493,11 +1494,27 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             let resultHtml = '<i class="bi bi-check-circle-fill text-success me-1"></i>' +
                 containerLabel + ' extracted from image.';
 
+            // Resolve equipment type to pre-select (needed for banner too)
+            const eqtSel   = document.getElementById('gateEqtSelect');
+            let   eqtToSet = null;
+            if (data.master?.equipment_type_id) {
+                eqtToSet = String(data.master.equipment_type_id);
+            } else if (data.iso_type) {
+                eqtToSet = findEqtByIso(eqtSel, data.iso_type) || (data.equipment_match?.id ? String(data.equipment_match.id) : null);
+            }
+            // Resolve the eqt code label for display
+            let eqtCodeLabel = null;
+            if (eqtToSet) {
+                for (const opt of eqtSel.options) {
+                    if (String(opt.value) === eqtToSet) { eqtCodeLabel = opt.dataset.code || opt.text; break; }
+                }
+            }
+
             // Append OCR extra data if found
             const extras = [];
             if (data.iso_type) {
-                const eqtLabel = data.equipment_match
-                    ? data.iso_type + ' → <strong>' + data.equipment_match.code + '</strong>'
+                const eqtLabel = eqtCodeLabel
+                    ? data.iso_type + ' → <strong>' + eqtCodeLabel + '</strong>'
                     : data.iso_type + ' <small class="text-muted">(no equipment match)</small>';
                 extras.push('ISO: ' + eqtLabel);
             }
@@ -1521,13 +1538,9 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     window.additionalDetails?.fillFromOcr(data);
                 }
 
-                // Pre-fill equipment type: master record wins; otherwise match by ISO code
-                // client-side (data-iso on options) then fall back to server-side lookup id.
-                const eqtSel = document.getElementById('gateEqtSelect');
-                if (data.master?.equipment_type_id) {
-                    preselectEqt(eqtSel, data.master.equipment_type_id);
-                } else if (data.iso_type) {
-                    preselectEqt(eqtSel, findEqtByIso(eqtSel, data.iso_type) || data.equipment_match?.id);
+                // Pre-fill equipment type
+                if (eqtToSet) {
+                    preselectEqt(eqtSel, eqtToSet);
                 }
 
                 // Only trigger master lookup when not already in-yard — if it IS in-yard
