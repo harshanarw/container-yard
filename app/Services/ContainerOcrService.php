@@ -133,13 +133,25 @@ class ContainerOcrService
             return '';
         }
 
-        // Move the candidate that contains a container-number pattern to index 0
-        // so extractContainerNo() finds the most reliable match first.
-        $bestIdx = 0;
+        // Rank candidates by how confidently each contains a container number:
+        //   4 = valid ISO category (U/J/Z) + 7 digits  → perfect match
+        //   3 = valid ISO category              + 6 digits  → check digit may be a misread letter
+        //   2 = any 4-letter prefix             + 7 digits
+        //   1 = any 4-letter prefix             + 6 digits
+        // Highest score moves to index 0 so extractContainerNo() sees it first.
+        $bestIdx   = 0;
+        $bestScore = 0;
         foreach ($candidates as $i => $up) {
-            if (preg_match('/[A-Z]{4}\d{7}/', preg_replace('/[^A-Z0-9]/', '', $up))) {
-                $bestIdx = $i;
-                break;
+            $c     = preg_replace('/[^A-Z0-9]/', '', $up);
+            $score = 0;
+            if      (preg_match('/[A-Z]{3}[UJZ]\d{7}/', $c)) $score = 4;
+            elseif  (preg_match('/[A-Z]{3}[UJZ]\d{6}/', $c)) $score = 3;
+            elseif  (preg_match('/[A-Z]{4}\d{7}/',      $c)) $score = 2;
+            elseif  (preg_match('/[A-Z]{4}\d{6}/',      $c)) $score = 1;
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestIdx   = $i;
+                if ($score === 4) break;
             }
         }
         if ($bestIdx !== 0) {
@@ -225,13 +237,16 @@ class ContainerOcrService
         // serial, and boxed check digit: "SEGU 111192 3" → "SEGU1111923"
         $compact = preg_replace('/[^A-Z0-9]/', '', strtoupper($text));
 
-        // Any 4-letter prefix + 6–9 digits; slide 7-digit window, validate check digit.
+        // Any 4-letter prefix + 6–9 digits + optional trailing letter.
         // ISO 6346 requires position 3 (category code) to be U, J, or Z; V→U is
         // applied first since V and U are indistinguishable in many stencil fonts.
-        if (preg_match_all('/([A-Z]{4})(\d{6,9})/', $compact, $sets, PREG_SET_ORDER)) {
+        // The optional trailing letter captures OCR misreads of the check digit
+        // (e.g. "TGHU 482917 A" where "A" is a misread of "3").
+        if (preg_match_all('/([A-Z]{4})(\d{6,9})([A-Z])?/', $compact, $sets, PREG_SET_ORDER)) {
             foreach ($sets as $set) {
-                $prefix = $this->normalizeCategoryChar($set[1]);
-                $digits = $set[2];
+                $prefix         = $this->normalizeCategoryChar($set[1]);
+                $digits         = $set[2];
+                $trailingLetter = $set[3] ?? '';
 
                 // Skip anything that isn't a real container category code — prevents
                 // false positives like "LATA2177777" formed by compacting scattered
@@ -245,6 +260,17 @@ class ContainerOcrService
                     $candidate = $prefix . substr($digits, $offset, 7);
                     if ($this->validateCheckDigit($candidate)) {
                         return [$candidate, true];
+                    }
+                }
+
+                // 6 digits + trailing letter: OCR misread the check digit as a letter
+                // (common for "3"→"A", "0"→"O", etc.). Try all 10 possible digits.
+                if ($len === 6 && $trailingLetter !== '') {
+                    for ($d = 0; $d <= 9; $d++) {
+                        $candidate = $prefix . $digits . $d;
+                        if ($this->validateCheckDigit($candidate)) {
+                            return [$candidate, true];
+                        }
                     }
                 }
 
@@ -282,9 +308,10 @@ class ContainerOcrService
     private function extractFormattedContainerNo(string $text): array
     {
         // 3–4 letters (prefix), optional pipe/space separators, 6 serial digits,
-        // optional separator, 1 check digit.
+        // optional separator, 1 check digit (digit or letter — OCR often misreads
+        // check digits as letters, e.g. "3" → "A").
         if (!preg_match_all(
-            '/\b([A-Z]{3,4})[\s|]+(\d{6})[\s|]+(\d)\b/i',
+            '/\b([A-Z]{3,4})[\s|]+(\d{6})[\s|]+([A-Z0-9])\b/i',
             strtoupper($text),
             $sets,
             PREG_SET_ORDER
@@ -295,19 +322,26 @@ class ContainerOcrService
         foreach ($sets as $set) {
             $rawPrefix = strtoupper($set[1]);
             $serial    = $set[2];
-            $check     = $set[3];
+            $checkChar = strtoupper($set[3]);
+
+            // If the check position is a letter, the digit was misread; try all 10.
+            $checks = ctype_digit($checkChar) ? [$checkChar] : array_map('strval', range(0, 9));
 
             if (strlen($rawPrefix) === 4) {
                 $prefix = $this->normalizeCategoryChar($rawPrefix);
                 if (!in_array($prefix[3], ['U', 'J', 'Z'], true)) continue;
-                $candidate = $prefix . $serial . $check;
-                if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                foreach ($checks as $check) {
+                    $candidate = $prefix . $serial . $check;
+                    if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                }
             } else {
                 // 3-char raw prefix — category letter may have been cut off by OCR;
                 // try appending each valid category code and validate check digit.
                 foreach (['U', 'J', 'Z'] as $cat) {
-                    $candidate = $rawPrefix . $cat . $serial . $check;
-                    if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                    foreach ($checks as $check) {
+                        $candidate = $rawPrefix . $cat . $serial . $check;
+                        if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                    }
                 }
             }
         }
