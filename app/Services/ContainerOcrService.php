@@ -143,6 +143,20 @@ class ContainerOcrService
             // rod creates a large horizontal gap between "TG" and "HU".
             $c = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 1.0, 0.18, 7);
             if ($c !== '') $candidates[] = $c;
+
+            // Crop E — PSM 3 (auto layout), x: 30–100 %, full height.
+            // Replicates a manual right-side crop: excludes the left door panel
+            // and its locking rods, so PSM 3 column detection no longer splits
+            // "TG" (left of rod) from "HU 482917 3" (right of rod) into separate
+            // columns. On the right-only view the full prefix lands in one block.
+            $c = $this->runTesseractOnCrop($imagePath, 0.30, 0.0, 1.0, 1.0, 3);
+            if ($c !== '') $candidates[] = $c;
+
+            // Crop F — PSM 3 (auto layout), x: 50–100 %, full height.
+            // Tighter version of Crop E for images where the interfering rod is
+            // positioned further right (closer to the container number text).
+            $c = $this->runTesseractOnCrop($imagePath, 0.50, 0.0, 1.0, 1.0, 3);
+            if ($c !== '') $candidates[] = $c;
         }
 
         if (empty($candidates)) {
