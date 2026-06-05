@@ -178,6 +178,15 @@ class EquipmentTypeSeeder extends Seeder
         ];
 
         foreach ($items as $item) {
+            // If this iso_code is claimed by a different eqt_code (e.g. from a previous
+            // seeder run that matched on iso_code and overwrote the eqt_code), clear it
+            // first so the unique constraint doesn't fire on the insert/update below.
+            if (!empty($item['iso_code'])) {
+                EquipmentType::where('iso_code', $item['iso_code'])
+                    ->where('eqt_code', '!=', $item['eqt_code'])
+                    ->update(['iso_code' => null]);
+            }
+
             // Match on eqt_code (stable internal key) so that iso_code values
             // can be updated in place without violating the unique constraint.
             EquipmentType::updateOrCreate(
