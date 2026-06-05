@@ -157,6 +157,16 @@ class ContainerOcrService
             // positioned further right (closer to the container number text).
             $c = $this->runTesseractOnCrop($imagePath, 0.50, 0.0, 1.0, 1.0, 3);
             if ($c !== '') $candidates[] = $c;
+
+            // Crop G — PSM 6 (uniform block), x: 35–100 %, y: 0–35 %.
+            // Right-panel, PSM-6 complement to Crops E/F: PSM 6 treats the region
+            // as one uniform text block with no column detection, so a locking rod
+            // between the first letter ("M") and the rest of the prefix ("SCU …")
+            // is interpreted as whitespace rather than a column boundary. The crop
+            // starts at 35 % to exclude the far-left door panel while still including
+            // any letter printed just right of the centre-panel rod.
+            $c = $this->runTesseractOnCrop($imagePath, 0.35, 0.0, 1.0, 0.35, 6);
+            if ($c !== '') $candidates[] = $c;
         }
 
         if (empty($candidates)) {
@@ -164,26 +174,46 @@ class ContainerOcrService
         }
 
         // Rank candidates by how confidently each contains a container number:
-        //   4 = valid ISO category (U/J/Z) + 7 digits  → perfect match
-        //   3 = valid ISO category              + 6 digits  → check digit may be a misread letter
+        //   5 = ISO 6346 check digit validates  → confirmed container number
+        //   4 = valid ISO category (U/J/Z) + 7 digits  → pattern match only
+        //   3 = valid ISO category              + 6 digits
         //   2 = any 4-letter prefix             + 7 digits
         //   1 = any 4-letter prefix             + 6 digits
         // Highest score moves to index 0 so extractContainerNo() sees it first.
+        // Score 5 is critical: it prevents a PSM-3 false-positive container number
+        // (formed when a locking rod splits the first letter into a different column,
+        // e.g. "M|SCU 123456 6" → compact noise produces "SCUJ…" that happens to
+        // satisfy the pattern) from winning over a PSM-6 crop that reads the full
+        // prefix cleanly and whose container number actually passes check-digit
+        // validation.
         $bestIdx   = 0;
         $bestScore = 0;
         foreach ($candidates as $i => $up) {
             $c     = preg_replace('/[^A-Z0-9]/', '', $up);
             $score = 0;
-            if      (preg_match('/[A-Z]{3}[UJZ]\d{7}/', $c)) $score = 4;
-            elseif  (preg_match('/[A-Z]{3}[UJZ]\d{6}/', $c)) $score = 3;
-            elseif  (preg_match('/[A-Z]{4}\d{7}/',      $c)) $score = 2;
-            elseif  (preg_match('/[A-Z]{4}\d{6}/',      $c)) $score = 1;
-            // Leading digit misread (e.g. T→1): "1GHU482917…"
-            elseif  (preg_match('/\d[A-Z]{2}[UJZ]\d{6}/', $c)) $score = 1;
+            if (preg_match_all('/([A-Z]{3}[UJZ])(\d{6,9})/', $c, $vsets, PREG_SET_ORDER)) {
+                foreach ($vsets as $vs) {
+                    $vLen = strlen($vs[2]);
+                    for ($vOff = 0; $vOff <= $vLen - 7; $vOff++) {
+                        if ($this->validateCheckDigit($vs[1] . substr($vs[2], $vOff, 7))) {
+                            $score = 5;
+                            break 2;
+                        }
+                    }
+                }
+            }
+            if ($score < 5) {
+                if      (preg_match('/[A-Z]{3}[UJZ]\d{7}/', $c)) $score = 4;
+                elseif  (preg_match('/[A-Z]{3}[UJZ]\d{6}/', $c)) $score = 3;
+                elseif  (preg_match('/[A-Z]{4}\d{7}/',      $c)) $score = 2;
+                elseif  (preg_match('/[A-Z]{4}\d{6}/',      $c)) $score = 1;
+                // Leading digit misread (e.g. T→1): "1GHU482917…"
+                elseif  (preg_match('/\d[A-Z]{2}[UJZ]\d{6}/', $c)) $score = 1;
+            }
             if ($score > $bestScore) {
                 $bestScore = $score;
                 $bestIdx   = $i;
-                if ($score === 4) break;
+                if ($score === 5) break;
             }
         }
         if ($bestIdx !== 0) {
