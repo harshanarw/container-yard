@@ -209,20 +209,42 @@ class ContainerOcrService
     {
         // Labelled: "SIZE/TYPE 22G1" or "ISO 22G1" or "TYPE: 45R1"
         if (preg_match('/(?:SIZE[\s\/]?TYPE|ISO|TYPE)\s*[:\-]?\s*([0-9]{2}[A-Z0-9]{2})\b/i', $text, $m)) {
-            return strtoupper($m[1]);
+            $code = $this->normalizeIsoCode(strtoupper($m[1]));
+            if ($this->isValidIsoTypeCode($code)) return $code;
         }
-        // Standalone code on its own line or surrounded by whitespace: 22G1, 45G1, 45R1
-        if (preg_match('/\b([24][025][A-Z][0-9A-Z])\b/', $text, $m)) {
-            return strtoupper($m[1]);
+        // Standalone: also accept a digit at the type-letter position so that the very
+        // common OCR misread of G→6 in blocky stencil fonts (22G1 → 2261) is corrected.
+        if (preg_match('/\b([24L][025][A-Z0-9][0-9A-Z])\b/', $text, $m)) {
+            $code = $this->normalizeIsoCode(strtoupper($m[1]));
+            if ($this->isValidIsoTypeCode($code)) return $code;
         }
         return null;
+    }
+
+    /**
+     * Fix common OCR digit→letter misreads at ISO code position 2 (the equipment-type letter).
+     * Blocky door stencil fonts: G is frequently read as 6; R occasionally as 8.
+     */
+    private function normalizeIsoCode(string $code): string
+    {
+        static $swaps = ['6' => 'G', '8' => 'R'];
+        if (strlen($code) === 4 && isset($swaps[$code[2]])) {
+            return substr($code, 0, 2) . $swaps[$code[2]] . $code[3];
+        }
+        return $code;
+    }
+
+    /** Position 2 of an ISO 6346 size-type code must be an equipment-type letter. */
+    private function isValidIsoTypeCode(string $code): bool
+    {
+        return strlen($code) === 4 && in_array($code[2], ['G','R','U','P','T','B','S'], true);
     }
 
     // ── Weight extraction ────────────────────────────────────────────────────
 
     private function extractTareKg(string $text): ?int
     {
-        // Handles: "TARE  2 180 KGS", "TARE: 2,180 KG", "TARE 2.180 KG", "T: 2180KG"
+        // Normal order: "TARE  2 180 KGS", "TARE: 2,180 KG", "TARE 2.180 KG", "T: 2180KG"
         // Space/comma/dot are all valid thousands separators on container plates.
         if (preg_match('/\bTARE\b[\s:]*([0-9][0-9\s,\.]+)\s*KGS?/i', $text, $m)) {
             return (int) preg_replace('/[^0-9]/', '', $m[1]);
@@ -230,12 +252,19 @@ class ContainerOcrService
         if (preg_match('/\bT\s*:\s*([0-9][0-9\s,\.]+)\s*KGS?\b/i', $text, $m)) {
             return (int) preg_replace('/[^0-9]/', '', $m[1]);
         }
+        // Reversed column order (PSM 3 reads right column before left on two-column doors):
+        // value "2 180 KGS" appears in text before the "TARE" label.
+        // Only accept if the extracted kg is in a realistic tare range (1 500–6 000 kg).
+        if (preg_match('/([0-9][0-9\s,\.]+)\s*KGS?[\s\S]{0,80}?\bTARE\b/i', $text, $m)) {
+            $kg = (int) preg_replace('/[^0-9]/', '', $m[1]);
+            if ($kg >= 1500 && $kg <= 6000) return $kg;
+        }
         return null;
     }
 
     private function extractMaxGrossKg(string $text): ?int
     {
-        // Handles: "MGW  30 480 KGS", "MAX. GROSS 30,480 KG", "MAX GROSS: 30.480 KG"
+        // Normal order: "MGW  30 480 KGS", "MAX. GROSS 30,480 KG"
         if (preg_match('/\bMGW\b[\s:]*([0-9][0-9\s,\.]+)\s*KGS?/i', $text, $m)) {
             return (int) preg_replace('/[^0-9]/', '', $m[1]);
         }
@@ -244,6 +273,12 @@ class ContainerOcrService
         }
         if (preg_match('/\bGROSS\s*WEIGHT\b[\s:]*([0-9][0-9\s,\.]+)\s*KGS?/i', $text, $m)) {
             return (int) preg_replace('/[^0-9]/', '', $m[1]);
+        }
+        // Reversed column order: value "30 480 KGS" appears before the "MGW" label.
+        // Sanity-check: max gross weight is always > 10 000 kg for any shipping container.
+        if (preg_match('/([0-9][0-9\s,\.]+)\s*KGS?[\s\S]{0,80}?\bMGW\b/i', $text, $m)) {
+            $kg = (int) preg_replace('/[^0-9]/', '', $m[1]);
+            if ($kg > 10000) return $kg;
         }
         return null;
     }
