@@ -117,6 +117,18 @@ class ContainerOcrService
             }
         }
 
+        // Focused crop pass: container numbers are always in the upper-right corner.
+        // Vertical door locking rods can bisect "TGHU" so that PSM 3 column detection
+        // places "TG" in one reading region and "HU 482917 3" in another, losing the
+        // first two characters. A tight crop on that quadrant + PSM 6 (uniform block)
+        // prevents column splitting and lets Tesseract read the prefix intact.
+        if (extension_loaded('gd')) {
+            $cropText = $this->runTesseractOnCrop($imagePath, 0.45, 0.0, 1.0, 0.30, 6);
+            if ($cropText !== '') {
+                $candidates[] = $cropText;
+            }
+        }
+
         if (empty($candidates)) {
             return '';
         }
@@ -140,7 +152,68 @@ class ContainerOcrService
         return implode("\n\n", $candidates);
     }
 
-    // ── Container number extraction ──────────────────────────────────────────
+    /**
+     * Run Tesseract on a proportionally-cropped sub-region of the image.
+     * Coordinates are fractions of width/height: (x1,y1) = top-left, (x2,y2) = bottom-right.
+     * The crop is scaled to at least 800 px wide before OCR so small regions are readable.
+     */
+    private function runTesseractOnCrop(
+        string $imagePath,
+        float $x1, float $y1,
+        float $x2, float $y2,
+        int $psm
+    ): string {
+        $mime = mime_content_type($imagePath);
+        $src  = match (true) {
+            str_contains($mime, 'png')  => @imagecreatefrompng($imagePath),
+            str_contains($mime, 'gif')  => @imagecreatefromgif($imagePath),
+            default                     => @imagecreatefromjpeg($imagePath),
+        };
+        if (!$src) return '';
+
+        $w = imagesx($src);
+        $h = imagesy($src);
+
+        $cropX = (int) ($w * $x1);
+        $cropY = (int) ($h * $y1);
+        $cropW = (int) ($w * ($x2 - $x1));
+        $cropH = (int) ($h * ($y2 - $y1));
+
+        if ($cropW < 50 || $cropH < 20) {
+            imagedestroy($src);
+            return '';
+        }
+
+        $dest = imagecreatetruecolor($cropW, $cropH);
+        imagecopy($dest, $src, 0, 0, $cropX, $cropY, $cropW, $cropH);
+        imagedestroy($src);
+
+        // Scale so the cropped text reaches an OCR-friendly width
+        if ($cropW < 800) {
+            $scale  = 800 / $cropW;
+            $newW   = (int) ($cropW * $scale);
+            $newH   = (int) ($cropH * $scale);
+            $scaled = imagecreatetruecolor($newW, $newH);
+            imagecopyresampled($scaled, $dest, 0, 0, 0, 0, $newW, $newH, $cropW, $cropH);
+            imagedestroy($dest);
+            $dest = $scaled;
+        }
+
+        $tmpPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ocr_crop_' . uniqid() . '.png';
+        $ok = imagepng($dest, $tmpPath);
+        imagedestroy($dest);
+
+        if (!$ok || !file_exists($tmpPath)) return '';
+
+        $nullDev = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
+        $escaped = escapeshellarg($tmpPath);
+        $out     = shell_exec("tesseract {$escaped} stdout -l eng --psm {$psm} --oem 3 {$nullDev}");
+        @unlink($tmpPath);
+
+        return ($out !== null && trim($out) !== '') ? strtoupper(trim($out)) : '';
+    }
+
+
 
     /**
      * Returns [containerNo|null, checkDigitValid].
