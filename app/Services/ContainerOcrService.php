@@ -129,10 +129,19 @@ class ContainerOcrService
             $c = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 1.0, 0.40, 6);
             if ($c !== '') $candidates[] = $c;
 
-            // Crop C — PSM 7 (single text line), x: 0–55 %, y: 0–22 %.
+            // Crop C — PSM 7 (single text line), x: 0–75 %, y: 0–22 %.
             // PSM 7 forces the whole strip to be read left-to-right as one sequence,
             // so a locking rod between "TG" and "HU" cannot split the prefix.
-            $c = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 0.55, 0.22, 7);
+            // Width extended to 75 % to ensure both "TG" (left of rod) and
+            // "HU 482917" (right of rod) land in the same single-line read.
+            $c = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 0.75, 0.22, 7);
+            if ($c !== '') $candidates[] = $c;
+
+            // Crop D — PSM 7 (single text line), full width, y: 0–18 %.
+            // Second single-line sweep; wider crop ensures the full container
+            // number prefix + serial are captured together even when the locking
+            // rod creates a large horizontal gap between "TG" and "HU".
+            $c = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 1.0, 0.18, 7);
             if ($c !== '') $candidates[] = $c;
         }
 
@@ -155,6 +164,8 @@ class ContainerOcrService
             elseif  (preg_match('/[A-Z]{3}[UJZ]\d{6}/', $c)) $score = 3;
             elseif  (preg_match('/[A-Z]{4}\d{7}/',      $c)) $score = 2;
             elseif  (preg_match('/[A-Z]{4}\d{6}/',      $c)) $score = 1;
+            // Leading digit misread (e.g. T→1): "1GHU482917…"
+            elseif  (preg_match('/\d[A-Z]{2}[UJZ]\d{6}/', $c)) $score = 1;
             if ($score > $bestScore) {
                 $bestScore = $score;
                 $bestIdx   = $i;
@@ -270,6 +281,19 @@ class ContainerOcrService
                     }
                 }
 
+                // 8 digits: OCR inserted a noise digit (e.g. "48291723" where the "2"
+                // before the real check digit "3" is a stray glyph). Try skipping each
+                // position in turn to produce a 7-digit candidate.
+                if ($len === 8) {
+                    for ($skip = 0; $skip < 8; $skip++) {
+                        $subset    = substr($digits, 0, $skip) . substr($digits, $skip + 1);
+                        $candidate = $prefix . $subset;
+                        if ($this->validateCheckDigit($candidate)) {
+                            return [$candidate, true];
+                        }
+                    }
+                }
+
                 // 6 digits + trailing letter: OCR misread the check digit as a letter
                 // (common for "3"→"A", "0"→"O", etc.). Try all 10 possible digits.
                 if ($len === 6 && $trailingLetter !== '') {
@@ -289,6 +313,63 @@ class ContainerOcrService
 
                 // Best guess: rightmost 7 digits; check digit usually printed last
                 return [$prefix . substr($digits, -7), false];
+            }
+        }
+
+        // Digit-prefix recovery: stencil fonts frequently render "T" as "1", "G" as "6",
+        // etc., so PSM 7 single-line crops may yield "1GHU482917…" instead of
+        // "TGHU482917…".  Match \d[A-Z]{3}\d{6,9} and substitute the leading digit
+        // with visually similar letters, then validate via check digit.
+        static $digitSubs = [
+            '1' => ['T', 'I', 'L'],
+            '6' => ['G', 'C'],
+            '0' => ['O', 'Q'],
+            '8' => ['B'],
+            '5' => ['S'],
+        ];
+        if (preg_match_all('/([0-9])([A-Z]{3})(\d{6,9})([A-Z])?/', $compact, $dsets, PREG_SET_ORDER)) {
+            foreach ($dsets as $dset) {
+                $dDigit   = $dset[1];
+                $dRest3   = $dset[2];
+                $dDigits  = $dset[3];
+                $dTrail   = $dset[4] ?? '';
+                $dLen     = strlen($dDigits);
+
+                foreach ($digitSubs[$dDigit] ?? [] as $sub) {
+                    $prefix = $this->normalizeCategoryChar($sub . $dRest3);
+                    if (!in_array($prefix[3], ['U', 'J', 'Z'], true)) {
+                        continue;
+                    }
+
+                    // Sliding 7-digit window
+                    for ($offset = 0; $offset <= $dLen - 7; $offset++) {
+                        $candidate = $prefix . substr($dDigits, $offset, 7);
+                        if ($this->validateCheckDigit($candidate)) {
+                            return [$candidate, true];
+                        }
+                    }
+
+                    // 6 digits + trailing letter misread as check digit
+                    if ($dLen === 6 && $dTrail !== '') {
+                        for ($d = 0; $d <= 9; $d++) {
+                            $candidate = $prefix . $dDigits . $d;
+                            if ($this->validateCheckDigit($candidate)) {
+                                return [$candidate, true];
+                            }
+                        }
+                    }
+
+                    // 8 digits: skip each position to remove the noise digit
+                    if ($dLen === 8) {
+                        for ($skip = 0; $skip < 8; $skip++) {
+                            $subset    = substr($dDigits, 0, $skip) . substr($dDigits, $skip + 1);
+                            $candidate = $prefix . $subset;
+                            if ($this->validateCheckDigit($candidate)) {
+                                return [$candidate, true];
+                            }
+                        }
+                    }
+                }
             }
         }
 
