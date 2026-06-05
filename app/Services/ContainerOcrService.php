@@ -117,16 +117,27 @@ class ContainerOcrService
             }
         }
 
-        // Focused crop pass: container numbers sit in the upper portion of the door.
-        // Vertical locking rods bisect the prefix — PSM 3 column detection places
-        // e.g. "TG" in one column and "HU 482917 3" in another, losing the first two
-        // characters.  A wider crop (x from 25 %) + PSM 6 (uniform block, no column
-        // detection) keeps both halves of the prefix in one reading region.  The rod
-        // character is stripped during compaction so "TG|HU 482917 A" → "TGHU482917A".
+        // Crop pass A — PSM 6 (uniform block) on upper 30 %, x from 20 %.
+        // Captures the container-number area without triggering the column-detection
+        // that PSM 3 applies to the full image.  The rod character is non-alphanumeric
+        // so it gets stripped during compaction: "TG|HU 482917 A" → "TGHU482917A".
         if (extension_loaded('gd')) {
             $cropText = $this->runTesseractOnCrop($imagePath, 0.20, 0.0, 1.0, 0.30, 6);
             if ($cropText !== '') {
                 $candidates[] = $cropText;
+            }
+        }
+
+        // Crop pass B — PSM 7 (single text line) on a tight top strip, x from 0 %.
+        // PSM 7 treats the entire region as ONE text line with no layout analysis at
+        // all, so it can never split the prefix across columns.  The narrow height
+        // (top 18 %) keeps only the container-number row, reducing noise.  If TG is
+        // at the far left edge of the image (x < 20 %) crop A misses it; PSM 7 on
+        // the full width recovers it.
+        if (extension_loaded('gd')) {
+            $cropText2 = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 0.75, 0.18, 7);
+            if ($cropText2 !== '') {
+                $candidates[] = $cropText2;
             }
         }
 
