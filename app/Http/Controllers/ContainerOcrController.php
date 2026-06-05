@@ -45,9 +45,10 @@ class ContainerOcrController extends Controller
                 }
             }
 
-            // If OCR picked up an ISO type code, try to match equipment type
+            // If OCR picked up an ISO type code, match against the iso_code column
+            // (eqt_code stores internal codes like '20GP'; iso_code stores '22G1')
             if ($result['iso_type']) {
-                $eqt = EquipmentType::where('eqt_code', $result['iso_type'])->first();
+                $eqt = EquipmentType::where('iso_code', $result['iso_type'])->first();
                 if ($eqt) {
                     $equipmentMatch = [
                         'id'   => $eqt->id,

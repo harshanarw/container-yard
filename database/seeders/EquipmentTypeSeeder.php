@@ -10,10 +10,14 @@ class EquipmentTypeSeeder extends Seeder
     /**
      * Standard ISO 6346 equipment types widely used in the shipping industry.
      *
-     * ISO Code format: [Length][Height/Width][Type]
+     * ISO Code format: [Length][Height][Type][Sub-type]
      *   Length:  2=20ft  4=40ft  L=45ft
-     *   Height:  2=8.5ft (standard)  5=9.5ft (high cube)
-     *   Type:    G0/G1=General  R0/R1=Reefer  U0=Open Top  P1=Flat Rack  T0=Tank
+     *   Height:  2=8'6" standard  5=9'6" high cube
+     *   Type:    G=General  R=Reefer  U=Open Top  P=Flat Rack  T=Tank
+     *   Sub:     0=no additional feature  1=with passive vents / stacking fittings
+     *
+     * G1 / R1 are used on the vast majority of modern container doors (passive vents
+     * for G, corner castings for U).  G0 / R0 appear on older stock.
      */
     public function run(): void
     {
@@ -21,7 +25,7 @@ class EquipmentTypeSeeder extends Seeder
             // ── Dry General Purpose ─────────────────────────────────────────
             [
                 'eqt_code'    => '20GP',
-                'iso_code'    => '22G0',
+                'iso_code'    => '22G1',
                 'size'        => '20',
                 'type_code'   => 'GP',
                 'height'      => 'Standard',
@@ -30,7 +34,7 @@ class EquipmentTypeSeeder extends Seeder
             ],
             [
                 'eqt_code'    => '40GP',
-                'iso_code'    => '42G0',
+                'iso_code'    => '42G1',
                 'size'        => '40',
                 'type_code'   => 'GP',
                 'height'      => 'Standard',
@@ -39,7 +43,7 @@ class EquipmentTypeSeeder extends Seeder
             ],
             [
                 'eqt_code'    => '40HC',
-                'iso_code'    => '45G0',
+                'iso_code'    => '45G1',
                 'size'        => '40',
                 'type_code'   => 'HC',
                 'height'      => 'High Cube',
@@ -48,7 +52,7 @@ class EquipmentTypeSeeder extends Seeder
             ],
             [
                 'eqt_code'    => '45HC',
-                'iso_code'    => 'L5G0',
+                'iso_code'    => 'L5G1',
                 'size'        => '45',
                 'type_code'   => 'HC',
                 'height'      => 'High Cube',
@@ -58,7 +62,7 @@ class EquipmentTypeSeeder extends Seeder
             // ── Reefer ──────────────────────────────────────────────────────
             [
                 'eqt_code'    => '20RF',
-                'iso_code'    => '22R0',
+                'iso_code'    => '22R1',
                 'size'        => '20',
                 'type_code'   => 'RF',
                 'height'      => 'Standard',
@@ -67,7 +71,7 @@ class EquipmentTypeSeeder extends Seeder
             ],
             [
                 'eqt_code'    => '40RF',
-                'iso_code'    => '42R0',
+                'iso_code'    => '42R1',
                 'size'        => '40',
                 'type_code'   => 'RF',
                 'height'      => 'Standard',
@@ -86,7 +90,7 @@ class EquipmentTypeSeeder extends Seeder
             // ── Open Top ────────────────────────────────────────────────────
             [
                 'eqt_code'    => '20OT',
-                'iso_code'    => '22U0',
+                'iso_code'    => '22U1',
                 'size'        => '20',
                 'type_code'   => 'OT',
                 'height'      => 'Standard',
@@ -95,7 +99,7 @@ class EquipmentTypeSeeder extends Seeder
             ],
             [
                 'eqt_code'    => '40OT',
-                'iso_code'    => '42U0',
+                'iso_code'    => '42U1',
                 'size'        => '40',
                 'type_code'   => 'OT',
                 'height'      => 'Standard',
@@ -104,7 +108,7 @@ class EquipmentTypeSeeder extends Seeder
             ],
             [
                 'eqt_code'    => '40OTHC',
-                'iso_code'    => '45U0',
+                'iso_code'    => '45U1',
                 'size'        => '40',
                 'type_code'   => 'OT',
                 'height'      => 'High Cube',
@@ -150,6 +154,9 @@ class EquipmentTypeSeeder extends Seeder
                 'sort_order'  => 14,
             ],
             // ── Reefer High Cube (RH) ────────────────────────────────────────
+            // 20RH: ISO 25R1 (20' reefer high cube — rare but exists)
+            // 40RH: shares the 40' high cube reefer footprint with 40RFHC; no
+            //       separate ISO 6346 code exists, so iso_code is left null.
             [
                 'eqt_code'    => '20RH',
                 'iso_code'    => '25R1',
@@ -161,7 +168,7 @@ class EquipmentTypeSeeder extends Seeder
             ],
             [
                 'eqt_code'    => '40RH',
-                'iso_code'    => '45R1',
+                'iso_code'    => null,
                 'size'        => '40',
                 'type_code'   => 'RH',
                 'height'      => 'High Cube',
@@ -171,8 +178,10 @@ class EquipmentTypeSeeder extends Seeder
         ];
 
         foreach ($items as $item) {
+            // Match on eqt_code (stable internal key) so that iso_code values
+            // can be updated in place without violating the unique constraint.
             EquipmentType::updateOrCreate(
-                ['iso_code' => $item['iso_code']],
+                ['eqt_code' => $item['eqt_code']],
                 $item
             );
         }
