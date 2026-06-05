@@ -795,6 +795,11 @@
 .slot-grid-row  { display:flex; align-items:flex-end; gap:4px; }
 .slot-row-label { width:28px; font-size:.7rem; font-weight:700; color:#6b7280; text-align:right; padding-right:4px; flex-shrink:0; }
 .slot-bay-header { width:58px; text-align:center; font-size:.62rem; color:#9ca3af; font-weight:600; padding-bottom:3px; }
+
+/* EQT select is inside a d-flex wrapper (shared with badge spans); make the
+   Select2-generated container grow to fill the remaining space so it aligns
+   with the full-width fields above and below it. */
+#gateEqtSelect + .select2-container { flex: 1 1 auto; min-width: 0; }
 </style>
 @endpush
 
