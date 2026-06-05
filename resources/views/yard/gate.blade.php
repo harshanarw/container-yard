@@ -1481,7 +1481,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 showOcrResult(resultEl, 'warning',
                     '<i class="bi bi-exclamation-triangle me-1"></i>' +
                     (data.message || 'Could not read container number. Please enter manually.') +
-                    (data.raw_text ? ' <small class="text-muted d-block mt-1">Raw OCR: ' + data.raw_text.substring(0, 80) + '</small>' : '')
+                    (data.raw_text ? ' <small class="text-muted d-block mt-1">Raw OCR: ' + data.raw_text.replace(/\n\n+/g,' ‖ ').substring(0, 400) + '</small>' : '')
                 );
                 return;
             }

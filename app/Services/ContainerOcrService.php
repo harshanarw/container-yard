@@ -117,28 +117,23 @@ class ContainerOcrService
             }
         }
 
-        // Crop pass A — PSM 6 (uniform block) on upper 30 %, x from 20 %.
-        // Captures the container-number area without triggering the column-detection
-        // that PSM 3 applies to the full image.  The rod character is non-alphanumeric
-        // so it gets stripped during compaction: "TG|HU 482917 A" → "TGHU482917A".
         if (extension_loaded('gd')) {
-            $cropText = $this->runTesseractOnCrop($imagePath, 0.20, 0.0, 1.0, 0.30, 6);
-            if ($cropText !== '') {
-                $candidates[] = $cropText;
-            }
-        }
+            // Crop A — PSM 6 (uniform block), x: 20–100 %, y: 0–30 %.
+            // No column detection; avoids the far-left margin noise.
+            $c = $this->runTesseractOnCrop($imagePath, 0.20, 0.0, 1.0, 0.30, 6);
+            if ($c !== '') $candidates[] = $c;
 
-        // Crop pass B — PSM 7 (single text line) on a tight top strip, x from 0 %.
-        // PSM 7 treats the entire region as ONE text line with no layout analysis at
-        // all, so it can never split the prefix across columns.  The narrow height
-        // (top 18 %) keeps only the container-number row, reducing noise.  If TG is
-        // at the far left edge of the image (x < 20 %) crop A misses it; PSM 7 on
-        // the full width recovers it.
-        if (extension_loaded('gd')) {
-            $cropText2 = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 0.75, 0.18, 7);
-            if ($cropText2 !== '') {
-                $candidates[] = $cropText2;
-            }
+            // Crop B — PSM 6 (uniform block), full width, y: 0–40 %.
+            // x from 0 catches "TG" at the extreme left edge; y to 40 % covers
+            // images where the door doesn't start at the very top of the frame.
+            $c = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 1.0, 0.40, 6);
+            if ($c !== '') $candidates[] = $c;
+
+            // Crop C — PSM 7 (single text line), x: 0–55 %, y: 0–22 %.
+            // PSM 7 forces the whole strip to be read left-to-right as one sequence,
+            // so a locking rod between "TG" and "HU" cannot split the prefix.
+            $c = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 0.55, 0.22, 7);
+            if ($c !== '') $candidates[] = $c;
         }
 
         if (empty($candidates)) {
