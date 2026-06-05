@@ -244,60 +244,89 @@ class ContainerOcrService
 
     private function extractTareKg(string $text): ?int
     {
-        // Normal order: "TARE  2 180 KGS", "TARE: 2,180 KG", "TARE | 2.180 KG", "T: 2180KG"
-        // [\s:|]* handles pipe separators OCR inserts between two-column label/value cells.
-        // K[GE]S? handles the common OCR misread G→E in blocky stencil fonts.
-        if (preg_match('/\bTARE\b[\s:|]*([0-9][0-9\s,\.]+)\s*K[GE]S?/i', $text, $m)) {
-            return (int) preg_replace('/[^0-9]/', '', $m[1]);
-        }
-        if (preg_match('/\bT\s*:\s*([0-9][0-9\s,\.]+)\s*K[GE]S?\b/i', $text, $m)) {
-            return (int) preg_replace('/[^0-9]/', '', $m[1]);
-        }
-        // LBS fallback: KG value garbled but LBS line readable → convert (no spaces in
-        // the capture group to avoid spanning onto the NET line).
-        if (preg_match('/\bTARE\b[\s:|]*([0-9][0-9,\.]+)\s*LBS?\b/i', $text, $m)) {
-            $kg = (int) round((int) preg_replace('/[^0-9]/', '', $m[1]) / 2.20462);
-            if ($kg >= 1500 && $kg <= 6000) return $kg;
-        }
-        // Reversed column order (PSM 3 reads right column before left on two-column doors):
-        // value "2 180 KGS" appears in text before the "TARE" label.
-        // Only accept if the extracted kg is in a realistic tare range (1 500–6 000 kg).
-        if (preg_match('/([0-9][0-9\s,\.]+)\s*K[GE]S?[\s\S]{0,80}?\bTARE\b/i', $text, $m)) {
-            $kg = (int) preg_replace('/[^0-9]/', '', $m[1]);
-            if ($kg >= 1500 && $kg <= 6000) return $kg;
-        }
-        return null;
+        return $this->findLabelledWeightKg($text, 'TARE', 1500, 6000)
+            ?? $this->findLabelledWeightKg($text, 'T\s*:', 1500, 6000)
+            ?? $this->findReversedWeightKg($text, 'TARE', 1500, 6000);
     }
 
     private function extractMaxGrossKg(string $text): ?int
     {
-        // Normal order: "MGW  30 480 KGS", "MAX. GROSS 30,480 KG", "MAX. GROSS | 30,480 KG"
-        if (preg_match('/\bMGW\b[\s:|]*([0-9][0-9\s,\.]+)\s*K[GE]S?/i', $text, $m)) {
-            return (int) preg_replace('/[^0-9]/', '', $m[1]);
+        return $this->findLabelledWeightKg($text, 'MGW|MAX\.?\s*GROSS|GROSS\s*WEIGHT', 10001, 40000)
+            ?? $this->findReversedWeightKg($text, 'MGW', 10001, 40000);
+    }
+
+    /**
+     * Extract a weight (kg) that appears after a label keyword in the text.
+     *
+     * Resilient to common OCR artefacts on container door plates:
+     *  – Pipe/colon separators between the label and value columns
+     *  – KG unit misread as KE, KI, AG, RG … (K[A-Z] or [A-Z]G)
+     *  – LBS unit misread as LES, LAS, LIS … (L[A-Z]S?)
+     *  – Single-digit misread in the KG value (e.g. 3→2 giving 22 500 instead of
+     *    32 500): cross-validates the KG/LBS ratio (should be ~2.20462); when the
+     *    ratio deviates by more than 20 % it derives kg from the LBS figure instead,
+     *    which is typically read more reliably on high-contrast stencilled plates.
+     */
+    private function findLabelledWeightKg(string $text, string $labelAlt, int $minKg, int $maxKg): ?int
+    {
+        if (!preg_match('/\b(?:' . $labelAlt . ')\b/i', $text, $lm, PREG_OFFSET_CAPTURE)) {
+            return null;
         }
-        if (preg_match('/\bMAX\.?\s*GROSS\b[\s:|]*([0-9][0-9\s,\.]+)\s*K[GE]S?/i', $text, $m)) {
-            return (int) preg_replace('/[^0-9]/', '', $m[1]);
+        $after = substr($text, $lm[0][1] + strlen($lm[0][0]), 200);
+
+        // KG candidate: number + 2-char unit resembling "KG"
+        // K[A-Z] covers KG/KE/KI/KA; [A-Z]G covers AG/RG etc.
+        $kg = null;
+        if (preg_match('/[\s:|]*([0-9][0-9\s,\.]+)\s*(?:K[A-Z]|[A-Z]G)S?\b/i', $after, $m)) {
+            $v = (int) preg_replace('/[^0-9]/', '', $m[1]);
+            if ($v >= $minKg && $v <= $maxKg) $kg = $v;
         }
-        if (preg_match('/\bGROSS\s*WEIGHT\b[\s:|]*([0-9][0-9\s,\.]+)\s*K[GE]S?/i', $text, $m)) {
-            return (int) preg_replace('/[^0-9]/', '', $m[1]);
+
+        // LBS candidate: number + unit resembling "LBS"
+        $lbs = null;
+        if (preg_match('/([0-9][0-9\s,\.]+)\s*(?:LBS?|L[A-Z]S?)\b/i', $after, $m)) {
+            $lbs = (int) preg_replace('/[^0-9]/', '', $m[1]);
         }
-        // LBS fallback: convert lbs→kg when KG value is garbled.
-        if (preg_match('/\bMAX\.?\s*GROSS\b[\s:|]*([0-9][0-9,\.]+)\s*LBS?\b/i', $text, $m)) {
-            $kg = (int) round((int) preg_replace('/[^0-9]/', '', $m[1]) / 2.20462);
-            if ($kg > 10000) return $kg;
+
+        // Cross-validate the KG/LBS pair — expected ratio ≈ 2.20462.
+        // If the ratio deviates > 20 % a digit was likely misread in the KG value;
+        // prefer the LBS-derived figure in that case.
+        if ($kg !== null && $lbs !== null && $lbs > $kg) {
+            $ratio = $lbs / $kg;
+            if ($ratio < 1.75 || $ratio > 2.65) {
+                $derived = (int) round($lbs / 2.20462);
+                if ($derived >= $minKg && $derived <= $maxKg) return $derived;
+            }
+            return $kg;
         }
-        if (preg_match('/\bMGW\b[\s:|]*([0-9][0-9,\.]+)\s*LBS?\b/i', $text, $m)) {
-            $kg = (int) round((int) preg_replace('/[^0-9]/', '', $m[1]) / 2.20462);
-            if ($kg > 10000) return $kg;
+
+        if ($kg !== null) return $kg;
+
+        // KG unit absent or fully garbled — convert from LBS as last resort
+        if ($lbs !== null) {
+            $derived = (int) round($lbs / 2.20462);
+            if ($derived >= $minKg && $derived <= $maxKg) return $derived;
         }
-        // Reversed column order: value "30 480 KGS" appears before the "MGW" label.
-        // Sanity-check: max gross weight is always > 10 000 kg for any shipping container.
-        if (preg_match('/([0-9][0-9\s,\.]+)\s*K[GE]S?[\s\S]{0,80}?\bMGW\b/i', $text, $m)) {
+
+        return null;
+    }
+
+    /**
+     * Reversed-column fallback: PSM 3 sometimes places values before labels.
+     */
+    private function findReversedWeightKg(string $text, string $label, int $minKg, int $maxKg): ?int
+    {
+        if (preg_match(
+            '/([0-9][0-9\s,\.]+)\s*(?:K[A-Z]|[A-Z]G)S?[\s\S]{0,80}?\b' . $label . '\b/i',
+            $text, $m
+        )) {
             $kg = (int) preg_replace('/[^0-9]/', '', $m[1]);
-            if ($kg > 10000) return $kg;
+            if ($kg >= $minKg && $kg <= $maxKg) return $kg;
         }
         return null;
     }
+
+
 
     // ── ISO 6346 check digit validation ──────────────────────────────────────
 
