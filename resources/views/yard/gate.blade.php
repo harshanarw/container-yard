@@ -90,6 +90,7 @@
                                             data-size="{{ $eqt->size }}"
                                             data-type="{{ $eqt->type_code }}"
                                             data-eqt="{{ $eqt->eqt_code }}"
+                                            data-iso="{{ $eqt->iso_code ?? '' }}"
                                             @if(in_array($eqt->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif>
                                         {{ $eqt->eqt_code }} — {{ $eqt->description }}
                                     </option>
@@ -1440,6 +1441,17 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         }
     }
 
+    // Find the <option> value whose data-iso attribute matches an ISO 6346 size-type code.
+    // Client-side match avoids a round-trip and is not affected by server-side lookup failures.
+    function findEqtByIso(selectEl, isoCode) {
+        if (!isoCode || !selectEl) return null;
+        const upper = isoCode.toUpperCase();
+        for (const opt of selectEl.options) {
+            if (opt.dataset.iso && opt.dataset.iso.toUpperCase() === upper) return opt.value;
+        }
+        return null;
+    }
+
     async function processImage(file, mode) {
         const isIn      = mode === 'in';
         const iconEl    = document.getElementById(isIn ? 'ocrIconIn'    : 'ocrIconOut');
@@ -1509,12 +1521,13 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     window.additionalDetails?.fillFromOcr(data);
                 }
 
-                // Pre-fill equipment type from master or OCR ISO type
+                // Pre-fill equipment type: master record wins; otherwise match by ISO code
+                // client-side (data-iso on options) then fall back to server-side lookup id.
                 const eqtSel = document.getElementById('gateEqtSelect');
                 if (data.master?.equipment_type_id) {
                     preselectEqt(eqtSel, data.master.equipment_type_id);
-                } else if (data.equipment_match?.id) {
-                    preselectEqt(eqtSel, data.equipment_match.id);
+                } else if (data.iso_type) {
+                    preselectEqt(eqtSel, findEqtByIso(eqtSel, data.iso_type) || data.equipment_match?.id);
                 }
 
                 // Only trigger master lookup when not already in-yard — if it IS in-yard

@@ -105,11 +105,9 @@ class ContainerOcrService
         $escaped = escapeshellarg($imagePath);
         $nullDev = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
 
-        // Try three PSM modes and prefer whichever output already contains a
-        // container-number pattern (4 letters + 7 digits) in its compacted form.
-        // PSM 3 = full auto (good for complex door layouts),
-        // PSM 11 = sparse text (good for mixed-content plates),
-        // PSM 6  = uniform block (fallback for clean label images).
+        // PSM 3 = full auto (complex door layouts),
+        // PSM 11 = sparse text (mixed-content plates),
+        // PSM 6  = uniform block (clean label images).
         $candidates = [];
         foreach ([3, 11, 6] as $psm) {
             $cmd = "tesseract {$escaped} stdout -l eng --psm {$psm} --oem 3 {$nullDev}";
@@ -119,13 +117,27 @@ class ContainerOcrService
             }
         }
 
-        foreach ($candidates as $up) {
-            if (preg_match('/[A-Z]{4}\d{7}/', preg_replace('/[^A-Z0-9]/', '', $up))) {
-                return $up;
-            }
+        if (empty($candidates)) {
+            return '';
         }
 
-        return $candidates[0] ?? '';
+        // Move the candidate that contains a container-number pattern to index 0
+        // so extractContainerNo() finds the most reliable match first.
+        $bestIdx = 0;
+        foreach ($candidates as $i => $up) {
+            if (preg_match('/[A-Z]{4}\d{7}/', preg_replace('/[^A-Z0-9]/', '', $up))) {
+                $bestIdx = $i;
+                break;
+            }
+        }
+        if ($bestIdx !== 0) {
+            array_unshift($candidates, array_splice($candidates, $bestIdx, 1)[0]);
+        }
+
+        // Concatenate all PSM outputs so that multi-column layouts (where PSM 3 places
+        // "TARE" in one column and "2 180 KGS" in another) still allow weight regexes
+        // to match — PHP PCRE \s matches newlines, bridging the two blocks.
+        return implode("\n\n", $candidates);
     }
 
     // ── Container number extraction ──────────────────────────────────────────

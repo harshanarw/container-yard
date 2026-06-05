@@ -1248,7 +1248,8 @@
                 var name = el && el.dataset.name ? el.dataset.name : '';
                 if (!name) return opt.text;
                 var chipClass = (el && el.dataset.chipClass) ? el.dataset.chipClass : 's2-code-chip';
-                return $('<span class="s2-opt-row"><span class="'+chipClass+'">'+code+'</span><span class="s2-code-label">'+name+'</span></span>');
+                var isoHtml = (el && el.dataset.iso) ? '<span style="display:inline-block;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:3px;padding:0 4px;font-family:monospace;font-size:.68rem;font-weight:600;flex-shrink:0;">'+el.dataset.iso+'</span>' : '';
+                return $('<span class="s2-opt-row"><span class="'+chipClass+'">'+code+'</span>'+isoHtml+'<span class="s2-code-label">'+name+'</span></span>');
             };
             window.s2CodeSelection = function(opt) {
                 if (!opt.id) return opt.text;
