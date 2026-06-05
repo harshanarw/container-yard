@@ -50,13 +50,18 @@
                     <div class="row g-3">
                         <div class="col-md-5">
                             <label class="form-label fw-semibold">Container Number <span class="text-danger">*</span></label>
-                            <input type="text" name="container_no"
+                            <input type="text" name="container_no" id="containerNoMaster"
                                    class="form-control text-uppercase font-monospace @error('container_no') is-invalid @enderror"
                                    placeholder="MSCU1234560"
                                    value="{{ old('container_no', $container?->container_no) }}"
                                    maxlength="12"
                                    {{ $isEdit ? 'readonly' : 'required' }}>
                             @error('container_no')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div id="checkDigitWarnMaster" class="mt-1 small d-none">
+                                <span class="badge" style="background:#fef3c7;color:#92400e;">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid check digit — please verify number
+                                </span>
+                            </div>
                             <div class="form-text">ISO 6346 format — 4 letters + 7 digits</div>
                         </div>
                         <div class="col-md-4">
@@ -405,6 +410,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
     catSel.addEventListener('change', toggleLease);
     toggleLease(); // apply correct state on first load (handles old() repopulation)
+
+    // ISO 6346 check-digit warning for manual container number entry
+    (function () {
+        const inp  = document.getElementById('containerNoMaster');
+        const warn = document.getElementById('checkDigitWarnMaster');
+        if (!inp || !warn) return;
+        const v = {A:10,B:12,C:13,D:14,E:15,F:16,G:17,H:18,I:19,J:20,K:21,
+                   L:23,M:24,N:25,O:26,P:27,Q:28,R:29,S:30,T:31,U:32,V:34,
+                   W:35,X:36,Y:37,Z:38};
+        function isValid(no) {
+            if (!/^[A-Z]{4}[0-9]{7}$/.test(no)) return null;
+            let sum = 0;
+            for (let i = 0; i < 10; i++) {
+                const ch = no[i];
+                sum += (/[A-Z]/.test(ch) ? v[ch] : parseInt(ch, 10)) * Math.pow(2, i);
+            }
+            return (sum % 11) % 10 === parseInt(no[10], 10);
+        }
+        function check() {
+            const result = isValid(inp.value.trim().toUpperCase());
+            warn.classList.toggle('d-none', result !== false);
+        }
+        inp.addEventListener('input', check);
+        inp.addEventListener('blur',  check);
+        check(); // evaluate on page load (handles old() repopulation)
+    })();
 });
 </script>
 @endpush

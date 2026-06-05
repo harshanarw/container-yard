@@ -75,6 +75,11 @@
                             </div>
                             {{-- Hidden file input for Gate-In OCR camera --}}
                             <input type="file" id="ocrInputIn" accept="image/*" capture="environment" class="d-none">
+                            <div id="checkDigitWarnIn" class="mt-1 small d-none">
+                                <span class="badge" style="background:#fef3c7;color:#92400e;">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid check digit — please verify number
+                                </span>
+                            </div>
                             <div id="masterLookupInfo" class="mt-1 small d-none"></div>
                             <div id="ocrResultIn" class="mt-1 small d-none"></div>
                         </div>
@@ -511,6 +516,11 @@
                         </div>
                         {{-- Hidden file input for Gate-Out OCR camera --}}
                         <input type="file" id="ocrInputOut" accept="image/*" capture="environment" class="d-none">
+                        <div id="checkDigitWarnOut" class="mt-1 small d-none">
+                            <span class="badge" style="background:#fef3c7;color:#92400e;">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid check digit — please verify number
+                            </span>
+                        </div>
                         <div class="form-text text-muted" style="font-size:.72rem;">Enter and search to confirm the container is in yard.</div>
                     </div>
                     <div id="ocrResultOut" class="mb-2 small d-none"></div>
@@ -885,6 +895,47 @@ btnOut.addEventListener('click', () => {
         }
         this.value = out;
     });
+})();
+
+// ── ISO 6346 check-digit validation for manual input ────────────────────────
+(function () {
+    // Returns true/false for a complete 11-char container number, null otherwise.
+    function isoCheckDigitValid(no) {
+        if (!/^[A-Z]{4}[0-9]{7}$/.test(no)) return null;
+        const v = {A:10,B:12,C:13,D:14,E:15,F:16,G:17,H:18,I:19,J:20,K:21,
+                   L:23,M:24,N:25,O:26,P:27,Q:28,R:29,S:30,T:31,U:32,V:34,
+                   W:35,X:36,Y:37,Z:38};
+        let sum = 0;
+        for (let i = 0; i < 10; i++) {
+            const ch = no[i];
+            sum += (/[A-Z]/.test(ch) ? v[ch] : parseInt(ch, 10)) * Math.pow(2, i);
+        }
+        return (sum % 11) % 10 === parseInt(no[10], 10);
+    }
+
+    function bindCheckDigitWarning(inputId, warnId) {
+        const inp  = document.getElementById(inputId);
+        const warn = document.getElementById(warnId);
+        if (!inp || !warn) return;
+        function check() {
+            const val = inp.value.trim().toUpperCase();
+            const result = isoCheckDigitValid(val);
+            // Show warning only when number is complete (11 chars) and invalid
+            warn.classList.toggle('d-none', result !== false);
+        }
+        inp.addEventListener('input', check);
+        inp.addEventListener('blur',  check);
+    }
+
+    bindCheckDigitWarning('containerNoIn',    'checkDigitWarnIn');
+    bindCheckDigitWarning('containerSearch',  'checkDigitWarnOut');
+
+    // Expose so OCR fill can also re-evaluate after populating the field.
+    window.reCheckDigitWarnings = function () {
+        ['containerNoIn', 'containerSearch'].forEach(function (id) {
+            document.getElementById(id)?.dispatchEvent(new Event('input'));
+        });
+    };
 })();
 
 // ── Container Master lookup on Gate-In ──────────────────────────────────────
@@ -1486,9 +1537,10 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 return;
             }
 
-            // Fill container number field
+            // Fill container number field and re-evaluate check-digit warning
             containerInp.value = data.container_no;
             containerInp.dispatchEvent(new Event('input'));
+            if (window.reCheckDigitWarnings) window.reCheckDigitWarnings();
 
             // Show amber "Please verify" badge when OCR couldn't confirm the check digit
             let containerLabel = '<strong class="font-monospace">' + data.container_no + '</strong>';
