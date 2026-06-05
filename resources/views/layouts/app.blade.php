@@ -472,6 +472,7 @@
         .s2-code-chip { display:inline-block; background:#dbeafe; color:#1d4ed8; border-radius:4px; padding:1px 6px; font-family:monospace; font-size:.72rem; font-weight:700; flex-shrink:0; }
         .s2-chip-reefer { background:#ccfbf1; color:#0d9488; }
         .s2-code-label { font-size:.85rem; color:#374151; overflow:hidden; text-overflow:ellipsis; }
+        .select2-selection__rendered .s2-code-label { font-size:.9rem; }
         .badge-reefer { background-color:#ccfbf1 !important; color:#0d9488 !important; border:1px solid #99f6e4 !important; }
     </style>
     @stack('styles')

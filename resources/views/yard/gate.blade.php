@@ -1522,8 +1522,8 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             if (data.max_gross_kg) extras.push('Max Gross: <strong>' + data.max_gross_kg.toLocaleString() + ' kg</strong>');
             if (extras.length) resultHtml += ' <span class="text-muted">|</span> ' + extras.join(' &nbsp; ');
 
-            // ── OCR diagnostic details (collapsible) ──────────────────────────
-            // Shows every field the server extracted so the raw scan can be checked.
+            // ── OCR diagnostic details (collapsible, system admins only) ─────────
+            @if(auth()->user()->isSystemAdmin())
             (function() {
                 function cell(label, value) {
                     return '<tr><td class="text-muted text-nowrap pe-3" style="vertical-align:top;width:110px;">' + label + '</td><td style="word-break:break-word;">' + value + '</td></tr>';
@@ -1550,6 +1550,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     '<table class="mt-1 mb-0" style="font-size:.72rem;border-collapse:collapse;width:100%;">' + tbl + '</table>' +
                     '</details>';
             })();
+            @endif
 
             if (isIn) {
                 // Gate-In specific actions
