@@ -295,15 +295,20 @@ class ContainerOcrService
                     }
                 }
 
-                // 8 digits: OCR inserted a noise digit (e.g. "48291723" where the "2"
-                // before the real check digit "3" is a stray glyph). Try skipping each
-                // position in turn to produce a 7-digit candidate.
-                if ($len === 8) {
-                    for ($skip = 0; $skip < 8; $skip++) {
-                        $subset    = substr($digits, 0, $skip) . substr($digits, $skip + 1);
-                        $candidate = $prefix . $subset;
-                        if ($this->validateCheckDigit($candidate)) {
-                            return [$candidate, true];
+                // 8+ digits: OCR produced extra characters — a noise digit inserted,
+                // the check digit read as multiple chars (e.g. "3"→"81"), or the
+                // adjacent ISO-type code appended (e.g. "482917 3  4561" compacts to
+                // "48291734561", 9 digits). Try every 6-digit sub-window as the serial
+                // and brute-force the check digit (0–9). The ISO 6346 formula is
+                // deterministic: exactly one digit per (prefix, serial) passes.
+                if ($len >= 8) {
+                    for ($offset = 0; $offset <= $len - 6; $offset++) {
+                        $serial = substr($digits, $offset, 6);
+                        for ($d = 0; $d <= 9; $d++) {
+                            $candidate = $prefix . $serial . $d;
+                            if ($this->validateCheckDigit($candidate)) {
+                                return [$candidate, true];
+                            }
                         }
                     }
                 }
@@ -373,13 +378,15 @@ class ContainerOcrService
                         }
                     }
 
-                    // 8 digits: skip each position to remove the noise digit
-                    if ($dLen === 8) {
-                        for ($skip = 0; $skip < 8; $skip++) {
-                            $subset    = substr($dDigits, 0, $skip) . substr($dDigits, $skip + 1);
-                            $candidate = $prefix . $subset;
-                            if ($this->validateCheckDigit($candidate)) {
-                                return [$candidate, true];
+                    // 8+ digits: same brute-force serial+check approach as main loop
+                    if ($dLen >= 8) {
+                        for ($offset = 0; $offset <= $dLen - 6; $offset++) {
+                            $serial = substr($dDigits, $offset, 6);
+                            for ($d = 0; $d <= 9; $d++) {
+                                $candidate = $prefix . $serial . $d;
+                                if ($this->validateCheckDigit($candidate)) {
+                                    return [$candidate, true];
+                                }
                             }
                         }
                     }
