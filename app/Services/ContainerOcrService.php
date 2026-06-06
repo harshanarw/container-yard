@@ -390,42 +390,45 @@ class ContainerOcrService
         // at offset +1; this pass explicitly discards the 5th letter and uses the first 4.
         if (preg_match_all('/([A-Z]{4})[A-Z](\d{6,9})([A-Z])?/', $compact, $spurSets, PREG_SET_ORDER)) {
             foreach ($spurSets as $sset) {
-                $sPfx   = $this->normalizeCategoryChar($sset[1]);
-                $sDigs  = $sset[2];
-                $sTrail = $sset[3] ?? '';
-                $sLen   = strlen($sDigs);
+                $sPfx  = $this->normalizeCategoryChar($sset[1]);
+                $sDigs = $sset[2];
+                $sLen  = strlen($sDigs);
 
                 if (!in_array($sPfx[3], ['U', 'J', 'Z'], true)) continue;
 
+                // All results from spurious-letter recovery are flagged valid=false
+                // (check digit warning shown). We dropped a character — the prefix and
+                // serial may still be correct, but the user must verify.
+                $spurGuess = null;
+
+                // Sliding window: use exact OCR-read digits.
                 for ($off = 0; $off <= $sLen - 7; $off++) {
                     $candidate = $sPfx . substr($sDigs, $off, 7);
-                    if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                    if ($this->validateCheckDigit($candidate)) {
+                        $spurGuess = $candidate;
+                        break;
+                    }
                 }
 
-                if ($sLen >= 8) {
-                    for ($off = 0; $off <= $sLen - 6; $off++) {
-                        $serial = substr($sDigs, $off, 6);
-                        for ($d = 0; $d <= 9; $d++) {
-                            $candidate = $sPfx . $serial . $d;
-                            if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                // 6 serial digits only — check digit stripped as non-alphanumeric box
+                // border noise (e.g. "7" printed in a box is OCR-read as ".//").
+                // Brute-force the check digit to form a complete 11-char number.
+                if ($spurGuess === null && $sLen === 6) {
+                    for ($d = 0; $d <= 9; $d++) {
+                        $candidate = $sPfx . $sDigs . $d;
+                        if ($this->validateCheckDigit($candidate)) {
+                            $spurGuess = $candidate;
+                            break;
                         }
                     }
                 }
 
-                if ($sLen === 6 && $sTrail !== '') {
-                    for ($d = 0; $d <= 9; $d++) {
-                        $candidate = $sPfx . $sDigs . $d;
-                        if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                if ($spurGuess !== null) {
+                    // Prefer the first-4-letter prefix result over any position-shifted
+                    // false match from the main loop (e.g. MSCU1234566 > SCUJ1234566).
+                    if ($bestGuess === null || str_ends_with($bestGuess[0], substr($spurGuess, 4))) {
+                        $bestGuess = [$spurGuess, false];
                     }
-                }
-
-                $sub = $this->tryPrefixSubstitution($sPfx, $sDigs);
-                if ($sub !== null) return [$sub, true];
-
-                // Prefer first-4-letter prefix over a position-shifted false match with
-                // the same digit run (e.g. MSCU1234567 is better than SCUJ1234567).
-                if ($sLen >= 7 && ($bestGuess === null || str_ends_with($bestGuess[0], substr($sDigs, -7)))) {
-                    $bestGuess = [$sPfx . substr($sDigs, -7), false];
                 }
             }
         }
