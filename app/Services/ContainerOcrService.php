@@ -384,6 +384,52 @@ class ContainerOcrService
             }
         }
 
+        // Spurious-letter recovery: door hardware (locking rod, hinge, rivet) between
+        // the owner-code and the serial is sometimes OCR-read as a letter, producing e.g.
+        // "MSCUJ1234567" instead of "MSCU1234567". The main regex above matches "SCUJ…"
+        // at offset +1; this pass explicitly discards the 5th letter and uses the first 4.
+        if (preg_match_all('/([A-Z]{4})[A-Z](\d{6,9})([A-Z])?/', $compact, $spurSets, PREG_SET_ORDER)) {
+            foreach ($spurSets as $sset) {
+                $sPfx   = $this->normalizeCategoryChar($sset[1]);
+                $sDigs  = $sset[2];
+                $sTrail = $sset[3] ?? '';
+                $sLen   = strlen($sDigs);
+
+                if (!in_array($sPfx[3], ['U', 'J', 'Z'], true)) continue;
+
+                for ($off = 0; $off <= $sLen - 7; $off++) {
+                    $candidate = $sPfx . substr($sDigs, $off, 7);
+                    if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                }
+
+                if ($sLen >= 8) {
+                    for ($off = 0; $off <= $sLen - 6; $off++) {
+                        $serial = substr($sDigs, $off, 6);
+                        for ($d = 0; $d <= 9; $d++) {
+                            $candidate = $sPfx . $serial . $d;
+                            if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                        }
+                    }
+                }
+
+                if ($sLen === 6 && $sTrail !== '') {
+                    for ($d = 0; $d <= 9; $d++) {
+                        $candidate = $sPfx . $sDigs . $d;
+                        if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                    }
+                }
+
+                $sub = $this->tryPrefixSubstitution($sPfx, $sDigs);
+                if ($sub !== null) return [$sub, true];
+
+                // Prefer first-4-letter prefix over a position-shifted false match with
+                // the same digit run (e.g. MSCU1234567 is better than SCUJ1234567).
+                if ($sLen >= 7 && ($bestGuess === null || str_ends_with($bestGuess[0], substr($sDigs, -7)))) {
+                    $bestGuess = [$sPfx . substr($sDigs, -7), false];
+                }
+            }
+        }
+
         // Digit-prefix recovery: stencil fonts frequently render "T" as "1", "G" as "6",
         // etc., so PSM 7 single-line crops may yield "1GHU482917…" instead of "TGHU482917…".
         static $digitSubs = [
