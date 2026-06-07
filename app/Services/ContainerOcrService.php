@@ -541,9 +541,14 @@ class ContainerOcrService
     {
         // Single-character swaps for letters commonly confused in blocky plate fonts.
         // V↔U added: stencil V and U are often identical in shape.
+        // One-directional: only fix towards the more common/visually dominant character.
+        // O→Q is intentionally absent: OCR rarely misreads a printed O as Q (Q has a
+        // visible tail), but the reverse happens. If O→Q were kept, a correctly-read
+        // "OOLU" that fails its check digit would be silently swapped to "QOLU" whenever
+        // QOLU happens to produce a valid check digit — the wrong owner code with no warning.
         static $swaps = [
             'C' => 'G', 'G' => 'C',
-            'O' => 'Q', 'Q' => 'O',
+            'Q' => 'O',
             'I' => 'L', 'L' => 'I',
             'V' => 'U', 'U' => 'V',
         ];
