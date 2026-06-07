@@ -809,7 +809,7 @@
 /* EQT select is inside a d-flex wrapper (shared with badge spans); make the
    Select2-generated container grow to fill the remaining space so it aligns
    with the full-width fields above and below it. */
-#gateEqtSelect + .select2-container { flex: 1 1 auto; min-width: 0; }
+#gateEqtSelect + .select2-container { flex: 1 1 auto; min-width: 0; width: auto !important; }
 </style>
 @endpush
 

@@ -1282,7 +1282,7 @@
                     templateSelection: window.s2CodeSelection,
                     dropdownAutoWidth: true,
                     dropdownParent: $modal.length ? $modal : $('body'),
-                    width: 'resolve',
+                    width: '100%',
                 }, extraOpts || {}));
             };
             $('.select2').select2({ theme: 'bootstrap-5' });
