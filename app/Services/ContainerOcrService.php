@@ -346,23 +346,16 @@ class ContainerOcrService
 
                 if (!in_array($prefix[3], ['U', 'J', 'Z'], true)) continue;
 
-                $len = strlen($digits);
-                for ($offset = 0; $offset <= $len - 7; $offset++) {
-                    $candidate = $prefix . substr($digits, $offset, 7);
-                    if ($this->validateCheckDigit($candidate)) return [$candidate, true];
-                }
+                $len        = strlen($digits);
+                $firstSeven = $len >= 7 ? $prefix . substr($digits, 0, 7) : null;
 
-                // 8+ digits: check digit read as multiple chars (e.g. "3"→"81") or
-                // adjacent ISO-type code appended. Brute-force check digit 0–9 for
-                // every 6-digit serial sub-window.
-                if ($len >= 8) {
-                    for ($offset = 0; $offset <= $len - 6; $offset++) {
-                        $serial = substr($digits, $offset, 6);
-                        for ($d = 0; $d <= 9; $d++) {
-                            $candidate = $prefix . $serial . $d;
-                            if ($this->validateCheckDigit($candidate)) return [$candidate, true];
-                        }
-                    }
+                // Only validate at offset=0 (the as-printed position).
+                // Shifting the window to offset>0 can coincidentally validate when
+                // ISO-type code digits (e.g. "2261" from "22G1") are concatenated
+                // directly after the check digit in the compact — the window then
+                // finds a 7-char sequence that happens to pass the check-digit test.
+                if ($firstSeven !== null && $this->validateCheckDigit($firstSeven)) {
+                    return [$firstSeven, true];
                 }
 
                 // 6 digits + trailing letter: OCR misread check digit as a letter.
@@ -376,10 +369,12 @@ class ContainerOcrService
                 $sub = $this->tryPrefixSubstitution($prefix, $digits);
                 if ($sub !== null) return [$sub, true];
 
-                // Pattern matched but check digit invalid — keep this as best guess
-                // and continue scanning (a later match in the same compact may validate).
-                if ($bestGuess === null) {
-                    $bestGuess = [$prefix . substr($digits, -7), false];
+                // Pattern matched but check digit invalid — keep as best guess.
+                // Use the first-7 digits (as-printed order) rather than the last 7;
+                // extra trailing digits are most often ISO-type noise, not the serial.
+                // Continue scanning — a later match in the same compact may validate.
+                if ($bestGuess === null && $firstSeven !== null) {
+                    $bestGuess = [$firstSeven, false];
                 }
             }
         }
