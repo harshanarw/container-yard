@@ -165,34 +165,45 @@ class ContainerOcrService
             $c = $this->runTesseractOnCrop($imagePath, 0.35, 0.0, 1.0, 0.35, 6);
             if ($c !== '') $cropCandidates[] = $c;
 
-            // Crop H — PSM 6, x: 38–92 %, y: 14–36 %.
-            // Narrow horizontal band targeting the ISO size/type code (e.g. "42G1")
-            // printed just below the container number on the right door panel. Wider
-            // crops (A/G) anchor on the large container-number text and Tesseract's
-            // block segmentation often skips the smaller ISO code line; this tighter
-            // strip forces the ISO code to dominate the scaled-up crop region.
-            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.14, 0.92, 0.36, 6);
+            // Crops H–M: ISO size/type code band (e.g. "42G1"), y: 19–32 %.
+            // Start at y=19 % so the crop begins BELOW the container number
+            // (which occupies roughly y:8–19 % on a typical door photo). Starting
+            // earlier (y:14 %) caused the large container-number text to dominate
+            // the scaled crop and suppress the smaller ISO code characters.
+            // x: 38–92 % covers the right door panel where the ISO plate appears.
+
+            // Crop H — PSM 6 (uniform block), ISO band, no whitelist.
+            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 6);
             if ($c !== '') $cropCandidates[] = $c;
 
-            // Crop I — PSM 7 (single text line), same x/y region as H.
-            // PSM 7 reads the entire strip as one sequence — useful when Tesseract's
-            // block analysis for PSM 6 still mis-segments the 4-character ISO code.
-            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.14, 0.92, 0.36, 7);
+            // Crop I — PSM 7 (single text line), same region.
+            // PSM 7 treats the entire strip as one sequence, avoiding block
+            // mis-segmentation of the 4-character ISO code.
+            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 7);
             if ($c !== '') $cropCandidates[] = $c;
 
-            // Crops J & K — alphanumeric whitelist variants of the ISO band.
-            // Restricting Tesseract to A-Z0-9 eliminates the noise characters
-            // (|, ), !, –) that confuse small-text recognition on dark backgrounds
-            // and can cause "42G1" to be read as "(3)" or discarded entirely.
+            // Crops J–M: alphanumeric whitelist restricts output to A-Z0-9,
+            // eliminating noise characters (|, ), !, –) from dark backgrounds.
             $alphanum = '-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
             // Crop J: PSM 6 + whitelist.
-            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.14, 0.92, 0.36, 6, $alphanum);
+            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 6, $alphanum);
             if ($c !== '') $cropCandidates[] = $c;
 
-            // Crop K: PSM 8 (single word) + whitelist — PSM 8 is purpose-built for
-            // isolated short codes and may read "42G1" more reliably than block modes.
-            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.14, 0.92, 0.36, 8, $alphanum);
+            // Crop K: PSM 8 (single word) + whitelist — purpose-built for short codes.
+            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 8, $alphanum);
+            if ($c !== '') $cropCandidates[] = $c;
+
+            // Crops L & M: negated variants — inverts pixel values so white-on-dark
+            // ISO stencil text becomes dark-on-white, Tesseract's preferred polarity.
+            // Containers with white text on green panels benefit most from this.
+
+            // Crop L: PSM 8 + whitelist + NEGATE.
+            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 8, $alphanum, true);
+            if ($c !== '') $cropCandidates[] = $c;
+
+            // Crop M: PSM 6 + whitelist + NEGATE — block mode as a complement to PSM 8.
+            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 6, $alphanum, true);
             if ($c !== '') $cropCandidates[] = $c;
         }
 
@@ -249,13 +260,16 @@ class ContainerOcrService
      * Run Tesseract on a proportionally-cropped sub-region of the image.
      * Coordinates are fractions of width/height: (x1,y1) = top-left, (x2,y2) = bottom-right.
      * The crop is scaled to at least 800 px wide before OCR so small regions are readable.
+     * $negate: invert pixel values before OCR — converts white-text-on-dark to dark-on-white,
+     * which is Tesseract's preferred polarity for small stencil characters.
      */
     private function runTesseractOnCrop(
         string $imagePath,
         float $x1, float $y1,
         float $x2, float $y2,
         int $psm,
-        string $extraConfig = ''
+        string $extraConfig = '',
+        bool $negate = false
     ): string {
         $mime = mime_content_type($imagePath);
         $src  = match (true) {
@@ -291,6 +305,10 @@ class ContainerOcrService
             imagecopyresampled($scaled, $dest, 0, 0, 0, 0, $newW, $newH, $cropW, $cropH);
             imagedestroy($dest);
             $dest = $scaled;
+        }
+
+        if ($negate) {
+            imagefilter($dest, IMG_FILTER_NEGATE);
         }
 
         $tmpPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ocr_crop_' . uniqid() . '.png';
