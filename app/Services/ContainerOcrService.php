@@ -134,54 +134,37 @@ class ContainerOcrService
         // PSM 3 = full auto (complex door layouts)
         // PSM 11 = sparse text (mixed-content plates)
         // PSM 6  = uniform block (clean label images)
+        // 10 passes total (down from 19): 2 full-image + 5 container-number crops + 3 ISO crops.
+        // Dropped: PSM-11 full image (covered by crops), crop A (subset of B), crop F (subset of E),
+        // enhanced ISO crops H/I/J (original K/L are cleaner), ISO crops M/N/P (redundant with K/L/O).
         $jobDefs = [
-            // Full-image passes (A-equivalent)
-            [true,  $imagePath, 0,    0,    0,    0,    3,  '',        false],
-            [true,  $imagePath, 0,    0,    0,    0,    11, '',        false],
-            [true,  $imagePath, 0,    0,    0,    0,    6,  '',        false],
+            // Full-image passes
+            [true,  $imagePath, 0,    0,    0,    0,    3,  '', false], // PSM 3 auto — weight labels + complex layouts
+            [true,  $imagePath, 0,    0,    0,    0,    6,  '', false], // PSM 6 block — clean uniform images
         ];
 
         if (extension_loaded('gd')) {
             $jobDefs = array_merge($jobDefs, [
-                // Container-number crops (A–G)
-                // A: PSM 6, x:20–100%, y:0–30% — avoids far-left margin noise
-                [false, $imagePath, 0.20, 0.0,  1.0,  0.30, 6,  '',        false],
-                // B: PSM 6, full width, y:0–40% — catches "TG" at extreme left edge
-                [false, $imagePath, 0.0,  0.0,  1.0,  0.40, 6,  '',        false],
+                // Container-number crops
+                // B: PSM 6, full width, y:0–40% — wide catch-all, catches "TG" at far left
+                [false, $imagePath, 0.0,  0.0,  1.0,  0.40, 6, '',  false],
                 // C: PSM 7 single line, x:0–75%, y:0–22% — locking rod treated as whitespace
-                [false, $imagePath, 0.0,  0.0,  0.75, 0.22, 7,  '',        false],
+                [false, $imagePath, 0.0,  0.0,  0.75, 0.22, 7, '',  false],
                 // D: PSM 7 single line, full width, y:0–18%
-                [false, $imagePath, 0.0,  0.0,  1.0,  0.18, 7,  '',        false],
-                // E: PSM 3 auto, x:30–100%, full height — excludes left door panel
-                [false, $imagePath, 0.30, 0.0,  1.0,  1.0,  3,  '',        false],
-                // F: PSM 3 auto, x:50–100%, full height
-                [false, $imagePath, 0.50, 0.0,  1.0,  1.0,  3,  '',        false],
-                // G: PSM 6 block, x:35–100%, y:0–35% — right-panel complement
-                [false, $imagePath, 0.35, 0.0,  1.0,  0.35, 6,  '',        false],
+                [false, $imagePath, 0.0,  0.0,  1.0,  0.18, 7, '',  false],
+                // E: PSM 3 auto, x:30–100%, full height — excludes left panel for split doors
+                [false, $imagePath, 0.30, 0.0,  1.0,  1.0,  3, '',  false],
+                // G: PSM 6 block, x:35–100%, y:0–35% — right-panel complement, no column split
+                [false, $imagePath, 0.35, 0.0,  1.0,  0.35, 6, '',  false],
 
-                // ISO size/type code crops (H–P)
-                // "42G1" sits just below the container number (≈ y:19–32% on a door photo).
-                // Two image sources: $imagePath (GD-enhanced, sharper contrast on some cameras)
-                // and $isoPath (original upload, avoids sharpen-kernel ringing on small text).
-                // H: enhanced PSM 7 single line
-                [false, $imagePath, 0.38, 0.19, 0.92, 0.32, 7,  '',        false],
-                // I: enhanced PSM 8 single word + whitelist
-                [false, $imagePath, 0.38, 0.19, 0.92, 0.32, 8,  $alphanum, false],
-                // J: enhanced PSM 8 + whitelist + negate
-                [false, $imagePath, 0.38, 0.19, 0.92, 0.32, 8,  $alphanum, true],
-                // K: original PSM 8 + whitelist — dark text on light background
+                // ISO size/type code crops (≈ y:19–32% on a door photo)
+                // K: original image, PSM 8 + whitelist — dark text on light background
                 [false, $isoPath,   0.38, 0.19, 0.92, 0.32, 8,  $alphanum, false],
-                // L: original PSM 8 + whitelist + negate — light text on dark/green panel
+                // L: original image, PSM 8 + whitelist + negate — light text on dark/green panel
                 [false, $isoPath,   0.38, 0.19, 0.92, 0.32, 8,  $alphanum, true],
-                // M: original PSM 6 block + whitelist + negate
-                [false, $isoPath,   0.38, 0.19, 0.92, 0.32, 6,  $alphanum, true],
-                // N: original narrower x:45–75%, negate — removes left/right edge noise
-                [false, $isoPath,   0.45, 0.18, 0.75, 0.35, 8,  $alphanum, true],
-                // O: original wide y:16–46%, PSM 11 sparse + negate — safety net for
-                //    ISO codes at unexpected vertical positions
+                // O: original image, PSM 11 sparse + negate, wider y:16–46% — safety net for
+                //    codes at unexpected vertical positions or Tesseract space-splits
                 [false, $isoPath,   0.38, 0.16, 0.88, 0.46, 11, $alphanum, true],
-                // P: original wide y:16–46%, PSM 11 sparse — dark-on-light complement
-                [false, $isoPath,   0.38, 0.16, 0.88, 0.46, 11, $alphanum, false],
             ]);
         }
 
