@@ -283,11 +283,12 @@ class ContainerOcrService
      *
      * Phase 1 — focused crop candidates (PSM-6 / PSM-7, no column detection).
      *   If a crop produces a validated container number → return it immediately.
-     *   If a crop produces a pattern match with an invalid check digit → record
-     *   as best guess and stop: do NOT fall through to full-image passes, which
-     *   contain column-split noise that can accidentally form a different valid
-     *   ISO 6346 number (false positive). The UI shows the invalid-check-digit
-     *   warning so the operator can correct the number manually.
+     *   If crops produce pattern matches with invalid check digits, collect ALL
+     *   of them and return the most frequent reading (majority vote). This beats
+     *   first-match when one PSM crop misreads a single digit (e.g. 6→8) while
+     *   the remaining crops all read it correctly.
+     *   Full-image passes are never reached when any crop produced a match — they
+     *   contain column-split noise that can accidentally form a valid ISO 6346 number.
      *
      * Phase 2 — full-image passes (PSM-3 / PSM-11 / PSM-6), only reached when
      *   no crop produced any pattern match at all.
@@ -297,16 +298,21 @@ class ContainerOcrService
      */
     private function extractContainerNo(array $cropCandidates, array $fullCandidates, string $fallback): array
     {
-        $cropBestGuess = null;
+        $cropVotes = [];
 
         foreach ($cropCandidates as $text) {
             $compact = preg_replace('/[^A-Z0-9]/', '', strtoupper($text));
             [$no, $valid] = $this->extractContainerNoFromCompact($compact);
             if ($valid) return [$no, true];
-            if ($no !== null && $cropBestGuess === null) $cropBestGuess = [$no, false];
+            if ($no !== null) {
+                $cropVotes[$no] = ($cropVotes[$no] ?? 0) + 1;
+            }
         }
 
-        if ($cropBestGuess !== null) return $cropBestGuess;
+        if (!empty($cropVotes)) {
+            arsort($cropVotes);
+            return [array_key_first($cropVotes), false];
+        }
 
         foreach ($fullCandidates as $text) {
             $compact = preg_replace('/[^A-Z0-9]/', '', strtoupper($text));
@@ -367,6 +373,9 @@ class ContainerOcrService
                 }
 
                 $sub = $this->tryPrefixSubstitution($prefix, $digits);
+                if ($sub !== null) return [$sub, true];
+
+                $sub = $this->trySerialDigitSubstitution($prefix, $digits);
                 if ($sub !== null) return [$sub, true];
 
                 // Pattern matched but check digit invalid — keep as best guess.
@@ -568,6 +577,45 @@ class ContainerOcrService
                 }
             }
         }
+        return null;
+    }
+
+    /**
+     * Single-character digit substitution in the serial + check-digit portion.
+     *
+     * Handles OCR misreads of visually similar digits in stencil plate fonts.
+     * Most common on container doors: 6 ↔ 8 (curved tops merge under low contrast),
+     * 0 ↔ 8 (lower bowl of 8 can vanish), 1 ↔ 7 (upstroke of 7 faint in stencil).
+     * Returns a corrected 11-char number that passes ISO 6346 check-digit validation,
+     * or null when no single-digit substitution produces a valid result.
+     */
+    private function trySerialDigitSubstitution(string $prefix, string $digits): ?string
+    {
+        if (strlen($digits) < 7) return null;
+
+        // Each key is what OCR read; values are the alternatives to try, ordered by
+        // likelihood of confusion in typical container door / stencil fonts.
+        static $swaps = [
+            '6' => ['8', '5'],
+            '8' => ['6', '0', '3'],
+            '0' => ['8'],
+            '1' => ['7'],
+            '7' => ['1'],
+            '3' => ['8'],
+            '5' => ['6'],
+        ];
+
+        $window = substr($digits, 0, 7); // 6 serial digits + 1 check digit
+
+        for ($pos = 0; $pos < 7; $pos++) {
+            $ch = $window[$pos];
+            if (!isset($swaps[$ch])) continue;
+            foreach ($swaps[$ch] as $alt) {
+                $candidate = $prefix . substr_replace($window, $alt, $pos, 1);
+                if ($this->validateCheckDigit($candidate)) return $candidate;
+            }
+        }
+
         return null;
     }
 
