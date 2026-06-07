@@ -1537,6 +1537,19 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 return;
             }
 
+            // Reset OCR-fillable fields so stale data from a previous scan doesn't
+            // carry over to a different container. The container-number input handler
+            // only resets when length < 11, so it's skipped when OCR writes a full
+            // 11-char number directly — we must reset explicitly here.
+            if (isIn) {
+                const eqtSelReset = document.getElementById('gateEqtSelect');
+                if (typeof $ !== 'undefined') $(eqtSelReset).val(null).trigger('change');
+                else { eqtSelReset.value = ''; eqtSelReset.dispatchEvent(new Event('change')); }
+                window.additionalDetails?.reset();
+                const infoReset = document.getElementById('masterLookupInfo');
+                if (infoReset) { infoReset.className = 'd-none'; infoReset.innerHTML = ''; }
+            }
+
             // Fill container number field and re-evaluate check-digit warning
             containerInp.value = data.container_no;
             containerInp.dispatchEvent(new Event('input'));
