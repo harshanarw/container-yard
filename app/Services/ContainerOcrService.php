@@ -111,112 +111,145 @@ class ContainerOcrService
      *                 detection) preferred for container-number extraction
      *   [2] array   — full-image candidates (PSM-3 / PSM-11 / PSM-6 on the
      *                 whole image) used as fallback for container-number extraction
+     *
+     * All Tesseract processes are launched simultaneously via proc_open and results
+     * are collected in one sweep, so total wall time ≈ slowest single call rather
+     * than the sum of all calls.
      */
     private function runTesseract(string $imagePath, string $originalPath = ''): array
     {
-        $escaped = escapeshellarg($imagePath);
-        $nullDev = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
+        $nullDev  = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
+        $alphanum = '-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
-        // PSM 3 = full auto (complex door layouts),
-        // PSM 11 = sparse text (mixed-content plates),
-        // PSM 6  = uniform block (clean label images).
-        $fullCandidates = [];
-        foreach ([3, 11, 6] as $psm) {
-            $cmd = "tesseract {$escaped} stdout -l eng --psm {$psm} --oem 3 {$nullDev}";
-            $out = shell_exec($cmd);
-            if ($out !== null && trim($out) !== '') {
-                $fullCandidates[] = strtoupper(trim($out));
+        // Use original (unsharpened) image for ISO crops when available.
+        $isoPath = ($originalPath !== '' && file_exists($originalPath))
+            ? $originalPath
+            : $imagePath;
+
+        // ── Step 1: define all jobs ──────────────────────────────────────────
+        // Each row: [isFull, srcImage, x1, y1, x2, y2, psm, extraConfig, negate]
+        // isFull=true  → run Tesseract directly on srcImage (no GD crop needed)
+        // isFull=false → prepare a GD crop first, then run Tesseract on that temp file
+        //
+        // PSM 3 = full auto (complex door layouts)
+        // PSM 11 = sparse text (mixed-content plates)
+        // PSM 6  = uniform block (clean label images)
+        $jobDefs = [
+            // Full-image passes (A-equivalent)
+            [true,  $imagePath, 0,    0,    0,    0,    3,  '',        false],
+            [true,  $imagePath, 0,    0,    0,    0,    11, '',        false],
+            [true,  $imagePath, 0,    0,    0,    0,    6,  '',        false],
+        ];
+
+        if (extension_loaded('gd')) {
+            $jobDefs = array_merge($jobDefs, [
+                // Container-number crops (A–G)
+                // A: PSM 6, x:20–100%, y:0–30% — avoids far-left margin noise
+                [false, $imagePath, 0.20, 0.0,  1.0,  0.30, 6,  '',        false],
+                // B: PSM 6, full width, y:0–40% — catches "TG" at extreme left edge
+                [false, $imagePath, 0.0,  0.0,  1.0,  0.40, 6,  '',        false],
+                // C: PSM 7 single line, x:0–75%, y:0–22% — locking rod treated as whitespace
+                [false, $imagePath, 0.0,  0.0,  0.75, 0.22, 7,  '',        false],
+                // D: PSM 7 single line, full width, y:0–18%
+                [false, $imagePath, 0.0,  0.0,  1.0,  0.18, 7,  '',        false],
+                // E: PSM 3 auto, x:30–100%, full height — excludes left door panel
+                [false, $imagePath, 0.30, 0.0,  1.0,  1.0,  3,  '',        false],
+                // F: PSM 3 auto, x:50–100%, full height
+                [false, $imagePath, 0.50, 0.0,  1.0,  1.0,  3,  '',        false],
+                // G: PSM 6 block, x:35–100%, y:0–35% — right-panel complement
+                [false, $imagePath, 0.35, 0.0,  1.0,  0.35, 6,  '',        false],
+
+                // ISO size/type code crops (H–P)
+                // "42G1" sits just below the container number (≈ y:19–32% on a door photo).
+                // Two image sources: $imagePath (GD-enhanced, sharper contrast on some cameras)
+                // and $isoPath (original upload, avoids sharpen-kernel ringing on small text).
+                // H: enhanced PSM 7 single line
+                [false, $imagePath, 0.38, 0.19, 0.92, 0.32, 7,  '',        false],
+                // I: enhanced PSM 8 single word + whitelist
+                [false, $imagePath, 0.38, 0.19, 0.92, 0.32, 8,  $alphanum, false],
+                // J: enhanced PSM 8 + whitelist + negate
+                [false, $imagePath, 0.38, 0.19, 0.92, 0.32, 8,  $alphanum, true],
+                // K: original PSM 8 + whitelist — dark text on light background
+                [false, $isoPath,   0.38, 0.19, 0.92, 0.32, 8,  $alphanum, false],
+                // L: original PSM 8 + whitelist + negate — light text on dark/green panel
+                [false, $isoPath,   0.38, 0.19, 0.92, 0.32, 8,  $alphanum, true],
+                // M: original PSM 6 block + whitelist + negate
+                [false, $isoPath,   0.38, 0.19, 0.92, 0.32, 6,  $alphanum, true],
+                // N: original narrower x:45–75%, negate — removes left/right edge noise
+                [false, $isoPath,   0.45, 0.18, 0.75, 0.35, 8,  $alphanum, true],
+                // O: original wide y:16–46%, PSM 11 sparse + negate — safety net for
+                //    ISO codes at unexpected vertical positions
+                [false, $isoPath,   0.38, 0.16, 0.88, 0.46, 11, $alphanum, true],
+                // P: original wide y:16–46%, PSM 11 sparse — dark-on-light complement
+                [false, $isoPath,   0.38, 0.16, 0.88, 0.46, 11, $alphanum, false],
+            ]);
+        }
+
+        // ── Step 2: prepare all crop images (GD, sequential — CPU-bound) ────
+        $tmpFiles = [];
+        foreach ($jobDefs as $i => $job) {
+            [$isFull, $src, $x1, $y1, $x2, $y2, , , $negate] = $job;
+            $tmpFiles[$i] = $isFull
+                ? null
+                : $this->prepareCropImage($src, $x1, $y1, $x2, $y2, $negate);
+        }
+
+        // ── Step 3: launch ALL Tesseract processes simultaneously ────────────
+        // proc_open lets every process start without waiting for its predecessor,
+        // so total wall-clock time ≈ max(individual durations) instead of their sum.
+        $handles = [];
+        foreach ($jobDefs as $i => $job) {
+            [$isFull, $src, , , , , $psm, $extra] = $job;
+            $path = $isFull ? $src : $tmpFiles[$i];
+            if ($path === null) {
+                $handles[$i] = null;
+                continue;
+            }
+            $cfg  = $extra !== '' ? " {$extra}" : '';
+            $cmd  = "tesseract " . escapeshellarg($path) . " stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}";
+            $desc = [0 => ['pipe', 'r'], 1 => ['pipe', 'w']];
+            $pipes = [];
+            $proc = proc_open($cmd, $desc, $pipes);
+            if (is_resource($proc)) {
+                fclose($pipes[0]); // close stdin — Tesseract doesn't need it
+                $handles[$i] = [$proc, $pipes[1]];
+            } else {
+                $handles[$i] = null;
             }
         }
 
+        // ── Step 4: collect results (blocking read per pipe) ─────────────────
+        // By the time we reach the second pipe, the remaining processes are almost
+        // certainly already done (they all started at the same time), so each read
+        // returns immediately rather than blocking for a full Tesseract round-trip.
+        $fullCandidates = [];
         $cropCandidates = [];
-        if (extension_loaded('gd')) {
-            // Crop A — PSM 6 (uniform block), x: 20–100 %, y: 0–30 %.
-            // No column detection; avoids the far-left margin noise.
-            $c = $this->runTesseractOnCrop($imagePath, 0.20, 0.0, 1.0, 0.30, 6);
-            if ($c !== '') $cropCandidates[] = $c;
 
-            // Crop B — PSM 6 (uniform block), full width, y: 0–40 %.
-            // x from 0 catches "TG" at the extreme left edge; y to 40 % covers
-            // images where the door doesn't start at the very top of the frame.
-            $c = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 1.0, 0.40, 6);
-            if ($c !== '') $cropCandidates[] = $c;
+        foreach ($jobDefs as $i => [$isFull]) {
+            $handle = $handles[$i];
+            $tmp    = $tmpFiles[$i];
 
-            // Crop C — PSM 7 (single text line), x: 0–75 %, y: 0–22 %.
-            // PSM 7 forces the whole strip to be read left-to-right as one sequence,
-            // so a locking rod between "TG" and "HU" cannot split the prefix.
-            $c = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 0.75, 0.22, 7);
-            if ($c !== '') $cropCandidates[] = $c;
+            if ($handle !== null) {
+                [$proc, $stdout] = $handle;
+                $raw = stream_get_contents($stdout);
+                fclose($stdout);
+                proc_close($proc);
+                $out = ($raw !== false && trim($raw) !== '') ? strtoupper(trim($raw)) : '';
+            } else {
+                $out = '';
+            }
 
-            // Crop D — PSM 7 (single text line), full width, y: 0–18 %.
-            $c = $this->runTesseractOnCrop($imagePath, 0.0, 0.0, 1.0, 0.18, 7);
-            if ($c !== '') $cropCandidates[] = $c;
+            if ($tmp !== null) {
+                @unlink($tmp);
+            }
 
-            // Crop E — PSM 3 (auto layout), x: 30–100 %, full height.
-            // Excludes the left door panel so PSM 3 column detection no longer splits
-            // "TG" (left of rod) from "HU 482917 3" (right of rod).
-            $c = $this->runTesseractOnCrop($imagePath, 0.30, 0.0, 1.0, 1.0, 3);
-            if ($c !== '') $cropCandidates[] = $c;
+            if ($out === '') continue;
 
-            // Crop F — PSM 3 (auto layout), x: 50–100 %, full height.
-            $c = $this->runTesseractOnCrop($imagePath, 0.50, 0.0, 1.0, 1.0, 3);
-            if ($c !== '') $cropCandidates[] = $c;
-
-            // Crop G — PSM 6 (uniform block), x: 35–100 %, y: 0–35 %.
-            // PSM-6 right-panel complement: no column detection, so a locking rod
-            // between the first prefix letter and the rest is treated as whitespace.
-            $c = $this->runTesseractOnCrop($imagePath, 0.35, 0.0, 1.0, 0.35, 6);
-            if ($c !== '') $cropCandidates[] = $c;
-
-            // ── ISO size/type code crops (H–P) ──────────────────────────────────
-            // "42G1" sits just below the container number (≈ y:19–32 % on a door
-            // photo). Two image sources are used:
-            //   • $imagePath  — GD-enhanced (grayscale + sharpen): can help contrast
-            //                   but the sharpen kernel creates ringing around small
-            //                   stencil characters that the LSTM may misread.
-            //   • $isoPath    — original upload (no sharpening): cleaner for small text.
-            // The negate path in runTesseractOnCrop converts to grayscale + adjusts
-            // contrast before inverting, so dark-on-light and light-on-dark plates are
-            // both handled regardless of which image source is used.
-            $alphanum = '-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-
-            // Use original (unsharpened) image for ISO crops when available.
-            $isoPath = ($originalPath !== '' && file_exists($originalPath))
-                ? $originalPath
-                : $imagePath;
-
-            // Enhanced-image crops (H–J): sharpening can improve contrast on some cameras.
-            // H: PSM 7 (single line) — treats strip as one left-to-right sequence.
-            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 7);
-            if ($c !== '') $cropCandidates[] = $c;
-            // I: PSM 8 (single word) + whitelist — purpose-built for isolated short codes.
-            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 8, $alphanum);
-            if ($c !== '') $cropCandidates[] = $c;
-            // J: PSM 8 + whitelist + negate on enhanced.
-            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 8, $alphanum, true);
-            if ($c !== '') $cropCandidates[] = $c;
-
-            // Original-image crops (K–P): no sharpening artefacts.
-            // K: PSM 8 + whitelist — light-background ISO plates (dark text on white).
-            $c = $this->runTesseractOnCrop($isoPath, 0.38, 0.19, 0.92, 0.32, 8, $alphanum);
-            if ($c !== '') $cropCandidates[] = $c;
-            // L: PSM 8 + whitelist + negate — white/light text on dark/green panels.
-            $c = $this->runTesseractOnCrop($isoPath, 0.38, 0.19, 0.92, 0.32, 8, $alphanum, true);
-            if ($c !== '') $cropCandidates[] = $c;
-            // M: PSM 6 (block) + whitelist + negate — complement to PSM 8.
-            $c = $this->runTesseractOnCrop($isoPath, 0.38, 0.19, 0.92, 0.32, 6, $alphanum, true);
-            if ($c !== '') $cropCandidates[] = $c;
-            // N: narrower x (45–75 %) focuses on the centre panel; removes left/right noise.
-            $c = $this->runTesseractOnCrop($isoPath, 0.45, 0.18, 0.75, 0.35, 8, $alphanum, true);
-            if ($c !== '') $cropCandidates[] = $c;
-            // O: wide y (16–46 %), PSM 11 (sparse text) + negate — safety net for ISO
-            //    codes at unexpected vertical positions (e.g. y:33% instead of y:23%).
-            //    PSM 11 finds any text scattered anywhere in the crop without assuming layout.
-            $c = $this->runTesseractOnCrop($isoPath, 0.38, 0.16, 0.88, 0.46, 11, $alphanum, true);
-            if ($c !== '') $cropCandidates[] = $c;
-            // P: same wide range, PSM 11, no negate — catches dark-on-light ISO plates.
-            $c = $this->runTesseractOnCrop($isoPath, 0.38, 0.16, 0.88, 0.46, 11, $alphanum);
-            if ($c !== '') $cropCandidates[] = $c;
+            if ($isFull) {
+                $fullCandidates[] = $out;
+            } else {
+                $cropCandidates[] = $out;
+            }
         }
 
         $allCandidates = array_merge($fullCandidates, $cropCandidates);
@@ -269,27 +302,24 @@ class ContainerOcrService
     }
 
     /**
-     * Run Tesseract on a proportionally-cropped sub-region of the image.
-     * Coordinates are fractions of width/height: (x1,y1) = top-left, (x2,y2) = bottom-right.
-     * The crop is scaled to at least 800 px wide before OCR so small regions are readable.
-     * $negate: invert pixel values before OCR — converts white-text-on-dark to dark-on-white,
-     * which is Tesseract's preferred polarity for small stencil characters.
+     * Crop and scale a sub-region of an image, optionally negate it, and save to a
+     * temporary PNG file. Returns the temp path, or null if GD fails.
+     * Coordinates are fractions of width/height: (x1,y1) top-left, (x2,y2) bottom-right.
+     * The crop is scaled to at least 800 px wide so Tesseract can resolve small text.
      */
-    private function runTesseractOnCrop(
+    private function prepareCropImage(
         string $imagePath,
         float $x1, float $y1,
         float $x2, float $y2,
-        int $psm,
-        string $extraConfig = '',
         bool $negate = false
-    ): string {
+    ): ?string {
         $mime = mime_content_type($imagePath);
         $src  = match (true) {
             str_contains($mime, 'png')  => @imagecreatefrompng($imagePath),
             str_contains($mime, 'gif')  => @imagecreatefromgif($imagePath),
             default                     => @imagecreatefromjpeg($imagePath),
         };
-        if (!$src) return '';
+        if (!$src) return null;
 
         $w = imagesx($src);
         $h = imagesy($src);
@@ -301,14 +331,13 @@ class ContainerOcrService
 
         if ($cropW < 50 || $cropH < 20) {
             imagedestroy($src);
-            return '';
+            return null;
         }
 
         $dest = imagecreatetruecolor($cropW, $cropH);
         imagecopy($dest, $src, 0, 0, $cropX, $cropY, $cropW, $cropH);
         imagedestroy($src);
 
-        // Scale so the cropped text reaches an OCR-friendly width
         if ($cropW < 800) {
             $scale  = 800 / $cropW;
             $newW   = (int) ($cropW * $scale);
@@ -322,8 +351,6 @@ class ContainerOcrService
         if ($negate) {
             // Grayscale + contrast before inversion so white-on-colour text (e.g.
             // white on green) becomes crisp dark-on-white after the negate.
-            // Applying these here instead of relying on prior GD enhancement ensures
-            // consistent results whether $dest came from the enhanced or original image.
             imagefilter($dest, IMG_FILTER_GRAYSCALE);
             imagefilter($dest, IMG_FILTER_BRIGHTNESS, 15);
             imagefilter($dest, IMG_FILTER_CONTRAST, -30);
@@ -334,12 +361,28 @@ class ContainerOcrService
         $ok = imagepng($dest, $tmpPath);
         imagedestroy($dest);
 
-        if (!$ok || !file_exists($tmpPath)) return '';
+        return ($ok && file_exists($tmpPath)) ? $tmpPath : null;
+    }
+
+    /**
+     * Convenience wrapper: prepare a crop image then run Tesseract on it in one call.
+     * Used for ad-hoc single-crop testing; the main OCR pipeline uses prepareCropImage
+     * directly so all crops can be launched in parallel.
+     */
+    private function runTesseractOnCrop(
+        string $imagePath,
+        float $x1, float $y1,
+        float $x2, float $y2,
+        int $psm,
+        string $extraConfig = '',
+        bool $negate = false
+    ): string {
+        $tmpPath = $this->prepareCropImage($imagePath, $x1, $y1, $x2, $y2, $negate);
+        if ($tmpPath === null) return '';
 
         $nullDev = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
-        $escaped = escapeshellarg($tmpPath);
         $cfg = $extraConfig !== '' ? " {$extraConfig}" : '';
-        $out = shell_exec("tesseract {$escaped} stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}");
+        $out = shell_exec("tesseract " . escapeshellarg($tmpPath) . " stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}");
         @unlink($tmpPath);
 
         return ($out !== null && trim($out) !== '') ? strtoupper(trim($out)) : '';
