@@ -1671,6 +1671,32 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
+    // Resize an image File to at most maxPx on its longest edge before upload.
+    // Smaller uploads shorten Tesseract processing time proportionally.
+    // Returns the original File unchanged when it is already within the limit.
+    function resizeImageForOcr(file, maxPx) {
+        maxPx = maxPx || 1600;
+        return new Promise(function (resolve) {
+            var url = URL.createObjectURL(file);
+            var img = new Image();
+            img.onload = function () {
+                URL.revokeObjectURL(url);
+                var w = img.naturalWidth, h = img.naturalHeight;
+                var ratio = Math.min(maxPx / w, maxPx / h, 1); // never upscale
+                if (ratio >= 1) { resolve(file); return; }
+                var canvas = document.createElement('canvas');
+                canvas.width  = Math.round(w * ratio);
+                canvas.height = Math.round(h * ratio);
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(function (blob) {
+                    resolve(new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }));
+                }, 'image/jpeg', 0.88);
+            };
+            img.onerror = function () { URL.revokeObjectURL(url); resolve(file); };
+            img.src = url;
+        });
+    }
+
     function setSpinner(iconEl, btnEl, on) {
         if (on) {
             iconEl.className = 'spinner-border spinner-border-sm';
@@ -1729,8 +1755,9 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         setSpinner(iconEl, btnEl, true);
         hideOcrResult(resultEl);
 
+        const fileToSend = await resizeImageForOcr(file);
         const fd = new FormData();
-        fd.append('image', file);
+        fd.append('image', fileToSend);
         fd.append('_token', CSRF);
 
         try {

@@ -235,15 +235,13 @@ class ContainerOcrService
                     if ($isFull) { $fullCandidates[] = $out; } else { $cropCandidates[] = $out; }
                 }
 
-                // Early exit: stop launching more batches once we have a full-image result
-                // (weight/ISO extraction needs it) AND a validated container number candidate.
+                // Early exit: use the full extraction logic so V→U normalisation,
+                // digit substitution, and mixed-prefix recovery are all applied —
+                // a simple regex would miss e.g. "OOLV765432" which the full method
+                // correctly resolves to "OOLU7654320" via normalizeCategoryChar.
                 if (!empty($fullCandidates)) {
-                    foreach (array_merge($fullCandidates, $cropCandidates) as $t) {
-                        $c = preg_replace('/[^A-Z0-9]/', '', strtoupper($t));
-                        if (preg_match('/([A-Z]{3}[UJZ]\d{7})/', $c, $mx) && $this->validateCheckDigit($mx[1])) {
-                            break 2; // valid number found — skip remaining batches
-                        }
-                    }
+                    [, $earlyValid] = $this->extractContainerNo($cropCandidates, $fullCandidates, '');
+                    if ($earlyValid) break 2;
                 }
             }
 
