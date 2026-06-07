@@ -179,6 +179,21 @@ class ContainerOcrService
             // block analysis for PSM 6 still mis-segments the 4-character ISO code.
             $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.14, 0.92, 0.36, 7);
             if ($c !== '') $cropCandidates[] = $c;
+
+            // Crops J & K — alphanumeric whitelist variants of the ISO band.
+            // Restricting Tesseract to A-Z0-9 eliminates the noise characters
+            // (|, ), !, –) that confuse small-text recognition on dark backgrounds
+            // and can cause "42G1" to be read as "(3)" or discarded entirely.
+            $alphanum = '-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+            // Crop J: PSM 6 + whitelist.
+            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.14, 0.92, 0.36, 6, $alphanum);
+            if ($c !== '') $cropCandidates[] = $c;
+
+            // Crop K: PSM 8 (single word) + whitelist — PSM 8 is purpose-built for
+            // isolated short codes and may read "42G1" more reliably than block modes.
+            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.14, 0.92, 0.36, 8, $alphanum);
+            if ($c !== '') $cropCandidates[] = $c;
         }
 
         $allCandidates = array_merge($fullCandidates, $cropCandidates);
@@ -239,7 +254,8 @@ class ContainerOcrService
         string $imagePath,
         float $x1, float $y1,
         float $x2, float $y2,
-        int $psm
+        int $psm,
+        string $extraConfig = ''
     ): string {
         $mime = mime_content_type($imagePath);
         $src  = match (true) {
@@ -285,7 +301,8 @@ class ContainerOcrService
 
         $nullDev = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
         $escaped = escapeshellarg($tmpPath);
-        $out     = shell_exec("tesseract {$escaped} stdout -l eng --psm {$psm} --oem 3 {$nullDev}");
+        $cfg = $extraConfig !== '' ? " {$extraConfig}" : '';
+        $out = shell_exec("tesseract {$escaped} stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}");
         @unlink($tmpPath);
 
         return ($out !== null && trim($out) !== '') ? strtoupper(trim($out)) : '';
@@ -645,11 +662,16 @@ class ContainerOcrService
             $code = $this->normalizeIsoCode(strtoupper($m[1]));
             if ($this->isValidIsoTypeCode($code)) return $code;
         }
-        // Standalone: also accept a digit at the type-letter position so that the very
-        // common OCR misread of G→6 in blocky stencil fonts (22G1 → 2261) is corrected.
-        if (preg_match('/\b([24L][025][A-Z0-9][0-9A-Z])\b/', $text, $m)) {
-            $code = $this->normalizeIsoCode(strtoupper($m[1]));
-            if ($this->isValidIsoTypeCode($code)) return $code;
+        // Standalone: scan all occurrences — if the first match fails validation a
+        // valid code may still appear later in the combined multi-pass text.
+        // Lookahead/lookbehind replace \b so the match works even when OCR noise
+        // characters abut the code (e.g. "|42G1|" where \b would also work, but
+        // "(42G1)" where the inner \b on '4' after '(' is unreliable in some engines).
+        if (preg_match_all('/(?<![A-Z0-9])([24L][025][A-Z0-9][0-9A-Z])(?![A-Z0-9])/i', $text, $all)) {
+            foreach ($all[1] as $raw) {
+                $code = $this->normalizeIsoCode(strtoupper($raw));
+                if ($this->isValidIsoTypeCode($code)) return $code;
+            }
         }
         return null;
     }
