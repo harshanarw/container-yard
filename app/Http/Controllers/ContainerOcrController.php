@@ -18,7 +18,25 @@ class ContainerOcrController extends Controller
             'image' => ['required', 'file', 'image', 'max:10240'], // 10 MB
         ]);
 
-        $result = $this->ocr->extractFromImage($request->file('image'));
+        try {
+            $result = $this->ocr->extractFromImage($request->file('image'));
+        } catch (\Throwable $e) {
+            \Log::error('OCR processing failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success'           => false,
+                'container_no'      => null,
+                'check_digit_valid' => false,
+                'iso_type'          => null,
+                'tare_kg'           => null,
+                'max_gross_kg'      => null,
+                'in_yard'           => false,
+                'in_yard_since'     => null,
+                'master'            => null,
+                'equipment_match'   => null,
+                'raw_text'          => '',
+                'message'           => 'OCR processing error: ' . $e->getMessage(),
+            ], 500);
+        }
 
         $containerNo    = $result['container_no'];
         $masterData     = null;
