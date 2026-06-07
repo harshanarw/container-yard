@@ -39,6 +39,7 @@ use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\ApprovalWorkflowController;
 use App\Http\Controllers\YardController;
 use App\Http\Controllers\ContainerOcrController;
+use App\Http\Controllers\ContainerGradeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -179,6 +180,14 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{equipmentType}/toggle',    [EquipmentTypeController::class, 'toggleActive'])->name('toggle');
             Route::delete('{equipmentType}',          [EquipmentTypeController::class, 'destroy'])->name('destroy');
             Route::post('reorder',                    [EquipmentTypeController::class, 'reorder'])->name('reorder');
+        });
+        Route::prefix('container-grades')->name('container-grades.')->group(function () {
+            Route::get('/',                             [ContainerGradeController::class, 'index'])->name('index');
+            Route::post('/',                            [ContainerGradeController::class, 'store'])->name('store');
+            Route::patch('{containerGrade}',            [ContainerGradeController::class, 'update'])->name('update');
+            Route::patch('{containerGrade}/toggle',     [ContainerGradeController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{containerGrade}',           [ContainerGradeController::class, 'destroy'])->name('destroy');
+            Route::post('reorder',                      [ContainerGradeController::class, 'reorder'])->name('reorder');
         });
         // Customer Types
         Route::prefix('customer-types')->name('customer-types.')->group(function () {

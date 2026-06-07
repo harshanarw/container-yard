@@ -695,6 +695,12 @@
                             <i class="bi bi-box-seam"></i><span>Equipment Types</span>
                         </a>
                     </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.container-grades.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.container-grades.*') ? 'active' : '' }}">
+                            <i class="bi bi-award"></i><span>Container Grades</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
 
