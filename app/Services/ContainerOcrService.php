@@ -241,7 +241,7 @@ class ContainerOcrService
                 // correctly resolves to "OOLU7654320" via normalizeCategoryChar.
                 if (!empty($fullCandidates)) {
                     [, $earlyValid] = $this->extractContainerNo($cropCandidates, $fullCandidates, '');
-                    if ($earlyValid) break 2;
+                    if ($earlyValid) break; // break 1: exits the outer batch loop only
                 }
             }
 
