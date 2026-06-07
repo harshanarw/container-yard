@@ -30,7 +30,10 @@ class ContainerOcrService
         }
 
         $workPath = $enhanced ?? $tmpPath;
-        [$text, $cropCandidates, $fullCandidates] = $this->runTesseract($workPath);
+        // Pass the original upload path alongside the enhanced copy so ISO crops
+        // can run on the unsharpened image (the GD sharpen kernel creates ringing
+        // artefacts around small stencil characters like "42G1").
+        [$text, $cropCandidates, $fullCandidates] = $this->runTesseract($workPath, $tmpPath);
 
         if ($enhanced && file_exists($enhanced)) {
             @unlink($enhanced);
@@ -109,7 +112,7 @@ class ContainerOcrService
      *   [2] array   — full-image candidates (PSM-3 / PSM-11 / PSM-6 on the
      *                 whole image) used as fallback for container-number extraction
      */
-    private function runTesseract(string $imagePath): array
+    private function runTesseract(string $imagePath, string $originalPath = ''): array
     {
         $escaped = escapeshellarg($imagePath);
         $nullDev = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
@@ -165,45 +168,54 @@ class ContainerOcrService
             $c = $this->runTesseractOnCrop($imagePath, 0.35, 0.0, 1.0, 0.35, 6);
             if ($c !== '') $cropCandidates[] = $c;
 
-            // Crops H–M: ISO size/type code band (e.g. "42G1"), y: 19–32 %.
-            // Start at y=19 % so the crop begins BELOW the container number
-            // (which occupies roughly y:8–19 % on a typical door photo). Starting
-            // earlier (y:14 %) caused the large container-number text to dominate
-            // the scaled crop and suppress the smaller ISO code characters.
-            // x: 38–92 % covers the right door panel where the ISO plate appears.
-
-            // Crop H — PSM 6 (uniform block), ISO band, no whitelist.
-            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 6);
-            if ($c !== '') $cropCandidates[] = $c;
-
-            // Crop I — PSM 7 (single text line), same region.
-            // PSM 7 treats the entire strip as one sequence, avoiding block
-            // mis-segmentation of the 4-character ISO code.
-            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 7);
-            if ($c !== '') $cropCandidates[] = $c;
-
-            // Crops J–M: alphanumeric whitelist restricts output to A-Z0-9,
-            // eliminating noise characters (|, ), !, –) from dark backgrounds.
+            // ── ISO size/type code crops (H–P) ──────────────────────────────────
+            // "42G1" sits just below the container number (≈ y:19–32 % on a door
+            // photo). Two image sources are used:
+            //   • $imagePath  — GD-enhanced (grayscale + sharpen): can help contrast
+            //                   but the sharpen kernel creates ringing around small
+            //                   stencil characters that the LSTM may misread.
+            //   • $isoPath    — original upload (no sharpening): cleaner for small text.
+            // The negate path in runTesseractOnCrop converts to grayscale + adjusts
+            // contrast before inverting, so dark-on-light and light-on-dark plates are
+            // both handled regardless of which image source is used.
             $alphanum = '-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
-            // Crop J: PSM 6 + whitelist.
-            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 6, $alphanum);
-            if ($c !== '') $cropCandidates[] = $c;
+            // Use original (unsharpened) image for ISO crops when available.
+            $isoPath = ($originalPath !== '' && file_exists($originalPath))
+                ? $originalPath
+                : $imagePath;
 
-            // Crop K: PSM 8 (single word) + whitelist — purpose-built for short codes.
+            // Enhanced-image crops (H–J): sharpening can improve contrast on some cameras.
+            // H: PSM 7 (single line) — treats strip as one left-to-right sequence.
+            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 7);
+            if ($c !== '') $cropCandidates[] = $c;
+            // I: PSM 8 (single word) + whitelist — purpose-built for isolated short codes.
             $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 8, $alphanum);
             if ($c !== '') $cropCandidates[] = $c;
-
-            // Crops L & M: negated variants — inverts pixel values so white-on-dark
-            // ISO stencil text becomes dark-on-white, Tesseract's preferred polarity.
-            // Containers with white text on green panels benefit most from this.
-
-            // Crop L: PSM 8 + whitelist + NEGATE.
+            // J: PSM 8 + whitelist + negate on enhanced.
             $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 8, $alphanum, true);
             if ($c !== '') $cropCandidates[] = $c;
 
-            // Crop M: PSM 6 + whitelist + NEGATE — block mode as a complement to PSM 8.
-            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.19, 0.92, 0.32, 6, $alphanum, true);
+            // Original-image crops (K–P): no sharpening artefacts.
+            // K: PSM 8 + whitelist — light-background ISO plates (dark text on white).
+            $c = $this->runTesseractOnCrop($isoPath, 0.38, 0.19, 0.92, 0.32, 8, $alphanum);
+            if ($c !== '') $cropCandidates[] = $c;
+            // L: PSM 8 + whitelist + negate — white/light text on dark/green panels.
+            $c = $this->runTesseractOnCrop($isoPath, 0.38, 0.19, 0.92, 0.32, 8, $alphanum, true);
+            if ($c !== '') $cropCandidates[] = $c;
+            // M: PSM 6 (block) + whitelist + negate — complement to PSM 8.
+            $c = $this->runTesseractOnCrop($isoPath, 0.38, 0.19, 0.92, 0.32, 6, $alphanum, true);
+            if ($c !== '') $cropCandidates[] = $c;
+            // N: narrower x (45–75 %) focuses on the centre panel; removes left/right noise.
+            $c = $this->runTesseractOnCrop($isoPath, 0.45, 0.18, 0.75, 0.35, 8, $alphanum, true);
+            if ($c !== '') $cropCandidates[] = $c;
+            // O: wide y (16–46 %), PSM 11 (sparse text) + negate — safety net for ISO
+            //    codes at unexpected vertical positions (e.g. y:33% instead of y:23%).
+            //    PSM 11 finds any text scattered anywhere in the crop without assuming layout.
+            $c = $this->runTesseractOnCrop($isoPath, 0.38, 0.16, 0.88, 0.46, 11, $alphanum, true);
+            if ($c !== '') $cropCandidates[] = $c;
+            // P: same wide range, PSM 11, no negate — catches dark-on-light ISO plates.
+            $c = $this->runTesseractOnCrop($isoPath, 0.38, 0.16, 0.88, 0.46, 11, $alphanum);
             if ($c !== '') $cropCandidates[] = $c;
         }
 
@@ -308,6 +320,13 @@ class ContainerOcrService
         }
 
         if ($negate) {
+            // Grayscale + contrast before inversion so white-on-colour text (e.g.
+            // white on green) becomes crisp dark-on-white after the negate.
+            // Applying these here instead of relying on prior GD enhancement ensures
+            // consistent results whether $dest came from the enhanced or original image.
+            imagefilter($dest, IMG_FILTER_GRAYSCALE);
+            imagefilter($dest, IMG_FILTER_BRIGHTNESS, 15);
+            imagefilter($dest, IMG_FILTER_CONTRAST, -30);
             imagefilter($dest, IMG_FILTER_NEGATE);
         }
 
@@ -680,15 +699,30 @@ class ContainerOcrService
             $code = $this->normalizeIsoCode(strtoupper($m[1]));
             if ($this->isValidIsoTypeCode($code)) return $code;
         }
-        // Standalone: scan all occurrences — if the first match fails validation a
-        // valid code may still appear later in the combined multi-pass text.
-        // Lookahead/lookbehind replace \b so the match works even when OCR noise
-        // characters abut the code (e.g. "|42G1|" where \b would also work, but
-        // "(42G1)" where the inner \b on '4' after '(' is unreliable in some engines).
-        if (preg_match_all('/(?<![A-Z0-9])([24L][025][A-Z0-9][0-9A-Z])(?![A-Z0-9])/i', $text, $all)) {
+        // Standalone 4-char code.
+        // Second char uses [0-9] (all ISO height codes) rather than [025] so that
+        // less common heights (e.g. '4' = higher frame, '6' = low height) are caught.
+        // Lookahead/lookbehind keep the match boundary-safe without relying on \b.
+        if (preg_match_all('/(?<![A-Z0-9])([24L][0-9][A-Z0-9][0-9A-Z])(?![A-Z0-9])/i', $text, $all)) {
             foreach ($all[1] as $raw) {
                 $code = $this->normalizeIsoCode(strtoupper($raw));
                 if ($this->isValidIsoTypeCode($code)) return $code;
+            }
+        }
+        // Compact per-block fallback: Tesseract sometimes inserts a space inside the
+        // 4-char code when the crop is scaled up (e.g. "4 2G1" or "42 G1").
+        // Each OCR pass block is stripped of non-alphanumerics and re-searched.
+        // Only applied to short blocks (4–15 compacted chars) to avoid false matches
+        // from container-number digit strings or weight values in longer pass blocks.
+        foreach (explode("\n\n", $text) as $block) {
+            $compact = strtoupper(preg_replace('/[^A-Z0-9]/', '', $block));
+            $cLen = strlen($compact);
+            if ($cLen < 4 || $cLen > 15) continue;
+            if (preg_match_all('/([24L][0-9][A-Z0-9][0-9A-Z])/', $compact, $cm)) {
+                foreach ($cm[1] as $raw) {
+                    $code = $this->normalizeIsoCode($raw);
+                    if ($this->isValidIsoTypeCode($code)) return $code;
+                }
             }
         }
         return null;
