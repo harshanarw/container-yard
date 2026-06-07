@@ -105,7 +105,21 @@
                             </select>
                             @error('equipment_type_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Container Grade</label>
+                            <select name="grade_id" class="form-select @error('grade_id') is-invalid @enderror">
+                                <option value="">— Not Set —</option>
+                                @foreach($grades as $grade)
+                                    <option value="{{ $grade->id }}"
+                                            {{ old('grade_id', $container?->grade_id) == $grade->id ? 'selected' : '' }}>
+                                        {{ $grade->code }} — {{ $grade->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('grade_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">Classification for cargo suitability.</div>
+                        </div>
+                        <div class="col-md-8">
                             <label class="form-label fw-semibold">Manufacturer</label>
                             <input type="text" name="manufacturer"
                                    class="form-control @error('manufacturer') is-invalid @enderror"

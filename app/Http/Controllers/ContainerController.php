@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Container;
+use App\Models\ContainerGrade;
 use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\YardLocation;
@@ -32,8 +33,9 @@ class ContainerController extends Controller
     {
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->orderBy('sort_order')->get();
+        $grades         = ContainerGrade::active()->orderBy('sort_order')->get();
 
-        return view('containers.create', compact('customers', 'equipmentTypes'));
+        return view('containers.create', compact('customers', 'equipmentTypes', 'grades'));
     }
 
     public function store(Request $request)
@@ -62,8 +64,9 @@ class ContainerController extends Controller
     {
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->orderBy('sort_order')->get();
+        $grades         = ContainerGrade::active()->orderBy('sort_order')->get();
 
-        return view('containers.edit', compact('container', 'customers', 'equipmentTypes'));
+        return view('containers.edit', compact('container', 'customers', 'equipmentTypes', 'grades'));
     }
 
     public function update(Request $request, Container $container)
@@ -117,6 +120,7 @@ class ContainerController extends Controller
             'found'            => true,
             'category'         => $container->category,
             'equipment_type_id'=> $container->equipment_type_id,
+            'grade_id'         => $container->grade_id,
             'size'             => $container->size,
             'type_code'        => $container->type_code,
             'manufacture_year' => $container->manufacture_year,
@@ -143,6 +147,7 @@ class ContainerController extends Controller
             'container_no'      => ['required', 'string', 'max:12', $uniqueRule, 'regex:/^[A-Z]{4}[0-9]{7}$/'],
             'category'          => ['required', 'in:consignee,owned,leased'],
             'equipment_type_id' => ['nullable', 'exists:equipment_types,id'],
+            'grade_id'          => ['nullable', 'exists:container_grades,id'],
             'manufacture_year'  => ['nullable', 'integer', 'min:1970', 'max:' . (date('Y') + 1)],
             'manufacturer'      => ['nullable', 'string', 'max:100'],
             // ── Ownership ────────────────────────────────────────────────

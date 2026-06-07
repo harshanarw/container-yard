@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Facades\Documents;
 use App\Models\Container;
+use App\Models\ContainerGrade;
 use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\GateMovement;
@@ -84,13 +85,14 @@ class YardController extends Controller
         $transporters   = Customer::whereHas('types', fn($q) => $q->where('name', 'Transporter'))
                             ->where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->get();
+        $grades         = ContainerGrade::active()->orderBy('sort_order')->get();
         $zones          = StorageZone::active()->withCount([
             'yardLocations',
             'yardLocations as empty_count'    => fn($q) => $q->where('status', 'empty'),
             'yardLocations as occupied_count' => fn($q) => $q->where('status', 'occupied'),
         ])->get();
 
-        return view('yard.gate', compact('recentMovements', 'customers', 'transporters', 'equipmentTypes', 'zones'));
+        return view('yard.gate', compact('recentMovements', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones'));
     }
 
     public function gateIn(Request $request)
@@ -112,6 +114,7 @@ class YardController extends Controller
             'equipment_type_id' => ['required', 'exists:equipment_types,id'],
             'customer_id'       => ['required', 'exists:customers,id'],
             'condition'         => ['required', 'in:sound,damaged,require_repair'],
+            'grade_id'          => ['nullable', 'exists:container_grades,id'],
             'cargo_status'      => ['required', 'in:empty,laden'],
             'location_zone'     => ['nullable', 'string', 'max:10', 'exists:storage_zones,code'],
             'location_row'      => ['nullable', 'string', 'max:5'],
@@ -215,6 +218,7 @@ class YardController extends Controller
             'type_code'         => $eqt->type_code,
             'customer_id'       => $validated['customer_id'],
             'condition'         => $validated['condition'],
+            'grade_id'          => $validated['grade_id'] ?? null,
             'cargo_status'      => $validated['cargo_status'],
             'status'            => 'in_yard',
             'location_zone'     => $validated['location_zone'],
@@ -257,6 +261,7 @@ class YardController extends Controller
             'location_bay'    => $validated['location_bay'],
             'location_tier'   => $validated['location_tier'],
             'condition'       => $validated['condition'],
+            'grade_id'        => $validated['grade_id'] ?? null,
             'cargo_status'    => $validated['cargo_status'],
             'seal_no'         => $validated['seal_no'],
             'vehicle_plate'   => $validated['vehicle_plate'],
@@ -355,6 +360,7 @@ class YardController extends Controller
             'driver_phone'   => ['nullable', 'string', 'max:20'],
             'release_order'  => ['nullable', 'string', 'max:50'],
             'seal_no'        => ['nullable', 'string', 'max:20'],
+            'grade_id'       => ['nullable', 'exists:container_grades,id'],
             // Export information
             'loading_vessel' => ['nullable', 'string', 'max:100'],
             'loading_voyage' => ['nullable', 'string', 'max:50'],
@@ -388,6 +394,7 @@ class YardController extends Controller
             'location_bay'    => $container->location_bay,
             'location_tier'   => $container->location_tier,
             'condition'       => $container->condition,
+            'grade_id'        => $validated['grade_id'] ?? $container->grade_id,
             'cargo_status'    => $container->cargo_status,
             'vehicle_plate'   => $validated['vehicle_plate'],
             'driver_name'     => $validated['driver_name'],
@@ -845,7 +852,7 @@ class YardController extends Controller
             return response()->json(['found' => false, 'message' => 'Container number is required.']);
         }
 
-        $container = Container::with(['customer', 'equipmentType'])
+        $container = Container::with(['customer', 'equipmentType', 'grade'])
             ->where('container_no', $no)
             ->first();
 
@@ -897,6 +904,9 @@ class YardController extends Controller
             'gate_in_time'     => $gateInMovement?->gate_in_time?->format('d M Y, H:i'),
             'days_in_yard'     => $daysInYard,
             'gate_in_movement_id' => $gateInMovement?->id,
+            'grade_id'         => $container->grade_id,
+            'grade_name'       => $container->grade?->name,
+            'grade_code'       => $container->grade?->code,
         ]);
     }
 

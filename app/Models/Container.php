@@ -21,7 +21,7 @@ class Container extends Model
 
     // ── Master profile fields (edited via Container Master CRUD) ─────────────
     const MASTER_FIELDS = [
-        'container_no', 'category', 'equipment_type_id', 'size', 'type_code',
+        'container_no', 'category', 'equipment_type_id', 'grade_id', 'size', 'type_code',
         'manufacture_year', 'manufacturer', 'owner_code', 'owner_name',
         'gross_weight_kg', 'tare_weight_kg', 'max_payload_kg',
         'csc_plate_no', 'csc_expiry_date', 'notes', 'customer_id',
@@ -41,7 +41,7 @@ class Container extends Model
 
     protected $fillable = [
         // master
-        'container_no', 'category', 'equipment_type_id', 'size', 'type_code',
+        'container_no', 'category', 'equipment_type_id', 'grade_id', 'size', 'type_code',
         'manufacture_year', 'manufacturer', 'owner_code', 'owner_name',
         'gross_weight_kg', 'tare_weight_kg', 'max_payload_kg',
         'csc_plate_no', 'csc_expiry_date', 'notes',
@@ -67,6 +67,11 @@ class Container extends Model
     ];
 
     // Relationships
+    public function grade()
+    {
+        return $this->belongsTo(ContainerGrade::class, 'grade_id');
+    }
+
     public function equipmentType()
     {
         return $this->belongsTo(EquipmentType::class);

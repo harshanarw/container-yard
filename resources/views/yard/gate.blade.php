@@ -135,6 +135,16 @@
                             <label class="form-label fw-semibold">Seal Number</label>
                             <input type="text" name="seal_no" class="form-control" placeholder="Optional">
                         </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Container Grade</label>
+                            <select name="grade_id" id="inGradeSelect" class="form-select">
+                                <option value="">— Not Set —</option>
+                                @foreach($grades as $grade)
+                                <option value="{{ $grade->id }}">{{ $grade->code }} — {{ $grade->name }}</option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">Grade classification for cargo suitability (e.g. Fiber Grade, Tea Grade).</div>
+                        </div>
                     </div>
 
                     {{-- ═══════════════════════════════════════════════════════
@@ -525,6 +535,17 @@
                     </div>
                     <div id="ocrResultOut" class="mb-2 small d-none"></div>
                     <div id="containerInfoBox" class="mb-3 d-none"></div>
+
+                    <div id="outGradeRow" class="mb-3 d-none">
+                        <label class="form-label fw-semibold">Container Grade</label>
+                        <select name="grade_id" id="outGradeSelect" class="form-select">
+                            <option value="">— Not Set —</option>
+                            @foreach($grades as $grade)
+                            <option value="{{ $grade->id }}">{{ $grade->code }} — {{ $grade->name }}</option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Override the container's grade classification for this gate-out if needed.</div>
+                    </div>
 
                     {{-- ═══════════════════════════════════════════════════════
                          SECTION 2 — Export Information (collapsible)
@@ -975,6 +996,11 @@ btnOut.addEventListener('click', () => {
                         eqtSel.dispatchEvent(new Event('change'));
                     }
                 }
+                // Pre-select grade if available
+                const gradeSel = document.getElementById('inGradeSelect');
+                if (gradeSel && data.grade_id) {
+                    gradeSel.value = String(data.grade_id);
+                }
                 // Fill additional container details from master record
                 window.additionalDetails?.fillFromMaster(data);
             } else {
@@ -1402,6 +1428,8 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
 (function () {
     const inp = document.getElementById('containerSearch'), searchBtn = document.getElementById('containerSearchBtn');
     const infoBox = document.getElementById('containerInfoBox');
+    const gradeRow = document.getElementById('outGradeRow');
+    const gradeSelect = document.getElementById('outGradeSelect');
     let lookupDone = false;
 
     function setInfoBox(type, html) {
@@ -1419,12 +1447,14 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             const data = await res.json();
             if (!data.found) {
                 lookupDone = false;
+                gradeRow.classList.add('d-none');
                 setInfoBox('danger', '<i class="bi bi-x-circle me-1"></i><strong>Not found:</strong> ' + (data.message || 'Container not in yard.'));
             } else {
                 lookupDone = true;
                 const condMap  = { sound:'Sound', damaged:'Damaged', require_repair:'Requires Repair' };
                 const cargoMap = { empty:'Empty', laden:'Laden', full:'Laden' };
                 const daysBadge = data.days_in_yard !== null ? '<span class="badge bg-warning-subtle text-warning border ms-1">' + data.days_in_yard + ' day(s) in yard</span>' : '';
+                const gradeInfo = data.grade_name ? ' <span class="text-muted">·</span> Grade: ' + data.grade_name : '';
                 setInfoBox('success',
                     '<div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-check-circle-fill text-success fs-5"></i><strong class="font-monospace fs-6">' + data.container_no + '</strong>' + daysBadge + '</div>' +
                     '<div class="row g-1 small">' +
@@ -1433,12 +1463,20 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                         '<div class="col-6"><span class="text-muted">Condition:</span> ' + (condMap[data.condition]||data.condition) + '</div>' +
                         '<div class="col-6"><span class="text-muted">Cargo:</span> ' + (cargoMap[data.cargo_status]||data.cargo_status) + '</div>' +
                         '<div class="col-6"><span class="text-muted">Location:</span> <strong class="font-monospace">' + (data.location||'—') + '</strong></div>' +
-                        '<div class="col-6"><span class="text-muted">Gate In:</span> ' + (data.gate_in_time||data.gate_in_date||'—') + '</div>' +
+                        '<div class="col-6"><span class="text-muted">Gate In:</span> ' + (data.gate_in_time||data.gate_in_date||'—') + gradeInfo + '</div>' +
                     '</div>'
                 );
+                // Pre-select the container's current grade in the dropdown
+                if (gradeSelect && data.grade_id) {
+                    gradeSelect.value = String(data.grade_id);
+                } else if (gradeSelect) {
+                    gradeSelect.value = '';
+                }
+                gradeRow.classList.remove('d-none');
             }
         } catch (e) {
             lookupDone = false;
+            gradeRow.classList.add('d-none');
             setInfoBox('danger', '<i class="bi bi-wifi-off me-1"></i>Network error. Please try again.');
         } finally {
             searchBtn.disabled = false; searchBtn.innerHTML = '<i class="bi bi-search"></i>';
@@ -1448,7 +1486,11 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     searchBtn.addEventListener('click', doLookup);
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doLookup(); } });
     inp.addEventListener('input', function () {
-        if (lookupDone) { lookupDone = false; setInfoBox('info', '<i class="bi bi-info-circle me-1"></i>Container changed — search again to verify.'); }
+        if (lookupDone) {
+            lookupDone = false;
+            gradeRow.classList.add('d-none');
+            setInfoBox('info', '<i class="bi bi-info-circle me-1"></i>Container changed — search again to verify.');
+        }
     });
     document.getElementById('gateOutForm').addEventListener('submit', function (e) {
         if (!lookupDone) { e.preventDefault(); setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please search and confirm the container is in yard.'); inp.focus(); }
