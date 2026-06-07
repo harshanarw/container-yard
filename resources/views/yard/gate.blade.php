@@ -110,6 +110,7 @@
                             </div>
                             <input type="hidden" name="size" id="gateEqtSize">
                             <input type="hidden" name="type_code" id="gateEqtTypeCode">
+                            <div id="hint_equipment_type_id" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Customer / Owner <span class="text-danger">*</span></label>
@@ -119,6 +120,7 @@
                                 <option value="{{ $customer->id }}" data-code="{{ $customer->code }}" data-name="{{ $customer->name }}">{{ $customer->code }} — {{ $customer->name }}</option>
                                 @endforeach
                             </select>
+                            <div id="hint_customer_id" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold">Condition</label>
@@ -1062,10 +1064,11 @@ btnOut.addEventListener('click', activateOut);
 
 // ── Container Master lookup on Gate-In ──────────────────────────────────────
 (function () {
-    const inp     = document.getElementById('containerNoIn');
-    const infoBox = document.getElementById('masterLookupInfo');
-    const eqtSel  = document.getElementById('gateEqtSelect');
-    let lastVal   = '';
+    const inp         = document.getElementById('containerNoIn');
+    const infoBox     = document.getElementById('masterLookupInfo');
+    const eqtSel      = document.getElementById('gateEqtSelect');
+    const customerSel = document.querySelector('#gateInForm select[name="customer_id"]');
+    let lastVal       = '';
 
     async function lookupMaster(val) {
         if (val.length !== 11 || val === lastVal) return;
@@ -1102,6 +1105,19 @@ btnOut.addEventListener('click', activateOut);
                 if (gradeSel && data.grade_id) {
                     gradeSel.value = String(data.grade_id);
                 }
+                // Pre-fill Customer / Owner if empty — only for master-known containers
+                const custHintEl = document.getElementById('hint_customer_id');
+                if (customerSel && data.customer_id) {
+                    const curVal = typeof $ !== 'undefined' ? $(customerSel).val() : customerSel.value;
+                    if (!curVal) {
+                        if (typeof $ !== 'undefined') {
+                            $(customerSel).val(String(data.customer_id)).trigger('change');
+                        } else {
+                            customerSel.value = String(data.customer_id);
+                        }
+                        if (custHintEl) custHintEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Pre-filled from master record</span>';
+                    }
+                }
                 // Fill additional container details from master record
                 window.additionalDetails?.fillFromMaster(data);
             } else {
@@ -1117,13 +1133,27 @@ btnOut.addEventListener('click', activateOut);
         if (this.value.length < 11) {
             infoBox.className = 'd-none';
             lastVal = '';
-            // Reset equipment type so stale pre-fill from previous container doesn't persist
+            // Reset equipment type
             if (typeof $ !== 'undefined') {
                 $(eqtSel).val(null).trigger('change');
             } else {
                 eqtSel.value = '';
                 eqtSel.dispatchEvent(new Event('change'));
             }
+            // Reset customer / owner (clears any master pre-fill so a stale customer
+            // from the previous container doesn't carry over to the next scan)
+            if (customerSel) {
+                if (typeof $ !== 'undefined') {
+                    $(customerSel).val(null).trigger('change');
+                } else {
+                    customerSel.value = '';
+                }
+            }
+            // Clear field-level hints
+            const eqtHintEl  = document.getElementById('hint_equipment_type_id');
+            const custHintEl = document.getElementById('hint_customer_id');
+            if (eqtHintEl)  eqtHintEl.innerHTML  = '';
+            if (custHintEl) custHintEl.innerHTML = '';
             // Clear additional details filled by previous master lookup
             window.additionalDetails?.reset();
         }
@@ -1155,6 +1185,7 @@ btnOut.addEventListener('click', activateOut);
 
     function updateBadge(count, source) {
         if (!count) { badgeEl.classList.add('d-none'); return; }
+        badgeEl.style.background = ''; badgeEl.style.color = ''; // revert to default inline purple
         badgeEl.textContent = count + ' field' + (count > 1 ? 's' : '') + ' from ' + source;
         badgeEl.classList.remove('d-none');
     }
@@ -1248,24 +1279,33 @@ btnOut.addEventListener('click', activateOut);
                 add_csc_plate_no:     data.csc_plate_no,
                 add_csc_expiry_date:  data.csc_expiry_date,
             };
-            let filled = 0;
+            let newlyFilled = 0, conflicts = 0, ocrMatches = 0;
             for (const [id, masterVal] of Object.entries(map)) {
                 if (isEmpty(masterVal)) continue;
                 const el = g(id);
                 if (!el) continue;
                 if (isEmpty(el.value)) {
-                    // Field is currently empty — fill from master silently
-                    el.value = masterVal; clearHint(id); filled++;
+                    el.value = masterVal; clearHint(id); newlyFilled++;
                 } else if (valEq(el.value, masterVal)) {
-                    // Field already has the same value (e.g. OCR matched) — show green
-                    showMatchHint(id);
+                    showMatchHint(id); ocrMatches++;
                 } else {
-                    // Field has a different value (OCR filled it differently) — conflict
-                    showConflictHint(id, masterVal);
+                    showConflictHint(id, masterVal); conflicts++;
                 }
             }
             calcPayload();
-            if (filled > 0) { expandSection(); updateBadge(filled, 'master'); }
+            if (newlyFilled > 0) expandSection();
+            // Badge reflects the combined state after both OCR and master have contributed
+            if (conflicts > 0) {
+                badgeEl.style.background = '#fef3c7'; badgeEl.style.color = '#92400e';
+                badgeEl.textContent = conflicts + ' conflict' + (conflicts > 1 ? 's' : '') + ' with master — please review';
+                badgeEl.classList.remove('d-none');
+            } else if (ocrMatches > 0 && newlyFilled === 0) {
+                badgeEl.style.background = '#d1fae5'; badgeEl.style.color = '#065f46';
+                badgeEl.textContent = 'OCR data matches master record';
+                badgeEl.classList.remove('d-none');
+            } else if (newlyFilled > 0) {
+                updateBadge(newlyFilled, 'master');
+            }
         },
 
         fillFromOcr(ocrData) {
@@ -1293,6 +1333,7 @@ btnOut.addEventListener('click', activateOut);
                 clearHint(id);
             });
             badgeEl.classList.add('d-none');
+            badgeEl.style.background = ''; badgeEl.style.color = '';
         },
     };
 })();
@@ -1725,27 +1766,29 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             let resultHtml = '<i class="bi bi-check-circle-fill text-success me-1"></i>' +
                 containerLabel + ' extracted from image.';
 
-            // Resolve equipment type to pre-select (needed for banner too)
-            const eqtSel   = document.getElementById('gateEqtSelect');
-            let   eqtToSet = null;
-            if (data.master?.equipment_type_id) {
-                eqtToSet = String(data.master.equipment_type_id);
-            } else if (data.iso_type) {
-                eqtToSet = findEqtByIso(eqtSel, data.iso_type) || (data.equipment_match?.id ? String(data.equipment_match.id) : null);
-            }
-            // Resolve the eqt code label for display
-            let eqtCodeLabel = null;
-            if (eqtToSet) {
-                for (const opt of eqtSel.options) {
-                    if (String(opt.value) === eqtToSet) { eqtCodeLabel = opt.dataset.code || opt.text; break; }
-                }
+            // Resolve equipment type to pre-select
+            const eqtSel    = document.getElementById('gateEqtSelect');
+            // OCR-suggested EQT: what the ISO type code alone resolves to (independent of master)
+            const ocrEqtId  = data.iso_type
+                ? (findEqtByIso(eqtSel, data.iso_type) || (data.equipment_match?.id ? String(data.equipment_match.id) : null))
+                : null;
+            // Master record's EQT (most reliable when the container is already known)
+            const masterEqtId = data.master?.equipment_type_id ? String(data.master.equipment_type_id) : null;
+            // Master wins if available; fall back to OCR ISO match for new containers
+            let   eqtToSet  = masterEqtId || ocrEqtId;
+            // Get display labels for both sources separately
+            let eqtCodeLabel = null; // label for what will actually be selected (eqtToSet)
+            let ocrEqtLabel  = null; // label for what OCR's ISO type resolved to
+            for (const opt of eqtSel.options) {
+                if (eqtToSet && String(opt.value) === eqtToSet) eqtCodeLabel = opt.dataset.code || opt.text;
+                if (ocrEqtId && String(opt.value) === ocrEqtId) ocrEqtLabel  = opt.dataset.code || opt.text;
             }
 
             // Append OCR extra data if found
             const extras = [];
             if (data.iso_type) {
-                const eqtLabel = eqtCodeLabel
-                    ? data.iso_type + ' → <strong>' + eqtCodeLabel + '</strong>'
+                const eqtLabel = ocrEqtLabel
+                    ? data.iso_type + ' → <strong>' + ocrEqtLabel + '</strong>'
                     : data.iso_type + ' <small class="text-muted">(no equipment match)</small>';
                 extras.push('ISO: ' + eqtLabel);
             }
@@ -1760,8 +1803,8 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     return '<tr><td class="text-muted text-nowrap pe-3" style="vertical-align:top;width:110px;">' + label + '</td><td style="word-break:break-word;">' + value + '</td></tr>';
                 }
                 const isoRow = data.iso_type
-                    ? (eqtCodeLabel
-                        ? data.iso_type + ' <span class="text-success">→ ' + eqtCodeLabel + '</span>'
+                    ? (ocrEqtLabel
+                        ? data.iso_type + ' <span class="text-success">→ ' + ocrEqtLabel + '</span>'
                         : data.iso_type + ' <span class="text-danger">(no match in list)</span>')
                     : '<span class="text-muted">not detected</span>';
                 const cdRow  = data.check_digit_valid
@@ -1802,6 +1845,31 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 // Pre-fill equipment type
                 if (eqtToSet) {
                     preselectEqt(eqtSel, eqtToSet);
+                }
+
+                // EQT conflict / confirmation hint
+                const eqtHintEl = document.getElementById('hint_equipment_type_id');
+                if (eqtHintEl) {
+                    if (masterEqtId && ocrEqtId && masterEqtId !== ocrEqtId) {
+                        // OCR detected a different equipment type than what master records
+                        eqtHintEl.innerHTML =
+                            '<span class="text-warning-emphasis">' +
+                            '<i class="bi bi-exclamation-triangle me-1"></i>' +
+                            'OCR detected <strong>' + (data.iso_type || ocrEqtLabel || ocrEqtId) + '</strong>' +
+                            (ocrEqtLabel ? ' → ' + ocrEqtLabel : '') +
+                            ', master has <strong>' + (eqtCodeLabel || masterEqtId) + '</strong>' +
+                            ' — <button type="button" class="btn btn-link btn-sm p-0 fw-semibold text-warning-emphasis" ' +
+                            'style="font-size:.72rem;vertical-align:baseline;" id="useOcrEqtBtn">' +
+                            'Use OCR</button></span>';
+                        document.getElementById('useOcrEqtBtn')?.addEventListener('click', function () {
+                            preselectEqt(eqtSel, ocrEqtId);
+                            eqtHintEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Using OCR-detected equipment type</span>';
+                        });
+                    } else if (masterEqtId && ocrEqtId && masterEqtId === ocrEqtId) {
+                        eqtHintEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Equipment type confirmed by OCR</span>';
+                    } else {
+                        eqtHintEl.innerHTML = '';
+                    }
                 }
 
                 // Only trigger master lookup when not already in-yard — if it IS in-yard
