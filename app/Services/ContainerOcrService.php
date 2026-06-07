@@ -198,52 +198,55 @@ class ContainerOcrService
         $cropCandidates = [];
 
         if (function_exists('proc_open') && !in_array('proc_open', array_map('trim', explode(',', ini_get('disable_functions'))), true)) {
-            // ── Step 3a: launch ALL Tesseract processes simultaneously ───────
-            // proc_open lets every process start without waiting for its predecessor,
-            // so total wall-clock time ≈ max(individual durations) instead of their sum.
-            $handles = [];
-            foreach ($jobDefs as $i => $job) {
-                [$isFull, $src, , , , , $psm, $extra] = $job;
-                $path = $isFull ? $src : $tmpFiles[$i];
-                if ($path === null) {
-                    $handles[$i] = null;
-                    continue;
-                }
-                $cfg  = $extra !== '' ? " {$extra}" : '';
-                $cmd  = "tesseract " . escapeshellarg($path) . " stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}";
-                $desc = [0 => ['pipe', 'r'], 1 => ['pipe', 'w']];
-                $pipes = [];
-                $proc = proc_open($cmd, $desc, $pipes);
-                if (is_resource($proc)) {
-                    fclose($pipes[0]); // close stdin — Tesseract doesn't need it
-                    $handles[$i] = [$proc, $pipes[1]];
-                } else {
-                    $handles[$i] = null;
-                }
-            }
+            // ── Step 3a/3b: run Tesseract in batches via proc_open ───────────
+            // Launching all 19 at once can exhaust process slots or memory on a
+            // shared VPS (~200 MB per Tesseract instance). A batch of 5 caps peak
+            // concurrency while still cutting total wall time to ~ceil(19/5) × 2 s
+            // ≈ 8 s instead of the ~28 s sequential baseline.
+            $batchSize = 5;
+            $indices   = array_keys($jobDefs);
 
-            // ── Step 3b: collect results (blocking read per pipe) ────────────
-            // By the time we reach the second pipe, the remaining processes are almost
-            // certainly already done (they all started at the same time), so each read
-            // returns immediately rather than blocking for a full Tesseract round-trip.
-            foreach ($jobDefs as $i => [$isFull]) {
-                $handle = $handles[$i];
-                $tmp    = $tmpFiles[$i];
-
-                if ($handle !== null) {
-                    [$proc, $stdout] = $handle;
-                    $raw = stream_get_contents($stdout);
-                    fclose($stdout);
-                    proc_close($proc);
-                    $out = ($raw !== false && trim($raw) !== '') ? strtoupper(trim($raw)) : '';
-                } else {
-                    $out = '';
+            foreach (array_chunk($indices, $batchSize) as $chunk) {
+                // Launch batch
+                $handles = [];
+                foreach ($chunk as $i) {
+                    [$isFull, $src, , , , , $psm, $extra] = $jobDefs[$i];
+                    $path = $isFull ? $src : $tmpFiles[$i];
+                    if ($path === null) { $handles[$i] = null; continue; }
+                    $cfg   = $extra !== '' ? " {$extra}" : '';
+                    $cmd   = "tesseract " . escapeshellarg($path) . " stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}";
+                    $desc  = [0 => ['pipe', 'r'], 1 => ['pipe', 'w']];
+                    $pipes = [];
+                    $proc  = proc_open($cmd, $desc, $pipes);
+                    if (is_resource($proc)) {
+                        fclose($pipes[0]);
+                        $handles[$i] = [$proc, $pipes[1]];
+                    } else {
+                        $handles[$i] = null;
+                    }
                 }
 
-                if ($tmp !== null) @unlink($tmp);
-                if ($out === '') continue;
+                // Collect batch
+                foreach ($chunk as $i) {
+                    [$isFull] = $jobDefs[$i];
+                    $handle   = $handles[$i];
+                    $tmp      = $tmpFiles[$i];
 
-                if ($isFull) { $fullCandidates[] = $out; } else { $cropCandidates[] = $out; }
+                    if ($handle !== null) {
+                        [$proc, $stdout] = $handle;
+                        $raw = stream_get_contents($stdout);
+                        fclose($stdout);
+                        proc_close($proc);
+                        $out = ($raw !== false && trim($raw) !== '') ? strtoupper(trim($raw)) : '';
+                    } else {
+                        $out = '';
+                    }
+
+                    if ($tmp !== null) @unlink($tmp);
+                    if ($out === '') continue;
+
+                    if ($isFull) { $fullCandidates[] = $out; } else { $cropCandidates[] = $out; }
+                }
             }
         } else {
             // ── Step 3 (fallback): sequential shell_exec when proc_open is disabled ──
