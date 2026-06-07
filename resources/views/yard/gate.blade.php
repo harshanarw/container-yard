@@ -1818,12 +1818,16 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     ? '<span class="text-success">valid ✓</span>'
                     : '<span class="text-warning">not verified ⚠</span>';
                 const safeRaw = (data.raw_text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                const engineRow = data.parallel
+                    ? '<span class="text-success"><i class="bi bi-lightning-charge-fill me-1"></i>Parallel (proc_open) — fast</span>'
+                    : '<span class="text-warning"><i class="bi bi-hourglass-split me-1"></i>Sequential (shell_exec) — slow</span>';
                 const tbl =
                     cell('Container', '<code>' + (data.container_no||'—') + '</code> ' + cdRow) +
                     cell('ISO type', isoRow) +
                     cell('Tare', data.tare_kg ? data.tare_kg.toLocaleString() + ' kg' : '<span class="text-muted">not detected</span>') +
                     cell('Max gross', data.max_gross_kg ? data.max_gross_kg.toLocaleString() + ' kg' : '<span class="text-muted">not detected</span>') +
                     cell('Master EQT', data.master?.equipment_type_id ? 'id=' + data.master.equipment_type_id : '<span class="text-muted">none</span>') +
+                    cell('OCR engine', engineRow) +
                     cell('Raw OCR', '<pre style="margin:0;font-size:.62rem;white-space:pre-wrap;word-break:break-all;max-height:130px;overflow-y:auto;background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;padding:4px;">' + safeRaw + '</pre>');
                 resultHtml +=
                     '<details class="mt-2 pt-1 border-top">' +

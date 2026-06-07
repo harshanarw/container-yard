@@ -91,6 +91,7 @@ class ContainerOcrController extends Controller
             'master'            => $masterData,
             'equipment_match'   => $equipmentMatch,
             'raw_text'          => $result['raw_text'],
+            'parallel'          => $result['parallel'] ?? false,
             'message'           => $containerNo
                 ? 'Container number extracted successfully.'
                 : 'Could not read a container number from the image. Please try again or enter manually.',

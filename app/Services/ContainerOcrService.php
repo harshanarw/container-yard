@@ -33,7 +33,7 @@ class ContainerOcrService
         // Pass the original upload path alongside the enhanced copy so ISO crops
         // can run on the unsharpened image (the GD sharpen kernel creates ringing
         // artefacts around small stencil characters like "42G1").
-        [$text, $cropCandidates, $fullCandidates] = $this->runTesseract($workPath, $tmpPath);
+        [$text, $cropCandidates, $fullCandidates, $usedParallel] = $this->runTesseract($workPath, $tmpPath);
 
         if ($enhanced && file_exists($enhanced)) {
             @unlink($enhanced);
@@ -48,6 +48,7 @@ class ContainerOcrService
             'tare_kg'           => $this->extractTareKg($text),
             'max_gross_kg'      => $this->extractMaxGrossKg($text),
             'raw_text'          => $text,
+            'parallel'          => $usedParallel,
         ];
     }
 
@@ -180,12 +181,15 @@ class ContainerOcrService
         $fullCandidates = [];
         $cropCandidates = [];
 
+        $usedParallel = false;
+
         if (function_exists('proc_open') && !in_array('proc_open', array_map('trim', explode(',', ini_get('disable_functions'))), true)) {
+            $usedParallel = true;
             // ── Step 3a/3b: run Tesseract in batches via proc_open ───────────
-            // Launching all 19 at once can exhaust process slots or memory on a
-            // shared VPS (~200 MB per Tesseract instance). A batch of 5 caps peak
-            // concurrency while still cutting total wall time to ~ceil(19/5) × 2 s
-            // ≈ 8 s instead of the ~28 s sequential baseline.
+            // Batch size of 5 caps peak memory (~1 GB) while still parallelising.
+            // Early exit: if a batch yields a validated container number AND at least
+            // one full-image pass has run (batch 1 always includes both full passes),
+            // skip remaining batches — typically halves wall time to ~3 s.
             $batchSize = 5;
             $indices   = array_keys($jobDefs);
 
@@ -230,6 +234,22 @@ class ContainerOcrService
 
                     if ($isFull) { $fullCandidates[] = $out; } else { $cropCandidates[] = $out; }
                 }
+
+                // Early exit: stop launching more batches once we have a full-image result
+                // (weight/ISO extraction needs it) AND a validated container number candidate.
+                if (!empty($fullCandidates)) {
+                    foreach (array_merge($fullCandidates, $cropCandidates) as $t) {
+                        $c = preg_replace('/[^A-Z0-9]/', '', strtoupper($t));
+                        if (preg_match('/([A-Z]{3}[UJZ]\d{7})/', $c, $mx) && $this->validateCheckDigit($mx[1])) {
+                            break 2; // valid number found — skip remaining batches
+                        }
+                    }
+                }
+            }
+
+            // Clean up any crop temp files from skipped batches
+            foreach ($tmpFiles as $tmp) {
+                if ($tmp !== null && file_exists($tmp)) @unlink($tmp);
             }
         } else {
             // ── Step 3 (fallback): sequential shell_exec when proc_open is disabled ──
@@ -300,6 +320,7 @@ class ContainerOcrService
             implode("\n\n", $allCandidates), // combined text (best-scored first)
             $cropCandidates,
             $fullCandidates,
+            $usedParallel,
         ];
     }
 
