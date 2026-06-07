@@ -762,31 +762,48 @@ class ContainerOcrService
     /**
      * Single-character digit substitution in the serial + check-digit portion.
      *
-     * Handles OCR misreads of visually similar digits in stencil plate fonts.
-     * Most common on container doors: 6 ↔ 8 (curved tops merge under low contrast),
-     * 0 ↔ 8 (lower bowl of 8 can vanish), 1 ↔ 7 (upstroke of 7 faint in stencil).
-     * Returns a corrected 11-char number that passes ISO 6346 check-digit validation,
-     * or null when no single-digit substitution produces a valid result.
+     * Check digit (position 6) is tried first via brute-force (all 10 values).
+     * It is printed in a bordered box on most container doors, making it the
+     * most likely OCR error.  Brute-forcing it prevents a coincidental serial-
+     * digit substitution (e.g. replacing position 0: 1→0) from producing a
+     * spuriously valid result before the correct check digit is found.
+     *
+     * Serial positions 0–5 are then tried with high-confidence visually-similar
+     * swaps only (6↔8, 0↔8, 1↔7, 7↔1).
+     *
+     * Returns a corrected 11-char number that passes ISO 6346 validation, or
+     * null when no single-digit substitution produces a valid result.
      */
     private function trySerialDigitSubstitution(string $prefix, string $digits): ?string
     {
         if (strlen($digits) < 7) return null;
 
-        // High-confidence pairs only — visually unambiguous in stencil plate fonts.
-        // Aggressive entries (3↔8, 5↔6, 8↔0) are omitted: a coincidental valid
-        // check digit from a double-error reading is more likely than a true fix.
+        $window = substr($digits, 0, 7); // 6 serial digits + 1 check digit
+
+        // ── Position 6: check digit — brute-force all 10 alternatives ──────────
+        // ISO 6346 guarantees exactly one valid check digit for any prefix+serial,
+        // so this always finds the correct value when the serial is read correctly.
+        $currentCheck = $window[6];
+        for ($d = 0; $d <= 9; $d++) {
+            $alt = (string) $d;
+            if ($alt === $currentCheck) continue;
+            $candidate = $prefix . substr_replace($window, $alt, 6, 1);
+            if ($this->validateCheckDigit($candidate)) return $candidate;
+        }
+
+        // ── Positions 0–5: serial digits — limited high-confidence swaps only ──
+        // Aggressive pairs (3↔8, 5↔6, 8↔0) are intentionally omitted: a
+        // coincidental valid check digit from a double-error is more likely than
+        // a genuine fix at that point.
         static $swaps = [
-            '6' => ['8'],     // most common: curved top of 6 merges with 8 under low contrast
+            '6' => ['8'],
             '8' => ['6'],
-            '0' => ['8', '1'], // zero can look like 8; check digit "0" sometimes read as "1"
-                               // when ISO type code digit (e.g. "42G1") is adjacent in the OCR block
-            '1' => ['7', '0'], // "1" in a box can be misread; check digit "1" sometimes read as "0"
+            '0' => ['8', '1'],
+            '1' => ['7', '0'],
             '7' => ['1'],
         ];
 
-        $window = substr($digits, 0, 7); // 6 serial digits + 1 check digit
-
-        for ($pos = 0; $pos < 7; $pos++) {
+        for ($pos = 0; $pos < 6; $pos++) {
             $ch = $window[$pos];
             if (!isset($swaps[$ch])) continue;
             foreach ($swaps[$ch] as $alt) {
