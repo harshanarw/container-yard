@@ -143,10 +143,13 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Container Grade</label>
-                            <select name="grade_id" id="inGradeSelect" class="form-select">
+                            <select name="grade_id" id="inGradeSelect" class="form-select s2-grade">
                                 <option value="">— Not Set —</option>
                                 @foreach($grades as $grade)
-                                <option value="{{ $grade->id }}">{{ $grade->code }} — {{ $grade->name }}</option>
+                                <option value="{{ $grade->id }}"
+                                        data-code="{{ $grade->code }}"
+                                        data-name="{{ $grade->name }}"
+                                        data-color="{{ $grade->color ?? 'secondary' }}">{{ $grade->code }} — {{ $grade->name }}</option>
                                 @endforeach
                             </select>
                             <div class="form-text">Grade classification for cargo suitability (e.g. Fiber Grade, Tea Grade).</div>
@@ -545,10 +548,13 @@
 
                     <div id="outGradeRow" class="mb-3 d-none">
                         <label class="form-label fw-semibold">Container Grade</label>
-                        <select name="grade_id" id="outGradeSelect" class="form-select">
+                        <select name="grade_id" id="outGradeSelect" class="form-select s2-grade">
                             <option value="">— Not Set —</option>
                             @foreach($grades as $grade)
-                            <option value="{{ $grade->id }}">{{ $grade->code }} — {{ $grade->name }}</option>
+                            <option value="{{ $grade->id }}"
+                                    data-code="{{ $grade->code }}"
+                                    data-name="{{ $grade->name }}"
+                                    data-color="{{ $grade->color ?? 'secondary' }}">{{ $grade->code }} — {{ $grade->name }}</option>
                             @endforeach
                         </select>
                         <div class="form-text">Override the container's grade classification for this gate-out if needed.</div>
@@ -1103,7 +1109,8 @@ btnOut.addEventListener('click', activateOut);
                 // Pre-select grade if available
                 const gradeSel = document.getElementById('inGradeSelect');
                 if (gradeSel && data.grade_id) {
-                    gradeSel.value = String(data.grade_id);
+                    if (typeof $ !== 'undefined') $(gradeSel).val(String(data.grade_id)).trigger('change');
+                    else gradeSel.value = String(data.grade_id);
                 }
                 // Pre-fill Customer / Owner if empty — only for master-known containers
                 const custHintEl = document.getElementById('hint_customer_id');
@@ -1609,10 +1616,10 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     '</div>'
                 );
                 // Pre-select the container's current grade in the dropdown
-                if (gradeSelect && data.grade_id) {
-                    gradeSelect.value = String(data.grade_id);
-                } else if (gradeSelect) {
-                    gradeSelect.value = '';
+                if (gradeSelect) {
+                    const gv = data.grade_id ? String(data.grade_id) : '';
+                    if (typeof $ !== 'undefined') $(gradeSelect).val(gv).trigger('change');
+                    else gradeSelect.value = gv;
                 }
                 gradeRow.classList.remove('d-none');
             }

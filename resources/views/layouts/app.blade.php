@@ -474,6 +474,8 @@
         .s2-code-label { font-size:.85rem; color:#374151; overflow:hidden; text-overflow:ellipsis; }
         .select2-selection__rendered .s2-code-label { font-size:.9rem; }
         .badge-reefer { background-color:#ccfbf1 !important; color:#0d9488 !important; border:1px solid #99f6e4 !important; }
+        /* Select2 grade colour dot */
+        .s2-grade-dot { display:inline-block; width:10px; height:10px; border-radius:50%; flex-shrink:0; border:1px solid rgba(0,0,0,.12); }
     </style>
     @stack('styles')
 </head>
@@ -1291,8 +1293,46 @@
                     width: '100%',
                 }, extraOpts || {}));
             };
+            // Grade colour-dot dropdown
+            window.s2GradeResult = function(opt) {
+                if (!opt.id) return opt.text;
+                var el = opt.element;
+                var code  = el && el.dataset.code  ? el.dataset.code  : opt.text;
+                var name  = el && el.dataset.name  ? el.dataset.name  : '';
+                var color = el && el.dataset.color ? el.dataset.color : 'secondary';
+                if (!name) return opt.text;
+                return $('<span class="s2-opt-row">' +
+                    '<span class="s2-grade-dot bg-' + color + '"></span>' +
+                    '<span class="s2-code-chip">' + code + '</span>' +
+                    '<span class="s2-code-label">' + name + '</span>' +
+                    '</span>');
+            };
+            window.s2GradeSelection = function(opt) {
+                if (!opt.id) return opt.text;
+                var el = opt.element;
+                if (!el || !el.dataset.code) return opt.text;
+                var color = el.dataset.color || 'secondary';
+                var name  = el.dataset.name  || opt.text;
+                return $('<span class="s2-opt-row">' +
+                    '<span class="s2-grade-dot bg-' + color + '"></span>' +
+                    '<span class="s2-code-chip">' + el.dataset.code + '</span>' +
+                    '<span class="s2-code-label">' + name + '</span>' +
+                    '</span>');
+            };
+            window.initS2Grade = function($el, extraOpts) {
+                var $modal = $el.closest('.modal');
+                $el.select2($.extend({
+                    theme: 'bootstrap-5',
+                    templateResult:    window.s2GradeResult,
+                    templateSelection: window.s2GradeSelection,
+                    dropdownAutoWidth: true,
+                    dropdownParent: $modal.length ? $modal : $('body'),
+                    width: '100%',
+                }, extraOpts || {}));
+            };
             $('.select2').select2({ theme: 'bootstrap-5' });
-            $('.s2-code').each(function() { window.initS2Code($(this)); });
+            $('.s2-code').each(function()  { window.initS2Code($(this));  });
+            $('.s2-grade').each(function() { window.initS2Grade($(this)); });
         }
 
         // Bootstrap Datepicker — convert type="date" inputs to text and init.
