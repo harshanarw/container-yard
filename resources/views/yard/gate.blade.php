@@ -22,13 +22,17 @@
 </div>
 
 <!-- Quick Toggle: Gate In / Gate Out -->
-<div class="d-flex flex-wrap gap-3 mb-4">
-    <button class="btn btn-primary px-4" id="btnGateIn">
+<div class="d-flex flex-wrap gap-3 mb-3">
+    <button class="btn btn-primary btn-lg gate-mode-btn" id="btnGateIn">
         <i class="bi bi-box-arrow-in-right me-2"></i>Gate In
     </button>
-    <button class="btn btn-outline-success px-4" id="btnGateOut">
+    <button class="btn btn-outline-success btn-lg gate-mode-btn" id="btnGateOut">
         <i class="bi bi-box-arrow-right me-2"></i>Gate Out
     </button>
+</div>
+<div id="gateModeBar" class="gate-mode-bar gate-mode-bar-in mb-4">
+    <i class="bi bi-box-arrow-in-right me-2 fs-5"></i>
+    <span>Recording: <strong>GATE IN</strong> — Container Arrival</span>
 </div>
 
 <div class="row g-3">
@@ -480,9 +484,10 @@
                     </div>
 
                     <div class="mt-3 d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
+                        <button type="button" id="btnSubmitGateIn" class="btn btn-primary btn-lg">
                             <i class="bi bi-box-arrow-in-right me-2"></i>Record Gate In
                         </button>
+                        <button type="submit" id="btnSubmitGateInReal" class="d-none"></button>
                     </div>
                 </form>
             </div>
@@ -690,9 +695,10 @@
                     </div>
 
                     <div class="mt-3 d-grid">
-                        <button type="submit" class="btn btn-success btn-lg">
+                        <button type="button" id="btnSubmitGateOut" class="btn btn-success btn-lg">
                             <i class="bi bi-box-arrow-right me-2"></i>Record Gate Out
                         </button>
+                        <button type="submit" id="btnSubmitGateOutReal" class="d-none"></button>
                     </div>
                 </form>
             </div>
@@ -776,10 +782,75 @@
 
 </div>
 
+{{-- ── Gate In confirmation modal ─────────────────────────────────────────── --}}
+<div class="modal fade" id="confirmGateInModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border:2px solid #3b82f6;">
+            <div class="modal-header bg-primary text-white py-2">
+                <h6 class="modal-title mb-0"><i class="bi bi-box-arrow-in-right me-2"></i>Confirm Gate In</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="mb-2 text-muted">You are about to record a</p>
+                <p class="mb-3"><span class="badge bg-primary" style="font-size:1rem;padding:.5rem 1.2rem;letter-spacing:.05em;">GATE IN — ARRIVAL</span></p>
+                <p class="mb-1 text-muted small">Container:</p>
+                <p class="font-monospace fw-bold mb-3" style="font-size:1.4rem;" id="confirmInContainerNo">—</p>
+                <p class="text-muted small mb-0">Please confirm this is a container <strong>arriving</strong> into the yard.</p>
+            </div>
+            <div class="modal-footer py-2 justify-content-center gap-3">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary px-4" id="confirmGateInBtn">
+                    <i class="bi bi-check-circle me-1"></i>Yes, Record Gate In
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ── Gate Out confirmation modal ─────────────────────────────────────────── --}}
+<div class="modal fade" id="confirmGateOutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border:2px solid #22c55e;">
+            <div class="modal-header bg-success text-white py-2">
+                <h6 class="modal-title mb-0"><i class="bi bi-box-arrow-right me-2"></i>Confirm Gate Out</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="mb-2 text-muted">You are about to record a</p>
+                <p class="mb-3"><span class="badge bg-success" style="font-size:1rem;padding:.5rem 1.2rem;letter-spacing:.05em;">GATE OUT — DEPARTURE</span></p>
+                <p class="mb-1 text-muted small">Container:</p>
+                <p class="font-monospace fw-bold mb-3" style="font-size:1.4rem;" id="confirmOutContainerNo">—</p>
+                <p class="text-muted small mb-0">Please confirm this container is <strong>departing</strong> from the yard.</p>
+            </div>
+            <div class="modal-footer py-2 justify-content-center gap-3">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success px-4" id="confirmGateOutBtn">
+                    <i class="bi bi-check-circle me-1"></i>Yes, Record Gate Out
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('styles')
 <style>
+/* ── Gate mode switcher ────────────────────────────────────────────────────── */
+.gate-mode-btn { min-width: 160px; font-weight: 600; letter-spacing: .02em; }
+.gate-mode-bar {
+    display: flex; align-items: center; gap: .4rem;
+    padding: .65rem 1rem; border-radius: .5rem;
+    border-left: 5px solid transparent; font-size: .9rem;
+    transition: background .25s, border-color .25s, color .25s;
+}
+.gate-mode-bar-in  { background: #dbeafe; border-color: #3b82f6; color: #1e3a8a; }
+.gate-mode-bar-out { background: #dcfce7; border-color: #22c55e; color: #14532d; }
+
 /* ── Section header bands ──────────────────────────────────────────────────── */
 .gate-section-hdr {
     display: flex;
@@ -837,27 +908,57 @@
 @push('scripts')
 <script>
 // ── Toggle Gate In / Gate Out ───────────────────────────────────────────────
-const btnIn  = document.getElementById('btnGateIn');
-const btnOut = document.getElementById('btnGateOut');
+const btnIn   = document.getElementById('btnGateIn');
+const btnOut  = document.getElementById('btnGateOut');
 const cardIn  = document.getElementById('gateInCard');
 const cardOut = document.getElementById('gateOutCard');
+const modeBar = document.getElementById('gateModeBar');
 
-btnIn.addEventListener('click', () => {
+function activateIn() {
     cardIn.classList.remove('d-none'); cardOut.classList.add('d-none');
-    btnIn.classList.replace('btn-outline-primary','btn-primary');
-    btnOut.classList.replace('btn-success','btn-outline-success');
-});
-btnOut.addEventListener('click', () => {
+    btnIn.classList.replace('btn-outline-primary', 'btn-primary');
+    btnOut.classList.replace('btn-success', 'btn-outline-success');
+    modeBar.className = 'gate-mode-bar gate-mode-bar-in mb-4';
+    modeBar.innerHTML = '<i class="bi bi-box-arrow-in-right me-2 fs-5"></i><span>Recording: <strong>GATE IN</strong> — Container Arrival</span>';
+}
+function activateOut() {
     cardOut.classList.remove('d-none'); cardIn.classList.add('d-none');
-    btnOut.classList.replace('btn-outline-success','btn-success');
-    btnIn.classList.replace('btn-primary','btn-outline-primary');
-});
+    btnOut.classList.replace('btn-outline-success', 'btn-success');
+    btnIn.classList.replace('btn-primary', 'btn-outline-primary');
+    modeBar.className = 'gate-mode-bar gate-mode-bar-out mb-4';
+    modeBar.innerHTML = '<i class="bi bi-box-arrow-right me-2 fs-5"></i><span>Recording: <strong>GATE OUT</strong> — Container Departure</span>';
+}
+
+btnIn.addEventListener('click', activateIn);
+btnOut.addEventListener('click', activateOut);
 
 // ── Restore active tab from URL ?tab= param ─────────────────────────────────
 (function () {
     const p = new URLSearchParams(window.location.search);
-    if (p.get('tab') === 'out') btnOut.click();
+    if (p.get('tab') === 'out') activateOut(); else activateIn();
 })();
+
+// ── Gate In submit confirmation ──────────────────────────────────────────────
+(function () {
+    const submitBtn  = document.getElementById('btnSubmitGateIn');
+    const confirmBtn = document.getElementById('confirmGateInBtn');
+    const labelEl    = document.getElementById('confirmInContainerNo');
+
+    submitBtn.addEventListener('click', function () {
+        const no = document.getElementById('containerNoIn')?.value.trim().toUpperCase() || '';
+        // Trigger native HTML5 validation first by attempting a real submit
+        if (no.length < 11) { document.getElementById('btnSubmitGateInReal').click(); return; }
+        labelEl.textContent = no;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmGateInModal')).show();
+    });
+
+    confirmBtn.addEventListener('click', function () {
+        bootstrap.Modal.getInstance(document.getElementById('confirmGateInModal')).hide();
+        document.getElementById('btnSubmitGateInReal').click();
+    });
+})();
+
+// ── Gate Out submit confirmation (wired inside the lookup IIFE below) ────────
 
 // ── Initialize AirDatepicker on Gate In / Gate Out datetime inputs ───────────
 // Runs synchronously — at this point (bottom of body) DOM is fully rendered
@@ -1424,7 +1525,7 @@ function initPhotoUploader(cfg) {
 initPhotoUploader({ fileInput: document.getElementById('inPhotoInput'), cameraInput: document.getElementById('inCameraInput'), browseBtn: document.getElementById('inBrowseBtn'), cameraBtn: document.getElementById('inCameraBtn'), dropZone: document.getElementById('inDropZone'), errorEl: document.getElementById('inPhotoError'), previewGrid: document.getElementById('inPhotoPreview'), counterEl: document.getElementById('inPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=in', max: 5 });
 initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraInput: document.getElementById('outCameraInput'), browseBtn: document.getElementById('outBrowseBtn'), cameraBtn: document.getElementById('outCameraBtn'), dropZone: document.getElementById('outDropZone'), errorEl: document.getElementById('outPhotoError'), previewGrid: document.getElementById('outPhotoPreview'), counterEl: document.getElementById('outPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=out', max: 5 });
 
-// ── Gate Out container AJAX lookup ──────────────────────────────────────────
+// ── Gate Out container AJAX lookup + submit confirmation ────────────────────
 (function () {
     const inp = document.getElementById('containerSearch'), searchBtn = document.getElementById('containerSearchBtn');
     const infoBox = document.getElementById('containerInfoBox');
@@ -1492,6 +1593,24 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             setInfoBox('info', '<i class="bi bi-info-circle me-1"></i>Container changed — search again to verify.');
         }
     });
+
+    // Submit button — show confirmation modal
+    document.getElementById('btnSubmitGateOut').addEventListener('click', function () {
+        if (!lookupDone) {
+            setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please search and confirm the container is in yard.');
+            inp.focus();
+            return;
+        }
+        const no = inp.value.trim().toUpperCase();
+        document.getElementById('confirmOutContainerNo').textContent = no;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmGateOutModal')).show();
+    });
+    document.getElementById('confirmGateOutBtn').addEventListener('click', function () {
+        bootstrap.Modal.getInstance(document.getElementById('confirmGateOutModal')).hide();
+        document.getElementById('btnSubmitGateOutReal').click();
+    });
+
+    // Fallback: if form somehow submits without button (e.g. Enter key), enforce lookup check
     document.getElementById('gateOutForm').addEventListener('submit', function (e) {
         if (!lookupDone) { e.preventDefault(); setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please search and confirm the container is in yard.'); inp.focus(); }
     }, true);
