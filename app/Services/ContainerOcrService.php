@@ -164,6 +164,21 @@ class ContainerOcrService
             // between the first prefix letter and the rest is treated as whitespace.
             $c = $this->runTesseractOnCrop($imagePath, 0.35, 0.0, 1.0, 0.35, 6);
             if ($c !== '') $cropCandidates[] = $c;
+
+            // Crop H — PSM 6, x: 38–92 %, y: 14–36 %.
+            // Narrow horizontal band targeting the ISO size/type code (e.g. "42G1")
+            // printed just below the container number on the right door panel. Wider
+            // crops (A/G) anchor on the large container-number text and Tesseract's
+            // block segmentation often skips the smaller ISO code line; this tighter
+            // strip forces the ISO code to dominate the scaled-up crop region.
+            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.14, 0.92, 0.36, 6);
+            if ($c !== '') $cropCandidates[] = $c;
+
+            // Crop I — PSM 7 (single text line), same x/y region as H.
+            // PSM 7 reads the entire strip as one sequence — useful when Tesseract's
+            // block analysis for PSM 6 still mis-segments the 4-character ISO code.
+            $c = $this->runTesseractOnCrop($imagePath, 0.38, 0.14, 0.92, 0.36, 7);
+            if ($c !== '') $cropCandidates[] = $c;
         }
 
         $allCandidates = array_merge($fullCandidates, $cropCandidates);
@@ -703,9 +718,9 @@ class ContainerOcrService
         foreach ($allMatches[0] as $match) {
             $after = substr($text, $match[1] + strlen($match[0]), 40);
 
-            // KG candidate — allow ) . : between digits and unit (e.g. "3800)KG" on some plates)
+            // KG candidate — allow ) . : - between digits and unit (e.g. "3800)KG", "3650-KG")
             $kg = null;
-            if (preg_match('/[\s:|]*([0-9][0-9\s,\.]+)[\s):.]*(?:K[A-Z]|[A-Z]G)S?\b/i', $after, $m)) {
+            if (preg_match('/[\s:|]*([0-9][0-9\s,\.]+)[\s):.\-]*(?:K[A-Z]|[A-Z]G)S?\b/i', $after, $m)) {
                 $v = (int) preg_replace('/[^0-9]/', '', $m[1]);
                 if ($v >= $minKg && $v <= $maxKg) $kg = $v;
             }
