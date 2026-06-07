@@ -438,7 +438,15 @@ class ContainerOcrService
             $compact = preg_replace('/[^A-Z0-9]/', '', strtoupper($text));
             [$no, $valid] = $this->extractContainerNoFromCompact($compact);
             if ($valid) return [$no, true];
-            if ($no !== null) return [$no, false];
+            if ($no !== null) {
+                // Apply digit substitution to full-image candidates too — full-image PSM 3
+                // passes often contain the container number but with one misread digit in the
+                // serial or check-digit position (e.g. check digit "0" read as "1" when the
+                // ISO type code "42G1" is adjacent in the same text block).
+                $corrected = $this->trySerialDigitSubstitution(substr($no, 0, 4), substr($no, 4, 7));
+                if ($corrected !== null) return [$corrected, true];
+                return [$no, false];
+            }
         }
 
         $compact = preg_replace('/[^A-Z0-9]/', '', strtoupper($fallback));
@@ -600,6 +608,41 @@ class ContainerOcrService
             }
         }
 
+        // Mixed-prefix recovery: one digit inside the 4-char owner code, e.g. "O0LU"
+        // where position 1 is "0" (zero) instead of "O". Stencil 'O' and '0' are visually
+        // identical in many plate fonts. The digit-prefix recovery above only handles a
+        // digit at position 0; this block handles positions 1–3.
+        if (preg_match_all('/([A-Z][0-9][A-Z]{2}|[A-Z]{2}[0-9][A-Z]|[A-Z]{3}[0-9])(\d{6,9})([A-Z])?/', $compact, $msets, PREG_SET_ORDER)) {
+            foreach ($msets as $mset) {
+                $rawPfx = $mset[1];
+                $mDigs  = $mset[2];
+                $mLen   = strlen($mDigs);
+                $mTrail = $mset[3] ?? '';
+
+                for ($pos = 0; $pos < 4; $pos++) {
+                    $ch = $rawPfx[$pos];
+                    if (!ctype_digit($ch)) continue;
+                    foreach ($digitSubs[$ch] ?? [] as $sub) {
+                        $tryPfx = $this->normalizeCategoryChar(substr_replace($rawPfx, $sub, $pos, 1));
+                        if (!in_array($tryPfx[3], ['U', 'J', 'Z'], true)) continue;
+                        for ($off = 0; $off <= $mLen - 7; $off++) {
+                            $candidate = $tryPfx . substr($mDigs, $off, 7);
+                            if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                        }
+                        if ($mLen === 6 && $mTrail !== '') {
+                            for ($d = 0; $d <= 9; $d++) {
+                                $candidate = $tryPfx . $mDigs . $d;
+                                if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                            }
+                        }
+                        if ($bestGuess === null && $mLen >= 7) {
+                            $bestGuess = [$tryPfx . substr($mDigs, 0, 7), false];
+                        }
+                    }
+                }
+            }
+        }
+
         return $bestGuess ?? [null, false];
     }
 
@@ -714,10 +757,11 @@ class ContainerOcrService
         // Aggressive entries (3↔8, 5↔6, 8↔0) are omitted: a coincidental valid
         // check digit from a double-error reading is more likely than a true fix.
         static $swaps = [
-            '6' => ['8'],  // most common: curved top of 6 merges with 8 under low contrast
+            '6' => ['8'],     // most common: curved top of 6 merges with 8 under low contrast
             '8' => ['6'],
-            '0' => ['8'],  // zero's oval can be read as 8 in worn stencil
-            '1' => ['7'],
+            '0' => ['8', '1'], // zero can look like 8; check digit "0" sometimes read as "1"
+                               // when ISO type code digit (e.g. "42G1") is adjacent in the OCR block
+            '1' => ['7', '0'], // "1" in a box can be misread; check digit "1" sometimes read as "0"
             '7' => ['1'],
         ];
 
