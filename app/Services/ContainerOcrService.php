@@ -311,7 +311,13 @@ class ContainerOcrService
 
         if (!empty($cropVotes)) {
             arsort($cropVotes);
-            return [array_key_first($cropVotes), false];
+            $topNo = array_key_first($cropVotes);
+            // Apply single-digit substitution to the consensus reading.
+            // Done here (not per-crop) so a spurious valid result from one bad crop
+            // cannot bypass the majority vote by coincidentally passing check-digit.
+            $corrected = $this->trySerialDigitSubstitution(substr($topNo, 0, 4), substr($topNo, 4, 7));
+            if ($corrected !== null) return [$corrected, true];
+            return [$topNo, false];
         }
 
         foreach ($fullCandidates as $text) {
@@ -373,9 +379,6 @@ class ContainerOcrService
                 }
 
                 $sub = $this->tryPrefixSubstitution($prefix, $digits);
-                if ($sub !== null) return [$sub, true];
-
-                $sub = $this->trySerialDigitSubstitution($prefix, $digits);
                 if ($sub !== null) return [$sub, true];
 
                 // Pattern matched but check digit invalid — keep as best guess.
@@ -593,16 +596,15 @@ class ContainerOcrService
     {
         if (strlen($digits) < 7) return null;
 
-        // Each key is what OCR read; values are the alternatives to try, ordered by
-        // likelihood of confusion in typical container door / stencil fonts.
+        // High-confidence pairs only — visually unambiguous in stencil plate fonts.
+        // Aggressive entries (3↔8, 5↔6, 8↔0) are omitted: a coincidental valid
+        // check digit from a double-error reading is more likely than a true fix.
         static $swaps = [
-            '6' => ['8', '5'],
-            '8' => ['6', '0', '3'],
-            '0' => ['8'],
+            '6' => ['8'],  // most common: curved top of 6 merges with 8 under low contrast
+            '8' => ['6'],
+            '0' => ['8'],  // zero's oval can be read as 8 in worn stencil
             '1' => ['7'],
             '7' => ['1'],
-            '3' => ['8'],
-            '5' => ['6'],
         ];
 
         $window = substr($digits, 0, 7); // 6 serial digits + 1 check digit
