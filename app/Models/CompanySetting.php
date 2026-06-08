@@ -47,11 +47,13 @@ class CompanySetting extends Model
         'surcharge_overtime',
         'surcharge_night',
         'enable_digital_approvals',
+        'enable_guard_post',
         'mr_dimension_uom',
     ];
 
     protected $casts = [
         'enable_digital_approvals' => 'boolean',
+        'enable_guard_post'        => 'boolean',
     ];
 
     public static function current(): static

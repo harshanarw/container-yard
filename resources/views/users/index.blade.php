@@ -22,18 +22,20 @@
 <div class="row g-3 mb-3">
     @php
         $roleColors = [
-            'administrator'   => 'danger',
-            'yard_supervisor' => 'primary',
-            'gate_officer'    => 'info',
-            'inspector'       => 'warning',
-            'billing_clerk'   => 'success',
+            'administrator'    => 'danger',
+            'yard_supervisor'  => 'primary',
+            'gate_officer'     => 'info',
+            'security_officer' => 'secondary',
+            'inspector'        => 'warning',
+            'billing_clerk'    => 'success',
         ];
         $roleLabels = [
-            'administrator'   => 'Administrator',
-            'yard_supervisor' => 'Yard Supervisor',
-            'gate_officer'    => 'Gate Officer',
-            'inspector'       => 'Inspector',
-            'billing_clerk'   => 'Billing Clerk',
+            'administrator'    => 'Administrator',
+            'yard_supervisor'  => 'Yard Supervisor',
+            'gate_officer'     => 'Gate Officer',
+            'security_officer' => 'Security Officer',
+            'inspector'        => 'Inspector',
+            'billing_clerk'    => 'Billing Clerk',
         ];
     @endphp
     <div class="col-6 col-md-3">

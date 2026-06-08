@@ -40,6 +40,7 @@ use App\Http\Controllers\ApprovalWorkflowController;
 use App\Http\Controllers\YardController;
 use App\Http\Controllers\ContainerOcrController;
 use App\Http\Controllers\ContainerGradeController;
+use App\Http\Controllers\GuardPostController;
 
 /*
 |--------------------------------------------------------------------------
@@ -130,6 +131,19 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/movements/{movement}',             [YardController::class, 'updateMovement'])->name('movements.update');
         Route::delete('/movements/{movement}/photos/{photo}', [YardController::class, 'destroyMovementPhoto'])->name('movements.photo.destroy');
         Route::get('/movements/{movement}/gate-pass',     [YardController::class, 'gatePass'])->name('movements.gate-pass');
+    });
+
+    // Guard Post Capture (optional feature — controller checks enable_guard_post flag)
+    Route::prefix('guard-post')->name('guard-post.')->group(function () {
+        Route::get('/',                              [GuardPostController::class, 'index'])->name('index');
+        Route::get('/capture/new',                   [GuardPostController::class, 'create'])->name('create');
+        Route::post('/capture',                      [GuardPostController::class, 'store'])->name('store');
+        Route::get('/capture/{capture}/status',      [GuardPostController::class, 'status'])->name('status');
+        Route::get('/capture/{capture}/status.json', [GuardPostController::class, 'statusJson'])->name('status-json');
+        Route::post('/ocr-scan',                     [GuardPostController::class, 'ocrScan'])->name('ocr-scan');
+        Route::get('/queue',                         [GuardPostController::class, 'queue'])->name('queue');
+        Route::patch('/capture/{capture}/status',    [GuardPostController::class, 'updateStatus'])->name('update-status');
+        Route::patch('/capture/{capture}/link',      [GuardPostController::class, 'link'])->name('link');
     });
 
     // Approvals

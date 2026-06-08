@@ -334,6 +334,34 @@
         </div>
     </div>
 
+    {{-- Guard Post Capture --}}
+    <div class="card content-card mb-4">
+        <div class="card-header py-2">
+            <i class="bi bi-shield-check me-2 text-primary"></i>Guard Post Capture
+        </div>
+        <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="enableGuardPost" name="enable_guard_post" value="1"
+                           {{ old('enable_guard_post', $settings->enable_guard_post) ? 'checked' : '' }}>
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="enableGuardPost">
+                        Enable Guard Post Capture Module
+                    </label>
+                    <div class="form-text mt-1">
+                        When enabled, a simplified capture interface is available for Security Officers at the gate.
+                        They can photograph container rear plates, vehicle number plates, and driver ID documents,
+                        and enter basic details — without accessing the full Gate In / Out module.
+                        Operations staff review and clear each capture from the Guard Post Queue.
+                        This module is optional and can be turned off at any time.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Digital Approvals --}}
     <div class="card content-card mb-4">
         <div class="card-header py-2">

@@ -190,11 +190,12 @@
                                 <option value="system_administrator" {{ old('role', $user->role) === 'system_administrator' ? 'selected' : '' }}>System Administrator</option>
                                 @endif
                                 @foreach([
-                                    'administrator'   => 'Administrator',
-                                    'yard_supervisor' => 'Yard Supervisor',
-                                    'gate_officer'    => 'Gate Officer',
-                                    'inspector'       => 'Inspector',
-                                    'billing_clerk'   => 'Billing Clerk',
+                                    'administrator'    => 'Administrator',
+                                    'yard_supervisor'  => 'Yard Supervisor',
+                                    'gate_officer'     => 'Gate Officer',
+                                    'security_officer' => 'Security Officer',
+                                    'inspector'        => 'Inspector',
+                                    'billing_clerk'    => 'Billing Clerk',
                                 ] as $val => $label)
                                 <option value="{{ $val }}" {{ old('role', $user->role) === $val ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach

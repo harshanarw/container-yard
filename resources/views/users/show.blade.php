@@ -15,6 +15,7 @@
         'administrator'        => 'danger',
         'yard_supervisor'      => 'primary',
         'gate_officer'         => 'info',
+        'security_officer'     => 'secondary',
         'inspector'            => 'warning',
         'billing_clerk'        => 'success',
     ];

@@ -18,6 +18,12 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        // Security officers go directly to Guard Post when the feature is enabled
+        $user = Auth::user();
+        if ($user->isSecurityOfficer() && CompanySetting::current()->enable_guard_post) {
+            return redirect()->route('guard-post.index');
+        }
+
         $stats = [
             'total_containers'  => Container::whereIn('status', ['in_yard', 'in_repair', 'reserved'])->count(),
             'available_slots'   => YardLocation::where('status', 'empty')->count(),

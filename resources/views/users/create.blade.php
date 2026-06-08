@@ -185,9 +185,10 @@
                                 @endif
                                 <option value="administrator"   {{ old('role') === 'administrator'   ? 'selected' : '' }}>Administrator</option>
                                 <option value="yard_supervisor" {{ old('role') === 'yard_supervisor' ? 'selected' : '' }}>Yard Supervisor</option>
-                                <option value="gate_officer"    {{ old('role') === 'gate_officer'    ? 'selected' : '' }}>Gate Officer</option>
-                                <option value="inspector"       {{ old('role') === 'inspector'       ? 'selected' : '' }}>Inspector</option>
-                                <option value="billing_clerk"   {{ old('role') === 'billing_clerk'   ? 'selected' : '' }}>Billing Clerk</option>
+                                <option value="gate_officer"      {{ old('role') === 'gate_officer'      ? 'selected' : '' }}>Gate Officer</option>
+                                <option value="security_officer" {{ old('role') === 'security_officer' ? 'selected' : '' }}>Security Officer</option>
+                                <option value="inspector"        {{ old('role') === 'inspector'        ? 'selected' : '' }}>Inspector</option>
+                                <option value="billing_clerk"    {{ old('role') === 'billing_clerk'    ? 'selected' : '' }}>Billing Clerk</option>
                             </select>
                             @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>

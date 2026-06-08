@@ -554,6 +554,48 @@
             </ul>
         </div>
 
+        {{-- ── GUARD POST (optional feature) ── --}}
+        @if($companySetting?->enable_guard_post && in_array(auth()->user()->role, ['security_officer','gate_officer','yard_supervisor','administrator','system_administrator']))
+        @php $guardPostActive = request()->routeIs('guard-post.*'); @endphp
+        <button class="nav-section-label"
+                data-bs-toggle="collapse" data-bs-target="#nav-section-guard-post"
+                aria-expanded="{{ $guardPostActive ? 'true' : 'false' }}"
+                aria-controls="nav-section-guard-post">
+            <i class="bi bi-shield-check section-icon"></i><span>Guard Post</span><i class="bi bi-chevron-down section-chevron"></i>
+        </button>
+        <div class="collapse {{ $guardPostActive ? 'show' : '' }}" id="nav-section-guard-post">
+            <ul class="nav flex-column">
+                @if(auth()->user()->isSecurityOfficer())
+                <li class="nav-item">
+                    <a href="{{ route('guard-post.index') }}"
+                       class="nav-link {{ request()->routeIs('guard-post.index') || request()->routeIs('guard-post.create') || request()->routeIs('guard-post.status') ? 'active' : '' }}">
+                        <i class="bi bi-camera"></i><span>Capture</span>
+                    </a>
+                </li>
+                @else
+                <li class="nav-item">
+                    <a href="{{ route('guard-post.queue') }}"
+                       class="nav-link {{ request()->routeIs('guard-post.queue') ? 'active' : '' }}">
+                        @php
+                            $pendingCaptures = \App\Models\GuardCapture::where('status','pending')->count();
+                        @endphp
+                        <i class="bi bi-list-check"></i><span>Capture Queue</span>
+                        @if($pendingCaptures > 0)
+                            <span class="badge bg-warning text-dark ms-auto">{{ $pendingCaptures }}</span>
+                        @endif
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('guard-post.create') }}"
+                       class="nav-link {{ request()->routeIs('guard-post.create') ? 'active' : '' }}">
+                        <i class="bi bi-camera"></i><span>New Capture</span>
+                    </a>
+                </li>
+                @endif
+            </ul>
+        </div>
+        @endif
+
         {{-- ── OPERATIONS ── --}}
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-operations"
