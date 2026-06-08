@@ -295,6 +295,16 @@ class ContainerOcrService
                             break 2;
                         }
                     }
+                    // 6-digit serial: check digit may be stripped (e.g. "5"→";" → discarded).
+                    // Brute-force so CAIU908172 scores the same as a full CAIU9081725.
+                    if ($score < 5 && $vLen === 6) {
+                        for ($vd = 0; $vd <= 9; $vd++) {
+                            if ($this->validateCheckDigit($vs[1] . $vs[2] . $vd)) {
+                                $score = 5;
+                                break 2;
+                            }
+                        }
+                    }
                 }
             }
             if ($score < 5) {
@@ -511,8 +521,9 @@ class ContainerOcrService
                     return [$firstSeven, true];
                 }
 
-                // 6 digits + trailing letter: OCR misread check digit as a letter.
-                if ($len === 6 && $trailingLetter !== '') {
+                // 6 digits: check digit misread as a letter (trailing letter captured)
+                // or stripped as non-alphanumeric (e.g. "5" read as ";" then discarded).
+                if ($len === 6) {
                     for ($d = 0; $d <= 9; $d++) {
                         $candidate = $prefix . $digits . $d;
                         if ($this->validateCheckDigit($candidate)) return [$candidate, true];
@@ -607,7 +618,7 @@ class ContainerOcrService
                         if ($this->validateCheckDigit($candidate)) return [$candidate, true];
                     }
 
-                    if ($dLen === 6 && $dTrail !== '') {
+                    if ($dLen === 6) {
                         for ($d = 0; $d <= 9; $d++) {
                             $candidate = $prefix . $dDigits . $d;
                             if ($this->validateCheckDigit($candidate)) return [$candidate, true];
@@ -648,7 +659,7 @@ class ContainerOcrService
                             $candidate = $tryPfx . substr($mDigs, $off, 7);
                             if ($this->validateCheckDigit($candidate)) return [$candidate, true];
                         }
-                        if ($mLen === 6 && $mTrail !== '') {
+                        if ($mLen === 6) {
                             for ($d = 0; $d <= 9; $d++) {
                                 $candidate = $tryPfx . $mDigs . $d;
                                 if ($this->validateCheckDigit($candidate)) return [$candidate, true];
