@@ -908,7 +908,7 @@ class ContainerOcrService
 
     private function extractMaxGrossKg(string $text): ?int
     {
-        return $this->findLabelledWeightKg($text, 'MGW|MAX\.?\s*GROSS|GROSS\s*WEIGHT', 10001, 40000)
+        return $this->findLabelledWeightKg($text, "MGW|MAX[\s'.]*GROSS|GROSS\s*WEIGHT", 10001, 40000)
             ?? $this->findReversedWeightKg($text, 'MGW', 10001, 40000);
     }
 
@@ -926,13 +926,6 @@ class ContainerOcrService
      */
     private function findLabelledWeightKg(string $text, string $labelAlt, int $minKg, int $maxKg): ?int
     {
-        // Scan every occurrence of the label — the combined OCR string may contain
-        // several passes; early passes (e.g. a reversed-column right-panel crop) can
-        // have the value BEFORE the label, while later passes have the normal order.
-        // Using preg_match_all ensures we reach the pass whose value follows the label.
-        // Window of 40 chars: tight enough to exclude a PAYLOAD KG value that appears
-        // ~41 chars after a MAX GROSS label in reversed-column PSM 3 crops, yet wide
-        // enough for a normal label-then-value layout (value is always within ~20 chars).
         if (!preg_match_all('/\b(?:' . $labelAlt . ')\b/i', $text, $allMatches, PREG_OFFSET_CAPTURE)) {
             return null;
         }
@@ -940,19 +933,27 @@ class ContainerOcrService
         $lbsFallback = null;
 
         foreach ($allMatches[0] as $match) {
-            $after = substr($text, $match[1] + strlen($match[0]), 40);
+            // 200-char window handles column-split layouts where label and value
+            // are in separate columns and appear ~70–90 chars apart in OCR output.
+            $after = substr($text, $match[1] + strlen($match[0]), 200);
 
-            // KG candidate — allow ) . : - between digits and unit (e.g. "3800)KG", "3650-KG")
+            // KG candidate — allow / ) . : - between digits and unit
+            // K[A-Z0-9&] covers misreads like KG→KE, K6, K& etc.
             $kg = null;
-            if (preg_match('/[\s:|]*([0-9][0-9\s,\.]+)[\s):.\-]*(?:K[A-Z]|[A-Z]G)S?\b/i', $after, $m)) {
-                $v = (int) preg_replace('/[^0-9]/', '', $m[1]);
-                if ($v >= $minKg && $v <= $maxKg) $kg = $v;
+            if (preg_match_all('/[\s:|]*([0-9][0-9\s,\.]+)[\s):.\-\/]*(?:K[A-Z0-9&]|[A-Z]G)S?\b/i', $after, $kgMatches)) {
+                foreach ($kgMatches[1] as $kgRaw) {
+                    $v = (int) preg_replace('/[^0-9]/', '', $kgRaw);
+                    if ($v >= $minKg && $v <= $maxKg) { $kg = $v; break; }
+                }
             }
 
-            // LBS candidate — allow ) . : between digits and unit (e.g. "71650)LB")
+            // LBS candidate — allow / ) . : - between digits and unit
             $lbs = null;
-            if (preg_match('/([0-9][0-9\s,\.]+)[\s):.]*(?:LBS?|L[A-Z]S?)\b/i', $after, $m)) {
-                $lbs = (int) preg_replace('/[^0-9]/', '', $m[1]);
+            if (preg_match_all('/([0-9][0-9\s,\.]+)[\s):.\-\/]*(?:LBS?|L[A-Z]S?)\b/i', $after, $lbsMatches)) {
+                foreach ($lbsMatches[1] as $lbsRaw) {
+                    $v = (int) preg_replace('/[^0-9]/', '', $lbsRaw);
+                    if ($v > 0) { $lbs = $v; break; }
+                }
             }
 
             // Cross-validate KG/LBS pair (ratio ≈ 2.20462; >20 % deviation means a
@@ -990,7 +991,7 @@ class ContainerOcrService
     private function findReversedWeightKg(string $text, string $label, int $minKg, int $maxKg): ?int
     {
         if (preg_match(
-            '/([0-9][0-9\s,\.]+)[\s):.]*(?:K[A-Z]|[A-Z]G)S?[\s\S]{0,80}?\b' . $label . '\b/i',
+            '/([0-9][0-9\s,\.]+)[\s):.\-\/]*(?:K[A-Z0-9&]|[A-Z]G)S?[\s\S]{0,80}?\b' . $label . '\b/i',
             $text, $m
         )) {
             $kg = (int) preg_replace('/[^0-9]/', '', $m[1]);
