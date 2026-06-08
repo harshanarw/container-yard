@@ -521,6 +521,20 @@ class ContainerOcrService
                     return [$firstSeven, true];
                 }
 
+                // 7+ digits, offset-0 invalid: the check digit printed in its bordered
+                // box is stripped as ";" (non-alphanumeric), so the ISO type code digits
+                // that follow (e.g. "2261" from "22G1") merge directly after the 6-digit
+                // serial — CAIU908172 + 2261 → compact CAIU9081722261, regex captures 9
+                // digits (908172226), and CAIU9081722 fails because its check digit is 2
+                // not 5.  Brute-force position 6 using only the first 6 serial digits to
+                // recover the correct check digit before falling through to a false match.
+                if ($firstSeven !== null) {
+                    $serialBase = $prefix . substr($digits, 0, 6);
+                    for ($d = 0; $d <= 9; $d++) {
+                        if ($this->validateCheckDigit($serialBase . $d)) return [$serialBase . $d, true];
+                    }
+                }
+
                 // 6 digits: check digit misread as a letter (trailing letter captured)
                 // or stripped as non-alphanumeric (e.g. "5" read as ";" then discarded).
                 if ($len === 6) {
