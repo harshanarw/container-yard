@@ -77,24 +77,109 @@ class PlateOcrService
 
     private function runTesseract(string $imagePath): array
     {
-        $psm6 = $this->callTesseract($imagePath, 6); // uniform block — handles multi-line plates
-        $psm7 = $this->callTesseract($imagePath, 7); // single text line
-        $psm8 = $this->callTesseract($imagePath, 8); // single word
+        $candidates = [];
 
-        $c6 = $this->cleanPlate($psm6);
-        $c7 = $this->cleanPlate($psm7);
-        $c8 = $this->cleanPlate($psm8);
+        // ── Full-image passes ───────────────────────────────────────────────
+        // Kept as fallback; will score low if emblem noise pollutes the text.
+        foreach ([6, 7, 8] as $psm) {
+            $c = $this->cleanPlate($this->callTesseract($imagePath, $psm));
+            if (strlen($c) >= 3) $candidates[] = $c;
+        }
 
-        $candidates = array_filter([$c6, $c7, $c8], fn($p) => strlen($p) >= 3);
+        if (!extension_loaded('gd')) {
+            return $this->pickBest($candidates);
+        }
 
-        $best = null;
-        foreach ($candidates as $c) {
+        // ── GD crop passes ──────────────────────────────────────────────────
+        // SL plates put an emblem in the top-left ≈35% of the image.
+        // Cropping it out lets PSM 6 read the two character rows cleanly.
+
+        // Right-side crop (x: 35–100%, full height) — removes emblem entirely.
+        // PSM 6 reads the block as "QL\n9904" → cleaned: "QL9904"
+        $rightCrop    = $this->cropImage($imagePath, 0.35, 0.00, 1.0, 1.00);
+        // Top-right crop (x: 35–100%, y: 0–56%) — letter row only
+        $topRightCrop = $this->cropImage($imagePath, 0.35, 0.00, 1.0, 0.56);
+        // Bottom crop (y: 50–100%) — digit row only
+        $btmCrop      = $this->cropImage($imagePath, 0.00, 0.50, 1.0, 1.00);
+
+        if ($rightCrop) {
+            foreach ([6, 7] as $psm) {
+                $c = $this->cleanPlate($this->callTesseract($rightCrop, $psm));
+                if (strlen($c) >= 3) $candidates[] = $c;
+            }
+        }
+
+        if ($btmCrop) {
+            $c = $this->cleanPlate($this->callTesseract($btmCrop, 7));
+            if (strlen($c) >= 3) $candidates[] = $c;
+        }
+
+        // Combination pass: letters extracted from top-right + digits from bottom.
+        // Handles "QL" + "9904" → "QL9904" when PSM 6 block-read still fails.
+        if ($topRightCrop && $btmCrop) {
+            foreach ([7, 8] as $psm) {
+                $letters = preg_replace('/[0-9]/',   '', $this->cleanPlate($this->callTesseract($topRightCrop, $psm)));
+                $digits  = preg_replace('/[A-Z]/i', '', $this->cleanPlate($this->callTesseract($btmCrop,      $psm)));
+                if (strlen($letters) >= 2 && strlen($digits) >= 4) {
+                    $candidates[] = substr($letters, 0, 4) . substr($digits, 0, 4);
+                }
+            }
+        }
+
+        foreach ([$rightCrop, $topRightCrop, $btmCrop] as $f) {
+            if ($f) @unlink($f);
+        }
+
+        return $this->pickBest($candidates);
+    }
+
+    private function cropImage(string $imagePath, float $x1, float $y1, float $x2, float $y2): ?string
+    {
+        $info = @getimagesize($imagePath);
+        if (!$info) return null;
+
+        $src = match($info[2]) {
+            IMAGETYPE_JPEG => @imagecreatefromjpeg($imagePath),
+            IMAGETYPE_PNG  => @imagecreatefrompng($imagePath),
+            default        => null,
+        };
+        if (!$src) return null;
+
+        $w   = imagesx($src);
+        $h   = imagesy($src);
+        $cx1 = (int)round($x1 * $w);
+        $cy1 = (int)round($y1 * $h);
+        $cw  = (int)round(($x2 - $x1) * $w);
+        $ch  = (int)round(($y2 - $y1) * $h);
+
+        if ($cw < 10 || $ch < 10) { imagedestroy($src); return null; }
+
+        // Upscale narrow crops so Tesseract has enough pixels to work with
+        $scale = max(1.0, 600.0 / $cw);
+        $newW  = (int)round($cw * $scale);
+        $newH  = (int)round($ch * $scale);
+
+        $dst = imagecreatetruecolor($newW, $newH);
+        imagecopyresampled($dst, $src, 0, 0, $cx1, $cy1, $newW, $newH, $cw, $ch);
+        imagedestroy($src);
+
+        $out = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'plate_crop_' . uniqid() . '.png';
+        imagepng($dst, $out);
+        imagedestroy($dst);
+
+        return (file_exists($out) && filesize($out) > 0) ? $out : null;
+    }
+
+    private function pickBest(array $candidates): array
+    {
+        $valid = array_values(array_filter($candidates, fn($c) => strlen($c) >= 3));
+        $best  = null;
+        foreach ($valid as $c) {
             if ($best === null || $this->plateScore($c) > $this->plateScore($best)) {
                 $best = $c;
             }
         }
-
-        return [$best, $psm6 ?: $psm7 ?: $psm8];
+        return [$best, implode(' | ', $valid)];
     }
 
     private function callTesseract(string $imagePath, int $psm): string
