@@ -2270,6 +2270,23 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     setField('driver_name',   prefill.driver_name);
     setField('driver_ic',     prefill.driver_ic);
     setField('driver_phone',  prefill.driver_phone);
+
+    // Equipment type from Guard Post ISO code.
+    // Applied immediately so the field has a value while the async container
+    // master lookup runs; the lookup will override this if the master record
+    // already has an EQT assigned (same priority rule as the OCR path).
+    if (prefill.iso_code) {
+        const eqtSel = document.getElementById('gateEqtSelect');
+        const eqtId  = findEqtByIso(eqtSel, prefill.iso_code);
+        if (eqtId) {
+            if (typeof $ !== 'undefined' && $(eqtSel).data('select2')) {
+                $(eqtSel).val(eqtId).trigger('change');
+            } else {
+                eqtSel.value = eqtId;
+                eqtSel.dispatchEvent(new Event('change'));
+            }
+        }
+    }
 })();
 
 /* ── Guard Post Lightbox ───────────────────────────────────────────────────── */
