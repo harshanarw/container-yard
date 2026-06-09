@@ -2272,14 +2272,17 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     setField('driver_phone',  prefill.driver_phone);
 
     // Equipment type from Guard Post ISO code.
-    // Applied immediately so the field has a value while the async container
-    // master lookup runs; the lookup will override this if the master record
-    // already has an EQT assigned (same priority rule as the OCR path).
+    // findEqtByIso / preselectEqt live inside the OCR IIFE and are out of scope
+    // here, so the option scan and select-set are inlined.
     if (prefill.iso_code) {
         const eqtSel = document.getElementById('gateEqtSelect');
-        const eqtId  = findEqtByIso(eqtSel, prefill.iso_code);
+        const upper  = prefill.iso_code.toUpperCase();
+        let   eqtId  = null;
+        for (const opt of eqtSel ? eqtSel.options : []) {
+            if (opt.dataset.iso && opt.dataset.iso.toUpperCase() === upper) { eqtId = opt.value; break; }
+        }
         if (eqtId) {
-            if (typeof $ !== 'undefined' && $(eqtSel).data('select2')) {
+            if (typeof $ !== 'undefined') {
                 $(eqtSel).val(eqtId).trigger('change');
             } else {
                 eqtSel.value = eqtId;
