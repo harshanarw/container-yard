@@ -201,10 +201,10 @@ class ContainerOcrService
                     $path = $isFull ? $src : $tmpFiles[$i];
                     if ($path === null) { $handles[$i] = null; continue; }
                     $cfg   = $extra !== '' ? " {$extra}" : '';
-                    $cmd   = "tesseract " . escapeshellarg($path) . " stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}";
+                    $cmd   = $this->tesseractBin() . " " . escapeshellarg($path) . " stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}";
                     $desc  = [0 => ['pipe', 'r'], 1 => ['pipe', 'w']];
                     $pipes = [];
-                    $proc  = proc_open($cmd, $desc, $pipes);
+                    $proc  = @proc_open($cmd, $desc, $pipes);
                     if (is_resource($proc)) {
                         fclose($pipes[0]);
                         $handles[$i] = [$proc, $pipes[1]];
@@ -262,7 +262,7 @@ class ContainerOcrService
                 }
 
                 $cfg = $extra !== '' ? " {$extra}" : '';
-                $raw = shell_exec("tesseract " . escapeshellarg($path) . " stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}");
+                $raw = shell_exec($this->tesseractBin() . " " . escapeshellarg($path) . " stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}");
                 if ($tmp !== null) @unlink($tmp);
 
                 $out = ($raw !== null && trim($raw) !== '') ? strtoupper(trim($raw)) : '';
@@ -413,12 +413,16 @@ class ContainerOcrService
 
         $nullDev = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
         $cfg = $extraConfig !== '' ? " {$extraConfig}" : '';
-        $out = shell_exec("tesseract " . escapeshellarg($tmpPath) . " stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}");
+        $out = shell_exec($this->tesseractBin() . " " . escapeshellarg($tmpPath) . " stdout -l eng --psm {$psm} --oem 3{$cfg} {$nullDev}");
         @unlink($tmpPath);
 
         return ($out !== null && trim($out) !== '') ? strtoupper(trim($out)) : '';
     }
 
+    private function tesseractBin(): string
+    {
+        return escapeshellarg(env('TESSERACT_PATH', 'tesseract'));
+    }
 
 
     /**

@@ -99,12 +99,20 @@ class PlateOcrService
 
     private function callTesseract(string $imagePath, int $psm): string
     {
+        $nullDev = PHP_OS_FAMILY === 'Windows' ? '2>NUL' : '2>/dev/null';
         $cmd = sprintf(
-            'tesseract %s stdout --psm %d -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 2>/dev/null',
+            '%s %s stdout --psm %d -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 %s',
+            $this->tesseractBin(),
             escapeshellarg($imagePath),
-            $psm
+            $psm,
+            $nullDev
         );
         return trim((string)@shell_exec($cmd));
+    }
+
+    private function tesseractBin(): string
+    {
+        return escapeshellarg(env('TESSERACT_PATH', 'tesseract'));
     }
 
     private function cleanPlate(string $raw): string
