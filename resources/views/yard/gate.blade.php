@@ -448,7 +448,16 @@
                     <div class="row g-3 mb-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Truck / Vehicle Plate</label>
-                            <input type="text" name="vehicle_plate" class="form-control text-uppercase" placeholder="e.g. WQR 1234">
+                            <div class="input-group">
+                                <input type="text" name="vehicle_plate" id="vehiclePlateIn"
+                                       class="form-control text-uppercase" placeholder="e.g. WQR 1234" autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" id="plateOcrBtnIn" title="Scan plate with camera">
+                                    <i class="bi bi-camera" id="plateOcrIconIn"></i>
+                                </button>
+                            </div>
+                            {{-- Hidden file input for plate OCR camera --}}
+                            <input type="file" id="plateOcrInputIn" accept="image/*" capture="environment" class="d-none">
+                            <div id="plateOcrResultIn" class="mt-1 small d-none"></div>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">
@@ -2289,6 +2298,119 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         if (e.key === 'ArrowLeft')  show(current - 1);
         if (e.key === 'ArrowRight') show(current + 1);
     }
+})();
+
+// ── Plate OCR Scan ────────────────────────────────────────────────────────────
+(function () {
+    const PLATE_OCR_URL = '{{ route("yard.ocr-plate") }}';
+    const CSRF          = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    const btn      = document.getElementById('plateOcrBtnIn');
+    const inp      = document.getElementById('plateOcrInputIn');
+    const icon     = document.getElementById('plateOcrIconIn');
+    const resultEl = document.getElementById('plateOcrResultIn');
+    const plateInp = document.getElementById('vehiclePlateIn');
+
+    if (!btn) return;
+
+    function resizePlateImage(file) {
+        var maxPx = 1600;
+        return new Promise(function (resolve) {
+            var url = URL.createObjectURL(file);
+            var img = new Image();
+            img.onload = function () {
+                URL.revokeObjectURL(url);
+                var w = img.naturalWidth, h = img.naturalHeight;
+                var ratio = Math.min(maxPx / w, maxPx / h, 1);
+                if (ratio >= 1) { resolve(file); return; }
+                var canvas = document.createElement('canvas');
+                canvas.width  = Math.round(w * ratio);
+                canvas.height = Math.round(h * ratio);
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(function (blob) {
+                    resolve(new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }));
+                }, 'image/jpeg', 0.88);
+            };
+            img.onerror = function () { URL.revokeObjectURL(url); resolve(file); };
+            img.src = url;
+        });
+    }
+
+    // Insert a space between the letter prefix and digit suffix for display (e.g. WQR1234 → WQR 1234)
+    function formatPlate(p) {
+        var m = p.match(/^([A-Z]{2,3})([0-9]{4,5})$/);
+        return m ? m[1] + ' ' + m[2] : p;
+    }
+
+    btn.addEventListener('click', function () { inp.click(); });
+
+    inp.addEventListener('change', async function () {
+        if (!this.files || !this.files[0]) return;
+        var file = this.files[0];
+        this.value = '';
+
+        icon.className     = 'spinner-border spinner-border-sm';
+        btn.disabled       = true;
+        resultEl.className = 'd-none';
+        resultEl.innerHTML = '';
+
+        try {
+            var fileToSend = await resizePlateImage(file);
+            var fd = new FormData();
+            fd.append('image', fileToSend);
+            fd.append('_token', CSRF);
+
+            var res  = await fetch(PLATE_OCR_URL, { method: 'POST', body: fd });
+            var data = await res.json();
+
+            if (data.success && data.plate_no) {
+                var display = formatPlate(data.plate_no);
+                resultEl.className = 'mt-1 small';
+                resultEl.innerHTML =
+                    '<div class="alert alert-success py-1 px-2 mb-0 d-flex align-items-center gap-1 flex-wrap" style="font-size:.78rem;">' +
+                    '<i class="bi bi-check-circle-fill text-success me-1"></i>' +
+                    'Plate detected: <strong class="font-monospace mx-1">' + display + '</strong>' +
+                    '<button type="button" class="btn btn-sm btn-success py-0 px-2 ms-1" id="plateAcceptBtn">Use this</button>' +
+                    '<button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="plateDismissBtn">Dismiss</button>' +
+                    '</div>';
+
+                document.getElementById('plateAcceptBtn').addEventListener('click', function () {
+                    plateInp.value = display;
+                    plateInp.dispatchEvent(new Event('input'));
+                    resultEl.className = 'd-none';
+                    resultEl.innerHTML = '';
+                });
+                document.getElementById('plateDismissBtn').addEventListener('click', function () {
+                    resultEl.className = 'd-none';
+                    resultEl.innerHTML = '';
+                });
+            } else {
+                resultEl.className = 'mt-1 small';
+                resultEl.innerHTML =
+                    '<span class="badge bg-warning-subtle text-warning border" style="font-size:.72rem;">' +
+                    '<i class="bi bi-exclamation-triangle me-1"></i>' +
+                    (data.message || 'Could not read plate — please enter manually') +
+                    '</span>';
+            }
+        } catch (err) {
+            resultEl.className = 'mt-1 small';
+            resultEl.innerHTML =
+                '<span class="badge bg-danger-subtle text-danger border" style="font-size:.72rem;">' +
+                '<i class="bi bi-wifi-off me-1"></i>Plate OCR request failed.' +
+                '</span>';
+        } finally {
+            icon.className = 'bi bi-camera';
+            btn.disabled   = false;
+        }
+    });
+
+    // Clear suggestion when user manually edits the plate field
+    plateInp.addEventListener('input', function () {
+        if (resultEl.querySelector('#plateAcceptBtn')) {
+            resultEl.className = 'd-none';
+            resultEl.innerHTML = '';
+        }
+    });
 })();
 </script>
 @endpush

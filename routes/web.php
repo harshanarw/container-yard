@@ -39,6 +39,7 @@ use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\ApprovalWorkflowController;
 use App\Http\Controllers\YardController;
 use App\Http\Controllers\ContainerOcrController;
+use App\Http\Controllers\PlateOcrController;
 use App\Http\Controllers\ContainerGradeController;
 use App\Http\Controllers\GuardPostController;
 
@@ -127,6 +128,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/zones/{zone}/slots',  [YardController::class, 'slotsByZone'])->name('zones.slots');
         Route::get('/survey/{survey}', [YardController::class, 'surveyLookup'])->name('survey.lookup');
         Route::post('/ocr-scan',       [ContainerOcrController::class, 'process'])->name('ocr-scan');
+        Route::post('/ocr-plate',      [PlateOcrController::class,   'process'])->name('ocr-plate');
         Route::get('/movements/{movement}/edit',            [YardController::class, 'editMovement'])->name('movements.edit');
         Route::patch('/movements/{movement}',             [YardController::class, 'updateMovement'])->name('movements.update');
         Route::delete('/movements/{movement}/photos/{photo}', [YardController::class, 'destroyMovementPhoto'])->name('movements.photo.destroy');
