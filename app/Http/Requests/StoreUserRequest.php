@@ -29,7 +29,7 @@ class StoreUserRequest extends FormRequest
             'emergency_contact' => ['nullable', 'string', 'max:100'],
             'emergency_phone'   => ['nullable', 'string', 'max:20'],
             'password'          => ['required', 'string', 'min:8', 'confirmed'],
-            'role'              => ['required', 'in:system_administrator,administrator,yard_supervisor,gate_officer,inspector,billing_clerk'],
+            'role'              => ['required', 'in:system_administrator,administrator,yard_supervisor,gate_officer,inspector,billing_clerk,security_officer'],
             'status'            => ['required', 'in:active,inactive'],
         ];
     }
