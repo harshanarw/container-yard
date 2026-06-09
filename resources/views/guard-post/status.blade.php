@@ -71,9 +71,9 @@
 {{-- Direction badge --}}
 <div class="mb-3 d-flex gap-2 align-items-center">
     @if($capture->direction === 'gate_in')
-        <span class="badge bg-success-subtle text-success fs-6"><i class="bi bi-box-arrow-in-right me-1"></i>Gate-In</span>
+        <span class="badge bg-primary-subtle text-primary fs-6"><i class="bi bi-box-arrow-in-right me-1"></i>Gate-In</span>
     @else
-        <span class="badge bg-primary-subtle text-primary fs-6"><i class="bi bi-box-arrow-right me-1"></i>Gate-Out</span>
+        <span class="badge bg-success-subtle text-success fs-6"><i class="bi bi-box-arrow-right me-1"></i>Gate-Out</span>
     @endif
     <span class="text-muted small">Captured {{ $capture->captured_at?->format('d M Y H:i') }}</span>
 </div>

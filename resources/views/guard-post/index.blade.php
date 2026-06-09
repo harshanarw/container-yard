@@ -26,10 +26,10 @@
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         <a href="{{ route('guard-post.create') }}?direction=gate_in" class="text-decoration-none">
-            <div class="card h-100 border-success" style="border-width:2px!important;">
+            <div class="card h-100 border-primary" style="border-width:2px!important;">
                 <div class="card-body text-center py-4">
-                    <i class="bi bi-box-arrow-in-right display-4 text-success mb-3 d-block"></i>
-                    <h5 class="fw-bold text-success mb-1">Gate-In Capture</h5>
+                    <i class="bi bi-box-arrow-in-right display-4 text-primary mb-3 d-block"></i>
+                    <h5 class="fw-bold text-primary mb-1">Gate-In Capture</h5>
                     <p class="text-muted small mb-0">Record an incoming container, vehicle and driver</p>
                 </div>
             </div>
@@ -37,10 +37,10 @@
     </div>
     <div class="col-md-6">
         <a href="{{ route('guard-post.create') }}?direction=gate_out" class="text-decoration-none">
-            <div class="card h-100 border-primary" style="border-width:2px!important;">
+            <div class="card h-100 border-success" style="border-width:2px!important;">
                 <div class="card-body text-center py-4">
-                    <i class="bi bi-box-arrow-right display-4 text-primary mb-3 d-block"></i>
-                    <h5 class="fw-bold text-primary mb-1">Gate-Out Capture</h5>
+                    <i class="bi bi-box-arrow-right display-4 text-success mb-3 d-block"></i>
+                    <h5 class="fw-bold text-success mb-1">Gate-Out Capture</h5>
                     <p class="text-muted small mb-0">Record an outgoing container, vehicle and driver</p>
                 </div>
             </div>
@@ -80,9 +80,9 @@
                         <td class="font-monospace small">{{ $c->reference_no }}</td>
                         <td>
                             @if($c->direction === 'gate_in')
-                                <span class="badge bg-success-subtle text-success"><i class="bi bi-box-arrow-in-right me-1"></i>IN</span>
+                                <span class="badge bg-primary-subtle text-primary"><i class="bi bi-box-arrow-in-right me-1"></i>IN</span>
                             @else
-                                <span class="badge bg-primary-subtle text-primary"><i class="bi bi-box-arrow-right me-1"></i>OUT</span>
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-box-arrow-right me-1"></i>OUT</span>
                             @endif
                         </td>
                         <td class="font-monospace small">{{ $c->container_number ?? '—' }}</td>

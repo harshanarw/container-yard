@@ -15,9 +15,9 @@
     <div>
         <h4>
             @if($isGateIn)
-                <i class="bi bi-box-arrow-in-right me-2 text-success"></i>Gate-In Capture
+                <i class="bi bi-box-arrow-in-right me-2 text-primary"></i>Gate-In Capture
             @else
-                <i class="bi bi-box-arrow-right me-2 text-primary"></i>Gate-Out Capture
+                <i class="bi bi-box-arrow-right me-2 text-success"></i>Gate-Out Capture
             @endif
         </h4>
         <p class="text-muted mb-0 small">Take photos of the container, vehicle and driver documents</p>
@@ -42,8 +42,8 @@
 
     {{-- ── SECTION A: Container ──────────────────────────────────────────────── --}}
     <div class="card content-card mb-3">
-        <div class="card-header py-2 {{ $isGateIn ? 'bg-success' : 'bg-primary' }} text-white d-flex align-items-center gap-2">
-            <span class="badge bg-white {{ $isGateIn ? 'text-success' : 'text-primary' }} fw-bold">A</span>
+        <div class="card-header py-2 {{ $isGateIn ? 'bg-primary' : 'bg-success' }} text-white d-flex align-items-center gap-2">
+            <span class="badge bg-white {{ $isGateIn ? 'text-primary' : 'text-success' }} fw-bold">A</span>
             <i class="bi bi-box-seam"></i> Container
             <span class="badge bg-white bg-opacity-25 fw-normal ms-auto" style="font-size:.7rem;">Optional</span>
         </div>
@@ -86,8 +86,8 @@
 
     {{-- ── SECTION B: Vehicle ────────────────────────────────────────────────── --}}
     <div class="card content-card mb-3">
-        <div class="card-header py-2 {{ $isGateIn ? 'bg-success' : 'bg-primary' }} text-white d-flex align-items-center gap-2">
-            <span class="badge bg-white {{ $isGateIn ? 'text-success' : 'text-primary' }} fw-bold">B</span>
+        <div class="card-header py-2 {{ $isGateIn ? 'bg-primary' : 'bg-success' }} text-white d-flex align-items-center gap-2">
+            <span class="badge bg-white {{ $isGateIn ? 'text-primary' : 'text-success' }} fw-bold">B</span>
             <i class="bi bi-truck"></i> Vehicle
             <span class="badge bg-white bg-opacity-25 fw-normal ms-auto" style="font-size:.7rem;">Optional</span>
         </div>
@@ -130,8 +130,8 @@
 
     {{-- ── SECTION C: Driver ─────────────────────────────────────────────────── --}}
     <div class="card content-card mb-3">
-        <div class="card-header py-2 {{ $isGateIn ? 'bg-success' : 'bg-primary' }} text-white d-flex align-items-center gap-2">
-            <span class="badge bg-white {{ $isGateIn ? 'text-success' : 'text-primary' }} fw-bold">C</span>
+        <div class="card-header py-2 {{ $isGateIn ? 'bg-primary' : 'bg-success' }} text-white d-flex align-items-center gap-2">
+            <span class="badge bg-white {{ $isGateIn ? 'text-primary' : 'text-success' }} fw-bold">C</span>
             <i class="bi bi-person-vcard"></i> Driver
             <span class="badge bg-white bg-opacity-25 fw-normal ms-auto" style="font-size:.7rem;">Optional</span>
         </div>
@@ -195,7 +195,7 @@
     </div>
 
     <div class="d-flex gap-2 mb-4">
-        <button type="submit" class="btn btn-{{ $isGateIn ? 'success' : 'primary' }} px-4" id="submitBtn">
+        <button type="submit" class="btn btn-{{ $isGateIn ? 'primary' : 'success' }} px-4" id="submitBtn">
             <span id="submitSpinner" class="spinner-border spinner-border-sm me-1 d-none"></span>
             <i class="bi bi-send me-1" id="submitIcon"></i>Submit Capture
         </button>

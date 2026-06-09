@@ -83,11 +83,11 @@
                         <td class="ps-3 font-monospace small fw-semibold">{{ $capture->reference_no }}</td>
                         <td>
                             @if($capture->direction === 'gate_in')
-                                <span class="status-pill" style="background:#dcfce7;color:#166534;border-color:#86efac;">
+                                <span class="status-pill" style="background:#dbeafe;color:#1e40af;border-color:#93c5fd;">
                                     <i class="bi bi-box-arrow-in-right"></i> IN
                                 </span>
                             @else
-                                <span class="status-pill" style="background:#dbeafe;color:#1e40af;border-color:#93c5fd;">
+                                <span class="status-pill" style="background:#dcfce7;color:#166534;border-color:#86efac;">
                                     <i class="bi bi-box-arrow-right"></i> OUT
                                 </span>
                             @endif
@@ -313,7 +313,7 @@
 .act-hold    { color:#c2410c;  border-color:#fdba74; background:#fff7ed; }
 .act-reject  { color:#b91c1c;  border-color:#fca5a5; background:#fef2f2; }
 .act-gate-in { color:#1d4ed8;  border-color:#93c5fd; background:#eff6ff; }
-.act-gate-out{ color:#0369a1;  border-color:#7dd3fc; background:#f0f9ff; }
+.act-gate-out{ color:#15803d;  border-color:#86efac; background:#f0fdf4; }
 </style>
 @endpush
 

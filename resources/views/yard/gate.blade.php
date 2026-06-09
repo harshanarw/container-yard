@@ -1099,7 +1099,7 @@
     border: 1px solid;
 }
 .gp-dir-in  { background:#dbeafe; color:#1e40af; border-color:#93c5fd; }
-.gp-dir-out { background:#f3e8ff; color:#6b21a8; border-color:#d8b4fe; }
+.gp-dir-out { background:#dcfce7; color:#166534; border-color:#86efac; }
 
 .gp-panel-body {
     padding: 12px 14px 10px;
