@@ -97,7 +97,7 @@ class YardController extends Controller
         $guardCapture = null;
         $prefill      = null;
         if ($request->filled('capture_id')) {
-            $guardCapture = GuardCapture::find($request->capture_id);
+            $guardCapture = GuardCapture::with(['capturedBy', 'clearedBy'])->find($request->capture_id);
             if ($guardCapture && $guardCapture->isCleared() && !$guardCapture->linked_gate_movement_id) {
                 $prefill = [
                     'capture_id'      => $guardCapture->id,

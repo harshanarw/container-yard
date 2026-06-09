@@ -53,19 +53,134 @@
                     <input type="hidden" name="guard_capture_id" value="{{ $prefill['capture_id'] }}">
                     @endif
 
-                    @if($prefill ?? null)
-                    <div class="alert alert-success py-2 mb-3 d-flex align-items-center gap-2" style="border-left:4px solid #4caf50;">
-                        <i class="bi bi-shield-check fs-5 text-success"></i>
-                        <div>
-                            <strong>Pre-filled from Guard Post Capture</strong>
-                            <span class="text-muted ms-2 small">Ref: {{ $prefill['reference_no'] }}</span>
-                            <div class="small text-muted mt-1">
-                                Review and complete the remaining fields below.
-                                @if($prefill['container_image'])
-                                    <a href="{{ $prefill['container_image'] }}" target="_blank" class="ms-2">
-                                        <i class="bi bi-image me-1"></i>View container photo
-                                    </a>
+                    {{-- ── Guard Post Verification Panel ──────────────────────── --}}
+                    @if(isset($guardCapture) && $guardCapture)
+                    @php
+                        $gpPhotos = array_filter([
+                            ['label' => 'Container',  'url' => $guardCapture->container_image_url,  'icon' => 'bi-box-seam'],
+                            ['label' => 'Plate',      'url' => $guardCapture->plate_image_url,      'icon' => 'bi-truck'],
+                            ['label' => 'NIC Front',  'url' => $guardCapture->nic_front_url,        'icon' => 'bi-person-vcard'],
+                            ['label' => 'NIC Back',   'url' => $guardCapture->nic_back_url,         'icon' => 'bi-person-vcard-fill'],
+                            ['label' => 'License',    'url' => $guardCapture->license_front_url,    'icon' => 'bi-card-text'],
+                        ], fn($p) => !empty($p['url']));
+                    @endphp
+                    <div class="gp-panel mb-3" id="gpVerifyPanel">
+                        {{-- Header --}}
+                        <div class="gp-panel-hdr" data-bs-toggle="collapse" data-bs-target="#gpPanelBody"
+                             aria-expanded="true" aria-controls="gpPanelBody" style="cursor:pointer;">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <i class="bi bi-shield-check text-success" style="font-size:1rem;"></i>
+                                <span class="fw-semibold" style="font-size:.82rem;">Guard Post Verification</span>
+                                <span class="gp-ref-badge">{{ $guardCapture->reference_no }}</span>
+                                <span class="gp-dir-badge {{ $guardCapture->direction === 'gate_in' ? 'gp-dir-in' : 'gp-dir-out' }}">
+                                    <i class="bi {{ $guardCapture->direction === 'gate_in' ? 'bi-box-arrow-in-right' : 'bi-box-arrow-right' }}"></i>
+                                    {{ $guardCapture->direction_label }}
+                                </span>
+                                <span class="text-muted ms-auto" style="font-size:.72rem;">
+                                    Captured {{ $guardCapture->captured_at?->format('d M H:i') }}
+                                    @if($guardCapture->capturedBy) · by {{ $guardCapture->capturedBy->full_name }}@endif
+                                    @if($guardCapture->clearedBy) · Cleared by {{ $guardCapture->clearedBy->full_name }}@endif
+                                </span>
+                            </div>
+                            <i class="bi bi-chevron-down gp-panel-chevron"></i>
+                        </div>
+
+                        {{-- Collapsible body --}}
+                        <div class="collapse show" id="gpPanelBody">
+                            <div class="gp-panel-body">
+
+                                {{-- Photo thumbnails --}}
+                                @if(count($gpPhotos))
+                                <div class="gp-photos-row">
+                                    @foreach($gpPhotos as $idx => $photo)
+                                    <div class="gp-thumb" onclick="gpOpenLightbox({{ $idx }})"
+                                         title="View {{ $photo['label'] }}">
+                                        <img src="{{ $photo['url'] }}" alt="{{ $photo['label'] }}"
+                                             loading="lazy">
+                                        <div class="gp-thumb-label">
+                                            <i class="bi {{ $photo['icon'] }} me-1"></i>{{ $photo['label'] }}
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
                                 @endif
+
+                                {{-- Data row --}}
+                                <div class="gp-data-row">
+                                    @if($guardCapture->container_number)
+                                    <div class="gp-data-cell">
+                                        <div class="gp-data-lbl"><i class="bi bi-box-seam me-1"></i>Container</div>
+                                        <div class="gp-data-val font-monospace">{{ $guardCapture->container_number }}</div>
+                                    </div>
+                                    @endif
+                                    @if($guardCapture->iso_code)
+                                    <div class="gp-data-cell">
+                                        <div class="gp-data-lbl"><i class="bi bi-tag me-1"></i>ISO Code</div>
+                                        <div class="gp-data-val font-monospace">{{ $guardCapture->iso_code }}</div>
+                                    </div>
+                                    @endif
+                                    @if($guardCapture->vehicle_number)
+                                    <div class="gp-data-cell">
+                                        <div class="gp-data-lbl"><i class="bi bi-truck me-1"></i>Vehicle</div>
+                                        <div class="gp-data-val">{{ $guardCapture->vehicle_number }}</div>
+                                    </div>
+                                    @endif
+                                    @if($guardCapture->driver_name)
+                                    <div class="gp-data-cell">
+                                        <div class="gp-data-lbl"><i class="bi bi-person me-1"></i>Driver</div>
+                                        <div class="gp-data-val">{{ $guardCapture->driver_name }}</div>
+                                    </div>
+                                    @endif
+                                    @if($guardCapture->nic_number)
+                                    <div class="gp-data-cell">
+                                        <div class="gp-data-lbl"><i class="bi bi-person-vcard me-1"></i>NIC</div>
+                                        <div class="gp-data-val font-monospace">{{ $guardCapture->nic_number }}</div>
+                                    </div>
+                                    @endif
+                                    @if($guardCapture->driver_phone)
+                                    <div class="gp-data-cell">
+                                        <div class="gp-data-lbl"><i class="bi bi-telephone me-1"></i>Phone</div>
+                                        <div class="gp-data-val">{{ $guardCapture->driver_phone }}</div>
+                                    </div>
+                                    @endif
+                                </div>
+
+                                {{-- Ops note --}}
+                                @if($guardCapture->notes)
+                                <div class="gp-notes-row">
+                                    <i class="bi bi-chat-left-text me-1 text-muted"></i>
+                                    <span class="text-muted" style="font-size:.78rem;">Ops note:</span>
+                                    <span style="font-size:.78rem;">{{ $guardCapture->notes }}</span>
+                                </div>
+                                @endif
+
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Lightbox modal --}}
+                    <div class="modal fade" id="gpLightboxModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content bg-dark border-0">
+                                <div class="modal-header border-0 py-2">
+                                    <span class="text-white small fw-semibold" id="gpLightboxTitle"></span>
+                                    <div class="d-flex align-items-center gap-2 ms-auto">
+                                        <button type="button" class="btn btn-sm btn-outline-light" id="gpLightboxPrev">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-light" id="gpLightboxNext">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </button>
+                                        <a href="#" target="_blank" class="btn btn-sm btn-outline-light" id="gpLightboxOpen" title="Open full size">
+                                            <i class="bi bi-arrows-fullscreen"></i>
+                                        </a>
+                                        <button type="button" class="btn-close btn-close-white ms-1" data-bs-dismiss="modal"></button>
+                                    </div>
+                                </div>
+                                <div class="modal-body p-0 text-center">
+                                    <img id="gpLightboxImg" src="" alt="" class="img-fluid"
+                                         style="max-height:75vh;object-fit:contain;background:#111;">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -931,6 +1046,114 @@
    Select2-generated container grow to fill the remaining space so it aligns
    with the full-width fields above and below it. */
 #gateEqtSelect + .select2-container { flex: 1 1 auto; min-width: 0; width: auto !important; }
+
+/* ── Guard Post Verification Panel ──────────────────────────────────────────── */
+.gp-panel {
+    border: 1.5px solid #86efac;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 6px rgba(0,0,0,.06);
+}
+.gp-panel-hdr {
+    background: linear-gradient(90deg, #f0fdf4 0%, #f8fffe 100%);
+    padding: 9px 14px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    user-select: none;
+    border-bottom: 1px solid #bbf7d0;
+}
+.gp-panel-hdr:hover { background: #e8fdf0; }
+.gp-panel-chevron {
+    font-size: .65rem;
+    color: #6b7280;
+    transition: transform .2s;
+    margin-left: 6px;
+    flex-shrink: 0;
+}
+.gp-panel-hdr[aria-expanded="false"] .gp-panel-chevron { transform: rotate(-90deg); }
+.gp-ref-badge {
+    font-size: .72rem;
+    font-family: monospace;
+    font-weight: 700;
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+    border-radius: 4px;
+    padding: 1px 7px;
+}
+.gp-dir-badge {
+    font-size: .7rem;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 1px 7px;
+    border: 1px solid;
+}
+.gp-dir-in  { background:#dbeafe; color:#1e40af; border-color:#93c5fd; }
+.gp-dir-out { background:#f3e8ff; color:#6b21a8; border-color:#d8b4fe; }
+
+.gp-panel-body {
+    padding: 12px 14px 10px;
+    background: #fafffe;
+}
+
+/* Photo thumbnails */
+.gp-photos-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.gp-thumb {
+    width: 88px;
+    flex-shrink: 0;
+    cursor: pointer;
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1.5px solid #d1fae5;
+    background: #f0fdf4;
+    transition: border-color .15s, box-shadow .15s;
+}
+.gp-thumb:hover {
+    border-color: #34d399;
+    box-shadow: 0 2px 8px rgba(52,211,153,.3);
+}
+.gp-thumb img {
+    width: 100%;
+    height: 64px;
+    object-fit: cover;
+    display: block;
+}
+.gp-thumb-label {
+    font-size: .62rem;
+    font-weight: 600;
+    color: #374151;
+    text-align: center;
+    padding: 3px 4px;
+    background: #f0fdf4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Data row */
+.gp-data-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+}
+.gp-data-cell { display: flex; flex-direction: column; }
+.gp-data-lbl  { font-size: .65rem; color: #6b7280; text-transform: uppercase; letter-spacing: .06em; }
+.gp-data-val  { font-size: .8rem; font-weight: 600; color: #111; }
+
+/* Notes row */
+.gp-notes-row {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #d1fae5;
+    font-size: .78rem;
+}
 </style>
 @endpush
 
@@ -2012,6 +2235,60 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     setField('driver_name',   prefill.driver_name);
     setField('driver_ic',     prefill.driver_ic);
     setField('driver_phone',  prefill.driver_phone);
+})();
+
+/* ── Guard Post Lightbox ───────────────────────────────────────────────────── */
+(function () {
+    const photos = @json(
+        isset($guardCapture) && $guardCapture
+            ? array_values(array_filter([
+                isset($guardCapture->container_image_url)  ? ['label' => 'Container', 'url' => $guardCapture->container_image_url]  : null,
+                isset($guardCapture->plate_image_url)      ? ['label' => 'Plate',     'url' => $guardCapture->plate_image_url]      : null,
+                isset($guardCapture->nic_front_url)        ? ['label' => 'NIC Front', 'url' => $guardCapture->nic_front_url]        : null,
+                isset($guardCapture->nic_back_url)         ? ['label' => 'NIC Back',  'url' => $guardCapture->nic_back_url]         : null,
+                isset($guardCapture->license_front_url)    ? ['label' => 'License',   'url' => $guardCapture->license_front_url]    : null,
+              ], fn($p) => $p !== null))
+            : []
+    );
+
+    if (!photos.length) return;
+
+    let current = 0;
+    const modal   = document.getElementById('gpLightboxModal');
+    const img     = document.getElementById('gpLightboxImg');
+    const title   = document.getElementById('gpLightboxTitle');
+    const openBtn = document.getElementById('gpLightboxOpen');
+    const prevBtn = document.getElementById('gpLightboxPrev');
+    const nextBtn = document.getElementById('gpLightboxNext');
+
+    function show(idx) {
+        current = (idx + photos.length) % photos.length;
+        img.src        = photos[current].url;
+        title.textContent = photos[current].label + ' (' + (current + 1) + '/' + photos.length + ')';
+        openBtn.href   = photos[current].url;
+        prevBtn.style.display = photos.length > 1 ? '' : 'none';
+        nextBtn.style.display = photos.length > 1 ? '' : 'none';
+    }
+
+    window.gpOpenLightbox = function (idx) {
+        show(idx);
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+    };
+
+    prevBtn.addEventListener('click', () => show(current - 1));
+    nextBtn.addEventListener('click', () => show(current + 1));
+
+    // Keyboard navigation when modal is open
+    modal.addEventListener('shown.bs.modal', () => {
+        document.addEventListener('keydown', onKey);
+    });
+    modal.addEventListener('hidden.bs.modal', () => {
+        document.removeEventListener('keydown', onKey);
+    });
+    function onKey(e) {
+        if (e.key === 'ArrowLeft')  show(current - 1);
+        if (e.key === 'ArrowRight') show(current + 1);
+    }
 })();
 </script>
 @endpush
