@@ -56,13 +56,12 @@
                     {{-- ── Guard Post Verification Panel ──────────────────────── --}}
                     @if(isset($guardCapture) && $guardCapture)
                     @php
-                        $gpPhotos = array_filter([
-                            ['label' => 'Container',  'url' => $guardCapture->container_image_url,  'icon' => 'bi-box-seam'],
-                            ['label' => 'Plate',      'url' => $guardCapture->plate_image_url,      'icon' => 'bi-truck'],
-                            ['label' => 'NIC Front',  'url' => $guardCapture->nic_front_url,        'icon' => 'bi-person-vcard'],
-                            ['label' => 'NIC Back',   'url' => $guardCapture->nic_back_url,         'icon' => 'bi-person-vcard-fill'],
-                            ['label' => 'License',    'url' => $guardCapture->license_front_url,    'icon' => 'bi-card-text'],
-                        ], fn($p) => !empty($p['url']));
+                        $gpPhotos = [];
+                        if ($guardCapture->container_image_url) $gpPhotos[] = ['label' => 'Container', 'url' => $guardCapture->container_image_url, 'icon' => 'bi-box-seam'];
+                        if ($guardCapture->plate_image_url)     $gpPhotos[] = ['label' => 'Plate',     'url' => $guardCapture->plate_image_url,     'icon' => 'bi-truck'];
+                        if ($guardCapture->nic_front_url)       $gpPhotos[] = ['label' => 'NIC Front', 'url' => $guardCapture->nic_front_url,       'icon' => 'bi-person-vcard'];
+                        if ($guardCapture->nic_back_url)        $gpPhotos[] = ['label' => 'NIC Back',  'url' => $guardCapture->nic_back_url,        'icon' => 'bi-person-vcard-fill'];
+                        if ($guardCapture->license_front_url)   $gpPhotos[] = ['label' => 'License',   'url' => $guardCapture->license_front_url,   'icon' => 'bi-card-text'];
                     @endphp
                     <div class="gp-panel mb-3" id="gpVerifyPanel">
                         {{-- Header --}}
@@ -2247,18 +2246,18 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
 })();
 
 /* ── Guard Post Lightbox ───────────────────────────────────────────────────── */
+@php
+    $gpLightboxPhotos = [];
+    if (isset($guardCapture) && $guardCapture) {
+        if ($guardCapture->container_image_url) $gpLightboxPhotos[] = ['label' => 'Container', 'url' => $guardCapture->container_image_url];
+        if ($guardCapture->plate_image_url)     $gpLightboxPhotos[] = ['label' => 'Plate',     'url' => $guardCapture->plate_image_url];
+        if ($guardCapture->nic_front_url)       $gpLightboxPhotos[] = ['label' => 'NIC Front', 'url' => $guardCapture->nic_front_url];
+        if ($guardCapture->nic_back_url)        $gpLightboxPhotos[] = ['label' => 'NIC Back',  'url' => $guardCapture->nic_back_url];
+        if ($guardCapture->license_front_url)   $gpLightboxPhotos[] = ['label' => 'License',   'url' => $guardCapture->license_front_url];
+    }
+@endphp
 (function () {
-    const photos = @json(
-        isset($guardCapture) && $guardCapture
-            ? array_values(array_filter([
-                isset($guardCapture->container_image_url)  ? ['label' => 'Container', 'url' => $guardCapture->container_image_url]  : null,
-                isset($guardCapture->plate_image_url)      ? ['label' => 'Plate',     'url' => $guardCapture->plate_image_url]      : null,
-                isset($guardCapture->nic_front_url)        ? ['label' => 'NIC Front', 'url' => $guardCapture->nic_front_url]        : null,
-                isset($guardCapture->nic_back_url)         ? ['label' => 'NIC Back',  'url' => $guardCapture->nic_back_url]         : null,
-                isset($guardCapture->license_front_url)    ? ['label' => 'License',   'url' => $guardCapture->license_front_url]    : null,
-              ], fn($p) => $p !== null))
-            : []
-    );
+    const photos = @json($gpLightboxPhotos);
 
     if (!photos.length) return;
 
