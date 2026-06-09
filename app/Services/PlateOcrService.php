@@ -77,13 +77,15 @@ class PlateOcrService
 
     private function runTesseract(string $imagePath): array
     {
+        $psm6 = $this->callTesseract($imagePath, 6); // uniform block — handles multi-line plates
         $psm7 = $this->callTesseract($imagePath, 7); // single text line
         $psm8 = $this->callTesseract($imagePath, 8); // single word
 
+        $c6 = $this->cleanPlate($psm6);
         $c7 = $this->cleanPlate($psm7);
         $c8 = $this->cleanPlate($psm8);
 
-        $candidates = array_filter([$c7, $c8], fn($p) => strlen($p) >= 3);
+        $candidates = array_filter([$c6, $c7, $c8], fn($p) => strlen($p) >= 3);
 
         $best = null;
         foreach ($candidates as $c) {
@@ -92,7 +94,7 @@ class PlateOcrService
             }
         }
 
-        return [$best, $psm7 ?: $psm8];
+        return [$best, $psm6 ?: $psm7 ?: $psm8];
     }
 
     private function callTesseract(string $imagePath, int $psm): string
@@ -108,7 +110,7 @@ class PlateOcrService
     private function cleanPlate(string $raw): string
     {
         $clean = strtoupper(preg_replace('/[^A-Z0-9]/i', '', $raw));
-        return substr($clean, 0, 10);
+        return substr($clean, 0, 12);
     }
 
     private function plateScore(string $plate): int
@@ -120,12 +122,14 @@ class PlateOcrService
         if ($hasLetters && $hasDigits) $score += 10;
 
         $len = strlen($plate);
-        if ($len >= 5 && $len <= 8)  $score += 5;
-        elseif ($len >= 3 && $len <= 10) $score += 2;
+        if ($len >= 5 && $len <= 9)   $score += 5;
+        elseif ($len >= 3 && $len <= 12) $score += 2;
 
-        // Common patterns: 2–3 letters + 4 digits (SL / regional format)
-        if (preg_match('/^[A-Z]{2,3}[0-9]{4}$/', $plate))      $score += 20;
-        elseif (preg_match('/^[A-Z]{2,3}[0-9]{2,5}$/', $plate)) $score += 8;
+        // 4-letter prefix — new SL format: SPQL9904
+        if (preg_match('/^[A-Z]{4}[0-9]{4}$/', $plate))           $score += 20;
+        // 2–3 letter prefix — old SL / regional format: WQR1234
+        elseif (preg_match('/^[A-Z]{2,3}[0-9]{4}$/', $plate))     $score += 20;
+        elseif (preg_match('/^[A-Z]{2,4}[0-9]{2,5}$/', $plate))   $score += 8;
 
         return $score;
     }

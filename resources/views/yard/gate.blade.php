@@ -57,11 +57,11 @@
                     @if(isset($guardCapture) && $guardCapture)
                     @php
                         $gpPhotos = [];
-                        if ($guardCapture->container_image_url) $gpPhotos[] = ['label' => 'Container', 'url' => $guardCapture->container_image_url, 'icon' => 'bi-box-seam'];
-                        if ($guardCapture->plate_image_url)     $gpPhotos[] = ['label' => 'Plate',     'url' => $guardCapture->plate_image_url,     'icon' => 'bi-truck'];
-                        if ($guardCapture->nic_front_url)       $gpPhotos[] = ['label' => 'NIC Front', 'url' => $guardCapture->nic_front_url,       'icon' => 'bi-person-vcard'];
-                        if ($guardCapture->nic_back_url)        $gpPhotos[] = ['label' => 'NIC Back',  'url' => $guardCapture->nic_back_url,        'icon' => 'bi-person-vcard-fill'];
-                        if ($guardCapture->license_front_url)   $gpPhotos[] = ['label' => 'License',   'url' => $guardCapture->license_front_url,   'icon' => 'bi-card-text'];
+                        if ($guardCapture->container_image_url) $gpPhotos[] = ['label' => 'Container', 'url' => $guardCapture->container_image_url, 'icon' => 'bi-box-seam',          'rescan' => 'container'];
+                        if ($guardCapture->plate_image_url)     $gpPhotos[] = ['label' => 'Plate',     'url' => $guardCapture->plate_image_url,     'icon' => 'bi-truck',             'rescan' => 'plate'];
+                        if ($guardCapture->nic_front_url)       $gpPhotos[] = ['label' => 'NIC Front', 'url' => $guardCapture->nic_front_url,       'icon' => 'bi-person-vcard',      'rescan' => null];
+                        if ($guardCapture->nic_back_url)        $gpPhotos[] = ['label' => 'NIC Back',  'url' => $guardCapture->nic_back_url,        'icon' => 'bi-person-vcard-fill', 'rescan' => null];
+                        if ($guardCapture->license_front_url)   $gpPhotos[] = ['label' => 'License',   'url' => $guardCapture->license_front_url,   'icon' => 'bi-card-text',         'rescan' => null];
                     @endphp
                     <div class="gp-panel mb-3" id="gpVerifyPanel">
                         {{-- Header --}}
@@ -97,7 +97,14 @@
                                         <img src="{{ $photo['url'] }}" alt="{{ $photo['label'] }}"
                                              loading="lazy">
                                         <div class="gp-thumb-label">
-                                            <i class="bi {{ $photo['icon'] }} me-1"></i>{{ $photo['label'] }}
+                                            <span><i class="bi {{ $photo['icon'] }} me-1"></i>{{ $photo['label'] }}</span>
+                                            @if(!empty($photo['rescan']))
+                                            <button type="button" class="gp-rescan-btn"
+                                                    title="Re-scan with OCR"
+                                                    onclick="event.stopPropagation();gpRescan(this,'{{ $photo['url'] }}','{{ $photo['rescan'] }}')">
+                                                <i class="bi bi-arrow-repeat"></i>
+                                            </button>
+                                            @endif
                                         </div>
                                     </div>
                                     @endforeach
@@ -1137,13 +1144,30 @@
     font-size: .62rem;
     font-weight: 600;
     color: #374151;
-    text-align: center;
-    padding: 3px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3px;
+    padding: 3px 5px;
     background: #f0fdf4;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
+.gp-rescan-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-size: .6rem;
+    border: 1px solid #6ee7b7;
+    background: #d1fae5;
+    color: #065f46;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background .1s;
+    line-height: 1;
+}
+.gp-rescan-btn:hover { background: #a7f3d0; }
 
 /* Data row */
 .gp-data-row {
@@ -2217,6 +2241,9 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         hideOcrResult(document.getElementById('ocrResultOut'));
     });
 
+    // Expose for guard-post re-scan
+    window._gpContainerScan = function (f) { processImage(f, 'in'); };
+
 })();
 
 // ── Guard Post pre-fill ───────────────────────────────────────────────────────
@@ -2335,9 +2362,10 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         });
     }
 
-    // Insert a space between the letter prefix and digit suffix for display (e.g. WQR1234 → WQR 1234)
+    // Insert a space between the letter prefix and digit suffix for display
+    // e.g. WQR1234 → WQR 1234, SPQL9904 → SPQL 9904
     function formatPlate(p) {
-        var m = p.match(/^([A-Z]{2,3})([0-9]{4,5})$/);
+        var m = p.match(/^([A-Z]{2,4})([0-9]{4,5})$/);
         return m ? m[1] + ' ' + m[2] : p;
     }
 
@@ -2410,6 +2438,81 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             resultEl.innerHTML = '';
         }
     });
+
+    // Expose for guard-post re-scan
+    window._gpPlateScan = async function (file) {
+        icon.className     = 'spinner-border spinner-border-sm';
+        btn.disabled       = true;
+        resultEl.className = 'd-none';
+        resultEl.innerHTML = '';
+        try {
+            var fileToSend = await resizePlateImage(file);
+            var fd = new FormData();
+            fd.append('image', fileToSend);
+            fd.append('_token', CSRF);
+            var res  = await fetch(PLATE_OCR_URL, { method: 'POST', body: fd });
+            var data = await res.json();
+            if (data.success && data.plate_no) {
+                var display = formatPlate(data.plate_no);
+                resultEl.className = 'mt-1 small';
+                resultEl.innerHTML =
+                    '<div class="alert alert-success py-1 px-2 mb-0 d-flex align-items-center gap-1 flex-wrap" style="font-size:.78rem;">' +
+                    '<i class="bi bi-check-circle-fill text-success me-1"></i>' +
+                    'Plate detected: <strong class="font-monospace mx-1">' + display + '</strong>' +
+                    '<button type="button" class="btn btn-sm btn-success py-0 px-2 ms-1" id="plateAcceptBtn">Use this</button>' +
+                    '<button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="plateDismissBtn">Dismiss</button>' +
+                    '</div>';
+                document.getElementById('plateAcceptBtn').addEventListener('click', function () {
+                    plateInp.value = display;
+                    plateInp.dispatchEvent(new Event('input'));
+                    resultEl.className = 'd-none';
+                    resultEl.innerHTML = '';
+                });
+                document.getElementById('plateDismissBtn').addEventListener('click', function () {
+                    resultEl.className = 'd-none';
+                    resultEl.innerHTML = '';
+                });
+            } else {
+                resultEl.className = 'mt-1 small';
+                resultEl.innerHTML =
+                    '<span class="badge bg-warning-subtle text-warning border" style="font-size:.72rem;">' +
+                    '<i class="bi bi-exclamation-triangle me-1"></i>' +
+                    (data.message || 'Could not read plate — please enter manually') +
+                    '</span>';
+            }
+        } catch (err) {
+            resultEl.className = 'mt-1 small';
+            resultEl.innerHTML =
+                '<span class="badge bg-danger-subtle text-danger border" style="font-size:.72rem;">' +
+                '<i class="bi bi-wifi-off me-1"></i>Plate OCR request failed.' +
+                '</span>';
+        } finally {
+            icon.className = 'bi bi-camera';
+            btn.disabled   = false;
+        }
+    };
 })();
+
+// ── Guard Post Re-scan from captured photo ────────────────────────────────────
+window.gpRescan = async function (btnEl, url, type) {
+    var origHtml = btnEl.innerHTML;
+    btnEl.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:.6rem;height:.6rem;border-width:1px;"></span>';
+    btnEl.disabled = true;
+    try {
+        var r = await fetch(url);
+        if (!r.ok) throw new Error('fetch');
+        var blob = await r.blob();
+        var ext  = blob.type.includes('png') ? 'png' : 'jpg';
+        var file = new File([blob], 'rescan.' + ext, { type: blob.type || 'image/jpeg' });
+        if (type === 'container' && window._gpContainerScan) window._gpContainerScan(file);
+        else if (type === 'plate' && window._gpPlateScan)    window._gpPlateScan(file);
+    } catch (e) {
+        btnEl.innerHTML = '<i class="bi bi-exclamation-triangle" style="color:#dc2626;"></i>';
+        setTimeout(function () { btnEl.innerHTML = origHtml; btnEl.disabled = false; }, 2000);
+        return;
+    }
+    btnEl.innerHTML = origHtml;
+    btnEl.disabled  = false;
+};
 </script>
 @endpush
