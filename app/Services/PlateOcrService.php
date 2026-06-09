@@ -65,8 +65,10 @@ class PlateOcrService
         }
 
         imagefilter($src, IMG_FILTER_GRAYSCALE);
-        imagefilter($src, IMG_FILTER_CONTRAST, -35);
-        imagefilter($src, IMG_FILTER_BRIGHTNESS, 5);
+        imagefilter($src, IMG_FILTER_BRIGHTNESS, 10);
+        imagefilter($src, IMG_FILTER_CONTRAST, -25);
+        // Sharpen edges so closed shapes (0) stay distinct from open ones (6, D, etc.)
+        imageconvolution($src, [[0,-1,0],[-1,5,-1],[0,-1,0]], 1, 0);
 
         $out = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'plate_enh_' . uniqid() . '.png';
         imagepng($src, $out);
