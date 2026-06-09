@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class GuardCapture extends Model
@@ -14,9 +13,9 @@ class GuardCapture extends Model
         'plate_image_path', 'vehicle_number', 'vehicle_type', 'ocr_vehicle_no',
         'nic_front_path', 'nic_back_path', 'license_front_path',
         'driver_name', 'nic_number', 'driver_phone',
-        'linked_gate_movement_id',
-        'clearance_note', 'cleared_by', 'cleared_at',
-        'captured_by', 'captured_at',
+        'notes',
+        'linked_gate_movement_id', 'captured_by', 'cleared_by',
+        'captured_at', 'cleared_at',
     ];
 
     protected $casts = [
@@ -24,29 +23,14 @@ class GuardCapture extends Model
         'cleared_at'  => 'datetime',
     ];
 
-    // ── Relationships ─────────────────────────────────────────────────────────
-
-    public function capturedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'captured_by');
-    }
-
-    public function clearedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'cleared_by');
-    }
-
-    public function linkedGateMovement(): BelongsTo
-    {
-        return $this->belongsTo(GateMovement::class, 'linked_gate_movement_id');
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ─── Status helpers ───────────────────────────────────────────────────────
 
     public function isPending(): bool   { return $this->status === 'pending'; }
     public function isCleared(): bool   { return $this->status === 'cleared'; }
     public function isOnHold(): bool    { return $this->status === 'hold'; }
     public function isRejected(): bool  { return $this->status === 'rejected'; }
+
+    // ─── URL accessors ────────────────────────────────────────────────────────
 
     public function getContainerImageUrlAttribute(): ?string
     {
@@ -73,13 +57,16 @@ class GuardCapture extends Model
         return $this->license_front_path ? Storage::url($this->license_front_path) : null;
     }
 
+    // ─── Display helpers ──────────────────────────────────────────────────────
+
     public function getStatusBadgeClassAttribute(): string
     {
         return match($this->status) {
-            'cleared'  => 'success',
-            'hold'     => 'warning',
-            'rejected' => 'danger',
-            default    => 'secondary',
+            'pending'  => 'bg-warning text-dark',
+            'cleared'  => 'bg-success',
+            'hold'     => 'bg-warning text-dark',
+            'rejected' => 'bg-danger',
+            default    => 'bg-secondary',
         };
     }
 
@@ -99,16 +86,34 @@ class GuardCapture extends Model
         return $this->direction === 'gate_in' ? 'Gate In' : 'Gate Out';
     }
 
-    // ── Reference number ─────────────────────────────────────────────────────
+    // ─── Reference number generation ─────────────────────────────────────────
 
     public static function generateReference(): string
     {
-        $prefix = 'GP-' . now()->format('Ymd') . '-';
-        $last = static::where('reference_no', 'like', $prefix . '%')
-            ->orderByDesc('id')
+        $date    = now()->format('Ymd');
+        $prefix  = "GP-{$date}-";
+        $last    = static::where('reference_no', 'like', "{$prefix}%")
+            ->orderByDesc('reference_no')
             ->value('reference_no');
 
-        $next = $last ? ((int) substr($last, -4)) + 1 : 1;
-        return $prefix . str_pad($next, 4, '0', STR_PAD_LEFT);
+        $seq = $last ? (int) substr($last, -4) + 1 : 1;
+        return $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);
+    }
+
+    // ─── Relationships ────────────────────────────────────────────────────────
+
+    public function capturedBy()
+    {
+        return $this->belongsTo(User::class, 'captured_by');
+    }
+
+    public function clearedBy()
+    {
+        return $this->belongsTo(User::class, 'cleared_by');
+    }
+
+    public function linkedGateMovement()
+    {
+        return $this->belongsTo(GateMovement::class, 'linked_gate_movement_id');
     }
 }

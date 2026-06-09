@@ -49,6 +49,27 @@
                 <form method="POST" action="{{ route('yard.gate.in') }}" id="gateInForm" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="movement_type" value="in">
+                    @if($prefill ?? null)
+                    <input type="hidden" name="guard_capture_id" value="{{ $prefill['capture_id'] }}">
+                    @endif
+
+                    @if($prefill ?? null)
+                    <div class="alert alert-success py-2 mb-3 d-flex align-items-center gap-2" style="border-left:4px solid #4caf50;">
+                        <i class="bi bi-shield-check fs-5 text-success"></i>
+                        <div>
+                            <strong>Pre-filled from Guard Post Capture</strong>
+                            <span class="text-muted ms-2 small">Ref: {{ $prefill['reference_no'] }}</span>
+                            <div class="small text-muted mt-1">
+                                Review and complete the remaining fields below.
+                                @if($prefill['container_image'])
+                                    <a href="{{ $prefill['container_image'] }}" target="_blank" class="ms-2">
+                                        <i class="bi bi-image me-1"></i>View container photo
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @endif
 
                     @if($errors->any())
                     <div class="alert alert-danger py-2 small">
@@ -1965,6 +1986,32 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         hideOcrResult(document.getElementById('ocrResultOut'));
     });
 
+})();
+
+// ── Guard Post pre-fill ───────────────────────────────────────────────────────
+(function () {
+    const prefill = @json($prefill ?? null);
+    if (!prefill) return;
+
+    // Container number → triggers master lookup via blur
+    const containerInp = document.getElementById('containerNoIn');
+    if (prefill.container_no && containerInp && !containerInp.value) {
+        containerInp.value = prefill.container_no.toUpperCase();
+        containerInp.dispatchEvent(new Event('blur'));
+    }
+
+    // Transport / driver fields — scope to the gate-in form to avoid touching gate-out
+    const form = document.getElementById('gateInForm');
+    function setField(name, value) {
+        if (!value) return;
+        const el = form?.querySelector('[name="' + name + '"]');
+        if (el && !el.value) el.value = value;
+    }
+
+    setField('vehicle_plate', prefill.vehicle_plate);
+    setField('driver_name',   prefill.driver_name);
+    setField('driver_ic',     prefill.driver_ic);
+    setField('driver_phone',  prefill.driver_phone);
 })();
 </script>
 @endpush

@@ -355,6 +355,7 @@
                         They can photograph container rear plates, vehicle number plates, and driver ID documents,
                         and enter basic details — without accessing the full Gate In / Out module.
                         Operations staff review and clear each capture from the Guard Post Queue.
+                        Gate officers can then pre-fill the Gate-In form directly from a cleared capture.
                         This module is optional and can be turned off at any time.
                     </div>
                 </div>

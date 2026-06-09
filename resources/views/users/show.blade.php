@@ -18,6 +18,7 @@
         'security_officer'     => 'secondary',
         'inspector'            => 'warning',
         'billing_clerk'        => 'success',
+        'security_officer'     => 'secondary',
     ];
     $roleColor = $roleColors[$user->role] ?? 'secondary';
 @endphp

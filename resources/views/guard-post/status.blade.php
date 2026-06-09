@@ -1,218 +1,178 @@
 @extends('layouts.app')
 
-@section('title', 'Capture Status — ' . $capture->reference_no)
+@section('title', 'Capture Status')
 
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="{{ route('guard-post.index') }}">Guard Post</a></li>
-    <li class="breadcrumb-item active">{{ $capture->reference_no }}</li>
+    <li class="breadcrumb-item"><a href="{{ route('guard-post.index') }}" class="text-decoration-none">Guard Post</a></li>
+    <li class="breadcrumb-item active">Status</li>
 @endsection
-
-@push('styles')
-<style>
-    .status-panel {
-        border-radius: 20px;
-        padding: 48px 40px;
-        text-align: center;
-        transition: background .4s, border-color .4s;
-    }
-    .status-icon {
-        font-size: 5rem;
-        line-height: 1;
-        margin-bottom: 20px;
-        display: block;
-    }
-    .status-text { font-size: 2.4rem; font-weight: 800; letter-spacing: .03em; }
-    .status-sub  { font-size: 1.1rem; margin-top: 8px; }
-    .ref-badge   { font-size: 1rem; font-family: monospace; letter-spacing: .08em; }
-
-    /* State colours */
-    .state-pending  { background: #fffde7; border: 3px solid #ffc107; color: #795548; }
-    .state-cleared  { background: #e8f5e9; border: 3px solid #4caf50; color: #1b5e20; }
-    .state-hold     { background: #fff3e0; border: 3px solid #ff9800; color: #e65100; }
-    .state-rejected { background: #ffebee; border: 3px solid #f44336; color: #b71c1c; }
-
-    .pulse { animation: pulse 1.5s infinite; }
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50%       { opacity: .45; }
-    }
-</style>
-@endpush
 
 @section('content')
-<div class="page-header d-flex align-items-center gap-3">
-    <a href="{{ route('guard-post.index') }}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-left"></i>
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h4><i class="bi bi-shield-check me-2 text-success"></i>Capture Status</h4>
+        <p class="text-muted mb-0 small font-monospace">{{ $capture->reference_no }}</p>
+    </div>
+    <a href="{{ route('guard-post.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back
     </a>
-    <h4 class="mb-0">Capture Status</h4>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-lg-7 col-xl-6">
-
-        {{-- ── Status Panel ──────────────────────────────────────────────── --}}
-        <div class="status-panel mb-4 state-{{ $capture->status }}" id="statusPanel">
-            <span class="status-icon" id="statusIcon">
-                @if($capture->status === 'pending')  <i class="bi bi-hourglass-split pulse"></i>
-                @elseif($capture->status === 'cleared')  <i class="bi bi-check-circle-fill"></i>
-                @elseif($capture->status === 'hold')     <i class="bi bi-exclamation-triangle-fill"></i>
-                @else                                    <i class="bi bi-x-circle-fill"></i>
-                @endif
-            </span>
-            <div class="status-text" id="statusText">{{ strtoupper($capture->status_label) }}</div>
-            <div class="status-sub" id="statusSub">
-                @if($capture->status === 'pending')
-                    Waiting for clearance — please stand by
-                @elseif($capture->status === 'cleared')
-                    Vehicle may proceed
-                @elseif($capture->status === 'hold')
-                    Do not allow entry — contact Operations Desk
-                @else
-                    Entry not permitted — contact supervisor
-                @endif
-            </div>
-            @if($capture->clearance_note)
-            <div class="mt-3 px-3 py-2 rounded" style="background:rgba(0,0,0,.06);font-size:.9rem;" id="clearanceNote">
-                <i class="bi bi-chat-left-text me-2"></i>{{ $capture->clearance_note }}
-            </div>
+{{-- Status panel --}}
+<div class="card content-card mb-4" id="statusCard">
+    @php
+        $stateClass = match($capture->status) {
+            'pending'  => 'border-warning',
+            'cleared'  => 'border-success',
+            'hold'     => 'border-warning',
+            'rejected' => 'border-danger',
+            default    => '',
+        };
+        $stateIcon = match($capture->status) {
+            'pending'  => 'bi-hourglass-split text-warning',
+            'cleared'  => 'bi-check-circle-fill text-success',
+            'hold'     => 'bi-pause-circle-fill text-warning',
+            'rejected' => 'bi-x-circle-fill text-danger',
+            default    => 'bi-question-circle text-muted',
+        };
+        $stateText = match($capture->status) {
+            'pending'  => 'Awaiting Review',
+            'cleared'  => 'Cleared to Proceed',
+            'hold'     => 'On Hold — Await Instructions',
+            'rejected' => 'Entry Rejected',
+            default    => ucfirst($capture->status),
+        };
+    @endphp
+    <div class="card-body text-center py-5 {{ $stateClass }}" id="statusBody">
+        <i class="bi {{ $stateIcon }} display-3 d-block mb-3" id="statusIcon"></i>
+        <h3 class="fw-bold mb-1" id="statusText">{{ $stateText }}</h3>
+        <p class="text-muted mb-0" id="statusSub">
+            @if($capture->isPending())
+                Your capture has been submitted and is waiting for review by the gate officer.
+                This page will update automatically.
+            @elseif($capture->isCleared())
+                Cleared by {{ $capture->clearedBy?->full_name ?? 'Gate Officer' }}
+                @if($capture->cleared_at) at {{ $capture->cleared_at->format('d M Y H:i') }} @endif
+            @elseif($capture->isOnHold())
+                Please wait at the gate for further instructions.
             @else
-            <div id="clearanceNote"></div>
+                Entry has been rejected. Please contact the gate officer.
             @endif
-        </div>
-
-        {{-- ── Capture Summary ───────────────────────────────────────────── --}}
-        <div class="card content-card mb-3">
-            <div class="card-header py-2">
-                <i class="bi bi-info-circle me-2 text-primary"></i>Capture Summary
-            </div>
-            <div class="card-body">
-                <dl class="row mb-0" style="font-size:.9rem;">
-                    <dt class="col-sm-4">Reference</dt>
-                    <dd class="col-sm-8 font-monospace fw-bold">{{ $capture->reference_no }}</dd>
-
-                    <dt class="col-sm-4">Direction</dt>
-                    <dd class="col-sm-8">
-                        @if($capture->direction === 'gate_in')
-                            <span class="badge bg-success"><i class="bi bi-box-arrow-in-right me-1"></i>Gate In</span>
-                        @else
-                            <span class="badge bg-primary"><i class="bi bi-box-arrow-right me-1"></i>Gate Out</span>
-                        @endif
-                    </dd>
-
-                    @if($capture->container_number)
-                    <dt class="col-sm-4">Container</dt>
-                    <dd class="col-sm-8 font-monospace">{{ $capture->container_number }}
-                        @if($capture->iso_code)<span class="badge bg-secondary ms-1">{{ $capture->iso_code }}</span>@endif
-                    </dd>
-                    @endif
-
-                    @if($capture->vehicle_number)
-                    <dt class="col-sm-4">Vehicle</dt>
-                    <dd class="col-sm-8 font-monospace">{{ $capture->vehicle_number }}</dd>
-                    @endif
-
-                    @if($capture->driver_name)
-                    <dt class="col-sm-4">Driver</dt>
-                    <dd class="col-sm-8">{{ $capture->driver_name }}</dd>
-                    @endif
-
-                    <dt class="col-sm-4">Submitted</dt>
-                    <dd class="col-sm-8 text-muted">{{ $capture->captured_at->format('d M Y, h:i A') }}</dd>
-
-                    @if($capture->cleared_at)
-                    <dt class="col-sm-4">Actioned</dt>
-                    <dd class="col-sm-8 text-muted">
-                        {{ $capture->cleared_at->format('h:i A') }}
-                        @if($capture->clearedBy) by {{ $capture->clearedBy->full_name }}@endif
-                    </dd>
-                    @endif
-                </dl>
-            </div>
-        </div>
-
-        {{-- Photos row --}}
-        @php
-            $photos = array_filter([
-                'Container' => $capture->container_image_url,
-                'Plate'     => $capture->plate_image_url,
-                'NIC Front' => $capture->nic_front_url,
-                'NIC Back'  => $capture->nic_back_url,
-                'Licence'   => $capture->license_front_url,
-            ]);
-        @endphp
-        @if(count($photos))
-        <div class="card content-card mb-3">
-            <div class="card-header py-2"><i class="bi bi-images me-2 text-primary"></i>Captured Photos</div>
-            <div class="card-body">
-                <div class="row g-2">
-                    @foreach($photos as $label => $url)
-                    <div class="col-4 col-md-3">
-                        <a href="{{ $url }}" target="_blank">
-                            <img src="{{ $url }}" class="img-thumbnail w-100"
-                                 style="height:80px;object-fit:cover;" alt="{{ $label }}">
-                        </a>
-                        <div class="text-center text-muted mt-1" style="font-size:.72rem;">{{ $label }}</div>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
+        </p>
+        @if($capture->notes)
+        <div class="mt-3 alert alert-light d-inline-block" style="max-width:400px;">
+            <i class="bi bi-chat-square-text me-1"></i>{{ $capture->notes }}
         </div>
         @endif
-
-        <div class="d-flex gap-2 justify-content-between">
-            <a href="{{ route('guard-post.index') }}" class="btn btn-outline-secondary">
-                <i class="bi bi-house me-1"></i>Guard Post Home
-            </a>
-            <a href="{{ route('guard-post.create', ['direction' => $capture->direction]) }}"
-               class="btn btn-outline-primary">
-                <i class="bi bi-plus-circle me-1"></i>New Capture
-            </a>
-        </div>
-
     </div>
 </div>
+
+{{-- Direction badge --}}
+<div class="mb-3 d-flex gap-2 align-items-center">
+    @if($capture->direction === 'gate_in')
+        <span class="badge bg-success-subtle text-success fs-6"><i class="bi bi-box-arrow-in-right me-1"></i>Gate-In</span>
+    @else
+        <span class="badge bg-primary-subtle text-primary fs-6"><i class="bi bi-box-arrow-right me-1"></i>Gate-Out</span>
+    @endif
+    <span class="text-muted small">Captured {{ $capture->captured_at?->format('d M Y H:i') }}</span>
+</div>
+
+{{-- Photos grid --}}
+@php
+    $photos = [
+        ['label' => 'Container', 'url' => $capture->container_image_url],
+        ['label' => 'Plate',     'url' => $capture->plate_image_url],
+        ['label' => 'NIC Front', 'url' => $capture->nic_front_url],
+        ['label' => 'NIC Back',  'url' => $capture->nic_back_url],
+        ['label' => 'Licence',   'url' => $capture->license_front_url],
+    ];
+    $photos = array_filter($photos, fn($p) => $p['url']);
+@endphp
+@if($photos)
+<div class="card content-card mb-4">
+    <div class="card-header py-2"><i class="bi bi-images me-2"></i>Captured Photos</div>
+    <div class="card-body">
+        <div class="row g-2">
+            @foreach($photos as $p)
+            <div class="col-6 col-md-3">
+                <a href="{{ $p['url'] }}" target="_blank">
+                    <img src="{{ $p['url'] }}" alt="{{ $p['label'] }}"
+                         class="img-fluid rounded border" style="max-height:140px;width:100%;object-fit:cover;">
+                </a>
+                <div class="text-center small text-muted mt-1">{{ $p['label'] }}</div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- Captured data summary --}}
+<div class="card content-card">
+    <div class="card-header py-2"><i class="bi bi-list-ul me-2"></i>Capture Details</div>
+    <div class="card-body">
+        <div class="row g-2 small">
+            @if($capture->container_number)
+            <div class="col-6 col-md-3"><span class="text-muted">Container No.</span><br><strong class="font-monospace">{{ $capture->container_number }}</strong></div>
+            @endif
+            @if($capture->iso_code)
+            <div class="col-6 col-md-3"><span class="text-muted">ISO Code</span><br><strong>{{ $capture->iso_code }}</strong></div>
+            @endif
+            @if($capture->vehicle_number)
+            <div class="col-6 col-md-3"><span class="text-muted">Vehicle No.</span><br><strong>{{ $capture->vehicle_number }}</strong></div>
+            @endif
+            @if($capture->vehicle_type)
+            <div class="col-6 col-md-3"><span class="text-muted">Vehicle Type</span><br><strong>{{ $capture->vehicle_type }}</strong></div>
+            @endif
+            @if($capture->driver_name)
+            <div class="col-6 col-md-3"><span class="text-muted">Driver Name</span><br><strong>{{ $capture->driver_name }}</strong></div>
+            @endif
+            @if($capture->nic_number)
+            <div class="col-6 col-md-3"><span class="text-muted">NIC / ID</span><br><strong>{{ $capture->nic_number }}</strong></div>
+            @endif
+            @if($capture->driver_phone)
+            <div class="col-6 col-md-3"><span class="text-muted">Phone</span><br><strong>{{ $capture->driver_phone }}</strong></div>
+            @endif
+        </div>
+    </div>
+</div>
+
+@if($capture->isPending())
+<div class="text-center text-muted small mt-3">
+    <i class="bi bi-arrow-repeat me-1"></i>
+    <span id="pollCountdown">Checking for updates in 10 s…</span>
+</div>
+@endif
+
 @endsection
 
+@if($capture->isPending())
 @push('scripts')
 <script>
 (function () {
-    // Only poll while status is pending
-    if ('{{ $capture->status }}' !== 'pending') return;
+    const url    = @json(route('guard-post.status-json', $capture));
+    let   secs   = 10;
+    const cd     = document.getElementById('pollCountdown');
 
-    var pollUrl  = '{{ route('guard-post.status-json', $capture) }}';
-    var interval = null;
+    const timer = setInterval(() => {
+        secs--;
+        if (cd) cd.textContent = `Checking for updates in ${secs} s…`;
+        if (secs > 0) return;
+        secs = 10;
 
-    var stateMap = {
-        pending:  { cls: 'state-pending',  icon: '<i class="bi bi-hourglass-split pulse"></i>', text: 'PENDING',  sub: 'Waiting for clearance — please stand by' },
-        cleared:  { cls: 'state-cleared',  icon: '<i class="bi bi-check-circle-fill"></i>',     text: 'CLEARED',  sub: 'Vehicle may proceed' },
-        hold:     { cls: 'state-hold',     icon: '<i class="bi bi-exclamation-triangle-fill"></i>', text: 'ON HOLD', sub: 'Do not allow entry — contact Operations Desk' },
-        rejected: { cls: 'state-rejected', icon: '<i class="bi bi-x-circle-fill"></i>',         text: 'REJECTED', sub: 'Entry not permitted — contact supervisor' },
-    };
-
-    function applyState(data) {
-        var panel = document.getElementById('statusPanel');
-        var state = stateMap[data.status] || stateMap.pending;
-        panel.className = 'status-panel mb-4 ' + state.cls;
-        document.getElementById('statusIcon').innerHTML = state.icon;
-        document.getElementById('statusText').textContent = state.text;
-        document.getElementById('statusSub').textContent  = state.sub;
-        var noteEl = document.getElementById('clearanceNote');
-        if (data.clearance_note) {
-            noteEl.innerHTML = '<div class="mt-3 px-3 py-2 rounded" style="background:rgba(0,0,0,.06);font-size:.9rem;"><i class="bi bi-chat-left-text me-2"></i>' + data.clearance_note + '</div>';
-        }
-        if (data.status !== 'pending' && interval) {
-            clearInterval(interval);
-        }
-    }
-
-    function poll() {
-        fetch(pollUrl, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+        fetch(url)
             .then(r => r.json())
-            .then(applyState)
-            .catch(function () {});
-    }
-
-    interval = setInterval(poll, 10000); // poll every 10 seconds
+            .then(data => {
+                if (data.status !== 'pending') {
+                    // Reload to show final state
+                    clearInterval(timer);
+                    window.location.reload();
+                }
+            })
+            .catch(() => {});
+    }, 1000);
 })();
 </script>
 @endpush
+@endif

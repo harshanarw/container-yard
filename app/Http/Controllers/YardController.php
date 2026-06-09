@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\GateMovement;
 use App\Models\GateMovementPhoto;
+use App\Models\GuardCapture;
 use App\Models\Inquiry;
 use App\Models\StorageMasterHeader;
 use App\Models\StorageZone;
@@ -74,7 +75,7 @@ class YardController extends Controller
     // -------------------------------------------------------------------------
     // Gate Operations
     // -------------------------------------------------------------------------
-    public function gate()
+    public function gate(Request $request)
     {
         $recentMovements = GateMovement::with(['container', 'customer', 'createdBy'])
             ->latest()
@@ -92,7 +93,27 @@ class YardController extends Controller
             'yardLocations as occupied_count' => fn($q) => $q->where('status', 'occupied'),
         ])->get();
 
-        return view('yard.gate', compact('recentMovements', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones'));
+        // Pre-fill from Guard Post capture when coming via the queue
+        $guardCapture = null;
+        $prefill      = null;
+        if ($request->filled('capture_id')) {
+            $guardCapture = GuardCapture::find($request->capture_id);
+            if ($guardCapture && $guardCapture->isCleared() && !$guardCapture->linked_gate_movement_id) {
+                $prefill = [
+                    'capture_id'      => $guardCapture->id,
+                    'container_no'    => $guardCapture->container_number,
+                    'iso_code'        => $guardCapture->iso_code,
+                    'vehicle_plate'   => $guardCapture->vehicle_number,
+                    'driver_name'     => $guardCapture->driver_name,
+                    'driver_ic'       => $guardCapture->nic_number,
+                    'driver_phone'    => $guardCapture->driver_phone,
+                    'reference_no'    => $guardCapture->reference_no,
+                    'container_image' => $guardCapture->container_image_url,
+                ];
+            }
+        }
+
+        return view('yard.gate', compact('recentMovements', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones', 'prefill', 'guardCapture'));
     }
 
     public function gateIn(Request $request)
@@ -329,6 +350,14 @@ class YardController extends Controller
             'free_days'    => $freeDays,
             'daily_rate'   => $dailyRate,
         ]);
+
+        // Link guard capture if this gate-in originated from the Guard Post queue
+        if ($request->filled('guard_capture_id')) {
+            GuardCapture::where('id', $request->guard_capture_id)
+                ->where('status', 'cleared')
+                ->whereNull('linked_gate_movement_id')
+                ->update(['linked_gate_movement_id' => $movement->id]);
+        }
 
         $redirect = redirect()->to(route('yard.gate') . '?tab=in')
             ->with('success', "Gate IN recorded for {$container->container_no}.");
