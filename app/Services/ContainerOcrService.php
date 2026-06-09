@@ -879,6 +879,16 @@ class ContainerOcrService
                 }
             }
         }
+        // 3-char fallback: white stencil text on dark-green containers causes adjacent
+        // characters to bleed together — '42G1' reads as '461' because '2G' collapses
+        // into a single '6'.  Reconstruct by inserting the missing '2' at position 1,
+        // then let normalizeIsoCode fix the resulting digit→letter at position 2.
+        if (preg_match_all('/(?<![A-Z0-9])([24L])([0-9])([0-9A-Z])(?![A-Z0-9])/i', $text, $m3, PREG_SET_ORDER)) {
+            foreach ($m3 as $hit) {
+                $code = $this->normalizeIsoCode(strtoupper($hit[1] . '2' . $hit[2] . $hit[3]));
+                if ($this->isValidIsoTypeCode($code)) return $code;
+            }
+        }
         return null;
     }
 
