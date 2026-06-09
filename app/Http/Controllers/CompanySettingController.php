@@ -63,6 +63,7 @@ class CompanySettingController extends Controller
             'tin_number'        => ['nullable', 'string', 'max:100'],
             'software_provider'        => ['nullable', 'string', 'max:200'],
             'enable_digital_approvals' => ['nullable', 'boolean'],
+            'enable_guard_post'        => ['nullable', 'boolean'],
             'logo'                     => ['nullable', 'image', 'max:2048'],
             'icon'            => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
             'product_icon'    => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
@@ -71,6 +72,7 @@ class CompanySettingController extends Controller
         $settings = CompanySetting::current();
         $data = collect($validated)->except(['logo', 'icon', 'product_icon'])->toArray();
         $data['enable_digital_approvals'] = $request->boolean('enable_digital_approvals');
+        $data['enable_guard_post']        = $request->boolean('enable_guard_post');
 
         if ($request->hasFile('logo')) {
             if ($settings->logo_path) {
