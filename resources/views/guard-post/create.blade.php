@@ -103,6 +103,9 @@
                         <img id="prevPlateImage" class="photo-preview d-none" alt="">
                     </div>
                     <input type="file" name="plate_image" id="plateImage" accept="image/*" capture="environment" class="d-none">
+                    <div id="plateOcrStatus" class="mt-1 small text-muted d-none">
+                        <i class="bi bi-hourglass-split me-1"></i>Reading plate number…
+                    </div>
                 </div>
                 <div class="col-md-6 d-flex flex-column justify-content-end gap-3">
                     <div>
@@ -272,6 +275,35 @@ document.getElementById('containerImage').addEventListener('change', async funct
             status.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>Read: ' + data.container_no;
         } else {
             status.innerHTML = '<i class="bi bi-exclamation-circle text-warning me-1"></i>Could not read number — enter manually.';
+        }
+    } catch (e) {
+        status.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i>OCR failed — enter manually.';
+    }
+});
+
+// OCR auto-scan on plate image upload
+document.getElementById('plateImage').addEventListener('change', async function () {
+    if (!this.files || !this.files[0]) return;
+    const status = document.getElementById('plateOcrStatus');
+    status.classList.remove('d-none');
+    status.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Reading plate number…';
+
+    const fd = new FormData();
+    fd.append('image', this.files[0]);
+    fd.append('_token', document.querySelector('meta[name=csrf-token]')?.content || '{{ csrf_token() }}');
+
+    try {
+        const res  = await fetch('{{ route('yard.ocr-plate') }}', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (data.success && data.plate_no) {
+            // Insert space between letter prefix and digit group for readability
+            const raw = data.plate_no.replace(/\s+/g, '').toUpperCase();
+            const m   = raw.match(/^([A-Z]{2,4})([0-9]{4,5})$/);
+            document.getElementById('vehicleNumber').value = m ? m[1] + ' ' + m[2] : raw;
+            status.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>Read: ' + (m ? m[1] + ' ' + m[2] : raw);
+        } else {
+            status.innerHTML = '<i class="bi bi-exclamation-circle text-warning me-1"></i>Could not read plate — enter manually.';
         }
     } catch (e) {
         status.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i>OCR failed — enter manually.';
