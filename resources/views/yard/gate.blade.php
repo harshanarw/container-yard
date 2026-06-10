@@ -687,6 +687,13 @@
                                         <img src="{{ $photo['url'] }}" alt="{{ $photo['label'] }}" loading="lazy">
                                         <div class="gp-thumb-label">
                                             <span><i class="bi {{ $photo['icon'] }} me-1"></i>{{ $photo['label'] }}</span>
+                                            @if(!empty($photo['rescan']))
+                                            <button type="button" class="gp-rescan-btn"
+                                                    title="Re-scan with OCR"
+                                                    onclick="event.stopPropagation();gpRescan(this,'{{ $photo['url'] }}','{{ $photo['rescan'] }}')">
+                                                <i class="bi bi-arrow-repeat"></i>
+                                            </button>
+                                            @endif
                                         </div>
                                     </div>
                                     @endforeach
@@ -2395,8 +2402,10 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         hideOcrResult(document.getElementById('ocrResultOut'));
     });
 
-    // Expose for guard-post re-scan
-    window._gpContainerScan = function (f) { processImage(f, 'in'); };
+    // Expose for guard-post re-scan (Gate In)
+    window._gpContainerScan    = function (f) { processImage(f, 'in');  };
+    // Gate Out container re-scan
+    window._gpContainerScanOut = function (f) { processImage(f, 'out'); };
 
     // ── Wire up Gate-In Plate OCR button ─────────────────────────────────────
     const plateOcrBtnIn   = document.getElementById('plateOcrBtnIn');
@@ -2723,14 +2732,21 @@ window.gpRescan = async function (btnEl, url, type) {
     var origHtml = btnEl.innerHTML;
     btnEl.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:.6rem;height:.6rem;border-width:1px;"></span>';
     btnEl.disabled = true;
+    // Determine direction from which panel contains the button
+    var isOut = !!btnEl.closest('#gpVerifyPanelOut');
     try {
         var r = await fetch(url);
         if (!r.ok) throw new Error('fetch');
         var blob = await r.blob();
         var ext  = blob.type.includes('png') ? 'png' : 'jpg';
         var file = new File([blob], 'rescan.' + ext, { type: blob.type || 'image/jpeg' });
-        if (type === 'container' && window._gpContainerScan) window._gpContainerScan(file);
-        else if (type === 'plate' && window._gpPlateScan)    window._gpPlateScan(file);
+        if (type === 'container') {
+            var fn = isOut ? window._gpContainerScanOut : window._gpContainerScan;
+            if (fn) fn(file);
+        } else if (type === 'plate') {
+            var fn = isOut ? window._gpPlateScanOut : window._gpPlateScan;
+            if (fn) fn(file);
+        }
     } catch (e) {
         btnEl.innerHTML = '<i class="bi bi-exclamation-triangle" style="color:#dc2626;"></i>';
         setTimeout(function () { btnEl.innerHTML = origHtml; btnEl.disabled = false; }, 2000);
