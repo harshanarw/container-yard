@@ -445,21 +445,39 @@ class ContainerOcrService
      */
     private function extractContainerNo(array $cropCandidates, array $fullCandidates, string $fallback): array
     {
-        $cropVotes = [];
+        // Two pools kept separate so actual OCR reads beat brute-forced guesses.
+        // A result is a "guess" when extractContainerNoFromCompact returns valid=false
+        // but the number itself passes validateCheckDigit — i.e. we appended a
+        // mathematically correct check digit to a 6-digit compact. That digit may not
+        // match what is physically stencilled on the door (e.g. container has an
+        // incorrect check digit). An "actual read" has valid=false AND fails
+        // validateCheckDigit — OCR read all 7 chars including the door's check digit.
+        $cropVotes  = [];   // actual 7-digit OCR reads (invalid check digit on door)
+        $guessVotes = [];   // 6-digit brute-forced guesses (check digit appended by us)
 
         foreach ($cropCandidates as $text) {
             $compact = preg_replace('/[^A-Z0-9]/', '', strtoupper($text));
             [$no, $valid] = $this->extractContainerNoFromCompact($compact);
             if ($valid) return [$no, true];
             if ($no !== null) {
-                $cropVotes[$no] = ($cropVotes[$no] ?? 0) + 1;
+                if ($this->validateCheckDigit($no)) {
+                    $guessVotes[$no] = ($guessVotes[$no] ?? 0) + 1;
+                } else {
+                    $cropVotes[$no] = ($cropVotes[$no] ?? 0) + 1;
+                }
             }
         }
 
+        // Prefer actual reads: if any crop read a full 7-char sequence (even one
+        // with an incorrect check digit), that beats brute-forced guesses.
+        // Both pools return valid=false — the check digit is never confirmed here.
         if (!empty($cropVotes)) {
             arsort($cropVotes);
-            $topNo = array_key_first($cropVotes);
-            return [$topNo, $this->validateCheckDigit($topNo)];
+            return [array_key_first($cropVotes), false];
+        }
+        if (!empty($guessVotes)) {
+            arsort($guessVotes);
+            return [array_key_first($guessVotes), false];
         }
 
         foreach ($fullCandidates as $text) {
