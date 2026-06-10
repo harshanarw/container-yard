@@ -1829,7 +1829,12 @@ window.ventilationFields = {
             if (vsEl) vsEl.textContent = opt.dataset.ventType ? 'From EQT' : '';
         }
     }
-    sel.addEventListener('change', () => applyEqt(sel.selectedOptions[0]));
+    // Select2 fires change via jQuery trigger — must use jQuery .on() not addEventListener
+    if (typeof $ !== 'undefined') {
+        $(sel).on('change', function () { applyEqt(sel.selectedOptions[0]); });
+    } else {
+        sel.addEventListener('change', () => applyEqt(sel.selectedOptions[0]));
+    }
     if (sel.value) applyEqt(sel.selectedOptions[0]);
 })();
 
