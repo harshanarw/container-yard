@@ -481,6 +481,14 @@ class YardController extends Controller
         // Save OCR-captured images
         $this->saveMovementOcrImages($movement, $validated);
 
+        // Link guard capture if this gate-out originated from the Guard Post queue
+        if ($request->filled('guard_capture_id')) {
+            GuardCapture::where('id', $request->guard_capture_id)
+                ->where('status', 'cleared')
+                ->whereNull('linked_gate_movement_id')
+                ->update(['linked_gate_movement_id' => $movement->id]);
+        }
+
         // Save gate-out photos via DocumentManager
         $photoError = null;
         if (!empty($validated['photos'])) {
