@@ -160,9 +160,10 @@ class GuardPostController extends Controller
         $result = $this->ocr->extractFromImage($request->file('image'));
 
         return response()->json([
-            'success'      => $result['container_no'] !== null,
-            'container_no' => $result['container_no'],
-            'iso_type'     => $result['iso_type'],
+            'success'           => $result['container_no'] !== null,
+            'container_no'      => $result['container_no'],
+            'iso_type'          => $result['iso_type'],
+            'check_digit_valid' => $result['check_digit_valid'],
         ]);
     }
 

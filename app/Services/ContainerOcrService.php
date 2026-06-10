@@ -542,12 +542,16 @@ class ContainerOcrService
                     }
                 }
 
-                // 6 digits: check digit misread as a letter (trailing letter captured)
-                // or stripped as non-alphanumeric (e.g. "5" read as ";" then discarded).
+                // 6 digits: check digit stripped (bordered box discarded as non-alphanumeric)
+                // or misread as a trailing letter.  We can derive the mathematically correct
+                // check digit, but we cannot confirm it was the digit actually on the door.
+                // Return valid=false so the result joins majority voting rather than early-
+                // exiting — any crop that did read 7 digits (including the check digit) can
+                // then outweigh this guess.  The UI "Please verify" badge is also shown.
                 if ($len === 6) {
                     for ($d = 0; $d <= 9; $d++) {
                         $candidate = $prefix . $digits . $d;
-                        if ($this->validateCheckDigit($candidate)) return [$candidate, true];
+                        if ($this->validateCheckDigit($candidate)) return [$candidate, false];
                     }
                 }
 

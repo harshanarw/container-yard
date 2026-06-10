@@ -70,6 +70,11 @@
                                class="form-control font-monospace text-uppercase"
                                value="{{ old('container_number') }}"
                                placeholder="XXXX0000000" maxlength="20" autocomplete="off">
+                        <div id="containerCheckDigitWarn" class="mt-1 d-none">
+                            <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fbbf24;font-size:.72rem;">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Check digit not confirmed — please verify number
+                            </span>
+                        </div>
                         <div class="form-text">Filled automatically by OCR — edit if incorrect</div>
                     </div>
                     <div>
@@ -272,8 +277,16 @@ document.getElementById('containerImage').addEventListener('change', async funct
         if (data.success && data.container_no) {
             document.getElementById('containerNumber').value = data.container_no;
             if (data.iso_type) document.getElementById('isoCode').value = data.iso_type;
-            status.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>Read: ' + data.container_no;
+            const warn = document.getElementById('containerCheckDigitWarn');
+            if (data.check_digit_valid === false) {
+                warn.classList.remove('d-none');
+                status.innerHTML = '<i class="bi bi-exclamation-circle text-warning me-1"></i>Read: ' + data.container_no + ' — check digit unconfirmed';
+            } else {
+                warn.classList.add('d-none');
+                status.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>Read: ' + data.container_no;
+            }
         } else {
+            document.getElementById('containerCheckDigitWarn').classList.add('d-none');
             status.innerHTML = '<i class="bi bi-exclamation-circle text-warning me-1"></i>Could not read number — enter manually.';
         }
     } catch (e) {
