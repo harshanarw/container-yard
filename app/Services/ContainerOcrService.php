@@ -492,12 +492,19 @@ class ContainerOcrService
             $topActual = !empty($cropVotes)  ? array_key_first($cropVotes)  : null;
 
             if ($topValid !== null && $topActual !== null) {
-                // Same owner code + serial, only check digit differs:
-                // the door has a different (possibly incorrect) check digit — show it with warning.
                 if (substr($topValid, 0, 10) === substr($topActual, 0, 10)) {
-                    return [$topActual, false];
+                    // Same owner + serial, different check digit.
+                    // Use vote counts: if actual-read votes are at least as many as valid-read
+                    // votes, the door has a non-standard check digit — return it with warning.
+                    // If valid votes dominate, the actual reads likely came from ISO-code digits
+                    // merging into position 6 (e.g. check digit box stripped, "22G1" → "2261"
+                    // fills the gap), so trust the validated reading.
+                    if (($cropVotes[$topActual] ?? 0) >= ($validVotes[$topValid] ?? 0)) {
+                        return [$topActual, false];
+                    }
+                    return [$topValid, true];
                 }
-                // Completely different containers — trust the validated reading.
+                // Completely different serials — trust the validated reading.
                 return [$topValid, true];
             }
             if ($topValid  !== null) return [$topValid,  true];
@@ -561,22 +568,15 @@ class ContainerOcrService
                     return [$firstSeven, true];
                 }
 
-                // 8+ digits only: the check digit printed in its bordered box is stripped
-                // as ";" (non-alphanumeric), so the ISO type code digits that follow (e.g.
-                // "2261" from "22G1") merge directly after the 6-digit serial —
-                // CAIU908172 + 2261 → compact CAIU9081722261, regex captures 9 digits
-                // (908172226), and CAIU9081722 fails because its check digit is 2 not 5.
-                // Brute-force position 6 using the first 6 serial digits to recover the
-                // correct check digit.
-                // NOT applied when exactly 7 digits are captured: the 7th digit IS the
-                // check digit that OCR read from the door.  Silently replacing it would
-                // mask a real mismatch and prevent the "Please verify" warning from firing.
-                if ($firstSeven !== null && $len > 7) {
-                    $serialBase = $prefix . substr($digits, 0, 6);
-                    for ($d = 0; $d <= 9; $d++) {
-                        if ($this->validateCheckDigit($serialBase . $d)) return [$serialBase . $d, true];
-                    }
-                }
+                // 8+ digits: ISO type code digits merged after the check digit in the compact.
+                // Do NOT brute-force the check digit here — if the check digit box has an
+                // incorrect value (e.g. door shows "7" but valid digit is "6"), brute-forcing
+                // would silently return the valid "6" and suppress the warning, exactly the
+                // problem we are trying to fix.  Fall through and let $bestGuess capture the
+                // as-read $firstSeven; when other crops read the same serial with a validating
+                // check digit, the vote-count comparison in extractContainerNo decides which
+                // wins.  The CAIU-merge edge case (check digit box stripped → ISO digit at
+                // position 6) is covered by those other crops reading correctly.
 
                 // 6 digits: check digit stripped (bordered box discarded as non-alphanumeric)
                 // or misread as a trailing letter.  We can derive the mathematically correct
