@@ -11,13 +11,15 @@ return new class extends Migration
         Schema::create('reefer_electricity_invoice_lines', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('reefer_electricity_invoice_id')
-                  ->constrained('reefer_electricity_invoices')
+            // FK names kept under MySQL's 64-char identifier limit
+            $table->unsignedBigInteger('reefer_electricity_invoice_id');
+            $table->foreign('reefer_electricity_invoice_id', 'ref_inv_lines_invoice_fk')
+                  ->references('id')->on('reefer_electricity_invoices')
                   ->cascadeOnDelete();
 
-            $table->foreignId('plug_session_id')
-                  ->nullable()
-                  ->constrained('reefer_plug_sessions')
+            $table->unsignedBigInteger('plug_session_id')->nullable();
+            $table->foreign('plug_session_id', 'ref_inv_lines_session_fk')
+                  ->references('id')->on('reefer_plug_sessions')
                   ->nullOnDelete();
 
             $table->foreignId('container_id')->nullable()->constrained('containers')->nullOnDelete();
