@@ -17,12 +17,14 @@ class EquipmentTypeController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'eqt_code'    => 'required|string|max:10|unique:equipment_types,eqt_code',
-            'iso_code'    => 'nullable|string|max:10|unique:equipment_types,iso_code',
-            'size'        => 'required|string|max:5',
-            'type_code'   => 'required|string|max:5',
-            'height'      => 'required|string|max:50',
-            'description' => 'nullable|string|max:200',
+            'eqt_code'         => 'required|string|max:10|unique:equipment_types,eqt_code',
+            'iso_code'         => 'nullable|string|max:10|unique:equipment_types,iso_code',
+            'size'             => 'required|string|max:5',
+            'type_code'        => 'required|string|max:5',
+            'height'           => 'required|string|max:50',
+            'description'      => 'nullable|string|max:200',
+            'ventilation_type' => 'nullable|in:none,passive,cross,mechanical,reefer,controlled_atm',
+            'vent_count'       => 'nullable|integer|min:0|max:99',
         ]);
 
         $data['eqt_code']  = strtoupper($data['eqt_code']);
@@ -37,12 +39,14 @@ class EquipmentTypeController extends Controller
     public function update(Request $request, EquipmentType $equipmentType)
     {
         $data = $request->validate([
-            'eqt_code'    => "required|string|max:10|unique:equipment_types,eqt_code,{$equipmentType->id}",
-            'iso_code'    => "nullable|string|max:10|unique:equipment_types,iso_code,{$equipmentType->id}",
-            'size'        => 'required|string|max:5',
-            'type_code'   => 'required|string|max:5',
-            'height'      => 'required|string|max:50',
-            'description' => 'nullable|string|max:200',
+            'eqt_code'         => "required|string|max:10|unique:equipment_types,eqt_code,{$equipmentType->id}",
+            'iso_code'         => "nullable|string|max:10|unique:equipment_types,iso_code,{$equipmentType->id}",
+            'size'             => 'required|string|max:5',
+            'type_code'        => 'required|string|max:5',
+            'height'           => 'required|string|max:50',
+            'description'      => 'nullable|string|max:200',
+            'ventilation_type' => 'nullable|in:none,passive,cross,mechanical,reefer,controlled_atm',
+            'vent_count'       => 'nullable|integer|min:0|max:99',
         ]);
 
         $data['eqt_code']  = strtoupper($data['eqt_code']);

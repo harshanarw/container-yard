@@ -45,6 +45,7 @@
                     <th style="width:60px;">Type</th>
                     <th style="width:100px;">Height</th>
                     <th>Description</th>
+                    <th style="width:160px;">Ventilation</th>
                     <th style="width:90px;" class="text-center">Status</th>
                     <th style="width:100px;" class="text-end pe-3">Actions</th>
                 </tr>
@@ -72,6 +73,29 @@
                         @endif
                     </td>
                     <td class="small">{{ $item->description ?? '—' }}</td>
+                    <td class="small">
+                        @if($item->ventilation_type)
+                            @php
+                                $vtColors = [
+                                    'none'           => 'bg-secondary-subtle text-secondary',
+                                    'passive'        => 'bg-info-subtle text-info',
+                                    'cross'          => 'bg-primary-subtle text-primary',
+                                    'mechanical'     => 'bg-warning-subtle text-warning',
+                                    'reefer'         => 'badge-reefer',
+                                    'controlled_atm' => 'bg-purple-subtle text-purple',
+                                ];
+                                $vtClass = $vtColors[$item->ventilation_type] ?? 'bg-secondary-subtle text-secondary';
+                            @endphp
+                            <span class="badge {{ $vtClass }} small">
+                                {{ \App\Models\EquipmentType::VENTILATION_TYPES[$item->ventilation_type] ?? $item->ventilation_type }}
+                            </span>
+                            @if($item->vent_count > 0)
+                                <span class="text-muted" style="font-size:.75rem;">· {{ $item->vent_count }}v</span>
+                            @endif
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
                     <td class="text-center">
                         <form method="POST" action="{{ route('masters.equipment-types.toggle', $item) }}">
                             @csrf @method('PATCH')
@@ -92,6 +116,8 @@
                                     data-type_code="{{ $item->type_code }}"
                                     data-height="{{ $item->height }}"
                                     data-description="{{ $item->description }}"
+                                    data-ventilation_type="{{ $item->ventilation_type }}"
+                                    data-vent_count="{{ $item->vent_count }}"
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
@@ -106,7 +132,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="10" class="text-center text-muted py-5">
+                    <td colspan="11" class="text-center text-muted py-5">
                         <i class="bi bi-box-seam fs-3 d-block mb-2"></i>
                         No equipment types yet. Click <strong>Add Equipment Type</strong> to get started.
                     </td>
@@ -178,6 +204,22 @@
                             <input type="text" name="description" class="form-control"
                                    maxlength="200" placeholder="e.g. 20' General Purpose Container">
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Ventilation Type</label>
+                            <select name="ventilation_type" class="form-select add-vent-type">
+                                <option value="">— Unknown / Not Set —</option>
+                                @foreach(\App\Models\EquipmentType::VENTILATION_TYPES as $val => $label)
+                                    <option value="{{ $val }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">Auto-suggested from Type Code when changed.</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Vent Count</label>
+                            <input type="number" name="vent_count" class="form-control"
+                                   min="0" max="99" placeholder="0">
+                            <div class="form-text">Discrete vent openings.</div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -245,6 +287,20 @@
                             <input type="text" name="description" id="editDescription" class="form-control"
                                    maxlength="200">
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Ventilation Type</label>
+                            <select name="ventilation_type" id="editVentilationType" class="form-select edit-vent-type">
+                                <option value="">— Unknown / Not Set —</option>
+                                @foreach(\App\Models\EquipmentType::VENTILATION_TYPES as $val => $label)
+                                    <option value="{{ $val }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Vent Count</label>
+                            <input type="number" name="vent_count" id="editVentCount" class="form-control"
+                                   min="0" max="99">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -308,20 +364,57 @@ if (tbody) {
     });
 }
 
+// ── Ventilation auto-suggest ─────────────────────────────────────────────────
+const ventSuggest = {
+    GP: { type: 'cross',   count: 4 },
+    HC: { type: 'cross',   count: 4 },
+    RF: { type: 'reefer',  count: 0 },
+    RH: { type: 'reefer',  count: 0 },
+    OT: { type: 'passive', count: 0 },
+    FR: { type: 'passive', count: 0 },
+    TK: { type: 'none',    count: 0 },
+};
+
+function applyVentSuggest(typeCodeEl, ventTypeEl, ventCountEl) {
+    const tc = typeCodeEl.value;
+    if (tc && ventSuggest[tc] && !ventTypeEl.value) {
+        ventTypeEl.value   = ventSuggest[tc].type;
+        ventCountEl.value  = ventSuggest[tc].count;
+    }
+}
+
+// Add modal: suggest on type_code change
+const addTypeCode  = document.querySelector('#addModal select[name="type_code"]');
+const addVentType  = document.querySelector('#addModal select[name="ventilation_type"]');
+const addVentCount = document.querySelector('#addModal input[name="vent_count"]');
+if (addTypeCode) {
+    addTypeCode.addEventListener('change', () => applyVentSuggest(addTypeCode, addVentType, addVentCount));
+}
+
 // ── Edit modal ───────────────────────────────────────────────────────────────
 document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.getElementById('editEqtCode').value    = btn.dataset.eqt_code;
-        document.getElementById('editIsoCode').value    = btn.dataset.iso_code ?? '';
-        document.getElementById('editSize').value       = btn.dataset.size;
-        document.getElementById('editTypeCode').value   = btn.dataset.type_code;
-        document.getElementById('editHeight').value     = btn.dataset.height;
-        document.getElementById('editDescription').value = btn.dataset.description ?? '';
+        document.getElementById('editEqtCode').value       = btn.dataset.eqt_code;
+        document.getElementById('editIsoCode').value       = btn.dataset.iso_code ?? '';
+        document.getElementById('editSize').value          = btn.dataset.size;
+        document.getElementById('editTypeCode').value      = btn.dataset.type_code;
+        document.getElementById('editHeight').value        = btn.dataset.height;
+        document.getElementById('editDescription').value   = btn.dataset.description ?? '';
+        document.getElementById('editVentilationType').value = btn.dataset.ventilation_type ?? '';
+        document.getElementById('editVentCount').value     = btn.dataset.vent_count ?? '';
         document.getElementById('editForm').action =
             '{{ url("masters/equipment-types") }}/' + btn.dataset.id;
         new bootstrap.Modal(document.getElementById('editModal')).show();
     });
 });
+
+// Edit modal: suggest on type_code change only if vent type is currently blank
+const editTypeCode  = document.getElementById('editTypeCode');
+const editVentType  = document.getElementById('editVentilationType');
+const editVentCount = document.getElementById('editVentCount');
+if (editTypeCode) {
+    editTypeCode.addEventListener('change', () => applyVentSuggest(editTypeCode, editVentType, editVentCount));
+}
 
 // ── Delete modal ─────────────────────────────────────────────────────────────
 document.querySelectorAll('.btn-delete').forEach(btn => {

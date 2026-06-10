@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             CountrySeeder::class,           // countries
             CountryStateSeeder::class,      // provinces, states, districts — needs countries
             EquipmentTypeSeeder::class,     // equipment types
+            EquipmentTypeVentilationSeeder::class, // backfill ventilation defaults
             CurrencySeeder::class,          // currency master
             TaxCodeSeeder::class,           // tax codes
             ChargeCodeSeeder::class,        // charge codes
