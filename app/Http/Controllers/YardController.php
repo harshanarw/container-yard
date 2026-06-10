@@ -391,6 +391,23 @@ class YardController extends Controller
             'daily_rate'   => $dailyRate,
         ]);
 
+        // Auto-create a pending reefer plug session for laden reefer containers
+        // Non-blocking: any failure here must not abort a successful gate-in
+        try {
+            if ($validated['cargo_status'] === 'laden' && $eqt->isReefer()) {
+                \App\Models\ReeferPlugSession::create([
+                    'container_id'    => $container->id,
+                    'gate_movement_id'=> $movement->id,
+                    'customer_id'     => $validated['customer_id'],
+                    'status'          => 'pending',
+                    'created_by'      => auth()->id(),
+                    'updated_by'      => auth()->id(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('[GateIn] Reefer plug session creation failed: ' . $e->getMessage());
+        }
+
         // Link guard capture if this gate-in originated from the Guard Post queue
         if ($request->filled('guard_capture_id')) {
             GuardCapture::where('id', $request->guard_capture_id)
@@ -526,6 +543,28 @@ class YardController extends Controller
                 'subtotal'        => $subtotal,
                 'total_charge'    => $subtotal,
             ]);
+        }
+
+        // Auto-close any active reefer plug sessions for this container (non-blocking)
+        try {
+            \App\Models\ReeferPlugSession::where('container_id', $container->id)
+                ->whereIn('status', ['pending', 'active'])
+                ->each(function ($session) use ($movement, $gateOutTime) {
+                    $updates = [
+                        'gate_out_movement_id' => $movement->id,
+                        'updated_by'           => auth()->id(),
+                    ];
+                    if ($session->isActive()) {
+                        $updates['plug_out_at'] = $gateOutTime;
+                        $updates['status']      = 'completed';
+                    } else {
+                        // Still pending (plug-in never recorded) — mark completed without billing
+                        $updates['status'] = 'completed';
+                    }
+                    $session->update($updates);
+                });
+        } catch (\Throwable $e) {
+            \Log::warning('[GateOut] Reefer plug session auto-close failed: ' . $e->getMessage());
         }
 
         // Release yard slot

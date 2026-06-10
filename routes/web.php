@@ -42,6 +42,9 @@ use App\Http\Controllers\ContainerOcrController;
 use App\Http\Controllers\PlateOcrController;
 use App\Http\Controllers\ContainerGradeController;
 use App\Http\Controllers\GuardPostController;
+use App\Http\Controllers\ReeferTariffController;
+use App\Http\Controllers\ReeferController;
+use App\Http\Controllers\ReeferBillingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -133,6 +136,18 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/movements/{movement}',             [YardController::class, 'updateMovement'])->name('movements.update');
         Route::delete('/movements/{movement}/photos/{photo}', [YardController::class, 'destroyMovementPhoto'])->name('movements.photo.destroy');
         Route::get('/movements/{movement}/gate-pass',     [YardController::class, 'gatePass'])->name('movements.gate-pass');
+    });
+
+    // Reefer Operations — plug-in / plug-out / temp logs
+    Route::prefix('yard/reefer')->name('yard.reefer.')->group(function () {
+        Route::get('/',                                          [ReeferController::class, 'index'])->name('index');
+        Route::get('/{plugSession}/plug-in',                    [ReeferController::class, 'plugIn'])->name('plug-in');
+        Route::post('/{plugSession}/plug-in',                   [ReeferController::class, 'storePlugIn'])->name('store-plug-in');
+        Route::get('/{plugSession}/plug-out',                   [ReeferController::class, 'plugOut'])->name('plug-out');
+        Route::post('/{plugSession}/plug-out',                  [ReeferController::class, 'storePlugOut'])->name('store-plug-out');
+        Route::get('/{plugSession}',                            [ReeferController::class, 'show'])->name('show');
+        Route::post('/{plugSession}/temp-logs',                 [ReeferController::class, 'storeTempLog'])->name('temp-log.store');
+        Route::delete('/{plugSession}/temp-logs/{tempLog}',     [ReeferController::class, 'destroyTempLog'])->name('temp-log.destroy');
     });
 
     // Guard Post Capture (optional feature — controller checks enable_guard_post flag)
@@ -339,6 +354,16 @@ Route::middleware(['auth'])->group(function () {
                 Route::delete('{rate}', [HandlingTariffController::class, 'destroyRate'])->name('destroy');
             });
         });
+        // Reefer Electricity Tariff
+        Route::prefix('reefer-tariff')->name('reefer-tariff.')->group(function () {
+            Route::get('/',                              [ReeferTariffController::class, 'index'])->name('index');
+            Route::post('/',                             [ReeferTariffController::class, 'store'])->name('store');
+            Route::get('{reeferTariff}',                 [ReeferTariffController::class, 'show'])->name('show');
+            Route::patch('{reeferTariff}',               [ReeferTariffController::class, 'update'])->name('update');
+            Route::patch('{reeferTariff}/toggle',        [ReeferTariffController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{reeferTariff}',              [ReeferTariffController::class, 'destroy'])->name('destroy');
+        });
+
         // Storage Rate Tariff
         Route::prefix('storage-tariff')->name('storage-tariff.')->group(function () {
             Route::get('/',                              [StorageTariffController::class, 'index'])->name('index');
@@ -363,6 +388,21 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/preview',        [StorageBillingController::class, 'preview'])->name('preview');
         Route::get('/exchange-rate',   [StorageBillingController::class, 'exchangeRateLookup'])->name('exchange-rate');
         Route::post('/',               [StorageBillingController::class, 'store'])->name('store');
+
+        // Reefer Electricity Billing — must come BEFORE the /{invoice} wildcard
+        Route::prefix('reefer')->name('reefer.')->group(function () {
+            Route::get('/',                              [ReeferBillingController::class, 'index'])->name('index');
+            Route::get('/create',                        [ReeferBillingController::class, 'create'])->name('create');
+            Route::post('/preview',                      [ReeferBillingController::class, 'preview'])->name('preview');
+            Route::get('/exchange-rate',                 [ReeferBillingController::class, 'exchangeRateLookup'])->name('exchange-rate');
+            Route::post('/',                             [ReeferBillingController::class, 'store'])->name('store');
+            Route::get('/{reeferInvoice}',               [ReeferBillingController::class, 'show'])->name('show');
+            Route::delete('/{reeferInvoice}',            [ReeferBillingController::class, 'destroy'])->name('destroy');
+            Route::patch('/{reeferInvoice}/issue',       [ReeferBillingController::class, 'markIssued'])->name('issue');
+            Route::patch('/{reeferInvoice}/pay',         [ReeferBillingController::class, 'markPaid'])->name('pay');
+            Route::patch('/{reeferInvoice}/cancel',      [ReeferBillingController::class, 'cancel'])->name('cancel');
+            Route::get('/{reeferInvoice}/pdf',           [ReeferBillingController::class, 'pdf'])->name('pdf');
+        });
 
         // Storage & Handling — must come BEFORE the /{invoice} wildcard
         Route::prefix('storage-handling')->name('storage-handling.')->group(function () {

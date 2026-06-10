@@ -631,6 +631,12 @@
                             <i class="bi bi-calculator"></i><span>Storage Calculator</span>
                         </a>
                     </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('yard.reefer.index') }}"
+                           class="nav-link {{ request()->routeIs('yard.reefer.*') ? 'active' : '' }}">
+                            <i class="bi bi-plug-fill"></i><span>Reefer Plug Sessions</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
 
@@ -697,7 +703,7 @@
             <ul class="nav flex-column">
                 <li class="nav-item">
                     <a href="{{ route('billing.index') }}"
-                       class="nav-link {{ request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
+                       class="nav-link {{ request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*') && !request()->routeIs('billing.reefer.*') ? 'active' : '' }}">
                         <i class="bi bi-file-earmark-text"></i><span>Storage Invoices</span>
                     </a>
                 </li>
@@ -705,6 +711,12 @@
                     <a href="{{ route('billing.storage-handling.index') }}"
                        class="nav-link {{ request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
                         <i class="bi bi-file-earmark-richtext"></i><span>Storage &amp; Handling</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('billing.reefer.index') }}"
+                       class="nav-link {{ request()->routeIs('billing.reefer.*') ? 'active' : '' }}">
+                        <i class="bi bi-lightning-charge-fill"></i><span>Reefer Electricity</span>
                     </a>
                 </li>
             </ul>
@@ -860,7 +872,7 @@
             </div>
 
             {{-- Tariffs sub-group --}}
-            @php $tariffsActive = request()->routeIs('masters.storage-tariff.*') || request()->routeIs('masters.handling-tariff.*') || request()->routeIs('masters.mr-tariff.*'); @endphp
+            @php $tariffsActive = request()->routeIs('masters.storage-tariff.*') || request()->routeIs('masters.handling-tariff.*') || request()->routeIs('masters.mr-tariff.*') || request()->routeIs('masters.reefer-tariff.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-tariffs"
                     aria-expanded="{{ $tariffsActive ? 'true' : 'false' }}"
@@ -887,6 +899,12 @@
                         <a href="{{ route('masters.mr-tariff.index') }}"
                            class="nav-link {{ request()->routeIs('masters.mr-tariff.*') ? 'active' : '' }}">
                             <i class="bi bi-tools"></i><span>M&amp;R</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.reefer-tariff.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.reefer-tariff.*') ? 'active' : '' }}">
+                            <i class="bi bi-plug-fill"></i><span>Reefer Electricity</span>
                         </a>
                     </li>
                 </ul>

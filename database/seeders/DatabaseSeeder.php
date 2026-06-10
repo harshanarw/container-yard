@@ -45,6 +45,7 @@ class DatabaseSeeder extends Seeder
             ContainerVentilationBackfillSeeder::class, // backfill ventilation from EQT defaults
 
             // ── Tariffs ──────────────────────────────────────────────────────
+            ReeferElectricityTariffSeeder::class, // default reefer electricity tariff
             StorageTariffSeeder::class,     // storage rate tariff headers + details
             TariffCargoStatusSeeder::class, // backfill cargo_status on tariff details — needs storage tariff
             HandlingTariffSeeder::class,    // handling tariff rates — needs customers, charge codes
