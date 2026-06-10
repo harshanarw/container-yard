@@ -459,12 +459,7 @@ class ContainerOcrService
         if (!empty($cropVotes)) {
             arsort($cropVotes);
             $topNo = array_key_first($cropVotes);
-            // Apply single-digit substitution to the consensus reading.
-            // Done here (not per-crop) so a spurious valid result from one bad crop
-            // cannot bypass the majority vote by coincidentally passing check-digit.
-            $corrected = $this->trySerialDigitSubstitution(substr($topNo, 0, 4), substr($topNo, 4, 7));
-            if ($corrected !== null) return [$corrected, true];
-            return [$topNo, false];
+            return [$topNo, $this->validateCheckDigit($topNo)];
         }
 
         foreach ($fullCandidates as $text) {
@@ -472,12 +467,6 @@ class ContainerOcrService
             [$no, $valid] = $this->extractContainerNoFromCompact($compact);
             if ($valid) return [$no, true];
             if ($no !== null) {
-                // Apply digit substitution to full-image candidates too — full-image PSM 3
-                // passes often contain the container number but with one misread digit in the
-                // serial or check-digit position (e.g. check digit "0" read as "1" when the
-                // ISO type code "42G1" is adjacent in the same text block).
-                $corrected = $this->trySerialDigitSubstitution(substr($no, 0, 4), substr($no, 4, 7));
-                if ($corrected !== null) return [$corrected, true];
                 return [$no, false];
             }
         }
