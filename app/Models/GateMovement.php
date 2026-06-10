@@ -24,6 +24,7 @@ class GateMovement extends Model
         'codeco_exported_at', 'csv_exported_at',
         'codeco_exported_by', 'csv_exported_by',
         'codeco_batch_ref', 'csv_batch_ref',
+        'container_ocr_image_path', 'plate_ocr_image_path',
     ];
 
     protected $casts = [
@@ -91,5 +92,19 @@ class GateMovement extends Model
     public function isPendingCsvExport(): bool
     {
         return is_null($this->csv_exported_at);
+    }
+
+    public function getContainerOcrImageUrlAttribute(): ?string
+    {
+        return $this->container_ocr_image_path
+            ? \Storage::disk('public')->url($this->container_ocr_image_path)
+            : null;
+    }
+
+    public function getPlateOcrImageUrlAttribute(): ?string
+    {
+        return $this->plate_ocr_image_path
+            ? \Storage::disk('public')->url($this->plate_ocr_image_path)
+            : null;
     }
 }

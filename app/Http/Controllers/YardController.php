@@ -34,6 +34,35 @@ class YardController extends Controller
         }
     }
 
+    private function saveMovementOcrImages(GateMovement $movement, array $validated): void
+    {
+        $updates = [];
+
+        if (!empty($validated['container_ocr_image'])) {
+            $ext  = $validated['container_ocr_image']->getClientOriginalExtension() ?: 'jpg';
+            $path = $validated['container_ocr_image']->storeAs(
+                "gate-movements/ocr/{$movement->id}",
+                "container.{$ext}",
+                'public'
+            );
+            $updates['container_ocr_image_path'] = $path;
+        }
+
+        if (!empty($validated['plate_ocr_image'])) {
+            $ext  = $validated['plate_ocr_image']->getClientOriginalExtension() ?: 'jpg';
+            $path = $validated['plate_ocr_image']->storeAs(
+                "gate-movements/ocr/{$movement->id}",
+                "plate.{$ext}",
+                'public'
+            );
+            $updates['plate_ocr_image_path'] = $path;
+        }
+
+        if (!empty($updates)) {
+            $movement->update($updates);
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Yard Overview (visual grid map)
     // -------------------------------------------------------------------------
@@ -159,6 +188,8 @@ class YardController extends Controller
             'gate_in_time'      => ['nullable', 'string', 'max:20'],
             'photos'            => ['nullable', 'array', 'max:5'],
             'photos.*'          => ['image', 'max:20480'],
+            'container_ocr_image' => ['nullable', 'image', 'max:20480'],
+            'plate_ocr_image'     => ['nullable', 'image', 'max:20480'],
             // Additional container details (master profile enrichment)
             'tare_weight_kg'    => ['nullable', 'numeric', 'min:0', 'max:99999'],
             'gross_weight_kg'   => ['nullable', 'numeric', 'min:0', 'max:99999'],
@@ -303,6 +334,9 @@ class YardController extends Controller
             'consignee'       => $validated['consignee'] ?? null,
         ]);
 
+        // Save OCR-captured images
+        $this->saveMovementOcrImages($movement, $validated);
+
         // Save gate-in photos via DocumentManager
         $photoError = null;
         if (!empty($validated['photos'])) {
@@ -397,8 +431,10 @@ class YardController extends Controller
             'shipper'        => ['nullable', 'string', 'max:150'],
             'remarks'        => ['nullable', 'string'],
             'gate_out_time'  => ['nullable', 'string', 'max:20'],
-            'photos'         => ['nullable', 'array', 'max:5'],
-            'photos.*'       => ['image', 'max:5120'],
+            'photos'              => ['nullable', 'array', 'max:5'],
+            'photos.*'            => ['image', 'max:5120'],
+            'container_ocr_image' => ['nullable', 'image', 'max:20480'],
+            'plate_ocr_image'     => ['nullable', 'image', 'max:20480'],
         ]);
 
         $container = Container::where('container_no', $validated['container_no'])->firstOrFail();
@@ -441,6 +477,9 @@ class YardController extends Controller
             'sailing_date'    => $validated['sailing_date'] ?? null,
             'shipper'         => $validated['shipper'] ?? null,
         ]);
+
+        // Save OCR-captured images
+        $this->saveMovementOcrImages($movement, $validated);
 
         // Save gate-out photos via DocumentManager
         $photoError = null;

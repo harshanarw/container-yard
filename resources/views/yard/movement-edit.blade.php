@@ -544,6 +544,60 @@
             'movement'        => $movement,
         ])
 
+        {{-- ── OCR Captured Images ──────────────────────────────────────────── --}}
+        @if($movement->container_ocr_image_path || $movement->plate_ocr_image_path)
+        <div class="card content-card mb-3">
+            <div class="card-header bg-light d-flex align-items-center gap-2">
+                <i class="bi bi-camera text-primary"></i>
+                <span class="fw-semibold" style="font-size:.85rem;">OCR Captured Images</span>
+                <span class="badge bg-secondary-subtle text-secondary fw-normal ms-auto" style="font-size:.68rem;">Captured at gate</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @if($movement->container_ocr_image_path)
+                    <div class="col-6">
+                        <div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Container</div>
+                        <a href="{{ $movement->containerOcrImageUrl }}" data-bs-toggle="modal" data-bs-target="#ocrImageModal"
+                           data-src="{{ $movement->containerOcrImageUrl }}" data-label="Container — {{ $movement->container_no }}"
+                           class="ocr-thumb-link">
+                            <img src="{{ $movement->containerOcrImageUrl }}" alt="Container OCR"
+                                 class="img-fluid rounded border"
+                                 style="max-height:140px;width:100%;object-fit:cover;cursor:zoom-in;">
+                        </a>
+                    </div>
+                    @endif
+                    @if($movement->plate_ocr_image_path)
+                    <div class="col-6">
+                        <div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Vehicle Plate</div>
+                        <a href="{{ $movement->plateOcrImageUrl }}" data-bs-toggle="modal" data-bs-target="#ocrImageModal"
+                           data-src="{{ $movement->plateOcrImageUrl }}" data-label="Vehicle Plate — {{ $movement->vehicle_plate }}"
+                           class="ocr-thumb-link">
+                            <img src="{{ $movement->plateOcrImageUrl }}" alt="Plate OCR"
+                                 class="img-fluid rounded border"
+                                 style="max-height:140px;width:100%;object-fit:cover;cursor:zoom-in;">
+                        </a>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Lightbox Modal --}}
+        <div class="modal fade" id="ocrImageModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title fw-semibold" id="ocrImageModalLabel"></h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-2 text-center">
+                        <img id="ocrImageModalImg" src="" alt="" class="img-fluid rounded" style="max-height:75vh;">
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <x-document-manager
             model-type="App\Models\GateMovement"
             :model-id="$movement->id"
@@ -762,6 +816,16 @@
             });
         });
     }
+})();
+// ── OCR image lightbox ────────────────────────────────────────────────────────
+(function () {
+    const modal = document.getElementById('ocrImageModal');
+    if (!modal) return;
+    modal.addEventListener('show.bs.modal', function (e) {
+        const link = e.relatedTarget;
+        document.getElementById('ocrImageModalLabel').textContent = link.dataset.label || 'OCR Image';
+        document.getElementById('ocrImageModalImg').src = link.dataset.src;
+    });
 })();
 </script>
 @endpush

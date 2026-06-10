@@ -219,8 +219,10 @@
                                     <i class="bi bi-camera" id="ocrIconIn"></i>
                                 </button>
                             </div>
-                            {{-- Hidden file input for Gate-In OCR camera --}}
+                            {{-- Hidden file input for Gate-In OCR camera (trigger only — re-used for re-scans) --}}
                             <input type="file" id="ocrInputIn" accept="image/*" capture="environment" class="d-none">
+                            {{-- Submission holder: populated via DataTransfer after OCR so original can be re-used --}}
+                            <input type="file" id="containerOcrHolderIn" name="container_ocr_image" class="d-none">
                             <div id="checkDigitWarnIn" class="mt-1 small d-none">
                                 <span class="badge" style="background:#fef3c7;color:#92400e;">
                                     <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid check digit — please verify number
@@ -228,6 +230,11 @@
                             </div>
                             <div id="masterLookupInfo" class="mt-1 small d-none"></div>
                             <div id="ocrResultIn" class="mt-1 small d-none"></div>
+                            <div id="containerOcrChipIn" class="mt-1 d-none">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:.7rem;">
+                                    <i class="bi bi-camera-fill me-1"></i><span id="containerOcrChipInText">Image captured</span>
+                                </span>
+                            </div>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
@@ -461,9 +468,14 @@
                                     <i class="bi bi-camera" id="plateOcrIconIn"></i>
                                 </button>
                             </div>
-                            {{-- Hidden file input for plate OCR camera --}}
                             <input type="file" id="plateOcrInputIn" accept="image/*" capture="environment" class="d-none">
+                            <input type="file" id="plateOcrHolderIn" name="plate_ocr_image" class="d-none">
                             <div id="plateOcrResultIn" class="mt-1 small d-none"></div>
+                            <div id="plateOcrChipIn" class="mt-1 d-none">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:.7rem;">
+                                    <i class="bi bi-camera-fill me-1"></i><span id="plateOcrChipInText">Image captured</span>
+                                </span>
+                            </div>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">
@@ -685,14 +697,20 @@
                             </button>
                             <button type="button" class="btn btn-outline-primary" id="containerSearchBtn"><i class="bi bi-search"></i></button>
                         </div>
-                        {{-- Hidden file input for Gate-Out OCR camera --}}
+                        {{-- Hidden file input for Gate-Out OCR camera (trigger only) --}}
                         <input type="file" id="ocrInputOut" accept="image/*" capture="environment" class="d-none">
+                        <input type="file" id="containerOcrHolderOut" name="container_ocr_image" class="d-none">
                         <div id="checkDigitWarnOut" class="mt-1 small d-none">
                             <span class="badge" style="background:#fef3c7;color:#92400e;">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid check digit — please verify number
                             </span>
                         </div>
                         <div class="form-text text-muted" style="font-size:.72rem;">Enter and search to confirm the container is in yard.</div>
+                        <div id="containerOcrChipOut" class="mt-1 d-none">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:.7rem;">
+                                <i class="bi bi-camera-fill me-1"></i><span id="containerOcrChipOutText">Image captured</span>
+                            </span>
+                        </div>
                     </div>
                     <div id="ocrResultOut" class="mb-2 small d-none"></div>
                     <div id="containerInfoBox" class="mb-3 d-none"></div>
@@ -768,7 +786,20 @@
                     <div class="row g-3 mb-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Truck / Vehicle Plate <span class="text-danger">*</span></label>
-                            <input type="text" name="vehicle_plate" class="form-control text-uppercase" placeholder="e.g. JHQ 5678">
+                            <div class="input-group">
+                                <input type="text" name="vehicle_plate" id="vehiclePlateOut" class="form-control text-uppercase" placeholder="e.g. JHQ 5678" autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" id="plateOcrBtnOut" title="Scan plate with camera">
+                                    <i class="bi bi-camera"></i>
+                                </button>
+                            </div>
+                            <input type="file" id="plateOcrInputOut" accept="image/*" capture="environment" class="d-none">
+                            <input type="file" id="plateOcrHolderOut" name="plate_ocr_image" class="d-none">
+                            <div id="plateOcrResultOut" class="mt-1 small d-none"></div>
+                            <div id="plateOcrChipOut" class="mt-1 d-none">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:.7rem;">
+                                    <i class="bi bi-camera-fill me-1"></i><span id="plateOcrChipOutText">Image captured</span>
+                                </span>
+                            </div>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">
@@ -2208,14 +2239,39 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         }
     }
 
+    // Copy a file to a holder <input type="file"> via DataTransfer so the form includes it
+    function holdFile(holderInput, file) {
+        try {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            holderInput.files = dt.files;
+        } catch (_) { /* DataTransfer not supported — file won't be attached */ }
+    }
+
+    // Show/hide a captured-image chip
+    function showCapturedChip(chipId, textId, filename) {
+        const chip = document.getElementById(chipId);
+        if (!chip) return;
+        if (filename) {
+            document.getElementById(textId).textContent = filename;
+            chip.classList.remove('d-none');
+        } else {
+            chip.classList.add('d-none');
+        }
+    }
+
     // ── Wire up Gate-In OCR button ────────────────────────────────────────────
     const ocrBtnIn  = document.getElementById('ocrBtnIn');
     const ocrInputIn = document.getElementById('ocrInputIn');
+    const containerOcrHolderIn = document.getElementById('containerOcrHolderIn');
 
     ocrBtnIn.addEventListener('click', () => ocrInputIn.click());
     ocrInputIn.addEventListener('change', function () {
         if (this.files && this.files[0]) {
-            processImage(this.files[0], 'in');
+            const file = this.files[0];
+            holdFile(containerOcrHolderIn, file);
+            showCapturedChip('containerOcrChipIn', 'containerOcrChipInText', file.name);
+            processImage(file, 'in');
             this.value = ''; // Reset so same image can be re-scanned
         }
     });
@@ -2228,11 +2284,15 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     // ── Wire up Gate-Out OCR button ───────────────────────────────────────────
     const ocrBtnOut   = document.getElementById('ocrBtnOut');
     const ocrInputOut = document.getElementById('ocrInputOut');
+    const containerOcrHolderOut = document.getElementById('containerOcrHolderOut');
 
     ocrBtnOut.addEventListener('click', () => ocrInputOut.click());
     ocrInputOut.addEventListener('change', function () {
         if (this.files && this.files[0]) {
-            processImage(this.files[0], 'out');
+            const file = this.files[0];
+            holdFile(containerOcrHolderOut, file);
+            showCapturedChip('containerOcrChipOut', 'containerOcrChipOutText', file.name);
+            processImage(file, 'out');
             this.value = '';
         }
     });
@@ -2243,6 +2303,40 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
 
     // Expose for guard-post re-scan
     window._gpContainerScan = function (f) { processImage(f, 'in'); };
+
+    // ── Wire up Gate-In Plate OCR button ─────────────────────────────────────
+    const plateOcrBtnIn   = document.getElementById('plateOcrBtnIn');
+    const plateOcrInputIn = document.getElementById('plateOcrInputIn');
+    const plateOcrHolderIn = document.getElementById('plateOcrHolderIn');
+
+    if (plateOcrBtnIn) {
+        plateOcrBtnIn.addEventListener('click', () => plateOcrInputIn.click());
+        plateOcrInputIn.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                holdFile(plateOcrHolderIn, file);
+                showCapturedChip('plateOcrChipIn', 'plateOcrChipInText', file.name);
+                this.value = '';
+            }
+        });
+    }
+
+    // ── Wire up Gate-Out Plate OCR button ────────────────────────────────────
+    const plateOcrBtnOut   = document.getElementById('plateOcrBtnOut');
+    const plateOcrInputOut = document.getElementById('plateOcrInputOut');
+    const plateOcrHolderOut = document.getElementById('plateOcrHolderOut');
+
+    if (plateOcrBtnOut) {
+        plateOcrBtnOut.addEventListener('click', () => plateOcrInputOut.click());
+        plateOcrInputOut.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                holdFile(plateOcrHolderOut, file);
+                showCapturedChip('plateOcrChipOut', 'plateOcrChipOutText', file.name);
+                this.value = '';
+            }
+        });
+    }
 
 })();
 
