@@ -57,11 +57,10 @@
                             <div class="small text-muted mt-1">Tap to capture or upload</div>
                         </div>
                         <img id="prevContainerImage" class="photo-preview d-none" alt="">
+                        <div class="ocr-overlay d-none" id="ocrOverlayContainer"></div>
                     </div>
                     <input type="file" name="container_image" id="containerImage" accept="image/*" capture="environment" class="d-none">
-                    <div id="ocrStatus" class="mt-1 small text-muted d-none">
-                        <i class="bi bi-hourglass-split me-1"></i>Reading container number…
-                    </div>
+                    <div id="ocrStatus" class="mt-2 d-none"></div>
                 </div>
                 <div class="col-md-6 d-flex flex-column justify-content-end gap-3">
                     <div>
@@ -106,11 +105,10 @@
                             <div class="small text-muted mt-1">Tap to capture or upload</div>
                         </div>
                         <img id="prevPlateImage" class="photo-preview d-none" alt="">
+                        <div class="ocr-overlay d-none" id="ocrOverlayPlate"></div>
                     </div>
                     <input type="file" name="plate_image" id="plateImage" accept="image/*" capture="environment" class="d-none">
-                    <div id="plateOcrStatus" class="mt-1 small text-muted d-none">
-                        <i class="bi bi-hourglass-split me-1"></i>Reading plate number…
-                    </div>
+                    <div id="plateOcrStatus" class="mt-2 d-none"></div>
                 </div>
                 <div class="col-md-6 d-flex flex-column justify-content-end gap-3">
                     <div>
@@ -224,12 +222,37 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    transition: border-color .2s;
+    transition: border-color .2s, box-shadow .2s;
     background: #f8f9fa;
+    position: relative;
 }
 .photo-upload-box:hover { border-color: #6c757d; }
+.photo-upload-box.ocr-active  { border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13,110,253,.15); }
+.photo-upload-box.ocr-ok      { border-color: #198754; box-shadow: 0 0 0 3px rgba(25,135,84,.15); }
+.photo-upload-box.ocr-warn    { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,.15); }
+.photo-upload-box.ocr-err     { border-color: #dc3545; box-shadow: 0 0 0 3px rgba(220,53,69,.15); }
 .photo-placeholder { text-align: center; padding: 1rem; color: #6c757d; }
 .photo-preview { width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px; }
+/* OCR overlay sits on top of the photo while scanning / briefly after result */
+.ocr-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    color: #fff;
+    font-size: .82rem;
+    font-weight: 600;
+    pointer-events: none;
+    transition: opacity .3s;
+}
+.ocr-overlay.scanning { background: rgba(13,110,253,.60); }
+.ocr-overlay.ok       { background: rgba(25,135,84,.65); }
+.ocr-overlay.warn     { background: rgba(217,119,6,.65); }
+.ocr-overlay.err      { background: rgba(220,53,69,.60); }
 </style>
 @endpush
 
@@ -259,12 +282,60 @@ wirePreview('nicFront',       'prevNicFront',        'phNicFront');
 wirePreview('nicBack',        'prevNicBack',         'phNicBack');
 wirePreview('licenseFront',   'prevLicenseFront',    'phLicenseFront');
 
-// OCR auto-scan on container image upload
+// ── OCR overlay helpers ───────────────────────────────────────────────────────
+
+const OCR_DISMISS_MS = 4000;
+
+/**
+ * Show/update the overlay on a photo box.
+ * state: 'scanning' | 'ok' | 'warn' | 'err' | 'hide'
+ */
+function setOcrOverlay(overlayId, boxId, state, html) {
+    const overlay = document.getElementById(overlayId);
+    const box     = document.getElementById(boxId);
+    if (!overlay || !box) return;
+
+    // Reset box border classes
+    box.classList.remove('ocr-active', 'ocr-ok', 'ocr-warn', 'ocr-err');
+
+    if (state === 'hide') {
+        overlay.classList.add('d-none');
+        return;
+    }
+
+    overlay.className = 'ocr-overlay ' + state;
+    overlay.innerHTML = html;
+    overlay.classList.remove('d-none');
+
+    const borderClass = { scanning: 'ocr-active', ok: 'ocr-ok', warn: 'ocr-warn', err: 'ocr-err' }[state];
+    if (borderClass) box.classList.add(borderClass);
+
+    if (state !== 'scanning') {
+        setTimeout(() => {
+            overlay.classList.add('d-none');
+            box.classList.remove('ocr-active', 'ocr-ok', 'ocr-warn', 'ocr-err');
+        }, OCR_DISMISS_MS);
+    }
+}
+
+function setOcrStatus(statusId, html) {
+    const el = document.getElementById(statusId);
+    if (!el) return;
+    el.classList.remove('d-none');
+    el.innerHTML = html;
+}
+
+// ── Container OCR ─────────────────────────────────────────────────────────────
+
 document.getElementById('containerImage').addEventListener('change', async function () {
     if (!this.files || !this.files[0]) return;
-    const status = document.getElementById('ocrStatus');
-    status.classList.remove('d-none');
-    status.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Reading container number…';
+
+    setOcrOverlay('ocrOverlayContainer', 'boxContainerImage', 'scanning',
+        '<div class="spinner-border spinner-border-sm" role="status"></div>' +
+        '<span>Reading container number…</span>');
+    setOcrStatus('ocrStatus',
+        '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle px-2 py-1">' +
+        '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Reading container number…</span>');
 
     const fd = new FormData();
     fd.append('image', this.files[0]);
@@ -278,28 +349,55 @@ document.getElementById('containerImage').addEventListener('change', async funct
             document.getElementById('containerNumber').value = data.container_no;
             if (data.iso_type) document.getElementById('isoCode').value = data.iso_type;
             const warn = document.getElementById('containerCheckDigitWarn');
+
             if (data.check_digit_valid === false) {
                 warn.classList.remove('d-none');
-                status.innerHTML = '<i class="bi bi-exclamation-circle text-warning me-1"></i>Read: ' + data.container_no + ' — check digit unconfirmed';
+                setOcrOverlay('ocrOverlayContainer', 'boxContainerImage', 'warn',
+                    '<i class="bi bi-exclamation-triangle-fill fs-2"></i>' +
+                    '<span>' + data.container_no + '</span>' +
+                    '<span style="font-size:.72rem;font-weight:400;">Check digit unconfirmed</span>');
+                setOcrStatus('ocrStatus',
+                    '<span class="badge border px-2 py-1" style="background:#fef3c7;color:#92400e;border-color:#fbbf24!important;">' +
+                    '<i class="bi bi-exclamation-triangle-fill me-1"></i>Read: ' + data.container_no + ' — verify check digit</span>');
             } else {
                 warn.classList.add('d-none');
-                status.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>Read: ' + data.container_no;
+                setOcrOverlay('ocrOverlayContainer', 'boxContainerImage', 'ok',
+                    '<i class="bi bi-check-circle-fill fs-2"></i>' +
+                    '<span>' + data.container_no + '</span>');
+                setOcrStatus('ocrStatus',
+                    '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-2 py-1">' +
+                    '<i class="bi bi-check-circle-fill me-1"></i>Read: ' + data.container_no + '</span>');
             }
         } else {
             document.getElementById('containerCheckDigitWarn').classList.add('d-none');
-            status.innerHTML = '<i class="bi bi-exclamation-circle text-warning me-1"></i>Could not read number — enter manually.';
+            setOcrOverlay('ocrOverlayContainer', 'boxContainerImage', 'warn',
+                '<i class="bi bi-exclamation-triangle-fill fs-2"></i>' +
+                '<span>Could not read</span>' +
+                '<span style="font-size:.72rem;font-weight:400;">Enter number manually</span>');
+            setOcrStatus('ocrStatus',
+                '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">' +
+                '<i class="bi bi-exclamation-triangle me-1"></i>Could not read number — enter manually</span>');
         }
     } catch (e) {
-        status.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i>OCR failed — enter manually.';
+        setOcrOverlay('ocrOverlayContainer', 'boxContainerImage', 'err',
+            '<i class="bi bi-x-circle-fill fs-2"></i><span>OCR failed</span>');
+        setOcrStatus('ocrStatus',
+            '<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle px-2 py-1">' +
+            '<i class="bi bi-x-circle me-1"></i>OCR failed — enter manually</span>');
     }
 });
 
-// OCR auto-scan on plate image upload
+// ── Plate OCR ─────────────────────────────────────────────────────────────────
+
 document.getElementById('plateImage').addEventListener('change', async function () {
     if (!this.files || !this.files[0]) return;
-    const status = document.getElementById('plateOcrStatus');
-    status.classList.remove('d-none');
-    status.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Reading plate number…';
+
+    setOcrOverlay('ocrOverlayPlate', 'boxPlateImage', 'scanning',
+        '<div class="spinner-border spinner-border-sm" role="status"></div>' +
+        '<span>Reading plate number…</span>');
+    setOcrStatus('plateOcrStatus',
+        '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle px-2 py-1">' +
+        '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Reading plate number…</span>');
 
     const fd = new FormData();
     fd.append('image', this.files[0]);
@@ -310,20 +408,36 @@ document.getElementById('plateImage').addEventListener('change', async function 
         const data = await res.json();
 
         if (data.success && data.plate_no) {
-            // Insert space between letter prefix and digit group for readability
             const raw = data.plate_no.replace(/\s+/g, '').toUpperCase();
             const m   = raw.match(/^([A-Z]{2,4})([0-9]{4,5})$/);
-            document.getElementById('vehicleNumber').value = m ? m[1] + ' ' + m[2] : raw;
-            status.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>Read: ' + (m ? m[1] + ' ' + m[2] : raw);
+            const formatted = m ? m[1] + ' ' + m[2] : raw;
+            document.getElementById('vehicleNumber').value = formatted;
+            setOcrOverlay('ocrOverlayPlate', 'boxPlateImage', 'ok',
+                '<i class="bi bi-check-circle-fill fs-2"></i>' +
+                '<span>' + formatted + '</span>');
+            setOcrStatus('plateOcrStatus',
+                '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-2 py-1">' +
+                '<i class="bi bi-check-circle-fill me-1"></i>Read: ' + formatted + '</span>');
         } else {
-            status.innerHTML = '<i class="bi bi-exclamation-circle text-warning me-1"></i>Could not read plate — enter manually.';
+            setOcrOverlay('ocrOverlayPlate', 'boxPlateImage', 'warn',
+                '<i class="bi bi-exclamation-triangle-fill fs-2"></i>' +
+                '<span>Could not read</span>' +
+                '<span style="font-size:.72rem;font-weight:400;">Enter plate manually</span>');
+            setOcrStatus('plateOcrStatus',
+                '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">' +
+                '<i class="bi bi-exclamation-triangle me-1"></i>Could not read plate — enter manually</span>');
         }
     } catch (e) {
-        status.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i>OCR failed — enter manually.';
+        setOcrOverlay('ocrOverlayPlate', 'boxPlateImage', 'err',
+            '<i class="bi bi-x-circle-fill fs-2"></i><span>OCR failed</span>');
+        setOcrStatus('plateOcrStatus',
+            '<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle px-2 py-1">' +
+            '<i class="bi bi-x-circle me-1"></i>OCR failed — enter manually</span>');
     }
 });
 
-// Disable submit button on form submit to prevent double-submit
+// ── Submit guard ──────────────────────────────────────────────────────────────
+
 document.getElementById('captureForm').addEventListener('submit', function () {
     const btn = document.getElementById('submitBtn');
     document.getElementById('submitSpinner').classList.remove('d-none');
