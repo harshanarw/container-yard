@@ -117,24 +117,28 @@ class ContainerController extends Controller
         }
 
         return response()->json([
-            'found'            => true,
-            'category'         => $container->category,
-            'equipment_type_id'=> $container->equipment_type_id,
-            'grade_id'         => $container->grade_id,
-            'size'             => $container->size,
-            'type_code'        => $container->type_code,
-            'manufacture_year' => $container->manufacture_year,
-            'manufacturer'     => $container->manufacturer,
-            'owner_code'       => $container->owner_code,
-            'owner_name'       => $container->owner_name,
-            'gross_weight_kg'  => $container->gross_weight_kg,
-            'tare_weight_kg'   => $container->tare_weight_kg,
-            'max_payload_kg'   => $container->max_payload_kg,
-            'csc_plate_no'     => $container->csc_plate_no,
-            'csc_expiry_date'  => $container->csc_expiry_date?->format('Y-m-d'),
-            'status'           => $container->status,
-            'gate_in_date'     => $container->gate_in_date?->format('d M Y'),
-            'customer_id'      => $container->customer_id,
+            'found'                   => true,
+            'category'                => $container->category,
+            'equipment_type_id'       => $container->equipment_type_id,
+            'grade_id'                => $container->grade_id,
+            'size'                    => $container->size,
+            'type_code'               => $container->type_code,
+            'manufacture_year'        => $container->manufacture_year,
+            'manufacturer'            => $container->manufacturer,
+            'owner_code'              => $container->owner_code,
+            'owner_name'              => $container->owner_name,
+            'gross_weight_kg'         => $container->gross_weight_kg,
+            'tare_weight_kg'          => $container->tare_weight_kg,
+            'max_payload_kg'          => $container->max_payload_kg,
+            'csc_plate_no'            => $container->csc_plate_no,
+            'csc_expiry_date'         => $container->csc_expiry_date?->format('Y-m-d'),
+            'status'                  => $container->status,
+            'gate_in_date'            => $container->gate_in_date?->format('d M Y'),
+            'customer_id'             => $container->customer_id,
+            // Effective ventilation: container's own value, or EQT default
+            'ventilation_type'        => $container->effective_ventilation_type,
+            'vent_count'              => $container->effective_vent_count,
+            'ventilation_type_source' => $container->ventilation_type ? 'container' : 'eqt',
         ]);
     }
 
@@ -169,6 +173,9 @@ class ContainerController extends Controller
             'csc_expiry_date'   => ['nullable', 'date'],
             // ── Notes ────────────────────────────────────────────────────
             'notes'             => ['nullable', 'string'],
+            // ── Ventilation ──────────────────────────────────────────────
+            'ventilation_type'  => ['nullable', 'in:none,passive,cross,mechanical,reefer,controlled_atm'],
+            'vent_count'        => ['nullable', 'integer', 'min:0', 'max:99'],
         ];
     }
 

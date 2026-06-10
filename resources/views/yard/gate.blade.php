@@ -223,6 +223,8 @@
                                             data-type="{{ $eqt->type_code }}"
                                             data-eqt="{{ $eqt->eqt_code }}"
                                             data-iso="{{ $eqt->iso_code ?? '' }}"
+                                            data-vent-type="{{ $eqt->ventilation_type ?? '' }}"
+                                            data-vent-count="{{ $eqt->vent_count ?? '' }}"
                                             @if(in_array($eqt->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif>
                                         {{ $eqt->eqt_code }} — {{ $eqt->description }}
                                     </option>
@@ -276,6 +278,23 @@
                                 @endforeach
                             </select>
                             <div class="form-text">Grade classification for cargo suitability (e.g. Fiber Grade, Tea Grade).</div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold" style="font-size:.85rem;">Ventilation Type</label>
+                            <select name="ventilation_type" id="gateVentType" class="form-select form-select-sm">
+                                <option value="">— Not Set —</option>
+                                @foreach(\App\Models\EquipmentType::VENTILATION_TYPES as $val => $label)
+                                    <option value="{{ $val }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold" style="font-size:.85rem;">Vent Count</label>
+                            <input type="number" name="vent_count" id="gateVentCount"
+                                   class="form-control form-control-sm" min="0" max="99" placeholder="—">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end pb-1">
+                            <div id="gateVentSource" class="text-muted" style="font-size:.72rem;"></div>
                         </div>
                     </div>
 
@@ -1520,6 +1539,8 @@ btnOut.addEventListener('click', activateOut);
                     if (typeof $ !== 'undefined') $(gradeSel).val(String(data.grade_id)).trigger('change');
                     else gradeSel.value = String(data.grade_id);
                 }
+                // Fill ventilation from container master (overrides any EQT suggestion)
+                window.ventilationFields?.fillFromMaster(data);
                 // Pre-fill Customer / Owner if empty — only for master-known containers
                 const custHintEl = document.getElementById('hint_customer_id');
                 if (customerSel && data.customer_id) {
@@ -1571,6 +1592,7 @@ btnOut.addEventListener('click', activateOut);
             if (custHintEl) custHintEl.innerHTML = '';
             // Clear additional details filled by previous master lookup
             window.additionalDetails?.reset();
+            window.ventilationFields?.reset();
         }
     });
     inp.addEventListener('blur', function () { lookupMaster(this.value); });
@@ -1753,6 +1775,31 @@ btnOut.addEventListener('click', activateOut);
     };
 })();
 
+// ── Ventilation fields helper (shared across Gate-In handlers) ───────────────
+window.ventilationFields = {
+    reset() {
+        const vtEl = document.getElementById('gateVentType');
+        const vcEl = document.getElementById('gateVentCount');
+        const vsEl = document.getElementById('gateVentSource');
+        if (vtEl) vtEl.value = '';
+        if (vcEl) vcEl.value = '';
+        if (vsEl) vsEl.textContent = '';
+    },
+    fillFromMaster(data) {
+        const vtEl = document.getElementById('gateVentType');
+        const vcEl = document.getElementById('gateVentCount');
+        const vsEl = document.getElementById('gateVentSource');
+        if (!vtEl) return;
+        // Container master values always override what EQT suggested
+        if (data.ventilation_type) {
+            vtEl.value = data.ventilation_type;
+            if (vcEl) vcEl.value = data.vent_count ?? '';
+            if (vsEl) vsEl.textContent = data.ventilation_type_source === 'container'
+                ? 'From container record' : 'From EQT default';
+        }
+    },
+};
+
 // ── Equipment Type badges ───────────────────────────────────────────────────
 (function () {
     const sel = document.getElementById('gateEqtSelect');
@@ -1765,6 +1812,15 @@ btnOut.addEventListener('click', activateOut);
         sizeBadge.textContent = opt.dataset.size + "'"; typeBadge.textContent = opt.dataset.type;
         typeBadge.className = 'badge text-nowrap' + (isReefer ? ' badge-reefer' : ' bg-info-subtle text-info');
         sizeBadge.classList.remove('d-none'); typeBadge.classList.remove('d-none');
+        // Auto-fill ventilation from EQT only when the field is currently blank
+        const vtEl = document.getElementById('gateVentType');
+        const vcEl = document.getElementById('gateVentCount');
+        const vsEl = document.getElementById('gateVentSource');
+        if (vtEl && opt.dataset.ventType && !vtEl.value) {
+            vtEl.value = opt.dataset.ventType;
+            if (vcEl && opt.dataset.ventCount !== '') vcEl.value = opt.dataset.ventCount;
+            if (vsEl) vsEl.textContent = 'From EQT';
+        }
     }
     sel.addEventListener('change', () => applyEqt(sel.selectedOptions[0]));
     if (sel.value) applyEqt(sel.selectedOptions[0]);
@@ -2012,6 +2068,8 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 const cargoMap = { empty:'Empty', laden:'Laden', full:'Laden' };
                 const daysBadge = data.days_in_yard !== null ? '<span class="badge bg-warning-subtle text-warning border ms-1">' + data.days_in_yard + ' day(s) in yard</span>' : '';
                 const gradeInfo = data.grade_name ? ' <span class="text-muted">·</span> Grade: ' + data.grade_name : '';
+                const ventInfo  = data.ventilation_label
+                    ? '<div class="col-6"><span class="text-muted">Ventilation:</span> ' + data.ventilation_label + '</div>' : '';
                 setInfoBox('success',
                     '<div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-check-circle-fill text-success fs-5"></i><strong class="font-monospace fs-6">' + data.container_no + '</strong>' + daysBadge + '</div>' +
                     '<div class="row g-1 small">' +
@@ -2021,6 +2079,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                         '<div class="col-6"><span class="text-muted">Cargo:</span> ' + (cargoMap[data.cargo_status]||data.cargo_status) + '</div>' +
                         '<div class="col-6"><span class="text-muted">Location:</span> <strong class="font-monospace">' + (data.location||'—') + '</strong></div>' +
                         '<div class="col-6"><span class="text-muted">Gate In:</span> ' + (data.gate_in_time||data.gate_in_date||'—') + gradeInfo + '</div>' +
+                        ventInfo +
                     '</div>'
                 );
                 // Pre-select the container's current grade in the dropdown
@@ -2190,6 +2249,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 if (typeof $ !== 'undefined') $(eqtSelReset).val(null).trigger('change');
                 else { eqtSelReset.value = ''; eqtSelReset.dispatchEvent(new Event('change')); }
                 window.additionalDetails?.reset();
+                window.ventilationFields?.reset();
                 const infoReset = document.getElementById('masterLookupInfo');
                 if (infoReset) { infoReset.className = 'd-none'; infoReset.innerHTML = ''; }
             }

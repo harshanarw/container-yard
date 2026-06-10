@@ -97,6 +97,8 @@
                                     <option value="{{ $et->id }}"
                                             data-code="{{ $et->eqt_code }}"
                                             data-name="{{ $et->description }}"
+                                            data-vent-type="{{ $et->ventilation_type ?? '' }}"
+                                            data-vent-count="{{ $et->vent_count ?? '' }}"
                                             @if(in_array($et->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif
                                             {{ old('equipment_type_id', $container?->equipment_type_id) == $et->id ? 'selected' : '' }}>
                                         {{ $et->eqt_code }} — {{ $et->description }}
@@ -127,6 +129,30 @@
                                    value="{{ old('manufacturer', $container?->manufacturer) }}"
                                    maxlength="100">
                             @error('manufacturer')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">Ventilation Type</label>
+                            <select name="ventilation_type" id="masterVentType"
+                                    class="form-select @error('ventilation_type') is-invalid @enderror">
+                                <option value="">— Inherit from Equipment Type —</option>
+                                @foreach(\App\Models\EquipmentType::VENTILATION_TYPES as $val => $label)
+                                    <option value="{{ $val }}"
+                                            {{ old('ventilation_type', $container?->ventilation_type) == $val ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('ventilation_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div id="masterVentTypeHint" class="form-text"></div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Vent Count</label>
+                            <input type="number" name="vent_count" id="masterVentCount"
+                                   class="form-control @error('vent_count') is-invalid @enderror"
+                                   min="0" max="99" placeholder="—"
+                                   value="{{ old('vent_count', $container?->vent_count) }}">
+                            @error('vent_count')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">Discrete vent openings.</div>
                         </div>
                     </div>
                 </div>
@@ -451,5 +477,53 @@ document.addEventListener('DOMContentLoaded', function () {
         check(); // evaluate on page load (handles old() repopulation)
     })();
 });
+
+// ── Ventilation auto-fill from Equipment Type ────────────────────────────────
+(function () {
+    const eqtSel     = document.getElementById('equipmentTypeSelect');
+    const ventTypeEl = document.getElementById('masterVentType');
+    const ventCountEl = document.getElementById('masterVentCount');
+    const ventHintEl  = document.getElementById('masterVentTypeHint');
+
+    if (!eqtSel) return;
+
+    const vtLabels = @json(\App\Models\EquipmentType::VENTILATION_TYPES);
+
+    function showEqtHint(ventType, ventCount) {
+        if (!ventHintEl) return;
+        if (!ventType) { ventHintEl.textContent = ''; return; }
+        const label = vtLabels[ventType] || ventType;
+        const countPart = (ventCount !== '' && ventCount != null && parseInt(ventCount) > 0)
+            ? ' · ' + ventCount + ' vents' : '';
+        ventHintEl.innerHTML =
+            '<span class="text-info-emphasis"><i class="bi bi-arrow-up-circle me-1"></i>' +
+            'EQT default: ' + label + countPart + '</span>';
+    }
+
+    function applyFromEqt(opt) {
+        if (!opt || !opt.value) { if (ventHintEl) ventHintEl.textContent = ''; return; }
+        const eqtVentType  = opt.dataset.ventType  || '';
+        const eqtVentCount = opt.dataset.ventCount || '';
+        showEqtHint(eqtVentType, eqtVentCount);
+        // Only auto-fill when the field is currently blank (never overwrite user choice)
+        if (ventTypeEl && !ventTypeEl.value && eqtVentType) {
+            ventTypeEl.value = eqtVentType;
+        }
+        if (ventCountEl && !ventCountEl.value && eqtVentCount !== '') {
+            ventCountEl.value = eqtVentCount;
+        }
+    }
+
+    eqtSel.addEventListener('change', function () {
+        applyFromEqt(this.selectedOptions[0]);
+    });
+
+    // On page load: show hint for the currently selected EQT
+    // (don't auto-fill — existing value is the container's own stored value)
+    if (eqtSel.value) {
+        const opt = eqtSel.selectedOptions[0];
+        if (opt) showEqtHint(opt.dataset.ventType || '', opt.dataset.ventCount || '');
+    }
+})();
 </script>
 @endpush

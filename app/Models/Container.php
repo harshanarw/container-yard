@@ -22,6 +22,7 @@ class Container extends Model
     // ── Master profile fields (edited via Container Master CRUD) ─────────────
     const MASTER_FIELDS = [
         'container_no', 'category', 'equipment_type_id', 'grade_id', 'size', 'type_code',
+        'ventilation_type', 'vent_count',
         'manufacture_year', 'manufacturer', 'owner_code', 'owner_name',
         'gross_weight_kg', 'tare_weight_kg', 'max_payload_kg',
         'csc_plate_no', 'csc_expiry_date', 'notes', 'customer_id',
@@ -42,6 +43,7 @@ class Container extends Model
     protected $fillable = [
         // master
         'container_no', 'category', 'equipment_type_id', 'grade_id', 'size', 'type_code',
+        'ventilation_type', 'vent_count',
         'manufacture_year', 'manufacturer', 'owner_code', 'owner_name',
         'gross_weight_kg', 'tare_weight_kg', 'max_payload_kg',
         'csc_plate_no', 'csc_expiry_date', 'notes',
@@ -64,6 +66,7 @@ class Container extends Model
         'gross_weight_kg'  => 'decimal:2',
         'tare_weight_kg'   => 'decimal:2',
         'max_payload_kg'   => 'decimal:2',
+        'vent_count'       => 'integer',
     ];
 
     // Relationships
@@ -113,6 +116,20 @@ class Container extends Model
         $start = $this->gate_in_date ?? now();
         $end   = $this->gate_out_date ?? now();
         return (int) $start->diffInDays($end);
+    }
+
+    /** Ventilation type: container's own value, or falls back to its EQT master. */
+    public function getEffectiveVentilationTypeAttribute(): ?string
+    {
+        return $this->ventilation_type
+            ?? $this->loadMissing('equipmentType')->equipmentType?->ventilation_type;
+    }
+
+    /** Vent count: container's own value, or falls back to its EQT master. */
+    public function getEffectiveVentCountAttribute(): ?int
+    {
+        return $this->vent_count
+            ?? $this->loadMissing('equipmentType')->equipmentType?->vent_count;
     }
 
     public function getFullSizeTypeAttribute(): string

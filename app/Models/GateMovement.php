@@ -13,7 +13,8 @@ class GateMovement extends Model
 
     protected $fillable = [
         'container_id', 'survey_id', 'container_no', 'customer_id', 'transporter_id', 'movement_type', 'size',
-        'container_type', 'location_zone', 'location_row', 'location_bay', 'location_tier',
+        'container_type', 'ventilation_type', 'vent_count',
+        'location_zone', 'location_row', 'location_bay', 'location_tier',
         'condition', 'grade_id', 'cargo_status', 'seal_no', 'vehicle_plate', 'driver_name',
         'driver_ic', 'driver_phone', 'release_order', 'gate_in_time', 'gate_out_time',
         'movement_status', 'remarks', 'created_by',
@@ -28,6 +29,7 @@ class GateMovement extends Model
     ];
 
     protected $casts = [
+        'vent_count'         => 'integer',
         'gate_in_time'       => 'datetime',
         'gate_out_time'      => 'datetime',
         'berthing_date'      => 'date',

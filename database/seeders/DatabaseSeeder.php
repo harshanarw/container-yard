@@ -41,7 +41,8 @@ class DatabaseSeeder extends Seeder
             CustomerSeeder::class,          // shipping lines, forwarders etc — needs countries
 
             // ── Containers ───────────────────────────────────────────────────
-            ContainerSeeder::class,         // container master — needs customers
+            ContainerSeeder::class,              // container master — needs customers
+            ContainerVentilationBackfillSeeder::class, // backfill ventilation from EQT defaults
 
             // ── Tariffs ──────────────────────────────────────────────────────
             StorageTariffSeeder::class,     // storage rate tariff headers + details

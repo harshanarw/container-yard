@@ -200,6 +200,9 @@ class YardController extends Controller
             'owner_name'        => ['nullable', 'string', 'max:100'],
             'csc_plate_no'      => ['nullable', 'string', 'max:50'],
             'csc_expiry_date'   => ['nullable', 'date'],
+            // Ventilation
+            'ventilation_type'  => ['nullable', 'in:none,passive,cross,mechanical,reefer,controlled_atm'],
+            'vent_count'        => ['nullable', 'integer', 'min:0', 'max:99'],
         ]);
 
         if ($validator->fails()) {
@@ -289,7 +292,8 @@ class YardController extends Controller
         // (never overwrite existing master data with a blank value from the form)
         foreach (['tare_weight_kg', 'gross_weight_kg', 'max_payload_kg',
                   'manufacture_year', 'manufacturer', 'owner_code', 'owner_name',
-                  'csc_plate_no', 'csc_expiry_date'] as $profileField) {
+                  'csc_plate_no', 'csc_expiry_date',
+                  'ventilation_type', 'vent_count'] as $profileField) {
             if (isset($validated[$profileField]) && $validated[$profileField] !== null && $validated[$profileField] !== '') {
                 $containerData[$profileField] = $validated[$profileField];
             }
@@ -301,13 +305,15 @@ class YardController extends Controller
 
         // Record gate movement
         $movement = GateMovement::create([
-            'container_id'    => $container->id,
-            'container_no'    => $container->container_no,
-            'customer_id'     => $validated['customer_id'],
-            'transporter_id'  => $validated['transporter_id'] ?? null,
-            'movement_type'   => 'in',
-            'size'            => $eqt->size,
-            'container_type'  => $eqt->type_code,
+            'container_id'     => $container->id,
+            'container_no'     => $container->container_no,
+            'customer_id'      => $validated['customer_id'],
+            'transporter_id'   => $validated['transporter_id'] ?? null,
+            'movement_type'    => 'in',
+            'size'             => $eqt->size,
+            'container_type'   => $eqt->type_code,
+            'ventilation_type' => $validated['ventilation_type'] ?? $container->effective_ventilation_type,
+            'vent_count'       => $validated['vent_count'] ?? $container->effective_vent_count,
             'location_zone'   => $validated['location_zone'],
             'location_row'    => $validated['location_row'],
             'location_bay'    => $validated['location_bay'],
@@ -447,13 +453,15 @@ class YardController extends Controller
 
         // Record gate movement
         $movement = GateMovement::create([
-            'container_id'    => $container->id,
-            'container_no'    => $container->container_no,
-            'customer_id'     => $container->customer_id,
-            'transporter_id'  => $validated['transporter_id'] ?? null,
-            'movement_type'   => 'out',
-            'size'            => $container->size,
-            'container_type'  => $container->type_code,
+            'container_id'     => $container->id,
+            'container_no'     => $container->container_no,
+            'customer_id'      => $container->customer_id,
+            'transporter_id'   => $validated['transporter_id'] ?? null,
+            'movement_type'    => 'out',
+            'size'             => $container->size,
+            'container_type'   => $container->type_code,
+            'ventilation_type' => $container->effective_ventilation_type,
+            'vent_count'       => $container->effective_vent_count,
             'location_zone'   => $container->location_zone,
             'location_row'    => $container->location_row,
             'location_bay'    => $container->location_bay,
@@ -571,11 +579,13 @@ class YardController extends Controller
         $isAdmin = auth()->user()->isAdmin();
 
         $rules = [
-            'vehicle_plate' => ['nullable', 'string', 'max:20'],
-            'remarks'       => ['nullable', 'string'],
-            'condition'     => ['nullable', 'in:sound,damaged,require_repair'],
-            'cargo_status'  => ['nullable', 'in:empty,laden'],
-            'seal_no'       => ['nullable', 'string', 'max:20'],
+            'vehicle_plate'    => ['nullable', 'string', 'max:20'],
+            'remarks'          => ['nullable', 'string'],
+            'condition'        => ['nullable', 'in:sound,damaged,require_repair'],
+            'cargo_status'     => ['nullable', 'in:empty,laden'],
+            'seal_no'          => ['nullable', 'string', 'max:20'],
+            'ventilation_type' => ['nullable', 'in:none,passive,cross,mechanical,reefer,controlled_atm'],
+            'vent_count'       => ['nullable', 'integer', 'min:0', 'max:99'],
         ];
 
         if ($movement->movement_type === 'in') {
@@ -619,11 +629,13 @@ class YardController extends Controller
         $validated = $request->validate($rules);
 
         $updateData = array_filter([
-            'vehicle_plate' => $validated['vehicle_plate'] ?? null,
-            'remarks'       => $validated['remarks'] ?? null,
-            'condition'     => $validated['condition'] ?? null,
-            'cargo_status'  => $validated['cargo_status'] ?? null,
-            'seal_no'       => $validated['seal_no'] ?? null,
+            'vehicle_plate'    => $validated['vehicle_plate'] ?? null,
+            'remarks'          => $validated['remarks'] ?? null,
+            'condition'        => $validated['condition'] ?? null,
+            'cargo_status'     => $validated['cargo_status'] ?? null,
+            'seal_no'          => $validated['seal_no'] ?? null,
+            'ventilation_type' => $validated['ventilation_type'] ?? null,
+            'vent_count'       => isset($validated['vent_count']) ? (int) $validated['vent_count'] : null,
         ], fn ($v) => $v !== null);
 
         if ($movement->movement_type === 'in') {
@@ -983,6 +995,12 @@ class YardController extends Controller
             'grade_id'         => $container->grade_id,
             'grade_name'       => $container->grade?->name,
             'grade_code'       => $container->grade?->code,
+            'ventilation_type' => $container->effective_ventilation_type,
+            'vent_count'       => $container->effective_vent_count,
+            'ventilation_label'=> $container->effective_ventilation_type
+                ? ((\App\Models\EquipmentType::VENTILATION_TYPES[$container->effective_ventilation_type] ?? $container->effective_ventilation_type)
+                    . ($container->effective_vent_count > 0 ? ' · ' . $container->effective_vent_count . ' vents' : ''))
+                : null,
         ]);
     }
 
