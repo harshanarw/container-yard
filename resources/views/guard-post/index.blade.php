@@ -8,6 +8,37 @@
 
 @section('content')
 
+@push('styles')
+<style>
+    .gp-action-link .card {
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .gp-action-link:hover .card {
+        transform: translateY(-5px);
+        text-decoration: none;
+    }
+    .gp-action-link:hover .card.border-primary {
+        border-color: #1976D2 !important;
+        box-shadow: 0 8px 24px rgba(33,150,243,.25) !important;
+    }
+    .gp-action-link:hover .card.border-success {
+        border-color: #1e7e34 !important;
+        box-shadow: 0 8px 24px rgba(40,167,69,.25) !important;
+    }
+    .gp-action-link:hover .bi-box-arrow-in-right {
+        transform: scale(1.1);
+    }
+    .gp-action-link:hover .bi-box-arrow-right {
+        transform: scale(1.1);
+    }
+    .gp-action-link .bi-box-arrow-in-right,
+    .gp-action-link .bi-box-arrow-right {
+        transition: transform .18s ease;
+        display: block;
+    }
+</style>
+@endpush
+
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
         <h4><i class="bi bi-shield-check me-2 text-success"></i>Guard Post</h4>
@@ -25,7 +56,7 @@
 {{-- Action cards --}}
 <div class="row g-3 mb-4">
     <div class="col-md-6">
-        <a href="{{ route('guard-post.create') }}?direction=gate_in" class="text-decoration-none">
+        <a href="{{ route('guard-post.create') }}?direction=gate_in" class="text-decoration-none gp-action-link">
             <div class="card h-100 border-primary" style="border-width:2px!important;">
                 <div class="card-body text-center py-4">
                     <i class="bi bi-box-arrow-in-right display-4 text-primary mb-3 d-block"></i>
@@ -36,7 +67,7 @@
         </a>
     </div>
     <div class="col-md-6">
-        <a href="{{ route('guard-post.create') }}?direction=gate_out" class="text-decoration-none">
+        <a href="{{ route('guard-post.create') }}?direction=gate_out" class="text-decoration-none gp-action-link">
             <div class="card h-100 border-success" style="border-width:2px!important;">
                 <div class="card-body text-center py-4">
                     <i class="bi bi-box-arrow-right display-4 text-success mb-3 d-block"></i>
