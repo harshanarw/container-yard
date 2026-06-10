@@ -1806,20 +1806,27 @@ window.ventilationFields = {
     const sizeHid = document.getElementById('gateEqtSize'), typeHid = document.getElementById('gateEqtTypeCode');
     const sizeBadge = document.getElementById('gateEqtSizeBadge'), typeBadge = document.getElementById('gateEqtTypeBadge');
     function applyEqt(opt) {
-        if (!opt || !opt.value) { sizeHid.value = ''; typeHid.value = ''; sizeBadge.classList.add('d-none'); typeBadge.classList.add('d-none'); return; }
+        const vtEl = document.getElementById('gateVentType');
+        const vcEl = document.getElementById('gateVentCount');
+        const vsEl = document.getElementById('gateVentSource');
+        if (!opt || !opt.value) {
+            sizeHid.value = ''; typeHid.value = '';
+            sizeBadge.classList.add('d-none'); typeBadge.classList.add('d-none');
+            if (vtEl) vtEl.value = '';
+            if (vcEl) vcEl.value = '';
+            if (vsEl) vsEl.textContent = '';
+            return;
+        }
         const isReefer = ['RF', 'RH'].includes(opt.dataset.type);
         sizeHid.value = opt.dataset.size; typeHid.value = opt.dataset.type;
         sizeBadge.textContent = opt.dataset.size + "'"; typeBadge.textContent = opt.dataset.type;
         typeBadge.className = 'badge text-nowrap' + (isReefer ? ' badge-reefer' : ' bg-info-subtle text-info');
         sizeBadge.classList.remove('d-none'); typeBadge.classList.remove('d-none');
-        // Auto-fill ventilation from EQT only when the field is currently blank
-        const vtEl = document.getElementById('gateVentType');
-        const vcEl = document.getElementById('gateVentCount');
-        const vsEl = document.getElementById('gateVentSource');
-        if (vtEl && opt.dataset.ventType && !vtEl.value) {
-            vtEl.value = opt.dataset.ventType;
-            if (vcEl && opt.dataset.ventCount !== '') vcEl.value = opt.dataset.ventCount;
-            if (vsEl) vsEl.textContent = 'From EQT';
+        // Always sync ventilation from EQT when equipment type is selected or changed
+        if (vtEl) {
+            vtEl.value = opt.dataset.ventType || '';
+            if (vcEl) vcEl.value = opt.dataset.ventType ? (opt.dataset.ventCount || '') : '';
+            if (vsEl) vsEl.textContent = opt.dataset.ventType ? 'From EQT' : '';
         }
     }
     sel.addEventListener('change', () => applyEqt(sel.selectedOptions[0]));
