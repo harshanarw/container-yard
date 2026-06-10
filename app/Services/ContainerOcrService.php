@@ -445,36 +445,65 @@ class ContainerOcrService
      */
     private function extractContainerNo(array $cropCandidates, array $fullCandidates, string $fallback): array
     {
-        // Two pools kept separate so actual OCR reads beat brute-forced guesses.
-        // A result is a "guess" when extractContainerNoFromCompact returns valid=false
-        // but the number itself passes validateCheckDigit — i.e. we appended a
-        // mathematically correct check digit to a 6-digit compact. That digit may not
-        // match what is physically stencilled on the door (e.g. container has an
-        // incorrect check digit). An "actual read" has valid=false AND fails
-        // validateCheckDigit — OCR read all 7 chars including the door's check digit.
-        $cropVotes  = [];   // actual 7-digit OCR reads (invalid check digit on door)
-        $guessVotes = [];   // 6-digit brute-forced guesses (check digit appended by us)
+        // Three vote pools — all crops are collected before a winner is picked.
+        //
+        // validVotes  — extractContainerNoFromCompact returned valid=true
+        //               (OCR read 7 chars that pass ISO 6346 check digit)
+        //
+        // cropVotes   — returned valid=false AND validateCheckDigit(no)=false
+        //               OCR read 7 chars including the physical door's check digit,
+        //               which does NOT match the ISO 6346 calculation. This is the
+        //               "actual read" — what is literally stencilled on the door.
+        //
+        // guessVotes  — returned valid=false AND validateCheckDigit(no)=true
+        //               6-digit compact: we appended the mathematically correct check
+        //               digit ourselves (brute-force). The actual door digit is unknown.
+        //
+        // Decision after collecting all crops:
+        //   If valid and actual-read pools both contain candidates that share the same
+        //   owner-code + serial (first 10 chars) but differ only in check digit, the
+        //   actual read wins with valid=false — the guard sees the physical marking and
+        //   a "check digit unconfirmed" warning.  This handles containers whose check
+        //   digit box was stencilled incorrectly (the ISO-valid digit was being silently
+        //   substituted for what's on the door).
+        //   If they point to completely different serials, the validated reading wins.
+        //   Guesses are a last resort: used only when neither pool has a result.
+        $validVotes = [];
+        $cropVotes  = [];
+        $guessVotes = [];
 
         foreach ($cropCandidates as $text) {
             $compact = preg_replace('/[^A-Z0-9]/', '', strtoupper($text));
             [$no, $valid] = $this->extractContainerNoFromCompact($compact);
-            if ($valid) return [$no, true];
-            if ($no !== null) {
-                if ($this->validateCheckDigit($no)) {
-                    $guessVotes[$no] = ($guessVotes[$no] ?? 0) + 1;
-                } else {
-                    $cropVotes[$no] = ($cropVotes[$no] ?? 0) + 1;
-                }
+            if ($no === null) continue;
+            if ($valid) {
+                $validVotes[$no] = ($validVotes[$no] ?? 0) + 1;
+            } elseif ($this->validateCheckDigit($no)) {
+                $guessVotes[$no] = ($guessVotes[$no] ?? 0) + 1;
+            } else {
+                $cropVotes[$no] = ($cropVotes[$no] ?? 0) + 1;
             }
         }
 
-        // Prefer actual reads: if any crop read a full 7-char sequence (even one
-        // with an incorrect check digit), that beats brute-forced guesses.
-        // Both pools return valid=false — the check digit is never confirmed here.
-        if (!empty($cropVotes)) {
+        if (!empty($validVotes) || !empty($cropVotes)) {
+            arsort($validVotes);
             arsort($cropVotes);
-            return [array_key_first($cropVotes), false];
+            $topValid  = !empty($validVotes) ? array_key_first($validVotes) : null;
+            $topActual = !empty($cropVotes)  ? array_key_first($cropVotes)  : null;
+
+            if ($topValid !== null && $topActual !== null) {
+                // Same owner code + serial, only check digit differs:
+                // the door has a different (possibly incorrect) check digit — show it with warning.
+                if (substr($topValid, 0, 10) === substr($topActual, 0, 10)) {
+                    return [$topActual, false];
+                }
+                // Completely different containers — trust the validated reading.
+                return [$topValid, true];
+            }
+            if ($topValid  !== null) return [$topValid,  true];
+            if ($topActual !== null) return [$topActual, false];
         }
+
         if (!empty($guessVotes)) {
             arsort($guessVotes);
             return [array_key_first($guessVotes), false];
