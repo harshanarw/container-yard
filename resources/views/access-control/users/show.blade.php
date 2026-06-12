@@ -48,7 +48,6 @@
     <li class="nav-item">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-overrides">
             <i class="bi bi-toggles me-1"></i>Permission Overrides
-            @php $overrideCount = $user->directPermissions()->count(); @endphp
             @if($overrideCount)
             <span class="badge bg-warning-subtle text-warning ms-1">{{ $overrideCount }}</span>
             @endif

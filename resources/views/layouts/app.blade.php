@@ -701,6 +701,7 @@
         </div>
 
         {{-- ── BILLING ── --}}
+        @if(Auth::user()->can('billing.storage.view') || Auth::user()->can('billing.storage-handling.view') || Auth::user()->can('billing.reefer.view'))
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-billing"
                 aria-expanded="false" aria-controls="nav-section-billing">
@@ -734,6 +735,7 @@
                 @endcan
             </ul>
         </div>
+        @endif
 
         {{-- ── SETUP ── --}}
         <button class="nav-section-label"

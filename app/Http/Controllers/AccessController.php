@@ -152,10 +152,11 @@ class AccessController extends Controller
         $overrides = $user->directPermissions()->get()
             ->mapWithKeys(fn($p) => [$p->name => (bool) $p->pivot->granted]);
 
+        $overrideCount = $overrides->count();
         $sections = $this->buildOverrideMatrix($inheritedPerms, $overrides);
 
         return view('access-control.users.show', compact(
-            'user', 'allRoles', 'userRoleIds', 'sections'
+            'user', 'allRoles', 'userRoleIds', 'sections', 'overrideCount'
         ));
     }
 
