@@ -14,9 +14,11 @@
         <h4><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Storage Invoices</h4>
         <p class="text-muted mb-0 small">Generate, manage and track container storage billing</p>
     </div>
+    @can('billing.storage.create')
     <a href="{{ route('billing.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i>Generate Invoice
     </a>
+    @endcan
 </div>
 
 <!-- Stats -->
@@ -144,6 +146,7 @@
                                    class="btn btn-outline-secondary btn-sm" title="Print / PDF" target="_blank">
                                     <i class="bi bi-printer"></i>
                                 </a>
+                                @can('billing.storage.delete')
                                 @if($inv->isDraft())
                                 <form method="POST" action="{{ route('billing.destroy', $inv) }}"
                                       data-confirm="Delete this draft invoice?"
@@ -156,6 +159,7 @@
                                     </button>
                                 </form>
                                 @endif
+                                @endcan
                             </div>
                         </td>
                     </tr>

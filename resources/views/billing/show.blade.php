@@ -35,11 +35,14 @@
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        @can('billing.storage.pdf')
         <a href="{{ route('billing.pdf', $invoice) }}"
            class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
         </a>
+        @endcan
 
+        @can('billing.storage.approve')
         @if($invoice->isDraft())
         <form method="POST" action="{{ route('billing.issue', $invoice) }}">
             @csrf @method('PATCH')
@@ -65,7 +68,9 @@
             </button>
         </form>
         @endif
+        @endcan
 
+        @can('billing.storage.delete')
         @if(!in_array($invoice->status, ['paid','cancelled']))
         <form method="POST" action="{{ route('billing.cancel', $invoice) }}">
             @csrf @method('PATCH')
@@ -91,10 +96,13 @@
             </button>
         </form>
         @endif
+        @endcan
 
+        @can('billing.storage.email')
         <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#emailModal">
             <i class="bi bi-envelope me-1"></i>Email
         </button>
+        @endcan
     </div>
 </div>
 
@@ -412,6 +420,7 @@
 </div>
 
 <!-- Email Modal -->
+@can('billing.storage.email')
 <div class="modal fade" id="emailModal" tabindex="-1">
     <div class="modal-dialog">
         <form method="POST" action="{{ route('billing.email', $invoice) }}">
@@ -453,5 +462,6 @@
         </form>
     </div>
 </div>
+@endcan
 
 @endsection

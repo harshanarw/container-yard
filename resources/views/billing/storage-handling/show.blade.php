@@ -45,11 +45,14 @@
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        @can('billing.storage-handling.pdf')
         <a href="{{ route('billing.storage-handling.pdf', $invoice) }}"
            class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
         </a>
+        @endcan
 
+        @can('billing.storage-handling.approve')
         @if($invoice->isDraft())
         <form method="POST" action="{{ route('billing.storage-handling.issue', $invoice) }}">
             @csrf @method('PATCH')
@@ -75,7 +78,9 @@
             </button>
         </form>
         @endif
+        @endcan
 
+        @can('billing.storage-handling.delete')
         @if(!in_array($invoice->status, ['paid','cancelled']))
         <form method="POST" action="{{ route('billing.storage-handling.cancel', $invoice) }}">
             @csrf @method('PATCH')
@@ -101,6 +106,7 @@
             </button>
         </form>
         @endif
+        @endcan
     </div>
 </div>
 

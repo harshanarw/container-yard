@@ -40,6 +40,7 @@ $statusColors = [
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        @can('work-orders.edit')
         @if($canEdit)
         <a href="{{ route('work-orders.edit', $workOrder) }}" class="btn btn-primary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
@@ -136,7 +137,9 @@ $statusColors = [
             </button>
         </form>
         @endif
+        @endcan
 
+        @can('work-orders.delete')
         @if($canDelete)
         <form method="POST" action="{{ route('work-orders.destroy', $workOrder) }}" class="d-inline">
             @csrf @method('DELETE')
@@ -149,6 +152,7 @@ $statusColors = [
             </button>
         </form>
         @endif
+        @endcan
 
         <a href="{{ route('work-orders.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Back
@@ -484,9 +488,11 @@ $statusColors = [
                         <button type="button" id="passAllBtn" class="btn btn-outline-success btn-sm">
                             <i class="bi bi-check-all me-1"></i>Pass All Lines
                         </button>
+                        @can('work-orders.edit')
                         <button type="submit" class="btn btn-primary btn-sm" id="submitQcBtn">
                             <i class="bi bi-clipboard-check me-1"></i>Submit QC Review
                         </button>
+                        @endcan
                     </div>
                 </div>
             </div>

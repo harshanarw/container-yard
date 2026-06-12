@@ -12,30 +12,39 @@
     </div>
     <span class="badge {{ $reeferInvoice->status_badge_class }} fs-6 me-3">{{ $reeferInvoice->status_label }}</span>
     <div class="d-flex gap-2">
+        @can('billing.reefer.pdf')
         <a href="{{ route('billing.reefer.pdf', $reeferInvoice) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
             <i class="bi bi-file-pdf me-1"></i>PDF
         </a>
+        @endcan
+        @can('billing.reefer.approve')
         @if($reeferInvoice->isDraft())
             <form action="{{ route('billing.reefer.issue', $reeferInvoice) }}" method="POST" class="d-inline">
                 @csrf @method('PATCH')
                 <button class="btn btn-sm btn-info">Issue</button>
-            </form>
-            <form action="{{ route('billing.reefer.destroy', $reeferInvoice) }}" method="POST" class="d-inline"
-                  onsubmit="return confirm('Delete this draft invoice?')">
-                @csrf @method('DELETE')
-                <button class="btn btn-sm btn-outline-danger">Delete</button>
             </form>
         @elseif($reeferInvoice->status === 'issued')
             <form action="{{ route('billing.reefer.pay', $reeferInvoice) }}" method="POST" class="d-inline">
                 @csrf @method('PATCH')
                 <button class="btn btn-sm btn-success">Mark Paid</button>
             </form>
+        @endif
+        @endcan
+        @can('billing.reefer.delete')
+        @if($reeferInvoice->isDraft())
+            <form action="{{ route('billing.reefer.destroy', $reeferInvoice) }}" method="POST" class="d-inline"
+                  onsubmit="return confirm('Delete this draft invoice?')">
+                @csrf @method('DELETE')
+                <button class="btn btn-sm btn-outline-danger">Delete</button>
+            </form>
+        @elseif($reeferInvoice->status === 'issued')
             <form action="{{ route('billing.reefer.cancel', $reeferInvoice) }}" method="POST" class="d-inline"
                   onsubmit="return confirm('Cancel this invoice?')">
                 @csrf @method('PATCH')
                 <button class="btn btn-sm btn-outline-danger">Cancel</button>
             </form>
         @endif
+        @endcan
     </div>
 </div>
 

@@ -35,12 +35,15 @@ $statusColors = [
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        @can('billing.repair.edit')
         @if($canEdit)
         <a href="{{ route('repair-invoices.edit', $invoice) }}" class="btn btn-primary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
         @endif
+        @endcan
 
+        @can('billing.repair.approve')
         @if($canIssue)
         <form method="POST" action="{{ route('repair-invoices.issue', $invoice) }}" class="d-inline">
             @csrf @method('PATCH')
@@ -59,7 +62,9 @@ $statusColors = [
             <i class="bi bi-cash-coin me-1"></i>Record Payment
         </button>
         @endif
+        @endcan
 
+        @can('billing.repair.delete')
         @if($canCancel)
         <form method="POST" action="{{ route('repair-invoices.cancel', $invoice) }}" class="d-inline">
             @csrf @method('PATCH')
@@ -85,6 +90,7 @@ $statusColors = [
             </button>
         </form>
         @endif
+        @endcan
 
         <a href="{{ route('repair-invoices.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Back
@@ -273,6 +279,7 @@ $statusColors = [
 @endif
 
 <!-- Payment Modal -->
+@can('billing.repair.approve')
 @if($canMarkPaid)
 <div class="modal fade" id="paymentModal" tabindex="-1">
     <div class="modal-dialog">
@@ -310,5 +317,6 @@ $statusColors = [
     </div>
 </div>
 @endif
+@endcan
 
 @endsection
