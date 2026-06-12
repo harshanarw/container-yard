@@ -7,6 +7,14 @@ use Illuminate\Http\Request;
 
 class CustomerTypeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.customer-types.view')->only(['index']);
+        $this->middleware('can:masters.customer-types.create')->only(['store']);
+        $this->middleware('can:masters.customer-types.edit')->only(['update', 'toggleActive', 'reorder']);
+        $this->middleware('can:masters.customer-types.delete')->only(['destroy']);
+    }
+
     public function index()
     {
         $items = CustomerType::withCount('customers')->orderBy('sort_order')->orderBy('name')->get();

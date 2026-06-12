@@ -9,6 +9,14 @@ use Illuminate\Http\Request;
 
 class MrCodeChargeMappingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.mr-codes.view')->only(['index']);
+        $this->middleware('can:masters.mr-codes.create')->only(['store']);
+        $this->middleware('can:masters.mr-codes.edit')->only(['update', 'toggleActive']);
+        $this->middleware('can:masters.mr-codes.delete')->only(['destroy']);
+    }
+
     public function index()
     {
         $mappings = MrCodeChargeMapping::with('componentCode', 'repairCode', 'chargeCode.taxCode')

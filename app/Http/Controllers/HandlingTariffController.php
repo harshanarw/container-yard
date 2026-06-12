@@ -13,6 +13,14 @@ class HandlingTariffController extends Controller
 {
     const SIZES = ['20', '40', '45'];
 
+    public function __construct()
+    {
+        $this->middleware('can:masters.handling-tariff.view')->only(['index', 'show']);
+        $this->middleware('can:masters.handling-tariff.create')->only(['store', 'storeRate']);
+        $this->middleware('can:masters.handling-tariff.edit')->only(['update', 'toggleActive', 'updateRate']);
+        $this->middleware('can:masters.handling-tariff.delete')->only(['destroy', 'destroyRate']);
+    }
+
     // ── Index ────────────────────────────────────────────────────────────────
 
     public function index()

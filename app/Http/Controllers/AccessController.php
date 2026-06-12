@@ -12,6 +12,14 @@ use Illuminate\Support\Str;
 
 class AccessController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:access-control.view')->only(['roles', 'editRole', 'users', 'userAccess']);
+        $this->middleware('can:access-control.create')->only(['createRole', 'storeRole']);
+        $this->middleware('can:access-control.edit')->only(['updateRole', 'updateUserRoles', 'updateUserPermissions']);
+        $this->middleware('can:access-control.delete')->only(['destroyRole']);
+    }
+
     // ── Roles ──────────────────────────────────────────────────────────────────
 
     public function roles()

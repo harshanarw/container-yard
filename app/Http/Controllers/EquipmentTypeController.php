@@ -7,6 +7,14 @@ use Illuminate\Http\Request;
 
 class EquipmentTypeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.equipment-types.view')->only(['index']);
+        $this->middleware('can:masters.equipment-types.create')->only(['store']);
+        $this->middleware('can:masters.equipment-types.edit')->only(['update', 'toggleActive', 'reorder']);
+        $this->middleware('can:masters.equipment-types.delete')->only(['destroy']);
+    }
+
     public function index()
     {
         $items = EquipmentType::orderBy('sort_order')->orderBy('eqt_code')->get();

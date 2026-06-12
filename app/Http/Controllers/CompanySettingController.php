@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\Storage;
 
 class CompanySettingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:settings.company.view')->only(['index']);
+        $this->middleware('can:settings.company.edit')->only(['update', 'setDefaultCurrency', 'deleteLogo', 'deleteIcon', 'deleteProductIcon']);
+    }
+
     private function authorise(): void
     {
         if (!auth()->user()->isSystemAdmin()) {

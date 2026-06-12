@@ -7,6 +7,14 @@ use Illuminate\Http\Request;
 
 class CountryController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.countries.view')->only(['index']);
+        $this->middleware('can:masters.countries.create')->only(['store']);
+        $this->middleware('can:masters.countries.edit')->only(['update', 'toggleActive']);
+        $this->middleware('can:masters.countries.delete')->only(['destroy']);
+    }
+
     private function authorise(): void
     {
         if (! auth()->user()->isSystemAdmin()) {

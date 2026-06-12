@@ -8,6 +8,14 @@ use Illuminate\Http\Request;
 
 class ChargeCodeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.charge-codes.view')->only(['index']);
+        $this->middleware('can:masters.charge-codes.create')->only(['store']);
+        $this->middleware('can:masters.charge-codes.edit')->only(['update', 'toggleActive', 'reorder']);
+        $this->middleware('can:masters.charge-codes.delete')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $query = ChargeCode::with('taxCode')->orderBy('sort_order')->orderBy('code');

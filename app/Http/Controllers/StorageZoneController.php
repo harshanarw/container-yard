@@ -10,6 +10,14 @@ use Illuminate\Http\Request;
 
 class StorageZoneController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.storage-zones.view')->only(['index', 'slots']);
+        $this->middleware('can:masters.storage-zones.create')->only(['store', 'generateSlots']);
+        $this->middleware('can:masters.storage-zones.edit')->only(['update', 'toggleActive', 'moveSlot']);
+        $this->middleware('can:masters.storage-zones.delete')->only(['destroy', 'clearSlots', 'destroySlot']);
+    }
+
     public function index()
     {
         $zones = StorageZone::withCount([

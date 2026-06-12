@@ -9,6 +9,14 @@ use Illuminate\Http\Request;
 
 class CurrencyController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.currencies.view')->only(['index']);
+        $this->middleware('can:masters.currencies.create')->only(['store']);
+        $this->middleware('can:masters.currencies.edit')->only(['update', 'toggleActive', 'reorder', 'setDefault']);
+        $this->middleware('can:masters.currencies.delete')->only(['destroy']);
+    }
+
     public function index()
     {
         $currencies       = Currency::with('countryInfo')->orderBy('sort_order')->orderBy('code')->get();

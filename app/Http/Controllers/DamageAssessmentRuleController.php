@@ -10,6 +10,14 @@ use Illuminate\Http\Request;
 
 class DamageAssessmentRuleController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.damage-rules.view')->only(['index', 'show', 'search']);
+        $this->middleware('can:masters.damage-rules.create')->only(['create', 'store']);
+        $this->middleware('can:masters.damage-rules.edit')->only(['edit', 'update', 'toggleActive']);
+        $this->middleware('can:masters.damage-rules.delete')->only(['destroy']);
+    }
+
     private function codes(): array
     {
         return [

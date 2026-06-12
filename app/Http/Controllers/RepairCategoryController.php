@@ -7,6 +7,14 @@ use Illuminate\Http\Request;
 
 class RepairCategoryController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.repair-categories.view')->only(['index']);
+        $this->middleware('can:masters.repair-categories.create')->only(['store']);
+        $this->middleware('can:masters.repair-categories.edit')->only(['update', 'toggleActive', 'reorder']);
+        $this->middleware('can:masters.repair-categories.delete')->only(['destroy']);
+    }
+
     public function index()
     {
         $categories = RepairCategory::orderBy('sort_order')->get();

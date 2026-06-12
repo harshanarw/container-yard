@@ -10,6 +10,14 @@ use Illuminate\Validation\Rule;
 
 class ExchangeRateController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.exchange-rates.view')->only(['index']);
+        $this->middleware('can:masters.exchange-rates.create')->only(['store']);
+        $this->middleware('can:masters.exchange-rates.edit')->only(['update']);
+        $this->middleware('can:masters.exchange-rates.delete')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $settings        = CompanySetting::current();

@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\Auth;
 
 class ReeferTariffController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.reefer-tariff.view')->only(['index', 'show']);
+        $this->middleware('can:masters.reefer-tariff.create')->only(['store']);
+        $this->middleware('can:masters.reefer-tariff.edit')->only(['update', 'toggleActive']);
+        $this->middleware('can:masters.reefer-tariff.delete')->only(['destroy']);
+    }
+
     public function index()
     {
         $tariffs   = ReeferElectricityTariff::with(['customer', 'createdBy', 'updatedBy'])

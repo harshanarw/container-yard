@@ -14,6 +14,14 @@ use Illuminate\Support\Facades\Auth;
 
 class MrTariffController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.mr-tariff.view')->only(['index', 'show', 'itemSearch', 'rateLookup']);
+        $this->middleware('can:masters.mr-tariff.create')->only(['store', 'storeRule', 'storeItem', 'storeSlab']);
+        $this->middleware('can:masters.mr-tariff.edit')->only(['update', 'toggleActive', 'updateRule', 'updateItem', 'updateSlab']);
+        $this->middleware('can:masters.mr-tariff.delete')->only(['destroy', 'destroyRule', 'destroyItem', 'destroySlab']);
+    }
+
     // ── Index ────────────────────────────────────────────────────────────────
 
     public function index()

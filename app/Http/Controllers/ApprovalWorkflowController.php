@@ -7,6 +7,13 @@ use Illuminate\Http\Request;
 
 class ApprovalWorkflowController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:settings.approval-workflows.view')->only(['index']);
+        $this->middleware('can:settings.approval-workflows.create')->only(['store']);
+        $this->middleware('can:settings.approval-workflows.edit')->only(['update', 'toggleActive']);
+    }
+
     private const ROLES = [
         ''                    => '— Any authenticated user —',
         'system_administrator'=> 'System Administrator',

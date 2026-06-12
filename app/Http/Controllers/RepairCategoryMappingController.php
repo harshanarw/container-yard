@@ -9,6 +9,14 @@ use Illuminate\Http\Request;
 
 class RepairCategoryMappingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.repair-categories.view')->only(['index']);
+        $this->middleware('can:masters.repair-categories.create')->only(['store']);
+        $this->middleware('can:masters.repair-categories.edit')->only(['update', 'toggleActive']);
+        $this->middleware('can:masters.repair-categories.delete')->only(['destroy']);
+    }
+
     public function index()
     {
         $mappings        = RepairCategoryMapping::with('repairCategory', 'componentCode')

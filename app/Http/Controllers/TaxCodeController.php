@@ -8,6 +8,14 @@ use Illuminate\Http\Request;
 
 class TaxCodeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.tax-codes.view')->only(['index', 'updateLabels']);
+        $this->middleware('can:masters.tax-codes.create')->only(['store']);
+        $this->middleware('can:masters.tax-codes.edit')->only(['update', 'toggleActive', 'reorder']);
+        $this->middleware('can:masters.tax-codes.delete')->only(['destroy']);
+    }
+
     public function index()
     {
         $taxCodes = TaxCode::orderBy('sort_order')->orderBy('code')->get();

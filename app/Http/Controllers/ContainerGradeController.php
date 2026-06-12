@@ -7,6 +7,14 @@ use Illuminate\Http\Request;
 
 class ContainerGradeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.container-grades.view')->only(['index']);
+        $this->middleware('can:masters.container-grades.create')->only(['store']);
+        $this->middleware('can:masters.container-grades.edit')->only(['update', 'toggleActive', 'reorder']);
+        $this->middleware('can:masters.container-grades.delete')->only(['destroy']);
+    }
+
     public function index()
     {
         $items = ContainerGrade::orderBy('sort_order')->orderBy('code')->get();

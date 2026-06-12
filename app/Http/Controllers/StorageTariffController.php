@@ -13,6 +13,14 @@ use Illuminate\Support\Facades\DB;
 
 class StorageTariffController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.storage-tariff.view')->only(['index', 'show']);
+        $this->middleware('can:masters.storage-tariff.create')->only(['store', 'storeDetail']);
+        $this->middleware('can:masters.storage-tariff.edit')->only(['update', 'toggleActive', 'updateDetail']);
+        $this->middleware('can:masters.storage-tariff.delete')->only(['destroy', 'destroyDetail']);
+    }
+
     // ── Index ────────────────────────────────────────────────────────────────
 
     public function index()

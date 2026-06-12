@@ -8,6 +8,14 @@ use Illuminate\Support\Str;
 
 class ChecklistMasterItemController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:masters.checklist-items.view')->only(['index']);
+        $this->middleware('can:masters.checklist-items.create')->only(['store']);
+        $this->middleware('can:masters.checklist-items.edit')->only(['update', 'toggleActive', 'reorder']);
+        $this->middleware('can:masters.checklist-items.delete')->only(['destroy']);
+    }
+
     public function index()
     {
         $items = ChecklistMasterItem::orderBy('sort_order')->orderBy('id')->get();
