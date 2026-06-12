@@ -40,6 +40,7 @@ use App\Http\Controllers\ApprovalWorkflowController;
 use App\Http\Controllers\YardController;
 use App\Http\Controllers\ContainerOcrController;
 use App\Http\Controllers\PlateOcrController;
+use App\Http\Controllers\AccessController;
 use App\Http\Controllers\ContainerGradeController;
 use App\Http\Controllers\GuardPostController;
 use App\Http\Controllers\ReeferTariffController;
@@ -446,6 +447,23 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/{country}',        [CountryController::class, 'update'])->name('update');
         Route::patch('/{country}/toggle', [CountryController::class, 'toggleActive'])->name('toggle');
         Route::delete('/{country}',       [CountryController::class, 'destroy'])->name('destroy');
+    });
+
+    // Access Control — roles and user permission management
+    Route::prefix('access-control')->name('access-control.')->group(function () {
+        // Roles
+        Route::get('/roles',           [AccessController::class, 'roles'])->name('roles.index');
+        Route::get('/roles/create',    [AccessController::class, 'createRole'])->name('roles.create');
+        Route::post('/roles',          [AccessController::class, 'storeRole'])->name('roles.store');
+        Route::get('/roles/{role}',    [AccessController::class, 'editRole'])->name('roles.edit');
+        Route::patch('/roles/{role}',  [AccessController::class, 'updateRole'])->name('roles.update');
+        Route::delete('/roles/{role}', [AccessController::class, 'destroyRole'])->name('roles.destroy');
+
+        // Users
+        Route::get('/users',                          [AccessController::class, 'users'])->name('users.index');
+        Route::get('/users/{user}',                   [AccessController::class, 'userAccess'])->name('users.show');
+        Route::patch('/users/{user}/roles',           [AccessController::class, 'updateUserRoles'])->name('users.update-roles');
+        Route::patch('/users/{user}/permissions',     [AccessController::class, 'updateUserPermissions'])->name('users.update-permissions');
     });
 
     // Approval Workflows — System Administrator only

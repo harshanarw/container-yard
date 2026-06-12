@@ -1000,12 +1000,32 @@
         </div>
 
         {{-- ── SETTINGS ── --}}
+        @php $settingsOpen = request()->routeIs('settings.*') || request()->routeIs('access-control.*'); @endphp
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-settings"
-                aria-expanded="false" aria-controls="nav-section-settings">
+                aria-expanded="{{ $settingsOpen ? 'true' : 'false' }}" aria-controls="nav-section-settings">
             <i class="bi bi-gear-wide section-icon"></i><span>Settings</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse" id="nav-section-settings">
+        <div class="collapse {{ $settingsOpen ? 'show' : '' }}" id="nav-section-settings">
+
+            {{-- Access Control --}}
+            @can('access-control.view')
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a href="{{ route('access-control.roles.index') }}"
+                       class="nav-link {{ request()->routeIs('access-control.roles.*') ? 'active' : '' }}">
+                        <i class="bi bi-shield-lock"></i><span>Roles & Permissions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('access-control.users.index') }}"
+                       class="nav-link {{ request()->routeIs('access-control.users.*') ? 'active' : '' }}">
+                        <i class="bi bi-person-badge"></i><span>User Access</span>
+                    </a>
+                </li>
+            </ul>
+            @endcan
+
             {{-- Configuration sub-group --}}
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-settings-config"
