@@ -363,7 +363,6 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{reeferTariff}/toggle',        [ReeferTariffController::class, 'toggleActive'])->name('toggle');
             Route::delete('{reeferTariff}',              [ReeferTariffController::class, 'destroy'])->name('destroy');
         });
-
         // Storage Rate Tariff
         Route::prefix('storage-tariff')->name('storage-tariff.')->group(function () {
             Route::get('/',                              [StorageTariffController::class, 'index'])->name('index');

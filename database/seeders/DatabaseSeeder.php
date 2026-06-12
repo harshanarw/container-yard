@@ -52,6 +52,7 @@ class DatabaseSeeder extends Seeder
             TariffChargeCodeBackfillSeeder::class, // link charge_code_id on tariff rows — needs charge codes + tariffs
             MrTariffSeeder::class,          // M&R tariff headers + rules — needs customers, mr codes
             MrTariffItemSeeder::class,      // Slab-based tariff items + slabs — needs mr_tariff_headers
+            ReeferElectricityTariffSeeder::class, // default reefer electricity tariff — needs users
 
             // ── Operations ───────────────────────────────────────────────────
             InquirySeeder::class,           // container surveys / inquiries — needs containers, customers
