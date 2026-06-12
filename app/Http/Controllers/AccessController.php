@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class AccessController extends Controller
@@ -111,6 +112,7 @@ class AccessController extends Controller
     public function users(Request $request)
     {
         $users = User::with('roles')
+            ->withCount('directPermissions')
             ->when($request->search, fn($q, $s) =>
                 $q->where('name', 'like', "%{$s}%")
                   ->orWhere('email', 'like', "%{$s}%")
@@ -171,21 +173,21 @@ class AccessController extends Controller
             'denies.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        // Full replace — detach everything, then re-attach grants and denies
-        $user->directPermissions()->detach();
-
         $grantIds = Permission::whereIn('name', $request->input('grants', []))->pluck('id')
             ->mapWithKeys(fn($id) => [$id => ['granted' => true]]);
 
         $denyIds = Permission::whereIn('name', $request->input('denies', []))->pluck('id')
             ->mapWithKeys(fn($id) => [$id => ['granted' => false]]);
 
-        if ($grantIds->isNotEmpty()) {
-            $user->directPermissions()->attach($grantIds->toArray());
-        }
-        if ($denyIds->isNotEmpty()) {
-            $user->directPermissions()->attach($denyIds->toArray());
-        }
+        DB::transaction(function () use ($user, $grantIds, $denyIds) {
+            $user->directPermissions()->detach();
+            if ($grantIds->isNotEmpty()) {
+                $user->directPermissions()->attach($grantIds->toArray());
+            }
+            if ($denyIds->isNotEmpty()) {
+                $user->directPermissions()->attach($denyIds->toArray());
+            }
+        });
 
         $user->flushPermissionCache();
 

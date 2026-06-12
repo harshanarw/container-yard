@@ -539,23 +539,27 @@
         </button>
         <div class="collapse" id="nav-section-admin">
             <ul class="nav flex-column">
+                @can('settings.users.view')
                 <li class="nav-item">
                     <a href="{{ route('users.index') }}"
                        class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
                         <i class="bi bi-people"></i><span>User Management</span>
                     </a>
                 </li>
+                @endcan
+                @can('customers.view')
                 <li class="nav-item">
                     <a href="{{ route('customers.index') }}"
                        class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
                         <i class="bi bi-person-badge"></i><span>Customers</span>
                     </a>
                 </li>
+                @endcan
             </ul>
         </div>
 
         {{-- ── GUARD POST (optional feature) ── --}}
-        @if($companySetting?->enable_guard_post && in_array(auth()->user()->role, ['security_officer','gate_officer','yard_supervisor','administrator','system_administrator']))
+        @if($companySetting?->enable_guard_post && Auth::user()->can('guard-post.view'))
         @php $guardPostActive = request()->routeIs('guard-post.*'); @endphp
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-guard-post"
@@ -565,33 +569,24 @@
         </button>
         <div class="collapse {{ $guardPostActive ? 'show' : '' }}" id="nav-section-guard-post">
             <ul class="nav flex-column">
-                @if(auth()->user()->isSecurityOfficer())
                 <li class="nav-item">
                     <a href="{{ route('guard-post.index') }}"
-                       class="nav-link {{ request()->routeIs('guard-post.index') || request()->routeIs('guard-post.create') || request()->routeIs('guard-post.status') ? 'active' : '' }}">
-                        <i class="bi bi-camera"></i><span>Capture</span>
-                    </a>
-                </li>
-                @else
-                <li class="nav-item">
-                    <a href="{{ route('guard-post.queue') }}"
-                       class="nav-link {{ request()->routeIs('guard-post.queue') ? 'active' : '' }}">
-                        @php
-                            $pendingCaptures = \App\Models\GuardCapture::where('status','pending')->count();
-                        @endphp
+                       class="nav-link {{ request()->routeIs('guard-post.index') || request()->routeIs('guard-post.status') ? 'active' : '' }}">
                         <i class="bi bi-list-check"></i><span>Capture Queue</span>
+                        @php $pendingCaptures = \App\Models\GuardCapture::where('status','pending')->count(); @endphp
                         @if($pendingCaptures > 0)
                             <span class="badge bg-warning text-dark ms-auto">{{ $pendingCaptures }}</span>
                         @endif
                     </a>
                 </li>
+                @can('guard-post.create')
                 <li class="nav-item">
                     <a href="{{ route('guard-post.create') }}"
                        class="nav-link {{ request()->routeIs('guard-post.create') ? 'active' : '' }}">
                         <i class="bi bi-camera"></i><span>New Capture</span>
                     </a>
                 </li>
-                @endif
+                @endcan
             </ul>
         </div>
         @endif
@@ -613,6 +608,7 @@
             </button>
             <div class="collapse" id="nav-sub-ops-yard">
                 <ul class="nav flex-column">
+                    @can('yard.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('yard.gate') }}"
                            class="nav-link {{ request()->routeIs('yard.gate*') ? 'active' : '' }}">
@@ -631,12 +627,15 @@
                             <i class="bi bi-calculator"></i><span>Storage Calculator</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('yard.reefer.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('yard.reefer.index') }}"
                            class="nav-link {{ request()->routeIs('yard.reefer.*') ? 'active' : '' }}">
                             <i class="bi bi-plug-fill"></i><span>Reefer Plug Sessions</span>
                         </a>
                     </li>
+                    @endcan
                 </ul>
             </div>
 
@@ -650,12 +649,14 @@
             </button>
             <div class="collapse" id="nav-sub-ops-containers">
                 <ul class="nav flex-column">
+                    @can('surveys.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('surveys.index') }}"
                            class="nav-link {{ request()->routeIs('surveys.*') ? 'active' : '' }}">
                             <i class="bi bi-card-checklist"></i><span>Surveys</span>
                         </a>
                     </li>
+                    @endcan
                 </ul>
             </div>
 
@@ -671,24 +672,30 @@
             </button>
             <div class="collapse {{ $mrOpsActive ? 'show' : '' }}" id="nav-sub-ops-mr">
                 <ul class="nav flex-column">
+                    @can('estimates.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('estimates.index') }}"
                            class="nav-link {{ request()->routeIs('estimates.*') ? 'active' : '' }}">
                             <i class="bi bi-file-earmark-ruled"></i><span>Repair Estimates</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('work-orders.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('work-orders.index') }}"
                            class="nav-link {{ request()->routeIs('work-orders.*') ? 'active' : '' }}">
                             <i class="bi bi-hammer"></i><span>Work Orders</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('billing.repair.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('repair-invoices.index') }}"
                            class="nav-link {{ request()->routeIs('repair-invoices.*') ? 'active' : '' }}">
                             <i class="bi bi-receipt"></i><span>Repair Invoices</span>
                         </a>
                     </li>
+                    @endcan
                 </ul>
             </div>
         </div>
@@ -701,24 +708,30 @@
         </button>
         <div class="collapse" id="nav-section-billing">
             <ul class="nav flex-column">
+                @can('billing.storage.view')
                 <li class="nav-item">
                     <a href="{{ route('billing.index') }}"
                        class="nav-link {{ request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*') && !request()->routeIs('billing.reefer.*') ? 'active' : '' }}">
                         <i class="bi bi-file-earmark-text"></i><span>Storage Invoices</span>
                     </a>
                 </li>
+                @endcan
+                @can('billing.storage-handling.view')
                 <li class="nav-item">
                     <a href="{{ route('billing.storage-handling.index') }}"
                        class="nav-link {{ request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
                         <i class="bi bi-file-earmark-richtext"></i><span>Storage &amp; Handling</span>
                     </a>
                 </li>
+                @endcan
+                @can('billing.reefer.view')
                 <li class="nav-item">
                     <a href="{{ route('billing.reefer.index') }}"
                        class="nav-link {{ request()->routeIs('billing.reefer.*') ? 'active' : '' }}">
                         <i class="bi bi-lightning-charge-fill"></i><span>Reefer Electricity</span>
                     </a>
                 </li>
+                @endcan
             </ul>
         </div>
 
@@ -739,24 +752,30 @@
             </button>
             <div class="collapse" id="nav-sub-setup-containers">
                 <ul class="nav flex-column">
+                    @can('containers.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('containers.index') }}"
                            class="nav-link {{ request()->routeIs('containers.*') ? 'active' : '' }}">
                             <i class="bi bi-boxes"></i><span>Container Master</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('masters.equipment-types.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.equipment-types.index') }}"
                            class="nav-link {{ request()->routeIs('masters.equipment-types.*') ? 'active' : '' }}">
                             <i class="bi bi-box-seam"></i><span>Equipment Types</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('masters.container-grades.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.container-grades.index') }}"
                            class="nav-link {{ request()->routeIs('masters.container-grades.*') ? 'active' : '' }}">
                             <i class="bi bi-award"></i><span>Container Grades</span>
                         </a>
                     </li>
+                    @endcan
                 </ul>
             </div>
 
@@ -770,12 +789,14 @@
             </button>
             <div class="collapse" id="nav-sub-setup-yard">
                 <ul class="nav flex-column">
+                    @can('masters.storage-zones.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.zones.index') }}"
                            class="nav-link {{ request()->routeIs('masters.zones.*') ? 'active' : '' }}">
                             <i class="bi bi-grid-3x3-gap"></i><span>Storage Zones</span>
                         </a>
                     </li>
+                    @endcan
                 </ul>
             </div>
 
@@ -791,18 +812,22 @@
             </button>
             <div class="collapse {{ $inspectionActive ? 'show' : '' }}" id="nav-sub-setup-inspection">
                 <ul class="nav flex-column">
+                    @can('masters.checklist-items.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.checklist.index') }}"
                            class="nav-link {{ request()->routeIs('masters.checklist.*') ? 'active' : '' }}">
                             <i class="bi bi-list-check"></i><span>Checklist Items</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('masters.damage-rules.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.damage-assessment-rules.index') }}"
                            class="nav-link {{ request()->routeIs('masters.damage-assessment-rules.*') ? 'active' : '' }}">
                             <i class="bi bi-journal-check"></i><span>Assessment Rules</span>
                         </a>
                     </li>
+                    @endcan
                 </ul>
             </div>
 
@@ -818,6 +843,7 @@
             </button>
             <div class="collapse {{ $repairCatActive ? 'show' : '' }}" id="nav-sub-setup-repair-cat">
                 <ul class="nav flex-column">
+                    @can('masters.repair-categories.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.repair-categories.index') }}"
                            class="nav-link {{ request()->routeIs('masters.repair-categories.*') ? 'active' : '' }}">
@@ -830,6 +856,7 @@
                             <i class="bi bi-diagram-3"></i><span>Mapping Rules</span>
                         </a>
                     </li>
+                    @endcan
                 </ul>
             </div>
 
@@ -844,6 +871,7 @@
             </button>
             <div class="collapse {{ $mrCodesActive ? 'show' : '' }}" id="nav-sub-setup-mr-codes">
                 <ul class="nav flex-column">
+                    @can('masters.mr-codes.view')
                     @php
                     $mrCodeIcons = [
                         'location'       => 'bi-geo-alt',
@@ -868,6 +896,7 @@
                             <i class="bi bi-arrow-left-right"></i><span>Charge Mappings</span>
                         </a>
                     </li>
+                    @endcan
                 </ul>
             </div>
 
@@ -883,30 +912,38 @@
             </button>
             <div class="collapse {{ $tariffsActive ? 'show' : '' }}" id="nav-sub-setup-tariffs">
                 <ul class="nav flex-column">
+                    @can('masters.storage-tariff.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.storage-tariff.index') }}"
                            class="nav-link {{ request()->routeIs('masters.storage-tariff.*') ? 'active' : '' }}">
                             <i class="bi bi-hdd-stack"></i><span>Storage</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('masters.handling-tariff.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.handling-tariff.index') }}"
                            class="nav-link {{ request()->routeIs('masters.handling-tariff.*') ? 'active' : '' }}">
                             <i class="bi bi-wrench"></i><span>Handling</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('masters.mr-tariff.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.mr-tariff.index') }}"
                            class="nav-link {{ request()->routeIs('masters.mr-tariff.*') ? 'active' : '' }}">
                             <i class="bi bi-tools"></i><span>M&amp;R</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('masters.reefer-tariff.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.reefer-tariff.index') }}"
                            class="nav-link {{ request()->routeIs('masters.reefer-tariff.*') ? 'active' : '' }}">
                             <i class="bi bi-plug-fill"></i><span>Reefer Electricity</span>
                         </a>
                     </li>
+                    @endcan
                 </ul>
             </div>
 
@@ -921,12 +958,14 @@
             </button>
             <div class="collapse {{ request()->routeIs('masters.customer-types.*') ? 'show' : '' }}" id="nav-sub-setup-customer">
                 <ul class="nav flex-column">
+                    @can('masters.customer-types.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.customer-types.index') }}"
                            class="nav-link {{ request()->routeIs('masters.customer-types.*') ? 'active' : '' }}">
                             <i class="bi bi-tags"></i><span>Customer Types</span>
                         </a>
                     </li>
+                    @endcan
                 </ul>
             </div>
 
@@ -942,35 +981,44 @@
             </button>
             <div class="collapse {{ $invoiceActive ? 'show' : '' }}" id="nav-sub-setup-invoice">
                 <ul class="nav flex-column">
+                    @can('masters.charge-codes.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.charge-codes.index') }}"
                            class="nav-link {{ request()->routeIs('masters.charge-codes.*') ? 'active' : '' }}">
                             <i class="bi bi-tag"></i><span>Charge Codes</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('masters.tax-codes.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.tax-codes.index') }}"
                            class="nav-link {{ request()->routeIs('masters.tax-codes.*') ? 'active' : '' }}">
                             <i class="bi bi-percent"></i><span>Tax Codes</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('masters.currencies.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.currencies.index') }}"
                            class="nav-link {{ request()->routeIs('masters.currencies.*') ? 'active' : '' }}">
                             <i class="bi bi-currency-exchange"></i><span>Currency Types</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('masters.exchange-rates.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.exchange-rates.index') }}"
                            class="nav-link {{ request()->routeIs('masters.exchange-rates.*') ? 'active' : '' }}">
                             <i class="bi bi-arrow-left-right"></i><span>Exchange Rates</span>
                         </a>
                     </li>
+                    @endcan
                 </ul>
             </div>
         </div>
 
         {{-- ── REPORTS ── --}}
+        @can('reports.view')
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-reports"
                 aria-expanded="false" aria-controls="nav-section-reports">
@@ -998,6 +1046,7 @@
                 </li>
             </ul>
         </div>
+        @endcan
 
         {{-- ── SETTINGS ── --}}
         @php $settingsOpen = request()->routeIs('settings.*') || request()->routeIs('access-control.*'); @endphp
@@ -1044,13 +1093,15 @@
                         </a>
                     </li>
                     @endif
-                    @if(auth()->user()->isSystemAdmin())
+                    @can('settings.company.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('settings.company.index') }}"
                            class="nav-link {{ request()->routeIs('settings.company.*') ? 'active' : '' }}">
                             <i class="bi bi-building"></i><span>Company Settings</span>
                         </a>
                     </li>
+                    @endcan
+                    @if(auth()->user()->isSystemAdmin())
                     <li class="nav-item sub-item">
                         <a href="{{ route('settings.email-config.index') }}"
                            class="nav-link {{ request()->routeIs('settings.email-config.*') ? 'active' : '' }}">
@@ -1069,13 +1120,15 @@
                             <i class="bi bi-cloud-upload"></i><span>Storage</span>
                         </a>
                     </li>
+                    @endif
+                    @can('settings.approval-workflows.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('settings.approval-workflows.index') }}"
                            class="nav-link {{ request()->routeIs('settings.approval-workflows.*') ? 'active' : '' }}">
                             <i class="bi bi-diagram-3"></i><span>Approval Workflows</span>
                         </a>
                     </li>
-                    @endif
+                    @endcan
                 </ul>
             </div>
         </div>

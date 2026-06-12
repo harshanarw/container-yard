@@ -75,9 +75,8 @@
                     @endforelse
                 </td>
                 <td class="text-center">
-                    @php $overrideCount = $user->directPermissions()->count(); @endphp
-                    @if($overrideCount > 0)
-                        <span class="badge bg-warning-subtle text-warning">{{ $overrideCount }}</span>
+                    @if($user->direct_permissions_count > 0)
+                        <span class="badge bg-warning-subtle text-warning">{{ $user->direct_permissions_count }}</span>
                     @else
                         <span class="text-muted small">—</span>
                     @endif
