@@ -36,6 +36,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,        // sync permissions from config/modules.php
             RoleSeeder::class,              // create default roles
             RolePermissionSeeder::class,    // assign permissions to default roles — needs both above
+            UserRoleSeeder::class,          // link seeded users to their RBAC roles — needs users + roles
 
             // ── System configuration ─────────────────────────────────────────
             SystemSettingsSeeder::class,    // company settings / prefixes / defaults
