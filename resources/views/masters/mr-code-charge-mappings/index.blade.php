@@ -18,9 +18,11 @@
             the best matching rule here and auto-fills the Charge Code (and its Tax Code).
         </p>
     </div>
+    @can('masters.mr-codes.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Rule
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -101,15 +103,18 @@
                         @endif
                     </td>
                     <td class="text-center">
+                        @can('masters.mr-codes.edit')
                         <form method="POST" action="{{ route('masters.mr-charge-mappings.toggle', $mapping) }}">
                             @csrf @method('PATCH')
                             <button type="submit" class="btn btn-sm {{ $mapping->is_active ? 'btn-success' : 'btn-outline-secondary' }}">
                                 <i class="bi {{ $mapping->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>
+                        @endcan
                     </td>
                     <td class="text-end pe-3">
                         <div class="d-flex justify-content-end gap-1">
+                            @can('masters.mr-codes.edit')
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $mapping->id }}"
                                     data-component="{{ $mapping->component_code_id ?? '' }}"
@@ -119,11 +124,14 @@
                                     data-notes="{{ $mapping->notes ?? '' }}">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @endcan
+                            @can('masters.mr-codes.delete')
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $mapping->id }}"
                                     data-label="{{ ($mapping->componentCode->code ?? 'Any') . ' / ' . ($mapping->repairCode->code ?? 'Any') . ' → ' . $mapping->chargeCode->code }}">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -203,9 +211,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.mr-codes.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Add Rule
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -266,9 +276,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.mr-codes.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save Changes
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -288,10 +300,12 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @can('masters.mr-codes.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

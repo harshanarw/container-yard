@@ -15,9 +15,11 @@
         <h4><i class="bi bi-diagram-3 me-2 text-primary"></i>Approval Workflows</h4>
         <p class="text-muted mb-0 small">Define approval steps for each document type. Steps are executed in order.</p>
     </div>
+    @can('settings.approval-workflows.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addStepModal">
         <i class="bi bi-plus-circle me-1"></i>Add Step
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -80,6 +82,7 @@
                     @endif
                 </td>
                 <td class="text-center">
+                    @can('settings.approval-workflows.edit')
                     <form method="POST" action="{{ route('settings.approval-workflows.toggle', $step) }}">
                         @csrf @method('PATCH')
                         <button type="submit"
@@ -88,8 +91,10 @@
                             <i class="bi {{ $step->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                         </button>
                     </form>
+                    @endcan
                 </td>
                 <td class="text-end pe-3">
+                    @can('settings.approval-workflows.edit')
                     <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                             data-id="{{ $step->id }}"
                             data-label="{{ $step->step_label }}"
@@ -98,6 +103,7 @@
                             title="Edit step">
                         <i class="bi bi-pencil"></i>
                     </button>
+                    @endcan
                 </td>
             </tr>
             @endforeach
@@ -159,7 +165,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('settings.approval-workflows.create')
                     <button type="submit" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Add Step</button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -197,7 +205,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('settings.approval-workflows.edit')
                     <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Save Changes</button>
+                    @endcan
                 </div>
             </form>
         </div>

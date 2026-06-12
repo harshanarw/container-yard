@@ -18,9 +18,11 @@
             <strong>USD → {{ $defaultCurrency }}</strong>.
         </p>
     </div>
+    @can('masters.exchange-rates.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Rate
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -142,6 +144,7 @@
                     <td class="small text-muted">{{ $r->createdBy?->name ?? '—' }}</td>
                     <td class="text-end pe-3">
                         <div class="d-flex flex-wrap justify-content-end gap-1">
+                            @can('masters.exchange-rates.edit')
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $r->id }}"
                                     data-date="{{ $r->rate_date->format('Y-m-d') }}"
@@ -152,12 +155,15 @@
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @endcan
+                            @can('masters.exchange-rates.delete')
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $r->id }}"
                                     data-label="1 {{ $r->from_currency_code }} = {{ $r->rate }} {{ $r->to_currency_code }} ({{ $r->rate_date->format('d M Y') }})"
                                     title="Delete">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -263,9 +269,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.exchange-rates.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Save Rate
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -333,9 +341,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.exchange-rates.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save Changes
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -357,10 +367,12 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @can('masters.exchange-rates.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

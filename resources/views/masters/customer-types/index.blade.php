@@ -15,9 +15,11 @@
         <h4><i class="bi bi-tags me-2 text-primary"></i>Customer Types</h4>
         <p class="text-muted mb-0 small">Define customer role types that can be tagged to customer profiles. Drag rows to reorder.</p>
     </div>
+    @can('masters.customer-types.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Customer Type
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -68,6 +70,7 @@
                         <span class="badge bg-primary rounded-pill">{{ $item->customers_count ?? 0 }}</span>
                     </td>
                     <td class="text-center">
+                        @can('masters.customer-types.edit')
                         <form method="POST" action="{{ route('masters.customer-types.toggle', $item) }}">
                             @csrf @method('PATCH')
                             <button type="submit"
@@ -76,9 +79,11 @@
                                 <i class="bi {{ $item->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>
+                        @endcan
                     </td>
                     <td class="text-end pe-3">
                         <div class="d-flex flex-wrap justify-content-end gap-1">
+                            @can('masters.customer-types.edit')
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $item->id }}"
                                     data-name="{{ $item->name }}"
@@ -87,12 +92,15 @@
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @endcan
+                            @can('masters.customer-types.delete')
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $item->id }}"
                                     data-label="{{ $item->name }}"
                                     title="Delete">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -145,9 +153,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.customer-types.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Add
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -186,9 +196,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.customer-types.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save Changes
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -209,10 +221,12 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @can('masters.customer-types.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

@@ -7,9 +7,11 @@
         <h4 class="mb-0 fw-semibold"><i class="bi bi-plug-fill text-primary me-2"></i>Reefer Electricity Tariffs</h4>
         <p class="text-muted small mb-0">Define electricity billing rates for laden reefer containers.</p>
     </div>
+    @can('masters.reefer-tariff.create')
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-lg me-1"></i>Add Tariff
     </button>
+    @endcan
 </div>
 
 
@@ -66,12 +68,15 @@
                         <a href="{{ route('masters.reefer-tariff.show', $tariff) }}" class="btn btn-sm btn-outline-primary me-1">
                             <i class="bi bi-pencil"></i>
                         </a>
+                        @can('masters.reefer-tariff.edit')
                         <form action="{{ route('masters.reefer-tariff.toggle', $tariff) }}" method="POST" class="d-inline">
                             @csrf @method('PATCH')
                             <button type="submit" class="btn btn-sm btn-outline-secondary" title="{{ $tariff->is_active ? 'Deactivate' : 'Activate' }}">
                                 <i class="bi {{ $tariff->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>
+                        @endcan
+                        @can('masters.reefer-tariff.delete')
                         <form action="{{ route('masters.reefer-tariff.destroy', $tariff) }}" method="POST" class="d-inline"
                               onsubmit="return confirm('Delete this tariff?')">
                             @csrf @method('DELETE')
@@ -79,6 +84,7 @@
                                 <i class="bi bi-trash"></i>
                             </button>
                         </form>
+                        @endcan
                     </td>
                 </tr>
                 @empty
@@ -172,7 +178,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.reefer-tariff.create')
                     <button type="submit" class="btn btn-primary">Save Tariff</button>
+                    @endcan
                 </div>
             </div>
         </form>

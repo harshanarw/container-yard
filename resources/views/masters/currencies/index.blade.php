@@ -15,9 +15,11 @@
         <h4><i class="bi bi-currency-exchange me-2 text-primary"></i>Currency Types</h4>
         <p class="text-muted mb-0 small">Define available currencies for invoicing. Drag rows to reorder. The default currency is highlighted.</p>
     </div>
+    @can('masters.currencies.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Currency
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -91,6 +93,7 @@
                                 <i class="bi bi-star-fill me-1"></i>System Default
                             </span>
                         @else
+                            @can('masters.currencies.edit')
                             <form method="POST" action="{{ route('masters.currencies.set-default', $cur) }}" class="d-inline">
                                 @csrf @method('PATCH')
                                 <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2"
@@ -102,21 +105,36 @@
                                     <i class="bi bi-star me-1"></i>Set Default
                                 </button>
                             </form>
+                            @endcan
                         @endif
                     </td>
                     <td class="text-center">
+                        @if(!$cur->is_default)
+                        @can('masters.currencies.edit')
                         <form method="POST" action="{{ route('masters.currencies.toggle', $cur) }}">
                             @csrf @method('PATCH')
                             <button type="submit"
                                     class="btn btn-sm {{ $cur->is_active ? 'btn-success' : 'btn-outline-secondary' }}"
-                                    title="{{ $cur->is_active ? 'Active – click to deactivate' : 'Inactive – click to activate' }}"
-                                    {{ $cur->is_default ? 'disabled title=Cannot deactivate default currency' : '' }}>
+                                    title="{{ $cur->is_active ? 'Active – click to deactivate' : 'Inactive – click to activate' }}">
                                 <i class="bi {{ $cur->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>
+                        @endcan
+                        @else
+                        <form method="POST" action="{{ route('masters.currencies.toggle', $cur) }}">
+                            @csrf @method('PATCH')
+                            <button type="submit"
+                                    class="btn btn-sm {{ $cur->is_active ? 'btn-success' : 'btn-outline-secondary' }}"
+                                    title="Cannot deactivate default currency"
+                                    disabled>
+                                <i class="bi {{ $cur->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
+                            </button>
+                        </form>
+                        @endif
                     </td>
                     <td class="text-end pe-3">
                         <div class="d-flex flex-wrap justify-content-end gap-1">
+                            @can('masters.currencies.edit')
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $cur->id }}"
                                     data-code="{{ $cur->code }}"
@@ -126,6 +144,8 @@
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @endcan
+                            @can('masters.currencies.delete')
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $cur->id }}"
                                     data-label="{{ $cur->code }}"
@@ -133,6 +153,7 @@
                                     title="Delete">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -208,9 +229,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.currencies.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Add
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>

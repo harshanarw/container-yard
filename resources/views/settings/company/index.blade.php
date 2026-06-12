@@ -53,6 +53,7 @@
                     @endif
                 </div>
 
+                @can('settings.company.edit')
                 <form method="POST" action="{{ route('settings.company.update') }}" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="company_name" value="{{ $settings->company_name }}">
@@ -81,6 +82,7 @@
                     </button>
                 </form>
                 @endif
+                @endcan
             </div>
         </div>
     </div>
@@ -106,6 +108,7 @@
                     <div class="text-muted mt-2" style="font-size:.75rem;">Recommended: 64×64 or 128×128 px</div>
                 </div>
 
+                @can('settings.company.edit')
                 <form method="POST" action="{{ route('settings.company.update') }}" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="company_name" value="{{ $settings->company_name }}">
@@ -134,6 +137,7 @@
                     </button>
                 </form>
                 @endif
+                @endcan
             </div>
         </div>
     </div>
@@ -159,6 +163,7 @@
                     <div class="text-muted mt-2" style="font-size:.75rem;">Shown next to company name in the left sidebar</div>
                 </div>
 
+                @can('settings.company.edit')
                 <form method="POST" action="{{ route('settings.company.update') }}" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="company_name" value="{{ $settings->company_name }}">
@@ -189,6 +194,7 @@
                     </button>
                 </form>
                 @endif
+                @endcan
             </div>
         </div>
     </div>
@@ -196,6 +202,7 @@
 </div>
 
 {{-- Main Details + Contact Form --}}
+@can('settings.company.edit')
 <form method="POST" action="{{ route('settings.company.update') }}" enctype="multipart/form-data" id="companyForm">
     @csrf
 
@@ -398,6 +405,7 @@
     </div>
 
 </form>
+@endcan
 
 {{-- Default Currency — standalone form, outside the company settings form to avoid nesting --}}
 @php $defaultCurrency = $currencies->firstWhere('is_default', true); @endphp
@@ -407,6 +415,7 @@
         <small class="text-muted">The system-wide default currency for invoicing and reporting</small>
     </div>
     <div class="card-body">
+        @can('settings.company.edit')
         <form method="POST" action="{{ route('settings.company.default-currency') }}" class="row g-3 align-items-end">
             @csrf @method('PATCH')
             <div class="col-md-5">
@@ -444,6 +453,7 @@
                 </div>
             @endif
         </form>
+        @endcan
     </div>
 </div>
 

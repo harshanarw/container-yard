@@ -86,7 +86,9 @@
                             <textarea name="notes" class="form-control" rows="2">{{ old('notes', $reeferTariff->notes) }}</textarea>
                         </div>
                         <div class="col-12 text-end">
+                            @can('masters.reefer-tariff.edit')
                             <button type="submit" class="btn btn-primary">Save Changes</button>
+                            @endcan
                         </div>
                     </div>
                 </form>

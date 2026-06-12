@@ -17,9 +17,11 @@
             Manage countries used across customers, company settings and currencies. Toggle active to include/exclude from dropdowns.
         </p>
     </div>
+    @can('masters.countries.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Country
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -143,6 +145,7 @@
                             @endif
                         </td>
                         <td class="text-center">
+                            @can('masters.countries.edit')
                             <form method="POST" action="{{ route('settings.countries.toggle', $country) }}">
                                 @csrf @method('PATCH')
                                 <button type="submit"
@@ -151,9 +154,11 @@
                                     <i class="bi {{ $country->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                                 </button>
                             </form>
+                            @endcan
                         </td>
                         <td class="text-end pe-3">
                             <div class="d-flex flex-wrap justify-content-end gap-1">
+                                @can('masters.countries.edit')
                                 <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                         data-id="{{ $country->id }}"
                                         data-name="{{ $country->name }}"
@@ -169,12 +174,15 @@
                                         title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </button>
+                                @endcan
+                                @can('masters.countries.delete')
                                 <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                         data-id="{{ $country->id }}"
                                         data-label="{{ $country->name }}"
                                         title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -267,9 +275,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.countries.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Add
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -344,9 +354,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.countries.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save Changes
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -370,10 +382,12 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @can('masters.countries.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

@@ -39,9 +39,11 @@
             @endif
         </span>
         <div class="d-flex gap-2">
+            @can('masters.mr-tariff.edit')
             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editHeaderModal">
                 <i class="bi bi-pencil me-1"></i>Edit Header
             </button>
+            @endcan
             <a href="{{ route('masters.mr-tariff.index') }}" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-arrow-left me-1"></i>Back
             </a>
@@ -86,9 +88,11 @@
 <div class="card content-card mb-4">
     <div class="card-header d-flex align-items-center justify-content-between py-2">
         <span><i class="bi bi-list-ul me-2 text-primary"></i>Rate Rules</span>
+        @can('masters.mr-tariff.create')
         <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addRuleModal">
             <i class="bi bi-plus-circle me-1"></i>Add Rule
         </button>
+        @endcan
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -160,6 +164,7 @@
                     <td class="text-end font-monospace text-muted">{{ number_format($rule->min_charge, 2) }}</td>
                     <td class="text-end pe-3">
                         <div class="d-flex justify-content-end gap-1">
+                            @can('masters.mr-tariff.edit')
                             <button type="button" class="btn btn-xs btn-outline-primary btn-edit-rule"
                                     data-id="{{ $rule->id }}"
                                     data-component="{{ $rule->component_code_id }}"
@@ -178,6 +183,8 @@
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @endcan
+                            @can('masters.mr-tariff.delete')
                             <form method="POST"
                                   action="{{ route('masters.mr-tariff.rules.destroy', [$mrTariff, $rule]) }}">
                                 @csrf @method('DELETE')
@@ -190,6 +197,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -284,9 +292,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.mr-tariff.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -397,9 +407,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.mr-tariff.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Add Rule
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -510,9 +522,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.mr-tariff.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save Changes
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>

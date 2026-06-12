@@ -16,9 +16,11 @@
             Define standard maintenance &amp; repair rates per owner/operator. Used to auto-populate estimate lines.
         </p>
     </div>
+    @can('masters.mr-tariff.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>New Tariff
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -111,6 +113,7 @@
                             <span class="badge bg-primary rounded-pill">{{ $tariff->rules_count }}</span>
                         </td>
                         <td class="text-center">
+                            @can('masters.mr-tariff.edit')
                             <form method="POST" action="{{ route('masters.mr-tariff.toggle', $tariff) }}">
                                 @csrf @method('PATCH')
                                 <button type="submit"
@@ -119,6 +122,7 @@
                                     <i class="bi {{ $tariff->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                                 </button>
                             </form>
+                            @endcan
                         </td>
                         <td class="text-end pe-3">
                             <div class="d-flex justify-content-end gap-1">
@@ -126,12 +130,14 @@
                                    class="btn btn-sm btn-outline-info" title="View / Edit Rules">
                                     <i class="bi bi-eye"></i>
                                 </a>
+                                @can('masters.mr-tariff.delete')
                                 <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                         data-id="{{ $tariff->id }}"
                                         data-label="{{ $tariff->name }}"
                                         title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -209,9 +215,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.mr-tariff.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-arrow-right me-1"></i>Create &amp; Add Rules
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -232,10 +240,12 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @can('masters.mr-tariff.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

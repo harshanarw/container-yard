@@ -16,9 +16,11 @@
             Define Lift On / Lift Off handling rates per shipping line and container size.
         </p>
     </div>
+    @can('masters.handling-tariff.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>New Tariff
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -125,6 +127,7 @@
                             </a>
                         </td>
                         <td class="text-center">
+                            @can('masters.handling-tariff.edit')
                             <form method="POST" action="{{ route('masters.handling-tariff.toggle', $tariff) }}">
                                 @csrf @method('PATCH')
                                 <button type="submit"
@@ -133,6 +136,7 @@
                                     <i class="bi {{ $tariff->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                                 </button>
                             </form>
+                            @endcan
                         </td>
                         <td>
                             <div class="small">{{ $tariff->createdBy->name ?? '—' }}</div>
@@ -148,6 +152,7 @@
                                    class="btn btn-sm btn-outline-primary" title="View / Edit Rates">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
+                                @can('masters.handling-tariff.delete')
                                 <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                         data-id="{{ $tariff->id }}"
                                         data-label="{{ $tariff->shippingLine->name ?? 'this tariff' }}"
@@ -155,6 +160,7 @@
                                         title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -244,9 +250,11 @@
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
                         Cancel
                     </button>
+                    @can('masters.handling-tariff.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-arrow-right-circle me-1"></i>Create &amp; Add Rates
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -279,12 +287,14 @@
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
                     Cancel
                 </button>
+                @can('masters.handling-tariff.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">
                         <i class="bi bi-trash me-1"></i>Delete
                     </button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

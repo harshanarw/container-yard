@@ -14,9 +14,11 @@
         <h4><i class="bi bi-box-seam me-2 text-primary"></i>Equipment Types</h4>
         <p class="text-muted mb-0 small">Manage container size/type combinations used across the system. Drag rows to reorder.</p>
     </div>
+    @can('masters.equipment-types.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Equipment Type
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -97,6 +99,7 @@
                         @endif
                     </td>
                     <td class="text-center">
+                        @can('masters.equipment-types.edit')
                         <form method="POST" action="{{ route('masters.equipment-types.toggle', $item) }}">
                             @csrf @method('PATCH')
                             <button type="submit"
@@ -105,9 +108,11 @@
                                 <i class="bi {{ $item->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>
+                        @endcan
                     </td>
                     <td class="text-end pe-3">
                         <div class="d-flex flex-wrap justify-content-end gap-1">
+                            @can('masters.equipment-types.edit')
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $item->id }}"
                                     data-eqt_code="{{ $item->eqt_code }}"
@@ -121,12 +126,15 @@
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @endcan
+                            @can('masters.equipment-types.delete')
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $item->id }}"
                                     data-label="{{ $item->eqt_code }}"
                                     title="Delete">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -224,9 +232,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.equipment-types.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Add
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -305,9 +315,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.equipment-types.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -328,10 +340,12 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @can('masters.equipment-types.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

@@ -15,11 +15,11 @@
         <h4><i class="bi bi-tag me-2 text-primary"></i>Charge Codes</h4>
         <p class="text-muted mb-0 small">Define billable charge items for invoices, tariffs and supplier payables. Drag rows to reorder.</p>
     </div>
-    @if(auth()->user()->isSuperUser())
+    @can('masters.charge-codes.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Charge Code
     </button>
-    @endif
+    @endcan
 </div>
 
 @if(session('success'))
@@ -112,6 +112,7 @@
                         @endif
                     </td>
                     <td class="text-center">
+                        @can('masters.charge-codes.edit')
                         <form method="POST" action="{{ route('masters.charge-codes.toggle', $cc) }}">
                             @csrf @method('PATCH')
                             <button type="submit"
@@ -120,9 +121,11 @@
                                 <i class="bi {{ $cc->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>
+                        @endcan
                     </td>
                     <td class="text-end pe-3">
                         <div class="d-flex flex-wrap justify-content-end gap-1">
+                            @can('masters.charge-codes.edit')
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $cc->id }}"
                                     data-code="{{ $cc->code }}"
@@ -134,6 +137,8 @@
                                     title="{{ $cc->is_system && !auth()->user()->isSystemAdmin() ? 'Edit Tax Code only (system code)' : 'Edit' }}">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @endcan
+                            @can('masters.charge-codes.delete')
                             @if(!$cc->is_system || auth()->user()->isSystemAdmin())
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $cc->id }}"
@@ -142,6 +147,7 @@
                                 <i class="bi bi-trash"></i>
                             </button>
                             @endif
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -221,9 +227,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.charge-codes.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Add
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -287,9 +295,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.charge-codes.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save Changes
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -309,10 +319,12 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @can('masters.charge-codes.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

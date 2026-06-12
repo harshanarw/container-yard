@@ -127,6 +127,7 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
     <div class="col-lg-4">
 
         {{-- Generate Slots Card --}}
+        @can('masters.storage-zones.create')
         <div class="card content-card mb-3">
             <div class="card-header bg-primary text-white py-2">
                 <i class="bi bi-grid-3x3-gap me-1"></i>Bulk Generate Slots
@@ -192,6 +193,7 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
                 </form>
             </div>
         </div>
+        @endcan
 
         {{-- Quick Templates --}}
         <div class="card content-card mb-3">
@@ -222,6 +224,7 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
         </div>
 
         {{-- Danger zone --}}
+        @can('masters.storage-zones.delete')
         @if($stats['empty'] > 0)
         <div class="card content-card border-danger">
             <div class="card-header py-2 small fw-semibold text-danger bg-danger-subtle">
@@ -245,6 +248,7 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
             </div>
         </div>
         @endif
+        @endcan
 
     </div>
 
@@ -330,6 +334,7 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
                                                         &times;
                                                     </span>
                                                 @else
+                                                    @can('masters.storage-zones.delete')
                                                     <form method="POST"
                                                           action="{{ route('masters.zones.slots.destroy', [$zone, $slot]) }}"
                                                           class="d-inline del-slot-form">
@@ -344,6 +349,7 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
                                                             &times;
                                                         </button>
                                                     </form>
+                                                    @endcan
                                                 @endif
                                             @elseif($slot->status === 'occupied' && $slot->container)
                                                 <span style="font-size:.55rem;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
@@ -470,9 +476,11 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal" id="moveCancelBtn">Cancel</button>
+                @can('masters.storage-zones.edit')
                 <button type="button" class="btn btn-sm btn-primary" id="moveConfirmBtn">
                     <i class="bi bi-check-lg me-1"></i>Confirm Move
                 </button>
+                @endcan
             </div>
         </div>
     </div>

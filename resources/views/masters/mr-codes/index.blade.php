@@ -33,9 +33,11 @@ $storeUrl   = route('masters.mr-codes.store', $type);
             Drag rows to reorder. Short codes are used in CEDEX strings.
         </p>
     </div>
+    @can('masters.mr-codes.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Code
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -95,6 +97,7 @@ $allTypes = \App\Models\MrCode::TYPES;
                     <td class="fw-semibold small">{{ $item->name }}</td>
                     <td class="small text-muted">{{ $item->description ?? '—' }}</td>
                     <td class="text-center">
+                        @can('masters.mr-codes.edit')
                         <form method="POST" action="{{ route('masters.mr-codes.toggle', [$type, $item]) }}">
                             @csrf @method('PATCH')
                             <button type="submit"
@@ -103,9 +106,11 @@ $allTypes = \App\Models\MrCode::TYPES;
                                 <i class="bi {{ $item->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>
+                        @endcan
                     </td>
                     <td class="text-end pe-3">
                         <div class="d-flex flex-wrap justify-content-end gap-1">
+                            @can('masters.mr-codes.edit')
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $item->id }}"
                                     data-code="{{ $item->code }}"
@@ -114,12 +119,15 @@ $allTypes = \App\Models\MrCode::TYPES;
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @endcan
+                            @can('masters.mr-codes.delete')
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $item->id }}"
                                     data-label="{{ $item->code }} – {{ $item->name }}"
                                     title="Delete">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -176,9 +184,11 @@ $allTypes = \App\Models\MrCode::TYPES;
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.mr-codes.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Add
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -216,9 +226,11 @@ $allTypes = \App\Models\MrCode::TYPES;
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.mr-codes.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save Changes
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -239,10 +251,12 @@ $allTypes = \App\Models\MrCode::TYPES;
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @can('masters.mr-codes.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

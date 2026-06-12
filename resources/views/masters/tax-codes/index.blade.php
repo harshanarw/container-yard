@@ -15,9 +15,11 @@
         <h4><i class="bi bi-percent me-2 text-primary"></i>Tax Codes</h4>
         <p class="text-muted mb-0 small">Define tax combinations applied to charges and invoices. Drag rows to reorder.</p>
     </div>
+    @can('masters.tax-codes.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Tax Code
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -61,9 +63,11 @@
                 <div class="form-text">Name for the second tax column (e.g. VAT, CGST, SGST)</div>
             </div>
             <div class="col-12 col-md-4">
+                @can('masters.tax-codes.edit')
                 <button type="submit" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-save me-1"></i>Save Labels
                 </button>
+                @endcan
             </div>
         </form>
     </div>
@@ -127,6 +131,7 @@
                         @endif
                     </td>
                     <td class="text-center">
+                        @can('masters.tax-codes.edit')
                         <form method="POST" action="{{ route('masters.tax-codes.toggle', $tc) }}">
                             @csrf @method('PATCH')
                             <button type="submit"
@@ -135,9 +140,11 @@
                                 <i class="bi {{ $tc->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>
+                        @endcan
                     </td>
                     <td class="text-end pe-3">
                         <div class="d-flex flex-wrap justify-content-end gap-1">
+                            @can('masters.tax-codes.edit')
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $tc->id }}"
                                     data-code="{{ $tc->code }}"
@@ -147,12 +154,15 @@
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @endcan
+                            @can('masters.tax-codes.delete')
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $tc->id }}"
                                     data-label="{{ $tc->code }}"
                                     title="Delete">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -219,9 +229,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.tax-codes.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Add
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>

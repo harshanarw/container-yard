@@ -14,9 +14,11 @@
         <h4><i class="bi bi-map me-2 text-primary"></i>Storage Zones</h4>
         <p class="text-muted mb-0 small">Define yard zones that contain rows, bays, and tiers for container placement.</p>
     </div>
+    @can('masters.storage-zones.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Zone
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -113,6 +115,7 @@
                                 <i class="bi bi-grid-3x3-gap"></i>
                             </a>
                             {{-- Edit --}}
+                            @can('masters.storage-zones.edit')
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $zone->id }}"
                                     data-code="{{ $zone->code }}"
@@ -131,7 +134,9 @@
                                     <i class="bi {{ $zone->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                                 </button>
                             </form>
+                            @endcan
                             {{-- Delete --}}
+                            @can('masters.storage-zones.delete')
                             @if(($zone->yard_locations_count ?? 0) > 0)
                                 <button type="button" class="btn btn-sm btn-outline-danger"
                                         disabled
@@ -147,6 +152,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             @endif
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -171,6 +177,7 @@
 </div>
 
 {{-- Create Zone Card --}}
+@can('masters.storage-zones.create')
 <div class="card content-card">
     <div class="card-header">
         <i class="bi bi-plus-circle me-2 text-primary"></i>Add New Zone
@@ -231,6 +238,7 @@
         </form>
     </div>
 </div>
+@endcan
 
 {{-- ── Edit Modal ── --}}
 <div class="modal fade" id="editModal" tabindex="-1">
@@ -273,9 +281,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.storage-zones.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save Changes
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -295,12 +305,14 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @can('masters.storage-zones.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">
                         <i class="bi bi-trash me-1"></i>Delete
                     </button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

@@ -18,9 +18,11 @@
             Use <strong>Pull From Rules</strong> in the Survey form to instantly populate assessment lines.
         </p>
     </div>
+    @can('masters.damage-rules.create')
     <a href="{{ route('masters.damage-assessment-rules.create') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-circle me-1"></i>New Rule
     </a>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -152,19 +154,24 @@
                     </td>
                     <td class="small text-muted">{{ Str::limit($rule->description, 60) ?? '—' }}</td>
                     <td class="text-center">
+                        @can('masters.damage-rules.edit')
                         <form method="POST" action="{{ route('masters.damage-assessment-rules.toggle', $rule) }}">
                             @csrf @method('PATCH')
                             <button type="submit" class="btn btn-sm {{ $rule->is_active ? 'btn-success' : 'btn-outline-secondary' }}" title="{{ $rule->is_active ? 'Active — click to deactivate' : 'Inactive — click to activate' }}">
                                 <i class="bi {{ $rule->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>
+                        @endcan
                     </td>
                     <td class="text-end pe-3">
                         <div class="d-flex justify-content-end gap-1">
+                            @can('masters.damage-rules.edit')
                             <a href="{{ route('masters.damage-assessment-rules.edit', $rule) }}"
                                class="btn btn-sm btn-outline-primary" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            @endcan
+                            @can('masters.damage-rules.delete')
                             <form method="POST" action="{{ route('masters.damage-assessment-rules.destroy', $rule) }}">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger"
@@ -176,6 +183,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+                            @endcan
                         </div>
                     </td>
                 </tr>

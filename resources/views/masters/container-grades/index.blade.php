@@ -14,9 +14,11 @@
         <h4><i class="bi bi-award me-2 text-primary"></i>Container Grades</h4>
         <p class="text-muted mb-0 small">Manage grade classifications for cargo suitability (e.g. Fiber Grade, Tea Grade). Drag to reorder.</p>
     </div>
+    @can('masters.container-grades.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>Add Grade
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -61,6 +63,7 @@
                     <td class="fw-semibold small">{{ $item->name }}</td>
                     <td class="small text-muted">{{ $item->description ?? '—' }}</td>
                     <td class="text-center">
+                        @can('masters.container-grades.edit')
                         <form method="POST" action="{{ route('masters.container-grades.toggle', $item) }}">
                             @csrf @method('PATCH')
                             <button type="submit"
@@ -69,9 +72,11 @@
                                 <i class="bi {{ $item->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>
+                        @endcan
                     </td>
                     <td class="text-end pe-3">
                         <div class="d-flex flex-wrap justify-content-end gap-1">
+                            @can('masters.container-grades.edit')
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $item->id }}"
                                     data-code="{{ $item->code }}"
@@ -81,12 +86,15 @@
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @endcan
+                            @can('masters.container-grades.delete')
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $item->id }}"
                                     data-label="{{ $item->code }} — {{ $item->name }}"
                                     title="Delete">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -153,9 +161,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.container-grades.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-circle me-1"></i>Add
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -208,9 +218,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.container-grades.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -231,10 +243,12 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @can('masters.container-grades.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

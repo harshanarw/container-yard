@@ -16,9 +16,11 @@
             Define per-customer, per-equipment-type daily storage rates with validity periods.
         </p>
     </div>
+    @can('masters.storage-tariff.create')
     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
         <i class="bi bi-plus-circle me-1"></i>New Tariff
     </button>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -136,6 +138,7 @@
                             </a>
                         </td>
                         <td class="text-center">
+                            @can('masters.storage-tariff.edit')
                             <form method="POST" action="{{ route('masters.storage-tariff.toggle', $header) }}">
                                 @csrf @method('PATCH')
                                 <button type="submit"
@@ -144,6 +147,7 @@
                                     <i class="bi {{ $header->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                                 </button>
                             </form>
+                            @endcan
                         </td>
                         <td>
                             <div class="small">{{ $header->createdBy->name ?? '—' }}</div>
@@ -159,6 +163,7 @@
                                    class="btn btn-outline-primary" title="View / Edit Rates">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
+                                @can('masters.storage-tariff.delete')
                                 <button type="button" class="btn btn-outline-danger btn-delete"
                                         data-id="{{ $header->id }}"
                                         data-label="{{ $header->customer->name ?? 'this tariff' }}"
@@ -166,6 +171,7 @@
                                         title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -261,9 +267,11 @@
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
                         Cancel
                     </button>
+                    @can('masters.storage-tariff.create')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-arrow-right-circle me-1"></i>Create &amp; Add Rates
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -296,12 +304,14 @@
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
                     Cancel
                 </button>
+                @can('masters.storage-tariff.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">
                         <i class="bi bi-trash me-1"></i>Delete
                     </button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

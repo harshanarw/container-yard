@@ -23,9 +23,11 @@
         <a href="{{ route('masters.repair-categories.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-tags me-1"></i>Categories
         </a>
+        @can('masters.repair-categories.create')
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
             <i class="bi bi-plus-circle me-1"></i>Add Rule
         </button>
+        @endcan
     </div>
 </div>
 
@@ -105,15 +107,18 @@
                         <span class="small ms-1">{{ $mapping->repairCategory->name }}</span>
                     </td>
                     <td class="text-center">
+                        @can('masters.repair-categories.edit')
                         <form method="POST" action="{{ route('masters.repair-category-mappings.toggle', $mapping) }}">
                             @csrf @method('PATCH')
                             <button type="submit" class="btn btn-sm {{ $mapping->is_active ? 'btn-success' : 'btn-outline-secondary' }}">
                                 <i class="bi {{ $mapping->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>
+                        @endcan
                     </td>
                     <td class="text-end pe-3">
                         <div class="d-flex justify-content-end gap-1">
+                            @can('masters.repair-categories.edit')
                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                                     data-id="{{ $mapping->id }}"
                                     data-category="{{ $mapping->repair_category_id }}"
@@ -122,10 +127,13 @@
                                     data-priority="{{ $mapping->priority }}">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            @endcan
+                            @can('masters.repair-categories.delete')
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $mapping->id }}">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -194,7 +202,9 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.repair-categories.create')
                     <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle me-1"></i>Add Rule</button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -246,7 +256,9 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.repair-categories.edit')
                     <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-save me-1"></i>Save Changes</button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -266,10 +278,12 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @can('masters.repair-categories.delete')
                 <form id="deleteForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

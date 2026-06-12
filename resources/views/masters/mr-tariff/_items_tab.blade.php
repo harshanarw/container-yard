@@ -1,6 +1,7 @@
 {{-- ── Slab Items Tab ── --}}
 
 {{-- Add Item Form --}}
+@can('masters.mr-tariff.create')
 <div class="card content-card mb-4">
     <div class="card-header d-flex align-items-center justify-content-between py-2">
         <span><i class="bi bi-plus-circle me-2 text-primary"></i>Add Tariff Item</span>
@@ -49,6 +50,7 @@
         </form>
     </div>
 </div>
+@endcan
 
 {{-- Items List --}}
 <div class="card content-card">
@@ -107,6 +109,7 @@
                     @endif
                 </div>
                 <div class="d-flex gap-1">
+                    @can('masters.mr-tariff.edit')
                     <button type="button" class="btn btn-xs btn-outline-primary btn-edit-item"
                             data-id="{{ $item->id }}"
                             data-tariff_code="{{ $item->tariff_code }}"
@@ -118,6 +121,8 @@
                             title="Edit Item">
                         <i class="bi bi-pencil"></i>
                     </button>
+                    @endcan
+                    @can('masters.mr-tariff.delete')
                     <form method="POST" action="{{ route('masters.mr-tariff.items.destroy', [$mrTariff, $item]) }}">
                         @csrf @method('DELETE')
                         <button type="submit" class="btn btn-xs btn-outline-danger"
@@ -129,6 +134,7 @@
                             <i class="bi bi-trash"></i>
                         </button>
                     </form>
+                    @endcan
                 </div>
             </div>
 
@@ -168,6 +174,7 @@
                             <td class="text-end font-monospace">{{ number_format($slab->material_cost, 2) }}</td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-1">
+                                    @can('masters.mr-tariff.edit')
                                     <button type="button" class="btn btn-xs btn-outline-primary btn-edit-slab"
                                             data-slab-id="{{ $slab->id }}"
                                             data-item-id="{{ $item->id }}"
@@ -179,6 +186,8 @@
                                             title="Edit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
+                                    @endcan
+                                    @can('masters.mr-tariff.delete')
                                     <form method="POST"
                                           action="{{ route('masters.mr-tariff.items.slabs.destroy', [$mrTariff, $item, $slab]) }}">
                                         @csrf @method('DELETE')
@@ -191,6 +200,7 @@
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>
@@ -202,6 +212,7 @@
                     @endif
 
                     {{-- Add slab inline form --}}
+                    @can('masters.mr-tariff.create')
                     <form method="POST"
                           action="{{ route('masters.mr-tariff.items.slabs.store', [$mrTariff, $item]) }}"
                           class="row g-2 align-items-end border-top pt-2">
@@ -238,6 +249,7 @@
                             </button>
                         </div>
                     </form>
+                    @endcan
                 </div>
             </div>
         </div>
@@ -304,9 +316,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.mr-tariff.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save Changes
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -357,9 +371,11 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @can('masters.mr-tariff.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save Slab
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>

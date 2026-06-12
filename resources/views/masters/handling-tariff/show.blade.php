@@ -55,6 +55,7 @@
            class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back
         </a>
+        @can('masters.handling-tariff.edit')
         <form method="POST" action="{{ route('masters.handling-tariff.toggle', $handlingTariff) }}">
             @csrf @method('PATCH')
             <button type="submit"
@@ -63,6 +64,7 @@
                 {{ $handlingTariff->is_active ? 'Deactivate' : 'Activate' }}
             </button>
         </form>
+        @endcan
     </div>
 </div>
 
@@ -126,9 +128,11 @@
                         </div>
                     </div>
 
+                    @can('masters.handling-tariff.edit')
                     <button type="submit" class="btn btn-primary btn-sm w-100">
                         <i class="bi bi-save me-1"></i>Save Header
                     </button>
+                    @endcan
                 </form>
 
                 <hr class="my-3">
@@ -237,6 +241,7 @@
                             </td>
                             <td class="text-end pe-3">
                                 <div class="d-flex flex-wrap justify-content-end gap-1">
+                                    @can('masters.handling-tariff.edit')
                                     <button type="button" class="btn btn-outline-primary btn-sm btn-edit-rate"
                                             data-id="{{ $rate->id }}"
                                             data-size="{{ $rate->container_size }}"
@@ -248,6 +253,8 @@
                                             title="Edit rate">
                                         <i class="bi bi-pencil"></i>
                                     </button>
+                                    @endcan
+                                    @can('masters.handling-tariff.delete')
                                     <button type="button" class="btn btn-outline-danger btn-sm btn-delete-rate"
                                             data-id="{{ $rate->id }}"
                                             data-size="{{ $rate->container_size }}"
@@ -255,6 +262,7 @@
                                             title="Remove">
                                         <i class="bi bi-trash"></i>
                                     </button>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>
@@ -275,6 +283,7 @@
                 <p class="small fw-semibold mb-2">
                     <i class="bi bi-plus-circle me-1 text-primary"></i>Add Rate Line
                 </p>
+                @can('masters.handling-tariff.create')
                 <form method="POST"
                       action="{{ route('masters.handling-tariff.rates.store', $handlingTariff) }}"
                       class="row g-2 align-items-end">
@@ -349,6 +358,7 @@
                         </button>
                     </div>
                 </form>
+                @endcan
             </div>
         </div>
 
@@ -493,9 +503,11 @@
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
                         Cancel
                     </button>
+                    @can('masters.handling-tariff.edit')
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-save me-1"></i>Save
                     </button>
+                    @endcan
                 </div>
             </form>
         </div>
@@ -523,10 +535,12 @@
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
                     Cancel
                 </button>
+                @can('masters.handling-tariff.delete')
                 <form id="deleteRateForm" method="POST">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-sm btn-danger">Remove</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>
