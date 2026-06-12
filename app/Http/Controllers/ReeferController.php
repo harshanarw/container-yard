@@ -10,6 +10,14 @@ use Illuminate\Support\Facades\Auth;
 
 class ReeferController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:yard.reefer.view')->only(['index', 'show']);
+        $this->middleware('can:yard.reefer.plug-in')->only(['plugIn', 'storePlugIn']);
+        $this->middleware('can:yard.reefer.plug-out')->only(['plugOut', 'storePlugOut']);
+        $this->middleware('can:yard.reefer.temp-log')->only(['storeTempLog', 'destroyTempLog']);
+    }
+
     // ── Operations dashboard ─────────────────────────────────────────────────
 
     public function index(Request $request)

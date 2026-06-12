@@ -21,6 +21,14 @@ use Illuminate\Support\Str;
 
 class SurveyController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:surveys.view')->only(['index', 'show', 'pdf']);
+        $this->middleware('can:surveys.create')->only(['create', 'store']);
+        $this->middleware('can:surveys.edit')->only(['edit', 'update']);
+        $this->middleware('can:surveys.delete')->only(['destroy', 'destroyPhoto']);
+    }
+
     public function index(Request $request)
     {
         $inquiries = Inquiry::with(['container', 'customer', 'inspector', 'estimate'])

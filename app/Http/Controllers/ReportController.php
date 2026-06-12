@@ -12,6 +12,11 @@ use Illuminate\Support\Str;
 
 class ReportController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:reports.view');
+    }
+
     public function inventory(Request $request)
     {
         $containers = Container::with('customer')

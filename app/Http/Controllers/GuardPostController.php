@@ -13,7 +13,12 @@ use Illuminate\Support\Facades\Storage;
 
 class GuardPostController extends Controller
 {
-    public function __construct(private ContainerOcrService $ocr) {}
+    public function __construct(private ContainerOcrService $ocr)
+    {
+        $this->middleware('can:guard-post.view')->only(['index', 'status', 'statusJson', 'queue']);
+        $this->middleware('can:guard-post.create')->only(['create', 'store', 'ocrScan']);
+        $this->middleware('can:guard-post.edit')->only(['updateStatus', 'link']);
+    }
 
     // ─── Guard helpers ────────────────────────────────────────────────────────
 

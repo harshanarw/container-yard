@@ -10,6 +10,14 @@ use Illuminate\Http\Request;
 
 class WorkOrderController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:work-orders.view')->only(['index', 'show', 'availableCategories', 'previewLines']);
+        $this->middleware('can:work-orders.create')->only(['create', 'store']);
+        $this->middleware('can:work-orders.edit')->only(['edit', 'update', 'updateStatus', 'submitQc']);
+        $this->middleware('can:work-orders.delete')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $query = WorkOrder::with('estimate', 'container', 'customer', 'assignedTo', 'repairCategory');

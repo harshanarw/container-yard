@@ -23,6 +23,14 @@ use Illuminate\Support\Str;
 
 class YardController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:yard.view')->only(['index', 'gate', 'storage', 'lookup', 'containerLookup', 'tariffLookup', 'slotsByZone', 'surveyLookup', 'gatePass', 'verifyGatePass']);
+        $this->middleware('can:yard.gate-in')->only(['gateIn']);
+        $this->middleware('can:yard.gate-out')->only(['gateOut']);
+        $this->middleware('can:yard.movement-edit')->only(['editMovement', 'updateMovement', 'destroyMovementPhoto']);
+    }
+
     private function saveMovementPhotos(GateMovement $movement, array $photos): void
     {
         foreach ($photos as $photo) {

@@ -11,7 +11,12 @@ use Illuminate\Support\Facades\Auth;
 
 class ApprovalController extends Controller
 {
-    public function __construct(private readonly ApprovalService $approvalService) {}
+    public function __construct(private readonly ApprovalService $approvalService)
+    {
+        $this->middleware('can:approvals.view')->only(['pending']);
+        $this->middleware('can:approvals.approve')->only(['initiateGatePass', 'approve', 'cancel']);
+        $this->middleware('can:approvals.reject')->only(['reject']);
+    }
 
     public function pending()
     {

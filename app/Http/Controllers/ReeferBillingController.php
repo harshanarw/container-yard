@@ -13,6 +13,15 @@ use Illuminate\Http\Request;
 
 class ReeferBillingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:billing.reefer.view')->only(['index', 'show', 'exchangeRateLookup', 'preview']);
+        $this->middleware('can:billing.reefer.create')->only(['create', 'store']);
+        $this->middleware('can:billing.reefer.delete')->only(['destroy', 'cancel']);
+        $this->middleware('can:billing.reefer.approve')->only(['markIssued', 'markPaid']);
+        $this->middleware('can:billing.reefer.pdf')->only(['pdf']);
+    }
+
     // ── Invoice list ──────────────────────────────────────────────────────────
 
     public function index(Request $request)

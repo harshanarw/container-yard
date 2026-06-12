@@ -26,6 +26,15 @@ use Illuminate\Support\Str;
 
 class EstimateController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:estimates.view')->only(['index', 'show', 'resolveChargeCode', 'exchangeRateLookup', 'importDamages', 'pdf']);
+        $this->middleware('can:estimates.create')->only(['create', 'store']);
+        $this->middleware('can:estimates.edit')->only(['edit', 'update', 'send', 'sendReminder', 'revokeToken']);
+        $this->middleware('can:estimates.delete')->only(['destroy']);
+        $this->middleware('can:estimates.approve')->only(['approve', 'reject']);
+    }
+
     public function index(Request $request)
     {
         $estimates = Estimate::with(['container', 'customer', 'createdBy'])

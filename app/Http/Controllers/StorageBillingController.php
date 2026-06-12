@@ -14,6 +14,16 @@ use Illuminate\Support\Facades\DB;
 
 class StorageBillingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:billing.storage.view')->only(['index', 'show', 'exchangeRateLookup']);
+        $this->middleware('can:billing.storage.create')->only(['create', 'preview', 'store']);
+        $this->middleware('can:billing.storage.delete')->only(['destroy', 'cancel']);
+        $this->middleware('can:billing.storage.approve')->only(['markIssued', 'markPaid']);
+        $this->middleware('can:billing.storage.pdf')->only(['pdf']);
+        $this->middleware('can:billing.storage.email')->only(['sendEmail']);
+    }
+
     // ── Invoice list ──────────────────────────────────────────────────────────
 
     public function index(Request $request)

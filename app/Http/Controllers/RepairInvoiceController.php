@@ -7,6 +7,16 @@ use Illuminate\Http\Request;
 
 class RepairInvoiceController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:billing.repair.view')->only(['index', 'show']);
+        $this->middleware('can:billing.repair.create')->only(['create', 'store']);
+        $this->middleware('can:billing.repair.edit')->only(['edit', 'update']);
+        $this->middleware('can:billing.repair.delete')->only(['destroy', 'cancel']);
+        $this->middleware('can:billing.repair.approve')->only(['issue', 'recordPayment']);
+        $this->middleware('can:billing.repair.pdf')->only(['pdf']);
+    }
+
     public function index(Request $request)
     {
         $query = RepairInvoice::with('estimate', 'container', 'customer');

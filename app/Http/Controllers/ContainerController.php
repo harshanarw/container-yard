@@ -11,6 +11,14 @@ use Illuminate\Http\Request;
 
 class ContainerController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:containers.view')->only(['index', 'show', 'masterLookup']);
+        $this->middleware('can:containers.create')->only(['create', 'store']);
+        $this->middleware('can:containers.edit')->only(['edit', 'update']);
+        $this->middleware('can:containers.delete')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $containers = Container::with(['customer', 'equipmentType'])

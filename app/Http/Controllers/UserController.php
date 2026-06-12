@@ -11,6 +11,14 @@ use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:settings.users.view')->only(['index', 'show']);
+        $this->middleware('can:settings.users.create')->only(['create', 'store']);
+        $this->middleware('can:settings.users.edit')->only(['edit', 'update', 'resetPassword']);
+        $this->middleware('can:settings.users.delete')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $users = User::query()
