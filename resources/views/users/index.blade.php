@@ -13,29 +13,29 @@
         <h4><i class="bi bi-people me-2 text-primary"></i>User Management</h4>
         <p class="text-muted mb-0 small">Manage system users and role assignments</p>
     </div>
-    <a href="{{ route('users.create') }}" class="btn btn-primary btn-sm">
+    @can('settings.users.create')
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAddUser">
         <i class="bi bi-plus-circle me-1"></i>Add User
-    </a>
+    </button>
+    @endcan
 </div>
 
 {{-- Summary cards --}}
 <div class="row g-3 mb-3">
     @php
         $roleColors = [
-            'administrator'    => 'danger',
-            'yard_supervisor'  => 'primary',
-            'gate_officer'     => 'info',
-            'security_officer' => 'secondary',
-            'inspector'        => 'warning',
-            'billing_clerk'    => 'success',
+            'administrator'   => 'danger',
+            'yard_supervisor' => 'primary',
+            'gate_officer'    => 'info',
+            'inspector'       => 'warning',
+            'billing_clerk'   => 'success',
         ];
         $roleLabels = [
-            'administrator'    => 'Administrator',
-            'yard_supervisor'  => 'Yard Supervisor',
-            'gate_officer'     => 'Gate Officer',
-            'security_officer' => 'Security Officer',
-            'inspector'        => 'Inspector',
-            'billing_clerk'    => 'Billing Clerk',
+            'administrator'   => 'Administrator',
+            'yard_supervisor' => 'Yard Supervisor',
+            'gate_officer'    => 'Gate Officer',
+            'inspector'       => 'Inspector',
+            'billing_clerk'   => 'Billing Clerk',
         ];
     @endphp
     <div class="col-6 col-md-3">
@@ -89,14 +89,14 @@
     <div class="card-body py-2">
         <form method="GET" action="{{ route('users.index') }}">
             <div class="row g-2 align-items-center">
-                <div class="col-12 col-md-4">
+                <div class="col-md-4">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" name="search" class="form-control"
-                               placeholder="Search name, email or employee no…" value="{{ request('search') }}">
+                               placeholder="Search name or email…" value="{{ request('search') }}">
                     </div>
                 </div>
-                <div class="col-6 col-md-2">
+                <div class="col-md-2">
                     <select name="role" class="form-select form-select-sm">
                         <option value="">All Roles</option>
                         @foreach($roleLabels as $val => $label)
@@ -104,7 +104,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-6 col-md-2">
+                <div class="col-md-2">
                     <select name="status" class="form-select form-select-sm">
                         <option value="">All Status</option>
                         <option value="active"   {{ request('status') === 'active'   ? 'selected' : '' }}>Active</option>
@@ -147,20 +147,11 @@
                         <td class="ps-3 text-muted small">{{ $users->firstItem() + $i }}</td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                @if($user->profile_photo_url)
-                                    <img src="{{ $user->profile_photo_url }}" alt="{{ $user->full_name }}"
-                                         class="rounded-circle"
-                                         style="width:32px;height:32px;object-fit:cover;">
-                                @else
-                                    <span class="avatar-sm bg-{{ $roleColors[$user->role] ?? 'secondary' }} text-white">
-                                        {{ $user->avatar_initials }}
-                                    </span>
-                                @endif
+                                <span class="avatar-sm bg-{{ $roleColors[$user->role] ?? 'secondary' }} text-white">
+                                    {{ strtoupper(substr($user->name, 0, 2)) }}
+                                </span>
                                 <div>
-                                    <div class="fw-semibold small">{{ $user->full_name }}</div>
-                                    @if($user->employee_reg_no)
-                                        <div class="text-muted" style="font-size:.7rem;">{{ $user->employee_reg_no }}</div>
-                                    @endif
+                                    <div class="fw-semibold small">{{ $user->name }}</div>
                                     @if($user->id === auth()->id())
                                         <span class="badge bg-primary-subtle text-primary" style="font-size:.6rem;">You</span>
                                     @endif
@@ -183,40 +174,46 @@
                             </span>
                         </td>
                         <td class="text-end pe-3">
-                            <div class="d-flex flex-wrap justify-content-end gap-1">
+                            <div class="btn-group btn-group-sm">
                                 {{-- View --}}
                                 <a href="{{ route('users.show', $user) }}"
-                                   class="btn btn-outline-info btn-sm" title="View Profile">
+                                   class="btn btn-outline-info" title="View Profile">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 {{-- Edit --}}
+                                @can('settings.users.edit')
                                 <a href="{{ route('users.edit', $user) }}"
-                                   class="btn btn-outline-primary btn-sm" title="Edit User">
+                                   class="btn btn-outline-primary" title="Edit User">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                @endcan
                                 {{-- Reset Password --}}
+                                @can('settings.users.edit')
                                 <button type="button"
-                                        class="btn btn-outline-warning btn-sm btn-reset-password"
+                                        class="btn btn-outline-warning btn-reset-password"
                                         title="Reset Password"
                                         data-id="{{ $user->id }}"
-                                        data-name="{{ $user->full_name }}"
+                                        data-name="{{ $user->name }}"
                                         data-url="{{ route('users.reset-password', $user) }}"
                                         data-bs-toggle="modal"
                                         data-bs-target="#modalResetPassword">
                                     <i class="bi bi-key"></i>
                                 </button>
+                                @endcan
                                 {{-- Delete --}}
                                 @if($user->id !== auth()->id())
+                                @can('settings.users.delete')
                                 <button type="button"
-                                        class="btn btn-outline-danger btn-sm btn-delete-user"
+                                        class="btn btn-outline-danger btn-delete-user"
                                         title="Delete User"
                                         data-id="{{ $user->id }}"
-                                        data-name="{{ $user->full_name }}"
+                                        data-name="{{ $user->name }}"
                                         data-url="{{ route('users.destroy', $user) }}"
                                         data-bs-toggle="modal"
                                         data-bs-target="#modalDeleteUser">
                                     <i class="bi bi-person-x"></i>
                                 </button>
+                                @endcan
                                 @endif
                             </div>
                         </td>
@@ -242,8 +239,105 @@
 </div>
 
 
+{{-- ══════════════════ MODAL: ADD USER ══════════════════ --}}
+@can('settings.users.create')
+<div class="modal fade" id="modalAddUser" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('users.store') }}" novalidate>
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2 text-primary"></i>Add New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {{-- Validation errors --}}
+                    @if($errors->any())
+                    <div class="alert alert-danger alert-sm py-2 small">
+                        <ul class="mb-0 ps-3">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    @endif
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
+                                   value="{{ old('name') }}" placeholder="e.g. Ahmad Razali" required>
+                            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
+                                   value="{{ old('email') }}" placeholder="user@cym.my" required>
+                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Phone Number</label>
+                            <input type="text" name="phone" class="form-control"
+                                   value="{{ old('phone') }}" placeholder="01X-XXXXXXX">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
+                            <select name="role" class="form-select @error('role') is-invalid @enderror" required>
+                                <option value="">— Select Role —</option>
+                                <option value="administrator"   {{ old('role') === 'administrator'   ? 'selected' : '' }}>Administrator</option>
+                                <option value="yard_supervisor" {{ old('role') === 'yard_supervisor' ? 'selected' : '' }}>Yard Supervisor</option>
+                                <option value="gate_officer"    {{ old('role') === 'gate_officer'    ? 'selected' : '' }}>Gate Officer</option>
+                                <option value="inspector"       {{ old('role') === 'inspector'       ? 'selected' : '' }}>Inspector</option>
+                                <option value="billing_clerk"   {{ old('role') === 'billing_clerk'   ? 'selected' : '' }}>Billing Clerk</option>
+                            </select>
+                            @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" name="password" id="addPassword"
+                                       class="form-control @error('password') is-invalid @enderror"
+                                       placeholder="Min 8 characters" required>
+                                <button type="button" class="btn btn-outline-secondary toggle-pw" data-target="addPassword">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            @error('password')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" name="password_confirmation" id="addPasswordConfirm"
+                                       class="form-control" placeholder="Repeat password" required>
+                                <button type="button" class="btn btn-outline-secondary toggle-pw" data-target="addPasswordConfirm">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Account Status</label>
+                            <select name="status" class="form-select">
+                                <option value="active"   {{ old('status','active') === 'active'   ? 'selected' : '' }}>Active</option>
+                                <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i>Create User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endcan
+
 
 {{-- ══════════════════ MODAL: RESET PASSWORD ══════════════════ --}}
+@can('settings.users.edit')
 <div class="modal fade" id="modalResetPassword" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -296,7 +390,11 @@
 </div>
 
 
+@endcan
+
+
 {{-- ══════════════════ MODAL: DELETE USER ══════════════════ --}}
+@can('settings.users.delete')
 <div class="modal fade" id="modalDeleteUser" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -326,6 +424,7 @@
         </div>
     </div>
 </div>
+@endcan
 
 @endsection
 
@@ -372,7 +471,11 @@ $(document).ready(function () {
         $('#formDeleteUser').attr('action', btn.data('url'));
     });
 
-
+    // ── Re-open Add User modal if there are validation errors ─
+    @if($errors->any())
+        var modal = new bootstrap.Modal(document.getElementById('modalAddUser'));
+        modal.show();
+    @endif
 });
 </script>
 @endpush

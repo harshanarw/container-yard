@@ -525,12 +525,14 @@
 
                     @endif
 
+                    @can('yard.movement-edit')
                     <div class="mt-4 d-flex gap-2">
                         <button type="submit" class="btn {{ $movement->movement_type === 'in' ? 'btn-primary' : 'btn-success' }}">
                             <i class="bi bi-check-lg me-1"></i>Save Changes
                         </button>
                         <a href="{{ route('yard.gate') }}" class="btn btn-outline-secondary">Cancel</a>
                     </div>
+                    @endcan
                 </form>
             </div>
         </div>

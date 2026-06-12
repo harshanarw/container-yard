@@ -120,13 +120,17 @@
                             <i class="bi bi-eye"></i>
                         </a>
                         @if($session->isPending())
+                            @can('yard.reefer.plug-in')
                             <a href="{{ route('yard.reefer.plug-in', $session) }}" class="btn btn-sm btn-success" title="Record Plug-In">
                                 <i class="bi bi-plug-fill"></i> Plug In
                             </a>
+                            @endcan
                         @elseif($session->isActive())
+                            @can('yard.reefer.plug-out')
                             <a href="{{ route('yard.reefer.plug-out', $session) }}" class="btn btn-sm btn-danger" title="Record Plug-Out">
                                 <i class="bi bi-plug"></i> Plug Out
                             </a>
+                            @endcan
                         @endif
                     </td>
                 </tr>

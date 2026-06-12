@@ -19,9 +19,11 @@
                 <i class="bi bi-plug-fill me-1"></i>Record Plug-In
             </a>
         @elseif($session->isActive())
+            @can('yard.reefer.plug-out')
             <a href="{{ route('yard.reefer.plug-out', $session) }}" class="btn btn-danger btn-sm">
                 <i class="bi bi-plug me-1"></i>Record Plug-Out
             </a>
+            @endcan
         @endif
     </div>
 </div>
@@ -80,9 +82,11 @@
             <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
                 <span class="fw-semibold">Temperature Log ({{ $session->tempLogs->count() }})</span>
                 @if($session->isActive())
+                @can('yard.reefer.temp-log')
                 <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addTempLogModal">
                     <i class="bi bi-plus-lg"></i> Add Log
                 </button>
+                @endcan
                 @endif
             </div>
             @if($session->tempLogs->isNotEmpty())
@@ -109,6 +113,7 @@
                             <td>{{ $log->humidity_pct ? $log->humidity_pct.'%' : '—' }}</td>
                             <td>{{ $log->loggedBy?->name ?? '—' }}</td>
                             <td>
+                                @can('yard.reefer.temp-log')
                                 <form action="{{ route('yard.reefer.temp-log.destroy', [$session, $log]) }}" method="POST"
                                       onsubmit="return confirm('Remove this log entry?')">
                                     @csrf @method('DELETE')
@@ -116,6 +121,7 @@
                                         <i class="bi bi-trash3"></i>
                                     </button>
                                 </form>
+                                @endcan
                             </td>
                         </tr>
                         @endforeach
@@ -134,6 +140,7 @@
 
 {{-- Add Temp Log Modal --}}
 @if($session->isActive())
+@can('yard.reefer.temp-log')
 <div class="modal fade" id="addTempLogModal" tabindex="-1">
     <div class="modal-dialog">
         <form action="{{ route('yard.reefer.temp-log.store', $session) }}" method="POST">
@@ -180,5 +187,6 @@
         </form>
     </div>
 </div>
+@endcan
 @endif
 @endsection

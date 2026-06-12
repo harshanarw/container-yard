@@ -124,6 +124,7 @@
 
                                 {{-- Actions for pending --}}
                                 @if($capture->isPending())
+                                @can('guard-post.edit')
                                 <button type="button" class="act-btn act-clear"
                                         onclick="openActionModal({{ $capture->id }},'cleared','{{ $capture->reference_no }}')"
                                         title="Clear — allow entry">
@@ -139,10 +140,12 @@
                                         title="Reject entry">
                                     <i class="bi bi-x-lg me-1"></i>Reject
                                 </button>
+                                @endcan
                                 @endif
 
                                 {{-- Actions for on-hold --}}
                                 @if($capture->isOnHold())
+                                @can('guard-post.edit')
                                 <button type="button" class="act-btn act-clear"
                                         onclick="openActionModal({{ $capture->id }},'cleared','{{ $capture->reference_no }}')"
                                         title="Clear — allow entry">
@@ -153,22 +156,27 @@
                                         title="Reject entry">
                                     <i class="bi bi-x-lg me-1"></i>Reject
                                 </button>
+                                @endcan
                                 @endif
 
                                 {{-- Gate-In link (cleared, gate_in, not yet linked) --}}
                                 @if($capture->isCleared() && $capture->direction === 'gate_in' && !$capture->linked_gate_movement_id)
+                                @can('guard-post.edit')
                                 <a href="{{ route('yard.gate') }}?capture_id={{ $capture->id }}"
                                    class="act-btn act-gate-in" title="Open Gate-In form — pre-filled from this capture">
                                     <i class="bi bi-box-arrow-in-right me-1"></i>Gate-In
                                 </a>
+                                @endcan
                                 @endif
 
                                 {{-- Gate-Out link --}}
                                 @if($capture->isCleared() && $capture->direction === 'gate_out' && !$capture->linked_gate_movement_id)
+                                @can('guard-post.edit')
                                 <a href="{{ route('yard.gate') }}?tab=out&capture_id={{ $capture->id }}"
                                    class="act-btn act-gate-out" title="Open Gate-Out form — pre-filled from this capture">
                                     <i class="bi bi-box-arrow-right me-1"></i>Gate-Out
                                 </a>
+                                @endcan
                                 @endif
 
                                 {{-- Linked badge --}}

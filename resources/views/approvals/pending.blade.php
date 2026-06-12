@@ -97,18 +97,22 @@
                         <td class="text-end">
                             <div class="d-flex gap-2 justify-content-end">
                                 {{-- Approve --}}
+                                @can('approvals.approve')
                                 <button type="button" class="btn btn-success btn-sm"
                                         data-bs-toggle="modal"
                                         data-bs-target="#approveModal{{ $action->id }}">
                                     <i class="bi bi-check-lg me-1"></i>Approve
                                 </button>
+                                @endcan
 
                                 {{-- Reject --}}
+                                @can('approvals.reject')
                                 <button type="button" class="btn btn-danger btn-sm"
                                         data-bs-toggle="modal"
                                         data-bs-target="#rejectModal{{ $action->id }}">
                                     <i class="bi bi-x-lg me-1"></i>Reject
                                 </button>
+                                @endcan
 
                                 @if($docLink)
                                 <a href="{{ $docLink }}" class="btn btn-outline-secondary btn-sm">
@@ -133,12 +137,14 @@
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    @can('approvals.approve')
                                     <form method="POST" action="{{ route('approvals.actions.approve', $action) }}">
                                         @csrf
                                         <button type="submit" class="btn btn-success">
                                             <i class="bi bi-check-lg me-1"></i>Confirm Approval
                                         </button>
                                     </form>
+                                    @endcan
                                 </div>
                             </div>
                         </div>
@@ -152,6 +158,7 @@
                                     <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>Reject Step</h5>
                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                 </div>
+                                @can('approvals.reject')
                                 <form method="POST" action="{{ route('approvals.actions.reject', $action) }}">
                                     @csrf
                                     <div class="modal-body">
@@ -172,6 +179,7 @@
                                         </button>
                                     </div>
                                 </form>
+                                @endcan
                             </div>
                         </div>
                     </div>
