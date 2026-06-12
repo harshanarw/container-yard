@@ -13,9 +13,11 @@
         <h4><i class="bi bi-person-badge me-2 text-primary"></i>Customer Registry</h4>
         <p class="text-muted mb-0 small">Manage shipping lines and container owners</p>
     </div>
+    @can('customers.create')
     <a href="{{ route('customers.create') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-circle me-1"></i>Register Customer
     </a>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -176,10 +178,13 @@
                                    class="btn btn-outline-info btn-sm" title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
+                                @can('customers.edit')
                                 <a href="{{ route('customers.edit', $customer) }}"
                                    class="btn btn-outline-primary btn-sm" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                @endcan
+                                @can('customers.delete')
                                 <button type="button"
                                         class="btn btn-outline-danger btn-sm btn-delete-customer"
                                         title="Delete Customer"
@@ -189,6 +194,7 @@
                                         data-bs-target="#modalDeleteCustomer">
                                     <i class="bi bi-trash"></i>
                                 </button>
+                                @endcan
                             </div>
                         </td>
                     </tr>

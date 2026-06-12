@@ -31,9 +31,11 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
         </p>
     </div>
     <div class="d-flex flex-wrap gap-2">
+        @can('customers.edit')
         <a href="{{ route('customers.edit', $customer) }}" class="btn btn-primary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
+        @endcan
         <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Back
         </a>
@@ -331,6 +333,7 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
         @endif
 
         <!-- Delete -->
+        @can('customers.delete')
         <form action="{{ route('customers.destroy', $customer) }}" method="POST"
               data-confirm="Delete {{ addslashes($customer->name) }}? This cannot be undone."
               data-confirm-title="Delete Customer"
@@ -342,6 +345,7 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                 <i class="bi bi-trash me-1"></i>Delete Customer
             </button>
         </form>
+        @endcan
 
     </div>
 </div>

@@ -85,9 +85,11 @@
             <i class="bi bi-tools me-1"></i>Create Estimate
         </a>
         @endif
+        @can('surveys.edit')
         <a href="{{ route('surveys.edit', $inquiry) }}" class="btn btn-primary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
+        @endcan
         <a href="{{ route('surveys.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Back
         </a>
@@ -337,9 +339,11 @@
                 <i class="bi bi-lightning me-2 text-primary"></i>Quick Actions
             </div>
             <div class="card-body d-grid gap-2">
+                @can('surveys.edit')
                 <a href="{{ route('surveys.edit', $inquiry) }}" class="btn btn-primary btn-sm">
                     <i class="bi bi-pencil me-2"></i>Edit Survey
                 </a>
+                @endcan
                 <a href="{{ route('surveys.pdf', $inquiry) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-printer me-2"></i>Print Survey PDF
                 </a>
@@ -354,10 +358,12 @@
                     <i class="bi bi-receipt me-2"></i>View Estimate ({{ $inquiry->estimate->estimate_no }})
                 </a>
                 @endif
+                @can('surveys.delete')
                 <button type="button" class="btn btn-outline-danger btn-sm"
                         data-bs-toggle="modal" data-bs-target="#modalDelete">
                     <i class="bi bi-trash me-2"></i>Delete Survey
                 </button>
+                @endcan
             </div>
         </div>
 
@@ -468,6 +474,7 @@
 </div>
 
 {{-- ══════════ Delete Modal ══════════ --}}
+@can('surveys.delete')
 <div class="modal fade" id="modalDelete" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -489,6 +496,7 @@
         </div>
     </div>
 </div>
+@endcan
 
 @endsection
 

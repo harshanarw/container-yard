@@ -62,16 +62,19 @@
         <a href="{{ route('estimates.pdf', $estimate) }}" class="btn btn-outline-secondary btn-sm" target="_blank">
             <i class="bi bi-file-pdf me-1"></i>PDF
         </a>
+        @can('estimates.edit')
         @if(in_array($estimate->status, ['draft', 'sent', 'under_review', 'returned']))
         <a href="{{ route('estimates.edit', $estimate) }}" class="btn btn-primary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
         @endif
+        @endcan
         @if($hasUnassignedLines)
         <a href="{{ route('work-orders.create', ['estimate_id' => $estimate->id]) }}" class="btn btn-success btn-sm">
             <i class="bi bi-hammer me-1"></i>Create Work Order
         </a>
         @endif
+        @can('estimates.approve')
         @if($estimate->status === 'sent')
         <form method="POST" action="{{ route('estimates.approve', $estimate) }}" class="d-inline">
             @csrf @method('PATCH')
@@ -88,6 +91,7 @@
             <i class="bi bi-x-circle me-1"></i>Mark Rejected
         </button>
         @endif
+        @endcan
         <a href="{{ route('estimates.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Back
         </a>
@@ -464,6 +468,7 @@
     <div class="col-lg-4">
 
         <!-- Send to Owner -->
+        @can('estimates.edit')
         @if($canSend)
         <div class="card content-card mb-3 {{ $isResend ? 'border-warning' : 'border-primary' }}">
             <div class="card-header {{ $isResend ? 'bg-warning-subtle' : 'bg-primary-subtle' }}">
@@ -504,6 +509,7 @@
             </div>
         </div>
         @endif
+        @endcan
 
         <!-- Portal Token Status -->
         @if($activeToken)
@@ -543,6 +549,7 @@
                     </div>
                 </div>
                 @endif
+                @can('estimates.edit')
                 <div class="d-flex gap-2 mt-3">
                     <form method="POST" action="{{ route('estimates.send-reminder', $estimate) }}" class="flex-grow-1">
                         @csrf
@@ -561,6 +568,7 @@
                         </button>
                     </form>
                 </div>
+                @endcan
                 <div class="mt-2">
                     <div class="text-muted small mb-1">Portal URL</div>
                     <div class="input-group input-group-sm">
@@ -674,6 +682,7 @@
         @endif
 
         <!-- Delete -->
+        @can('estimates.delete')
         @if(!in_array($estimate->status, ['approved', 'completed']))
         <form method="POST" action="{{ route('estimates.destroy', $estimate) }}"
               data-confirm="Delete estimate {{ $estimate->estimate_no }}? This cannot be undone."
@@ -687,11 +696,13 @@
             </button>
         </form>
         @endif
+        @endcan
 
     </div>
 </div>
 
 {{-- Reject Modal --}}
+@can('estimates.approve')
 @if($estimate->status === 'sent')
 <div class="modal fade" id="rejectModal" tabindex="-1">
     <div class="modal-dialog">
@@ -717,5 +728,6 @@
     </div>
 </div>
 @endif
+@endcan
 
 @endsection

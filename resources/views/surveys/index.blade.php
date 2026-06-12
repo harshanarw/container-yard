@@ -13,9 +13,11 @@
         <h4><i class="bi bi-card-checklist me-2 text-primary"></i>Container Surveys</h4>
         <p class="text-muted mb-0 small">Process damage surveys and pre-trip inspections</p>
     </div>
+    @can('surveys.create')
     <a href="{{ route('surveys.create') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-circle me-1"></i>New Survey
     </a>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -201,10 +203,13 @@
                                     <i class="bi bi-tools"></i>
                                 </a>
                                 @endif
+                                @can('surveys.edit')
                                 <a href="{{ route('surveys.edit', $inquiry) }}"
                                    class="btn btn-outline-primary btn-sm" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                @endcan
+                                @can('surveys.delete')
                                 @if(!$inquiry->estimate)
                                 <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
                                         data-bs-toggle="modal" data-bs-target="#modalDelete"
@@ -213,6 +218,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                                 @endif
+                                @endcan
                             </div>
                         </td>
                     </tr>

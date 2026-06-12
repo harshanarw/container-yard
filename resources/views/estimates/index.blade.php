@@ -13,9 +13,11 @@
         <h4><i class="bi bi-tools me-2 text-primary"></i>Repair Estimates</h4>
         <p class="text-muted mb-0 small">Manage and track container repair cost estimates</p>
     </div>
+    @can('estimates.create')
     <a href="{{ route('estimates.create') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-circle me-1"></i>New Estimate
     </a>
+    @endcan
 </div>
 
 @if(session('success'))
@@ -151,14 +153,17 @@
                                 </a>
 
                                 {{-- Edit (draft or sent only) --}}
+                                @can('estimates.edit')
                                 @if(in_array($estimate->status, ['draft', 'sent']))
                                 <a href="{{ route('estimates.edit', $estimate) }}"
                                    class="btn btn-sm btn-outline-primary" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 @endif
+                                @endcan
 
                                 {{-- Mark Approved (sent only) --}}
+                                @can('estimates.approve')
                                 @if($estimate->status === 'sent')
                                 <button type="button" class="btn btn-sm btn-outline-success" title="Mark Approved"
                                         data-bs-toggle="modal" data-bs-target="#approveModal"
@@ -173,8 +178,10 @@
                                     <i class="bi bi-x-circle"></i>
                                 </button>
                                 @endif
+                                @endcan
 
                                 {{-- Delete (not approved) --}}
+                                @can('estimates.delete')
                                 @if($estimate->status !== 'approved')
                                 <button type="button" class="btn btn-sm btn-outline-danger" title="Delete"
                                         data-bs-toggle="modal" data-bs-target="#deleteModal"
@@ -183,6 +190,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                                 @endif
+                                @endcan
                             </div>
                         </td>
                     </tr>
