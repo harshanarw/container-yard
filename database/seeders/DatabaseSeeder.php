@@ -32,6 +32,11 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,              // sample staff users
             UserProfileSeeder::class,       // extended profile fields — needs users
 
+            // ── Access control ────────────────────────────────────────────────
+            PermissionSeeder::class,        // sync permissions from config/modules.php
+            RoleSeeder::class,              // create default roles
+            RolePermissionSeeder::class,    // assign permissions to default roles — needs both above
+
             // ── System configuration ─────────────────────────────────────────
             SystemSettingsSeeder::class,    // company settings / prefixes / defaults
 

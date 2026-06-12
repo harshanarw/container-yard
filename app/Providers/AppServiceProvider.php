@@ -3,8 +3,12 @@
 namespace App\Providers;
 
 use App\Models\CompanySetting;
+use App\Models\Permission;
 use App\Services\DocumentStorage\DocumentManager;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
@@ -19,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerGates();
+
         View::composer('*', function ($view) {
             try {
                 $view->with('companySetting', CompanySetting::current());
@@ -61,5 +67,34 @@ class AppServiceProvider extends ServiceProvider
 
             return $transport;
         });
+    }
+
+    private function registerGates(): void
+    {
+        // Super-admin / system-administrator bypass all permission checks
+        Gate::before(function ($user, string $ability) {
+            if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) {
+                return true;
+            }
+        });
+
+        // Register every permission from the DB as a named Gate ability so that
+        // @can('billing.reefer.create') and ->middleware('can:billing.reefer.create') work.
+        // Permission names are cached for 1 hour; cleared by SyncPermissions command.
+        try {
+            if (!Schema::hasTable('permissions')) {
+                return;
+            }
+
+            $names = Cache::remember('_gate_permission_names', 3600, fn() =>
+                Permission::pluck('name')->toArray()
+            );
+
+            foreach ($names as $name) {
+                Gate::define($name, fn($user) => $user->hasPermissionTo($name));
+            }
+        } catch (\Throwable) {
+            // DB not ready (fresh install / migrations not yet run)
+        }
     }
 }
