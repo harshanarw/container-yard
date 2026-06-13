@@ -2062,9 +2062,9 @@ function initPhotoUploader(cfg) {
         renderPreviews();
     }
     cfg.previewGrid.addEventListener('click', e => { const b = e.target.closest('.rm-photo'); if (!b) return; files.splice(parseInt(b.dataset.idx,10),1); renderPreviews(); });
-    cfg.browseBtn.addEventListener('click', e => { e.stopPropagation(); cfg.fileInput.click(); });
-    cfg.dropZone.addEventListener('click', () => cfg.fileInput.click());
-    cfg.cameraBtn.addEventListener('click', e => { e.stopPropagation(); cfg.cameraInput.click(); });
+    cfg.browseBtn.addEventListener('click', () => cfg.fileInput.click());
+    cfg.cameraBtn.addEventListener('click', () => cfg.cameraInput.click());
+    cfg.dropZone.addEventListener('click', (e) => { if (e.target.closest('button')) return; cfg.fileInput.click(); });
     cfg.fileInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
     cfg.cameraInput.addEventListener('change', function () { addFiles(this.files); this.value = ''; });
     cfg.dropZone.addEventListener('dragover',  e => { e.preventDefault(); cfg.dropZone.style.background = '#e8f0fe'; });
