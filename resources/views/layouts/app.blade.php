@@ -532,6 +532,7 @@
         </div>
 
         {{-- ── ADMINISTRATION ── --}}
+        @if(Auth::user()->can('settings.users.view') || Auth::user()->can('customers.view'))
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-admin"
                 aria-expanded="false" aria-controls="nav-section-admin">
@@ -557,6 +558,7 @@
                 @endcan
             </ul>
         </div>
+        @endif
 
         {{-- ── GUARD POST (optional feature) ── --}}
         @if($companySetting?->enable_guard_post && Auth::user()->can('guard-post.view'))
@@ -592,6 +594,7 @@
         @endif
 
         {{-- ── OPERATIONS ── --}}
+        @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.reefer.view') || Auth::user()->can('surveys.view') || Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view') || Auth::user()->can('billing.repair.view'))
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-operations"
                 aria-expanded="false" aria-controls="nav-section-operations">
@@ -599,6 +602,7 @@
         </button>
         <div class="collapse" id="nav-section-operations">
             {{-- Yard sub-group --}}
+            @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.reefer.view'))
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-yard"
                     aria-expanded="false" aria-controls="nav-sub-ops-yard">
@@ -638,8 +642,10 @@
                     @endcan
                 </ul>
             </div>
+            @endif
 
             {{-- Containers sub-group --}}
+            @if(Auth::user()->can('surveys.view'))
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-containers"
                     aria-expanded="false" aria-controls="nav-sub-ops-containers">
@@ -659,8 +665,10 @@
                     @endcan
                 </ul>
             </div>
+            @endif
 
             {{-- M&R sub-group --}}
+            @if(Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view') || Auth::user()->can('billing.repair.view'))
             @php $mrOpsActive = request()->routeIs('estimates.*') || request()->routeIs('work-orders.*') || request()->routeIs('repair-invoices.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-mr"
@@ -698,7 +706,9 @@
                     @endcan
                 </ul>
             </div>
+            @endif
         </div>
+        @endif
 
         {{-- ── BILLING ── --}}
         @if(Auth::user()->can('billing.storage.view') || Auth::user()->can('billing.storage-handling.view') || Auth::user()->can('billing.reefer.view'))
@@ -738,6 +748,26 @@
         @endif
 
         {{-- ── SETUP ── --}}
+        @php
+            $canViewSetup = Auth::user()->can('containers.view')
+                         || Auth::user()->can('masters.equipment-types.view')
+                         || Auth::user()->can('masters.container-grades.view')
+                         || Auth::user()->can('masters.storage-zones.view')
+                         || Auth::user()->can('masters.checklist-items.view')
+                         || Auth::user()->can('masters.damage-rules.view')
+                         || Auth::user()->can('masters.repair-categories.view')
+                         || Auth::user()->can('masters.mr-codes.view')
+                         || Auth::user()->can('masters.storage-tariff.view')
+                         || Auth::user()->can('masters.handling-tariff.view')
+                         || Auth::user()->can('masters.mr-tariff.view')
+                         || Auth::user()->can('masters.reefer-tariff.view')
+                         || Auth::user()->can('masters.customer-types.view')
+                         || Auth::user()->can('masters.charge-codes.view')
+                         || Auth::user()->can('masters.tax-codes.view')
+                         || Auth::user()->can('masters.currencies.view')
+                         || Auth::user()->can('masters.exchange-rates.view');
+        @endphp
+        @if($canViewSetup)
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-setup"
                 aria-expanded="false" aria-controls="nav-section-setup">
@@ -745,6 +775,7 @@
         </button>
         <div class="collapse" id="nav-section-setup">
             {{-- Containers (Equipment) sub-group --}}
+            @if(Auth::user()->can('containers.view') || Auth::user()->can('masters.equipment-types.view') || Auth::user()->can('masters.container-grades.view'))
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-containers"
                     aria-expanded="false" aria-controls="nav-sub-setup-containers">
@@ -780,8 +811,10 @@
                     @endcan
                 </ul>
             </div>
+            @endif
 
             {{-- Yard Configuration sub-group --}}
+            @if(Auth::user()->can('masters.storage-zones.view'))
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-yard"
                     aria-expanded="false" aria-controls="nav-sub-setup-yard">
@@ -801,8 +834,10 @@
                     @endcan
                 </ul>
             </div>
+            @endif
 
             {{-- Inspection sub-group --}}
+            @if(Auth::user()->can('masters.checklist-items.view') || Auth::user()->can('masters.damage-rules.view'))
             @php $inspectionActive = request()->routeIs('masters.checklist.*') || request()->routeIs('masters.damage-assessment-rules.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-inspection"
@@ -832,8 +867,10 @@
                     @endcan
                 </ul>
             </div>
+            @endif
 
             {{-- Repair Categories sub-group --}}
+            @if(Auth::user()->can('masters.repair-categories.view'))
             @php $repairCatActive = request()->routeIs('masters.repair-categories.*') || request()->routeIs('masters.repair-category-mappings.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-repair-cat"
@@ -861,7 +898,9 @@
                     @endcan
                 </ul>
             </div>
+            @endif
 
+            @if(Auth::user()->can('masters.mr-codes.view'))
             @php $mrCodesActive = request()->routeIs('masters.mr-codes.*') || request()->routeIs('masters.mr-charge-mappings.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-mr-codes"
@@ -901,8 +940,10 @@
                     @endcan
                 </ul>
             </div>
+            @endif
 
             {{-- Tariffs sub-group --}}
+            @if(Auth::user()->can('masters.storage-tariff.view') || Auth::user()->can('masters.handling-tariff.view') || Auth::user()->can('masters.mr-tariff.view') || Auth::user()->can('masters.reefer-tariff.view'))
             @php $tariffsActive = request()->routeIs('masters.storage-tariff.*') || request()->routeIs('masters.handling-tariff.*') || request()->routeIs('masters.mr-tariff.*') || request()->routeIs('masters.reefer-tariff.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-tariffs"
@@ -948,8 +989,10 @@
                     @endcan
                 </ul>
             </div>
+            @endif
 
             {{-- Customer sub-group --}}
+            @if(Auth::user()->can('masters.customer-types.view'))
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-customer"
                     aria-expanded="{{ request()->routeIs('masters.customer-types.*') ? 'true' : 'false' }}"
@@ -970,8 +1013,10 @@
                     @endcan
                 </ul>
             </div>
+            @endif
 
             {{-- Invoice sub-group --}}
+            @if(Auth::user()->can('masters.charge-codes.view') || Auth::user()->can('masters.tax-codes.view') || Auth::user()->can('masters.currencies.view') || Auth::user()->can('masters.exchange-rates.view'))
             @php $invoiceActive = request()->routeIs('masters.tax-codes.*') || request()->routeIs('masters.charge-codes.*') || request()->routeIs('masters.currencies.*') || request()->routeIs('masters.exchange-rates.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-invoice"
@@ -1017,7 +1062,9 @@
                     @endcan
                 </ul>
             </div>
+            @endif
         </div>
+        @endif
 
         {{-- ── REPORTS ── --}}
         @can('reports.view')
@@ -1051,6 +1098,7 @@
         @endcan
 
         {{-- ── SETTINGS ── --}}
+        @if(Auth::user()->isSuperUser() || Auth::user()->can('access-control.view') || Auth::user()->can('settings.company.view') || Auth::user()->can('settings.approval-workflows.view'))
         @php $settingsOpen = request()->routeIs('settings.*') || request()->routeIs('access-control.*'); @endphp
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-settings"
@@ -1078,6 +1126,7 @@
             @endcan
 
             {{-- Configuration sub-group --}}
+            @if(Auth::user()->isSuperUser() || Auth::user()->can('settings.company.view') || Auth::user()->can('settings.approval-workflows.view'))
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-settings-config"
                     aria-expanded="false" aria-controls="nav-sub-settings-config">
@@ -1133,7 +1182,9 @@
                     @endcan
                 </ul>
             </div>
+            @endif
         </div>
+        @endif
 
     </div><!-- /sidebar-nav -->
 
