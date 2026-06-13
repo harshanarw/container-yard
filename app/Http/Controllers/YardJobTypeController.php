@@ -30,6 +30,7 @@ class YardJobTypeController extends Controller
     {
         $data = $request->validate([
             'job_type_code'             => ['required', 'string', 'max:30', 'unique:yard_job_types,job_type_code', 'regex:/^[A-Z0-9_]+$/'],
+            'type_short_code'           => ['required', 'string', 'max:5', 'unique:yard_job_types,type_short_code', 'regex:/^[A-Z]{2,5}$/'],
             'job_type_name'             => ['required', 'string', 'max:100'],
             'movement_direction'        => ['required', 'in:gate_in,gate_out'],
             'description'               => ['nullable', 'string', 'max:500'],
@@ -66,6 +67,7 @@ class YardJobTypeController extends Controller
     {
         $data = $request->validate([
             'job_type_code'             => ['required', 'string', 'max:30', "unique:yard_job_types,job_type_code,{$jobType->id}", 'regex:/^[A-Z0-9_]+$/'],
+            'type_short_code'           => ['required', 'string', 'max:5', "unique:yard_job_types,type_short_code,{$jobType->id}", 'regex:/^[A-Z]{2,5}$/'],
             'job_type_name'             => ['required', 'string', 'max:100'],
             'movement_direction'        => ['required', 'in:gate_in,gate_out'],
             'description'               => ['nullable', 'string', 'max:500'],

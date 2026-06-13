@@ -48,7 +48,7 @@
             <tr>
                 <th class="ps-3" style="width:36px;"></th>
                 <th style="width:36px;">#</th>
-                <th style="width:160px;">Code</th>
+                <th style="width:200px;">Code / Short</th>
                 <th>Name / Description</th>
                 <th style="width:80px;" class="text-center">Direction</th>
                 <th>Applicable Workflows</th>
@@ -63,11 +63,18 @@
             <td class="ps-3 drag-handle text-muted" style="cursor:grab;"><i class="bi bi-grip-vertical"></i></td>
             {{-- sort order --}}
             <td class="small text-muted fw-semibold">{{ $jt->sort_order }}</td>
-            {{-- code --}}
+            {{-- code + short code --}}
             <td>
-                <span class="badge bg-primary font-monospace" style="font-size:.72rem;">{{ $jt->job_type_code }}</span>
-                @if($jt->is_system)
-                    <i class="bi bi-lock-fill text-secondary ms-1" title="System type" style="font-size:.65rem;"></i>
+                <div>
+                    <span class="badge bg-primary font-monospace" style="font-size:.72rem;">{{ $jt->job_type_code }}</span>
+                    @if($jt->is_system)
+                        <i class="bi bi-lock-fill text-secondary ms-1" title="System type" style="font-size:.65rem;"></i>
+                    @endif
+                </div>
+                @if($jt->type_short_code)
+                <div class="mt-1">
+                    <span class="badge bg-info-subtle text-info border font-monospace" style="font-size:.72rem;" title="Short code for Job Number">{{ $jt->type_short_code }}</span>
+                </div>
                 @endif
             </td>
             {{-- name + description --}}
@@ -123,6 +130,7 @@
                 <button type="button" class="btn btn-sm btn-outline-primary btn-edit"
                         data-id="{{ $jt->id }}"
                         data-code="{{ $jt->job_type_code }}"
+                        data-short-code="{{ $jt->type_short_code }}"
                         data-name="{{ $jt->job_type_name }}"
                         data-direction="{{ $jt->movement_direction }}"
                         data-description="{{ $jt->description }}"
@@ -181,11 +189,18 @@
                                    pattern="[A-Z0-9_]+" title="Uppercase letters, digits and underscores only">
                             <div class="form-text">UPPERCASE_WITH_UNDERSCORES</div>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Short Code <span class="text-danger">*</span></label>
+                            <input type="text" name="type_short_code" class="form-control text-uppercase font-monospace"
+                                   maxlength="5" required placeholder="e.g. RP"
+                                   pattern="[A-Z]{2,5}" title="2–5 uppercase letters, used in Job Number">
+                            <div class="form-text">2–5 uppercase letters</div>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
                             <input type="text" name="job_type_name" class="form-control" maxlength="100" required>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label fw-semibold">Direction <span class="text-danger">*</span></label>
                             <select name="movement_direction" class="form-select" required>
                                 <option value="gate_in" selected>Gate In</option>
@@ -273,11 +288,17 @@
                                    maxlength="30" required pattern="[A-Z0-9_]+">
                             <div class="form-text" id="edit_code_hint"></div>
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Short Code <span class="text-danger">*</span></label>
+                            <input type="text" name="type_short_code" id="edit_short_code" class="form-control text-uppercase font-monospace"
+                                   maxlength="5" required pattern="[A-Z]{2,5}" title="2–5 uppercase letters">
+                            <div class="form-text">Job Number prefix</div>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
                             <input type="text" name="job_type_name" id="edit_name" class="form-control" maxlength="100" required>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label fw-semibold">Direction <span class="text-danger">*</span></label>
                             <select name="movement_direction" id="edit_direction" class="form-select" required>
                                 <option value="gate_in">Gate In</option>
@@ -392,12 +413,13 @@
             document.getElementById('editForm').action =
                 '/masters/job-types/' + d.id;
 
-            document.getElementById('edit_code').value       = d.code;
-            document.getElementById('edit_name').value       = d.name;
-            document.getElementById('edit_description').value= d.description || '';
-            document.getElementById('edit_next_status').value= d.nextStatus || '';
-            document.getElementById('edit_remarks').value    = d.remarks || '';
-            document.getElementById('edit_direction').value  = d.direction;
+            document.getElementById('edit_code').value        = d.code;
+            document.getElementById('edit_short_code').value  = d.shortCode || '';
+            document.getElementById('edit_name').value        = d.name;
+            document.getElementById('edit_description').value = d.description || '';
+            document.getElementById('edit_next_status').value = d.nextStatus || '';
+            document.getElementById('edit_remarks').value     = d.remarks || '';
+            document.getElementById('edit_direction').value   = d.direction;
 
             // System types: lock code & direction
             const isSystem = d.system === '1';

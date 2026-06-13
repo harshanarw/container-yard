@@ -15,6 +15,7 @@ class YardJobTypeSeeder extends Seeder
         $types = [
             [
                 'code'        => 'EMPTY_RETURN',
+                'short_code'  => 'ER',
                 'name'        => 'Empty Return',
                 'description' => 'Empty container returned by customer, consignee, or shipper after use. Triggers inward handling, condition survey, and storage.',
                 'sort_order'  => 1,
@@ -26,6 +27,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'LADEN_IN',
+                'short_code'  => 'LI',
                 'name'        => 'Laden In',
                 'description' => 'Full / laden container enters yard for storage, transfer, or onward handling. Seal and reference validation required.',
                 'sort_order'  => 2,
@@ -37,6 +39,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'OFFHIRE_IN',
+                'short_code'  => 'OH',
                 'name'        => 'Off-Hire In',
                 'description' => 'Container enters yard at end of lease or hire period. Triggers off-hire inspection, damage recording, and repair estimate.',
                 'sort_order'  => 3,
@@ -48,6 +51,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'ONHIRE_IN',
+                'short_code'  => 'ON',
                 'name'        => 'On-Hire In',
                 'description' => 'Container enters to become operationally available under hire or lease. Triggers on-hire readiness verification.',
                 'sort_order'  => 4,
@@ -59,6 +63,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'REPAIR_IN',
+                'short_code'  => 'RP',
                 'name'        => 'Repair In',
                 'description' => 'Container enters specifically for repair work. Triggers repair job creation, survey / estimate linkage, and work order assignment.',
                 'sort_order'  => 5,
@@ -70,6 +75,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'SURVEY_IN',
+                'short_code'  => 'SV',
                 'name'        => 'Survey In',
                 'description' => 'Container enters for inspection or survey only. Triggers survey task generation and damage record capture.',
                 'sort_order'  => 6,
@@ -81,6 +87,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'WASH_IN',
+                'short_code'  => 'WS',
                 'name'        => 'Wash / Clean In',
                 'description' => 'Container enters for washing, cleaning, deodorising, or residue removal. Triggers wash order generation and bay allocation.',
                 'sort_order'  => 7,
@@ -92,6 +99,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'FUMIGATION_IN',
+                'short_code'  => 'FM',
                 'name'        => 'Fumigation / Treatment In',
                 'description' => 'Container enters for fumigation, sanitisation, or special treatment. Triggers treatment order and safety hold.',
                 'sort_order'  => 8,
@@ -103,6 +111,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'STORAGE_IN',
+                'short_code'  => 'ST',
                 'name'        => 'Storage In',
                 'description' => 'Container enters mainly for storage purposes. Triggers storage contract validation and yard stack assignment.',
                 'sort_order'  => 9,
@@ -114,6 +123,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'REEFER_IN',
+                'short_code'  => 'RF',
                 'name'        => 'Reefer In',
                 'description' => 'Reefer container enters for powered yard storage or reefer service handling. Triggers plug-in and monitoring task creation.',
                 'sort_order'  => 10,
@@ -125,6 +135,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'TRANSFER_IN',
+                'short_code'  => 'TR',
                 'name'        => 'Transfer In',
                 'description' => 'Container arrives from another yard, depot, or terminal for repositioning or transfer. Requires source depot or transfer reference.',
                 'sort_order'  => 11,
@@ -136,6 +147,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'CUSTOMS_HOLD_IN',
+                'short_code'  => 'CH',
                 'name'        => 'Customs Hold In',
                 'description' => 'Container enters under customs or regulatory authority hold / examination. Activates hold status and restricted movement flag.',
                 'sort_order'  => 12,
@@ -147,6 +159,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'SALE_DISPOSAL_IN',
+                'short_code'  => 'SD',
                 'name'        => 'Sale / Disposal In',
                 'description' => 'Container enters as sale stock, scrap stock, or disposal handling stock. Restricts from normal stock release.',
                 'sort_order'  => 13,
@@ -158,6 +171,7 @@ class YardJobTypeSeeder extends Seeder
             ],
             [
                 'code'        => 'CARGO_RENTAL_IN',
+                'short_code'  => 'CR',
                 'name'        => 'Cargo Rental / Container Substitution',
                 'description' => 'Laden customer container enters; cargo is transferred to a yard-owned substitution container. Customer\'s empty box released out. Triggers cargo transfer workflow and storage billing on yard container.',
                 'sort_order'  => 14,
@@ -173,6 +187,7 @@ class YardJobTypeSeeder extends Seeder
             YardJobType::updateOrCreate(
                 ['job_type_code' => $row['code']],
                 [
+                    'type_short_code'           => $row['short_code'],
                     'job_type_name'             => $row['name'],
                     'movement_direction'        => 'gate_in',
                     'description'               => $row['description'],

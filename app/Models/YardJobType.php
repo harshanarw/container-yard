@@ -9,6 +9,7 @@ class YardJobType extends Model
 {
     protected $fillable = [
         'job_type_code',
+        'type_short_code',
         'job_type_name',
         'movement_direction',
         'description',
