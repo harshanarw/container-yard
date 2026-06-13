@@ -178,11 +178,12 @@
                     {{-- ── Job / Operation Type ────────────────────────────── --}}
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Job / Operation Type <span class="text-danger">*</span></label>
-                        <select name="job_type_id" id="jobTypeSelect" class="form-select" required>
+                        <select name="job_type_id" id="jobTypeSelect" class="form-select s2-code" required data-s2-sel="name">
                             <option value="">— Select Job Type —</option>
                             @foreach($jobTypes as $jt)
                             <option value="{{ $jt->id }}"
-                                    data-code="{{ $jt->job_type_code }}"
+                                    data-code="{{ $jt->type_short_code }}"
+                                    data-name="{{ $jt->job_type_name }}"
                                     data-desc="{{ $jt->description }}"
                                     data-reefer="{{ $jt->reefer_applicable ? '1' : '0' }}"
                                     data-customs="{{ $jt->customs_applicable ? '1' : '0' }}"
@@ -2873,18 +2874,23 @@ window.gpRescan = async function (btnEl, url, type) {
 
     function applyJobType(opt) {
         if (!opt || !opt.value) {
-            descEl.textContent = '';
-            reeferNotice.classList.add('d-none');
-            cargoNotice.classList.add('d-none');
+            if (descEl) descEl.textContent = '';
+            if (reeferNotice) reeferNotice.classList.add('d-none');
+            if (cargoNotice)  cargoNotice.classList.add('d-none');
             return;
         }
-        descEl.textContent = opt.dataset.desc || '';
-        reeferNotice.classList.toggle('d-none', opt.dataset.reefer !== '1');
-        cargoNotice.classList.toggle('d-none', opt.dataset.cargoTransfer !== '1');
+        if (descEl) descEl.textContent = opt.dataset.desc || '';
+        if (reeferNotice) reeferNotice.classList.toggle('d-none', opt.dataset.reefer !== '1');
+        if (cargoNotice)  cargoNotice.classList.toggle('d-none', opt.dataset.cargoTransfer !== '1');
     }
 
     if (sel) {
-        sel.addEventListener('change', () => applyJobType(sel.selectedOptions[0]));
+        // Select2 fires change via jQuery — must use jQuery .on() to catch it
+        if (typeof $ !== 'undefined') {
+            $(sel).on('change', function () { applyJobType(sel.selectedOptions[0]); });
+        } else {
+            sel.addEventListener('change', () => applyJobType(sel.selectedOptions[0]));
+        }
         if (sel.value) applyJobType(sel.selectedOptions[0]);
     }
 })();
