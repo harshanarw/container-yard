@@ -214,6 +214,43 @@
                         @enderror
                     </div>
 
+                    {{-- Empty Return — Return Reason (shown only for EMPTY_RETURN job type) --}}
+                    <div id="returnReasonSection" class="mb-3 d-none">
+                        <div class="p-3 rounded-3 border" style="background:#fefce8;border-color:#fde047!important;">
+                            <label class="form-label fw-semibold mb-1" style="font-size:.85rem;">
+                                <i class="bi bi-arrow-return-left me-1 text-warning"></i>
+                                Return Reason <span class="text-danger">*</span>
+                            </label>
+                            <div class="small text-muted mb-2">Who is returning this empty container?</div>
+                            <div class="d-flex flex-column gap-2" id="returnReasonOptions">
+                                <label class="d-flex align-items-start gap-2 p-2 rounded cursor-pointer border bg-white" style="cursor:pointer;">
+                                    <input type="radio" name="return_reason" value="import_consignee" class="mt-1 flex-shrink-0">
+                                    <span>
+                                        <span class="fw-semibold d-block" style="font-size:.85rem;">Import Consignee Return</span>
+                                        <span class="text-muted" style="font-size:.75rem;">Customer who received a laden import container returns it empty after unpacking.</span>
+                                    </span>
+                                </label>
+                                <label class="d-flex align-items-start gap-2 p-2 rounded cursor-pointer border bg-white" style="cursor:pointer;">
+                                    <input type="radio" name="return_reason" value="agent_return" class="mt-1 flex-shrink-0">
+                                    <span>
+                                        <span class="fw-semibold d-block" style="font-size:.85rem;">Shipping Line / Agent Return</span>
+                                        <span class="text-muted" style="font-size:.75rem;">Local agent of the shipping line acting as consignee returns the empty box directly.</span>
+                                    </span>
+                                </label>
+                                <label class="d-flex align-items-start gap-2 p-2 rounded cursor-pointer border bg-white" style="cursor:pointer;">
+                                    <input type="radio" name="return_reason" value="shipper_return" class="mt-1 flex-shrink-0">
+                                    <span>
+                                        <span class="fw-semibold d-block" style="font-size:.85rem;">Shipper Return — Defect / Rejection</span>
+                                        <span class="text-muted" style="font-size:.75rem;">Shipper (exporter) took out the container but returns it due to defects or suitability issues found later.</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div id="returnReasonError" class="text-danger small mt-1 d-none">
+                                <i class="bi bi-exclamation-circle me-1"></i>Please select a return reason for Empty Return.
+                            </div>
+                        </div>
+                    </div>
+
                     {{-- ═══════════════════════════════════════════════════════
                          SECTION 1 — Container Details (always visible)
                     ════════════════════════════════════════════════════════ --}}
@@ -694,43 +731,6 @@
                     <div id="cargoTransferNotice" class="alert alert-warning small py-2 mt-3 d-none">
                         <i class="bi bi-arrow-left-right me-1"></i>
                         <strong>Cargo Transfer</strong> job — a cargo transfer workflow will be initiated after gate-in.
-                    </div>
-
-                    {{-- Empty Return — Return Reason (shown only for EMPTY_RETURN job type) --}}
-                    <div id="returnReasonSection" class="mt-3 d-none">
-                        <div class="p-3 rounded-3 border" style="background:#fefce8;border-color:#fde047!important;">
-                            <label class="form-label fw-semibold mb-1" style="font-size:.85rem;">
-                                <i class="bi bi-arrow-return-left me-1 text-warning"></i>
-                                Return Reason <span class="text-danger">*</span>
-                            </label>
-                            <div class="small text-muted mb-2">Who is returning this empty container?</div>
-                            <div class="d-flex flex-column gap-2" id="returnReasonOptions">
-                                <label class="d-flex align-items-start gap-2 p-2 rounded cursor-pointer border bg-white" style="cursor:pointer;">
-                                    <input type="radio" name="return_reason" value="import_consignee" class="mt-1 flex-shrink-0">
-                                    <span>
-                                        <span class="fw-semibold d-block" style="font-size:.85rem;">Import Consignee Return</span>
-                                        <span class="text-muted" style="font-size:.75rem;">Customer who received a laden import container returns it empty after unpacking.</span>
-                                    </span>
-                                </label>
-                                <label class="d-flex align-items-start gap-2 p-2 rounded cursor-pointer border bg-white" style="cursor:pointer;">
-                                    <input type="radio" name="return_reason" value="agent_return" class="mt-1 flex-shrink-0">
-                                    <span>
-                                        <span class="fw-semibold d-block" style="font-size:.85rem;">Shipping Line / Agent Return</span>
-                                        <span class="text-muted" style="font-size:.75rem;">Local agent of the shipping line acting as consignee returns the empty box directly.</span>
-                                    </span>
-                                </label>
-                                <label class="d-flex align-items-start gap-2 p-2 rounded cursor-pointer border bg-white" style="cursor:pointer;">
-                                    <input type="radio" name="return_reason" value="shipper_return" class="mt-1 flex-shrink-0">
-                                    <span>
-                                        <span class="fw-semibold d-block" style="font-size:.85rem;">Shipper Return — Defect / Rejection</span>
-                                        <span class="text-muted" style="font-size:.75rem;">Shipper (exporter) took out the container but returns it due to defects or suitability issues found later.</span>
-                                    </span>
-                                </label>
-                            </div>
-                            <div id="returnReasonError" class="text-danger small mt-1 d-none">
-                                <i class="bi bi-exclamation-circle me-1"></i>Please select a return reason for Empty Return.
-                            </div>
-                        </div>
                     </div>
 
                     <div class="mt-3 d-grid">
@@ -3054,14 +3054,27 @@ window.gpRescan = async function (btnEl, url, type) {
         });
     }
 
-    if (sel) {
+    function bindJobTypeEvents() {
+        if (!sel) return;
         if (typeof $ !== 'undefined') {
-            $(sel).on('change', function () { applyJobType(sel.selectedOptions[0]); });
+            // Use both generic change AND Select2-specific events for maximum reliability
+            $(sel).off('change.jt select2:select.jt select2:unselect.jt')
+                  .on('change.jt select2:select.jt select2:unselect.jt', function () {
+                      applyJobType(sel.selectedOptions[0]);
+                  });
         } else {
-            sel.addEventListener('change', () => applyJobType(sel.selectedOptions[0]));
+            sel.removeEventListener('change', applyJobType);
+            sel.addEventListener('change', function () { applyJobType(sel.selectedOptions[0]); });
         }
         if (sel.value) applyJobType(sel.selectedOptions[0]);
     }
+
+    // Bind immediately (scripts run after DOM is built)
+    bindJobTypeEvents();
+
+    // Re-bind on DOMContentLoaded so Select2-specific events are registered
+    // after Select2 itself has initialised those event names on the element.
+    document.addEventListener('DOMContentLoaded', bindJobTypeEvents);
 })();
 
 </script>
