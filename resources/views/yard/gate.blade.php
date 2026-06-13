@@ -42,6 +42,28 @@
                     <input type="hidden" name="movement_type" value="in">
 
                     <div class="mb-3">
+                        <label class="form-label fw-semibold">Job / Operation Type <span class="text-danger">*</span></label>
+                        <select name="job_type_id" id="jobTypeSelect" class="form-select" required>
+                            <option value="">— Select Job Type —</option>
+                            @foreach($jobTypes as $jt)
+                            <option value="{{ $jt->id }}"
+                                    data-code="{{ $jt->job_type_code }}"
+                                    data-desc="{{ $jt->description }}"
+                                    data-reefer="{{ $jt->reefer_applicable ? '1' : '0' }}"
+                                    data-customs="{{ $jt->customs_applicable ? '1' : '0' }}"
+                                    data-cargo-transfer="{{ $jt->cargo_transfer_applicable ? '1' : '0' }}"
+                                    {{ old('job_type_id') == $jt->id ? 'selected' : '' }}>
+                                {{ $jt->job_type_code }} — {{ $jt->job_type_name }}
+                            </option>
+                            @endforeach
+                        </select>
+                        <div id="jobTypeDesc" class="form-text text-muted mt-1" style="min-height:1.2em;"></div>
+                        @error('job_type_id')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label fw-semibold">Container Number <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <input type="text" name="container_no" id="containerNoIn"
@@ -135,6 +157,19 @@
                             <textarea name="remarks" class="form-control" rows="2"
                                       placeholder="Any remarks about this container…"></textarea>
                         </div>
+                    </div>
+
+                    {{-- Reefer notice — shown when reefer_applicable job type is selected --}}
+                    <div id="reeferNotice" class="alert alert-info small py-2 mt-3 d-none">
+                        <i class="bi bi-thermometer-snow me-1"></i>
+                        <strong>Reefer Monitoring</strong> is applicable for this job type.
+                        A reefer plug session will be created automatically after gate-in.
+                    </div>
+
+                    {{-- Cargo Transfer notice --}}
+                    <div id="cargoTransferNotice" class="alert alert-warning small py-2 mt-3 d-none">
+                        <i class="bi bi-arrow-left-right me-1"></i>
+                        <strong>Cargo Transfer</strong> job — a cargo transfer workflow will be initiated after gate-in.
                     </div>
 
                     @can('yard.gate-in')
@@ -302,6 +337,29 @@
         btnOut.classList.replace('btn-outline-success','btn-success');
         btnIn.classList.replace('btn-primary','btn-outline-primary');
     });
+
+    // Job Type dynamic behaviour
+    (function () {
+        const sel              = document.getElementById('jobTypeSelect');
+        const descEl           = document.getElementById('jobTypeDesc');
+        const reeferNotice     = document.getElementById('reeferNotice');
+        const cargoNotice      = document.getElementById('cargoTransferNotice');
+
+        function applyJobType(opt) {
+            if (!opt || !opt.value) {
+                descEl.textContent = '';
+                reeferNotice.classList.add('d-none');
+                cargoNotice.classList.add('d-none');
+                return;
+            }
+            descEl.textContent = opt.dataset.desc || '';
+            reeferNotice.classList.toggle('d-none', opt.dataset.reefer !== '1');
+            cargoNotice.classList.toggle('d-none', opt.dataset.cargoTransfer !== '1');
+        }
+
+        sel.addEventListener('change', () => applyJobType(sel.selectedOptions[0]));
+        if (sel.value) applyJobType(sel.selectedOptions[0]);
+    })();
 
     // Auto-format container number
     document.getElementById('containerNoIn').addEventListener('input', function () {

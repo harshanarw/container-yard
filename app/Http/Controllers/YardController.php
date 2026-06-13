@@ -15,6 +15,7 @@ use App\Models\StorageMasterHeader;
 use App\Models\StorageZone;
 use App\Models\YardLocation;
 use App\Models\ReeferPlugSession;
+use App\Models\YardJobType;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -151,7 +152,9 @@ class YardController extends Controller
             }
         }
 
-        return view('yard.gate', compact('recentMovements', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones', 'prefill', 'guardCapture'));
+        $jobTypes = YardJobType::active()->forGateIn()->orderBy('sort_order')->get();
+
+        return view('yard.gate', compact('recentMovements', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones', 'prefill', 'guardCapture', 'jobTypes'));
     }
 
     public function gateIn(Request $request)
@@ -169,6 +172,7 @@ class YardController extends Controller
         ));
 
         $validator = \Illuminate\Support\Facades\Validator::make($request->all() + ['_files' => $request->allFiles()], [
+            'job_type_id'       => ['required', 'exists:yard_job_types,id'],
             'container_no'      => ['required', 'string', 'max:12', 'regex:/^[A-Z]{4}[0-9]{7}$/'],
             'equipment_type_id' => ['required', 'exists:equipment_types,id'],
             'customer_id'       => ['required', 'exists:customers,id'],
@@ -220,6 +224,8 @@ class YardController extends Controller
         }
 
         $validated = $validator->validated();
+
+        $jobType = YardJobType::findOrFail($validated['job_type_id']);
 
         // ── Duplicate Gate-In guard ──────────────────────────────────────────
         $existingContainer = Container::where('container_no', $validated['container_no'])->first();
@@ -316,6 +322,8 @@ class YardController extends Controller
         $movement = GateMovement::create([
             'container_id'     => $container->id,
             'container_no'     => $container->container_no,
+            'job_type_id'      => $jobType->id,
+            'job_type_code'    => $jobType->job_type_code,
             'customer_id'      => $validated['customer_id'],
             'transporter_id'   => $validated['transporter_id'] ?? null,
             'movement_type'    => 'in',
