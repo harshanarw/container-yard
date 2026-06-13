@@ -85,11 +85,23 @@ class YardJobType extends Model
      */
     public function activeFlags(): array
     {
-        return array_keys(array_filter(
+        return array_values(array_filter(
             self::workflowFlags(),
             fn($label, $col) => (bool) $this->$col,
             ARRAY_FILTER_USE_BOTH
         ));
+    }
+
+    // ── Relationships ─────────────────────────────────────────────────────────
+
+    public function gateMovements()
+    {
+        return $this->hasMany(\App\Models\GateMovement::class, 'job_type_id');
+    }
+
+    public function yardJobs()
+    {
+        return $this->hasMany(\App\Models\YardJob::class, 'job_type_id');
     }
 
     /**
