@@ -194,6 +194,7 @@
                                     data-name="{{ $jt->job_type_name }}"
                                     data-desc="{{ $jt->description }}"
                                     data-job-code="{{ $jt->job_type_code }}"
+                                    data-is-empty-return="{{ $jt->job_type_code === 'EMPTY_RETURN' ? '1' : '0' }}"
                                     data-cargo-hint="{{ $cargoHint }}"
                                     data-damage-capture="{{ $jt->damage_capture_required ? '1' : '0' }}"
                                     data-approval="{{ $jt->approval_required ? '1' : '0' }}"
@@ -1477,7 +1478,7 @@ btnOut.addEventListener('click', activateOut);
         // ── Empty Return: require return_reason before showing modal ─────────
         const jobSelV   = document.getElementById('jobTypeSelect');
         const jobOptV   = jobSelV && jobSelV.value ? jobSelV.selectedOptions[0] : null;
-        if (jobOptV && jobOptV.dataset.jobCode === 'EMPTY_RETURN') {
+        if (jobOptV && jobOptV.dataset.isEmptyReturn === '1') {
             const chosen = document.querySelector('input[name="return_reason"]:checked');
             const errEl  = document.getElementById('returnReasonError');
             if (!chosen) {
@@ -2999,7 +3000,7 @@ window.gpRescan = async function (btnEl, url, type) {
         if (reeferNotice) reeferNotice.classList.toggle('d-none', opt.dataset.reefer !== '1');
         if (cargoNotice)  cargoNotice.classList.toggle('d-none', opt.dataset.cargoTransfer !== '1');
 
-        var isEmptyReturn = opt.dataset.jobCode === 'EMPTY_RETURN';
+        var isEmptyReturn = opt.dataset.isEmptyReturn === '1';
         if (returnReasonSection) {
             returnReasonSection.classList.toggle('d-none', !isEmptyReturn);
             if (!isEmptyReturn) {
