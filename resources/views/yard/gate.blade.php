@@ -2521,14 +2521,14 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     const plateOcrInputIn = document.getElementById('plateOcrInputIn');
     const plateOcrHolderIn = document.getElementById('plateOcrHolderIn');
 
-    if (plateOcrBtnIn) {
-        plateOcrBtnIn.addEventListener('click', () => plateOcrInputIn.click());
+    if (plateOcrInputIn) {
         plateOcrInputIn.addEventListener('change', function () {
             if (this.files && this.files[0]) {
                 const file = this.files[0];
                 holdFile(plateOcrHolderIn, file);
                 showCapturedChip('plateOcrChipIn', 'plateOcrChipInText', file.name);
-                this.value = '';
+                // Do NOT clear this.value here — the Plate OCR Scan block reads
+                // this.files[0] in its own change listener and resets value itself.
             }
         });
     }
