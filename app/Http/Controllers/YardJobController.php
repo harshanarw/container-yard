@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\YardJob;
 use App\Models\YardJobType;
+use App\Services\JobPnlService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -55,7 +56,7 @@ class YardJobController extends Controller
         return view('yard.jobs.index', compact('jobs', 'jobTypes', 'customers', 'stats'));
     }
 
-    public function show(YardJob $yardJob): View
+    public function show(YardJob $yardJob, JobPnlService $pnl): View
     {
         $yardJob->load([
             'jobType',
@@ -66,7 +67,9 @@ class YardJobController extends Controller
             'movements.createdBy',
         ]);
 
-        return view('yard.jobs.show', compact('yardJob'));
+        $pnlData = $pnl->compute($yardJob);
+
+        return view('yard.jobs.show', compact('yardJob', 'pnlData'));
     }
 
     public function update(Request $request, YardJob $yardJob): RedirectResponse

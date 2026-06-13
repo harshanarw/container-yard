@@ -214,12 +214,84 @@
         </div>
         @endcan
 
-        {{-- Phase 4 placeholder --}}
-        <div class="card content-card mt-3 border-dashed">
-            <div class="card-body text-center py-4 text-muted small">
-                <i class="bi bi-graph-up-arrow fs-4 d-block mb-2 text-secondary"></i>
-                <strong>Job P&amp;L</strong><br>
-                Revenue breakdown coming in Phase 4.
+        {{-- ── Job Revenue (P&L) ─────────────────────────────────────────── --}}
+        <div class="card content-card mt-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <span class="fw-semibold"><i class="bi bi-graph-up-arrow me-1 text-primary"></i>Job Revenue</span>
+                <span class="text-muted" style="font-size:.7rem;">pre-tax · by container</span>
+            </div>
+            <div class="card-body py-2 px-3">
+
+                @if(!$pnlData['has_data'])
+                <div class="text-center text-muted py-3 small">
+                    <i class="bi bi-inbox me-1"></i>No revenue data yet for this job.
+                </div>
+                @else
+
+                {{-- Accrued storage --}}
+                <div class="mb-2">
+                    <div class="text-muted fw-semibold mb-1" style="font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;">Accrued</div>
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="small">
+                            <i class="bi bi-box-seam me-1 text-secondary"></i>Storage
+                            @if($pnlData['storage_chargeable_days'] > 0)
+                            <span class="text-muted ms-1" style="font-size:.7rem;">({{ $pnlData['storage_chargeable_days'] }} chargeable day{{ $pnlData['storage_chargeable_days'] == 1 ? '' : 's' }})</span>
+                            @endif
+                        </div>
+                        <span class="fw-semibold small font-monospace">{{ number_format($pnlData['storage_accrued'], 2) }}</span>
+                    </div>
+                </div>
+
+                <hr class="my-2">
+
+                {{-- Invoiced breakdown --}}
+                <div class="mb-1">
+                    <div class="text-muted fw-semibold mb-1" style="font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;">Invoiced</div>
+
+                    @if($pnlData['storage_invoiced'] > 0)
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="small"><i class="bi bi-box-seam me-1 text-secondary"></i>Storage</div>
+                        <span class="small font-monospace">{{ number_format($pnlData['storage_invoiced'], 2) }}</span>
+                    </div>
+                    @endif
+
+                    @if($pnlData['handling_invoiced'] > 0)
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="small"><i class="bi bi-arrows-move me-1 text-secondary"></i>Handling</div>
+                        <span class="small font-monospace">{{ number_format($pnlData['handling_invoiced'], 2) }}</span>
+                    </div>
+                    @endif
+
+                    @if($pnlData['reefer_invoiced'] > 0)
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="small"><i class="bi bi-thermometer-half me-1 text-secondary"></i>Reefer Electricity</div>
+                        <span class="small font-monospace">{{ number_format($pnlData['reefer_invoiced'], 2) }}</span>
+                    </div>
+                    @endif
+
+                    @if($pnlData['repair_invoiced'] > 0)
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="small"><i class="bi bi-wrench me-1 text-secondary"></i>Repair</div>
+                        <span class="small font-monospace">{{ number_format($pnlData['repair_invoiced'], 2) }}</span>
+                    </div>
+                    @endif
+
+                    @if($pnlData['storage_invoiced'] == 0 && $pnlData['handling_invoiced'] == 0 && $pnlData['reefer_invoiced'] == 0 && $pnlData['repair_invoiced'] == 0)
+                    <div class="text-muted small py-1"><i class="bi bi-dash me-1"></i>No invoices raised yet.</div>
+                    @endif
+                </div>
+
+                @if($pnlData['total_invoiced'] > 0)
+                <div class="d-flex justify-content-between align-items-center pt-2 mt-1 border-top">
+                    <span class="small fw-bold">Total Invoiced</span>
+                    <span class="fw-bold font-monospace text-success">{{ number_format($pnlData['total_invoiced'], 2) }}</span>
+                </div>
+                @endif
+
+                @endif
+            </div>
+            <div class="card-footer bg-transparent py-1 text-muted" style="font-size:.66rem;">
+                Covers {{ $pnlData['container_count'] }} container(s) · excl. taxes
             </div>
         </div>
 
