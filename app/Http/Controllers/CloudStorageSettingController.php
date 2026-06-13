@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\Http;
 
 class CloudStorageSettingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:settings.cloud-storage.view')
+             ->only(['index']);
+        $this->middleware('can:settings.cloud-storage.edit')
+             ->only(['save', 'test', 'gdriveAuth', 'gdriveCallback', 'dropboxAuth', 'dropboxCallback']);
+    }
+
     public function index()
     {
         $settings = CloudStorageSetting::current();

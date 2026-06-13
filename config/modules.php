@@ -220,9 +220,10 @@ return [
     ],
 
     'masters.countries' => [
-        'label'   => 'Countries & States',
-        'section' => 'Masters — Reference',
-        'actions' => ['view', 'create', 'edit', 'delete'],
+        'label'       => 'Countries & States',
+        'section'     => 'Masters — Reference',
+        'system_only' => true,
+        'actions'     => ['view', 'create', 'edit', 'delete'],
     ],
 
     // ── Reports ───────────────────────────────────────────────────────────────
@@ -242,9 +243,17 @@ return [
     ],
 
     'settings.company' => [
-        'label'   => 'Company Settings',
-        'section' => 'Settings',
-        'actions' => ['view', 'edit'],
+        'label'       => 'Company Settings',
+        'section'     => 'Settings',
+        'system_only' => true,
+        'actions'     => ['view', 'edit'],
+    ],
+
+    'settings.cloud-storage' => [
+        'label'       => 'Document Storage',
+        'section'     => 'Settings',
+        'system_only' => true,
+        'actions'     => ['view', 'edit'],
     ],
 
     'settings.approval-workflows' => [

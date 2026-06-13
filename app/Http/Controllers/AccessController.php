@@ -153,7 +153,7 @@ class AccessController extends Controller
             ->mapWithKeys(fn($p) => [$p->name => (bool) $p->pivot->granted]);
 
         $overrideCount = $overrides->count();
-        $sections = $this->buildOverrideMatrix($inheritedPerms, $overrides);
+        $sections = $this->buildOverrideMatrix($inheritedPerms, $overrides, $user);
 
         return view('access-control.users.show', compact(
             'user', 'allRoles', 'userRoleIds', 'sections', 'overrideCount'
@@ -217,8 +217,15 @@ class AccessController extends Controller
             ? $role->permissions()->pluck('permissions.name')->flip()
             : collect();
 
+        // System-only modules are only shown when editing the system_administrator role.
+        $isSystemAdminRole = $role?->name === 'system_administrator';
+
         $sections = [];
         foreach ($modules as $moduleKey => $moduleConfig) {
+            if (!empty($moduleConfig['system_only']) && !$isSystemAdminRole) {
+                continue;
+            }
+
             $section = $moduleConfig['section'];
             $modulePerms = [];
 
@@ -250,13 +257,19 @@ class AccessController extends Controller
      * Build the permission matrix for user override screen.
      * Each permission carries its inherited-from-role state and current override.
      */
-    private function buildOverrideMatrix($inheritedPerms, $overrides): array
+    private function buildOverrideMatrix($inheritedPerms, $overrides, ?User $user = null): array
     {
         $modules  = config('modules', []);
         $allPerms = Permission::all()->keyBy('name');
         $sections = [];
 
+        $isSystemAdminUser = $user?->isSystemAdmin() ?? false;
+
         foreach ($modules as $moduleKey => $moduleConfig) {
+            if (!empty($moduleConfig['system_only']) && !$isSystemAdminUser) {
+                continue;
+            }
+
             $section     = $moduleConfig['section'];
             $modulePerms = [];
 

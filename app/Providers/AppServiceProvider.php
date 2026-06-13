@@ -71,10 +71,32 @@ class AppServiceProvider extends ServiceProvider
 
     private function registerGates(): void
     {
-        // Super-admin / system-administrator bypass all permission checks
+        // Super-user bypass — System Admin passes everything; Administrator passes
+        // everything EXCEPT modules flagged system_only in config/modules.php.
         Gate::before(function ($user, string $ability) {
-            if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) {
-                return true;
+            if (!method_exists($user, 'isSuperUser') || !$user->isSuperUser()) {
+                return null;
+            }
+
+            if ($user->isSystemAdmin()) {
+                return true; // Full bypass — no restrictions
+            }
+
+            // Administrator: deny system-only modules so the yard-staff admin
+            // cannot reach service-provider-level configuration.
+            if ($user->isAdmin()) {
+                $systemOnlyModules = collect(config('modules', []))
+                    ->filter(fn($m) => !empty($m['system_only']))
+                    ->keys()
+                    ->toArray();
+
+                foreach ($systemOnlyModules as $module) {
+                    if ($ability === $module || str_starts_with($ability, $module . '.')) {
+                        return false; // Hard deny — bypasses Gate::define callbacks
+                    }
+                }
+
+                return true; // Admin bypasses all other permission checks
             }
         });
 
