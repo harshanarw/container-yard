@@ -92,9 +92,9 @@ class YardJobTypeController extends Controller
         $data['approval_required']       = (bool) ($data['approval_required'] ?? false);
         $data['damage_capture_required'] = (bool) ($data['damage_capture_required'] ?? false);
 
-        // System types: allow editing flags and description but not the code
+        // System types: allow editing flags and description but not identity fields
         if ($jobType->is_system) {
-            unset($data['job_type_code'], $data['movement_direction']);
+            unset($data['job_type_code'], $data['type_short_code'], $data['movement_direction']);
         }
 
         $jobType->update($data);

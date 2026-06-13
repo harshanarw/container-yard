@@ -154,7 +154,11 @@ class YardController extends Controller
 
         $jobTypes = YardJobType::active()->forGateIn()->orderBy('sort_order')->get();
 
-        return view('yard.gate', compact('recentMovements', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones', 'prefill', 'guardCapture', 'jobTypes'));
+        $emptySlots = YardLocation::where('status', 'empty')
+            ->orderBy('zone')->orderBy('row')->orderBy('bay')->orderBy('tier')
+            ->get();
+
+        return view('yard.gate', compact('recentMovements', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones', 'prefill', 'guardCapture', 'jobTypes', 'emptySlots'));
     }
 
     public function gateIn(Request $request)
