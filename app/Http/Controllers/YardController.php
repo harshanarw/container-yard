@@ -203,6 +203,7 @@ class YardController extends Controller
             'fcl_expiry_date'   => ['nullable', 'date'],
             'consignee'         => ['nullable', 'string', 'max:150'],
             'remarks'           => ['nullable', 'string'],
+            'return_reason'     => ['nullable', 'in:import_consignee,agent_return,shipper_return'],
             'gate_in_time'      => ['nullable', 'string', 'max:20'],
             'photos'            => ['nullable', 'array', 'max:5'],
             'photos.*'          => ['image', 'max:20480'],
@@ -231,6 +232,13 @@ class YardController extends Controller
         $validated = $validator->validated();
 
         $jobType = YardJobType::findOrFail($validated['job_type_id']);
+
+        // Return reason is required for Empty Return job type
+        if ($jobType->job_type_code === 'EMPTY_RETURN' && empty($validated['return_reason'])) {
+            return redirect()->back()
+                ->withErrors(['return_reason' => 'Please select a return reason for Empty Return.'])
+                ->withInput();
+        }
 
         // ── Duplicate Gate-In guard ──────────────────────────────────────────
         $existingContainer = Container::where('container_no', $validated['container_no'])->first();
@@ -427,6 +435,9 @@ class YardController extends Controller
                 'customer_id'     => $validated['customer_id'],
                 'status'          => 'open',
                 'started_at'      => $gateInTime,
+                'return_reason'   => $jobType->job_type_code === 'EMPTY_RETURN'
+                                        ? ($validated['return_reason'] ?? null)
+                                        : null,
                 'created_by'      => auth()->id(),
             ]);
 

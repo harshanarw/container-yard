@@ -14,8 +14,25 @@ class YardJob extends Model
         'status',
         'started_at', 'completed_at',
         'remarks',
+        'return_reason',
         'created_by', 'closed_by',
     ];
+
+    public static function returnReasons(): array
+    {
+        return [
+            'import_consignee' => 'Import Consignee Return',
+            'agent_return'     => 'Shipping Line / Agent Return',
+            'shipper_return'   => 'Shipper Return (Defect / Rejection)',
+        ];
+    }
+
+    public function returnReasonLabel(): ?string
+    {
+        return $this->return_reason
+            ? (static::returnReasons()[$this->return_reason] ?? ucfirst($this->return_reason))
+            : null;
+    }
 
     protected $casts = [
         'started_at'   => 'datetime',

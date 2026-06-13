@@ -695,6 +695,43 @@
                         <strong>Cargo Transfer</strong> job — a cargo transfer workflow will be initiated after gate-in.
                     </div>
 
+                    {{-- Empty Return — Return Reason (shown only for EMPTY_RETURN job type) --}}
+                    <div id="returnReasonSection" class="mt-3 d-none">
+                        <div class="p-3 rounded-3 border" style="background:#fefce8;border-color:#fde047!important;">
+                            <label class="form-label fw-semibold mb-1" style="font-size:.85rem;">
+                                <i class="bi bi-arrow-return-left me-1 text-warning"></i>
+                                Return Reason <span class="text-danger">*</span>
+                            </label>
+                            <div class="small text-muted mb-2">Who is returning this empty container?</div>
+                            <div class="d-flex flex-column gap-2" id="returnReasonOptions">
+                                <label class="d-flex align-items-start gap-2 p-2 rounded cursor-pointer border bg-white" style="cursor:pointer;">
+                                    <input type="radio" name="return_reason" value="import_consignee" class="mt-1 flex-shrink-0">
+                                    <span>
+                                        <span class="fw-semibold d-block" style="font-size:.85rem;">Import Consignee Return</span>
+                                        <span class="text-muted" style="font-size:.75rem;">Customer who received a laden import container returns it empty after unpacking.</span>
+                                    </span>
+                                </label>
+                                <label class="d-flex align-items-start gap-2 p-2 rounded cursor-pointer border bg-white" style="cursor:pointer;">
+                                    <input type="radio" name="return_reason" value="agent_return" class="mt-1 flex-shrink-0">
+                                    <span>
+                                        <span class="fw-semibold d-block" style="font-size:.85rem;">Shipping Line / Agent Return</span>
+                                        <span class="text-muted" style="font-size:.75rem;">Local agent of the shipping line acting as consignee returns the empty box directly.</span>
+                                    </span>
+                                </label>
+                                <label class="d-flex align-items-start gap-2 p-2 rounded cursor-pointer border bg-white" style="cursor:pointer;">
+                                    <input type="radio" name="return_reason" value="shipper_return" class="mt-1 flex-shrink-0">
+                                    <span>
+                                        <span class="fw-semibold d-block" style="font-size:.85rem;">Shipper Return — Defect / Rejection</span>
+                                        <span class="text-muted" style="font-size:.75rem;">Shipper (exporter) took out the container but returns it due to defects or suitability issues found later.</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div id="returnReasonError" class="text-danger small mt-1 d-none">
+                                <i class="bi bi-exclamation-circle me-1"></i>Please select a return reason for Empty Return.
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="mt-3 d-grid">
                         <button type="button" id="btnSubmitGateIn" class="btn btn-primary btn-lg">
                             <i class="bi bi-box-arrow-in-right me-2"></i>Record Gate In
@@ -1436,6 +1473,20 @@ btnOut.addEventListener('click', activateOut);
         // Trigger native HTML5 validation first by attempting a real submit
         if (no.length < 11) { document.getElementById('btnSubmitGateInReal').click(); return; }
         labelEl.textContent = no;
+
+        // ── Empty Return: require return_reason before showing modal ─────────
+        const jobSelV   = document.getElementById('jobTypeSelect');
+        const jobOptV   = jobSelV && jobSelV.value ? jobSelV.selectedOptions[0] : null;
+        if (jobOptV && jobOptV.dataset.jobCode === 'EMPTY_RETURN') {
+            const chosen = document.querySelector('input[name="return_reason"]:checked');
+            const errEl  = document.getElementById('returnReasonError');
+            if (!chosen) {
+                if (errEl) errEl.classList.remove('d-none');
+                document.getElementById('returnReasonSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return; // block modal from opening
+            }
+            if (errEl) errEl.classList.add('d-none');
+        }
 
         // ── Cross-field validation warnings injected into confirm modal ──────
         const warningsEl = document.getElementById('confirmGateInWarnings');
@@ -2917,13 +2968,14 @@ window.gpRescan = async function (btnEl, url, type) {
 
 // ── Job Type dynamic behaviour + cross-field validation ───────────────────────
 (function () {
-    const sel          = document.getElementById('jobTypeSelect');
-    const descEl       = document.getElementById('jobTypeDesc');
-    const alertsEl     = document.getElementById('jobTypeAlerts');
-    const reeferNotice = document.getElementById('reeferNotice');
-    const cargoNotice  = document.getElementById('cargoTransferNotice');
-    const cargoSel     = document.getElementById('cargoStatusIn');
-    const sealInp      = document.getElementById('sealNoIn');
+    const sel                = document.getElementById('jobTypeSelect');
+    const descEl             = document.getElementById('jobTypeDesc');
+    const alertsEl           = document.getElementById('jobTypeAlerts');
+    const reeferNotice       = document.getElementById('reeferNotice');
+    const cargoNotice        = document.getElementById('cargoTransferNotice');
+    const returnReasonSection= document.getElementById('returnReasonSection');
+    const cargoSel           = document.getElementById('cargoStatusIn');
+    const sealInp            = document.getElementById('sealNoIn');
 
     function renderAlerts(items) {
         if (!alertsEl) return;
@@ -2938,6 +2990,7 @@ window.gpRescan = async function (btnEl, url, type) {
             if (descEl) descEl.textContent = '';
             if (reeferNotice) reeferNotice.classList.add('d-none');
             if (cargoNotice)  cargoNotice.classList.add('d-none');
+            if (returnReasonSection) returnReasonSection.classList.add('d-none');
             if (alertsEl) alertsEl.innerHTML = '';
             return;
         }
@@ -2945,6 +2998,16 @@ window.gpRescan = async function (btnEl, url, type) {
         if (descEl) descEl.textContent = opt.dataset.desc || '';
         if (reeferNotice) reeferNotice.classList.toggle('d-none', opt.dataset.reefer !== '1');
         if (cargoNotice)  cargoNotice.classList.toggle('d-none', opt.dataset.cargoTransfer !== '1');
+
+        var isEmptyReturn = opt.dataset.jobCode === 'EMPTY_RETURN';
+        if (returnReasonSection) {
+            returnReasonSection.classList.toggle('d-none', !isEmptyReturn);
+            if (!isEmptyReturn) {
+                // Clear selection when switching away from Empty Return
+                returnReasonSection.querySelectorAll('input[name="return_reason"]')
+                    .forEach(function (r) { r.checked = false; });
+            }
+        }
 
         var cargoHint    = opt.dataset.cargoHint    || '';
         var damageCapture = opt.dataset.damageCapture === '1';

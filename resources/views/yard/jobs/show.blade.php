@@ -83,6 +83,17 @@
                             @endif
                         </div>
                     </div>
+                    @if($yardJob->return_reason)
+                    <div class="col-12">
+                        <div class="text-muted small">Return Reason</div>
+                        <div class="small">
+                            <span class="badge border fw-normal"
+                                  style="font-size:.75rem;background:#fefce8;color:#854d0e;border-color:#fde047!important;">
+                                <i class="bi bi-arrow-return-left me-1"></i>{{ $yardJob->returnReasonLabel() }}
+                            </span>
+                        </div>
+                    </div>
+                    @endif
                     @if($yardJob->remarks)
                     <div class="col-12">
                         <div class="text-muted small">Remarks</div>
