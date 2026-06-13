@@ -12,7 +12,7 @@ class GateMovement extends Model
     use HasFactory, HasDocuments, HasApprovals;
 
     protected $fillable = [
-        'container_id', 'survey_id', 'job_type_id', 'job_type_code',
+        'container_id', 'survey_id', 'job_type_id', 'job_type_code', 'yard_job_id',
         'container_no', 'customer_id', 'transporter_id', 'movement_type', 'size',
         'container_type', 'ventilation_type', 'vent_count',
         'location_zone', 'location_row', 'location_bay', 'location_tier',
@@ -42,6 +42,11 @@ class GateMovement extends Model
     ];
 
     // Relationships
+    public function yardJob()
+    {
+        return $this->belongsTo(\App\Models\YardJob::class, 'yard_job_id');
+    }
+
     public function jobType()
     {
         return $this->belongsTo(\App\Models\YardJobType::class, 'job_type_id');

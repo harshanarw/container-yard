@@ -38,6 +38,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\ApprovalWorkflowController;
 use App\Http\Controllers\YardController;
+use App\Http\Controllers\YardJobController;
 use App\Http\Controllers\ContainerOcrController;
 use App\Http\Controllers\PlateOcrController;
 use App\Http\Controllers\AccessController;
@@ -137,6 +138,13 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/movements/{movement}',             [YardController::class, 'updateMovement'])->name('movements.update');
         Route::delete('/movements/{movement}/photos/{photo}', [YardController::class, 'destroyMovementPhoto'])->name('movements.photo.destroy');
         Route::get('/movements/{movement}/gate-pass',     [YardController::class, 'gatePass'])->name('movements.gate-pass');
+    });
+
+    // Yard Jobs
+    Route::prefix('yard/jobs')->name('yard.jobs.')->group(function () {
+        Route::get('/',            [YardJobController::class, 'index'])->name('index');
+        Route::get('/{yardJob}',   [YardJobController::class, 'show'])->name('show');
+        Route::patch('/{yardJob}', [YardJobController::class, 'update'])->name('update');
     });
 
     // Reefer Operations — plug-in / plug-out / temp logs

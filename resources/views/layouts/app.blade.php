@@ -602,7 +602,7 @@
         </button>
         <div class="collapse" id="nav-section-operations">
             {{-- Yard sub-group --}}
-            @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.reefer.view'))
+            @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.jobs.view') || Auth::user()->can('yard.reefer.view'))
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-yard"
                     aria-expanded="false" aria-controls="nav-sub-ops-yard">
@@ -629,6 +629,14 @@
                         <a href="{{ route('yard.storage') }}"
                            class="nav-link {{ request()->routeIs('yard.storage*') ? 'active' : '' }}">
                             <i class="bi bi-calculator"></i><span>Storage Calculator</span>
+                        </a>
+                    </li>
+                    @endcan
+                    @can('yard.jobs.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('yard.jobs.index') }}"
+                           class="nav-link {{ request()->routeIs('yard.jobs.*') ? 'active' : '' }}">
+                            <i class="bi bi-briefcase"></i><span>Yard Jobs</span>
                         </a>
                     </li>
                     @endcan
@@ -1355,6 +1363,12 @@
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if(session('success_html'))
+        <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>{!! session('success_html') !!}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif

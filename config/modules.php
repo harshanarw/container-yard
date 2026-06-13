@@ -53,6 +53,12 @@ return [
         'actions' => ['view', 'gate-in', 'gate-out', 'movement-edit', 'movement-delete'],
     ],
 
+    'yard.jobs' => [
+        'label'   => 'Yard Jobs',
+        'section' => 'Yard',
+        'actions' => ['view', 'edit'],
+    ],
+
     'yard.reefer' => [
         'label'   => 'Reefer Sessions',
         'section' => 'Yard',

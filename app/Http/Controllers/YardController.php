@@ -15,6 +15,7 @@ use App\Models\StorageMasterHeader;
 use App\Models\StorageZone;
 use App\Models\YardLocation;
 use App\Models\ReeferPlugSession;
+use App\Models\YardJob;
 use App\Models\YardJobType;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
@@ -412,6 +413,29 @@ class YardController extends Controller
             'daily_rate'   => $dailyRate,
         ]);
 
+        // Auto-create a Yard Job and link this movement to it
+        $yardJobNo = null;
+        try {
+            ['job_no' => $jobNo, 'job_seq' => $jobSeq] = YardJob::generateJobNo($jobType);
+
+            $yardJob = YardJob::create([
+                'job_no'          => $jobNo,
+                'job_seq'         => $jobSeq,
+                'job_type_id'     => $jobType->id,
+                'job_type_code'   => $jobType->job_type_code,
+                'type_short_code' => $jobType->type_short_code,
+                'customer_id'     => $validated['customer_id'],
+                'status'          => 'open',
+                'started_at'      => $gateInTime,
+                'created_by'      => auth()->id(),
+            ]);
+
+            $movement->update(['yard_job_id' => $yardJob->id]);
+            $yardJobNo = $yardJob->job_no;
+        } catch (\Throwable $e) {
+            \Log::error('[GateIn] Yard job creation failed: ' . $e->getMessage());
+        }
+
         // Auto-create a pending reefer plug session for laden reefer containers
         // Non-blocking: any failure here must not abort a successful gate-in
         try {
@@ -437,8 +461,16 @@ class YardController extends Controller
                 ->update(['linked_gate_movement_id' => $movement->id]);
         }
 
+        $successMsg = "Gate IN recorded for {$container->container_no}.";
+        if ($yardJobNo) {
+            $successMsg .= "  Job No: <strong>{$yardJobNo}</strong>";
+            if (isset($yardJob)) {
+                $successMsg .= ' &nbsp;<a href="' . route('yard.jobs.show', $yardJob) . '" class="alert-link">View Job →</a>';
+            }
+        }
+
         $redirect = redirect()->to(route('yard.gate') . '?tab=in')
-            ->with('success', "Gate IN recorded for {$container->container_no}.");
+            ->with('success_html', $successMsg);
 
         if ($photoError) {
             $redirect->with('warning', $photoError);
