@@ -31,7 +31,7 @@ class YardJob extends Model
     public static function generateJobNo(YardJobType $type): array
     {
         $seq    = (static::where('job_type_id', $type->id)->max('job_seq') ?? 0) + 1;
-        $prefix = CompanySetting::current()->company_prefix ?? 'YD';
+        $prefix = strtoupper(CompanySetting::current()->company_prefix ?? 'YD');
         $jobNo  = sprintf('%s-%s-%05d', $prefix, $type->type_short_code, $seq);
 
         return ['job_no' => $jobNo, 'job_seq' => $seq];
