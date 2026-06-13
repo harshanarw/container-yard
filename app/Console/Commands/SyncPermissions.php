@@ -29,6 +29,7 @@ class SyncPermissions extends Command
         'temp-log'         => 'Record Temperature Log',
         'movement-edit'    => 'Edit Movement',
         'movement-delete'  => 'Delete Movement',
+        'backdate'         => 'Backdate Date/Time',
     ];
 
     public function handle(): int
