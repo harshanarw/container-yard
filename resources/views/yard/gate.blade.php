@@ -181,10 +181,23 @@
                         <select name="job_type_id" id="jobTypeSelect" class="form-select s2-code" required data-s2-sel="name">
                             <option value="">— Select Job Type —</option>
                             @foreach($jobTypes as $jt)
+                            @php
+                                $cargoHint = match($jt->job_type_code) {
+                                    'EMPTY_RETURN'                      => 'empty',
+                                    'LADEN_IN', 'CARGO_RENTAL_IN'      => 'laden',
+                                    default                             => '',
+                                };
+                                $sealHint = in_array($jt->job_type_code, ['LADEN_IN', 'CARGO_RENTAL_IN', 'CUSTOMS_HOLD_IN']) ? '1' : '0';
+                            @endphp
                             <option value="{{ $jt->id }}"
                                     data-code="{{ $jt->type_short_code }}"
                                     data-name="{{ $jt->job_type_name }}"
                                     data-desc="{{ $jt->description }}"
+                                    data-job-code="{{ $jt->job_type_code }}"
+                                    data-cargo-hint="{{ $cargoHint }}"
+                                    data-damage-capture="{{ $jt->damage_capture_required ? '1' : '0' }}"
+                                    data-approval="{{ $jt->approval_required ? '1' : '0' }}"
+                                    data-seal-hint="{{ $sealHint }}"
                                     data-reefer="{{ $jt->reefer_applicable ? '1' : '0' }}"
                                     data-customs="{{ $jt->customs_applicable ? '1' : '0' }}"
                                     data-cargo-transfer="{{ $jt->cargo_transfer_applicable ? '1' : '0' }}"
@@ -194,6 +207,7 @@
                             @endforeach
                         </select>
                         <div id="jobTypeDesc" class="form-text text-muted mt-1" style="min-height:1.2em;"></div>
+                        <div id="jobTypeAlerts" class="mt-2"></div>
                         @error('job_type_id')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
@@ -281,14 +295,14 @@
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold">Empty / Laden</label>
-                            <select name="cargo_status" class="form-select">
+                            <select name="cargo_status" id="cargoStatusIn" class="form-select">
                                 <option value="empty">Empty</option>
                                 <option value="laden">Laden</option>
                             </select>
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold">Seal Number</label>
-                            <input type="text" name="seal_no" class="form-control" placeholder="Optional">
+                            <input type="text" name="seal_no" id="sealNoIn" class="form-control" placeholder="Optional">
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Container Grade</label>
@@ -1143,6 +1157,7 @@
                 <p class="mb-1 text-muted small">Container:</p>
                 <p class="font-monospace fw-bold mb-3" style="font-size:1.4rem;" id="confirmInContainerNo">—</p>
                 <p class="text-muted small mb-0">Please confirm this is a container <strong>arriving</strong> into the yard.</p>
+                <div id="confirmGateInWarnings" class="mt-3 text-start"></div>
             </div>
             <div class="modal-footer py-2 justify-content-center gap-3">
                 <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
@@ -1421,6 +1436,41 @@ btnOut.addEventListener('click', activateOut);
         // Trigger native HTML5 validation first by attempting a real submit
         if (no.length < 11) { document.getElementById('btnSubmitGateInReal').click(); return; }
         labelEl.textContent = no;
+
+        // ── Cross-field validation warnings injected into confirm modal ──────
+        const warningsEl = document.getElementById('confirmGateInWarnings');
+        if (warningsEl) {
+            const jobSel   = document.getElementById('jobTypeSelect');
+            const cargoSel = document.getElementById('cargoStatusIn');
+            const sealInp  = document.getElementById('sealNoIn');
+            const jobOpt   = jobSel && jobSel.value ? jobSel.selectedOptions[0] : null;
+            const warns    = [];
+
+            if (jobOpt) {
+                const cargoHint = jobOpt.dataset.cargoHint || '';
+                const cargoVal  = cargoSel ? cargoSel.value : '';
+                const jobName   = jobOpt.dataset.name || '';
+                const sealHint  = jobOpt.dataset.sealHint === '1';
+
+                if (cargoHint && cargoVal && cargoHint !== cargoVal) {
+                    const expected = cargoHint === 'empty' ? 'Empty' : 'Laden';
+                    const actual   = cargoVal  === 'empty' ? 'Empty' : 'Laden';
+                    warns.push('<div class="alert alert-danger py-2 px-3 mb-2 small d-flex gap-2 align-items-start">' +
+                        '<i class="bi bi-exclamation-octagon-fill flex-shrink-0 mt-1"></i>' +
+                        '<span><strong>Cargo status mismatch:</strong> <em>' + jobName + '</em> expects ' +
+                        '<strong>' + expected + '</strong> but <strong>' + actual + '</strong> is selected — please verify before proceeding.</span></div>');
+                }
+
+                if (sealHint && sealInp && !sealInp.value.trim()) {
+                    warns.push('<div class="alert alert-warning py-2 px-3 mb-2 small d-flex gap-2 align-items-start">' +
+                        '<i class="bi bi-shield-exclamation flex-shrink-0 mt-1"></i>' +
+                        '<span><strong>No seal number entered</strong> — recommended for this job type. You can still proceed.</span></div>');
+                }
+            }
+
+            warningsEl.innerHTML = warns.join('');
+        }
+
         bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmGateInModal')).show();
     });
 
@@ -2865,27 +2915,83 @@ window.gpRescan = async function (btnEl, url, type) {
     btnEl.disabled  = false;
 };
 
-// ── Job Type dynamic behaviour ─────────────────────────────────────────────
+// ── Job Type dynamic behaviour + cross-field validation ───────────────────────
 (function () {
     const sel          = document.getElementById('jobTypeSelect');
     const descEl       = document.getElementById('jobTypeDesc');
+    const alertsEl     = document.getElementById('jobTypeAlerts');
     const reeferNotice = document.getElementById('reeferNotice');
     const cargoNotice  = document.getElementById('cargoTransferNotice');
+    const cargoSel     = document.getElementById('cargoStatusIn');
+    const sealInp      = document.getElementById('sealNoIn');
+
+    function renderAlerts(items) {
+        if (!alertsEl) return;
+        alertsEl.innerHTML = items.map(function (a) {
+            return '<div class="alert alert-' + a.type + ' py-2 px-3 mb-1 small d-flex align-items-start gap-2" style="font-size:.78rem;">' +
+                   '<i class="bi ' + a.icon + ' flex-shrink-0 mt-1"></i><span>' + a.text + '</span></div>';
+        }).join('');
+    }
 
     function applyJobType(opt) {
+        if (!alertsEl) { return; }
         if (!opt || !opt.value) {
             if (descEl) descEl.textContent = '';
             if (reeferNotice) reeferNotice.classList.add('d-none');
             if (cargoNotice)  cargoNotice.classList.add('d-none');
+            alertsEl.innerHTML = '';
             return;
         }
+
         if (descEl) descEl.textContent = opt.dataset.desc || '';
         if (reeferNotice) reeferNotice.classList.toggle('d-none', opt.dataset.reefer !== '1');
         if (cargoNotice)  cargoNotice.classList.toggle('d-none', opt.dataset.cargoTransfer !== '1');
+
+        var cargoHint    = opt.dataset.cargoHint    || '';
+        var damageCapture = opt.dataset.damageCapture === '1';
+        var approvalReq  = opt.dataset.approval     === '1';
+        var sealHint     = opt.dataset.sealHint     === '1';
+        var jobName      = opt.dataset.name         || '';
+
+        var alerts = [];
+
+        // ── Auto-set cargo status ────────────────────────────────────────────
+        if (cargoHint && cargoSel) {
+            cargoSel.value = cargoHint;
+            var label = cargoHint === 'empty' ? 'Empty' : 'Laden';
+            alerts.push({ type: 'info', icon: 'bi-arrow-repeat',
+                text: 'Cargo status auto-set to <strong>' + label + '</strong> for <em>' + jobName + '</em>.' });
+        }
+
+        // ── Seal number reminder ─────────────────────────────────────────────
+        if (sealHint && sealInp && !sealInp.value.trim()) {
+            alerts.push({ type: 'warning', icon: 'bi-shield-lock',
+                text: 'This job type typically involves a <strong>sealed container</strong> — enter the seal number if available.' });
+        }
+
+        // ── Damage / condition capture reminder ──────────────────────────────
+        if (damageCapture) {
+            alerts.push({ type: 'warning', icon: 'bi-clipboard2-check',
+                text: 'A <strong>condition survey and damage capture</strong> will be required after gate-in for this job type.' });
+        }
+
+        // ── Approval required heads-up ───────────────────────────────────────
+        if (approvalReq) {
+            alerts.push({ type: 'info', icon: 'bi-hourglass-split',
+                text: 'This job type requires <strong>supervisor approval</strong> — the record will remain pending until approved.' });
+        }
+
+        renderAlerts(alerts);
+    }
+
+    // ── Also re-check seal hint when seal number is typed ───────────────────
+    if (sealInp) {
+        sealInp.addEventListener('input', function () {
+            if (sel && sel.value) applyJobType(sel.selectedOptions[0]);
+        });
     }
 
     if (sel) {
-        // Select2 fires change via jQuery — must use jQuery .on() to catch it
         if (typeof $ !== 'undefined') {
             $(sel).on('change', function () { applyJobType(sel.selectedOptions[0]); });
         } else {
@@ -2894,5 +3000,6 @@ window.gpRescan = async function (btnEl, url, type) {
         if (sel.value) applyJobType(sel.selectedOptions[0]);
     }
 })();
+
 </script>
 @endpush
