@@ -2934,12 +2934,11 @@ window.gpRescan = async function (btnEl, url, type) {
     }
 
     function applyJobType(opt) {
-        if (!alertsEl) { return; }
         if (!opt || !opt.value) {
             if (descEl) descEl.textContent = '';
             if (reeferNotice) reeferNotice.classList.add('d-none');
             if (cargoNotice)  cargoNotice.classList.add('d-none');
-            alertsEl.innerHTML = '';
+            if (alertsEl) alertsEl.innerHTML = '';
             return;
         }
 
