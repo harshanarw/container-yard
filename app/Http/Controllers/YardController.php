@@ -250,7 +250,7 @@ class YardController extends Controller
 
         // Check 2: backdated Gate-In overlaps an existing stay (open or closed)
         if ($existingContainer) {
-            $proposedDate = (auth()->user()->isAdmin() && !empty($validated['gate_in_time']))
+            $proposedDate = (auth()->user()->can('yard.backdate') && !empty($validated['gate_in_time']))
                 ? \Carbon\Carbon::parse($validated['gate_in_time'])->toDateString()
                 : today()->toDateString();
 
@@ -280,7 +280,7 @@ class YardController extends Controller
         $eqt = EquipmentType::findOrFail($validated['equipment_type_id']);
 
         // Resolve actual gate-in datetime (admin can override; everyone else uses now())
-        $gateInTime = (auth()->user()->isAdmin() && !empty($validated['gate_in_time']))
+        $gateInTime = (auth()->user()->can('yard.backdate') && !empty($validated['gate_in_time']))
             ? \Carbon\Carbon::parse($validated['gate_in_time'])
             : now();
         $gateInDate = $gateInTime->toDateString(); // date portion used for storage billing
@@ -516,7 +516,7 @@ class YardController extends Controller
         $container = Container::where('container_no', $validated['container_no'])->firstOrFail();
 
         // Resolve actual gate-out datetime — admin can override, others use now()
-        $gateOutTime = (auth()->user()->isAdmin() && !empty($validated['gate_out_time']))
+        $gateOutTime = (auth()->user()->can('yard.backdate') && !empty($validated['gate_out_time']))
             ? \Carbon\Carbon::parse($validated['gate_out_time'])
             : now();
         $gateOutDate = $gateOutTime->toDateString();
@@ -668,7 +668,7 @@ class YardController extends Controller
 
     public function updateMovement(Request $request, GateMovement $movement)
     {
-        $isAdmin = auth()->user()->isAdmin();
+        $isAdmin = auth()->user()->can('yard.backdate');
 
         $rules = [
             'vehicle_plate'    => ['nullable', 'string', 'max:20'],

@@ -630,20 +630,20 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Gate In Date &amp; Time
-                                @if(!auth()->user()->isAdmin())
+                                @cannot('yard.backdate')
                                     <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">
                                         <i class="bi bi-lock me-1"></i>Auto
                                     </span>
-                                @endif
+                                @endcannot
                             </label>
                             <input type="text" name="gate_in_time" id="gateInTime"
                                    class="form-control" autocomplete="off"
-                                   {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
-                            @if(!auth()->user()->isAdmin())
+                                   {{ auth()->user()->can('yard.backdate') ? '' : 'readonly' }}>
+                            @cannot('yard.backdate')
                                 <div class="form-text text-muted" style="font-size:.72rem;">
                                     <i class="bi bi-info-circle me-1"></i>Date/time is set automatically.
                                 </div>
-                            @endif
+                            @endcannot
                         </div>
                     </div>
 
@@ -974,20 +974,20 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Gate Out Date &amp; Time
-                                @if(!auth()->user()->isAdmin())
+                                @cannot('yard.backdate')
                                     <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">
                                         <i class="bi bi-lock me-1"></i>Auto
                                     </span>
-                                @endif
+                                @endcannot
                             </label>
                             <input type="text" name="gate_out_time" id="gateOutTime"
                                    class="form-control" autocomplete="off"
-                                   {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
-                            @if(!auth()->user()->isAdmin())
+                                   {{ auth()->user()->can('yard.backdate') ? '' : 'readonly' }}>
+                            @cannot('yard.backdate')
                                 <div class="form-text text-muted" style="font-size:.72rem;">
                                     <i class="bi bi-info-circle me-1"></i>Date/time is set automatically.
                                 </div>
-                            @endif
+                            @endcannot
                         </div>
                     </div>
 
