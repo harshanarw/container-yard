@@ -89,6 +89,6 @@ class YardJobController extends Controller
 
         $yardJob->update($data);
 
-        return back()->with('success', "Job {$yardJob->job_no} updated to "" . YardJob::statusLabel($data['status']) . "".");
+        return back()->with('success', "Job {$yardJob->job_no} updated to \"" . YardJob::statusLabel($data['status']) . "\".");
     }
 }
