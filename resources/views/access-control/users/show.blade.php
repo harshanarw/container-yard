@@ -92,7 +92,9 @@
                                 @endif
                                 <div class="text-muted mt-1" style="font-size:.7rem;">
                                     <i class="bi bi-key me-1"></i>{{ $role->permissions_count ?? $role->permissions()->count() }} permissions
-                                    @if($role->is_system)&nbsp;·&nbsp;<i class="bi bi-lock-fill"></i> System @endif
+                                    @if($role->is_system)
+                                        &nbsp;·&nbsp;<i class="bi bi-lock-fill"></i> System
+                                    @endif
                                 </div>
                             </label>
                         </div>
