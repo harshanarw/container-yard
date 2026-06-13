@@ -131,6 +131,14 @@ return [
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
+    // ── Masters — Operations ─────────────────────────────────────────────────
+
+    'masters.job-types' => [
+        'label'   => 'Gate-In Job Types',
+        'section' => 'Masters — Operations',
+        'actions' => ['view', 'create', 'edit', 'delete'],
+    ],
+
     // ── Masters — Reference Data ──────────────────────────────────────────────
 
     'masters.charge-codes' => [

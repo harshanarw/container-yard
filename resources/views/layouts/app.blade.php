@@ -749,7 +749,8 @@
 
         {{-- ── SETUP ── --}}
         @php
-            $canViewSetup = Auth::user()->can('containers.view')
+            $canViewSetup = Auth::user()->can('masters.job-types.view')
+                         || Auth::user()->can('containers.view')
                          || Auth::user()->can('masters.equipment-types.view')
                          || Auth::user()->can('masters.container-grades.view')
                          || Auth::user()->can('masters.storage-zones.view')
@@ -774,6 +775,28 @@
             <i class="bi bi-tools section-icon"></i><span>Setup</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
         <div class="collapse" id="nav-section-setup">
+            {{-- Gate Operations sub-group --}}
+            @if(Auth::user()->can('masters.job-types.view'))
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-gate-ops"
+                    aria-expanded="{{ request()->routeIs('masters.job-types.*') ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-setup-gate-ops">
+                <i class="bi bi-signpost-split nav-sub-icon"></i>
+                <span>Gate Operations</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ request()->routeIs('masters.job-types.*') ? 'show' : '' }}" id="nav-sub-setup-gate-ops">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.job-types.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.job-types.*') ? 'active' : '' }}">
+                            <i class="bi bi-signpost-split"></i><span>Job Types</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            @endif
+
             {{-- Containers (Equipment) sub-group --}}
             @if(Auth::user()->can('containers.view') || Auth::user()->can('masters.equipment-types.view') || Auth::user()->can('masters.container-grades.view'))
             <button class="nav-sub-toggle"

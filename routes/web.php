@@ -230,6 +230,15 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{customerType}/toggle', [CustomerTypeController::class, 'toggleActive'])->name('toggle');
             Route::delete('{customerType}',       [CustomerTypeController::class, 'destroy'])->name('destroy');
         });
+        // Gate-In Job Types
+        Route::prefix('job-types')->name('job-types.')->group(function () {
+            Route::get('/',                    [\App\Http\Controllers\YardJobTypeController::class, 'index'])->name('index');
+            Route::post('/',                   [\App\Http\Controllers\YardJobTypeController::class, 'store'])->name('store');
+            Route::post('reorder',             [\App\Http\Controllers\YardJobTypeController::class, 'reorder'])->name('reorder');
+            Route::patch('{jobType}',          [\App\Http\Controllers\YardJobTypeController::class, 'update'])->name('update');
+            Route::patch('{jobType}/toggle',   [\App\Http\Controllers\YardJobTypeController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{jobType}',         [\App\Http\Controllers\YardJobTypeController::class, 'destroy'])->name('destroy');
+        });
         // Repair Categories
         Route::prefix('repair-categories')->name('repair-categories.')->group(function () {
             Route::get('/',                              [\App\Http\Controllers\RepairCategoryController::class, 'index'])->name('index');
