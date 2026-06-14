@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\CompanySetting;
 use App\Models\Permission;
 use App\Services\DocumentStorage\DocumentManager;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
@@ -23,6 +24,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Register WebSocket channel auth route + channel definitions
+        if (config('broadcasting.default') !== 'null') {
+            Broadcast::routes(['middleware' => ['auth']]);
+            if (file_exists(base_path('routes/channels.php'))) {
+                require base_path('routes/channels.php');
+            }
+        }
+
         $this->registerGates();
 
         View::composer('*', function ($view) {

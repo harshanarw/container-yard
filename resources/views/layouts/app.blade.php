@@ -1432,6 +1432,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 <!-- AirDatepicker v3 (datetime inputs) -->
 <script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.js"></script>
+<!-- Pusher JS (Reverb uses the Pusher WebSocket protocol) -->
+<script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
 
 <script>
     // English locale for AirDatepicker (library defaults to Russian)
@@ -1820,7 +1822,7 @@
         var csrfToken     = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
         var lastPollTs    = null;      // unix seconds; null = first load (no popups)
-        var POLL_INTERVAL = 30000;     // 30 s
+        var POLL_INTERVAL = 5000;      // 5 s fallback; overridden to 60 s when Reverb WS is active
 
         var npIcons = {
             info:    'bi-info-circle-fill text-primary',
@@ -1917,6 +1919,40 @@
                 renderDropdown([], 0);
             }).catch(function () {});
         });
+
+        // ── Reverb real-time subscription ────────────────────────────────────
+        // Active only when BROADCAST_DRIVER=reverb is set in .env.
+        // When connected, instant push replaces frequent polling;
+        // polling drops to 60 s and acts only as a recovery sync.
+        @if(config('broadcasting.default') === 'reverb' && config('broadcasting.connections.reverb.key'))
+        if (window.Pusher) {
+            var _pusher = new Pusher('{{ config("broadcasting.connections.reverb.key") }}', {
+                wsHost:            '{{ config("broadcasting.connections.reverb.options.host", "localhost") }}',
+                wsPort:             {{ (int) config("broadcasting.connections.reverb.options.port", 8080) }},
+                wssPort:            {{ (int) config("broadcasting.connections.reverb.options.port", 8080) }},
+                forceTLS:           {{ config("broadcasting.connections.reverb.options.scheme", "http") === "https" ? "true" : "false" }},
+                enabledTransports: ['ws', 'wss'],
+                cluster:           'default',
+                channelAuthorization: {
+                    endpoint: '/broadcasting/auth',
+                    headers: {
+                        'X-CSRF-TOKEN':      csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                },
+            });
+
+            var _chan = _pusher.subscribe('private-App.Models.User.{{ auth()->id() }}');
+            _chan.bind('notification.new', function (data) {
+                showSideNotification(data.title, data.body, data.type, data.url);
+                fetchUnread(); // sync badge + dropdown count
+            });
+
+            _pusher.connection.bind('connected', function () {
+                POLL_INTERVAL = 60000; // WS active — poll only for recovery
+            });
+        }
+        @endif
 
         fetchUnread();
         setInterval(fetchUnread, POLL_INTERVAL);
