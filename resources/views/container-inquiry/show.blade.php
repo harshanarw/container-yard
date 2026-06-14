@@ -204,10 +204,18 @@
                                 default     => 'bg-light text-muted',
                             };
                             $invCurrency = $inv->invoice_currency ?? $inv->currency ?? 'LKR';
-                            $invAmount   = (float) ($inv->total_amount ?? $inv->grand_total ?? 0);
-                            $invRate     = isset($inv->exchange_rate) ? (float) $inv->exchange_rate : null;
-                            $invLkr      = isset($inv->total_value)   ? (float) $inv->total_value   : null;
-                            $isForeign   = $invCurrency !== 'LKR';
+                            $isForeign   = strtoupper($invCurrency) !== 'LKR';
+                            $invRate     = (isset($inv->exchange_rate) && $inv->exchange_rate > 0)
+                                            ? (float) $inv->exchange_rate : null;
+                            if ($invRate !== null) {
+                                // Storage/handling/reefer invoices: total_amount is in LKR
+                                $invLkrAmount  = (float) ($inv->total_value ?? $inv->total_amount ?? 0);
+                                $invDisplayAmt = $isForeign ? round($invLkrAmount / $invRate, 2) : $invLkrAmount;
+                            } else {
+                                // Repair invoices: grand_total is stored in the invoice currency
+                                $invDisplayAmt = (float) ($inv->grand_total ?? $inv->total_amount ?? 0);
+                                $invLkrAmount  = $isForeign ? null : $invDisplayAmt;
+                            }
                         @endphp
                         <tr>
                             <td class="font-monospace fw-semibold">{{ $inv->invoice_no }}</td>
@@ -221,7 +229,7 @@
                                 @if($isForeign)
                                 <span class="badge bg-light text-secondary border me-1" style="font-size:.65rem">{{ $invCurrency }}</span>
                                 @endif
-                                {{ number_format($invAmount, 2) }}
+                                {{ number_format($invDisplayAmt, 2) }}
                             </td>
                             <td class="text-end text-muted text-nowrap">
                                 @if($isForeign && $invRate)
@@ -231,10 +239,8 @@
                                 @endif
                             </td>
                             <td class="text-end text-nowrap fw-semibold">
-                                @if($invLkr !== null)
-                                {{ number_format($invLkr, 2) }}
-                                @elseif(!$isForeign)
-                                {{ number_format($invAmount, 2) }}
+                                @if($invLkrAmount !== null)
+                                {{ number_format($invLkrAmount, 2) }}
                                 @else
                                 <span class="text-muted">—</span>
                                 @endif

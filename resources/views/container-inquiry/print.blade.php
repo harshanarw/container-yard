@@ -185,20 +185,28 @@
         @foreach($pcat['invoices'] as $inv)
         @php
             $pInvCurrency = $inv->invoice_currency ?? $inv->currency ?? 'LKR';
-            $pInvAmount   = (float) ($inv->{$pcat['amt_field']} ?? 0);
-            $pInvRate     = isset($inv->exchange_rate) ? (float) $inv->exchange_rate : null;
-            $pInvLkr      = isset($inv->total_value)   ? (float) $inv->total_value   : null;
-            $pIsForeign   = $pInvCurrency !== 'LKR';
+            $pIsForeign   = strtoupper($pInvCurrency) !== 'LKR';
+            $pInvRate     = (isset($inv->exchange_rate) && $inv->exchange_rate > 0)
+                             ? (float) $inv->exchange_rate : null;
+            if ($pInvRate !== null) {
+                // Storage/handling/reefer: total_amount is in LKR
+                $pInvLkrAmt     = (float) ($inv->total_value ?? $inv->total_amount ?? 0);
+                $pInvDisplayAmt = $pIsForeign ? round($pInvLkrAmt / $pInvRate, 2) : $pInvLkrAmt;
+            } else {
+                // Repair invoices: grand_total is in invoice currency
+                $pInvDisplayAmt = (float) ($inv->grand_total ?? $inv->total_amount ?? 0);
+                $pInvLkrAmt     = $pIsForeign ? null : $pInvDisplayAmt;
+            }
         @endphp
         <tr>
             <td class="mono">{{ $inv->invoice_no }}</td>
             <td>{{ $inv->invoice_date?->format('d M Y') ?? '-' }}</td>
             <td>{{ ucfirst($inv->status ?? '-') }}</td>
             <td>{{ $pInvCurrency }}</td>
-            <td style="text-align:right">{{ number_format($pInvAmount, 2) }}</td>
+            <td style="text-align:right">{{ number_format($pInvDisplayAmt, 2) }}</td>
             <td style="text-align:right">{{ ($pIsForeign && $pInvRate) ? number_format($pInvRate, 4) : '-' }}</td>
             <td style="text-align:right">
-                {{ $pInvLkr !== null ? number_format($pInvLkr, 2) : (!$pIsForeign ? number_format($pInvAmount, 2) : '-') }}
+                {{ $pInvLkrAmt !== null ? number_format($pInvLkrAmt, 2) : '-' }}
             </td>
         </tr>
         @endforeach
