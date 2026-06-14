@@ -101,11 +101,12 @@
         /* ── Additional info ────────────────────────────────── */
         .additional-info { border: 1px solid #888; border-top: none; padding: 6px 10px; margin-bottom: 8px; }
         .ai-section-label { font-size: 8px; letter-spacing: 0.4px; margin-bottom: 5px; font-weight: bold; }
-        .ai-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; row-gap: 3px; }
+        .ai-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; row-gap: 4px; column-gap: 16px; }
         .ai-item { display: flex; align-items: baseline; }
         .ai-item.full-row { grid-column: 1 / -1; }
-        .ai-lbl { font-weight: bold; font-size: 10px; white-space: nowrap; min-width: 95px; flex-shrink: 0; }
-        .ai-sep { font-size: 10px; margin: 0 5px; flex-shrink: 0; }
+        /* min-width covers longest label "NO. OF CONTAINERS" (~17 chars × 6px ≈ 102px in Courier New 10px) */
+        .ai-lbl { font-weight: bold; font-size: 10px; white-space: nowrap; min-width: 120px; flex-shrink: 0; }
+        .ai-sep { font-size: 10px; margin: 0 4px; flex-shrink: 0; }
         .ai-val { font-size: 10px; }
 
         /* ── Unified invoice table ──────────────────────────── */
@@ -162,6 +163,18 @@
                 margin: 0;
                 box-shadow: none;
                 min-height: calc(297mm - 22mm);
+            }
+            /* Flex doesn't distribute height across page boxes — pin footer with fixed positioning */
+            .inv-body { padding-bottom: 28px; }
+            .page-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                /* padding-bottom pushes text above paper's bottom margin (14mm) */
+                padding: 5px 8mm 14mm;
+                background: #fff;
+                box-sizing: border-box;
             }
             @page { margin: 8mm 8mm 14mm; size: A4 portrait; }
         }
