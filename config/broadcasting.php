@@ -64,6 +64,10 @@ return [
             'driver' => 'null',
         ],
 
+        'log' => [
+            'driver' => 'log',
+        ],
+
     ],
 
 ];
