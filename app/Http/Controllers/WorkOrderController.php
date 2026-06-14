@@ -412,9 +412,24 @@ class WorkOrderController extends Controller
 
         if ($anyFailed) {
             $failCount = collect($validated['line_results'])->filter(fn($r) => $r === 'failed')->count();
+
+            NotificationService::notifyAll(
+                'QC Failed — ' . $workOrder->wo_no,
+                ($workOrder->customer->name ?? 'Unknown') . ' · ' . $workOrder->container_no . ' · ' . $failCount . ' line(s) failed — returned for rework',
+                'danger',
+                route('work-orders.show', $workOrder)
+            );
+
             return redirect()->route('work-orders.show', $workOrder)
                              ->with('error', "QC rejected: {$failCount} line(s) failed inspection. Work order returned for rework.");
         }
+
+        NotificationService::notifyAll(
+            'QC Passed — ' . $workOrder->wo_no,
+            ($workOrder->customer->name ?? 'Unknown') . ' · ' . $workOrder->container_no . ' · Work order closed',
+            'success',
+            route('work-orders.show', $workOrder)
+        );
 
         return redirect()->route('work-orders.show', $workOrder)
                          ->with('success', 'QC passed — work order closed.');

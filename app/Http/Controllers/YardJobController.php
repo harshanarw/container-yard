@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\YardJob;
 use App\Models\YardJobType;
 use App\Services\JobPnlService;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -91,6 +92,16 @@ class YardJobController extends Controller
         }
 
         $yardJob->update($data);
+
+        if (in_array($data['status'], ['completed', 'cancelled'])) {
+            $notifType = $data['status'] === 'completed' ? 'success' : 'warning';
+            NotificationService::notifyAll(
+                'Yard Job ' . ucfirst($data['status']) . ' — ' . $yardJob->job_no,
+                ($yardJob->customer->name ?? 'Unknown') . ' · ' . ($yardJob->jobType->name ?? 'Job'),
+                $notifType,
+                route('yard.jobs.show', $yardJob)
+            );
+        }
 
         return back()->with('success', "Job {$yardJob->job_no} updated to \"" . YardJob::statusLabel($data['status']) . "\".");
     }

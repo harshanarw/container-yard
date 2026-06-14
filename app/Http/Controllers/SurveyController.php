@@ -15,6 +15,7 @@ use App\Models\InquiryChecklist;
 use App\Models\InquiryPhoto;
 use App\Models\MrCode;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -179,6 +180,13 @@ class SurveyController extends Controller
 
             $redirectUrl = route('surveys.show', $inquiry);
             \Log::debug('[StoreSurvey] Success — redirect=' . $redirectUrl . ' wants_json=' . ($request->wantsJson() ? 'yes' : 'no'));
+
+            NotificationService::notifyAll(
+                'Survey Created — ' . $inquiry->inquiry_no,
+                ($container->customer->name ?? $inquiry->customer->name ?? 'Unknown') . ' · ' . $container->container_no . ' · ' . ucfirst($request->inquiry_type ?? 'survey'),
+                'info',
+                route('surveys.show', $inquiry)
+            );
 
             if ($request->wantsJson()) {
                 return response()->json(['redirect' => $redirectUrl]);
