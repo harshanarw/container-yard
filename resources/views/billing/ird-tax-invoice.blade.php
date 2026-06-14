@@ -251,8 +251,12 @@
 </table>
 
 {{-- Total in Words --}}
+@php
+    $amountInWords = \App\Helpers\NumberToWords::convert($total_incl_vat, 'LKR');
+@endphp
 <div class="footer-box words">
-    <span style="color:#555">Total Amount in Words (optional):</span>
+    <span style="color:#555;font-size:9px">Total Amount in Words:</span>
+    <div style="font-weight:bold;font-size:10.5px;margin-top:2px">{{ $amountInWords }}</div>
 </div>
 
 {{-- Mode of Payment --}}
