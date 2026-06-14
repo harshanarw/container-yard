@@ -93,7 +93,7 @@
         .hg-inline { display: flex; align-items: baseline; }
         .hg-label { font-size: 8.5px; letter-spacing: 0.3px; white-space: nowrap; flex-shrink: 0; }
         .hg-sep  { font-size: 8.5px; margin: 0 5px; flex-shrink: 0; }
-        .hg-val  { font-weight: bold; font-size: 11px; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; }
+        .hg-val  { font-weight: bold; font-size: 10px; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; }
         .hg-block { font-size: 10.5px; line-height: 1.65; }
         .hg-block-label { font-size: 8.5px; letter-spacing: 0.3px; margin-bottom: 2px; }
 
@@ -291,7 +291,7 @@
         <div class="hg-inline">
             <span class="hg-label">Date of Supply</span>
             <span class="hg-sep">:</span>
-            <span class="hg-val">&mdash;</span>
+            <span class="hg-val">{{ $invoice_date?->format('d/m/Y') ?? now()->format('d/m/Y') }}</span>
         </div>
     </div>
     <div class="supply-cell">
@@ -345,11 +345,11 @@
 {{-- ── Line Items + Totals (single table — guarantees column alignment) ── --}}
 <table class="inv-table">
     <colgroup>
-        <col style="width:10%">
-        <col style="width:44%">
-        <col style="width:7%">
-        <col style="width:13%">
-        <col style="width:13%">
+        <col style="width:11%">  {{-- Reference: 11-char container nos --}}
+        <col style="width:49%">  {{-- Description: longest content --}}
+        <col style="width:7%">   {{-- Qty --}}
+        <col style="width:15%">  {{-- Unit Price (RS.) --}}
+        <col style="width:18%">  {{-- Amt Excl. VAT (RS.) --}}
     </colgroup>
     <thead>
         <tr>
