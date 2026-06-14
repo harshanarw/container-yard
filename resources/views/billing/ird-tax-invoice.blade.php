@@ -84,31 +84,33 @@
             letter-spacing: 2px; margin-bottom: 10px;
         }
 
-        /* ── Single-line invoice info row ──────────────────── */
-        .info-row { border: 1px solid #888; padding: 5px 10px; display: flex; align-items: center; }
-        .ir-item { flex: 1; display: flex; align-items: baseline; padding: 0 10px; border-right: 1px solid #ccc; min-width: 0; }
-        .ir-item:first-child { padding-left: 0; }
-        .ir-item:last-child { border-right: none; padding-right: 0; }
-        .ir-lbl { font-size: 8.5px; font-weight: bold; white-space: nowrap; flex-shrink: 0; }
-        .ir-sep { margin: 0 4px; font-size: 8.5px; flex-shrink: 0; }
-        .ir-val { font-size: 10px; font-weight: bold; white-space: nowrap; overflow: hidden; }
-
-        /* ── Supplier / Purchaser grid ──────────────────────── */
-        .header-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #888; border-top: none; }
+        /* ── Header grid ────────────────────────────────────── */
+        .header-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #888; }
         .hg-cell { padding: 6px 10px; border-right: 1px solid #888; border-bottom: 1px solid #888; }
         .hg-cell.no-right { border-right: none; }
         .hg-cell.no-bottom { border-bottom: none; }
-        .hg-label { font-size: 8.5px; letter-spacing: 0.3px; margin-bottom: 2px; }
+        /* inline label : value on one line inside a cell */
+        .hg-inline { display: flex; align-items: baseline; }
+        .hg-label { font-size: 8.5px; letter-spacing: 0.3px; white-space: nowrap; flex-shrink: 0; }
+        .hg-sep  { font-size: 8.5px; margin: 0 5px; flex-shrink: 0; }
+        .hg-val  { font-weight: bold; font-size: 11px; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; }
         .hg-block { font-size: 10.5px; line-height: 1.65; }
+        .hg-block-label { font-size: 8.5px; letter-spacing: 0.3px; margin-bottom: 2px; }
+
+        /* ── Supply row ─────────────────────────────────────── */
+        .supply-row { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #888; border-top: none; }
+        .supply-cell { padding: 5px 10px; }
+        .supply-cell:first-child { border-right: 1px solid #888; }
 
         /* ── Additional info ────────────────────────────────── */
         .additional-info { border: 1px solid #888; border-top: none; padding: 6px 10px; margin-bottom: 8px; }
         .ai-section-label { font-size: 8px; letter-spacing: 0.4px; margin-bottom: 5px; font-weight: bold; }
-        .ai-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; row-gap: 4px; column-gap: 16px; }
+        /* column-gap 8px keeps columns wide enough to prevent value wrapping */
+        .ai-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; row-gap: 4px; column-gap: 8px; }
         .ai-item { display: flex; align-items: baseline; }
         .ai-item.full-row { grid-column: 1 / -1; }
-        /* min-width covers longest label "NO. OF CONTAINERS" (~17 chars × 6px ≈ 102px in Courier New 10px) */
-        .ai-lbl { font-weight: bold; font-size: 10px; white-space: nowrap; min-width: 120px; flex-shrink: 0; }
+        /* min-width 104px covers "NO. OF CONTAINERS" (17 chars × ~6px = 102px) with a small buffer */
+        .ai-lbl { font-weight: bold; font-size: 10px; white-space: nowrap; min-width: 104px; flex-shrink: 0; }
         .ai-sep { font-size: 10px; margin: 0 4px; flex-shrink: 0; }
         .ai-val { font-size: 10px; }
 
@@ -242,35 +244,27 @@
     <div class="title-box">TAX INVOICE</div>
 </div>
 
-{{-- ── Single-line info row ─────────────────────────────────────── --}}
-@php $inv_date_fmt = ($invoice_date ?? now())->format('d/m/Y'); @endphp
-<div class="info-row">
-    <div class="ir-item">
-        <span class="ir-lbl">DATE OF INVOICE</span>
-        <span class="ir-sep">:</span>
-        <span class="ir-val">{{ $inv_date_fmt }}</span>
-    </div>
-    <div class="ir-item">
-        <span class="ir-lbl">INVOICE NO.</span>
-        <span class="ir-sep">:</span>
-        <span class="ir-val">{{ $ird_invoice_no }}</span>
-    </div>
-    <div class="ir-item">
-        <span class="ir-lbl">DATE OF DELIVERY</span>
-        <span class="ir-sep">:</span>
-        <span class="ir-val">{{ $inv_date_fmt }}</span>
-    </div>
-    <div class="ir-item">
-        <span class="ir-lbl">PLACE OF SUPPLY</span>
-        <span class="ir-sep">:</span>
-        <span class="ir-val">&mdash;</span>
-    </div>
-</div>
-
-{{-- ── Supplier / Purchaser ─────────────────────────────────────── --}}
+{{-- ── Header Grid ──────────────────────────────────────────────── --}}
 <div class="header-grid">
+    <div class="hg-cell">
+        <div class="hg-inline">
+            <span class="hg-label">Date of Invoice</span>
+            <span class="hg-sep">:</span>
+            <span class="hg-val">{{ $invoice_date?->format('d/m/Y') ?? now()->format('d/m/Y') }}</span>
+        </div>
+    </div>
+    <div class="hg-cell no-right">
+        <div class="hg-inline">
+            <span class="hg-label">Tax Invoice No.</span>
+            <span class="hg-sep">:</span>
+            <span class="hg-val" style="letter-spacing:.5px">{{ $ird_invoice_no }}</span>
+        </div>
+        @if($ird_invoice_no === '—')
+        <div class="note">(IRD number assigned at issuance)</div>
+        @endif
+    </div>
     <div class="hg-cell no-bottom">
-        <div class="hg-label">Supplier</div>
+        <div class="hg-block-label">Supplier</div>
         <div class="hg-block">
             @if($company->tin_number)<div><strong>TIN:</strong> {{ $company->tin_number }}</div>@endif
             <div><strong>{{ $company->company_name }}</strong></div>
@@ -279,7 +273,7 @@
         </div>
     </div>
     <div class="hg-cell no-right no-bottom">
-        <div class="hg-label">Purchaser</div>
+        <div class="hg-block-label">Purchaser</div>
         <div class="hg-block">
             @if($customer?->tin_number)<div><strong>TIN:</strong> {{ $customer->tin_number }}</div>@endif
             <div><strong>{{ $customer?->name ?? '—' }}</strong></div>
@@ -287,6 +281,24 @@
             @if($customer?->phone_office || $customer?->phone_mobile)
             <div>Tel: {{ $customer->phone_office ?? $customer->phone_mobile }}</div>
             @endif
+        </div>
+    </div>
+</div>
+
+{{-- ── Date of Supply / Place of Supply ────────────────────────── --}}
+<div class="supply-row">
+    <div class="supply-cell">
+        <div class="hg-inline">
+            <span class="hg-label">Date of Supply</span>
+            <span class="hg-sep">:</span>
+            <span class="hg-val">&mdash;</span>
+        </div>
+    </div>
+    <div class="supply-cell">
+        <div class="hg-inline">
+            <span class="hg-label">Place of Supply</span>
+            <span class="hg-sep">:</span>
+            <span class="hg-val">&mdash;</span>
         </div>
     </div>
 </div>
@@ -306,8 +318,9 @@
     }
     $allInfo[] = ['label' => 'SYSTEM REF.', 'value' => strtoupper($invoice_no)];
 
-    $shortItems = array_values(array_filter($allInfo, fn($i) => (strlen($i['label']) + strlen($i['value'])) <= 32));
-    $longItems  = array_values(array_filter($allInfo, fn($i) => (strlen($i['label']) + strlen($i['value'])) >  32));
+    // value > 16 chars risks wrapping in the 3-column grid — move those to full-row
+    $shortItems = array_values(array_filter($allInfo, fn($i) => strlen($i['value']) <= 16));
+    $longItems  = array_values(array_filter($allInfo, fn($i) => strlen($i['value']) >  16));
 @endphp
 <div class="additional-info">
     <div class="ai-section-label">Additional Information</div>
