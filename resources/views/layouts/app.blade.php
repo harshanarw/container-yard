@@ -1821,7 +1821,11 @@
         var markAllBtn    = document.getElementById('notifMarkAllBtn');
         var csrfToken     = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-        var lastPollTs    = null;      // unix seconds; null = first load (no popups)
+        var _storedPoll   = parseInt(sessionStorage.getItem('_npLastPoll') || '0', 10);
+        var _maxAge       = 300; // ignore stored timestamp if older than 5 minutes
+        var lastPollTs    = (_storedPoll && (Math.floor(Date.now()/1000) - _storedPoll) < _maxAge)
+                            ? _storedPoll
+                            : null;
         var POLL_INTERVAL = 5000;      // 5 s fallback; overridden to 60 s when Reverb WS is active
 
         var npIcons = {
@@ -1895,6 +1899,7 @@
                 }
             } catch (e) { /* silent — never break the page */ }
             lastPollTs = nowTs;
+            sessionStorage.setItem('_npLastPoll', nowTs);
         }
 
         // Delegate: clicking a notification item marks it read
