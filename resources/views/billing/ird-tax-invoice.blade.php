@@ -210,20 +210,29 @@
 {{-- ── Additional Information ──────────────────────────────────── --}}
 @php
     $isForeignCurrency = $invoice_currency && strtoupper($invoice_currency) !== 'LKR';
-    $addInfo = [];
-    if ($isForeignCurrency && $exchange_rate) {
-        $addInfo[] = 'Original invoice currency: ' . strtoupper($invoice_currency)
-                   . ' | Exchange rate used: 1 ' . strtoupper($invoice_currency)
-                   . ' = LKR ' . number_format($exchange_rate, 4)
-                   . ' | All amounts below are in LKR.';
-    }
-    $addInfo[] = 'System Invoice Ref: ' . $invoice_no;
 @endphp
 <div class="additional-info">
     <div class="label">Additional Information</div>
-    @foreach($addInfo as $info)
-    <div style="font-size:10px">{{ $info }}</div>
-    @endforeach
+    {{-- Category-specific fields --}}
+    @if(!empty($category_info))
+    <div style="font-size:10px;margin-top:2px">
+        @foreach($category_info as $label => $value)
+            <strong>{{ $label }}:</strong> {{ $value }}
+            @if(!$loop->last) &nbsp;&nbsp;|&nbsp;&nbsp; @endif
+        @endforeach
+    </div>
+    @endif
+    {{-- Exchange rate note for foreign currency invoices --}}
+    @if($isForeignCurrency && $exchange_rate)
+    <div style="font-size:10px;margin-top:2px">
+        <strong>Currency:</strong> {{ strtoupper($invoice_currency) }}
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>Exchange Rate:</strong> 1 {{ strtoupper($invoice_currency) }} = LKR {{ number_format($exchange_rate, 4) }}
+        &nbsp;&nbsp;|&nbsp;&nbsp; All amounts shown in LKR.
+    </div>
+    @endif
+    {{-- System reference --}}
+    <div style="font-size:9.5px;margin-top:2px"><strong>System Invoice Ref:</strong> {{ $invoice_no }}</div>
 </div>
 
 {{-- ── Line Items ───────────────────────────────────────────────── --}}

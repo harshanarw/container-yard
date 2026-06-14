@@ -273,15 +273,15 @@ class RepairInvoiceController extends Controller
 
     public function irdPrint(RepairInvoice $invoice)
     {
-        $invoice->load(['customer', 'lines', 'container', 'createdBy', 'issuedBy']);
+        $invoice->load(['customer', 'lines', 'container', 'estimate', 'workOrder', 'createdBy', 'issuedBy']);
         $company = CompanySetting::current();
 
         $lines = $invoice->lines->map(fn ($l) => [
-            'reference'      => $l->cedex_code,
-            'description'    => $l->description ?? 'Repair Work',
-            'quantity'       => $l->qty ?? 1,
-            'unit_price'     => $l->unit_price ?? $l->line_amount ?? 0,
-            'amount_excl_vat'=> $l->line_amount ?? 0,
+            'reference'       => $l->cedex_code,
+            'description'     => $l->description ?? 'Repair Work',
+            'quantity'        => $l->qty ?? 1,
+            'unit_price'      => $l->unit_price ?? $l->line_amount ?? 0,
+            'amount_excl_vat' => $l->line_amount ?? 0,
         ]);
 
         $data = [
@@ -299,6 +299,12 @@ class RepairInvoiceController extends Controller
             'invoice_currency' => $invoice->currency,
             'exchange_rate'    => null,
             'invoice_no'       => $invoice->invoice_no,
+            'category_info'    => array_filter([
+                'Category'      => 'Container Repair',
+                'Container No.' => $invoice->container_no,
+                'Work Order'    => $invoice->workOrder?->wo_no ?? ($invoice->work_order_id ? "WO-{$invoice->work_order_id}" : null),
+                'Estimate No.'  => $invoice->estimate?->estimate_no ?? ($invoice->estimate_id ? "EST-{$invoice->estimate_id}" : null),
+            ]),
         ];
 
         return view('billing.ird-tax-invoice', $data);

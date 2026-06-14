@@ -555,24 +555,30 @@ class StorageHandlingController extends Controller
 
     public function irdPrint(StorageHandlingInvoice $storageHandlingInvoice)
     {
-        $storageHandlingInvoice->load(['shippingLine', 'lines', 'createdBy']);
+        $storageHandlingInvoice->load(['shippingLine', 'billingParty', 'lines', 'createdBy']);
         $company = CompanySetting::current();
 
+        $eqtCode = fn ($label) => trim(explode(' — ', $label ?? '')[0]) ?: '—';
+
         $lines = $storageHandlingInvoice->lines->map(fn ($l) => [
-            'reference'      => $l->container_no,
-            'description'    => 'Storage & Handling — ' . ($l->equipment_type ?? $l->container_no)
-                                . ' | ' . \Carbon\Carbon::parse($l->storage_from)->format('d M Y')
-                                . ' to ' . \Carbon\Carbon::parse($l->storage_to)->format('d M Y'),
-            'quantity'       => $l->storage_chargeable_days ?? 1,
-            'unit_price'     => ($l->storage_subtotal + $l->handling_subtotal) / max(1, $l->storage_chargeable_days ?? 1),
-            'amount_excl_vat'=> $l->storage_subtotal + $l->handling_subtotal,
+            'reference'       => $l->container_no,
+            'description'     => 'Storage & Handling — ' . $eqtCode($l->equipment_type ?? $l->container_no)
+                                 . ' | ' . \Carbon\Carbon::parse($l->storage_from)->format('d M Y')
+                                 . ' to ' . \Carbon\Carbon::parse($l->storage_to)->format('d M Y'),
+            'quantity'        => $l->storage_chargeable_days ?? 1,
+            'unit_price'      => ($l->storage_subtotal + $l->handling_subtotal) / max(1, $l->storage_chargeable_days ?? 1),
+            'amount_excl_vat' => $l->storage_subtotal + $l->handling_subtotal,
         ]);
+
+        $from         = $storageHandlingInvoice->billing_period_from?->format('d M Y');
+        $to           = $storageHandlingInvoice->billing_period_to?->format('d M Y');
+        $shippingLine = $storageHandlingInvoice->shippingLine ?? $storageHandlingInvoice->billingParty;
 
         $data = [
             'ird_invoice_no'   => $storageHandlingInvoice->ird_invoice_no ?? '—',
             'invoice_date'     => $storageHandlingInvoice->invoice_date,
             'company'          => $company,
-            'customer'         => $storageHandlingInvoice->shippingLine ?? $storageHandlingInvoice->billingParty,
+            'customer'         => $shippingLine,
             'lines'            => $lines,
             'subtotal'         => $storageHandlingInvoice->subtotal,
             'sscl_amount'      => $storageHandlingInvoice->sscl_amount ?? 0,
@@ -583,6 +589,12 @@ class StorageHandlingController extends Controller
             'invoice_currency' => $storageHandlingInvoice->invoice_currency,
             'exchange_rate'    => $storageHandlingInvoice->exchange_rate,
             'invoice_no'       => $storageHandlingInvoice->invoice_no,
+            'category_info'    => array_filter([
+                'Category'          => 'Storage & Handling',
+                'Billing Period'    => $from && $to ? "{$from} to {$to}" : null,
+                'Shipping Line'     => $shippingLine?->name,
+                'No. of Containers' => $storageHandlingInvoice->lines->count() . ' unit(s)',
+            ]),
         ];
 
         return view('billing.ird-tax-invoice', $data);

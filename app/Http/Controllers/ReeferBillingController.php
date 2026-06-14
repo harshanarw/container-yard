@@ -228,13 +228,15 @@ class ReeferBillingController extends Controller
         $company = CompanySetting::current();
 
         $lines = $reeferInvoice->lines->map(fn ($l) => [
-            'reference'      => optional($l->plugSession)->container_no,
-            'description'    => 'Reefer Electricity — ' . (optional($l->chargeCode)->name ?? 'Electricity Charge')
-                                . (optional($l->plugSession)->container_no ? ' (' . $l->plugSession->container_no . ')' : ''),
-            'quantity'       => $l->hours ?? $l->quantity ?? 1,
-            'unit_price'     => $l->rate ?? 0,
-            'amount_excl_vat'=> $l->subtotal ?? $l->line_amount ?? 0,
+            'reference'       => optional($l->plugSession)->container_no,
+            'description'     => 'Reefer Electricity — ' . (optional($l->chargeCode)->name ?? 'Electricity Charge'),
+            'quantity'        => $l->hours ?? $l->quantity ?? 1,
+            'unit_price'      => $l->rate ?? 0,
+            'amount_excl_vat' => $l->subtotal ?? $l->line_amount ?? 0,
         ]);
+
+        $from = $reeferInvoice->billing_period_from?->format('d M Y');
+        $to   = $reeferInvoice->billing_period_to?->format('d M Y');
 
         $data = [
             'ird_invoice_no'   => $reeferInvoice->ird_invoice_no ?? '—',
@@ -251,6 +253,11 @@ class ReeferBillingController extends Controller
             'invoice_currency' => $reeferInvoice->invoice_currency,
             'exchange_rate'    => $reeferInvoice->exchange_rate,
             'invoice_no'       => $reeferInvoice->invoice_no,
+            'category_info'    => array_filter([
+                'Category'          => 'Reefer Electricity',
+                'Billing Period'    => $from && $to ? "{$from} to {$to}" : null,
+                'No. of Sessions'   => $reeferInvoice->lines->count() . ' session(s)',
+            ]),
         ];
 
         return view('billing.ird-tax-invoice', $data);

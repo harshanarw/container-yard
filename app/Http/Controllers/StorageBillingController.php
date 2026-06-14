@@ -472,15 +472,20 @@ class StorageBillingController extends Controller
         $invoice->load(['customer', 'details', 'createdBy']);
         $company = CompanySetting::current();
 
+        $eqtCode = fn ($label) => trim(explode(' — ', $label ?? '')[0]) ?: '—';
+
         $lines = $invoice->details->map(fn ($d) => [
-            'reference'      => $d->container_no,
-            'description'    => 'Container Storage — ' . $d->equipment_type
-                                . ' | ' . \Carbon\Carbon::parse($d->from_date)->format('d M Y')
-                                . ' to ' . \Carbon\Carbon::parse($d->to_date)->format('d M Y'),
-            'quantity'       => $d->chargeable_days,
-            'unit_price'     => $d->daily_rate,
-            'amount_excl_vat'=> $d->subtotal,
+            'reference'       => $d->container_no,
+            'description'     => 'Container Storage — ' . $eqtCode($d->equipment_type)
+                                 . ' | ' . \Carbon\Carbon::parse($d->from_date)->format('d M Y')
+                                 . ' to ' . \Carbon\Carbon::parse($d->to_date)->format('d M Y'),
+            'quantity'        => $d->chargeable_days,
+            'unit_price'      => $d->daily_rate,
+            'amount_excl_vat' => $d->subtotal,
         ]);
+
+        $from = $invoice->billing_period_from?->format('d M Y');
+        $to   = $invoice->billing_period_to?->format('d M Y');
 
         $data = [
             'ird_invoice_no'   => $invoice->ird_invoice_no ?? '—',
@@ -497,6 +502,11 @@ class StorageBillingController extends Controller
             'invoice_currency' => $invoice->invoice_currency,
             'exchange_rate'    => $invoice->exchange_rate,
             'invoice_no'       => $invoice->invoice_no,
+            'category_info'    => array_filter([
+                'Category'           => 'Container Storage',
+                'Billing Period'     => $from && $to ? "{$from} to {$to}" : null,
+                'No. of Containers'  => $invoice->details->count() . ' unit(s)',
+            ]),
         ];
 
         return view('billing.ird-tax-invoice', $data);
