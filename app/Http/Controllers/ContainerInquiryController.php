@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Container;
 use App\Models\Customer;
+use App\Models\GateMovement;
 use App\Models\YardJobType;
 use App\Services\ContainerInquiryService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -42,6 +45,31 @@ class ContainerInquiryController extends Controller
         }
 
         return view('container-inquiry.show', $data);
+    }
+
+    public function autocomplete(Request $request): JsonResponse
+    {
+        $q = strtoupper(trim($request->get('q', '')));
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        // Search containers master + fall back to historical gate movements
+        $fromContainers = Container::where('container_no', 'LIKE', $q . '%')
+            ->orderBy('container_no')
+            ->limit(15)
+            ->pluck('container_no');
+
+        $fromMovements = GateMovement::where('container_no', 'LIKE', $q . '%')
+            ->where('movement_type', 'in')
+            ->distinct()
+            ->orderBy('container_no')
+            ->limit(15)
+            ->pluck('container_no');
+
+        $results = $fromContainers->merge($fromMovements)->unique()->sort()->values();
+
+        return response()->json($results);
     }
 
     public function export(Request $request): StreamedResponse

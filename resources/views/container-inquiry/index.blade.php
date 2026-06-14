@@ -32,13 +32,11 @@
 
                 <div class="col-12 col-md-3">
                     <label class="form-label form-label-sm mb-1">Container Number</label>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text"><i class="bi bi-box-seam"></i></span>
-                        <input type="text" name="container_no" class="form-control form-control-sm text-uppercase"
-                               placeholder="e.g. TCKU1234567"
-                               value="{{ $filters['container_no'] ?? '' }}"
-                               maxlength="11" autocomplete="off" style="text-transform:uppercase">
-                    </div>
+                    <select name="container_no" id="containerNoSelect" class="form-select form-select-sm" style="width:100%">
+                        @if(!empty($filters['container_no']))
+                        <option value="{{ $filters['container_no'] }}" selected>{{ $filters['container_no'] }}</option>
+                        @endif
+                    </select>
                 </div>
 
                 <div class="col-12 col-md-3">
@@ -56,7 +54,7 @@
 
                 <div class="col-12 col-md-2">
                     <label class="form-label form-label-sm mb-1">Job Type</label>
-                    <select name="job_type_code" class="form-select form-select-sm">
+                    <select name="job_type_code" class="form-select form-select-sm select2">
                         <option value="">All Job Types</option>
                         @foreach($jobTypes as $jt)
                             <option value="{{ $jt->job_type_code }}"
@@ -209,10 +207,13 @@
                         {{ ucfirst(str_replace('_', ' ', $m->condition ?? '—')) }}
                     </td>
                     <td class="text-center">{{ $m->size ? $m->size . 'ft' : '—' }}</td>
-                    <td class="pe-3">
+                    <td class="pe-3 text-center">
                         <a href="{{ route('container-inquiry.show', $m->container_no) }}"
-                           class="btn btn-xs btn-outline-primary" title="View Full History">
-                            <i class="bi bi-eye me-1"></i>History
+                           class="btn btn-outline-primary"
+                           style="padding:.15rem .4rem;font-size:.72rem;line-height:1.4"
+                           title="View Full History"
+                           data-bs-toggle="tooltip" data-bs-placement="left">
+                            <i class="bi bi-eye"></i>
                         </a>
                     </td>
                 </tr>
@@ -230,3 +231,42 @@
 @endif
 
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof $.fn.select2 === 'undefined') return;
+
+    // Container Number — AJAX autocomplete
+    $('#containerNoSelect').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Type to search…',
+        allowClear: true,
+        minimumInputLength: 2,
+        ajax: {
+            url: '{{ route('container-inquiry.autocomplete') }}',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) { return { q: params.term }; },
+            processResults: function (data) {
+                return {
+                    results: data.map(function (no) {
+                        return { id: no, text: no };
+                    })
+                };
+            },
+            cache: true
+        },
+        templateResult: function (item) {
+            if (!item.id) return item.text;
+            return $('<span class="font-monospace fw-semibold">' + item.text + '</span>');
+        }
+    });
+
+    // Activate Bootstrap tooltips on the eye buttons
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+        new bootstrap.Tooltip(el);
+    });
+});
+</script>
+@endpush
