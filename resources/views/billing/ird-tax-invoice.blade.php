@@ -7,12 +7,42 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
+        /* ── Screen chrome ─────────────────────────────────── */
         body {
             font-family: 'Courier New', Courier, monospace;
             font-size: 11px;
             color: #111;
+            background: #374151;
+        }
+
+        .screen-toolbar {
+            background: #1e293b;
+            color: #fff;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .screen-toolbar h6 { margin: 0; font-size: 13px; font-family: Arial, sans-serif; flex: 1; }
+        .tb-btn {
+            padding: 6px 14px; border-radius: 4px; border: none;
+            cursor: pointer; font-size: 12px; font-family: Arial, sans-serif;
+            text-decoration: none; display: inline-block; line-height: 1.4;
+        }
+        .tb-btn-primary   { background: #2563eb; color: #fff; }
+        .tb-btn-outline   { background: transparent; color: #cbd5e1; border: 1px solid #475569; }
+
+        /* ── Document card ─────────────────────────────────── */
+        .inv-doc {
+            max-width: 190mm;
+            margin: 20px auto 40px;
             background: #fff;
             padding: 20px 24px;
+            box-shadow: 0 4px 24px rgba(0,0,0,.4);
             text-transform: uppercase;
         }
 
@@ -44,8 +74,8 @@
         /* ── Title ──────────────────────────────────────────── */
         .title-box {
             border: 2px solid #111; text-align: center; padding: 5px 24px;
-            display: inline-block; font-size: 17px; font-weight: bold; letter-spacing: 2px;
-            margin-bottom: 10px;
+            display: inline-block; font-size: 17px; font-weight: bold;
+            letter-spacing: 2px; margin-bottom: 10px;
         }
 
         /* ── Header grid ────────────────────────────────────── */
@@ -72,18 +102,35 @@
         .ai-sep { font-size: 10px; margin: 0 5px; flex-shrink: 0; }
         .ai-val { font-size: 10px; }
 
-        /* ── Line items table ───────────────────────────────── */
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f0f0f0; text-align: left; padding: 5px 7px; font-size: 10px; border: 1px solid #888; font-weight: bold; }
-        th.r { text-align: right; }
-        td { padding: 4px 7px; border: 1px solid #888; vertical-align: top; font-size: 10.5px; }
-        td.r { text-align: right; }
+        /* ── Unified invoice table ──────────────────────────── */
+        table.inv-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .inv-table th {
+            background: #f0f0f0;
+            text-align: left;
+            padding: 5px 7px;
+            font-size: 10px;
+            border: 1px solid #888;
+            font-weight: bold;
+        }
+        .inv-table th.r { text-align: right; }
+        .inv-table td {
+            padding: 4px 7px;
+            border: 1px solid #888;
+            vertical-align: top;
+            font-size: 10.5px;
+        }
+        .inv-table td.r { text-align: right; }
 
-        /* ── Totals ─────────────────────────────────────────── */
-        .totals-table td { border-top: none; }
-        .totals-table tr.sscl-row td { background: #f8f8f8; font-size: 10px; }
-        .totals-table tr.vat-row td  { background: #f0f0f0; }
-        .totals-table tr.grand-row td { background: #e4e4e4; font-weight: bold; font-size: 12px; }
+        /* totals rows in tfoot */
+        .inv-table tfoot td { border-top: none; }
+        .inv-table tfoot tr.sep-row td { border-top: 2px solid #555; }
+        .inv-table tfoot tr.sscl-row td { background: #f8f8f8; font-size: 10px; }
+        .inv-table tfoot tr.vat-row td  { background: #f0f0f0; }
+        .inv-table tfoot tr.grand-row td { background: #e4e4e4; font-weight: bold; font-size: 12px; }
 
         /* ── Footer boxes ───────────────────────────────────── */
         .footer-box { border: 1px solid #888; border-top: none; padding: 5px 8px; font-size: 10px; min-height: 20px; }
@@ -99,13 +146,31 @@
 
         .note { font-size: 9px; margin-top: 2px; font-style: italic; }
 
+        /* ── Print overrides ────────────────────────────────── */
         @media print {
-            body { padding: 6px 10px; }
+            .screen-toolbar { display: none !important; }
+            body { background: #fff; }
+            .inv-doc {
+                max-width: 100%;
+                margin: 0;
+                padding: 6px 10px;
+                box-shadow: none;
+            }
             @page { margin: 8mm; size: A4 portrait; }
         }
     </style>
 </head>
 <body>
+
+{{-- ── Screen toolbar ───────────────────────────────────────────── --}}
+<div class="screen-toolbar">
+    <h6>&#128438; &nbsp; Tax Invoice Preview &mdash; {{ $ird_invoice_no }}</h6>
+    <button class="tb-btn tb-btn-primary" onclick="window.print()">&#128438; Print / Save PDF</button>
+    <a href="javascript:history.back()" class="tb-btn tb-btn-outline">&#8592; Back</a>
+</div>
+
+{{-- ── Document card ────────────────────────────────────────────── --}}
+<div class="inv-doc">
 
 {{-- ── Company Letterhead ───────────────────────────────────────── --}}
 <div class="letterhead">
@@ -155,7 +220,6 @@
 
 {{-- ── Header Grid ──────────────────────────────────────────────── --}}
 <div class="header-grid">
-
     <div class="hg-cell">
         <div class="hg-label">Date of Invoice</div>
         <div class="hg-value">{{ $invoice_date?->format('d/m/Y') ?? now()->format('d/m/Y') }}</div>
@@ -167,7 +231,6 @@
         <div class="note">(IRD number assigned at issuance)</div>
         @endif
     </div>
-
     <div class="hg-cell no-bottom">
         <div class="hg-label">Supplier</div>
         <div class="hg-block">
@@ -188,7 +251,6 @@
             @endif
         </div>
     </div>
-
 </div>
 
 {{-- ── Date of Supply / Place of Supply ────────────────────────── --}}
@@ -207,7 +269,6 @@
 @php
     $isForeignCurrency = $invoice_currency && strtoupper($invoice_currency) !== 'LKR';
 
-    // Build unified info list
     $allInfo = [];
     foreach (($category_info ?? []) as $lbl => $val) {
         $allInfo[] = ['label' => strtoupper($lbl), 'value' => strtoupper((string) $val)];
@@ -219,12 +280,9 @@
     }
     $allInfo[] = ['label' => 'SYSTEM REF.', 'value' => strtoupper($invoice_no)];
 
-    // Items whose label+value combined length exceeds 32 chars get a full-width row.
-    // This keeps columns balanced and prevents overflow on short A4 columns.
     $shortItems = array_values(array_filter($allInfo, fn($i) => (strlen($i['label']) + strlen($i['value'])) <= 32));
-    $longItems  = array_values(array_filter($allInfo, fn($i) => (strlen($i['label']) + strlen($i['value'])) > 32));
+    $longItems  = array_values(array_filter($allInfo, fn($i) => (strlen($i['label']) + strlen($i['value'])) >  32));
 @endphp
-
 <div class="additional-info">
     <div class="ai-section-label">Additional Information</div>
     <div class="ai-grid">
@@ -245,15 +303,22 @@
     </div>
 </div>
 
-{{-- ── Line Items ───────────────────────────────────────────────── --}}
-<table>
+{{-- ── Line Items + Totals (single table — guarantees column alignment) ── --}}
+<table class="inv-table">
+    <colgroup>
+        <col style="width:10%">
+        <col style="width:44%">
+        <col style="width:7%">
+        <col style="width:13%">
+        <col style="width:13%">
+    </colgroup>
     <thead>
         <tr>
-            <th style="width:10%">Reference</th>
-            <th style="width:43%">Description of Goods or Services</th>
-            <th class="r" style="width:8%">Qty</th>
-            <th class="r" style="width:14%">Unit Price (Rs.)</th>
-            <th class="r" style="width:14%">Amt Excl. VAT (Rs.)</th>
+            <th>Reference</th>
+            <th>Description of Goods or Services</th>
+            <th class="r">Qty</th>
+            <th class="r">Unit Price (Rs.)</th>
+            <th class="r">Amt Excl. VAT (Rs.)</th>
         </tr>
     </thead>
     <tbody>
@@ -271,14 +336,10 @@
         </tr>
         @endforelse
     </tbody>
-</table>
-
-{{-- ── Totals ───────────────────────────────────────────────────── --}}
-<table class="totals-table">
-    <tbody>
-        <tr>
+    <tfoot>
+        <tr class="sep-row">
             <td colspan="4" style="text-align:right;font-weight:bold">Total Value of Supply (Excl. VAT) &mdash; Rs.:</td>
-            <td class="r" style="width:14%;font-weight:bold">{{ number_format($subtotal + ($sscl_amount ?? 0), 2) }}</td>
+            <td class="r" style="font-weight:bold">{{ number_format($subtotal + ($sscl_amount ?? 0), 2) }}</td>
         </tr>
         @if(($sscl_amount ?? 0) > 0)
         <tr class="sscl-row">
@@ -302,7 +363,7 @@
             <td colspan="4" style="text-align:right">Total Amount / Consideration Including VAT &mdash; Rs.:</td>
             <td class="r">{{ number_format($total_incl_vat, 2) }}</td>
         </tr>
-    </tbody>
+    </tfoot>
 </table>
 
 {{-- ── Total in Words ───────────────────────────────────────────── --}}
@@ -328,9 +389,7 @@
     <div>Printed: {{ now()->format('d M Y H:i') }}</div>
 </div>
 
-<script>
-    window.onload = function () { window.print(); };
-</script>
+</div>{{-- end .inv-doc --}}
 
 </body>
 </html>
