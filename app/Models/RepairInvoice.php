@@ -11,6 +11,7 @@ class RepairInvoice extends Model
         'customer_id', 'invoice_date', 'due_date', 'currency', 'status',
         'subtotal', 'sscl_total', 'vat_total', 'tax_percentage', 'tax_amount', 'grand_total',
         'amount_paid', 'balance_due', 'notes', 'created_by', 'issued_by', 'issued_at',
+        'ird_invoice_no',
     ];
 
     protected $casts = [

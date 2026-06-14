@@ -16,6 +16,7 @@ class StorageInvoice extends Model
         'subtotal', 'tax_percentage', 'tax_amount',
         'sscl_percentage', 'sscl_amount', 'vat_percentage', 'vat_amount',
         'total_amount', 'total_value', 'status', 'notes', 'sent_at', 'created_by',
+        'ird_invoice_no',
     ];
 
     protected $casts = [
