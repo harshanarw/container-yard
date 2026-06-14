@@ -110,14 +110,14 @@ class GateMovement extends Model
     public function getContainerOcrImageUrlAttribute(): ?string
     {
         return $this->container_ocr_image_path
-            ? \Storage::disk('public')->url($this->container_ocr_image_path)
+            ? asset('storage/' . $this->container_ocr_image_path)
             : null;
     }
 
     public function getPlateOcrImageUrlAttribute(): ?string
     {
         return $this->plate_ocr_image_path
-            ? \Storage::disk('public')->url($this->plate_ocr_image_path)
+            ? asset('storage/' . $this->plate_ocr_image_path)
             : null;
     }
 }
