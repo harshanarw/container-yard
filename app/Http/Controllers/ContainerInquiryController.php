@@ -22,17 +22,19 @@ class ContainerInquiryController extends Controller
     {
         $filters = $request->only(['container_no', 'customer_id', 'job_type_code', 'job_no', 'date_from', 'date_to', 'status']);
 
-        $movements  = null;
-        $searched   = $request->hasAny(array_keys($filters));
+        $movements   = null;
+        $gateOutMap  = [];
+        $searched    = $request->hasAny(array_keys($filters));
 
         if ($searched) {
-            $movements = $this->service->search($filters);
+            $movements  = $this->service->search($filters);
+            $gateOutMap = $this->service->matchGateOutsForPage($movements->getCollection());
         }
 
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $jobTypes  = YardJobType::active()->orderBy('sort_order')->get();
 
-        return view('container-inquiry.index', compact('movements', 'filters', 'searched', 'customers', 'jobTypes'));
+        return view('container-inquiry.index', compact('movements', 'filters', 'searched', 'customers', 'jobTypes', 'gateOutMap'));
     }
 
     public function show(string $containerNo)

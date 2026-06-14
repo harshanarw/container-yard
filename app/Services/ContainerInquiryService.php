@@ -3,13 +3,11 @@
 namespace App\Services;
 
 use App\Models\Container;
-use App\Models\Customer;
 use App\Models\Estimate;
 use App\Models\GateMovement;
 use App\Models\Inquiry;
 use App\Models\ReeferPlugSession;
 use App\Models\WorkOrder;
-use App\Models\YardJob;
 use App\Models\YardJobType;
 use App\Models\YardStorage;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -22,7 +20,7 @@ class ContainerInquiryService
      */
     public function search(array $filters, int $perPage = 20): LengthAwarePaginator
     {
-        return GateMovement::with(['yardJob.jobType', 'yardJob.gateOut', 'customer', 'createdBy'])
+        return GateMovement::with(['yardJob.jobType', 'customer', 'createdBy'])
             ->where('movement_type', 'in')
             ->when(!empty($filters['container_no']), function ($q) use ($filters) {
                 $q->where('container_no', 'LIKE', strtoupper(trim($filters['container_no'])) . '%');
@@ -42,6 +40,40 @@ class ContainerInquiryService
     }
 
     /**
+     * Build gate-out map for a page of search results (index view).
+     *
+     * Loads all gate-out movements for the page's container numbers in one
+     * batch query, then pairs each gate-in to its gate-out using the same
+     * two-tier strategy as buildGateOutMap():
+     *   1. yard_job_id match (records created via current workflow)
+     *   2. chronological proximity (older records without yard_job_id)
+     *
+     * Returns: [ gate_in_id => GateMovement $gateOut ]
+     */
+    public function matchGateOutsForPage(Collection $gateIns): array
+    {
+        if ($gateIns->isEmpty()) {
+            return [];
+        }
+
+        $containerNos = $gateIns->pluck('container_no')->unique()->values()->all();
+
+        $allGateOuts = GateMovement::where('movement_type', 'out')
+            ->whereIn('container_no', $containerNos)
+            ->orderBy('gate_out_time', 'asc')
+            ->get()
+            ->groupBy('container_no');
+
+        $map = [];
+        foreach ($gateIns->groupBy('container_no') as $cno => $cGateIns) {
+            $cGateOuts = $allGateOuts->get($cno, collect());
+            $map += $this->buildGateOutMap($cGateIns, $cGateOuts);
+        }
+
+        return $map;
+    }
+
+    /**
      * Build the full history for a container number: profile + job cycles.
      */
     public function getContainerHistory(string $containerNo): array
@@ -52,27 +84,30 @@ class ContainerInquiryService
             ->with(['customer', 'equipmentType', 'grade'])
             ->first();
 
-        // Gate-in movements ordered newest first
+        // Gate-in movements ordered newest first (for display)
         $gateIns = GateMovement::with(['yardJob.jobType', 'customer', 'grade', 'createdBy'])
             ->where('container_no', $containerNo)
             ->where('movement_type', 'in')
             ->orderBy('gate_in_time', 'desc')
             ->get();
 
-        // All gate-out movements indexed by yard_job_id for quick lookup
-        $gateOuts = GateMovement::with(['customer', 'createdBy'])
+        // ALL gate-out movements for this container — includes both records
+        // linked via yard_job_id and older records that have none
+        $allGateOuts = GateMovement::with(['customer', 'createdBy'])
             ->where('container_no', $containerNo)
             ->where('movement_type', 'out')
-            ->orderBy('gate_out_time', 'asc')   // asc so later keyBy keeps latest per job
-            ->get()
-            ->keyBy('yard_job_id');
+            ->orderBy('gate_out_time', 'asc')
+            ->get();
 
-        // All surveys indexed by container_no
+        // Pair each gate-in to its gate-out (by job ID or date proximity)
+        $gateOutMap = $this->buildGateOutMap($gateIns, $allGateOuts);
+
+        // All surveys for this container
         $inquiries = Inquiry::where('container_no', $containerNo)
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // All estimates indexed by inquiry_id
+        // All estimates for this container
         $estimates = Estimate::where('container_no', $containerNo)
             ->with(['createdBy'])
             ->orderBy('estimate_date', 'desc')
@@ -84,7 +119,7 @@ class ContainerInquiryService
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Storage records
+        // Storage records (keyed to container master record)
         $storageRecords = YardStorage::where('container_id', optional($container)->id)
             ->orderBy('gate_in_date', 'desc')
             ->get();
@@ -94,15 +129,13 @@ class ContainerInquiryService
             ->orderBy('plug_in_at', 'desc')
             ->get();
 
-        // Build job cycles
+        // Build job cycles — each gate-in is one cycle
         $cycles = $gateIns->map(function (GateMovement $gateIn) use (
-            $gateOuts, $inquiries, $estimates, $workOrders, $storageRecords, $reeferSessions
+            $gateOutMap, $inquiries, $estimates, $workOrders, $storageRecords, $reeferSessions
         ) {
-            $jobId    = $gateIn->yard_job_id;
-            $yardJob  = $gateIn->yardJob;
-            $gateOut  = $jobId ? ($gateOuts->get($jobId)) : null;
+            $gateOut = $gateOutMap[$gateIn->id] ?? null;
+            $yardJob = $gateIn->yardJob;
 
-            // Match surveys to this job cycle by yard_job_id (via gate movement survey_id) or date proximity
             $cycleInquiries = $inquiries->filter(function ($inq) use ($gateIn, $gateOut) {
                 return $this->withinCycle($inq->created_at, $gateIn->gate_in_time, optional($gateOut)->gate_out_time);
             })->values();
@@ -130,22 +163,22 @@ class ContainerInquiryService
             })->values();
 
             return [
-                'gate_in'      => $gateIn,
-                'gate_out'     => $gateOut,
-                'yard_job'     => $yardJob,
-                'inquiries'    => $cycleInquiries,
-                'estimates'    => $cycleEstimates,
-                'work_orders'  => $cycleWorkOrders,
-                'storage'      => $cycleStorage,
-                'reefer'       => $cycleReefer,
+                'gate_in'     => $gateIn,
+                'gate_out'    => $gateOut,
+                'yard_job'    => $yardJob,
+                'inquiries'   => $cycleInquiries,
+                'estimates'   => $cycleEstimates,
+                'work_orders' => $cycleWorkOrders,
+                'storage'     => $cycleStorage,
+                'reefer'      => $cycleReefer,
             ];
         });
 
         return [
-            'container'     => $container,
-            'container_no'  => $containerNo,
-            'cycles'        => $cycles,
-            'total_visits'  => $gateIns->count(),
+            'container'    => $container,
+            'container_no' => $containerNo,
+            'cycles'       => $cycles,
+            'total_visits' => $gateIns->count(),
         ];
     }
 
@@ -182,14 +215,81 @@ class ContainerInquiryService
             });
     }
 
+    /**
+     * Pair each gate-in movement to its gate-out using a two-tier strategy:
+     *
+     *   1. yard_job_id match — records created through the current workflow
+     *      have the same yard_job_id on both the gate-in and gate-out rows.
+     *
+     *   2. Chronological proximity — older records that pre-date the
+     *      yard_job_id column (or records entered without a job) are matched
+     *      by finding the first unused gate-out whose gate_out_time falls
+     *      within [gate_in_time, next_gate_in_time).  Gate-ins are processed
+     *      oldest-first so the greedy assignment is temporally correct.
+     *
+     * @param  Collection  $gateIns   gate-in GateMovement records (any order)
+     * @param  Collection  $gateOuts  gate-out GateMovement records for the
+     *                                same container(s), sorted gate_out_time ASC
+     * @return array<int, GateMovement>  keyed by gate_in.id
+     */
+    private function buildGateOutMap(Collection $gateIns, Collection $gateOuts): array
+    {
+        $map     = [];
+        $usedIds = [];
+
+        // Gate-outs linked by yard_job_id
+        $byJobId = $gateOuts
+            ->filter(fn ($go) => !is_null($go->yard_job_id))
+            ->keyBy('yard_job_id');
+
+        // Gate-outs without a yard_job_id (older / orphan records), sorted ASC
+        $orphans = $gateOuts
+            ->filter(fn ($go) => is_null($go->yard_job_id))
+            ->sortBy('gate_out_time')
+            ->values();
+
+        // Process gate-ins oldest-first so the greedy temporal matching is correct
+        $sorted = $gateIns->sortBy('gate_in_time')->values();
+
+        foreach ($sorted as $i => $gi) {
+            if (!is_null($gi->yard_job_id) && $byJobId->has($gi->yard_job_id)) {
+                // Modern record: match by shared yard_job_id
+                $go = $byJobId->get($gi->yard_job_id);
+                $map[$gi->id] = $go;
+                $usedIds[$go->id] = true;
+            } else {
+                // Older record: find the first unused orphan gate-out that
+                // falls after this gate-in but before the next gate-in
+                $from  = $gi->gate_in_time?->timestamp ?? 0;
+                $until = $sorted->get($i + 1)?->gate_in_time?->timestamp ?? PHP_INT_MAX;
+
+                foreach ($orphans as $go) {
+                    if (isset($usedIds[$go->id])) {
+                        continue;
+                    }
+                    $ts = $go->gate_out_time?->timestamp ?? 0;
+                    if ($ts >= $from && $ts < $until) {
+                        $map[$gi->id] = $go;
+                        $usedIds[$go->id] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $map;
+    }
+
     private function withinCycle(mixed $date, mixed $from, mixed $until): bool
     {
         if (!$date || !$from) {
             return false;
         }
-        $ts     = is_string($date) ? strtotime($date) : $date->timestamp;
-        $fromTs = is_string($from) ? strtotime($from) : $from->timestamp;
-        $untilTs = $until ? (is_string($until) ? strtotime($until) : $until->timestamp) : PHP_INT_MAX;
+        $ts      = is_string($date)  ? strtotime($date)  : $date->timestamp;
+        $fromTs  = is_string($from)  ? strtotime($from)  : $from->timestamp;
+        $untilTs = $until
+            ? (is_string($until) ? strtotime($until) : $until->timestamp)
+            : PHP_INT_MAX;
 
         return $ts >= $fromTs && $ts <= $untilTs;
     }

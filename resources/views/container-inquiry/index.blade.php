@@ -187,8 +187,9 @@
                     </td>
                     <td class="text-nowrap">{{ $m->gate_in_time?->format('d M Y H:i') ?? '—' }}</td>
                     <td class="text-nowrap">
-                        @if($yardJob?->gateOut?->gate_out_time)
-                            {{ $yardJob->gateOut->gate_out_time->format('d M Y H:i') }}
+                        @php $matchedGateOut = $gateOutMap[$m->id] ?? null; @endphp
+                        @if($matchedGateOut?->gate_out_time)
+                            {{ $matchedGateOut->gate_out_time->format('d M Y H:i') }}
                         @else
                             <span class="text-muted">—</span>
                         @endif
