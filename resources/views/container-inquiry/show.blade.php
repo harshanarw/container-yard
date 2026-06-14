@@ -137,7 +137,7 @@
     $isOpen = ($idx === 0);
     $collapseId = 'cycle-' . $idx;
 
-    // Days in yard: gate_in → gate_out (or today if still in)
+    // Days in yard: gate_in to gate_out (or today if still in)
     $daysInYard = null;
     if ($gateIn->gate_in_time) {
         $end = $gateOut?->gate_out_time ?? now();
@@ -240,7 +240,9 @@
                     <button class="nav-link active small py-1" data-bs-toggle="tab"
                             data-bs-target="#{{ $tabPfx }}-gate">
                         <i class="bi bi-box-arrow-in-right me-1 text-success"></i>Gate In
-                        @if($gateOut)<i class="bi bi-arrow-right mx-1 text-muted" style="font-size:.7rem"></i><i class="bi bi-box-arrow-right me-1 text-danger"></i>Gate Out@endif
+                        @if($gateOut)
+                        <i class="bi bi-arrow-right mx-1 text-muted" style="font-size:.7rem"></i><i class="bi bi-box-arrow-right me-1 text-danger"></i>Gate Out
+                        @endif
                     </button>
                 </li>
                 @if($inquiries->isNotEmpty())
