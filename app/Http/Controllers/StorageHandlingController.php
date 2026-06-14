@@ -582,9 +582,11 @@ class StorageHandlingController extends Controller
             'lines'            => $lines,
             'subtotal'         => $storageHandlingInvoice->subtotal,
             'sscl_amount'      => $storageHandlingInvoice->sscl_amount ?? 0,
-            'sscl_percentage'  => $storageHandlingInvoice->sscl_percentage ?? 0,
+            'sscl_percentage'  => (float) ($storageHandlingInvoice->lines->firstWhere('tax1_rate', '>', 0)?->tax1_rate
+                                  ?? $storageHandlingInvoice->sscl_percentage ?? 0),
             'vat_amount'       => $storageHandlingInvoice->vat_amount ?? 0,
-            'vat_percentage'   => $storageHandlingInvoice->vat_percentage ?? 0,
+            'vat_percentage'   => (float) ($storageHandlingInvoice->lines->firstWhere('tax2_rate', '>', 0)?->tax2_rate
+                                  ?? $storageHandlingInvoice->vat_percentage ?? 0),
             'total_incl_vat'   => $storageHandlingInvoice->total_amount,
             'invoice_currency' => $storageHandlingInvoice->invoice_currency,
             'exchange_rate'    => $storageHandlingInvoice->exchange_rate,

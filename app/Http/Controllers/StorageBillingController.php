@@ -495,9 +495,11 @@ class StorageBillingController extends Controller
             'lines'            => $lines,
             'subtotal'         => $invoice->subtotal,
             'sscl_amount'      => $invoice->sscl_amount ?? 0,
-            'sscl_percentage'  => $invoice->sscl_percentage ?? 0,
+            'sscl_percentage'  => (float) ($invoice->details->firstWhere('tax1_rate', '>', 0)?->tax1_rate
+                                  ?? $invoice->sscl_percentage ?? 0),
             'vat_amount'       => $invoice->vat_amount ?? 0,
-            'vat_percentage'   => $invoice->vat_percentage ?? 0,
+            'vat_percentage'   => (float) ($invoice->details->firstWhere('tax2_rate', '>', 0)?->tax2_rate
+                                  ?? $invoice->vat_percentage ?? 0),
             'total_incl_vat'   => $invoice->total_amount,
             'invoice_currency' => $invoice->invoice_currency,
             'exchange_rate'    => $invoice->exchange_rate,

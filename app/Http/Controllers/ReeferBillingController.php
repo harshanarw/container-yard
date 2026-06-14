@@ -246,9 +246,11 @@ class ReeferBillingController extends Controller
             'lines'            => $lines,
             'subtotal'         => $reeferInvoice->subtotal,
             'sscl_amount'      => $reeferInvoice->sscl_amount ?? 0,
-            'sscl_percentage'  => $reeferInvoice->sscl_percentage ?? 0,
+            'sscl_percentage'  => (float) ($reeferInvoice->lines->firstWhere('tax1_rate', '>', 0)?->tax1_rate
+                                  ?? $reeferInvoice->sscl_percentage ?? 0),
             'vat_amount'       => $reeferInvoice->vat_amount ?? 0,
-            'vat_percentage'   => $reeferInvoice->vat_percentage ?? 0,
+            'vat_percentage'   => (float) ($reeferInvoice->lines->firstWhere('tax2_rate', '>', 0)?->tax2_rate
+                                  ?? $reeferInvoice->vat_percentage ?? 0),
             'total_incl_vat'   => $reeferInvoice->total_amount,
             'invoice_currency' => $reeferInvoice->invoice_currency,
             'exchange_rate'    => $reeferInvoice->exchange_rate,
