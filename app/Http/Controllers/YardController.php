@@ -18,6 +18,7 @@ use App\Models\ReeferPlugSession;
 use App\Models\YardJob;
 use App\Models\YardJobType;
 use App\Models\YardStorage;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
@@ -472,6 +473,13 @@ class YardController extends Controller
                 ->update(['linked_gate_movement_id' => $movement->id]);
         }
 
+        NotificationService::notifyAll(
+            'Gate IN — ' . $container->container_no,
+            ($container->customer->name ?? 'Unknown') . ' · ' . ($container->condition ?? ''),
+            'info',
+            route('yard.movements.edit', $movement)
+        );
+
         $successMsg = "Gate IN recorded for {$container->container_no}.";
         if ($yardJobNo) {
             $successMsg .= "  Job No: <strong>{$yardJobNo}</strong>";
@@ -647,6 +655,13 @@ class YardController extends Controller
             'location_bay'  => null,
             'location_tier' => null,
         ]);
+
+        NotificationService::notifyAll(
+            'Gate OUT — ' . $container->container_no,
+            ($container->customer->name ?? 'Unknown') . ' · Container released',
+            'info',
+            route('yard.movements.edit', $movement)
+        );
 
         $redirect = redirect()->to(route('yard.gate') . '?tab=out')
             ->with('success', "Gate OUT recorded for {$container->container_no}.");

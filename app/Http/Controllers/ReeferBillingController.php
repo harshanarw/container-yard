@@ -8,6 +8,7 @@ use App\Models\ReeferElectricityInvoice;
 use App\Models\ReeferPlugSession;
 use App\Services\CurrencyService;
 use App\Services\IrdInvoiceNumberService;
+use App\Services\NotificationService;
 use App\Services\ReeferBillingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -158,6 +159,14 @@ class ReeferBillingController extends Controller
             ?? app(IrdInvoiceNumberService::class)->generate('reefer', $reeferInvoice->invoice_date);
 
         $reeferInvoice->update(['status' => 'issued', 'sent_at' => now(), 'ird_invoice_no' => $irdNo]);
+
+        NotificationService::notifyAll(
+            'Reefer Invoice Issued — ' . $reeferInvoice->invoice_no,
+            ($reeferInvoice->customer->name ?? 'Unknown') . ' · ' . $reeferInvoice->invoice_currency . ' ' . number_format($reeferInvoice->total_amount, 2),
+            'success',
+            route('billing.reefer.show', $reeferInvoice)
+        );
+
         return back()->with('success', 'Invoice marked as Issued.');
     }
 
@@ -167,6 +176,14 @@ class ReeferBillingController extends Controller
             return back()->with('error', 'Only issued invoices can be marked as paid.');
         }
         $reeferInvoice->update(['status' => 'paid']);
+
+        NotificationService::notifyAll(
+            'Reefer Invoice Paid — ' . $reeferInvoice->invoice_no,
+            ($reeferInvoice->customer->name ?? 'Unknown') . ' · ' . $reeferInvoice->invoice_currency . ' ' . number_format($reeferInvoice->total_amount, 2),
+            'success',
+            route('billing.reefer.show', $reeferInvoice)
+        );
+
         return back()->with('success', 'Invoice marked as Paid.');
     }
 

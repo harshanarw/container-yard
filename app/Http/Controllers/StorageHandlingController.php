@@ -9,6 +9,7 @@ use App\Models\HandlingTariff;
 use App\Models\StorageHandlingInvoice;
 use App\Services\CurrencyService;
 use App\Services\IrdInvoiceNumberService;
+use App\Services\NotificationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\StorageHandlingInvoiceLine;
 use App\Models\StorageMasterHeader;
@@ -530,6 +531,14 @@ class StorageHandlingController extends Controller
             ?? app(IrdInvoiceNumberService::class)->generate('storage_handling', $storageHandlingInvoice->invoice_date);
 
         $storageHandlingInvoice->update(['status' => 'issued', 'sent_at' => now(), 'ird_invoice_no' => $irdNo]);
+
+        NotificationService::notifyAll(
+            'Handling Invoice Issued — ' . $storageHandlingInvoice->invoice_no,
+            ($storageHandlingInvoice->billingParty->name ?? 'Unknown') . ' · ' . $storageHandlingInvoice->invoice_currency . ' ' . number_format($storageHandlingInvoice->total_amount, 2),
+            'success',
+            route('billing.storage-handling.show', $storageHandlingInvoice)
+        );
+
         return back()->with('success', "Invoice {$storageHandlingInvoice->invoice_no} marked as issued.");
     }
 
@@ -539,6 +548,14 @@ class StorageHandlingController extends Controller
             return back()->with('error', 'Invoice cannot be marked as paid from its current status.');
         }
         $storageHandlingInvoice->update(['status' => 'paid']);
+
+        NotificationService::notifyAll(
+            'Handling Invoice Paid — ' . $storageHandlingInvoice->invoice_no,
+            ($storageHandlingInvoice->billingParty->name ?? 'Unknown') . ' · ' . $storageHandlingInvoice->invoice_currency . ' ' . number_format($storageHandlingInvoice->total_amount, 2),
+            'success',
+            route('billing.storage-handling.show', $storageHandlingInvoice)
+        );
+
         return back()->with('success', "Invoice {$storageHandlingInvoice->invoice_no} marked as paid.");
     }
 

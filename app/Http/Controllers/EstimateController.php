@@ -19,6 +19,7 @@ use App\Models\PortalToken;
 use App\Models\ExchangeRate;
 use App\Models\TaxCode;
 use App\Services\CurrencyService;
+use App\Services\NotificationService;
 use App\Services\RepairCategoryResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -387,6 +388,14 @@ class EstimateController extends Controller
         SendEstimateEmailJob::dispatchSync($estimate, $portalToken, $request->email_message);
 
         $versionNote = $isResend ? " (v{$estimate->version_no})" : '';
+
+        NotificationService::notifyAll(
+            'Estimate Sent — ' . $estimate->estimate_no,
+            ($estimate->customer->name ?? 'Unknown') . ' · Sent to ' . $request->send_to_email . $versionNote,
+            'info',
+            route('estimates.show', $estimate)
+        );
+
         return back()->with('success', "Estimate sent to {$request->send_to_email}{$versionNote}.");
     }
 
@@ -431,6 +440,13 @@ class EstimateController extends Controller
             'approved_date' => now(),
         ]);
 
+        NotificationService::notifyAll(
+            'Estimate Approved — ' . $estimate->estimate_no,
+            ($estimate->customer->name ?? 'Unknown') . ' · ' . $estimate->container_no,
+            'success',
+            route('estimates.show', $estimate)
+        );
+
         return back()->with('success', 'Estimate approved successfully.');
     }
 
@@ -444,6 +460,13 @@ class EstimateController extends Controller
             'status'          => 'rejected',
             'rejected_reason' => $request->rejected_reason,
         ]);
+
+        NotificationService::notifyAll(
+            'Estimate Rejected — ' . $estimate->estimate_no,
+            ($estimate->customer->name ?? 'Unknown') . ' · ' . $estimate->container_no,
+            'warning',
+            route('estimates.show', $estimate)
+        );
 
         return back()->with('success', 'Estimate rejected.');
     }

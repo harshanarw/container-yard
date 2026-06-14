@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CompanySetting;
 use App\Models\RepairInvoice;
 use App\Services\IrdInvoiceNumberService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class RepairInvoiceController extends Controller
@@ -228,6 +229,13 @@ class RepairInvoiceController extends Controller
             'ird_invoice_no' => $irdNo,
         ]);
 
+        NotificationService::notifyAll(
+            'Repair Invoice Issued — ' . $invoice->invoice_no,
+            ($invoice->customer->name ?? 'Unknown') . ' · ' . $invoice->container_no . ' · ' . $invoice->currency . ' ' . number_format($invoice->grand_total, 2),
+            'success',
+            route('repair-invoices.show', $invoice)
+        );
+
         return redirect()->route('repair-invoices.show', $invoice)->with('success', 'Invoice issued successfully.');
     }
 
@@ -256,6 +264,15 @@ class RepairInvoiceController extends Controller
             'balance_due'  => max(0, $balanceDue),
             'status'       => $newStatus,
         ]);
+
+        $paymentType = $newAmountPaid >= $invoice->grand_total ? 'success' : 'info';
+
+        NotificationService::notifyAll(
+            'Repair Invoice Payment — ' . $invoice->invoice_no,
+            ($invoice->customer->name ?? 'Unknown') . ' · Paid ' . $invoice->currency . ' ' . number_format($validated['amount'], 2) . ' · Balance: ' . number_format(max(0, $balanceDue), 2),
+            $paymentType,
+            route('repair-invoices.show', $invoice)
+        );
 
         return back()->with('success', sprintf('Payment of %s %.2f recorded. Balance due: %.2f', $invoice->currency, $validated['amount'], max(0, $balanceDue)));
     }

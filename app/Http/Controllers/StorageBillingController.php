@@ -9,6 +9,7 @@ use App\Models\StorageInvoiceDetail;
 use App\Models\StorageMasterHeader;
 use App\Services\CurrencyService;
 use App\Services\IrdInvoiceNumberService;
+use App\Services\NotificationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
@@ -418,6 +419,13 @@ class StorageBillingController extends Controller
 
         $invoice->update(['status' => 'issued', 'sent_at' => now(), 'ird_invoice_no' => $irdNo]);
 
+        NotificationService::notifyAll(
+            'Storage Invoice Issued — ' . $invoice->invoice_no,
+            ($invoice->customer->name ?? 'Unknown') . ' · ' . $invoice->currency . ' ' . number_format($invoice->grand_total, 2),
+            'success',
+            route('billing.show', $invoice)
+        );
+
         return back()->with('success', "Invoice {$invoice->invoice_no} marked as issued.");
     }
 
@@ -428,6 +436,13 @@ class StorageBillingController extends Controller
         }
 
         $invoice->update(['status' => 'paid']);
+
+        NotificationService::notifyAll(
+            'Storage Invoice Paid — ' . $invoice->invoice_no,
+            ($invoice->customer->name ?? 'Unknown') . ' · ' . $invoice->currency . ' ' . number_format($invoice->grand_total, 2),
+            'success',
+            route('billing.show', $invoice)
+        );
 
         return back()->with('success', "Invoice {$invoice->invoice_no} marked as paid.");
     }

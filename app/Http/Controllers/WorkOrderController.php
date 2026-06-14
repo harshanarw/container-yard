@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\RepairCategory;
 use App\Models\WorkOrder;
 use App\Models\User;
+use App\Services\NotificationService;
 use App\Services\RepairCategoryResolver;
 use Illuminate\Http\Request;
 
@@ -209,6 +210,13 @@ class WorkOrderController extends Controller
             ]);
         }
 
+        NotificationService::notifyAll(
+            'Work Order Created — ' . $woNo,
+            ($estimate->customer->name ?? 'Unknown') . ' · ' . $estimate->container_no . ' · ' . $workOrder->repairCategory->name,
+            'info',
+            route('work-orders.show', $workOrder)
+        );
+
         return redirect()->route('work-orders.show', $workOrder)
                          ->with('success', "Work order {$woNo} created for: {$workOrder->repairCategory->name}.");
     }
@@ -329,6 +337,20 @@ class WorkOrderController extends Controller
             'cancelled'   => 'cancelled',
             default       => 'updated',
         };
+
+        $notifType = match($newStatus) {
+            'completed'   => 'success',
+            'cancelled'   => 'warning',
+            'on_hold'     => 'warning',
+            default       => 'info',
+        };
+
+        NotificationService::notifyAll(
+            'Work Order ' . ucfirst(str_replace('_', ' ', $newStatus)) . ' — ' . $workOrder->wo_no,
+            ($workOrder->customer->name ?? 'Unknown') . ' · ' . $workOrder->container_no . ' · ' . ucfirst($action),
+            $notifType,
+            route('work-orders.show', $workOrder)
+        );
 
         return redirect()->route('work-orders.show', $workOrder)->with('success', "Work order {$action}.");
     }

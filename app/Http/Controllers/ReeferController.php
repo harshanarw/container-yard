@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\ReeferPlugSession;
+use App\Services\NotificationService;
 use App\Models\ReeferTempLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -76,6 +77,13 @@ class ReeferController extends Controller
             'updated_by'      => Auth::id(),
         ]);
 
+        NotificationService::notifyAll(
+            'Reefer Plug-In — ' . $plugSession->container->container_no,
+            ($plugSession->customer->name ?? 'Unknown') . ' · Set temp: ' . ($data['set_temperature'] ?? '—') . '°C',
+            'info',
+            route('yard.reefer.show', $plugSession)
+        );
+
         return redirect()->route('yard.reefer.index')
             ->with('success', "Plug-in recorded for {$plugSession->container->container_no}.");
     }
@@ -115,6 +123,13 @@ class ReeferController extends Controller
             'status'      => 'completed',
             'updated_by'  => Auth::id(),
         ]);
+
+        NotificationService::notifyAll(
+            'Reefer Plug-Out — ' . $plugSession->container->container_no,
+            ($plugSession->customer->name ?? 'Unknown') . ' · Session complete — ready for billing',
+            'info',
+            route('yard.reefer.show', $plugSession)
+        );
 
         return redirect()->route('yard.reefer.index')
             ->with('success', "Plug-out recorded for {$plugSession->container->container_no}. Session is now ready for billing.");
