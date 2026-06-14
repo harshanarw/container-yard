@@ -41,10 +41,16 @@
             max-width: 190mm;
             margin: 20px auto 60px;
             background: #fff;
-            padding: 20px 24px 28px;
+            padding: 20px 24px;
             box-shadow: 0 4px 24px rgba(0,0,0,.4);
             text-transform: uppercase;
+            display: flex;
+            flex-direction: column;
+            min-height: 272mm;
         }
+
+        /* ── Invoice body: grows to fill space above footer ── */
+        .inv-body { flex: 1; padding-bottom: 24px; }
 
         /* ── Letterhead ──────────────────────────────────────── */
         .letterhead {
@@ -138,7 +144,7 @@
 
         /* ── Page footer ────────────────────────────────────── */
         .page-footer {
-            margin-top: 24px; border-top: 1px solid #888; padding-top: 6px;
+            border-top: 1px solid #888; padding-top: 6px;
             padding-bottom: 4px;
             font-size: 8.5px;
             display: flex; justify-content: space-between; align-items: center;
@@ -154,8 +160,8 @@
             .inv-doc {
                 max-width: 100%;
                 margin: 0;
-                padding: 6px 10px;
                 box-shadow: none;
+                min-height: calc(297mm - 22mm);
             }
             @page { margin: 8mm 8mm 14mm; size: A4 portrait; }
         }
@@ -172,6 +178,7 @@
 
 {{-- ── Document card ────────────────────────────────────────────── --}}
 <div class="inv-doc">
+<div class="inv-body">
 
 {{-- ── Company Letterhead ───────────────────────────────────────── --}}
 <div class="letterhead">
@@ -379,6 +386,8 @@
     <span style="font-size:8.5px;letter-spacing:.3px">Mode of Payment:</span>
     <span style="font-size:10px;margin-left:8px;font-style:italic">Cash &nbsp;/&nbsp; Bank Transfer &nbsp;/&nbsp; Cheque &nbsp;/&nbsp; Credit Card &nbsp;/&nbsp; Online</span>
 </div>
+
+</div>{{-- end .inv-body --}}
 
 {{-- ── Page Footer ─────────────────────────────────────────────── --}}
 <div class="page-footer">
