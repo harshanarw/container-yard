@@ -31,6 +31,12 @@ class User extends Authenticatable
         'password'          => 'hashed',
     ];
 
+    // Broadcast notifications on a private per-user channel
+    public function receivesBroadcastNotificationsOn(): string
+    {
+        return 'App.Models.User.' . $this->id;
+    }
+
     // Accessors
     public function getFullNameAttribute(): string
     {

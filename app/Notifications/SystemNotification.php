@@ -2,7 +2,6 @@
 
 namespace App\Notifications;
 
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Notifications\Notification;
 
@@ -34,17 +33,12 @@ class SystemNotification extends Notification implements ShouldBroadcast
         ];
     }
 
-    public function broadcastOn($notifiable): PrivateChannel
-    {
-        return new PrivateChannel('App.Models.User.' . $notifiable->id);
-    }
-
     public function broadcastAs(): string
     {
         return 'notification.new';
     }
 
-    public function broadcastWith($notifiable): array
+    public function broadcastWith(): array
     {
         return [
             'title' => $this->title,
