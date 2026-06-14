@@ -21,6 +21,7 @@ class UpdateCustomerRequest extends FormRequest
             'types'               => ['nullable', 'array'],
             'types.*'             => ['integer', 'exists:customer_types,id'],
             'registration_no'     => ['nullable', 'string', 'max:50'],
+            'tin_number'          => ['nullable', 'string', 'max:20'],
             'address'             => ['nullable', 'string'],
             'city'                => ['nullable', 'string', 'max:100'],
             'state'               => ['nullable', 'string', 'max:100'],

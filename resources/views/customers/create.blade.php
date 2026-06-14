@@ -64,11 +64,19 @@
                             </div>
                             <div class="form-text">Select all roles that apply to this customer.</div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Registration No. (SSM)</label>
                             <input type="text" name="registration_no" class="form-control"
                                    placeholder="e.g. 202001012345"
                                    value="{{ old('registration_no') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">TIN (Tax Identification No.)</label>
+                            <input type="text" name="tin_number" class="form-control"
+                                   placeholder="9-digit TIN issued by IRD"
+                                   maxlength="20"
+                                   value="{{ old('tin_number') }}">
+                            <div class="form-text">Required on IRD Tax Invoices for VAT-registered customers.</div>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Registered Address</label>

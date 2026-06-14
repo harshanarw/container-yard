@@ -112,6 +112,10 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                         <div>{{ $customer->registration_no ?: '—' }}</div>
                     </div>
                     <div class="col-md-6">
+                        <div class="text-muted small">TIN (Tax Identification No.)</div>
+                        <div class="font-monospace">{{ $customer->tin_number ?: '—' }}</div>
+                    </div>
+                    <div class="col-md-6">
                         <div class="text-muted small">Local Agent</div>
                         <div>
                             @if($customer->localAgent)
