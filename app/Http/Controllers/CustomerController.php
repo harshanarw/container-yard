@@ -44,7 +44,8 @@ class CustomerController extends Controller
 
     public function create()
     {
-        return view('customers.create');
+        $customerTypes = CustomerType::orderBy('sort_order')->get();
+        return view('customers.create', compact('customerTypes'));
     }
 
     public function store(StoreCustomerRequest $request)
@@ -75,7 +76,8 @@ class CustomerController extends Controller
 
     public function edit(Customer $customer)
     {
-        return view('customers.edit', compact('customer'));
+        $customerTypes = CustomerType::orderBy('sort_order')->get();
+        return view('customers.edit', compact('customer', 'customerTypes'));
     }
 
     public function update(UpdateCustomerRequest $request, Customer $customer)
