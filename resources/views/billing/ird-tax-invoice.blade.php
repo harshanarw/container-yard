@@ -3,20 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tax Invoice &mdash; {{ $ird_invoice_no }}</title>
+    <title>TAX INVOICE &mdash; {{ $ird_invoice_no }}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; font-size: 11px; color: #111; background: #fff; padding: 20px 24px; }
 
-        /* ── Shared border token ────────────────────────────── */
-        /* All borders: 1px solid #888 */
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            color: #111;
+            background: #fff;
+            padding: 20px 24px;
+            text-transform: uppercase;
+        }
 
-        /* ── Company letterhead ─────────────────────────────── */
+        /* ── Letterhead ──────────────────────────────────────── */
         .letterhead {
             display: flex;
             align-items: center;
             gap: 16px;
-            border-bottom: 2px solid #888;
             padding-bottom: 10px;
             margin-bottom: 10px;
         }
@@ -28,14 +32,14 @@
             font-size: 9px; color: #888;
         }
         .letterhead-info { flex: 1; }
-        .letterhead-info .company-name { font-size: 16px; font-weight: bold; color: #111; letter-spacing: 0.5px; line-height: 1.3; }
-        .letterhead-info .company-tagline { font-size: 9px; color: #111; font-style: italic; margin-bottom: 3px; }
-        .letterhead-info .company-meta { font-size: 9.5px; color: #111; line-height: 1.7; margin-top: 4px; }
+        .letterhead-info .company-name { font-size: 16px; font-weight: bold; line-height: 1.3; }
+        .letterhead-info .company-tagline { font-size: 9px; font-style: italic; margin-bottom: 3px; }
+        .letterhead-info .company-meta { font-size: 9.5px; line-height: 1.7; margin-top: 4px; }
         .letterhead-info .company-meta span { margin-right: 14px; }
-        .letterhead-tin { flex: 0 0 auto; text-align: right; font-size: 9.5px; color: #111; }
+        .letterhead-tin { flex: 0 0 auto; text-align: right; font-size: 9.5px; }
         .tin-box { border: 1px solid #888; padding: 5px 10px; display: inline-block; margin-top: 4px; }
-        .tin-label { font-size: 8px; color: #111; text-transform: uppercase; letter-spacing: 0.3px; }
-        .tin-value { font-weight: bold; font-family: 'Courier New', monospace; font-size: 12px; color: #111; letter-spacing: 1px; }
+        .tin-label { font-size: 8px; letter-spacing: 0.3px; }
+        .tin-value { font-weight: bold; font-size: 12px; letter-spacing: 1px; }
 
         /* ── Title ──────────────────────────────────────────── */
         .title-box {
@@ -45,49 +49,55 @@
         }
 
         /* ── Header grid ────────────────────────────────────── */
-        .header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid #888; margin-bottom: 0; }
+        .header-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #888; }
         .hg-cell { padding: 6px 10px; border-right: 1px solid #888; border-bottom: 1px solid #888; }
         .hg-cell.no-right { border-right: none; }
         .hg-cell.no-bottom { border-bottom: none; }
-        .hg-label { font-size: 8.5px; color: #111; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
-        .hg-value { font-weight: bold; color: #111; }
-        .hg-block { font-size: 10.5px; line-height: 1.65; color: #111; }
+        .hg-label { font-size: 8.5px; letter-spacing: 0.3px; margin-bottom: 2px; }
+        .hg-value { font-weight: bold; }
+        .hg-block { font-size: 10.5px; line-height: 1.65; }
 
         /* ── Supply row ─────────────────────────────────────── */
-        .supply-row { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #888; border-top: none; margin-bottom: 0; }
-        .supply-cell { padding: 5px 10px; color: #111; }
+        .supply-row { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #888; border-top: none; }
+        .supply-cell { padding: 5px 10px; }
         .supply-cell:first-child { border-right: 1px solid #888; }
 
         /* ── Additional info ────────────────────────────────── */
-        .additional-info { border: 1px solid #888; border-top: none; padding: 5px 10px; margin-bottom: 8px; min-height: 22px; color: #111; }
-        .additional-info .label { font-size: 8.5px; color: #111; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
+        .additional-info { border: 1px solid #888; border-top: none; padding: 6px 10px; margin-bottom: 8px; }
+        .ai-section-label { font-size: 8px; letter-spacing: 0.4px; margin-bottom: 5px; font-weight: bold; }
+        .ai-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; row-gap: 3px; }
+        .ai-item { display: flex; align-items: baseline; }
+        .ai-item.full-row { grid-column: 1 / -1; }
+        .ai-lbl { font-weight: bold; font-size: 10px; white-space: nowrap; min-width: 95px; flex-shrink: 0; }
+        .ai-sep { font-size: 10px; margin: 0 5px; flex-shrink: 0; }
+        .ai-val { font-size: 10px; }
 
         /* ── Line items table ───────────────────────────────── */
-        table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
-        th { background: #f0f0f0; color: #111; text-align: left; padding: 5px 7px; font-size: 10px; border: 1px solid #888; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f0f0f0; text-align: left; padding: 5px 7px; font-size: 10px; border: 1px solid #888; font-weight: bold; }
         th.r { text-align: right; }
-        td { padding: 4px 7px; border: 1px solid #888; vertical-align: top; font-size: 10.5px; color: #111; }
+        td { padding: 4px 7px; border: 1px solid #888; vertical-align: top; font-size: 10.5px; }
         td.r { text-align: right; }
-        td.mono { font-family: 'Courier New', monospace; font-size: 10px; }
 
         /* ── Totals ─────────────────────────────────────────── */
         .totals-table td { border-top: none; }
         .totals-table tr.sscl-row td { background: #f8f8f8; font-size: 10px; }
-        .totals-table tr.vat-row td { background: #f0f0f0; }
+        .totals-table tr.vat-row td  { background: #f0f0f0; }
         .totals-table tr.grand-row td { background: #e4e4e4; font-weight: bold; font-size: 12px; }
 
         /* ── Footer boxes ───────────────────────────────────── */
-        .footer-box { border: 1px solid #888; border-top: none; padding: 5px 8px; font-size: 10px; color: #111; min-height: 20px; }
+        .footer-box { border: 1px solid #888; border-top: none; padding: 5px 8px; font-size: 10px; min-height: 20px; }
         .footer-box.words { background: #f8f8f8; }
 
         /* ── Page footer ────────────────────────────────────── */
         .page-footer {
             margin-top: 14px; border-top: 1px solid #888; padding-top: 5px;
-            font-size: 8.5px; color: #111;
+            font-size: 8.5px;
             display: flex; justify-content: space-between; align-items: center;
+            text-transform: none;
         }
 
-        .note { font-size: 9px; color: #111; margin-top: 2px; font-style: italic; }
+        .note { font-size: 9px; margin-top: 2px; font-style: italic; }
 
         @media print {
             body { padding: 6px 10px; }
@@ -146,47 +156,33 @@
 {{-- ── Header Grid ──────────────────────────────────────────────── --}}
 <div class="header-grid">
 
-    {{-- Date of Invoice | Tax Invoice No. --}}
     <div class="hg-cell">
         <div class="hg-label">Date of Invoice</div>
-        <div class="hg-value">{{ $invoice_date?->format('m/d/Y') ?? now()->format('m/d/Y') }}</div>
+        <div class="hg-value">{{ $invoice_date?->format('d/m/Y') ?? now()->format('d/m/Y') }}</div>
     </div>
     <div class="hg-cell no-right">
         <div class="hg-label">Tax Invoice No.</div>
-        <div class="hg-value" style="font-family:'Courier New',monospace;font-size:12px;letter-spacing:.5px">
-            {{ $ird_invoice_no }}
-        </div>
+        <div class="hg-value" style="font-size:12px;letter-spacing:.5px">{{ $ird_invoice_no }}</div>
         @if($ird_invoice_no === '—')
         <div class="note">(IRD number assigned at issuance)</div>
         @endif
     </div>
 
-    {{-- Supplier | Purchaser --}}
     <div class="hg-cell no-bottom">
         <div class="hg-label">Supplier</div>
         <div class="hg-block">
-            @if($company->tin_number)
-            <div><strong>TIN:</strong> {{ $company->tin_number }}</div>
-            @endif
+            @if($company->tin_number)<div><strong>TIN:</strong> {{ $company->tin_number }}</div>@endif
             <div><strong>{{ $company->company_name }}</strong></div>
-            @if($company->address)
-            <div>{{ $company->address }}{{ $company->city ? ', ' . $company->city : '' }}</div>
-            @endif
-            @if($company->telephone)
-            <div>Tel: {{ $company->telephone }}</div>
-            @endif
+            @if($company->address)<div>{{ $company->address }}{{ $company->city ? ', ' . $company->city : '' }}</div>@endif
+            @if($company->telephone)<div>Tel: {{ $company->telephone }}</div>@endif
         </div>
     </div>
     <div class="hg-cell no-right no-bottom">
         <div class="hg-label">Purchaser</div>
         <div class="hg-block">
-            @if($customer?->tin_number)
-            <div><strong>TIN:</strong> {{ $customer->tin_number }}</div>
-            @endif
+            @if($customer?->tin_number)<div><strong>TIN:</strong> {{ $customer->tin_number }}</div>@endif
             <div><strong>{{ $customer?->name ?? '—' }}</strong></div>
-            @if($customer?->address)
-            <div>{{ $customer->address }}{{ $customer->city ? ', ' . $customer->city : '' }}</div>
-            @endif
+            @if($customer?->address)<div>{{ $customer->address }}{{ $customer->city ? ', ' . $customer->city : '' }}</div>@endif
             @if($customer?->phone_office || $customer?->phone_mobile)
             <div>Tel: {{ $customer->phone_office ?? $customer->phone_mobile }}</div>
             @endif
@@ -210,29 +206,43 @@
 {{-- ── Additional Information ──────────────────────────────────── --}}
 @php
     $isForeignCurrency = $invoice_currency && strtoupper($invoice_currency) !== 'LKR';
+
+    // Build unified info list
+    $allInfo = [];
+    foreach (($category_info ?? []) as $lbl => $val) {
+        $allInfo[] = ['label' => strtoupper($lbl), 'value' => strtoupper((string) $val)];
+    }
+    if ($isForeignCurrency && $exchange_rate) {
+        $allInfo[] = ['label' => 'CURRENCY',      'value' => strtoupper($invoice_currency)];
+        $allInfo[] = ['label' => 'EXCHANGE RATE', 'value' => '1 ' . strtoupper($invoice_currency) . ' = LKR ' . number_format($exchange_rate, 4)];
+        $allInfo[] = ['label' => 'NOTE',          'value' => 'ALL AMOUNTS SHOWN IN LKR'];
+    }
+    $allInfo[] = ['label' => 'SYSTEM REF.', 'value' => strtoupper($invoice_no)];
+
+    // Items whose label+value combined length exceeds 32 chars get a full-width row.
+    // This keeps columns balanced and prevents overflow on short A4 columns.
+    $shortItems = array_values(array_filter($allInfo, fn($i) => (strlen($i['label']) + strlen($i['value'])) <= 32));
+    $longItems  = array_values(array_filter($allInfo, fn($i) => (strlen($i['label']) + strlen($i['value'])) > 32));
 @endphp
+
 <div class="additional-info">
-    <div class="label">Additional Information</div>
-    {{-- Category-specific fields --}}
-    @if(!empty($category_info))
-    <div style="font-size:10px;margin-top:2px">
-        @foreach($category_info as $label => $value)
-            <strong>{{ $label }}:</strong> {{ $value }}
-            @if(!$loop->last) &nbsp;&nbsp;|&nbsp;&nbsp; @endif
+    <div class="ai-section-label">Additional Information</div>
+    <div class="ai-grid">
+        @foreach($shortItems as $item)
+        <div class="ai-item">
+            <span class="ai-lbl">{{ $item['label'] }}</span>
+            <span class="ai-sep">:</span>
+            <span class="ai-val">{{ $item['value'] }}</span>
+        </div>
+        @endforeach
+        @foreach($longItems as $item)
+        <div class="ai-item full-row">
+            <span class="ai-lbl">{{ $item['label'] }}</span>
+            <span class="ai-sep">:</span>
+            <span class="ai-val">{{ $item['value'] }}</span>
+        </div>
         @endforeach
     </div>
-    @endif
-    {{-- Exchange rate note for foreign currency invoices --}}
-    @if($isForeignCurrency && $exchange_rate)
-    <div style="font-size:10px;margin-top:2px">
-        <strong>Currency:</strong> {{ strtoupper($invoice_currency) }}
-        &nbsp;&nbsp;|&nbsp;&nbsp;
-        <strong>Exchange Rate:</strong> 1 {{ strtoupper($invoice_currency) }} = LKR {{ number_format($exchange_rate, 4) }}
-        &nbsp;&nbsp;|&nbsp;&nbsp; All amounts shown in LKR.
-    </div>
-    @endif
-    {{-- System reference --}}
-    <div style="font-size:9.5px;margin-top:2px"><strong>System Invoice Ref:</strong> {{ $invoice_no }}</div>
 </div>
 
 {{-- ── Line Items ───────────────────────────────────────────────── --}}
@@ -241,15 +251,15 @@
         <tr>
             <th style="width:10%">Reference</th>
             <th style="width:43%">Description of Goods or Services</th>
-            <th class="r" style="width:8%">Quantity</th>
-            <th class="r" style="width:13%">Unit Price (Rs.)</th>
-            <th class="r" style="width:13%">Amount Excl. VAT (Rs.)</th>
+            <th class="r" style="width:8%">Qty</th>
+            <th class="r" style="width:14%">Unit Price (Rs.)</th>
+            <th class="r" style="width:14%">Amt Excl. VAT (Rs.)</th>
         </tr>
     </thead>
     <tbody>
         @forelse($lines as $line)
         <tr>
-            <td class="mono">{{ $line['reference'] ?? '—' }}</td>
+            <td>{{ $line['reference'] ?? '—' }}</td>
             <td>{{ $line['description'] }}</td>
             <td class="r">{{ number_format($line['quantity'], 2) }}</td>
             <td class="r">{{ number_format($line['unit_price'], 2) }}</td>
@@ -268,7 +278,7 @@
     <tbody>
         <tr>
             <td colspan="4" style="text-align:right;font-weight:bold">Total Value of Supply (Excl. VAT) &mdash; Rs.:</td>
-            <td class="r" style="width:13%;font-weight:bold">{{ number_format($subtotal + ($sscl_amount ?? 0), 2) }}</td>
+            <td class="r" style="width:14%;font-weight:bold">{{ number_format($subtotal + ($sscl_amount ?? 0), 2) }}</td>
         </tr>
         @if(($sscl_amount ?? 0) > 0)
         <tr class="sscl-row">
@@ -298,13 +308,13 @@
 {{-- ── Total in Words ───────────────────────────────────────────── --}}
 @php $amountInWords = \App\Helpers\NumberToWords::convert($total_incl_vat, 'LKR'); @endphp
 <div class="footer-box words">
-    <span style="font-size:8.5px;text-transform:uppercase;letter-spacing:.3px">Total Amount in Words:</span>
-    <div style="font-weight:bold;font-size:10.5px;margin-top:2px">{{ $amountInWords }}</div>
+    <span style="font-size:8.5px;letter-spacing:.3px">Total Amount in Words:</span>
+    <div style="font-weight:bold;font-size:10.5px;margin-top:2px">{{ strtoupper($amountInWords) }}</div>
 </div>
 
 {{-- ── Mode of Payment ─────────────────────────────────────────── --}}
 <div class="footer-box">
-    <span style="font-size:8.5px;text-transform:uppercase;letter-spacing:.3px">Mode of Payment:</span>
+    <span style="font-size:8.5px;letter-spacing:.3px">Mode of Payment:</span>
     <span style="font-size:10px;margin-left:8px;font-style:italic">Cash &nbsp;/&nbsp; Bank Transfer &nbsp;/&nbsp; Cheque &nbsp;/&nbsp; Credit Card &nbsp;/&nbsp; Online</span>
 </div>
 
@@ -314,9 +324,7 @@
         <strong>{{ $company->company_name }}</strong> &mdash; IRD Tax Invoice
         @if($company->tin_number) &mdash; TIN: {{ $company->tin_number }} @endif
     </div>
-    <div style="font-style:italic">
-        Powered by {{ $company->software_provider ?: 'Container Yard Management System (CYMS)' }}
-    </div>
+    <div>&copy; {{ $company->software_provider ?: 'Container Yard Management System (CYMS)' }}</div>
     <div>Printed: {{ now()->format('d M Y H:i') }}</div>
 </div>
 
