@@ -23,9 +23,10 @@
            class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Back to Search
         </a>
-        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+        <a href="{{ route('container-inquiry.print', $container_no) }}" target="_blank"
+           class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-printer me-1"></i>Print
-        </button>
+        </a>
     </div>
 </div>
 
@@ -108,6 +109,166 @@
 <div class="alert alert-warning small mb-3">
     <i class="bi bi-exclamation-triangle me-1"></i>
     No container master record found for <strong>{{ $container_no }}</strong>. Showing gate movement history only.
+</div>
+@endif
+
+{{-- Stats Strip --}}
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card content-card text-center py-3">
+            <div class="fw-bold fs-4 text-primary">{{ $stats['total_visits'] }}</div>
+            <div class="text-muted small">Total Visits</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card content-card text-center py-3">
+            <div class="fw-bold fs-4 text-info">{{ $stats['total_days'] }}</div>
+            <div class="text-muted small">Total Days in Yard</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card content-card text-center py-3">
+            <div class="fw-bold fs-4 text-warning">{{ $stats['avg_days'] }}</div>
+            <div class="text-muted small">Avg Days / Visit</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card content-card text-center py-3">
+            <div class="fw-bold fs-4 text-danger">{{ $stats['longest_stay_days'] }}</div>
+            <div class="text-muted small">Longest Stay (days)</div>
+        </div>
+    </div>
+</div>
+
+{{-- Financial Summary --}}
+@if($financials['storage_total'] > 0 || $financials['total_work_orders'] > 0 || $financials['estimates_by_status']->isNotEmpty())
+<div class="card content-card mb-3">
+    <div class="card-header py-2 fw-semibold small">
+        <i class="bi bi-currency-dollar me-1 text-success"></i>Financial Summary
+    </div>
+    <div class="card-body py-3">
+        <div class="row g-3" style="font-size:.85rem">
+
+            @if($financials['storage_total'] > 0)
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Storage Charges</div>
+                <div class="fw-semibold">{{ number_format($financials['storage_total'], 2) }}</div>
+            </div>
+            @endif
+
+            @if($financials['approved_estimate'] > 0)
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Approved Repair Value</div>
+                <div class="fw-semibold text-success">{{ number_format($financials['approved_estimate'], 2) }}</div>
+            </div>
+            @endif
+
+            @if($financials['estimates_by_status']->isNotEmpty())
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Estimates</div>
+                <div class="d-flex flex-wrap gap-1 mt-1">
+                    @foreach($financials['estimates_by_status'] as $status => $info)
+                    @php
+                        $eClass = match($status) {
+                            'approved' => 'bg-success-subtle text-success',
+                            'rejected' => 'bg-danger-subtle text-danger',
+                            'sent'     => 'bg-info-subtle text-info',
+                            'draft'    => 'bg-light text-secondary',
+                            default    => 'bg-light text-muted',
+                        };
+                    @endphp
+                    <span class="badge {{ $eClass }}" style="font-size:.72rem">
+                        {{ ucfirst($status) }} ({{ $info['count'] }})
+                    </span>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            @if($financials['total_work_orders'] > 0)
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Work Orders</div>
+                <div class="d-flex flex-wrap gap-1 mt-1">
+                    @foreach($financials['work_order_counts'] as $woStatus => $cnt)
+                    @php
+                        $wClass = match($woStatus) {
+                            'completed'   => 'bg-success-subtle text-success',
+                            'in_progress' => 'bg-primary-subtle text-primary',
+                            'pending'     => 'bg-warning-subtle text-warning',
+                            'cancelled'   => 'bg-danger-subtle text-danger',
+                            default       => 'bg-light text-muted',
+                        };
+                    @endphp
+                    <span class="badge {{ $wClass }}" style="font-size:.72rem">
+                        {{ ucfirst(str_replace('_', ' ', $woStatus)) }} ({{ $cnt }})
+                    </span>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- Timeline --}}
+@if(!empty($timeline))
+<h6 class="fw-semibold text-muted mb-2 small text-uppercase letter-spacing-1 no-print">
+    <i class="bi bi-activity me-1"></i>Event Timeline
+</h6>
+<div class="card content-card mb-3 no-print">
+    <div class="card-body py-3">
+        <div class="position-relative ps-4" style="border-left:2px solid #e5e7eb">
+            @foreach($timeline as $ev)
+            @php
+                $colorMap = [
+                    'success'   => ['bg' => '#dcfce7', 'border' => '#86efac', 'text' => '#16a34a'],
+                    'danger'    => ['bg' => '#fee2e2', 'border' => '#fca5a5', 'text' => '#dc2626'],
+                    'warning'   => ['bg' => '#fef9c3', 'border' => '#fde047', 'text' => '#ca8a04'],
+                    'info'      => ['bg' => '#e0f2fe', 'border' => '#7dd3fc', 'text' => '#0284c7'],
+                    'primary'   => ['bg' => '#eff6ff', 'border' => '#93c5fd', 'text' => '#1d4ed8'],
+                    'secondary' => ['bg' => '#f3f4f6', 'border' => '#d1d5db', 'text' => '#6b7280'],
+                ];
+                $c = $colorMap[$ev['color']] ?? $colorMap['secondary'];
+            @endphp
+            <div class="mb-3 position-relative">
+                <div class="position-absolute rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:22px;height:22px;left:-30px;top:2px;
+                            background:{{ $c['bg'] }};border:2px solid {{ $c['border'] }}">
+                    <i class="bi {{ $ev['icon'] }}" style="font-size:.55rem;color:{{ $c['text'] }}"></i>
+                </div>
+                <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+                    <div>
+                        <div class="fw-semibold" style="font-size:.82rem;color:{{ $c['text'] }}">
+                            {{ $ev['title'] }}
+                            <span class="badge bg-light text-muted border ms-1" style="font-size:.65rem">
+                                Visit #{{ $ev['visit'] }}
+                            </span>
+                            @if($ev['badge'] ?? null)
+                            <span class="badge ms-1" style="font-size:.65rem;background:{{ $c['bg'] }};color:{{ $c['text'] }};border:1px solid {{ $c['border'] }}">
+                                {{ $ev['badge'] }}
+                            </span>
+                            @endif
+                        </div>
+                        @if($ev['sub'] ?? null)
+                        <div class="text-muted" style="font-size:.78rem">{{ $ev['sub'] }}</div>
+                        @endif
+                        @if($ev['meta'] ?? null)
+                        <div class="text-muted" style="font-size:.75rem">{{ $ev['meta'] }}</div>
+                        @endif
+                        @if(($ev['type'] === 'gate_in') && isset($ev['eir_ref']))
+                        <div class="text-muted" style="font-size:.72rem">EIR Ref: #{{ $ev['eir_ref'] }}</div>
+                        @endif
+                    </div>
+                    <div class="text-muted text-nowrap" style="font-size:.75rem;min-width:110px;text-align:right">
+                        {{ $ev['ts']->format('d M Y H:i') }}
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
 </div>
 @endif
 

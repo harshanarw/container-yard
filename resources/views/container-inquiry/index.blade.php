@@ -86,6 +86,57 @@
 
             </div>
 
+            {{-- Advanced filters toggle --}}
+            @php
+                $hasAdvanced = !empty($filters['vessel_name']) || !empty($filters['voyage_no'])
+                    || !empty($filters['bl_number']) || !empty($filters['seal_no']) || !empty($filters['eir_ref']);
+            @endphp
+            <div class="row g-2 mt-1">
+                <div class="col-12">
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-muted"
+                            data-bs-toggle="collapse" data-bs-target="#advancedFilters"
+                            aria-expanded="{{ $hasAdvanced ? 'true' : 'false' }}">
+                        <i class="bi bi-sliders me-1"></i>Advanced Filters
+                        <i class="bi bi-chevron-down ms-1" style="font-size:.7rem"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="collapse {{ $hasAdvanced ? 'show' : '' }}" id="advancedFilters">
+                <div class="row g-2 mt-1 pt-2 border-top">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label form-label-sm mb-1">Vessel Name</label>
+                        <input type="text" name="vessel_name" class="form-control form-control-sm"
+                               placeholder="e.g. Ever Given"
+                               value="{{ $filters['vessel_name'] ?? '' }}">
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <label class="form-label form-label-sm mb-1">Voyage No</label>
+                        <input type="text" name="voyage_no" class="form-control form-control-sm"
+                               placeholder="e.g. 0123W"
+                               value="{{ $filters['voyage_no'] ?? '' }}">
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label form-label-sm mb-1">BL Number</label>
+                        <input type="text" name="bl_number" class="form-control form-control-sm"
+                               placeholder="e.g. MAEU123456"
+                               value="{{ $filters['bl_number'] ?? '' }}">
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <label class="form-label form-label-sm mb-1">Seal No</label>
+                        <input type="text" name="seal_no" class="form-control form-control-sm"
+                               placeholder="e.g. SL00123"
+                               value="{{ $filters['seal_no'] ?? '' }}">
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <label class="form-label form-label-sm mb-1">EIR Ref (Gate ID)</label>
+                        <input type="number" name="eir_ref" class="form-control form-control-sm"
+                               placeholder="Gate movement ID"
+                               value="{{ $filters['eir_ref'] ?? '' }}">
+                    </div>
+                </div>
+            </div>
+
             <div class="row g-2 mt-1">
                 <div class="col-auto">
                     <button type="submit" class="btn btn-primary btn-sm">
