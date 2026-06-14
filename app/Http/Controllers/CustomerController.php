@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Customer;
+use App\Models\CustomerType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -36,8 +37,9 @@ class CustomerController extends Controller
         $totalCustomers   = Customer::count();
         $activeCustomers  = Customer::where('status', 'active')->count();
         $pendingCustomers = Customer::where('status', 'pending')->count();
+        $customerTypes    = CustomerType::orderBy('sort_order')->get();
 
-        return view('customers.index', compact('customers', 'totalCustomers', 'activeCustomers', 'pendingCustomers'));
+        return view('customers.index', compact('customers', 'totalCustomers', 'activeCustomers', 'pendingCustomers', 'customerTypes'));
     }
 
     public function create()
