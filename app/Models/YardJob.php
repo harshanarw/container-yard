@@ -71,6 +71,11 @@ class YardJob extends Model
         return $this->hasMany(GateMovement::class);
     }
 
+    public function gateOut()
+    {
+        return $this->hasOne(GateMovement::class)->where('movement_type', 'out');
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');

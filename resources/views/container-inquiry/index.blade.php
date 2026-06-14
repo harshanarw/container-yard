@@ -186,10 +186,9 @@
                         @endif
                     </td>
                     <td class="text-nowrap">{{ $m->gate_in_time?->format('d M Y H:i') ?? '—' }}</td>
-                    <td class="text-nowrap text-muted">
-                        {{-- Gate-out time if any --}}
-                        @if($yardJob?->completed_at)
-                            {{ $yardJob->completed_at->format('d M Y') }}
+                    <td class="text-nowrap">
+                        @if($yardJob?->gateOut?->gate_out_time)
+                            {{ $yardJob->gateOut->gate_out_time->format('d M Y H:i') }}
                         @else
                             <span class="text-muted">—</span>
                         @endif

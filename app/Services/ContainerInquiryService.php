@@ -22,7 +22,7 @@ class ContainerInquiryService
      */
     public function search(array $filters, int $perPage = 20): LengthAwarePaginator
     {
-        return GateMovement::with(['yardJob.jobType', 'customer', 'createdBy'])
+        return GateMovement::with(['yardJob.jobType', 'yardJob.gateOut', 'customer', 'createdBy'])
             ->where('movement_type', 'in')
             ->when(!empty($filters['container_no']), function ($q) use ($filters) {
                 $q->where('container_no', 'LIKE', strtoupper(trim($filters['container_no'])) . '%');
