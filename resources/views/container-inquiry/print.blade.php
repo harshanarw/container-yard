@@ -151,79 +151,67 @@
 @if($financials['total_billed'] > 0 || $financials['storage_ledger_total'] > 0 || $financials['total_work_orders'] > 0 || $financials['estimates_by_status']->isNotEmpty())
 <h2>Financial Summary</h2>
 
-@if($financials['total_billed'] > 0)
+@if($financials['total_billed_lkr'] > 0)
 <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:4px;padding:6px 10px;margin-bottom:8px;font-size:10px">
-    <strong>Total Billed: {{ number_format($financials['total_billed'], 2) }}</strong>
+    <strong>Total Billed (LKR): {{ number_format($financials['total_billed_lkr'], 2) }}</strong>
 </div>
 @endif
 
-@if($financials['storage_invoices']->isNotEmpty())
-<h3>Storage Invoices ({{ number_format($financials['storage_billed'], 2) }})</h3>
-<table>
-    <thead><tr><th>Invoice No</th><th>Date</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
-    <tbody>
-        @foreach($financials['storage_invoices'] as $inv)
-        <tr>
-            <td class="mono">{{ $inv->invoice_no }}</td>
-            <td>{{ $inv->invoice_date?->format('d M Y') ?? '-' }}</td>
-            <td>{{ ucfirst($inv->status ?? '-') }}</td>
-            <td style="text-align:right">{{ number_format((float)($inv->total_amount ?? 0), 2) }}</td>
-        </tr>
-        @endforeach
-    </tbody>
-</table>
-@endif
+@php
+    $printInvCategories = [
+        ['label' => 'Storage Invoices',        'invoices' => $financials['storage_invoices'],  'billed_lkr' => $financials['storage_billed_lkr'],  'amt_field' => 'total_amount'],
+        ['label' => 'Storage & Handling Inv.', 'invoices' => $financials['handling_invoices'], 'billed_lkr' => $financials['handling_billed_lkr'], 'amt_field' => 'total_amount'],
+        ['label' => 'Repair Invoices',         'invoices' => $financials['repair_invoices'],   'billed_lkr' => $financials['repair_billed_lkr'],   'amt_field' => 'grand_total'],
+        ['label' => 'Reefer Electricity Inv.', 'invoices' => $financials['reefer_invoices'],   'billed_lkr' => $financials['reefer_billed_lkr'],   'amt_field' => 'total_amount'],
+    ];
+@endphp
 
-@if($financials['handling_invoices']->isNotEmpty())
-<h3>Storage &amp; Handling Invoices ({{ number_format($financials['handling_billed'], 2) }})</h3>
+@foreach($printInvCategories as $pcat)
+@if($pcat['invoices']->isNotEmpty())
+<h3>{{ $pcat['label'] }} &mdash; LKR {{ number_format($pcat['billed_lkr'], 2) }}</h3>
 <table>
-    <thead><tr><th>Invoice No</th><th>Date</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
+    <thead>
+        <tr>
+            <th>Invoice No</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Currency</th>
+            <th style="text-align:right">Inv. Amount</th>
+            <th style="text-align:right">Rate</th>
+            <th style="text-align:right">LKR Value</th>
+        </tr>
+    </thead>
     <tbody>
-        @foreach($financials['handling_invoices'] as $inv)
+        @foreach($pcat['invoices'] as $inv)
+        @php
+            $pInvCurrency = $inv->invoice_currency ?? $inv->currency ?? 'LKR';
+            $pInvAmount   = (float) ($inv->{$pcat['amt_field']} ?? 0);
+            $pInvRate     = isset($inv->exchange_rate) ? (float) $inv->exchange_rate : null;
+            $pInvLkr      = isset($inv->total_value)   ? (float) $inv->total_value   : null;
+            $pIsForeign   = $pInvCurrency !== 'LKR';
+        @endphp
         <tr>
             <td class="mono">{{ $inv->invoice_no }}</td>
             <td>{{ $inv->invoice_date?->format('d M Y') ?? '-' }}</td>
             <td>{{ ucfirst($inv->status ?? '-') }}</td>
-            <td style="text-align:right">{{ number_format((float)($inv->total_amount ?? 0), 2) }}</td>
+            <td>{{ $pInvCurrency }}</td>
+            <td style="text-align:right">{{ number_format($pInvAmount, 2) }}</td>
+            <td style="text-align:right">{{ ($pIsForeign && $pInvRate) ? number_format($pInvRate, 4) : '-' }}</td>
+            <td style="text-align:right">
+                {{ $pInvLkr !== null ? number_format($pInvLkr, 2) : (!$pIsForeign ? number_format($pInvAmount, 2) : '-') }}
+            </td>
         </tr>
         @endforeach
+        @if($pcat['invoices']->count() > 1)
+        <tr style="font-weight:bold;background:#f5f5f5">
+            <td colspan="6">Subtotal (LKR)</td>
+            <td style="text-align:right">{{ number_format($pcat['billed_lkr'], 2) }}</td>
+        </tr>
+        @endif
     </tbody>
 </table>
 @endif
-
-@if($financials['repair_invoices']->isNotEmpty())
-<h3>Repair Invoices ({{ number_format($financials['repair_billed'], 2) }})</h3>
-<table>
-    <thead><tr><th>Invoice No</th><th>Date</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
-    <tbody>
-        @foreach($financials['repair_invoices'] as $inv)
-        <tr>
-            <td class="mono">{{ $inv->invoice_no }}</td>
-            <td>{{ $inv->invoice_date?->format('d M Y') ?? '-' }}</td>
-            <td>{{ ucfirst($inv->status ?? '-') }}</td>
-            <td style="text-align:right">{{ number_format((float)($inv->grand_total ?? 0), 2) }}</td>
-        </tr>
-        @endforeach
-    </tbody>
-</table>
-@endif
-
-@if($financials['reefer_invoices']->isNotEmpty())
-<h3>Reefer Electricity Invoices ({{ number_format($financials['reefer_billed'], 2) }})</h3>
-<table>
-    <thead><tr><th>Invoice No</th><th>Date</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
-    <tbody>
-        @foreach($financials['reefer_invoices'] as $inv)
-        <tr>
-            <td class="mono">{{ $inv->invoice_no }}</td>
-            <td>{{ $inv->invoice_date?->format('d M Y') ?? '-' }}</td>
-            <td>{{ ucfirst($inv->status ?? '-') }}</td>
-            <td style="text-align:right">{{ number_format((float)($inv->total_amount ?? 0), 2) }}</td>
-        </tr>
-        @endforeach
-    </tbody>
-</table>
-@endif
+@endforeach
 
 @if($financials['storage_ledger_total'] > 0 || $financials['estimates_by_status']->isNotEmpty() || $financials['total_work_orders'] > 0)
 <div class="fin-grid" style="margin-top:8px">

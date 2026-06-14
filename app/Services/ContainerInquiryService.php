@@ -236,16 +236,28 @@ class ContainerInquiryService
             'handling_invoices'        => $handlingInvoices,
             'repair_invoices'          => $repairInvoices,
             'reefer_invoices'          => $reeferInvoices,
-            // Billed totals per category
+            // Billed totals — invoice currency amount
             'storage_billed'           => (float) $storageInvoices->sum('total_amount'),
             'handling_billed'          => (float) $handlingInvoices->sum('total_amount'),
             'repair_billed'            => (float) $repairInvoices->sum('grand_total'),
             'reefer_billed'            => (float) $reeferInvoices->sum('total_amount'),
+            // Billed totals — LKR (total_value = amount converted to default currency)
+            'storage_billed_lkr'       => (float) $storageInvoices->sum('total_value'),
+            'handling_billed_lkr'      => (float) $handlingInvoices->sum('total_value'),
+            'repair_billed_lkr'        => (float) $repairInvoices->sum('grand_total'), // no separate LKR field
+            'reefer_billed_lkr'        => (float) $reeferInvoices->sum('total_value'),
+            // Grand total in LKR across all invoice categories
             'total_billed'             => (float) (
                 $storageInvoices->sum('total_amount') +
                 $handlingInvoices->sum('total_amount') +
                 $repairInvoices->sum('grand_total') +
                 $reeferInvoices->sum('total_amount')
+            ),
+            'total_billed_lkr'         => (float) (
+                $storageInvoices->sum('total_value') +
+                $handlingInvoices->sum('total_value') +
+                $repairInvoices->sum('grand_total') +
+                $reeferInvoices->sum('total_value')
             ),
         ];
 

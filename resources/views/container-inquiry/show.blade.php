@@ -151,9 +151,10 @@
 <div class="card content-card mb-3">
     <div class="card-header py-2 fw-semibold small d-flex align-items-center justify-content-between">
         <span><i class="bi bi-currency-dollar me-1 text-success"></i>Financial Summary</span>
-        @if($financials['total_billed'] > 0)
-        <span class="text-muted small fw-normal">Total Billed:
-            <strong class="text-dark">{{ number_format($financials['total_billed'], 2) }}</strong>
+        @if($financials['total_billed_lkr'] > 0)
+        <span class="text-muted small fw-normal">
+            Total Billed:
+            <strong class="text-dark">LKR {{ number_format($financials['total_billed_lkr'], 2) }}</strong>
         </span>
         @endif
     </div>
@@ -162,10 +163,10 @@
         {{-- Invoice rows --}}
         @php
             $invoiceCategories = [
-                ['label' => 'Storage Invoices',          'invoices' => $financials['storage_invoices'],  'billed' => $financials['storage_billed'],  'color' => 'info',    'route' => null],
-                ['label' => 'Storage & Handling Inv.',   'invoices' => $financials['handling_invoices'], 'billed' => $financials['handling_billed'], 'color' => 'primary', 'route' => null],
-                ['label' => 'Repair Invoices',           'invoices' => $financials['repair_invoices'],   'billed' => $financials['repair_billed'],   'color' => 'warning', 'route' => null],
-                ['label' => 'Reefer Electricity Inv.',   'invoices' => $financials['reefer_invoices'],   'billed' => $financials['reefer_billed'],   'color' => 'success', 'route' => null],
+                ['label' => 'Storage Invoices',         'invoices' => $financials['storage_invoices'],  'billed' => $financials['storage_billed'],  'billed_lkr' => $financials['storage_billed_lkr'],  'color' => 'info'],
+                ['label' => 'Storage & Handling Inv.',  'invoices' => $financials['handling_invoices'], 'billed' => $financials['handling_billed'], 'billed_lkr' => $financials['handling_billed_lkr'], 'color' => 'primary'],
+                ['label' => 'Repair Invoices',          'invoices' => $financials['repair_invoices'],   'billed' => $financials['repair_billed'],   'billed_lkr' => $financials['repair_billed_lkr'],   'color' => 'warning'],
+                ['label' => 'Reefer Electricity Inv.',  'invoices' => $financials['reefer_invoices'],   'billed' => $financials['reefer_billed'],   'billed_lkr' => $financials['reefer_billed_lkr'],   'color' => 'success'],
             ];
         @endphp
 
@@ -174,7 +175,9 @@
         <div class="mb-3">
             <div class="d-flex align-items-center justify-content-between mb-1">
                 <span class="fw-semibold small text-{{ $cat['color'] }}">{{ $cat['label'] }}</span>
-                <span class="small fw-semibold">{{ number_format($cat['billed'], 2) }}</span>
+                <span class="small fw-semibold text-muted">
+                    LKR <strong class="text-dark">{{ number_format($cat['billed_lkr'], 2) }}</strong>
+                </span>
             </div>
             <div class="table-responsive">
                 <table class="table table-sm mb-0" style="font-size:.78rem">
@@ -183,7 +186,9 @@
                             <th>Invoice No</th>
                             <th>Date</th>
                             <th>Status</th>
-                            <th class="text-end">Amount</th>
+                            <th class="text-end">Inv. Amount</th>
+                            <th class="text-end text-muted">Rate</th>
+                            <th class="text-end">LKR Value</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -198,19 +203,52 @@
                                 'voided'    => 'bg-danger-subtle text-danger',
                                 default     => 'bg-light text-muted',
                             };
-                            $invAmount = $inv->grand_total ?? $inv->total_amount ?? 0;
+                            $invCurrency = $inv->invoice_currency ?? $inv->currency ?? 'LKR';
+                            $invAmount   = (float) ($inv->total_amount ?? $inv->grand_total ?? 0);
+                            $invRate     = isset($inv->exchange_rate) ? (float) $inv->exchange_rate : null;
+                            $invLkr      = isset($inv->total_value)   ? (float) $inv->total_value   : null;
+                            $isForeign   = $invCurrency !== 'LKR';
                         @endphp
                         <tr>
                             <td class="font-monospace fw-semibold">{{ $inv->invoice_no }}</td>
-                            <td>{{ $inv->invoice_date?->format('d M Y') ?? '—' }}</td>
+                            <td class="text-nowrap">{{ $inv->invoice_date?->format('d M Y') ?? '—' }}</td>
                             <td>
                                 <span class="badge {{ $invStatusClass }}" style="font-size:.68rem">
                                     {{ ucfirst($inv->status ?? '—') }}
                                 </span>
                             </td>
-                            <td class="text-end">{{ number_format((float)$invAmount, 2) }}</td>
+                            <td class="text-end text-nowrap">
+                                @if($isForeign)
+                                <span class="badge bg-light text-secondary border me-1" style="font-size:.65rem">{{ $invCurrency }}</span>
+                                @endif
+                                {{ number_format($invAmount, 2) }}
+                            </td>
+                            <td class="text-end text-muted text-nowrap">
+                                @if($isForeign && $invRate)
+                                {{ number_format($invRate, 4) }}
+                                @else
+                                <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td class="text-end text-nowrap fw-semibold">
+                                @if($invLkr !== null)
+                                {{ number_format($invLkr, 2) }}
+                                @elseif(!$isForeign)
+                                {{ number_format($invAmount, 2) }}
+                                @else
+                                <span class="text-muted">—</span>
+                                @endif
+                            </td>
                         </tr>
                         @endforeach
+                        @if($cat['invoices']->count() > 1)
+                        <tr class="table-light fw-semibold" style="font-size:.75rem">
+                            <td colspan="3" class="text-muted">Subtotal (LKR)</td>
+                            <td></td>
+                            <td></td>
+                            <td class="text-end">{{ number_format($cat['billed_lkr'], 2) }}</td>
+                        </tr>
+                        @endif
                     </tbody>
                 </table>
             </div>
