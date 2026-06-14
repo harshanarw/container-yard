@@ -39,9 +39,9 @@
         /* ── Document card ─────────────────────────────────── */
         .inv-doc {
             max-width: 190mm;
-            margin: 20px auto 40px;
+            margin: 20px auto 60px;
             background: #fff;
-            padding: 20px 24px;
+            padding: 20px 24px 28px;
             box-shadow: 0 4px 24px rgba(0,0,0,.4);
             text-transform: uppercase;
         }
@@ -138,7 +138,8 @@
 
         /* ── Page footer ────────────────────────────────────── */
         .page-footer {
-            margin-top: 14px; border-top: 1px solid #888; padding-top: 5px;
+            margin-top: 24px; border-top: 1px solid #888; padding-top: 6px;
+            padding-bottom: 4px;
             font-size: 8.5px;
             display: flex; justify-content: space-between; align-items: center;
             text-transform: none;
@@ -156,7 +157,7 @@
                 padding: 6px 10px;
                 box-shadow: none;
             }
-            @page { margin: 8mm; size: A4 portrait; }
+            @page { margin: 8mm 8mm 14mm; size: A4 portrait; }
         }
     </style>
 </head>
