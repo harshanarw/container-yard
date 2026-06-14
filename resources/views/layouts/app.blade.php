@@ -476,6 +476,42 @@
         .badge-reefer { background-color:#ccfbf1 !important; color:#0d9488 !important; border:1px solid #99f6e4 !important; }
         /* Select2 grade colour dot */
         .s2-grade-dot { display:inline-block; width:10px; height:10px; border-radius:50%; flex-shrink:0; border:1px solid rgba(0,0,0,.12); }
+
+        /* ── Side notification popup stack ──────────────────────────────── */
+        #notifStack {
+            position: fixed; right: 0; top: 70px;
+            z-index: 1100;
+            display: flex; flex-direction: column; gap: 8px;
+            padding: 0 12px;
+            pointer-events: none;
+            max-width: 340px; width: 100%;
+        }
+        .notif-popup {
+            pointer-events: all;
+            background: #fff;
+            border-left: 4px solid #0d6efd;
+            border-radius: 6px 0 0 6px;
+            box-shadow: -3px 4px 18px rgba(0,0,0,.14);
+            padding: 11px 14px 11px 13px;
+            transform: translateX(110%);
+            opacity: 0;
+            transition: transform .28s ease, opacity .28s ease;
+            cursor: default;
+        }
+        .notif-popup.np-show  { transform: translateX(0); opacity: 1; }
+        .notif-popup.np-hide  { transform: translateX(110%); opacity: 0; }
+        .notif-popup.np-info    { border-left-color: #0d6efd; }
+        .notif-popup.np-success { border-left-color: #198754; }
+        .notif-popup.np-warning { border-left-color: #e6a817; }
+        .notif-popup.np-danger  { border-left-color: #dc3545; }
+        .notif-popup-title  { font-size: .88rem; font-weight: 600; color: #111; margin-bottom: 3px; padding-right: 20px; }
+        .notif-popup-body   { font-size: .80rem; color: #555; line-height: 1.4; }
+        .notif-popup-close  {
+            position: absolute; top: 8px; right: 10px;
+            background: none; border: none; padding: 0; cursor: pointer;
+            font-size: .85rem; color: #999; line-height: 1;
+        }
+        .notif-popup-close:hover { color: #333; }
     </style>
     @stack('styles')
 </head>
@@ -1267,48 +1303,31 @@
 
         <!-- Notifications -->
         <div class="dropdown">
-            <button class="btn btn-sm btn-light border-0 position-relative" data-bs-toggle="dropdown">
+            <button class="btn btn-sm btn-light border-0 position-relative"
+                    id="notifBellBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
                 <i class="bi bi-bell fs-5"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;">3</span>
+                <span id="notifBadge"
+                      class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                      style="font-size:.6rem;">0</span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:320px;">
-                <li><h6 class="dropdown-header">Notifications</h6></li>
-                <li>
-                    <a class="dropdown-item py-2" href="#">
-                        <div class="d-flex gap-2">
-                            <span class="avatar-sm bg-primary-subtle text-primary"><i class="bi bi-box-seam"></i></span>
-                            <div>
-                                <div class="small fw-semibold">New container arrived — MSCU1234567</div>
-                                <div class="text-muted" style="font-size:.72rem;">5 min ago</div>
-                            </div>
-                        </div>
+            <div class="dropdown-menu dropdown-menu-end shadow p-0" style="min-width:320px;max-height:420px;overflow-y:auto;">
+                <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom sticky-top bg-white">
+                    <h6 class="mb-0 fw-semibold">Notifications</h6>
+                    <button id="notifMarkAllBtn" class="btn btn-link btn-sm p-0 text-muted text-decoration-none"
+                            style="font-size:.78rem;">Mark all read</button>
+                </div>
+                <ul id="notifList" class="list-unstyled mb-0">
+                    <li id="notifEmpty" class="text-center py-4 text-muted">
+                        <i class="bi bi-bell-slash d-block fs-3 mb-1"></i>
+                        <span style="font-size:.82rem;">No new notifications</span>
+                    </li>
+                </ul>
+                <div class="border-top">
+                    <a class="dropdown-item text-center py-2 small" href="{{ route('notifications.index') }}">
+                        View all notifications
                     </a>
-                </li>
-                <li>
-                    <a class="dropdown-item py-2" href="#">
-                        <div class="d-flex gap-2">
-                            <span class="avatar-sm bg-warning-subtle text-warning"><i class="bi bi-tools"></i></span>
-                            <div>
-                                <div class="small fw-semibold">Repair estimate #RE-0042 pending approval</div>
-                                <div class="text-muted" style="font-size:.72rem;">1 hr ago</div>
-                            </div>
-                        </div>
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item py-2" href="#">
-                        <div class="d-flex gap-2">
-                            <span class="avatar-sm bg-danger-subtle text-danger"><i class="bi bi-exclamation-triangle"></i></span>
-                            <div>
-                                <div class="small fw-semibold">Storage overdue — 3 containers</div>
-                                <div class="text-muted" style="font-size:.72rem;">3 hr ago</div>
-                            </div>
-                        </div>
-                    </a>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-center small" href="#">View all notifications</a></li>
-            </ul>
+                </div>
+            </div>
         </div>
 
         <!-- User menu -->
@@ -1664,6 +1683,9 @@
 ══════════════════════════════════════════════════════════════════════ --}}
 <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1090;"></div>
 
+{{-- ── Side notification popup stack ─────────────────────────────────────── --}}
+<div id="notifStack" aria-live="polite" aria-atomic="false"></div>
+
 <script>
 (function () {
     'use strict';
@@ -1739,6 +1761,168 @@
         toast.show();
         el.addEventListener('hidden.bs.toast', function () { el.remove(); });
     };
+
+    // ── Side notification popup ──────────────────────────────────────────────
+    var notifStack  = document.getElementById('notifStack');
+    var notifColors = { info:'np-info', success:'np-success', warning:'np-warning', danger:'np-danger' };
+
+    window.showSideNotification = function (title, body, type, url, autoHideMs) {
+        if (!notifStack) return;
+        type       = type || 'info';
+        autoHideMs = (autoHideMs === undefined) ? 6000 : autoHideMs;
+
+        var el = document.createElement('div');
+        el.className = 'notif-popup ' + (notifColors[type] || 'np-info');
+        el.style.position = 'relative';
+        el.innerHTML =
+            '<button class="notif-popup-close" aria-label="Dismiss">&times;</button>' +
+            '<div class="notif-popup-title">' + _npEsc(title) + '</div>' +
+            (body ? '<div class="notif-popup-body">' + _npEsc(body) + '</div>' : '');
+
+        if (url) {
+            el.style.cursor = 'pointer';
+            el.addEventListener('click', function (e) {
+                if (e.target.classList.contains('notif-popup-close')) return;
+                window.location.href = url;
+            });
+        }
+
+        el.querySelector('.notif-popup-close').addEventListener('click', function () {
+            _npDismiss(el);
+        });
+
+        notifStack.appendChild(el);
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () { el.classList.add('np-show'); });
+        });
+
+        if (autoHideMs) {
+            setTimeout(function () { _npDismiss(el); }, autoHideMs);
+        }
+    };
+
+    function _npDismiss(el) {
+        el.classList.replace('np-show', 'np-hide');
+        setTimeout(function () { el && el.parentNode && el.parentNode.removeChild(el); }, 320);
+    }
+
+    function _npEsc(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Notification polling ─────────────────────────────────────────────────
+    @auth
+    (function () {
+        var badgeEl       = document.getElementById('notifBadge');
+        var listEl        = document.getElementById('notifList');
+        var emptyEl       = document.getElementById('notifEmpty');
+        var markAllBtn    = document.getElementById('notifMarkAllBtn');
+        var csrfToken     = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        var lastPollTs    = null;      // unix seconds; null = first load (no popups)
+        var POLL_INTERVAL = 30000;     // 30 s
+
+        var npIcons = {
+            info:    'bi-info-circle-fill text-primary',
+            success: 'bi-check-circle-fill text-success',
+            warning: 'bi-exclamation-triangle-fill text-warning',
+            danger:  'bi-exclamation-circle-fill text-danger',
+        };
+        var npBgs = {
+            info: 'bg-primary-subtle', success: 'bg-success-subtle',
+            warning: 'bg-warning-subtle', danger: 'bg-danger-subtle',
+        };
+
+        function renderDropdown(items, count) {
+            if (!listEl) return;
+            // Remove previous notification items (keep #notifEmpty)
+            Array.from(listEl.querySelectorAll('.notif-item')).forEach(function (n) { n.remove(); });
+
+            if (!items.length) {
+                emptyEl && (emptyEl.style.display = '');
+                return;
+            }
+            emptyEl && (emptyEl.style.display = 'none');
+
+            items.forEach(function (n) {
+                var t    = n.type || 'info';
+                var icon = npIcons[t] || npIcons.info;
+                var bg   = npBgs[t]   || npBgs.info;
+                var li   = document.createElement('li');
+                li.className = 'notif-item';
+                li.innerHTML =
+                    '<a class="dropdown-item py-2 notif-item-link" href="' + (n.url ? _npEsc(n.url) : '#') + '" ' +
+                    'data-notif-id="' + _npEsc(n.id) + '" style="white-space:normal;">' +
+                    '<div class="d-flex gap-2 align-items-start">' +
+                    '<span class="avatar-sm ' + bg + ' flex-shrink-0" style="margin-top:2px;">' +
+                    '<i class="bi ' + icon + '"></i></span>' +
+                    '<div><div class="small fw-semibold" style="line-height:1.3;">' + _npEsc(n.title) + '</div>' +
+                    (n.body ? '<div class="text-muted" style="font-size:.72rem;line-height:1.3;">' + _npEsc(n.body) + '</div>' : '') +
+                    '<div class="text-muted" style="font-size:.68rem;margin-top:2px;">' + _npEsc(n.at) + '</div>' +
+                    '</div></div></a>';
+                listEl.insertBefore(li, emptyEl);
+            });
+        }
+
+        function updateBadge(count) {
+            if (!badgeEl) return;
+            badgeEl.textContent = count > 99 ? '99+' : count;
+            badgeEl.classList.toggle('d-none', count === 0);
+        }
+
+        async function fetchUnread() {
+            var nowTs = Math.floor(Date.now() / 1000);
+            try {
+                var res  = await fetch('{{ route("notifications.unread") }}', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                });
+                if (!res.ok) return;
+                var data = await res.json();
+
+                updateBadge(data.count);
+                renderDropdown(data.items, data.count);
+
+                // Show side popups only for items newer than last poll
+                if (lastPollTs !== null && data.items && data.items.length) {
+                    data.items
+                        .filter(function (n) { return n.ts > lastPollTs; })
+                        .reverse()
+                        .forEach(function (n) {
+                            showSideNotification(n.title, n.body, n.type, n.url);
+                        });
+                }
+            } catch (e) { /* silent — never break the page */ }
+            lastPollTs = nowTs;
+        }
+
+        // Delegate: clicking a notification item marks it read
+        document.addEventListener('click', function (e) {
+            var link = e.target.closest('.notif-item-link');
+            if (!link) return;
+            var id = link.getAttribute('data-notif-id');
+            if (!id) return;
+            fetch('{{ url("notifications") }}/' + id + '/read', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+            }).catch(function () {});
+        });
+
+        // Mark all read button
+        markAllBtn && markAllBtn.addEventListener('click', function () {
+            fetch('{{ route("notifications.readAll") }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(function () {
+                updateBadge(0);
+                renderDropdown([], 0);
+            }).catch(function () {});
+        });
+
+        fetchUnread();
+        setInterval(fetchUnread, POLL_INTERVAL);
+    })();
+    @endauth
+
 })();
 </script>
 @stack('scripts')

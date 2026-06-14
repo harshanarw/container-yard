@@ -48,6 +48,7 @@ use App\Http\Controllers\ReeferTariffController;
 use App\Http\Controllers\ReeferController;
 use App\Http\Controllers\ReeferBillingController;
 use App\Http\Controllers\ContainerInquiryController;
+use App\Http\Controllers\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,6 +74,14 @@ Route::middleware(['auth'])->group(function () {
 
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Notifications
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/',          [NotificationController::class, 'index'])->name('index');
+        Route::get('/unread',    [NotificationController::class, 'unread'])->name('unread');
+        Route::post('/read-all', [NotificationController::class, 'markAllRead'])->name('readAll');
+        Route::post('/{id}/read',[NotificationController::class, 'markRead'])->name('markRead');
+    });
 
     // User Management
     Route::resource('users', UserController::class);
