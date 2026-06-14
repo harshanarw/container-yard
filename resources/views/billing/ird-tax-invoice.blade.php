@@ -84,19 +84,22 @@
             letter-spacing: 2px; margin-bottom: 10px;
         }
 
-        /* ── Header grid ────────────────────────────────────── */
-        .header-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #888; }
+        /* ── Single-line invoice info row ──────────────────── */
+        .info-row { border: 1px solid #888; padding: 5px 10px; display: flex; align-items: center; }
+        .ir-item { flex: 1; display: flex; align-items: baseline; padding: 0 10px; border-right: 1px solid #ccc; min-width: 0; }
+        .ir-item:first-child { padding-left: 0; }
+        .ir-item:last-child { border-right: none; padding-right: 0; }
+        .ir-lbl { font-size: 8.5px; font-weight: bold; white-space: nowrap; flex-shrink: 0; }
+        .ir-sep { margin: 0 4px; font-size: 8.5px; flex-shrink: 0; }
+        .ir-val { font-size: 10px; font-weight: bold; white-space: nowrap; overflow: hidden; }
+
+        /* ── Supplier / Purchaser grid ──────────────────────── */
+        .header-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #888; border-top: none; }
         .hg-cell { padding: 6px 10px; border-right: 1px solid #888; border-bottom: 1px solid #888; }
         .hg-cell.no-right { border-right: none; }
         .hg-cell.no-bottom { border-bottom: none; }
         .hg-label { font-size: 8.5px; letter-spacing: 0.3px; margin-bottom: 2px; }
-        .hg-value { font-weight: bold; }
         .hg-block { font-size: 10.5px; line-height: 1.65; }
-
-        /* ── Supply row ─────────────────────────────────────── */
-        .supply-row { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #888; border-top: none; }
-        .supply-cell { padding: 5px 10px; }
-        .supply-cell:first-child { border-right: 1px solid #888; }
 
         /* ── Additional info ────────────────────────────────── */
         .additional-info { border: 1px solid #888; border-top: none; padding: 6px 10px; margin-bottom: 8px; }
@@ -239,19 +242,33 @@
     <div class="title-box">TAX INVOICE</div>
 </div>
 
-{{-- ── Header Grid ──────────────────────────────────────────────── --}}
+{{-- ── Single-line info row ─────────────────────────────────────── --}}
+@php $inv_date_fmt = ($invoice_date ?? now())->format('d/m/Y'); @endphp
+<div class="info-row">
+    <div class="ir-item">
+        <span class="ir-lbl">DATE OF INVOICE</span>
+        <span class="ir-sep">:</span>
+        <span class="ir-val">{{ $inv_date_fmt }}</span>
+    </div>
+    <div class="ir-item">
+        <span class="ir-lbl">INVOICE NO.</span>
+        <span class="ir-sep">:</span>
+        <span class="ir-val">{{ $ird_invoice_no }}</span>
+    </div>
+    <div class="ir-item">
+        <span class="ir-lbl">DATE OF DELIVERY</span>
+        <span class="ir-sep">:</span>
+        <span class="ir-val">{{ $inv_date_fmt }}</span>
+    </div>
+    <div class="ir-item">
+        <span class="ir-lbl">PLACE OF SUPPLY</span>
+        <span class="ir-sep">:</span>
+        <span class="ir-val">&mdash;</span>
+    </div>
+</div>
+
+{{-- ── Supplier / Purchaser ─────────────────────────────────────── --}}
 <div class="header-grid">
-    <div class="hg-cell">
-        <div class="hg-label">Date of Invoice</div>
-        <div class="hg-value">{{ $invoice_date?->format('d/m/Y') ?? now()->format('d/m/Y') }}</div>
-    </div>
-    <div class="hg-cell no-right">
-        <div class="hg-label">Tax Invoice No.</div>
-        <div class="hg-value" style="font-size:12px;letter-spacing:.5px">{{ $ird_invoice_no }}</div>
-        @if($ird_invoice_no === '—')
-        <div class="note">(IRD number assigned at issuance)</div>
-        @endif
-    </div>
     <div class="hg-cell no-bottom">
         <div class="hg-label">Supplier</div>
         <div class="hg-block">
@@ -271,18 +288,6 @@
             <div>Tel: {{ $customer->phone_office ?? $customer->phone_mobile }}</div>
             @endif
         </div>
-    </div>
-</div>
-
-{{-- ── Date of Supply / Place of Supply ────────────────────────── --}}
-<div class="supply-row">
-    <div class="supply-cell">
-        <div class="hg-label">Date of Supply</div>
-        <div style="font-style:italic;font-size:10px">&mdash;</div>
-    </div>
-    <div class="supply-cell">
-        <div class="hg-label">Place of Supply <span style="font-size:8px">(optional)</span></div>
-        <div style="font-style:italic;font-size:10px">&mdash;</div>
     </div>
 </div>
 
