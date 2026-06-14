@@ -323,7 +323,7 @@ class StorageBillingController extends Controller
 
         $invoice = null;
 
-        DB::transaction(function () use ($validated, $invoiceNo, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $subtotal, $ssclAmount, $vatAmount, $totalAmount, &$invoice) {
+        DB::transaction(function () use ($validated, $invoiceNo, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $subtotal, $ssclAmount, $vatAmount, $totalAmount, $totalValue, &$invoice) {
             $invoice = StorageInvoice::create([
                 'invoice_no'          => $invoiceNo,
                 'invoice_type'        => $validated['invoice_type'] ?? 'invoice',
