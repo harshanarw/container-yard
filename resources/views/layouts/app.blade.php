@@ -1938,7 +1938,7 @@
                 'driver'   => $bcastDriver,
                 'key'      => $bcastKey,
                 'cluster'  => config('broadcasting.connections.pusher.options.cluster', 'mt1'),
-                'wsHost'   => config('broadcasting.connections.reverb.options.host', '0.0.0.0'),
+                'wsHost'   => config('broadcasting.connections.reverb.options.client_host', '127.0.0.1'),
                 'wsPort'   => (int) config('broadcasting.connections.reverb.options.port', 8080),
                 'forceTLS' => config('broadcasting.connections.reverb.options.scheme', 'http') === 'https'
                               || $bcastDriver === 'pusher',

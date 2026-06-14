@@ -32,10 +32,11 @@ return [
             'secret' => env('REVERB_APP_SECRET'),
             'app_id' => env('REVERB_APP_ID'),
             'options' => [
-                'host'   => env('REVERB_HOST', '0.0.0.0'),
-                'port'   => env('REVERB_PORT', 8080),
-                'scheme' => env('REVERB_SCHEME', 'http'),
-                'useTLS' => env('REVERB_SCHEME', 'http') === 'https',
+                'host'        => env('REVERB_HOST', '0.0.0.0'),           // server bind address
+                'client_host' => env('REVERB_CLIENT_HOST', '127.0.0.1'), // browser connects here
+                'port'        => env('REVERB_PORT', 8080),
+                'scheme'      => env('REVERB_SCHEME', 'http'),
+                'useTLS'      => env('REVERB_SCHEME', 'http') === 'https',
             ],
             'client_options' => [],
         ],
