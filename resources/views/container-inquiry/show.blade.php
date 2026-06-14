@@ -141,35 +141,101 @@
 </div>
 
 {{-- Financial Summary --}}
-@if($financials['storage_total'] > 0 || $financials['total_work_orders'] > 0 || $financials['estimates_by_status']->isNotEmpty())
+@php
+    $hasFinancials = $financials['total_billed'] > 0
+        || $financials['storage_ledger_total'] > 0
+        || $financials['total_work_orders'] > 0
+        || $financials['estimates_by_status']->isNotEmpty();
+@endphp
+@if($hasFinancials)
 <div class="card content-card mb-3">
-    <div class="card-header py-2 fw-semibold small">
-        <i class="bi bi-currency-dollar me-1 text-success"></i>Financial Summary
+    <div class="card-header py-2 fw-semibold small d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-currency-dollar me-1 text-success"></i>Financial Summary</span>
+        @if($financials['total_billed'] > 0)
+        <span class="text-muted small fw-normal">Total Billed:
+            <strong class="text-dark">{{ number_format($financials['total_billed'], 2) }}</strong>
+        </span>
+        @endif
     </div>
     <div class="card-body py-3">
-        <div class="row g-3" style="font-size:.85rem">
 
-            @if($financials['storage_total'] > 0)
-            <div class="col-6 col-md-3">
-                <div class="text-muted small">Storage Charges</div>
-                <div class="fw-semibold">{{ number_format($financials['storage_total'], 2) }}</div>
+        {{-- Invoice rows --}}
+        @php
+            $invoiceCategories = [
+                ['label' => 'Storage Invoices',          'invoices' => $financials['storage_invoices'],  'billed' => $financials['storage_billed'],  'color' => 'info',    'route' => null],
+                ['label' => 'Storage & Handling Inv.',   'invoices' => $financials['handling_invoices'], 'billed' => $financials['handling_billed'], 'color' => 'primary', 'route' => null],
+                ['label' => 'Repair Invoices',           'invoices' => $financials['repair_invoices'],   'billed' => $financials['repair_billed'],   'color' => 'warning', 'route' => null],
+                ['label' => 'Reefer Electricity Inv.',   'invoices' => $financials['reefer_invoices'],   'billed' => $financials['reefer_billed'],   'color' => 'success', 'route' => null],
+            ];
+        @endphp
+
+        @foreach($invoiceCategories as $cat)
+        @if($cat['invoices']->isNotEmpty())
+        <div class="mb-3">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="fw-semibold small text-{{ $cat['color'] }}">{{ $cat['label'] }}</span>
+                <span class="small fw-semibold">{{ number_format($cat['billed'], 2) }}</span>
             </div>
-            @endif
-
-            @if($financials['approved_estimate'] > 0)
-            <div class="col-6 col-md-3">
-                <div class="text-muted small">Approved Repair Value</div>
-                <div class="fw-semibold text-success">{{ number_format($financials['approved_estimate'], 2) }}</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0" style="font-size:.78rem">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Invoice No</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($cat['invoices'] as $inv)
+                        @php
+                            $invStatusClass = match($inv->status) {
+                                'paid'      => 'bg-success-subtle text-success',
+                                'sent'      => 'bg-info-subtle text-info',
+                                'issued'    => 'bg-info-subtle text-info',
+                                'draft'     => 'bg-light text-secondary',
+                                'cancelled' => 'bg-danger-subtle text-danger',
+                                'voided'    => 'bg-danger-subtle text-danger',
+                                default     => 'bg-light text-muted',
+                            };
+                            $invAmount = $inv->grand_total ?? $inv->total_amount ?? 0;
+                        @endphp
+                        <tr>
+                            <td class="font-monospace fw-semibold">{{ $inv->invoice_no }}</td>
+                            <td>{{ $inv->invoice_date?->format('d M Y') ?? '—' }}</td>
+                            <td>
+                                <span class="badge {{ $invStatusClass }}" style="font-size:.68rem">
+                                    {{ ucfirst($inv->status ?? '—') }}
+                                </span>
+                            </td>
+                            <td class="text-end">{{ number_format((float)$invAmount, 2) }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-            @endif
+        </div>
+        @endif
+        @endforeach
 
+        {{-- Storage ledger vs invoiced note --}}
+        @if($financials['storage_ledger_total'] > 0)
+        <div class="small text-muted border-top pt-2 mt-1">
+            <i class="bi bi-archive me-1"></i>Storage ledger total (YardStorage records):
+            <strong>{{ number_format($financials['storage_ledger_total'], 2) }}</strong>
+        </div>
+        @endif
+
+        {{-- Estimates & Work Orders --}}
+        @if($financials['estimates_by_status']->isNotEmpty() || $financials['total_work_orders'] > 0)
+        <div class="row g-2 mt-1 pt-2 border-top" style="font-size:.82rem">
             @if($financials['estimates_by_status']->isNotEmpty())
-            <div class="col-6 col-md-3">
-                <div class="text-muted small">Estimates</div>
-                <div class="d-flex flex-wrap gap-1 mt-1">
-                    @foreach($financials['estimates_by_status'] as $status => $info)
+            <div class="col-6">
+                <div class="text-muted small mb-1">Estimates</div>
+                <div class="d-flex flex-wrap gap-1">
+                    @foreach($financials['estimates_by_status'] as $estStatus => $info)
                     @php
-                        $eClass = match($status) {
+                        $eClass = match($estStatus) {
                             'approved' => 'bg-success-subtle text-success',
                             'rejected' => 'bg-danger-subtle text-danger',
                             'sent'     => 'bg-info-subtle text-info',
@@ -177,18 +243,17 @@
                             default    => 'bg-light text-muted',
                         };
                     @endphp
-                    <span class="badge {{ $eClass }}" style="font-size:.72rem">
-                        {{ ucfirst($status) }} ({{ $info['count'] }})
+                    <span class="badge {{ $eClass }}" style="font-size:.7rem">
+                        {{ ucfirst($estStatus) }} ({{ $info['count'] }})
                     </span>
                     @endforeach
                 </div>
             </div>
             @endif
-
             @if($financials['total_work_orders'] > 0)
-            <div class="col-6 col-md-3">
-                <div class="text-muted small">Work Orders</div>
-                <div class="d-flex flex-wrap gap-1 mt-1">
+            <div class="col-6">
+                <div class="text-muted small mb-1">Work Orders</div>
+                <div class="d-flex flex-wrap gap-1">
                     @foreach($financials['work_order_counts'] as $woStatus => $cnt)
                     @php
                         $wClass = match($woStatus) {
@@ -199,15 +264,16 @@
                             default       => 'bg-light text-muted',
                         };
                     @endphp
-                    <span class="badge {{ $wClass }}" style="font-size:.72rem">
+                    <span class="badge {{ $wClass }}" style="font-size:.7rem">
                         {{ ucfirst(str_replace('_', ' ', $woStatus)) }} ({{ $cnt }})
                     </span>
                     @endforeach
                 </div>
             </div>
             @endif
-
         </div>
+        @endif
+
     </div>
 </div>
 @endif

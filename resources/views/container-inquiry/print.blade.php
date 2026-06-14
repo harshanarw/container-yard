@@ -148,17 +148,97 @@
 </div>
 
 {{-- Financial Summary --}}
-@if($financials['storage_total'] > 0 || $financials['total_work_orders'] > 0 || $financials['estimates_by_status']->isNotEmpty())
+@if($financials['total_billed'] > 0 || $financials['storage_ledger_total'] > 0 || $financials['total_work_orders'] > 0 || $financials['estimates_by_status']->isNotEmpty())
 <h2>Financial Summary</h2>
-<div class="fin-grid">
+
+@if($financials['total_billed'] > 0)
+<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:4px;padding:6px 10px;margin-bottom:8px;font-size:10px">
+    <strong>Total Billed: {{ number_format($financials['total_billed'], 2) }}</strong>
+</div>
+@endif
+
+@if($financials['storage_invoices']->isNotEmpty())
+<h3>Storage Invoices ({{ number_format($financials['storage_billed'], 2) }})</h3>
+<table>
+    <thead><tr><th>Invoice No</th><th>Date</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>
+        @foreach($financials['storage_invoices'] as $inv)
+        <tr>
+            <td class="mono">{{ $inv->invoice_no }}</td>
+            <td>{{ $inv->invoice_date?->format('d M Y') ?? '-' }}</td>
+            <td>{{ ucfirst($inv->status ?? '-') }}</td>
+            <td style="text-align:right">{{ number_format((float)($inv->total_amount ?? 0), 2) }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+
+@if($financials['handling_invoices']->isNotEmpty())
+<h3>Storage &amp; Handling Invoices ({{ number_format($financials['handling_billed'], 2) }})</h3>
+<table>
+    <thead><tr><th>Invoice No</th><th>Date</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>
+        @foreach($financials['handling_invoices'] as $inv)
+        <tr>
+            <td class="mono">{{ $inv->invoice_no }}</td>
+            <td>{{ $inv->invoice_date?->format('d M Y') ?? '-' }}</td>
+            <td>{{ ucfirst($inv->status ?? '-') }}</td>
+            <td style="text-align:right">{{ number_format((float)($inv->total_amount ?? 0), 2) }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+
+@if($financials['repair_invoices']->isNotEmpty())
+<h3>Repair Invoices ({{ number_format($financials['repair_billed'], 2) }})</h3>
+<table>
+    <thead><tr><th>Invoice No</th><th>Date</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>
+        @foreach($financials['repair_invoices'] as $inv)
+        <tr>
+            <td class="mono">{{ $inv->invoice_no }}</td>
+            <td>{{ $inv->invoice_date?->format('d M Y') ?? '-' }}</td>
+            <td>{{ ucfirst($inv->status ?? '-') }}</td>
+            <td style="text-align:right">{{ number_format((float)($inv->grand_total ?? 0), 2) }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+
+@if($financials['reefer_invoices']->isNotEmpty())
+<h3>Reefer Electricity Invoices ({{ number_format($financials['reefer_billed'], 2) }})</h3>
+<table>
+    <thead><tr><th>Invoice No</th><th>Date</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>
+        @foreach($financials['reefer_invoices'] as $inv)
+        <tr>
+            <td class="mono">{{ $inv->invoice_no }}</td>
+            <td>{{ $inv->invoice_date?->format('d M Y') ?? '-' }}</td>
+            <td>{{ ucfirst($inv->status ?? '-') }}</td>
+            <td style="text-align:right">{{ number_format((float)($inv->total_amount ?? 0), 2) }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+
+@if($financials['storage_ledger_total'] > 0 || $financials['estimates_by_status']->isNotEmpty() || $financials['total_work_orders'] > 0)
+<div class="fin-grid" style="margin-top:8px">
+    @if($financials['storage_ledger_total'] > 0)
     <div class="fin-item">
-        <label>Storage Charges</label>
-        <span>{{ number_format($financials['storage_total'], 2) }}</span>
+        <label>Storage Ledger Total</label>
+        <span>{{ number_format($financials['storage_ledger_total'], 2) }}</span>
     </div>
+    @endif
+    @if($financials['approved_estimate'] > 0)
     <div class="fin-item">
-        <label>Approved Repair Value</label>
+        <label>Approved Estimate Value</label>
         <span>{{ number_format($financials['approved_estimate'], 2) }}</span>
     </div>
+    @endif
     <div class="fin-item">
         <label>Total Work Orders</label>
         <span>{{ $financials['total_work_orders'] }}</span>
@@ -166,12 +246,14 @@
     <div class="fin-item">
         <label>Estimates</label>
         <span>
-            @foreach($financials['estimates_by_status'] as $status => $info)
-            {{ ucfirst($status) }}: {{ $info['count'] }}{{ $loop->last ? '' : ', ' }}
+            @foreach($financials['estimates_by_status'] as $estStatus => $info)
+            {{ ucfirst($estStatus) }}: {{ $info['count'] }}{{ $loop->last ? '' : ', ' }}
             @endforeach
         </span>
     </div>
 </div>
+@endif
+
 @endif
 
 {{-- Timeline --}}

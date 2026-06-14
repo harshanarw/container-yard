@@ -6,7 +6,14 @@ use App\Models\Container;
 use App\Models\Estimate;
 use App\Models\GateMovement;
 use App\Models\Inquiry;
+use App\Models\ReeferElectricityInvoice;
+use App\Models\ReeferElectricityInvoiceLine;
 use App\Models\ReeferPlugSession;
+use App\Models\RepairInvoice;
+use App\Models\StorageHandlingInvoice;
+use App\Models\StorageHandlingInvoiceLine;
+use App\Models\StorageInvoice;
+use App\Models\StorageInvoiceDetail;
 use App\Models\WorkOrder;
 use App\Models\YardStorage;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -194,12 +201,52 @@ class ContainerInquiryService
             'total' => (float) $g->sum('grand_total'),
         ]);
 
+        // Storage-only invoices (via line items)
+        $storageInvoiceIds = StorageInvoiceDetail::where('container_no', $containerNo)
+            ->distinct()->pluck('storage_invoice_id');
+        $storageInvoices = StorageInvoice::whereIn('id', $storageInvoiceIds)
+            ->orderBy('invoice_date', 'desc')->get();
+
+        // Storage + Handling invoices (via line items)
+        $handlingInvoiceIds = StorageHandlingInvoiceLine::where('container_no', $containerNo)
+            ->distinct()->pluck('invoice_id');
+        $handlingInvoices = StorageHandlingInvoice::whereIn('id', $handlingInvoiceIds)
+            ->orderBy('invoice_date', 'desc')->get();
+
+        // Repair invoices (container_no directly on header)
+        $repairInvoices = RepairInvoice::where('container_no', $containerNo)
+            ->orderBy('invoice_date', 'desc')->get();
+
+        // Reefer electricity invoices (via line items)
+        $reeferInvoiceIds = ReeferElectricityInvoiceLine::where('container_no', $containerNo)
+            ->distinct()->pluck('reefer_electricity_invoice_id');
+        $reeferInvoices = ReeferElectricityInvoice::whereIn('id', $reeferInvoiceIds)
+            ->orderBy('invoice_date', 'desc')->get();
+
         $financials = [
-            'storage_total'        => (float) $storageRecords->sum('total_charge'),
-            'estimates_by_status'  => $estimatesByStatus,
-            'approved_estimate'    => (float) ($estimatesByStatus->get('approved')['total'] ?? 0),
-            'work_order_counts'    => $workOrders->groupBy('status')->map->count(),
-            'total_work_orders'    => $workOrders->count(),
+            // Estimate & WO summary (planned/approved work)
+            'estimates_by_status'      => $estimatesByStatus,
+            'approved_estimate'        => (float) ($estimatesByStatus->get('approved')['total'] ?? 0),
+            'work_order_counts'        => $workOrders->groupBy('status')->map->count(),
+            'total_work_orders'        => $workOrders->count(),
+            // Storage ledger (raw YardStorage records, not yet invoiced view)
+            'storage_ledger_total'     => (float) $storageRecords->sum('total_charge'),
+            // Formal invoices per category
+            'storage_invoices'         => $storageInvoices,
+            'handling_invoices'        => $handlingInvoices,
+            'repair_invoices'          => $repairInvoices,
+            'reefer_invoices'          => $reeferInvoices,
+            // Billed totals per category
+            'storage_billed'           => (float) $storageInvoices->sum('total_amount'),
+            'handling_billed'          => (float) $handlingInvoices->sum('total_amount'),
+            'repair_billed'            => (float) $repairInvoices->sum('grand_total'),
+            'reefer_billed'            => (float) $reeferInvoices->sum('total_amount'),
+            'total_billed'             => (float) (
+                $storageInvoices->sum('total_amount') +
+                $handlingInvoices->sum('total_amount') +
+                $repairInvoices->sum('grand_total') +
+                $reeferInvoices->sum('total_amount')
+            ),
         ];
 
         // ── Timeline ──────────────────────────────────────────────────────────
