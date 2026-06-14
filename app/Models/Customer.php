@@ -26,7 +26,7 @@ class Customer extends Model
     }
 
     protected $fillable = [
-        'code', 'name', 'registration_no', 'address', 'city', 'state',
+        'code', 'name', 'registration_no', 'tin_number', 'address', 'city', 'state',
         'country', 'country_id', 'state_id', 'district_id', 'contact_person', 'designation', 'phone_office', 'phone_mobile',
         'fax', 'email', 'website', 'currency', 'credit_limit', 'payment_terms',
         'status',

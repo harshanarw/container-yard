@@ -119,6 +119,7 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('repair-invoices/{repairInvoice}/issue',          [RepairInvoiceController::class, 'issue'])->name('repair-invoices.issue');
     Route::patch('repair-invoices/{repairInvoice}/record-payment', [RepairInvoiceController::class, 'recordPayment'])->name('repair-invoices.record-payment');
     Route::patch('repair-invoices/{repairInvoice}/cancel',         [RepairInvoiceController::class, 'cancel'])->name('repair-invoices.cancel');
+    Route::get('repair-invoices/{repairInvoice}/ird-print',        [RepairInvoiceController::class, 'irdPrint'])->name('repair-invoices.ird-print');
 
     // Yard Operations
     Route::prefix('yard')->name('yard.')->group(function () {
@@ -429,6 +430,7 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('/{reeferInvoice}/pay',         [ReeferBillingController::class, 'markPaid'])->name('pay');
             Route::patch('/{reeferInvoice}/cancel',      [ReeferBillingController::class, 'cancel'])->name('cancel');
             Route::get('/{reeferInvoice}/pdf',           [ReeferBillingController::class, 'pdf'])->name('pdf');
+            Route::get('/{reeferInvoice}/ird-print',     [ReeferBillingController::class, 'irdPrint'])->name('ird-print');
         });
 
         // Storage & Handling — must come BEFORE the /{invoice} wildcard
@@ -437,22 +439,24 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/create',          [StorageHandlingController::class, 'create'])->name('create');
             Route::post('/preview',        [StorageHandlingController::class, 'preview'])->name('preview');
             Route::post('/',               [StorageHandlingController::class, 'store'])->name('store');
-            Route::get('/{storageHandlingInvoice}',         [StorageHandlingController::class, 'show'])->name('show');
-            Route::delete('/{storageHandlingInvoice}',      [StorageHandlingController::class, 'destroy'])->name('destroy');
-            Route::patch('/{storageHandlingInvoice}/issue', [StorageHandlingController::class, 'markIssued'])->name('issue');
-            Route::patch('/{storageHandlingInvoice}/pay',   [StorageHandlingController::class, 'markPaid'])->name('pay');
-            Route::patch('/{storageHandlingInvoice}/cancel',[StorageHandlingController::class, 'cancel'])->name('cancel');
-            Route::get('/{storageHandlingInvoice}/pdf',     [StorageHandlingController::class, 'pdf'])->name('pdf');
+            Route::get('/{storageHandlingInvoice}',                  [StorageHandlingController::class, 'show'])->name('show');
+            Route::delete('/{storageHandlingInvoice}',               [StorageHandlingController::class, 'destroy'])->name('destroy');
+            Route::patch('/{storageHandlingInvoice}/issue',          [StorageHandlingController::class, 'markIssued'])->name('issue');
+            Route::patch('/{storageHandlingInvoice}/pay',            [StorageHandlingController::class, 'markPaid'])->name('pay');
+            Route::patch('/{storageHandlingInvoice}/cancel',         [StorageHandlingController::class, 'cancel'])->name('cancel');
+            Route::get('/{storageHandlingInvoice}/pdf',              [StorageHandlingController::class, 'pdf'])->name('pdf');
+            Route::get('/{storageHandlingInvoice}/ird-print',        [StorageHandlingController::class, 'irdPrint'])->name('ird-print');
         });
 
         // Wildcard /{invoice} routes — must come AFTER all named sub-paths
-        Route::get('/{invoice}',         [StorageBillingController::class, 'show'])->name('show');
-        Route::delete('/{invoice}',      [StorageBillingController::class, 'destroy'])->name('destroy');
-        Route::patch('/{invoice}/issue', [StorageBillingController::class, 'markIssued'])->name('issue');
-        Route::patch('/{invoice}/pay',   [StorageBillingController::class, 'markPaid'])->name('pay');
-        Route::patch('/{invoice}/cancel',[StorageBillingController::class, 'cancel'])->name('cancel');
-        Route::get('/{invoice}/pdf',     [StorageBillingController::class, 'pdf'])->name('pdf');
-        Route::post('/{invoice}/email',  [StorageBillingController::class, 'sendEmail'])->name('email');
+        Route::get('/{invoice}',              [StorageBillingController::class, 'show'])->name('show');
+        Route::delete('/{invoice}',           [StorageBillingController::class, 'destroy'])->name('destroy');
+        Route::patch('/{invoice}/issue',      [StorageBillingController::class, 'markIssued'])->name('issue');
+        Route::patch('/{invoice}/pay',        [StorageBillingController::class, 'markPaid'])->name('pay');
+        Route::patch('/{invoice}/cancel',     [StorageBillingController::class, 'cancel'])->name('cancel');
+        Route::get('/{invoice}/pdf',          [StorageBillingController::class, 'pdf'])->name('pdf');
+        Route::get('/{invoice}/ird-print',    [StorageBillingController::class, 'irdPrint'])->name('ird-print');
+        Route::post('/{invoice}/email',       [StorageBillingController::class, 'sendEmail'])->name('email');
     });
 
     // Documents (polymorphic, provider-agnostic)

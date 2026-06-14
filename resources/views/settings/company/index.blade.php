@@ -370,6 +370,49 @@
         </div>
     </div>
 
+    {{-- IRD Tax Invoice Settings --}}
+    <div class="card content-card mb-4">
+        <div class="card-header py-2">
+            <i class="bi bi-receipt me-2 text-danger"></i>IRD Tax Invoice Settings
+            <small class="text-muted fw-normal ms-1">— Gazette No. 2481/22, effective 01 July 2026</small>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Invoice Number Sequence Reset</label>
+                    <select name="ird_sequence_reset" class="form-select">
+                        <option value="continuous" {{ old('ird_sequence_reset', $settings->ird_sequence_reset ?? 'continuous') === 'continuous' ? 'selected' : '' }}>
+                            Continuous (never reset — recommended)
+                        </option>
+                        <option value="monthly" {{ old('ird_sequence_reset', $settings->ird_sequence_reset ?? '') === 'monthly' ? 'selected' : '' }}>
+                            Reset monthly
+                        </option>
+                        <option value="yearly" {{ old('ird_sequence_reset', $settings->ird_sequence_reset ?? '') === 'yearly' ? 'selected' : '' }}>
+                            Reset yearly
+                        </option>
+                    </select>
+                    <div class="form-text">
+                        All invoice categories (Storage, Handling, Repair, Reefer) share one global sequence.
+                        The gazette permits resetting at the start of each month or year.
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <label class="form-label fw-semibold">Sample IRD Invoice Number</label>
+                    <div class="p-2 rounded bg-light border font-monospace" style="font-size:.9rem;letter-spacing:.5px">
+                        @php
+                            $samplePrefix = strtoupper($settings->company_prefix ?? 'CY');
+                        @endphp
+                        {{ now()->format('y') }}{{ strtoupper(now()->format('M')) }}_{{ $samplePrefix }}STG_00001
+                    </div>
+                    <div class="form-text mt-1">
+                        Format: <code>YYMMM_{{ $samplePrefix }}{CATEGORY}_{SEQUENCE}</code><br>
+                        Category codes: <code>STG</code> Storage &middot; <code>HND</code> Storage &amp; Handling &middot; <code>REP</code> Repair &middot; <code>REF</code> Reefer
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Digital Approvals --}}
     <div class="card content-card mb-4">
         <div class="card-header py-2">

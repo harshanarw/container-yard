@@ -35,6 +35,12 @@ $statusColors = [
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        @can('billing.repair.pdf')
+        <a href="{{ route('repair-invoices.ird-print', $invoice) }}" target="_blank"
+           class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-file-earmark-text me-1"></i>IRD Tax Invoice
+        </a>
+        @endcan
         @can('billing.repair.edit')
         @if($canEdit)
         <a href="{{ route('repair-invoices.edit', $invoice) }}" class="btn btn-primary btn-sm">

@@ -40,6 +40,10 @@
            class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
         </a>
+        <a href="{{ route('billing.ird-print', $invoice) }}" target="_blank"
+           class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-file-earmark-text me-1"></i>IRD Tax Invoice
+        </a>
         @endcan
 
         @can('billing.storage.approve')

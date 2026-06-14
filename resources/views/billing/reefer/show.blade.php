@@ -16,6 +16,9 @@
         <a href="{{ route('billing.reefer.pdf', $reeferInvoice) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
             <i class="bi bi-file-pdf me-1"></i>PDF
         </a>
+        <a href="{{ route('billing.reefer.ird-print', $reeferInvoice) }}" class="btn btn-sm btn-outline-danger" target="_blank">
+            <i class="bi bi-file-earmark-text me-1"></i>IRD Tax Invoice
+        </a>
         @endcan
         @can('billing.reefer.approve')
         @if($reeferInvoice->isDraft())

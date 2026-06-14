@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanySetting;
 use App\Models\RepairInvoice;
+use App\Services\IrdInvoiceNumberService;
 use Illuminate\Http\Request;
 
 class RepairInvoiceController extends Controller
@@ -14,7 +16,7 @@ class RepairInvoiceController extends Controller
         $this->middleware('can:billing.repair.edit')->only(['edit', 'update']);
         $this->middleware('can:billing.repair.delete')->only(['destroy', 'cancel']);
         $this->middleware('can:billing.repair.approve')->only(['issue', 'recordPayment']);
-        $this->middleware('can:billing.repair.pdf')->only(['pdf']);
+        $this->middleware('can:billing.repair.pdf')->only(['pdf', 'irdPrint']);
     }
 
     public function index(Request $request)
@@ -216,10 +218,14 @@ class RepairInvoiceController extends Controller
             return back()->with('error', 'Only draft invoices can be issued.');
         }
 
+        $irdNo = $invoice->ird_invoice_no
+            ?? app(IrdInvoiceNumberService::class)->generate('repair', $invoice->invoice_date);
+
         $invoice->update([
-            'status'      => 'issued',
-            'issued_by'   => auth()->id(),
-            'issued_at'   => now(),
+            'status'         => 'issued',
+            'issued_by'      => auth()->id(),
+            'issued_at'      => now(),
+            'ird_invoice_no' => $irdNo,
         ]);
 
         return redirect()->route('repair-invoices.show', $invoice)->with('success', 'Invoice issued successfully.');
@@ -263,5 +269,38 @@ class RepairInvoiceController extends Controller
         $invoice->update(['status' => 'cancelled']);
 
         return redirect()->route('repair-invoices.show', $invoice)->with('success', 'Invoice cancelled.');
+    }
+
+    public function irdPrint(RepairInvoice $invoice)
+    {
+        $invoice->load(['customer', 'lines', 'container', 'createdBy', 'issuedBy']);
+        $company = CompanySetting::current();
+
+        $lines = $invoice->lines->map(fn ($l) => [
+            'reference'      => $l->cedex_code,
+            'description'    => $l->description ?? 'Repair Work',
+            'quantity'       => $l->qty ?? 1,
+            'unit_price'     => $l->unit_price ?? $l->line_amount ?? 0,
+            'amount_excl_vat'=> $l->line_amount ?? 0,
+        ]);
+
+        $data = [
+            'ird_invoice_no'   => $invoice->ird_invoice_no ?? '—',
+            'invoice_date'     => $invoice->invoice_date,
+            'company'          => $company,
+            'customer'         => $invoice->customer,
+            'lines'            => $lines,
+            'subtotal'         => $invoice->subtotal,
+            'sscl_amount'      => $invoice->sscl_total ?? 0,
+            'sscl_percentage'  => 0,
+            'vat_amount'       => $invoice->vat_total ?? 0,
+            'vat_percentage'   => $invoice->tax_percentage ?? 0,
+            'total_incl_vat'   => $invoice->grand_total,
+            'invoice_currency' => $invoice->currency,
+            'exchange_rate'    => null,
+            'invoice_no'       => $invoice->invoice_no,
+        ];
+
+        return view('billing.ird-tax-invoice', $data);
     }
 }

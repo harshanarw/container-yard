@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\ReeferElectricityInvoice;
 use App\Models\ReeferPlugSession;
 use App\Services\CurrencyService;
+use App\Services\IrdInvoiceNumberService;
 use App\Services\ReeferBillingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ class ReeferBillingController extends Controller
         $this->middleware('can:billing.reefer.create')->only(['create', 'store']);
         $this->middleware('can:billing.reefer.delete')->only(['destroy', 'cancel']);
         $this->middleware('can:billing.reefer.approve')->only(['markIssued', 'markPaid']);
-        $this->middleware('can:billing.reefer.pdf')->only(['pdf']);
+        $this->middleware('can:billing.reefer.pdf')->only(['pdf', 'irdPrint']);
     }
 
     // ── Invoice list ──────────────────────────────────────────────────────────
@@ -152,7 +153,11 @@ class ReeferBillingController extends Controller
         if (!$reeferInvoice->isDraft()) {
             return back()->with('error', 'Only draft invoices can be issued.');
         }
-        $reeferInvoice->update(['status' => 'issued', 'sent_at' => now()]);
+
+        $irdNo = $reeferInvoice->ird_invoice_no
+            ?? app(IrdInvoiceNumberService::class)->generate('reefer', $reeferInvoice->invoice_date);
+
+        $reeferInvoice->update(['status' => 'issued', 'sent_at' => now(), 'ird_invoice_no' => $irdNo]);
         return back()->with('success', 'Invoice marked as Issued.');
     }
 
@@ -213,6 +218,42 @@ class ReeferBillingController extends Controller
 
         $filename = str_replace('/', '-', $reeferInvoice->invoice_no) . '.pdf';
         return $pdf->stream($filename);
+    }
+
+    // ── IRD Tax Invoice print ─────────────────────────────────────────────────
+
+    public function irdPrint(ReeferElectricityInvoice $reeferInvoice)
+    {
+        $reeferInvoice->load(['customer', 'lines.plugSession', 'lines.chargeCode', 'createdBy']);
+        $company = CompanySetting::current();
+
+        $lines = $reeferInvoice->lines->map(fn ($l) => [
+            'reference'      => optional($l->plugSession)->container_no,
+            'description'    => 'Reefer Electricity — ' . (optional($l->chargeCode)->name ?? 'Electricity Charge')
+                                . (optional($l->plugSession)->container_no ? ' (' . $l->plugSession->container_no . ')' : ''),
+            'quantity'       => $l->hours ?? $l->quantity ?? 1,
+            'unit_price'     => $l->rate ?? 0,
+            'amount_excl_vat'=> $l->subtotal ?? $l->line_amount ?? 0,
+        ]);
+
+        $data = [
+            'ird_invoice_no'   => $reeferInvoice->ird_invoice_no ?? '—',
+            'invoice_date'     => $reeferInvoice->invoice_date,
+            'company'          => $company,
+            'customer'         => $reeferInvoice->customer,
+            'lines'            => $lines,
+            'subtotal'         => $reeferInvoice->subtotal,
+            'sscl_amount'      => $reeferInvoice->sscl_amount ?? 0,
+            'sscl_percentage'  => $reeferInvoice->sscl_percentage ?? 0,
+            'vat_amount'       => $reeferInvoice->vat_amount ?? 0,
+            'vat_percentage'   => $reeferInvoice->vat_percentage ?? 0,
+            'total_incl_vat'   => $reeferInvoice->total_amount,
+            'invoice_currency' => $reeferInvoice->invoice_currency,
+            'exchange_rate'    => $reeferInvoice->exchange_rate,
+            'invoice_no'       => $reeferInvoice->invoice_no,
+        ];
+
+        return view('billing.ird-tax-invoice', $data);
     }
 
     // ── AJAX exchange rate ────────────────────────────────────────────────────

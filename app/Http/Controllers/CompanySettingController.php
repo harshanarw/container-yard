@@ -68,6 +68,7 @@ class CompanySettingController extends Controller
             'vat_number'        => ['nullable', 'string', 'max:100'],
             'tin_number'        => ['nullable', 'string', 'max:100'],
             'software_provider'        => ['nullable', 'string', 'max:200'],
+            'ird_sequence_reset'       => ['nullable', 'string', 'in:continuous,monthly,yearly'],
             'enable_digital_approvals' => ['nullable', 'boolean'],
             'enable_guard_post'        => ['nullable', 'boolean'],
             'logo'                     => ['nullable', 'image', 'max:2048'],

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanySetting;
 use App\Models\Customer;
 use App\Models\StorageInvoice;
 use App\Models\StorageInvoiceDetail;
 use App\Models\StorageMasterHeader;
 use App\Services\CurrencyService;
+use App\Services\IrdInvoiceNumberService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
@@ -20,7 +22,7 @@ class StorageBillingController extends Controller
         $this->middleware('can:billing.storage.create')->only(['create', 'preview', 'store']);
         $this->middleware('can:billing.storage.delete')->only(['destroy', 'cancel']);
         $this->middleware('can:billing.storage.approve')->only(['markIssued', 'markPaid']);
-        $this->middleware('can:billing.storage.pdf')->only(['pdf']);
+        $this->middleware('can:billing.storage.pdf')->only(['pdf', 'irdPrint']);
         $this->middleware('can:billing.storage.email')->only(['sendEmail']);
     }
 
@@ -411,7 +413,10 @@ class StorageBillingController extends Controller
             return back()->with('error', 'Only draft invoices can be issued.');
         }
 
-        $invoice->update(['status' => 'issued', 'sent_at' => now()]);
+        $irdNo = $invoice->ird_invoice_no
+            ?? app(IrdInvoiceNumberService::class)->generate('storage', $invoice->invoice_date);
+
+        $invoice->update(['status' => 'issued', 'sent_at' => now(), 'ird_invoice_no' => $irdNo]);
 
         return back()->with('success', "Invoice {$invoice->invoice_no} marked as issued.");
     }
@@ -458,6 +463,43 @@ class StorageBillingController extends Controller
             'currency' => $currency,
             'default'  => $default,
         ]);
+    }
+
+    // ── IRD Tax Invoice print ─────────────────────────────────────────────────
+
+    public function irdPrint(StorageInvoice $invoice)
+    {
+        $invoice->load(['customer', 'details', 'createdBy']);
+        $company = CompanySetting::current();
+
+        $lines = $invoice->details->map(fn ($d) => [
+            'reference'      => $d->container_no,
+            'description'    => 'Container Storage — ' . $d->equipment_type
+                                . ' | ' . \Carbon\Carbon::parse($d->from_date)->format('d M Y')
+                                . ' to ' . \Carbon\Carbon::parse($d->to_date)->format('d M Y'),
+            'quantity'       => $d->chargeable_days,
+            'unit_price'     => $d->daily_rate,
+            'amount_excl_vat'=> $d->subtotal,
+        ]);
+
+        $data = [
+            'ird_invoice_no'   => $invoice->ird_invoice_no ?? '—',
+            'invoice_date'     => $invoice->invoice_date,
+            'company'          => $company,
+            'customer'         => $invoice->customer,
+            'lines'            => $lines,
+            'subtotal'         => $invoice->subtotal,
+            'sscl_amount'      => $invoice->sscl_amount ?? 0,
+            'sscl_percentage'  => $invoice->sscl_percentage ?? 0,
+            'vat_amount'       => $invoice->vat_amount ?? 0,
+            'vat_percentage'   => $invoice->vat_percentage ?? 0,
+            'total_incl_vat'   => $invoice->total_amount,
+            'invoice_currency' => $invoice->invoice_currency,
+            'exchange_rate'    => $invoice->exchange_rate,
+            'invoice_no'       => $invoice->invoice_no,
+        ];
+
+        return view('billing.ird-tax-invoice', $data);
     }
 
     // ── Printable / PDF ───────────────────────────────────────────────────────
