@@ -1925,25 +1925,29 @@
         // When WebSocket connects successfully, polling drops to 60 s (recovery only).
         // Falls back to 5 s polling automatically if WebSocket is unavailable.
         @php
-            $bcastDriver = config('broadcasting.default');
-            $bcastKey    = match($bcastDriver) {
+            $bcastDriver  = config('broadcasting.default');
+            $bcastKey     = match($bcastDriver) {
                 'reverb' => config('broadcasting.connections.reverb.key'),
                 'pusher' => config('broadcasting.connections.pusher.key'),
                 default  => null,
             };
+            $bcastCfg = null;
+            if ($bcastKey && in_array($bcastDriver, ['reverb', 'pusher'])) {
+                $isTls    = config('broadcasting.connections.reverb.options.scheme', 'http') === 'https';
+                $bcastCfg = [
+                    'driver'   => $bcastDriver,
+                    'key'      => $bcastKey,
+                    'cluster'  => config('broadcasting.connections.pusher.options.cluster', 'mt1'),
+                    'wsHost'   => config('broadcasting.connections.reverb.options.client_host', '127.0.0.1'),
+                    'wsPort'   => (int) config('broadcasting.connections.reverb.options.port', 8080),
+                    'forceTLS' => $isTls || $bcastDriver === 'pusher',
+                    'userId'   => auth()->id(),
+                ];
+            }
         @endphp
-        @if(in_array($bcastDriver, ['reverb', 'pusher']) && $bcastKey)
+        @if($bcastCfg)
         if (window.Pusher) {
-            var _bcastCfg = @json([
-                'driver'   => $bcastDriver,
-                'key'      => $bcastKey,
-                'cluster'  => config('broadcasting.connections.pusher.options.cluster', 'mt1'),
-                'wsHost'   => config('broadcasting.connections.reverb.options.client_host', '127.0.0.1'),
-                'wsPort'   => (int) config('broadcasting.connections.reverb.options.port', 8080),
-                'forceTLS' => config('broadcasting.connections.reverb.options.scheme', 'http') === 'https'
-                              || $bcastDriver === 'pusher',
-                'userId'   => auth()->id(),
-            ]);
+            var _bcastCfg = @json($bcastCfg);
 
             var _pusherOpts = {
                 cluster:  _bcastCfg.cluster,
