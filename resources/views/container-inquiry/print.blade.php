@@ -24,7 +24,7 @@
         th { background: #f0f0f0; text-align: left; padding: 4px 6px; font-size: 10px; border: 1px solid #ccc; }
         td { padding: 4px 6px; border: 1px solid #ddd; vertical-align: top; }
         .cycle-block { margin-bottom: 16px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; page-break-inside: avoid; }
-        .cycle-header { background: #e8eaf6; padding: 6px 10px; display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 11px; }
+        .cycle-header { background: #e8eaf6; padding: 6px 10px; display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 11px; flex-wrap: wrap; }
         .cycle-header .badge { background: #3730a3; color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 9px; }
         .cycle-body { padding: 8px 10px; }
         .gate-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
@@ -67,7 +67,7 @@
 {{-- Page Header --}}
 <div class="header">
     <div class="header-left">
-        <h1>Container History Report — <span>{{ $container_no }}</span></h1>
+        <h1>Container History Report &mdash; <span>{{ $container_no }}</span></h1>
         <div style="color:#555;font-size:10px;margin-top:2px">
             {{ $total_visits }} gate-in visit{{ $total_visits !== 1 ? 's' : '' }} on record
         </div>
@@ -94,11 +94,11 @@
     </div>
     <div class="info-item">
         <label>Customer / Owner</label>
-        <span>{{ optional($container->customer)->name ?? '—' }}</span>
+        <span>{{ optional($container->customer)->name ?? '&mdash;' }}</span>
     </div>
     <div class="info-item">
         <label>Size / Type</label>
-        <span>{{ $container->size ? $container->size . 'ft' : '—' }} {{ $container->type_code ?? '' }}</span>
+        <span>{{ $container->size ? $container->size . 'ft' : '&mdash;' }} {{ $container->type_code ?? '' }}</span>
     </div>
     @if($container->condition)
     <div class="info-item">
@@ -167,7 +167,7 @@
         <label>Estimates</label>
         <span>
             @foreach($financials['estimates_by_status'] as $status => $info)
-                {{ ucfirst($status) }}: {{ $info['count'] }}@if(!$loop->last), @endif
+            {{ ucfirst($status) }}: {{ $info['count'] }}{{ $loop->last ? '' : ', ' }}
             @endforeach
         </span>
     </div>
@@ -183,11 +183,17 @@
         <span class="tl-time">{{ $ev['ts']->format('d M Y H:i') }}</span>
         <div class="tl-title">
             {{ $ev['title'] }}
-            @if($ev['badge'] ?? null) · {{ $ev['badge'] }} @endif
-            <span style="color:#999;font-weight:normal"> — Visit #{{ $ev['visit'] }}</span>
+            @if($ev['badge'] ?? null)
+            &middot; {{ $ev['badge'] }}
+            @endif
+            <span style="color:#999;font-weight:normal"> &mdash; Visit #{{ $ev['visit'] }}</span>
         </div>
-        @if($ev['sub'] ?? null)<div class="tl-sub">{{ $ev['sub'] }}</div>@endif
-        @if($ev['meta'] ?? null)<div class="tl-meta">{{ $ev['meta'] }}</div>@endif
+        @if($ev['sub'] ?? null)
+        <div class="tl-sub">{{ $ev['sub'] }}</div>
+        @endif
+        @if($ev['meta'] ?? null)
+        <div class="tl-meta">{{ $ev['meta'] }}</div>
+        @endif
         @if(($ev['type'] === 'gate_in') && isset($ev['eir_ref']))
         <div class="tl-meta">EIR Ref: #{{ $ev['eir_ref'] }}</div>
         @endif
@@ -205,20 +211,25 @@
 
 @foreach($cycles as $idx => $cycle)
 @php
-    $gateIn    = $cycle['gate_in'];
-    $gateOut   = $cycle['gate_out'];
-    $yardJob   = $cycle['yard_job'];
-    $estimates = $cycle['estimates'];
-    $workOrders= $cycle['work_orders'];
-    $storage   = $cycle['storage'];
-    $reefer    = $cycle['reefer'];
-    $visitNo   = $cycles->count() - $idx;
-
+    $gateIn     = $cycle['gate_in'];
+    $gateOut    = $cycle['gate_out'];
+    $yardJob    = $cycle['yard_job'];
+    $estimates  = $cycle['estimates'];
+    $workOrders = $cycle['work_orders'];
+    $storage    = $cycle['storage'];
+    $reefer     = $cycle['reefer'];
+    $visitNo    = $cycles->count() - $idx;
     $daysInYard = null;
     if ($gateIn->gate_in_time) {
         $end = $gateOut?->gate_out_time ?? now();
         $daysInYard = (int) $gateIn->gate_in_time->diffInDays($end);
     }
+    $gateInFmt  = $gateIn->gate_in_time?->format('d M Y') ?? '&mdash;';
+    $gateOutFmt = $gateOut?->gate_out_time?->format('d M Y');
+    $jobTypeShort = optional(optional($yardJob)->jobType)->type_short_code;
+    $daysLabel = $daysInYard !== null
+        ? '(' . $daysInYard . ' day' . ($daysInYard !== 1 ? 's' : '') . (!$gateOut ? ' so far' : '') . ')'
+        : '';
 @endphp
 
 <div class="cycle-block">
@@ -226,14 +237,18 @@
         <span class="badge">#{{ $visitNo }}</span>
         @if($yardJob)
         <span class="mono">{{ $yardJob->job_no }}</span>
-        @if($yardJob->jobType) · {{ $yardJob->jobType->type_short_code }}@endif
+        @if($jobTypeShort)
+        &middot; {{ $jobTypeShort }}
+        @endif
         @endif
         <span style="font-weight:normal;color:#555">
-            {{ $gateIn->gate_in_time?->format('d M Y') ?? '—' }}
-            @if($gateOut) → {{ $gateOut->gate_out_time?->format('d M Y') }} @endif
+            {!! $gateInFmt !!}
+            @if($gateOut)
+            &rarr; {{ $gateOutFmt }}
+            @endif
         </span>
         @if($daysInYard !== null)
-        <span style="color:#666;font-weight:normal;font-size:10px">({{ $daysInYard }} day{{ $daysInYard !== 1 ? 's' : '' }}@if(!$gateOut) so far@endif)</span>
+        <span style="color:#666;font-weight:normal;font-size:10px">{{ $daysLabel }}</span>
         @endif
     </div>
     <div class="cycle-body">
@@ -241,11 +256,11 @@
         {{-- Gate movements --}}
         <div class="gate-row">
             <div class="gate-box in">
-                <h4 class="in">Gate In — {{ $gateIn->gate_in_time?->format('d M Y H:i') ?? '—' }}</h4>
-                <div class="field-row"><span class="field-label">Customer:</span><span>{{ optional($gateIn->customer)->name ?? '—' }}</span></div>
-                <div class="field-row"><span class="field-label">Condition:</span><span>{{ ucfirst(str_replace('_',' ',$gateIn->condition ?? '—')) }}</span></div>
-                <div class="field-row"><span class="field-label">Cargo:</span><span>{{ ucfirst($gateIn->cargo_status ?? '—') }}</span></div>
-                <div class="field-row"><span class="field-label">Size:</span><span>{{ $gateIn->size ? $gateIn->size.'ft' : '—' }}</span></div>
+                <h4 class="in">Gate In &mdash; {{ $gateIn->gate_in_time?->format('d M Y H:i') ?? '&mdash;' }}</h4>
+                <div class="field-row"><span class="field-label">Customer:</span><span>{{ optional($gateIn->customer)->name ?? '&mdash;' }}</span></div>
+                <div class="field-row"><span class="field-label">Condition:</span><span>{{ ucfirst(str_replace('_', ' ', $gateIn->condition ?? '&mdash;')) }}</span></div>
+                <div class="field-row"><span class="field-label">Cargo:</span><span>{{ ucfirst($gateIn->cargo_status ?? '&mdash;') }}</span></div>
+                <div class="field-row"><span class="field-label">Size:</span><span>{{ $gateIn->size ? $gateIn->size . 'ft' : '&mdash;' }}</span></div>
                 @if($gateIn->seal_no)
                 <div class="field-row"><span class="field-label">Seal:</span><span class="mono">{{ $gateIn->seal_no }}</span></div>
                 @endif
@@ -274,9 +289,9 @@
 
             <div class="gate-box {{ $gateOut ? 'out' : '' }}">
                 @if($gateOut)
-                <h4 class="out">Gate Out — {{ $gateOut->gate_out_time?->format('d M Y H:i') ?? '—' }}</h4>
-                <div class="field-row"><span class="field-label">Vehicle:</span><span class="mono">{{ $gateOut->vehicle_plate ?? '—' }}</span></div>
-                <div class="field-row"><span class="field-label">Driver:</span><span>{{ $gateOut->driver_name ?? '—' }}</span></div>
+                <h4 class="out">Gate Out &mdash; {{ $gateOut->gate_out_time?->format('d M Y H:i') ?? '&mdash;' }}</h4>
+                <div class="field-row"><span class="field-label">Vehicle:</span><span class="mono">{{ $gateOut->vehicle_plate ?? '&mdash;' }}</span></div>
+                <div class="field-row"><span class="field-label">Driver:</span><span>{{ $gateOut->driver_name ?? '&mdash;' }}</span></div>
                 @if($gateOut->release_order)
                 <div class="field-row"><span class="field-label">Release:</span><span class="mono">{{ $gateOut->release_order }}</span></div>
                 @endif
@@ -290,7 +305,7 @@
                 <div class="field-row"><span class="field-label">Remarks:</span><span>{{ $gateOut->remarks }}</span></div>
                 @endif
                 @else
-                <h4 style="color:#999">Gate Out — Not recorded</h4>
+                <h4 style="color:#999">Gate Out &mdash; Not recorded</h4>
                 @if($yardJob?->status === 'open')
                 <div style="color:#16a34a;font-size:10px">Container currently in yard</div>
                 @else
@@ -300,11 +315,13 @@
             </div>
         </div>
 
-        {{-- Linked records summary --}}
+        {{-- Estimates --}}
         @if($estimates->isNotEmpty())
         <h3>Estimates</h3>
         <table>
-            <thead><tr><th>Estimate No</th><th>Date</th><th>Status</th><th>Amount</th></tr></thead>
+            <thead>
+                <tr><th>Estimate No</th><th>Date</th><th>Status</th><th>Amount</th></tr>
+            </thead>
             <tbody>
                 @foreach($estimates as $est)
                 <tr>
@@ -318,10 +335,13 @@
         </table>
         @endif
 
+        {{-- Work Orders --}}
         @if($workOrders->isNotEmpty())
         <h3>Work Orders</h3>
         <table>
-            <thead><tr><th>WO No</th><th>Created</th><th>Status</th><th>Completed</th></tr></thead>
+            <thead>
+                <tr><th>WO No</th><th>Created</th><th>Status</th><th>Completed</th></tr>
+            </thead>
             <tbody>
                 @foreach($workOrders as $wo)
                 <tr>
@@ -335,35 +355,41 @@
         </table>
         @endif
 
+        {{-- Storage --}}
         @if($storage->isNotEmpty())
         <h3>Storage</h3>
         <table>
-            <thead><tr><th>Gate In</th><th>Gate Out</th><th>Days</th><th>Charge</th><th>Status</th></tr></thead>
+            <thead>
+                <tr><th>Gate In</th><th>Gate Out</th><th>Days</th><th>Charge</th><th>Status</th></tr>
+            </thead>
             <tbody>
                 @foreach($storage as $sr)
                 <tr>
-                    <td>{{ $sr->gate_in_date?->format('d M Y') ?? '—' }}</td>
-                    <td>{{ $sr->gate_out_date?->format('d M Y') ?? '—' }}</td>
-                    <td>{{ $sr->total_days ?? '—' }}</td>
-                    <td>{{ $sr->total_charge ? number_format($sr->total_charge, 2) : '—' }}</td>
-                    <td>{{ $sr->billing_status ?? '—' }}</td>
+                    <td>{{ $sr->gate_in_date?->format('d M Y') ?? '&mdash;' }}</td>
+                    <td>{{ $sr->gate_out_date?->format('d M Y') ?? '&mdash;' }}</td>
+                    <td>{{ $sr->total_days ?? '&mdash;' }}</td>
+                    <td>{{ $sr->total_charge ? number_format($sr->total_charge, 2) : '&mdash;' }}</td>
+                    <td>{{ $sr->billing_status ?? '&mdash;' }}</td>
                 </tr>
                 @endforeach
             </tbody>
         </table>
         @endif
 
+        {{-- Reefer --}}
         @if($reefer->isNotEmpty())
         <h3>Reefer Sessions</h3>
         <table>
-            <thead><tr><th>Plug In</th><th>Plug Out</th><th>Set Temp</th><th>Status</th></tr></thead>
+            <thead>
+                <tr><th>Plug In</th><th>Plug Out</th><th>Set Temp</th><th>Status</th></tr>
+            </thead>
             <tbody>
                 @foreach($reefer as $rs)
                 <tr>
-                    <td>{{ $rs->plug_in_at?->format('d M Y H:i') ?? '—' }}</td>
-                    <td>{{ $rs->plug_out_at?->format('d M Y H:i') ?? '—' }}</td>
-                    <td>{{ $rs->set_temp_c !== null ? $rs->set_temp_c . '°C' : '—' }}</td>
-                    <td>{{ $rs->status ?? '—' }}</td>
+                    <td>{{ $rs->plug_in_at?->format('d M Y H:i') ?? '&mdash;' }}</td>
+                    <td>{{ $rs->plug_out_at?->format('d M Y H:i') ?? '&mdash;' }}</td>
+                    <td>{{ $rs->set_temp_c !== null ? $rs->set_temp_c . '&deg;C' : '&mdash;' }}</td>
+                    <td>{{ $rs->status ?? '&mdash;' }}</td>
                 </tr>
                 @endforeach
             </tbody>
