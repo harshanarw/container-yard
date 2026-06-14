@@ -60,9 +60,10 @@ class ContainerInquiryService
             ->get();
 
         // All gate-out movements indexed by yard_job_id for quick lookup
-        $gateOuts = GateMovement::where('container_no', $containerNo)
+        $gateOuts = GateMovement::with(['customer', 'createdBy'])
+            ->where('container_no', $containerNo)
             ->where('movement_type', 'out')
-            ->orderBy('gate_out_time', 'desc')
+            ->orderBy('gate_out_time', 'asc')   // asc so later keyBy keeps latest per job
             ->get()
             ->keyBy('yard_job_id');
 

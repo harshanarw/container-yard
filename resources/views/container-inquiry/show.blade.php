@@ -134,8 +134,16 @@
     $workOrders  = $cycle['work_orders'];
     $storage     = $cycle['storage'];
     $reefer      = $cycle['reefer'];
-    $isOpen = ($idx === 0); // expand latest cycle by default
+    $isOpen = ($idx === 0);
     $collapseId = 'cycle-' . $idx;
+
+    // Days in yard: gate_in → gate_out (or today if still in)
+    $daysInYard = null;
+    if ($gateIn->gate_in_time) {
+        $end = $gateOut?->gate_out_time ?? now();
+        $daysInYard = (int) $gateIn->gate_in_time->diffInDays($end);
+    }
+
     $jobBadgeClass = match(optional($yardJob)->status) {
         'open'      => 'bg-success',
         'closed'    => 'bg-secondary',
@@ -172,18 +180,22 @@
                 </span>
                 @endif
 
-                {{-- Date range --}}
+                {{-- Date range + duration --}}
                 <span class="text-muted" style="font-size:.8rem">
-                    <i class="bi bi-calendar3 me-1"></i>
-                    {{ $gateIn->gate_in_time?->format('d M Y') ?? '—' }}
+                    <i class="bi bi-box-arrow-in-right me-1 text-success"></i>{{ $gateIn->gate_in_time?->format('d M Y') ?? '—' }}
                     @if($gateOut)
-                    → {{ $gateOut->gate_out_time?->format('d M Y') ?? '—' }}
-                    @else
-                    @if(optional($yardJob)->status === 'open')
-                    <span class="text-success">→ In Yard</span>
-                    @endif
+                    <i class="bi bi-arrow-right mx-1"></i>
+                    <i class="bi bi-box-arrow-right me-1 text-danger"></i>{{ $gateOut->gate_out_time?->format('d M Y') }}
+                    @elseif(optional($yardJob)->status === 'open')
+                    <i class="bi bi-arrow-right mx-1"></i><span class="text-success fw-semibold">In Yard</span>
                     @endif
                 </span>
+                @if($daysInYard !== null)
+                <span class="badge bg-light text-secondary border" style="font-size:.68rem">
+                    {{ $daysInYard }} day{{ $daysInYard !== 1 ? 's' : '' }}
+                    @if(!$gateOut) so far @endif
+                </span>
+                @endif
 
                 {{-- Workflow summary badges --}}
                 <div class="ms-auto d-flex gap-1 flex-wrap">
@@ -227,7 +239,8 @@
                 <li class="nav-item">
                     <button class="nav-link active small py-1" data-bs-toggle="tab"
                             data-bs-target="#{{ $tabPfx }}-gate">
-                        <i class="bi bi-door-open me-1"></i>Gate Movement
+                        <i class="bi bi-box-arrow-in-right me-1 text-success"></i>Gate In
+                        @if($gateOut)<i class="bi bi-arrow-right mx-1 text-muted" style="font-size:.7rem"></i><i class="bi bi-box-arrow-right me-1 text-danger"></i>Gate Out@endif
                     </button>
                 </li>
                 @if($inquiries->isNotEmpty())
