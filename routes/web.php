@@ -47,6 +47,7 @@ use App\Http\Controllers\GuardPostController;
 use App\Http\Controllers\ReeferTariffController;
 use App\Http\Controllers\ReeferController;
 use App\Http\Controllers\ReeferBillingController;
+use App\Http\Controllers\ContainerInquiryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -188,6 +189,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/daily-movements',                  [ReportController::class, 'dailyMovements'])->name('daily-movements');
         Route::post('/daily-movements/export/csv',      [ReportController::class, 'exportMovementsCsv'])->name('daily-movements.export.csv');
         Route::post('/daily-movements/export/codeco',   [ReportController::class, 'exportMovementsCodeco'])->name('daily-movements.export.codeco');
+    });
+
+    // Container Inquiry
+    Route::prefix('container-inquiry')->name('container-inquiry.')->group(function () {
+        Route::get('/',                             [ContainerInquiryController::class, 'index'])->name('index');
+        Route::get('/export',                       [ContainerInquiryController::class, 'export'])->name('export');
+        Route::get('/{containerNo}',                [ContainerInquiryController::class, 'show'])->name('show');
     });
 
     // Masters

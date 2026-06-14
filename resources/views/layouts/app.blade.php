@@ -1098,14 +1098,16 @@
         @endif
 
         {{-- ── REPORTS ── --}}
-        @can('reports.view')
+        @if(Auth::user()->can('reports.view') || Auth::user()->can('container-inquiry.view'))
+        @php $reportsOpen = request()->routeIs('reports.*') || request()->routeIs('container-inquiry.*'); @endphp
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-reports"
-                aria-expanded="false" aria-controls="nav-section-reports">
+                aria-expanded="{{ $reportsOpen ? 'true' : 'false' }}" aria-controls="nav-section-reports">
             <i class="bi bi-graph-up-arrow section-icon"></i><span>Reports</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse" id="nav-section-reports">
+        <div class="collapse {{ $reportsOpen ? 'show' : '' }}" id="nav-section-reports">
             <ul class="nav flex-column">
+                @can('reports.view')
                 <li class="nav-item">
                     <a href="{{ route('reports.inventory') }}"
                        class="nav-link {{ request()->routeIs('reports.inventory') ? 'active' : '' }}">
@@ -1124,9 +1126,18 @@
                         <i class="bi bi-receipt"></i><span>Billing</span>
                     </a>
                 </li>
+                @endcan
+                @can('container-inquiry.view')
+                <li class="nav-item">
+                    <a href="{{ route('container-inquiry.index') }}"
+                       class="nav-link {{ request()->routeIs('container-inquiry.*') ? 'active' : '' }}">
+                        <i class="bi bi-search"></i><span>Container Inquiry</span>
+                    </a>
+                </li>
+                @endcan
             </ul>
         </div>
-        @endcan
+        @endif
 
         {{-- ── SETTINGS ── --}}
         @if(Auth::user()->isSuperUser() || Auth::user()->can('access-control.view') || Auth::user()->can('settings.company.view') || Auth::user()->can('settings.approval-workflows.view'))

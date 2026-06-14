@@ -1,0 +1,639 @@
+@extends('layouts.app')
+
+@section('title', 'Container Inquiry — ' . $container_no)
+
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('container-inquiry.index') }}">Container Inquiry</a></li>
+    <li class="breadcrumb-item active font-monospace">{{ $container_no }}</li>
+@endsection
+
+@section('content')
+
+{{-- Page Header --}}
+<div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-2">
+    <div>
+        <h4 class="mb-1">
+            <i class="bi bi-box-seam me-2 text-primary"></i>
+            <span class="font-monospace">{{ $container_no }}</span>
+        </h4>
+        <p class="text-muted mb-0 small">Full container history — {{ $total_visits }} gate-in visit{{ $total_visits !== 1 ? 's' : '' }} on record</p>
+    </div>
+    <div class="d-flex gap-2 no-print">
+        <a href="{{ route('container-inquiry.index', request()->only(['container_no','customer_id','job_type_code','date_from','date_to'])) }}"
+           class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Search
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-printer me-1"></i>Print
+        </button>
+    </div>
+</div>
+
+{{-- Container Profile Card --}}
+@if($container)
+<div class="card content-card mb-3">
+    <div class="card-header py-2 fw-semibold small d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-info-circle me-1 text-primary"></i>Container Profile</span>
+        @can('containers.view')
+        <a href="{{ route('containers.show', $container) }}" class="btn btn-xs btn-outline-primary">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Open Record
+        </a>
+        @endcan
+    </div>
+    <div class="card-body py-3">
+        <div class="row g-3">
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="text-muted small">Container No</div>
+                <div class="fw-semibold font-monospace">{{ $container->container_no }}</div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="text-muted small">Current Status</div>
+                <div>
+                    @php
+                        $stClass = match($container->status) {
+                            'in_yard'    => 'bg-success-subtle text-success',
+                            'in_repair'  => 'bg-warning-subtle text-warning',
+                            'released'   => 'bg-secondary-subtle text-secondary',
+                            'reserved'   => 'bg-info-subtle text-info',
+                            default      => 'bg-light text-muted',
+                        };
+                    @endphp
+                    <span class="badge {{ $stClass }} text-uppercase" style="font-size:.72rem">
+                        {{ str_replace('_', ' ', $container->status ?? 'unknown') }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="text-muted small">Customer / Owner</div>
+                <div>{{ optional($container->customer)->name ?? '—' }}</div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="text-muted small">Size / Type</div>
+                <div>{{ $container->size ? $container->size . 'ft' : '—' }} {{ $container->type_code ?? '' }}</div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="text-muted small">Condition</div>
+                <div>{{ ucfirst(str_replace('_', ' ', $container->condition ?? '—')) }}</div>
+            </div>
+            @if($container->owner_code || $container->owner_name)
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="text-muted small">Owner</div>
+                <div>{{ $container->owner_code ? $container->owner_code . ' — ' . ($container->owner_name ?? '') : ($container->owner_name ?? '—') }}</div>
+            </div>
+            @endif
+            @if($container->location_zone)
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="text-muted small">Location</div>
+                <div class="font-monospace small">
+                    {{ implode('-', array_filter([$container->location_zone, $container->location_row, $container->location_bay, $container->location_tier])) ?: '—' }}
+                </div>
+            </div>
+            @endif
+            @if($container->gate_in_date)
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="text-muted small">Last Gate In</div>
+                <div>{{ $container->gate_in_date->format('d M Y') }}</div>
+            </div>
+            @endif
+            @if($container->gate_out_date)
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="text-muted small">Last Gate Out</div>
+                <div>{{ $container->gate_out_date->format('d M Y') }}</div>
+            </div>
+            @endif
+        </div>
+    </div>
+</div>
+@else
+<div class="alert alert-warning small mb-3">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    No container master record found for <strong>{{ $container_no }}</strong>. Showing gate movement history only.
+</div>
+@endif
+
+{{-- Job Cycle History --}}
+<h6 class="fw-semibold text-muted mb-2 small text-uppercase letter-spacing-1">
+    <i class="bi bi-clock-history me-1"></i>Job Cycle History
+</h6>
+
+@if($cycles->isEmpty())
+<div class="text-center py-4 text-muted">
+    <i class="bi bi-inbox" style="font-size:2.5rem;opacity:.3"></i>
+    <p class="mt-2 mb-0">No gate movements found for this container.</p>
+</div>
+@else
+
+<div class="accordion" id="cycleAccordion">
+@foreach($cycles as $idx => $cycle)
+@php
+    $gateIn  = $cycle['gate_in'];
+    $gateOut = $cycle['gate_out'];
+    $yardJob = $cycle['yard_job'];
+    $inquiries   = $cycle['inquiries'];
+    $estimates   = $cycle['estimates'];
+    $workOrders  = $cycle['work_orders'];
+    $storage     = $cycle['storage'];
+    $reefer      = $cycle['reefer'];
+    $isOpen = ($idx === 0); // expand latest cycle by default
+    $collapseId = 'cycle-' . $idx;
+    $jobBadgeClass = match(optional($yardJob)->status) {
+        'open'      => 'bg-success',
+        'closed'    => 'bg-secondary',
+        'cancelled' => 'bg-danger',
+        default     => 'bg-light text-dark border',
+    };
+@endphp
+
+<div class="accordion-item border mb-2 rounded-3 overflow-hidden shadow-sm">
+    <h2 class="accordion-header">
+        <button class="accordion-button {{ $isOpen ? '' : 'collapsed' }} py-2"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#{{ $collapseId }}"
+                aria-expanded="{{ $isOpen ? 'true' : 'false' }}">
+            <div class="d-flex align-items-center gap-2 flex-wrap w-100 pe-3">
+                {{-- Visit number (newest first) --}}
+                <span class="badge bg-primary rounded-pill" style="font-size:.7rem;min-width:28px">
+                    #{{ $cycles->count() - $idx }}
+                </span>
+
+                {{-- Job type badge --}}
+                @if(optional($yardJob?->jobType)->type_short_code)
+                <span class="badge bg-info-subtle text-info border border-info-subtle fw-semibold"
+                      style="font-size:.75rem">
+                    {{ $yardJob->jobType->type_short_code }}
+                </span>
+                @endif
+
+                {{-- Job No --}}
+                @if($yardJob)
+                <span class="font-monospace fw-semibold" style="font-size:.82rem">
+                    {{ $yardJob->job_no }}
+                </span>
+                @endif
+
+                {{-- Date range --}}
+                <span class="text-muted" style="font-size:.8rem">
+                    <i class="bi bi-calendar3 me-1"></i>
+                    {{ $gateIn->gate_in_time?->format('d M Y') ?? '—' }}
+                    @if($gateOut)
+                    → {{ $gateOut->gate_out_time?->format('d M Y') ?? '—' }}
+                    @else
+                    @if(optional($yardJob)->status === 'open')
+                    <span class="text-success">→ In Yard</span>
+                    @endif
+                    @endif
+                </span>
+
+                {{-- Workflow summary badges --}}
+                <div class="ms-auto d-flex gap-1 flex-wrap">
+                    @if($inquiries->isNotEmpty())
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem">
+                        <i class="bi bi-clipboard-check me-1"></i>{{ $inquiries->count() }} Survey
+                    </span>
+                    @endif
+                    @if($estimates->isNotEmpty())
+                    <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.65rem">
+                        <i class="bi bi-calculator me-1"></i>{{ $estimates->count() }} Estimate
+                    </span>
+                    @endif
+                    @if($workOrders->isNotEmpty())
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:.65rem">
+                        <i class="bi bi-tools me-1"></i>{{ $workOrders->count() }} WO
+                    </span>
+                    @endif
+                    @if($reefer->isNotEmpty())
+                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem">
+                        <i class="bi bi-thermometer-snow me-1"></i>Reefer
+                    </span>
+                    @endif
+                    {{-- Job status --}}
+                    @if($yardJob)
+                    <span class="badge {{ $jobBadgeClass }}" style="font-size:.65rem;text-transform:uppercase">
+                        {{ $yardJob->status }}
+                    </span>
+                    @endif
+                </div>
+            </div>
+        </button>
+    </h2>
+
+    <div id="{{ $collapseId }}" class="accordion-collapse collapse {{ $isOpen ? 'show' : '' }}">
+        <div class="accordion-body p-0">
+
+            {{-- Inner tab navigation --}}
+            @php $tabPfx = 'tab-' . $idx; @endphp
+            <ul class="nav nav-tabs px-3 pt-2 bg-light border-bottom" id="{{ $tabPfx }}-tabs">
+                <li class="nav-item">
+                    <button class="nav-link active small py-1" data-bs-toggle="tab"
+                            data-bs-target="#{{ $tabPfx }}-gate">
+                        <i class="bi bi-door-open me-1"></i>Gate Movement
+                    </button>
+                </li>
+                @if($inquiries->isNotEmpty())
+                <li class="nav-item">
+                    <button class="nav-link small py-1" data-bs-toggle="tab"
+                            data-bs-target="#{{ $tabPfx }}-surveys">
+                        <i class="bi bi-clipboard-check me-1"></i>Surveys
+                        <span class="badge bg-warning-subtle text-warning ms-1">{{ $inquiries->count() }}</span>
+                    </button>
+                </li>
+                @endif
+                @if($estimates->isNotEmpty())
+                <li class="nav-item">
+                    <button class="nav-link small py-1" data-bs-toggle="tab"
+                            data-bs-target="#{{ $tabPfx }}-estimates">
+                        <i class="bi bi-calculator me-1"></i>Estimates
+                        <span class="badge bg-info-subtle text-info ms-1">{{ $estimates->count() }}</span>
+                    </button>
+                </li>
+                @endif
+                @if($workOrders->isNotEmpty())
+                <li class="nav-item">
+                    <button class="nav-link small py-1" data-bs-toggle="tab"
+                            data-bs-target="#{{ $tabPfx }}-wo">
+                        <i class="bi bi-tools me-1"></i>Work Orders
+                        <span class="badge bg-primary-subtle text-primary ms-1">{{ $workOrders->count() }}</span>
+                    </button>
+                </li>
+                @endif
+                @if($storage->isNotEmpty())
+                <li class="nav-item">
+                    <button class="nav-link small py-1" data-bs-toggle="tab"
+                            data-bs-target="#{{ $tabPfx }}-storage">
+                        <i class="bi bi-archive me-1"></i>Storage
+                    </button>
+                </li>
+                @endif
+                @if($reefer->isNotEmpty())
+                <li class="nav-item">
+                    <button class="nav-link small py-1" data-bs-toggle="tab"
+                            data-bs-target="#{{ $tabPfx }}-reefer">
+                        <i class="bi bi-thermometer-snow me-1"></i>Reefer
+                    </button>
+                </li>
+                @endif
+            </ul>
+
+            <div class="tab-content p-3" id="{{ $tabPfx }}-content">
+
+                {{-- ── Gate Movement Tab ── --}}
+                <div class="tab-pane fade show active" id="{{ $tabPfx }}-gate">
+                    <div class="row g-3">
+
+                        {{-- Gate In Details --}}
+                        <div class="col-12 col-md-6">
+                            <div class="p-3 rounded-3 border bg-success-subtle" style="border-color:#86efac!important">
+                                <div class="fw-semibold small text-success mb-2">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i>Gate In
+                                    @if($gateIn->gate_in_time)
+                                    <span class="text-muted fw-normal ms-1">{{ $gateIn->gate_in_time->format('d M Y H:i') }}</span>
+                                    @endif
+                                </div>
+                                <div class="row g-1" style="font-size:.8rem">
+                                    <div class="col-6"><span class="text-muted">Customer:</span>
+                                        <span class="ms-1">{{ optional($gateIn->customer)->name ?? '—' }}</span></div>
+                                    <div class="col-6"><span class="text-muted">Condition:</span>
+                                        <span class="ms-1">{{ ucfirst(str_replace('_',' ', $gateIn->condition ?? '—')) }}</span></div>
+                                    <div class="col-6"><span class="text-muted">Cargo:</span>
+                                        <span class="ms-1">{{ ucfirst($gateIn->cargo_status ?? '—') }}</span></div>
+                                    <div class="col-6"><span class="text-muted">Size:</span>
+                                        <span class="ms-1">{{ $gateIn->size ? $gateIn->size.'ft' : '—' }}</span></div>
+                                    @if($gateIn->seal_no)
+                                    <div class="col-6"><span class="text-muted">Seal:</span>
+                                        <span class="ms-1 font-monospace">{{ $gateIn->seal_no }}</span></div>
+                                    @endif
+                                    @if($gateIn->vehicle_plate)
+                                    <div class="col-6"><span class="text-muted">Vehicle:</span>
+                                        <span class="ms-1 font-monospace">{{ $gateIn->vehicle_plate }}</span></div>
+                                    @endif
+                                    @if($gateIn->driver_name)
+                                    <div class="col-6"><span class="text-muted">Driver:</span>
+                                        <span class="ms-1">{{ $gateIn->driver_name }}</span></div>
+                                    @endif
+                                    @if($gateIn->location_zone)
+                                    <div class="col-6"><span class="text-muted">Location:</span>
+                                        <span class="ms-1 font-monospace">
+                                            {{ implode('-', array_filter([$gateIn->location_zone, $gateIn->location_row, $gateIn->location_bay, $gateIn->location_tier])) }}
+                                        </span></div>
+                                    @endif
+                                    @if($gateIn->remarks)
+                                    <div class="col-12 mt-1"><span class="text-muted">Remarks:</span>
+                                        <span class="ms-1">{{ $gateIn->remarks }}</span></div>
+                                    @endif
+                                    @if($gateIn->createdBy)
+                                    <div class="col-12 mt-1 text-muted" style="font-size:.72rem">
+                                        Recorded by {{ $gateIn->createdBy->name }}
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Gate Out Details --}}
+                        <div class="col-12 col-md-6">
+                            @if($gateOut)
+                            <div class="p-3 rounded-3 border bg-danger-subtle" style="border-color:#fca5a5!important">
+                                <div class="fw-semibold small text-danger mb-2">
+                                    <i class="bi bi-box-arrow-right me-1"></i>Gate Out
+                                    @if($gateOut->gate_out_time)
+                                    <span class="text-muted fw-normal ms-1">{{ $gateOut->gate_out_time->format('d M Y H:i') }}</span>
+                                    @endif
+                                </div>
+                                <div class="row g-1" style="font-size:.8rem">
+                                    <div class="col-6"><span class="text-muted">Vehicle:</span>
+                                        <span class="ms-1 font-monospace">{{ $gateOut->vehicle_plate ?? '—' }}</span></div>
+                                    <div class="col-6"><span class="text-muted">Driver:</span>
+                                        <span class="ms-1">{{ $gateOut->driver_name ?? '—' }}</span></div>
+                                    @if($gateOut->release_order)
+                                    <div class="col-6"><span class="text-muted">Release Order:</span>
+                                        <span class="ms-1 font-monospace">{{ $gateOut->release_order }}</span></div>
+                                    @endif
+                                    @if($gateOut->loading_vessel)
+                                    <div class="col-6"><span class="text-muted">Vessel:</span>
+                                        <span class="ms-1">{{ $gateOut->loading_vessel }}</span></div>
+                                    @endif
+                                    @if($gateOut->shipper)
+                                    <div class="col-6"><span class="text-muted">Shipper:</span>
+                                        <span class="ms-1">{{ $gateOut->shipper }}</span></div>
+                                    @endif
+                                    @if($gateOut->remarks)
+                                    <div class="col-12 mt-1"><span class="text-muted">Remarks:</span>
+                                        <span class="ms-1">{{ $gateOut->remarks }}</span></div>
+                                    @endif
+                                </div>
+                            </div>
+                            @else
+                            <div class="p-3 rounded-3 border border-dashed text-center text-muted h-100 d-flex align-items-center justify-content-center">
+                                @if(optional($yardJob)->status === 'open')
+                                <div>
+                                    <i class="bi bi-clock-history d-block mb-1" style="font-size:1.5rem;opacity:.4"></i>
+                                    <span class="small">Container still in yard</span>
+                                </div>
+                                @else
+                                <div>
+                                    <i class="bi bi-dash-circle d-block mb-1" style="font-size:1.5rem;opacity:.3"></i>
+                                    <span class="small">No gate-out recorded</span>
+                                </div>
+                                @endif
+                            </div>
+                            @endif
+                        </div>
+
+                        {{-- Job Info --}}
+                        @if($yardJob)
+                        <div class="col-12">
+                            <div class="p-2 rounded-2 bg-light border d-flex align-items-center gap-3 flex-wrap"
+                                 style="font-size:.8rem">
+                                <div>
+                                    <span class="text-muted">Job No:</span>
+                                    <span class="fw-semibold font-monospace ms-1">{{ $yardJob->job_no }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-muted">Type:</span>
+                                    <span class="ms-1">{{ optional($yardJob->jobType)->job_type_name ?? $yardJob->job_type_code }}</span>
+                                </div>
+                                @if($yardJob->return_reason)
+                                <div>
+                                    <span class="text-muted">Return Reason:</span>
+                                    <span class="ms-1">{{ $yardJob->returnReasonLabel() }}</span>
+                                </div>
+                                @endif
+                                <div>
+                                    <span class="text-muted">Status:</span>
+                                    <span class="badge {{ $jobBadgeClass }} ms-1" style="font-size:.65rem">{{ $yardJob->status }}</span>
+                                </div>
+                                @if($yardJob->started_at)
+                                <div>
+                                    <span class="text-muted">Started:</span>
+                                    <span class="ms-1">{{ $yardJob->started_at->format('d M Y') }}</span>
+                                </div>
+                                @endif
+                                @if($yardJob->completed_at)
+                                <div>
+                                    <span class="text-muted">Completed:</span>
+                                    <span class="ms-1">{{ $yardJob->completed_at->format('d M Y') }}</span>
+                                </div>
+                                @endif
+                                @can('yard.jobs.view')
+                                <div class="ms-auto">
+                                    <a href="{{ route('yard.jobs.show', $yardJob) }}" class="btn btn-xs btn-outline-secondary">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i>View Job
+                                    </a>
+                                </div>
+                                @endcan
+                            </div>
+                        </div>
+                        @endif
+
+                    </div>
+                </div>{{-- end gate tab --}}
+
+                {{-- ── Surveys Tab ── --}}
+                @if($inquiries->isNotEmpty())
+                <div class="tab-pane fade" id="{{ $tabPfx }}-surveys">
+                    <div class="list-group list-group-flush">
+                        @foreach($inquiries as $inq)
+                        <div class="list-group-item px-0">
+                            <div class="d-flex align-items-start justify-content-between gap-2">
+                                <div>
+                                    <div class="fw-semibold small font-monospace">{{ $inq->inquiry_no ?? ('INQ-' . $inq->id) }}</div>
+                                    <div class="text-muted small">
+                                        {{ $inq->created_at?->format('d M Y H:i') }}
+                                        @if($inq->survey_type ?? null)
+                                        · {{ ucfirst(str_replace('_', ' ', $inq->survey_type)) }}
+                                        @endif
+                                    </div>
+                                    @if($inq->status ?? null)
+                                    <span class="badge bg-warning-subtle text-warning small mt-1">{{ $inq->status }}</span>
+                                    @endif
+                                    @if($inq->remarks ?? null)
+                                    <div class="text-muted small mt-1">{{ $inq->remarks }}</div>
+                                    @endif
+                                </div>
+                                @can('surveys.view')
+                                <a href="{{ route('surveys.show', $inq) }}" class="btn btn-xs btn-outline-warning flex-shrink-0">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>View
+                                </a>
+                                @endcan
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                {{-- ── Estimates Tab ── --}}
+                @if($estimates->isNotEmpty())
+                <div class="tab-pane fade" id="{{ $tabPfx }}-estimates">
+                    <div class="list-group list-group-flush">
+                        @foreach($estimates as $est)
+                        @php
+                            $estStatusClass = match($est->status) {
+                                'approved' => 'bg-success-subtle text-success',
+                                'rejected' => 'bg-danger-subtle text-danger',
+                                'sent'     => 'bg-info-subtle text-info',
+                                'draft'    => 'bg-light text-secondary',
+                                default    => 'bg-light text-muted',
+                            };
+                        @endphp
+                        <div class="list-group-item px-0">
+                            <div class="d-flex align-items-start justify-content-between gap-2">
+                                <div>
+                                    <div class="fw-semibold small font-monospace">{{ $est->estimate_no }}</div>
+                                    <div class="text-muted small">
+                                        {{ $est->estimate_date?->format('d M Y') ?? $est->created_at?->format('d M Y') }}
+                                        @if($est->currency)
+                                        · {{ $est->currency }}
+                                        @endif
+                                    </div>
+                                    <span class="badge {{ $estStatusClass }} small mt-1">{{ $est->status }}</span>
+                                    @if($est->grand_total)
+                                    <span class="ms-2 fw-semibold small">
+                                        {{ number_format($est->grand_total, 2) }}
+                                    </span>
+                                    @endif
+                                </div>
+                                @can('estimates.view')
+                                <a href="{{ route('estimates.show', $est) }}" class="btn btn-xs btn-outline-info flex-shrink-0">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>View
+                                </a>
+                                @endcan
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                {{-- ── Work Orders Tab ── --}}
+                @if($workOrders->isNotEmpty())
+                <div class="tab-pane fade" id="{{ $tabPfx }}-wo">
+                    <div class="list-group list-group-flush">
+                        @foreach($workOrders as $wo)
+                        @php
+                            $woStatusClass = match($wo->status) {
+                                'completed'   => 'bg-success-subtle text-success',
+                                'in_progress' => 'bg-primary-subtle text-primary',
+                                'pending'     => 'bg-warning-subtle text-warning',
+                                'cancelled'   => 'bg-danger-subtle text-danger',
+                                default       => 'bg-light text-muted',
+                            };
+                        @endphp
+                        <div class="list-group-item px-0">
+                            <div class="d-flex align-items-start justify-content-between gap-2">
+                                <div>
+                                    <div class="fw-semibold small font-monospace">{{ $wo->wo_no }}</div>
+                                    <div class="text-muted small">
+                                        Created {{ $wo->created_at?->format('d M Y') }}
+                                        @if($wo->completed_date)
+                                        · Completed {{ $wo->completed_date->format('d M Y') }}
+                                        @endif
+                                    </div>
+                                    <span class="badge {{ $woStatusClass }} small mt-1">{{ str_replace('_', ' ', $wo->status) }}</span>
+                                    @if($wo->priority)
+                                    <span class="badge bg-light text-secondary ms-1 small">{{ ucfirst($wo->priority) }}</span>
+                                    @endif
+                                    @if($wo->technician_notes)
+                                    <div class="text-muted small mt-1">{{ Str::limit($wo->technician_notes, 80) }}</div>
+                                    @endif
+                                </div>
+                                @can('work-orders.view')
+                                <a href="{{ route('work-orders.show', $wo) }}" class="btn btn-xs btn-outline-primary flex-shrink-0">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>View
+                                </a>
+                                @endcan
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                {{-- ── Storage Tab ── --}}
+                @if($storage->isNotEmpty())
+                <div class="tab-pane fade" id="{{ $tabPfx }}-storage">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0" style="font-size:.8rem">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Gate In</th>
+                                    <th>Gate Out</th>
+                                    <th class="text-end">Days</th>
+                                    <th class="text-end">Charge</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($storage as $sr)
+                                <tr>
+                                    <td>{{ $sr->gate_in_date?->format('d M Y') ?? '—' }}</td>
+                                    <td>{{ $sr->gate_out_date?->format('d M Y') ?? '—' }}</td>
+                                    <td class="text-end">{{ $sr->total_days ?? '—' }}</td>
+                                    <td class="text-end">{{ $sr->total_charge ? number_format($sr->total_charge, 2) : '—' }}</td>
+                                    <td>{{ $sr->billing_status ?? '—' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @endif
+
+                {{-- ── Reefer Tab ── --}}
+                @if($reefer->isNotEmpty())
+                <div class="tab-pane fade" id="{{ $tabPfx }}-reefer">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0" style="font-size:.8rem">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Plug In</th>
+                                    <th>Plug Out</th>
+                                    <th>Set Temp</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($reefer as $rs)
+                                <tr>
+                                    <td>{{ $rs->plug_in_at?->format('d M Y H:i') ?? '—' }}</td>
+                                    <td>{{ $rs->plug_out_at?->format('d M Y H:i') ?? '—' }}</td>
+                                    <td>{{ $rs->set_temp_c !== null ? $rs->set_temp_c . '°C' : '—' }}</td>
+                                    <td>{{ $rs->status ?? '—' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @endif
+
+            </div>{{-- end tab-content --}}
+        </div>
+    </div>
+</div>
+@endforeach
+</div>{{-- end accordion --}}
+
+@endif
+
+@endsection
+
+@push('styles')
+<style>
+    .border-dashed { border-style: dashed !important; }
+    .accordion-button { font-size: .85rem; background: #f8fafc; }
+    .accordion-button:not(.collapsed) { background: #eef2ff; color: #3730a3; }
+    .accordion-button::after { flex-shrink: 0; margin-left: 0; }
+    .btn-xs { padding: .18rem .5rem; font-size: .73rem; }
+    .letter-spacing-1 { letter-spacing: .04em; }
+    .nav-tabs .nav-link { font-size: .78rem; padding: .3rem .75rem; }
+    .list-group-item:last-child { border-bottom: 0; }
+    @media print {
+        #sidebar, #topbar, .no-print { display: none !important; }
+        #main-content { margin: 0 !important; padding: 0 !important; }
+        .accordion-collapse { display: block !important; }
+        .accordion-button::after { display: none; }
+    }
+</style>
+@endpush

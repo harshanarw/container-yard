@@ -234,6 +234,12 @@ return [
         'actions' => ['view'],
     ],
 
+    'container-inquiry' => [
+        'label'   => 'Container Inquiry',
+        'section' => 'Reports',
+        'actions' => ['view'],
+    ],
+
     // ── Settings ──────────────────────────────────────────────────────────────
 
     'settings.users' => [
