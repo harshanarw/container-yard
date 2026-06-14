@@ -1920,36 +1920,66 @@
             }).catch(function () {});
         });
 
-        // ── Reverb real-time subscription ────────────────────────────────────
-        // Active only when BROADCAST_DRIVER=reverb is set in .env.
-        // When connected, instant push replaces frequent polling;
-        // polling drops to 60 s and acts only as a recovery sync.
-        @if(config('broadcasting.default') === 'reverb' && config('broadcasting.connections.reverb.key'))
+        // ── WebSocket real-time subscription (Reverb or Pusher) ──────────────
+        // Activated by BROADCAST_DRIVER=reverb or BROADCAST_DRIVER=pusher in .env.
+        // When WebSocket connects successfully, polling drops to 60 s (recovery only).
+        // Falls back to 5 s polling automatically if WebSocket is unavailable.
+        @php
+            $bcastDriver = config('broadcasting.default');
+            $bcastKey    = match($bcastDriver) {
+                'reverb' => config('broadcasting.connections.reverb.key'),
+                'pusher' => config('broadcasting.connections.pusher.key'),
+                default  => null,
+            };
+        @endphp
+        @if(in_array($bcastDriver, ['reverb', 'pusher']) && $bcastKey)
         if (window.Pusher) {
-            var _pusher = new Pusher('{{ config("broadcasting.connections.reverb.key") }}', {
-                wsHost:            '{{ config("broadcasting.connections.reverb.options.host", "localhost") }}',
-                wsPort:             {{ (int) config("broadcasting.connections.reverb.options.port", 8080) }},
-                wssPort:            {{ (int) config("broadcasting.connections.reverb.options.port", 8080) }},
-                forceTLS:           {{ config("broadcasting.connections.reverb.options.scheme", "http") === "https" ? "true" : "false" }},
-                enabledTransports: ['ws', 'wss'],
-                cluster:           'default',
+            var _bcastCfg = @json([
+                'driver'   => $bcastDriver,
+                'key'      => $bcastKey,
+                'cluster'  => config('broadcasting.connections.pusher.options.cluster', 'mt1'),
+                'wsHost'   => config('broadcasting.connections.reverb.options.host', '0.0.0.0'),
+                'wsPort'   => (int) config('broadcasting.connections.reverb.options.port', 8080),
+                'forceTLS' => config('broadcasting.connections.reverb.options.scheme', 'http') === 'https'
+                              || $bcastDriver === 'pusher',
+                'userId'   => auth()->id(),
+            ]);
+
+            var _pusherOpts = {
+                cluster:  _bcastCfg.cluster,
+                forceTLS: _bcastCfg.forceTLS,
                 channelAuthorization: {
                     endpoint: '/broadcasting/auth',
                     headers: {
-                        'X-CSRF-TOKEN':      csrfToken,
+                        'X-CSRF-TOKEN':     csrfToken,
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                 },
-            });
+            };
 
-            var _chan = _pusher.subscribe('private-App.Models.User.{{ auth()->id() }}');
+            // Reverb needs explicit host/port; Pusher uses its own infrastructure
+            if (_bcastCfg.driver === 'reverb') {
+                _pusherOpts.wsHost            = _bcastCfg.wsHost;
+                _pusherOpts.wsPort            = _bcastCfg.wsPort;
+                _pusherOpts.wssPort           = _bcastCfg.wsPort;
+                _pusherOpts.enabledTransports = ['ws', 'wss'];
+            }
+
+            var _pusher = new Pusher(_bcastCfg.key, _pusherOpts);
+
+            var _chan = _pusher.subscribe('private-App.Models.User.' + _bcastCfg.userId);
             _chan.bind('notification.new', function (data) {
                 showSideNotification(data.title, data.body, data.type, data.url);
-                fetchUnread(); // sync badge + dropdown count
+                fetchUnread(); // sync badge + dropdown
             });
 
             _pusher.connection.bind('connected', function () {
                 POLL_INTERVAL = 60000; // WS active — poll only for recovery
+                console.info('[CYMS] Real-time notifications active via ' + _bcastCfg.driver + '.');
+            });
+
+            _pusher.connection.bind('unavailable', function () {
+                POLL_INTERVAL = 5000; // WS lost — revert to fast polling
             });
         }
         @endif
