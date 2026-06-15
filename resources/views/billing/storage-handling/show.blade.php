@@ -419,6 +419,7 @@
                                 <th>Equipment</th>
                                 <th>Status</th>
                                 <th>Gate In Date</th>
+                                <th>Charge Code</th>
                                 <th class="text-end pe-2">Rate / Unit</th>
                                 <th class="text-end pe-2">Amount</th>
                             </tr>
@@ -448,6 +449,16 @@
                                     @endif
                                 </td>
                                 <td class="small">{{ $l->gate_in_date->format('d M Y') }}</td>
+                                <td class="small">
+                                    @if($l->handlingChargeCode)
+                                        <span class="badge bg-info-subtle text-info border" style="font-size:.68rem;">{{ $l->handlingChargeCode->code }}</span>
+                                        @if($l->handlingChargeCode->taxCode)
+                                        <div class="text-muted" style="font-size:.65rem;">{{ $l->handlingChargeCode->taxCode->code }}</div>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                                 <td class="text-end pe-2">{{ $fmtDisp($l->lift_off_rate) }}</td>
                                 <td class="text-end pe-2 fw-semibold">{{ $fmtDisp($l->lift_off_rate) }}</td>
                             </tr>
@@ -455,7 +466,7 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="7" class="text-end text-muted small">Lift Off Subtotal</td>
+                                <td colspan="8" class="text-end text-muted small">Lift Off Subtotal</td>
                                 <td class="text-end pe-2 fw-semibold">
                                     {{ $fmtDisp($liftOffLines->sum('lift_off_rate')) }}
                                 </td>
@@ -485,6 +496,7 @@
                                 <th>Equipment</th>
                                 <th>Status</th>
                                 <th>Gate Out Date</th>
+                                <th>Charge Code</th>
                                 <th class="text-end pe-2">Rate / Unit</th>
                                 <th class="text-end pe-2">Amount</th>
                             </tr>
@@ -516,6 +528,16 @@
                                 <td class="small">
                                     {{ $l->gate_out_date ? $l->gate_out_date->format('d M Y') : '—' }}
                                 </td>
+                                <td class="small">
+                                    @if($l->handlingChargeCode)
+                                        <span class="badge bg-info-subtle text-info border" style="font-size:.68rem;">{{ $l->handlingChargeCode->code }}</span>
+                                        @if($l->handlingChargeCode->taxCode)
+                                        <div class="text-muted" style="font-size:.65rem;">{{ $l->handlingChargeCode->taxCode->code }}</div>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                                 <td class="text-end pe-2">{{ $fmtDisp($l->lift_on_rate) }}</td>
                                 <td class="text-end pe-2 fw-semibold">{{ $fmtDisp($l->lift_on_rate) }}</td>
                             </tr>
@@ -523,7 +545,7 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="7" class="text-end text-muted small">Lift On Subtotal</td>
+                                <td colspan="8" class="text-end text-muted small">Lift On Subtotal</td>
                                 <td class="text-end pe-2 fw-semibold">
                                     {{ $fmtDisp($liftOnLines->sum('lift_on_rate')) }}
                                 </td>
@@ -553,8 +575,8 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="ps-2">Container</th>
-                                <th>Charge Code</th>
-                                <th>Tax Code</th>
+                                <th>Storage Charge Code</th>
+                                <th>Handling Charge Code</th>
                                 <th class="text-end">Storage</th>
                                 <th class="text-end">Handling</th>
                                 <th class="text-end">Combined</th>
@@ -571,24 +593,42 @@
                                 <td class="small">
                                     @if($line->chargeCode)
                                         <span class="badge bg-primary-subtle text-primary border" style="font-size:.68rem;">{{ $line->chargeCode->code }}</span>
+                                        @if($line->chargeCode->taxCode)
+                                        <div class="text-muted" style="font-size:.65rem;">{{ $line->chargeCode->taxCode->code }}</div>
+                                        @endif
                                     @else
                                         <span class="text-muted">—</span>
                                     @endif
                                 </td>
-                                <td class="small text-muted">{{ $line->chargeCode?->taxCode?->code ?? '—' }}</td>
+                                <td class="small">
+                                    @if($line->handlingChargeCode)
+                                        <span class="badge bg-info-subtle text-info border" style="font-size:.68rem;">{{ $line->handlingChargeCode->code }}</span>
+                                        @if($line->handlingChargeCode->taxCode)
+                                        <div class="text-muted" style="font-size:.65rem;">{{ $line->handlingChargeCode->taxCode->code }}</div>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                                 <td class="text-end small">{{ $fmtDisp($line->storage_subtotal) }}</td>
                                 <td class="text-end small">{{ $fmtDisp($line->handling_subtotal) }}</td>
                                 <td class="text-end small fw-semibold">{{ $fmtDisp($line->line_total) }}</td>
                                 <td class="text-end small text-secondary">
                                     {{ $fmtDisp($line->line_sscl) }}
-                                    @if($line->tax1_rate > 0)
-                                    <div class="text-muted" style="font-size:.65rem;">{{ number_format($line->tax1_rate, 2) }}%</div>
+                                    @if($line->tax1_rate > 0 || $line->handling_tax1_rate > 0)
+                                    <div class="text-muted" style="font-size:.65rem;">
+                                        @if($line->tax1_rate > 0)Stg: {{ number_format($line->tax1_rate, 2) }}%@endif
+                                        @if($line->handling_tax1_rate > 0) Hdl: {{ number_format($line->handling_tax1_rate, 2) }}%@endif
+                                    </div>
                                     @endif
                                 </td>
                                 <td class="text-end small text-secondary">
                                     {{ $fmtDisp($line->line_vat) }}
-                                    @if($line->tax2_rate > 0)
-                                    <div class="text-muted" style="font-size:.65rem;">{{ number_format($line->tax2_rate, 2) }}%</div>
+                                    @if($line->tax2_rate > 0 || $line->handling_tax2_rate > 0)
+                                    <div class="text-muted" style="font-size:.65rem;">
+                                        @if($line->tax2_rate > 0)Stg: {{ number_format($line->tax2_rate, 2) }}%@endif
+                                        @if($line->handling_tax2_rate > 0) Hdl: {{ number_format($line->handling_tax2_rate, 2) }}%@endif
+                                    </div>
                                     @endif
                                 </td>
                                 <td class="text-end fw-bold">{{ $fmtDisp($line->line_grand_total) }}</td>
