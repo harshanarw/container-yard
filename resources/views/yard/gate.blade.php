@@ -2190,121 +2190,129 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
 
 // ── Gate Out container Select2 autocomplete + AJAX lookup + submit confirmation ──
 (function () {
-    const inp = document.getElementById('containerSearch'), searchBtn = document.getElementById('containerSearchBtn');
-    const infoBox = document.getElementById('containerInfoBox');
-    const gradeRow = document.getElementById('outGradeRow');
-    const gradeSelect = document.getElementById('outGradeSelect');
-    let lookupDone = false;
+    // Wrapped in $(function(){}) so it runs after ALL other DOMContentLoaded handlers,
+    // preventing any earlier code from overwriting the AJAX-powered Select2 init.
+    $(function () {
+        const inp       = document.getElementById('containerSearch');
+        const searchBtn = document.getElementById('containerSearchBtn');
+        const infoBox   = document.getElementById('containerInfoBox');
+        const gradeRow  = document.getElementById('outGradeRow');
+        const gradeSelect = document.getElementById('outGradeSelect');
+        let lookupDone = false;
 
-    // Initialise Select2 with AJAX source (in-yard containers only)
-    $(inp).select2({
-        theme: 'bootstrap-5',
-        placeholder: 'Type to search containers in yard…',
-        allowClear: true,
-        minimumInputLength: 1,
-        ajax: {
-            url: '{{ route("yard.in-yard-search") }}',
-            dataType: 'json',
-            delay: 250,
-            data: params => ({ q: params.term }),
-            processResults: data => data,
-            cache: true,
-        },
-        // Format each dropdown option with container number bold + metadata
-        templateResult: function (item) {
-            if (item.loading) return item.text;
-            const parts = item.text.split(' — ');
-            const $el = $('<span>');
-            $('<strong class="font-monospace">').text(parts[0]).appendTo($el);
-            if (parts[1]) $('<span class="text-muted ms-2 small">').text('— ' + parts[1]).appendTo($el);
-            return $el;
-        },
-    });
+        // Destroy any prior Select2 instance (prevents double-init artifacts)
+        if ($(inp).data('select2')) { $(inp).select2('destroy'); }
 
-    function setInfoBox(type, html) {
-        infoBox.className = 'mb-3 alert alert-' + type + ' small p-2';
-        infoBox.innerHTML = html;
-        infoBox.classList.remove('d-none');
-    }
+        // Initialise Select2 with AJAX source (in-yard containers only)
+        $(inp).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Type to search containers in yard…',
+            allowClear: true,
+            minimumInputLength: 1,
+            ajax: {
+                url: '{{ route("yard.in-yard-search") }}',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ q: params.term }),
+                processResults: data => data,
+                cache: true,
+            },
+            // Format each dropdown option with container number bold + metadata
+            templateResult: function (item) {
+                if (item.loading) return item.text;
+                const parts = item.text.split(' — ');
+                const $el = $('<span>');
+                $('<strong class="font-monospace">').text(parts[0]).appendTo($el);
+                if (parts[1]) $('<span class="text-muted ms-2 small">').text('— ' + parts[1]).appendTo($el);
+                return $el;
+            },
+        });
 
-    async function doLookup() {
-        const val = ($(inp).val() || '').trim().toUpperCase();
-        if (val.length < 11) { setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Select a container from the list first.'); return; }
-        try {
-            const res = await fetch('{{ route("yard.container-lookup") }}?container_no=' + encodeURIComponent(val));
-            const data = await res.json();
-            if (!data.found) {
+        function setInfoBox(type, html) {
+            infoBox.className = 'mb-3 alert alert-' + type + ' small p-2';
+            infoBox.innerHTML = html;
+            infoBox.classList.remove('d-none');
+        }
+
+        async function doLookup() {
+            const val = ($(inp).val() || '').trim().toUpperCase();
+            if (val.length < 11) { setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Select a container from the list first.'); return; }
+            try {
+                const res = await fetch('{{ route("yard.container-lookup") }}?container_no=' + encodeURIComponent(val));
+                const data = await res.json();
+                if (!data.found) {
+                    lookupDone = false;
+                    gradeRow.classList.add('d-none');
+                    setInfoBox('danger', '<i class="bi bi-x-circle me-1"></i><strong>Not found:</strong> ' + (data.message || 'Container not in yard.'));
+                } else {
+                    lookupDone = true;
+                    const condMap  = { sound:'Sound', damaged:'Damaged', require_repair:'Requires Repair' };
+                    const cargoMap = { empty:'Empty', laden:'Laden', full:'Laden' };
+                    const daysBadge = data.days_in_yard !== null ? '<span class="badge bg-warning-subtle text-warning border ms-1">' + data.days_in_yard + ' day(s) in yard</span>' : '';
+                    const gradeInfo = data.grade_name ? ' <span class="text-muted">·</span> Grade: ' + data.grade_name : '';
+                    const ventInfo  = data.ventilation_label
+                        ? '<div class="col-6"><span class="text-muted">Ventilation:</span> ' + data.ventilation_label + '</div>' : '';
+                    setInfoBox('success',
+                        '<div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-check-circle-fill text-success fs-5"></i><strong class="font-monospace fs-6">' + data.container_no + '</strong>' + daysBadge + '</div>' +
+                        '<div class="row g-1 small">' +
+                            '<div class="col-6"><span class="text-muted">Equipment:</span> ' + data.equipment_label + '</div>' +
+                            '<div class="col-6"><span class="text-muted">Customer:</span> ' + data.customer + '</div>' +
+                            '<div class="col-6"><span class="text-muted">Condition:</span> ' + (condMap[data.condition]||data.condition) + '</div>' +
+                            '<div class="col-6"><span class="text-muted">Cargo:</span> ' + (cargoMap[data.cargo_status]||data.cargo_status) + '</div>' +
+                            '<div class="col-6"><span class="text-muted">Location:</span> <strong class="font-monospace">' + (data.location||'—') + '</strong></div>' +
+                            '<div class="col-6"><span class="text-muted">Gate In:</span> ' + (data.gate_in_time||data.gate_in_date||'—') + gradeInfo + '</div>' +
+                            ventInfo +
+                        '</div>'
+                    );
+                    if (gradeSelect) {
+                        const gv = data.grade_id ? String(data.grade_id) : '';
+                        if (typeof $ !== 'undefined') $(gradeSelect).val(gv).trigger('change');
+                        else gradeSelect.value = gv;
+                    }
+                    gradeRow.classList.remove('d-none');
+                }
+            } catch (e) {
                 lookupDone = false;
                 gradeRow.classList.add('d-none');
-                setInfoBox('danger', '<i class="bi bi-x-circle me-1"></i><strong>Not found:</strong> ' + (data.message || 'Container not in yard.'));
-            } else {
-                lookupDone = true;
-                const condMap  = { sound:'Sound', damaged:'Damaged', require_repair:'Requires Repair' };
-                const cargoMap = { empty:'Empty', laden:'Laden', full:'Laden' };
-                const daysBadge = data.days_in_yard !== null ? '<span class="badge bg-warning-subtle text-warning border ms-1">' + data.days_in_yard + ' day(s) in yard</span>' : '';
-                const gradeInfo = data.grade_name ? ' <span class="text-muted">·</span> Grade: ' + data.grade_name : '';
-                const ventInfo  = data.ventilation_label
-                    ? '<div class="col-6"><span class="text-muted">Ventilation:</span> ' + data.ventilation_label + '</div>' : '';
-                setInfoBox('success',
-                    '<div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-check-circle-fill text-success fs-5"></i><strong class="font-monospace fs-6">' + data.container_no + '</strong>' + daysBadge + '</div>' +
-                    '<div class="row g-1 small">' +
-                        '<div class="col-6"><span class="text-muted">Equipment:</span> ' + data.equipment_label + '</div>' +
-                        '<div class="col-6"><span class="text-muted">Customer:</span> ' + data.customer + '</div>' +
-                        '<div class="col-6"><span class="text-muted">Condition:</span> ' + (condMap[data.condition]||data.condition) + '</div>' +
-                        '<div class="col-6"><span class="text-muted">Cargo:</span> ' + (cargoMap[data.cargo_status]||data.cargo_status) + '</div>' +
-                        '<div class="col-6"><span class="text-muted">Location:</span> <strong class="font-monospace">' + (data.location||'—') + '</strong></div>' +
-                        '<div class="col-6"><span class="text-muted">Gate In:</span> ' + (data.gate_in_time||data.gate_in_date||'—') + gradeInfo + '</div>' +
-                        ventInfo +
-                    '</div>'
-                );
-                if (gradeSelect) {
-                    const gv = data.grade_id ? String(data.grade_id) : '';
-                    if (typeof $ !== 'undefined') $(gradeSelect).val(gv).trigger('change');
-                    else gradeSelect.value = gv;
-                }
-                gradeRow.classList.remove('d-none');
+                setInfoBox('danger', '<i class="bi bi-wifi-off me-1"></i>Network error. Please try again.');
             }
-        } catch (e) {
+        }
+
+        // Auto-lookup when user picks from dropdown (select2:select fires only on user interaction, not programmatic set)
+        $(inp).on('select2:select', function () { doLookup(); });
+
+        // Reset verified state when selection is cleared
+        $(inp).on('select2:clear', function () {
             lookupDone = false;
             gradeRow.classList.add('d-none');
-            setInfoBox('danger', '<i class="bi bi-wifi-off me-1"></i>Network error. Please try again.');
-        }
-    }
+            infoBox.className = 'mb-3 d-none';
+            infoBox.innerHTML = '';
+        });
 
-    // Auto-lookup when user picks from dropdown (select2:select fires only on user interaction, not programmatic set)
-    $(inp).on('select2:select', function () { doLookup(); });
+        // OCR path: search button click still triggers lookup (button is hidden but clickable via JS)
+        searchBtn.addEventListener('click', doLookup);
 
-    // Reset verified state when selection is cleared
-    $(inp).on('select2:clear', function () {
-        lookupDone = false;
-        gradeRow.classList.add('d-none');
-        infoBox.className = 'mb-3 d-none';
-        infoBox.innerHTML = '';
+        // Submit button — show confirmation modal
+        document.getElementById('btnSubmitGateOut').addEventListener('click', function () {
+            if (!lookupDone) {
+                setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please select and confirm the container is in yard.');
+                $(inp).select2('open');
+                return;
+            }
+            const no = ($(inp).val() || '').trim().toUpperCase();
+            document.getElementById('confirmOutContainerNo').textContent = no;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmGateOutModal')).show();
+        });
+        document.getElementById('confirmGateOutBtn').addEventListener('click', function () {
+            bootstrap.Modal.getInstance(document.getElementById('confirmGateOutModal')).hide();
+            document.getElementById('btnSubmitGateOutReal').click();
+        });
+
+        // Fallback: enforce lookup check on form submit
+        document.getElementById('gateOutForm').addEventListener('submit', function (e) {
+            if (!lookupDone) { e.preventDefault(); setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please select and confirm the container is in yard.'); $(inp).select2('open'); }
+        }, true);
     });
-
-    // OCR path: search button click still triggers lookup (button is hidden but clickable via JS)
-    searchBtn.addEventListener('click', doLookup);
-
-    // Submit button — show confirmation modal
-    document.getElementById('btnSubmitGateOut').addEventListener('click', function () {
-        if (!lookupDone) {
-            setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please select and confirm the container is in yard.');
-            $(inp).select2('open');
-            return;
-        }
-        const no = ($(inp).val() || '').trim().toUpperCase();
-        document.getElementById('confirmOutContainerNo').textContent = no;
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmGateOutModal')).show();
-    });
-    document.getElementById('confirmGateOutBtn').addEventListener('click', function () {
-        bootstrap.Modal.getInstance(document.getElementById('confirmGateOutModal')).hide();
-        document.getElementById('btnSubmitGateOutReal').click();
-    });
-
-    // Fallback: enforce lookup check on form submit
-    document.getElementById('gateOutForm').addEventListener('submit', function (e) {
-        if (!lookupDone) { e.preventDefault(); setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please select and confirm the container is in yard.'); $(inp).select2('open'); }
-    }, true);
 })();
 
 // ── Container OCR Scan ───────────────────────────────────────────────────────
