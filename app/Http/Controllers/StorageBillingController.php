@@ -526,10 +526,15 @@ class StorageBillingController extends Controller
             ]),
         ];
 
-        return view('billing.ird-tax-invoice', $data);
-    }
+        $filename = 'TAX_INVOICE_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $data['ird_invoice_no']) . '.pdf';
 
-    // ── Printable / PDF ───────────────────────────────────────────────────────
+        return Pdf::loadView('billing.ird-tax-invoice-pdf', $data)
+            ->setPaper('a4', 'portrait')
+            ->set_option('defaultFont', 'Courier')
+            ->set_option('isHtml5ParserEnabled', true)
+            ->set_option('isRemoteEnabled', false)
+            ->stream($filename);
+    }
 
     public function pdf(StorageInvoice $invoice)
     {
