@@ -14,7 +14,11 @@ class NotificationService
         string  $type = 'info',
         ?string $url  = null
     ): void {
-        $user->notify(new SystemNotification($title, $body, $type, $url));
+        // Defer until after the HTTP response is sent so the WebSocket message
+        // arrives on the redirected page, not on the form page being left.
+        app()->terminating(
+            fn () => $user->notify(new SystemNotification($title, $body, $type, $url))
+        );
     }
 
     /** Notify all active users — use sparingly (iterates every user). */
