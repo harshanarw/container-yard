@@ -16,6 +16,17 @@
     $disp     = fn($lkr) => $dispCur === 'LKR' ? $lkr : round($lkr / $dispRate, 2);
     $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
     $fmtValue = fn($v)   => 'LKR ' . number_format($v ?? 0, 2);
+
+    $ssclRates = $invoice->details->map(fn ($d) => ($d->tax1_rate ?? 0) > 0 ? round((float) $d->tax1_rate, 2) : null)
+        ->filter()->unique()->sort()->values();
+    $vatRates  = $invoice->details->map(fn ($d) => ($d->tax2_rate ?? 0) > 0 ? round((float) $d->tax2_rate, 2) : null)
+        ->filter()->unique()->sort()->values();
+    $ssclLabel = $ssclRates->count() > 1
+        ? $ssclRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ')
+        : ($ssclRates->isNotEmpty() ? number_format($ssclRates->first(), 2) . '%' : number_format($invoice->sscl_percentage, 2) . '%');
+    $vatLabel  = $vatRates->count() > 1
+        ? $vatRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ')
+        : ($vatRates->isNotEmpty() ? number_format($vatRates->first(), 2) . '%' : number_format($invoice->vat_percentage, 2) . '%');
 @endphp
 
 @section('content')
@@ -249,13 +260,13 @@
                 </div>
                 @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
                 <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted">SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</span>
+                    <span class="text-muted">SSCL ({{ $ssclLabel }})</span>
                     <span>{{ $fmtDisp($invoice->sscl_amount) }}</span>
                 </div>
                 @endif
                 @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
                 <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted">VAT ({{ number_format($invoice->vat_percentage, 2) }}%)</span>
+                    <span class="text-muted">VAT ({{ $vatLabel }})</span>
                     <span>{{ $fmtDisp($invoice->vat_amount) }}</span>
                 </div>
                 @endif
@@ -385,7 +396,7 @@
                             @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
                             <tr class="fw-normal text-muted">
                                 <td class="ps-3" colspan="14" style="text-align:right">
-                                    SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)
+                                    SSCL ({{ $ssclLabel }})
                                 </td>
                                 <td class="text-end">{{ $fmtDisp($invoice->sscl_amount) }}</td>
                                 <td class="text-end pe-3 small">{{ $fmtValue($invoice->sscl_amount) }}</td>
@@ -394,7 +405,7 @@
                             @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
                             <tr class="fw-normal text-muted">
                                 <td class="ps-3" colspan="14" style="text-align:right">
-                                    VAT ({{ number_format($invoice->vat_percentage, 2) }}%)
+                                    VAT ({{ $vatLabel }})
                                 </td>
                                 <td class="text-end">{{ $fmtDisp($invoice->vat_amount) }}</td>
                                 <td class="text-end pe-3 small">{{ $fmtValue($invoice->vat_amount) }}</td>

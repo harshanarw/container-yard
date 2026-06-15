@@ -302,22 +302,36 @@ class RepairInvoiceController extends Controller
             'amount_excl_vat' => $l->line_amount ?? 0,
         ]);
 
+        $ssclRates = $invoice->lines->map(fn ($l) => ($l->tax1_rate ?? 0) > 0 ? round((float) $l->tax1_rate, 4) : null)
+            ->filter()->unique()->sort()->values();
+        $vatRates  = $invoice->lines->map(fn ($l) => ($l->tax2_rate ?? 0) > 0 ? round((float) $l->tax2_rate, 4) : null)
+            ->filter()->unique()->sort()->values();
+
+        $ssclLabel = $ssclRates->count() > 1
+            ? $ssclRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ')
+            : null;
+        $vatLabel  = $vatRates->count() > 1
+            ? $vatRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ')
+            : null;
+
         $data = [
-            'ird_invoice_no'   => $invoice->ird_invoice_no ?? '—',
-            'invoice_date'     => $invoice->invoice_date,
-            'company'          => $company,
-            'customer'         => $invoice->customer,
-            'lines'            => $lines,
-            'subtotal'         => $invoice->subtotal,
-            'sscl_amount'      => $invoice->sscl_total ?? 0,
-            'sscl_percentage'  => 0,
-            'vat_amount'       => $invoice->vat_total ?? 0,
-            'vat_percentage'   => $invoice->tax_percentage ?? 0,
-            'total_incl_vat'   => $invoice->grand_total,
-            'invoice_currency' => $invoice->currency,
-            'exchange_rate'    => null,
-            'invoice_no'       => $invoice->invoice_no,
-            'category_info'    => array_filter([
+            'ird_invoice_no'        => $invoice->ird_invoice_no ?? '—',
+            'invoice_date'          => $invoice->invoice_date,
+            'company'               => $company,
+            'customer'              => $invoice->customer,
+            'lines'                 => $lines,
+            'subtotal'              => $invoice->subtotal,
+            'sscl_amount'           => $invoice->sscl_total ?? 0,
+            'sscl_percentage'       => (float) ($ssclRates->first() ?? 0),
+            'sscl_percentage_label' => $ssclLabel,
+            'vat_amount'            => $invoice->vat_total ?? 0,
+            'vat_percentage'        => (float) ($vatRates->first() ?? $invoice->tax_percentage ?? 0),
+            'vat_percentage_label'  => $vatLabel,
+            'total_incl_vat'        => $invoice->grand_total,
+            'invoice_currency'      => $invoice->currency,
+            'exchange_rate'         => null,
+            'invoice_no'            => $invoice->invoice_no,
+            'category_info'         => array_filter([
                 'Category'      => 'Container Repair',
                 'Container No.' => $invoice->container_no,
                 'Work Order'    => $invoice->workOrder?->wo_no ?? ($invoice->work_order_id ? "WO-{$invoice->work_order_id}" : null),

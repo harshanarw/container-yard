@@ -2,6 +2,18 @@
 @section('title', 'Reefer Invoice ' . $reeferInvoice->invoice_no)
 
 @section('content')
+@php
+    $ssclRates = $reeferInvoice->lines->map(fn ($l) => ($l->tax1_rate ?? 0) > 0 ? round((float) $l->tax1_rate, 2) : null)
+        ->filter()->unique()->sort()->values();
+    $vatRates  = $reeferInvoice->lines->map(fn ($l) => ($l->tax2_rate ?? 0) > 0 ? round((float) $l->tax2_rate, 2) : null)
+        ->filter()->unique()->sort()->values();
+    $ssclLabel = $ssclRates->count() > 1
+        ? $ssclRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ')
+        : ($ssclRates->isNotEmpty() ? number_format($ssclRates->first(), 2) . '%' : number_format($reeferInvoice->sscl_percentage ?? 0, 2) . '%');
+    $vatLabel  = $vatRates->count() > 1
+        ? $vatRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ')
+        : ($vatRates->isNotEmpty() ? number_format($vatRates->first(), 2) . '%' : number_format($reeferInvoice->vat_percentage ?? 0, 2) . '%');
+@endphp
 <div class="d-flex align-items-center mb-4">
     <a href="{{ route('billing.reefer.index') }}" class="btn btn-outline-secondary btn-sm me-3">
         <i class="bi bi-arrow-left"></i>
@@ -101,11 +113,11 @@
                         <td class="text-end font-monospace">{{ $reeferInvoice->invoice_currency }} {{ number_format($reeferInvoice->subtotal, 2) }}</td>
                     </tr>
                     <tr>
-                        <td class="text-muted">SSCL ({{ $reeferInvoice->sscl_percentage }}%)</td>
+                        <td class="text-muted">SSCL ({{ $ssclLabel }})</td>
                         <td class="text-end font-monospace">{{ $reeferInvoice->invoice_currency }} {{ number_format($reeferInvoice->sscl_amount, 2) }}</td>
                     </tr>
                     <tr>
-                        <td class="text-muted">VAT ({{ $reeferInvoice->vat_percentage }}%)</td>
+                        <td class="text-muted">VAT ({{ $vatLabel }})</td>
                         <td class="text-end font-monospace">{{ $reeferInvoice->invoice_currency }} {{ number_format($reeferInvoice->vat_amount, 2) }}</td>
                     </tr>
                     <tr class="fw-bold border-top">
@@ -128,6 +140,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Container</th>
+                    <th>Charge Code</th>
                     <th>Plug-In</th>
                     <th>Plug-Out</th>
                     <th>Mode</th>
@@ -145,6 +158,16 @@
                 @foreach($reeferInvoice->lines as $line)
                 <tr>
                     <td class="font-monospace fw-medium">{{ $line->container_no }}</td>
+                    <td>
+                        @if($line->chargeCode)
+                            <span class="badge bg-primary-subtle text-primary border" style="font-size:.68rem;">{{ $line->chargeCode->code }}</span>
+                            @if($line->chargeCode->taxCode)
+                            <div class="text-muted" style="font-size:.65rem;">{{ $line->chargeCode->taxCode->code }}</div>
+                            @endif
+                        @else
+                            <span class="text-muted small">—</span>
+                        @endif
+                    </td>
                     <td class="small text-nowrap">{{ $line->plug_in_at?->format('d M Y H:i') ?? '—' }}</td>
                     <td class="small text-nowrap">{{ $line->plug_out_at?->format('d M Y H:i') ?? '—' }}</td>
                     <td>

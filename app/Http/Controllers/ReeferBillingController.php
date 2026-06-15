@@ -143,7 +143,7 @@ class ReeferBillingController extends Controller
 
     public function show(ReeferElectricityInvoice $reeferInvoice)
     {
-        $reeferInvoice->load(['customer', 'lines.plugSession', 'lines.chargeCode', 'createdBy']);
+        $reeferInvoice->load(['customer', 'lines.plugSession', 'lines.chargeCode.taxCode', 'createdBy']);
         return view('billing.reefer.show', compact('reeferInvoice'));
     }
 
@@ -255,24 +255,36 @@ class ReeferBillingController extends Controller
         $from = $reeferInvoice->billing_period_from?->format('d M Y');
         $to   = $reeferInvoice->billing_period_to?->format('d M Y');
 
+        $ssclRates = $reeferInvoice->lines->map(fn ($l) => ($l->tax1_rate ?? 0) > 0 ? round((float) $l->tax1_rate, 4) : null)
+            ->filter()->unique()->sort()->values();
+        $vatRates  = $reeferInvoice->lines->map(fn ($l) => ($l->tax2_rate ?? 0) > 0 ? round((float) $l->tax2_rate, 4) : null)
+            ->filter()->unique()->sort()->values();
+
+        $ssclLabel = $ssclRates->count() > 1
+            ? $ssclRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ')
+            : null;
+        $vatLabel  = $vatRates->count() > 1
+            ? $vatRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ')
+            : null;
+
         $data = [
-            'ird_invoice_no'   => $reeferInvoice->ird_invoice_no ?? '—',
-            'invoice_date'     => $reeferInvoice->invoice_date,
-            'company'          => $company,
-            'customer'         => $reeferInvoice->customer,
-            'lines'            => $lines,
-            'subtotal'         => $reeferInvoice->subtotal,
-            'sscl_amount'      => $reeferInvoice->sscl_amount ?? 0,
-            'sscl_percentage'  => (float) ($reeferInvoice->lines->firstWhere('tax1_rate', '>', 0)?->tax1_rate
-                                  ?? $reeferInvoice->sscl_percentage ?? 0),
-            'vat_amount'       => $reeferInvoice->vat_amount ?? 0,
-            'vat_percentage'   => (float) ($reeferInvoice->lines->firstWhere('tax2_rate', '>', 0)?->tax2_rate
-                                  ?? $reeferInvoice->vat_percentage ?? 0),
-            'total_incl_vat'   => $reeferInvoice->total_amount,
-            'invoice_currency' => $reeferInvoice->invoice_currency,
-            'exchange_rate'    => $reeferInvoice->exchange_rate,
-            'invoice_no'       => $reeferInvoice->invoice_no,
-            'category_info'    => array_filter([
+            'ird_invoice_no'        => $reeferInvoice->ird_invoice_no ?? '—',
+            'invoice_date'          => $reeferInvoice->invoice_date,
+            'company'               => $company,
+            'customer'              => $reeferInvoice->customer,
+            'lines'                 => $lines,
+            'subtotal'              => $reeferInvoice->subtotal,
+            'sscl_amount'           => $reeferInvoice->sscl_amount ?? 0,
+            'sscl_percentage'       => (float) ($ssclRates->first() ?? $reeferInvoice->sscl_percentage ?? 0),
+            'sscl_percentage_label' => $ssclLabel,
+            'vat_amount'            => $reeferInvoice->vat_amount ?? 0,
+            'vat_percentage'        => (float) ($vatRates->first() ?? $reeferInvoice->vat_percentage ?? 0),
+            'vat_percentage_label'  => $vatLabel,
+            'total_incl_vat'        => $reeferInvoice->total_amount,
+            'invoice_currency'      => $reeferInvoice->invoice_currency,
+            'exchange_rate'         => $reeferInvoice->exchange_rate,
+            'invoice_no'            => $reeferInvoice->invoice_no,
+            'category_info'         => array_filter([
                 'Category'          => 'Reefer Electricity',
                 'Billing Period'    => $from && $to ? "{$from} to {$to}" : null,
                 'No. of Sessions'   => $reeferInvoice->lines->count() . ' session(s)',

@@ -491,9 +491,10 @@ class StorageBillingController extends Controller
 
         $lines = $invoice->details->map(fn ($d) => [
             'reference'       => $d->container_no,
-            'description'     => 'Container Storage — ' . $eqtCode($d->equipment_type)
+            'description'     => 'CONTAINER STORAGE'
+                                 . (($eqt = trim($eqtCode($d->equipment_type) . ' ' . strtoupper($d->cargo_status ?? ''))) ? ' — ' . $eqt : '')
                                  . ' | ' . \Carbon\Carbon::parse($d->from_date)->format('d M Y')
-                                 . ' to ' . \Carbon\Carbon::parse($d->to_date)->format('d M Y'),
+                                 . ' TO ' . \Carbon\Carbon::parse($d->to_date)->format('d M Y'),
             'quantity'        => $d->chargeable_days,
             'unit_price'      => $d->daily_rate,
             'amount_excl_vat' => $d->subtotal,
@@ -502,27 +503,41 @@ class StorageBillingController extends Controller
         $from = $invoice->billing_period_from?->format('d M Y');
         $to   = $invoice->billing_period_to?->format('d M Y');
 
+        $ssclRates = $invoice->details->map(fn ($d) => ($d->tax1_rate ?? 0) > 0 ? round((float) $d->tax1_rate, 4) : null)
+            ->filter()->unique()->sort()->values();
+        $vatRates  = $invoice->details->map(fn ($d) => ($d->tax2_rate ?? 0) > 0 ? round((float) $d->tax2_rate, 4) : null)
+            ->filter()->unique()->sort()->values();
+
+        $ssclLabel = $ssclRates->count() > 1
+            ? $ssclRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ')
+            : null;
+        $vatLabel  = $vatRates->count() > 1
+            ? $vatRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ')
+            : null;
+
         $data = [
-            'ird_invoice_no'   => $invoice->ird_invoice_no ?? '—',
-            'invoice_date'     => $invoice->invoice_date,
-            'company'          => $company,
-            'customer'         => $invoice->customer,
-            'lines'            => $lines,
-            'subtotal'         => $invoice->subtotal,
-            'sscl_amount'      => $invoice->sscl_amount ?? 0,
-            'sscl_percentage'  => (float) ($invoice->details->firstWhere('tax1_rate', '>', 0)?->tax1_rate
-                                  ?? $invoice->sscl_percentage ?? 0),
-            'vat_amount'       => $invoice->vat_amount ?? 0,
-            'vat_percentage'   => (float) ($invoice->details->firstWhere('tax2_rate', '>', 0)?->tax2_rate
-                                  ?? $invoice->vat_percentage ?? 0),
-            'total_incl_vat'   => $invoice->total_amount,
-            'invoice_currency' => $invoice->invoice_currency,
-            'exchange_rate'    => $invoice->exchange_rate,
-            'invoice_no'       => $invoice->invoice_no,
-            'category_info'    => array_filter([
+            'ird_invoice_no'        => $invoice->ird_invoice_no ?? '—',
+            'invoice_date'          => $invoice->invoice_date,
+            'company'               => $company,
+            'customer'              => $invoice->customer,
+            'lines'                 => $lines,
+            'subtotal'              => $invoice->subtotal,
+            'sscl_amount'           => $invoice->sscl_amount ?? 0,
+            'sscl_percentage'       => (float) ($ssclRates->first() ?? $invoice->sscl_percentage ?? 0),
+            'sscl_percentage_label' => $ssclLabel,
+            'vat_amount'            => $invoice->vat_amount ?? 0,
+            'vat_percentage'        => (float) ($vatRates->first() ?? $invoice->vat_percentage ?? 0),
+            'vat_percentage_label'  => $vatLabel,
+            'total_incl_vat'        => $invoice->total_amount,
+            'invoice_currency'      => $invoice->invoice_currency,
+            'exchange_rate'         => $invoice->exchange_rate,
+            'invoice_no'            => $invoice->invoice_no,
+            'category_info'         => array_filter([
                 'Category'           => 'Container Storage',
                 'Billing Period'     => $from && $to ? "{$from} to {$to}" : null,
-                'No. of Containers'  => $invoice->details->count() . ' unit(s)',
+                'No. of Containers'  => $invoice->details
+                    ->filter(fn ($d) => ($d->subtotal ?? 0) > 0)
+                    ->pluck('container_no')->unique()->count() . ' unit(s)',
             ]),
         ];
 
