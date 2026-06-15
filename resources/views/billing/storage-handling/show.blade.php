@@ -26,6 +26,27 @@
     $disp     = fn($lkr) => $dispCur === 'LKR' ? $lkr : round($lkr / $dispRate, 2);
     $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
     $fmtValue = fn($v)   => 'LKR ' . number_format($v ?? 0, 2);
+
+    // Derive SSCL and VAT rate labels from all line-level charge codes.
+    // Storage and handling can carry different tax codes, so we collect every
+    // unique non-zero rate and show them all (e.g. "2.50%" or "2.50% / 1.00%").
+    $ssclRates = $invoice->lines->flatMap(fn($l) => [
+        ($l->tax1_rate ?? 0) > 0           ? (float) $l->tax1_rate          : null,
+        ($l->handling_tax1_rate ?? 0) > 0  ? (float) $l->handling_tax1_rate : null,
+    ])->filter()->unique()->sort()->values();
+
+    $vatRates = $invoice->lines->flatMap(fn($l) => [
+        ($l->tax2_rate ?? 0) > 0           ? (float) $l->tax2_rate          : null,
+        ($l->handling_tax2_rate ?? 0) > 0  ? (float) $l->handling_tax2_rate : null,
+    ])->filter()->unique()->sort()->values();
+
+    $ssclLabel = $ssclRates->isNotEmpty()
+        ? $ssclRates->map(fn($r) => number_format($r, 2) . '%')->implode(' / ')
+        : number_format($invoice->sscl_percentage ?? 0, 2) . '%';
+
+    $vatLabel = $vatRates->isNotEmpty()
+        ? $vatRates->map(fn($r) => number_format($r, 2) . '%')->implode(' / ')
+        : number_format($invoice->vat_percentage ?? 0, 2) . '%';
 @endphp
 
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
@@ -253,15 +274,15 @@
                     <span class="text-muted">Subtotal</span>
                     <span class="fw-semibold">{{ $fmtDisp($invoice->subtotal) }}</span>
                 </div>
-                @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
+                @if($invoice->sscl_amount > 0 || $ssclRates->isNotEmpty())
                 <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted">SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</span>
+                    <span class="text-muted">SSCL ({{ $ssclLabel }})</span>
                     <span>{{ $fmtDisp($invoice->sscl_amount) }}</span>
                 </div>
                 @endif
-                @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
+                @if($invoice->vat_amount > 0 || $vatRates->isNotEmpty())
                 <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted">VAT ({{ number_format($invoice->vat_percentage, 2) }}%)</span>
+                    <span class="text-muted">VAT ({{ $vatLabel }})</span>
                     <span>{{ $fmtDisp($invoice->vat_amount) }}</span>
                 </div>
                 @endif
@@ -687,16 +708,16 @@
                             <td class="text-end fw-semibold">{{ $fmtDisp($invoice->subtotal) }}</td>
                             <td class="text-end pe-3 text-muted small">{{ $fmtValue($invoice->subtotal) }}</td>
                         </tr>
-                        @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
+                        @if($invoice->sscl_amount > 0 || $ssclRates->isNotEmpty())
                         <tr>
-                            <td class="ps-3 text-muted">SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</td>
+                            <td class="ps-3 text-muted">SSCL ({{ $ssclLabel }})</td>
                             <td class="text-end">{{ $fmtDisp($invoice->sscl_amount) }}</td>
                             <td class="text-end pe-3 text-muted small">{{ $fmtValue($invoice->sscl_amount) }}</td>
                         </tr>
                         @endif
-                        @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
+                        @if($invoice->vat_amount > 0 || $vatRates->isNotEmpty())
                         <tr>
-                            <td class="ps-3 text-muted">VAT ({{ number_format($invoice->vat_percentage, 2) }}%)</td>
+                            <td class="ps-3 text-muted">VAT ({{ $vatLabel }})</td>
                             <td class="text-end">{{ $fmtDisp($invoice->vat_amount) }}</td>
                             <td class="text-end pe-3 text-muted small">{{ $fmtValue($invoice->vat_amount) }}</td>
                         </tr>
