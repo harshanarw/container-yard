@@ -247,27 +247,25 @@
     <div class="ai-lbl-row">Additional Information</div>
     <table class="ai-tbl">
         <colgroup>
-            <col style="width:15%">
+            <col style="width:14%">
             <col style="width:2%">
-            <col style="width:29%">
-            <col style="width:4%">
-            <col style="width:15%">
+            <col style="width:34%">
+            <col style="width:14%">
             <col style="width:2%">
-            <col style="width:33%">
+            <col style="width:34%">
         </colgroup>
         @foreach($renderPlan as $entry)
         @if($entry['type'] === 'full')
         <tr>
             <td class="ai-lbl-cell">{{ $entry['item']['label'] }}</td>
             <td class="ai-sep-cell">:</td>
-            <td colspan="5">{{ $entry['item']['value'] }}</td>
+            <td colspan="4">{{ $entry['item']['value'] }}</td>
         </tr>
         @else
         <tr>
             <td class="ai-lbl-cell">{{ $entry['left']['label'] }}</td>
             <td class="ai-sep-cell">:</td>
             <td>{{ $entry['left']['value'] }}</td>
-            <td></td>
             @if($entry['right'])
             <td class="ai-lbl-cell">{{ $entry['right']['label'] }}</td>
             <td class="ai-sep-cell">:</td>
