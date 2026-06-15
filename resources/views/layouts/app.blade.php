@@ -1944,7 +1944,7 @@
                     'key'      => $bcastKey,
                     'cluster'  => config('broadcasting.connections.pusher.options.cluster', 'mt1'),
                     'wsHost'   => config('broadcasting.connections.reverb.options.client_host', '127.0.0.1'),
-                    'wsPort'   => (int) config('broadcasting.connections.reverb.options.port', 8080),
+                    'wsPort'   => (int) config('broadcasting.connections.reverb.options.client_port', 443),
                     'forceTLS' => $isTls || $bcastDriver === 'pusher',
                     'userId'   => auth()->id(),
                 ];
