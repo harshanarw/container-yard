@@ -59,11 +59,11 @@
         .info-tbl { width: 100%; border-collapse: collapse; border: 1px solid #888; }
         .info-tbl td { padding: 5px 8px; border: 1px solid #888; vertical-align: top; font-size: 10px; }
         /* inline label : value on one line */
-        .cell-lbl { font-size: 8px; font-weight: bold; letter-spacing: 0.3px; }
-        .cell-sep { font-size: 8px; margin: 0 4px; }
+        .cell-lbl { font-size: 10px; font-weight: bold; letter-spacing: 0.3px; }
+        .cell-sep { font-size: 10px; margin: 0 4px; }
         .cell-val { font-weight: bold; font-size: 10px; }
         /* block label above multi-line content (Supplier / Purchaser) */
-        .block-lbl { font-size: 8px; font-weight: bold; letter-spacing: 0.3px; display: block; margin-bottom: 2px; }
+        .block-lbl { font-size: 10px; font-weight: bold; letter-spacing: 0.3px; display: block; margin-bottom: 2px; }
         .hg-block { font-size: 10px; line-height: 1.7; }
 
         /* ── Additional info ── */
