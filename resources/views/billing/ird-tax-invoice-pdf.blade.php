@@ -58,9 +58,13 @@
         /* ── Header info table (dates / supplier / purchaser) ── */
         .info-tbl { width: 100%; border-collapse: collapse; border: 1px solid #888; }
         .info-tbl td { padding: 5px 8px; border: 1px solid #888; vertical-align: top; font-size: 10px; }
-        .cell-lbl { font-size: 8px; font-weight: bold; letter-spacing: 0.3px; display: block; margin-bottom: 2px; }
-        .cell-val { font-weight: bold; }
-        .hg-block { font-size: 10px; line-height: 1.7; margin-top: 2px; }
+        /* inline label : value on one line */
+        .cell-lbl { font-size: 8px; font-weight: bold; letter-spacing: 0.3px; }
+        .cell-sep { font-size: 8px; margin: 0 4px; }
+        .cell-val { font-weight: bold; font-size: 10px; }
+        /* block label above multi-line content (Supplier / Purchaser) */
+        .block-lbl { font-size: 8px; font-weight: bold; letter-spacing: 0.3px; display: block; margin-bottom: 2px; }
+        .hg-block { font-size: 10px; line-height: 1.7; }
 
         /* ── Additional info ── */
         .ai-outer { border: 1px solid #888; border-top: none; margin-bottom: 8px; }
@@ -163,19 +167,17 @@
     {{-- Row 1: Date of Invoice | Tax Invoice No. --}}
     <tr>
         <td style="width:50%">
-            <span class="cell-lbl">Date of Invoice</span>
-            <span class="cell-val">{{ $inv_date_str }}</span>
+            <span class="cell-lbl">Date of Invoice</span><span class="cell-sep">:</span><span class="cell-val">{{ $inv_date_str }}</span>
         </td>
         <td style="width:50%;border-right:none">
-            <span class="cell-lbl">Tax Invoice No.</span>
-            <span class="cell-val" style="letter-spacing:.4px">{{ $ird_invoice_no }}</span>
+            <span class="cell-lbl">Tax Invoice No.</span><span class="cell-sep">:</span><span class="cell-val" style="letter-spacing:.4px">{{ $ird_invoice_no }}</span>
             @if($ird_invoice_no === '—')<div class="note">(IRD number assigned at issuance)</div>@endif
         </td>
     </tr>
     {{-- Row 2: Supplier | Purchaser --}}
     <tr>
         <td style="border-bottom:none">
-            <span class="cell-lbl">Supplier</span>
+            <span class="block-lbl">Supplier</span>
             <div class="hg-block">
                 @if($company->tin_number)<div><strong>TIN:</strong> {{ $company->tin_number }}</div>@endif
                 <div><strong>{{ $company->company_name }}</strong></div>
@@ -184,7 +186,7 @@
             </div>
         </td>
         <td style="border-bottom:none;border-right:none">
-            <span class="cell-lbl">Purchaser</span>
+            <span class="block-lbl">Purchaser</span>
             <div class="hg-block">
                 @if($customer?->tin_number)<div><strong>TIN:</strong> {{ $customer->tin_number }}</div>@endif
                 <div><strong>{{ $customer?->name ?? '—' }}</strong></div>
@@ -198,12 +200,10 @@
     {{-- Row 3: Date of Supply | Place of Supply --}}
     <tr>
         <td style="border-bottom:none">
-            <span class="cell-lbl">Date of Supply</span>
-            <span class="cell-val">{{ $inv_date_str }}</span>
+            <span class="cell-lbl">Date of Supply</span><span class="cell-sep">:</span><span class="cell-val">{{ $inv_date_str }}</span>
         </td>
         <td style="border-bottom:none;border-right:none">
-            <span class="cell-lbl">Place of Supply</span>
-            <span class="cell-val">&mdash;</span>
+            <span class="cell-lbl">Place of Supply</span><span class="cell-sep">:</span><span class="cell-val">&mdash;</span>
         </td>
     </tr>
 </table>
