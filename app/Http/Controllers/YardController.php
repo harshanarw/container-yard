@@ -28,7 +28,7 @@ class YardController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('can:yard.view')->only(['index', 'gate', 'storage', 'lookup', 'containerLookup', 'tariffLookup', 'slotsByZone', 'surveyLookup', 'gatePass', 'verifyGatePass']);
+        $this->middleware('can:yard.view')->only(['index', 'gate', 'storage', 'lookup', 'containerLookup', 'inYardSearch', 'tariffLookup', 'slotsByZone', 'surveyLookup', 'gatePass', 'verifyGatePass']);
         $this->middleware('can:yard.gate-in')->only(['gateIn']);
         $this->middleware('can:yard.gate-out')->only(['gateOut']);
         $this->middleware('can:yard.movement-edit')->only(['editMovement', 'updateMovement', 'destroyMovementPhoto']);
@@ -1119,6 +1119,31 @@ class YardController extends Controller
                 ? ((\App\Models\EquipmentType::VENTILATION_TYPES[$container->effective_ventilation_type] ?? $container->effective_ventilation_type)
                     . ($container->effective_vent_count > 0 ? ' · ' . $container->effective_vent_count . ' vents' : ''))
                 : null,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Gate-Out autocomplete: returns containers currently in yard matching query
+    // Used by Select2 on the Gate-Out container number field.
+    // -------------------------------------------------------------------------
+    public function inYardSearch(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $q = strtoupper(trim($request->query('q', '')));
+
+        $containers = Container::with(['customer', 'equipmentType'])
+            ->where('status', 'in_yard')
+            ->when($q, fn ($query) => $query->where('container_no', 'like', '%' . $q . '%'))
+            ->orderBy('container_no')
+            ->limit(25)
+            ->get();
+
+        return response()->json([
+            'results' => $containers->map(fn ($c) => [
+                'id'   => $c->container_no,
+                'text' => $c->container_no
+                    . ' — ' . ($c->customer->name ?? 'Unknown')
+                    . ' · '  . ($c->equipmentType->label ?? $c->equipmentType->code ?? ''),
+            ]),
         ]);
     }
 

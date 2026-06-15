@@ -870,12 +870,12 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Container Number <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <input type="text" name="container_no" class="form-control font-monospace text-uppercase"
-                                   placeholder="XXXX0000000" required id="containerSearch" maxlength="11" autocomplete="off">
+                            <select name="container_no" id="containerSearch" class="form-select" required style="min-width:0;flex:1;"></select>
                             <button type="button" class="btn btn-outline-secondary" id="ocrBtnOut" title="Scan container with camera">
                                 <i class="bi bi-camera" id="ocrIconOut"></i>
                             </button>
-                            <button type="button" class="btn btn-outline-primary" id="containerSearchBtn"><i class="bi bi-search"></i></button>
+                            {{-- Hidden — kept for OCR path which programmatically clicks it to trigger lookup --}}
+                            <button type="button" class="btn btn-outline-primary d-none" id="containerSearchBtn"><i class="bi bi-search"></i></button>
                         </div>
                         {{-- Hidden file input for Gate-Out OCR camera (trigger only) --}}
                         <input type="file" id="ocrInputOut" accept="image/*" capture="environment" class="d-none">
@@ -2188,13 +2188,38 @@ function initPhotoUploader(cfg) {
 initPhotoUploader({ fileInput: document.getElementById('inPhotoInput'), cameraInput: document.getElementById('inCameraInput'), browseBtn: document.getElementById('inBrowseBtn'), cameraBtn: document.getElementById('inCameraBtn'), dropZone: document.getElementById('inDropZone'), errorEl: document.getElementById('inPhotoError'), previewGrid: document.getElementById('inPhotoPreview'), counterEl: document.getElementById('inPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=in', max: 5 });
 initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraInput: document.getElementById('outCameraInput'), browseBtn: document.getElementById('outBrowseBtn'), cameraBtn: document.getElementById('outCameraBtn'), dropZone: document.getElementById('outDropZone'), errorEl: document.getElementById('outPhotoError'), previewGrid: document.getElementById('outPhotoPreview'), counterEl: document.getElementById('outPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=out', max: 5 });
 
-// ── Gate Out container AJAX lookup + submit confirmation ────────────────────
+// ── Gate Out container Select2 autocomplete + AJAX lookup + submit confirmation ──
 (function () {
     const inp = document.getElementById('containerSearch'), searchBtn = document.getElementById('containerSearchBtn');
     const infoBox = document.getElementById('containerInfoBox');
     const gradeRow = document.getElementById('outGradeRow');
     const gradeSelect = document.getElementById('outGradeSelect');
     let lookupDone = false;
+
+    // Initialise Select2 with AJAX source (in-yard containers only)
+    $(inp).select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Type to search containers in yard…',
+        allowClear: true,
+        minimumInputLength: 1,
+        ajax: {
+            url: '{{ route("yard.in-yard-search") }}',
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ q: params.term }),
+            processResults: data => data,
+            cache: true,
+        },
+        // Format each dropdown option with container number bold + metadata
+        templateResult: function (item) {
+            if (item.loading) return item.text;
+            const parts = item.text.split(' — ');
+            const $el = $('<span>');
+            $('<strong class="font-monospace">').text(parts[0]).appendTo($el);
+            if (parts[1]) $('<span class="text-muted ms-2 small">').text('— ' + parts[1]).appendTo($el);
+            return $el;
+        },
+    });
 
     function setInfoBox(type, html) {
         infoBox.className = 'mb-3 alert alert-' + type + ' small p-2';
@@ -2203,9 +2228,8 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     }
 
     async function doLookup() {
-        const val = inp.value.trim().toUpperCase();
-        if (val.length < 11) { setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Enter a full 11-character container number first.'); return; }
-        searchBtn.disabled = true; searchBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        const val = ($(inp).val() || '').trim().toUpperCase();
+        if (val.length < 11) { setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Select a container from the list first.'); return; }
         try {
             const res = await fetch('{{ route("yard.container-lookup") }}?container_no=' + encodeURIComponent(val));
             const data = await res.json();
@@ -2233,7 +2257,6 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                         ventInfo +
                     '</div>'
                 );
-                // Pre-select the container's current grade in the dropdown
                 if (gradeSelect) {
                     const gv = data.grade_id ? String(data.grade_id) : '';
                     if (typeof $ !== 'undefined') $(gradeSelect).val(gv).trigger('change');
@@ -2245,29 +2268,31 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             lookupDone = false;
             gradeRow.classList.add('d-none');
             setInfoBox('danger', '<i class="bi bi-wifi-off me-1"></i>Network error. Please try again.');
-        } finally {
-            searchBtn.disabled = false; searchBtn.innerHTML = '<i class="bi bi-search"></i>';
         }
     }
 
-    searchBtn.addEventListener('click', doLookup);
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doLookup(); } });
-    inp.addEventListener('input', function () {
-        if (lookupDone) {
-            lookupDone = false;
-            gradeRow.classList.add('d-none');
-            setInfoBox('info', '<i class="bi bi-info-circle me-1"></i>Container changed — search again to verify.');
-        }
+    // Auto-lookup when user picks from dropdown (select2:select fires only on user interaction, not programmatic set)
+    $(inp).on('select2:select', function () { doLookup(); });
+
+    // Reset verified state when selection is cleared
+    $(inp).on('select2:clear', function () {
+        lookupDone = false;
+        gradeRow.classList.add('d-none');
+        infoBox.className = 'mb-3 d-none';
+        infoBox.innerHTML = '';
     });
+
+    // OCR path: search button click still triggers lookup (button is hidden but clickable via JS)
+    searchBtn.addEventListener('click', doLookup);
 
     // Submit button — show confirmation modal
     document.getElementById('btnSubmitGateOut').addEventListener('click', function () {
         if (!lookupDone) {
-            setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please search and confirm the container is in yard.');
-            inp.focus();
+            setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please select and confirm the container is in yard.');
+            $(inp).select2('open');
             return;
         }
-        const no = inp.value.trim().toUpperCase();
+        const no = ($(inp).val() || '').trim().toUpperCase();
         document.getElementById('confirmOutContainerNo').textContent = no;
         bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmGateOutModal')).show();
     });
@@ -2276,9 +2301,9 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         document.getElementById('btnSubmitGateOutReal').click();
     });
 
-    // Fallback: if form somehow submits without button (e.g. Enter key), enforce lookup check
+    // Fallback: enforce lookup check on form submit
     document.getElementById('gateOutForm').addEventListener('submit', function (e) {
-        if (!lookupDone) { e.preventDefault(); setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please search and confirm the container is in yard.'); inp.focus(); }
+        if (!lookupDone) { e.preventDefault(); setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please select and confirm the container is in yard.'); $(inp).select2('open'); }
     }, true);
 })();
 
@@ -2405,9 +2430,17 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 if (infoReset) { infoReset.className = 'd-none'; infoReset.innerHTML = ''; }
             }
 
-            // Fill container number field and re-evaluate check-digit warning
-            containerInp.value = data.container_no;
-            containerInp.dispatchEvent(new Event('input'));
+            // Fill container number field and re-evaluate check-digit warning.
+            // Gate-Out uses a Select2 <select> — inject the option and select it programmatically.
+            // Gate-In uses a plain <input> — set value directly.
+            if (!isIn && typeof $ !== 'undefined' && $(containerInp).data('select2')) {
+                $(containerInp).empty()
+                    .append(new Option(data.container_no, data.container_no, true, true))
+                    .trigger('change');  // updates Select2 display; does NOT fire select2:select (no double-lookup)
+            } else {
+                containerInp.value = data.container_no;
+                containerInp.dispatchEvent(new Event('input'));
+            }
             if (window.reCheckDigitWarnings) window.reCheckDigitWarnings();
 
             // Show amber "Please verify" badge when OCR couldn't confirm the check digit
@@ -2609,7 +2642,8 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         }
     });
 
-    document.getElementById('containerSearch').addEventListener('input', function () {
+    // Gate-Out uses Select2 — listen on 'change' (fires on any value change including clear)
+    $('#containerSearch').on('change', function () {
         hideOcrResult(document.getElementById('ocrResultOut'));
     });
 

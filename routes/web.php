@@ -141,6 +141,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/container/{containerNo}', [YardController::class, 'lookup'])->name('container.lookup');
         Route::get('/tariff/{customerId}', [YardController::class, 'tariffLookup'])->name('tariff.lookup');
         Route::get('/container-lookup',    [YardController::class, 'containerLookup'])->name('container-lookup');
+        Route::get('/in-yard-search',      [YardController::class, 'inYardSearch'])->name('in-yard-search');
         Route::get('/zones/{zone}/slots',  [YardController::class, 'slotsByZone'])->name('zones.slots');
         Route::get('/survey/{survey}', [YardController::class, 'surveyLookup'])->name('survey.lookup');
         Route::post('/ocr-scan',       [ContainerOcrController::class, 'process'])->name('ocr-scan');
