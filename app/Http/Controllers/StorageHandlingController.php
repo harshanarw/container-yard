@@ -185,9 +185,12 @@ class StorageHandlingController extends Controller
             $freeDays     = $storageTariff?->default_free_days ?? $storage->free_days ?? 0;
             $storageRate  = 0.0;
             $storageCur   = 'USD';
-            $chargeCodeId = null;
-            $tax1Rate     = $taxExempt ? 0.0 : $ssclPct;  // fallback
-            $tax2Rate     = $taxExempt ? 0.0 : $vatPct;   // fallback
+            $chargeCodeId         = null;
+            $tax1Rate             = $taxExempt ? 0.0 : $ssclPct;  // storage fallback
+            $tax2Rate             = $taxExempt ? 0.0 : $vatPct;   // storage fallback
+            $handlingChargeCodeId = null;
+            $handlingTax1Rate     = $taxExempt ? 0.0 : $ssclPct;  // handling fallback
+            $handlingTax2Rate     = $taxExempt ? 0.0 : $vatPct;   // handling fallback
 
             if ($storageTariff) {
                 $detail = $storageTariff->details
@@ -207,20 +210,6 @@ class StorageHandlingController extends Controller
             } else {
                 $storageRate = (float) $storage->daily_rate;
                 $freeDays    = (int)   ($storage->free_days ?? 0);
-            }
-
-            // If storage has no charge code, try the handling tariff's charge code
-            if ($chargeCodeId === null && $handlingTariff && ! $taxExempt) {
-                $containerSize = $this->normalizeSize($container->size ?? '');
-                $hRate = $handlingTariff->rates
-                    ->where('container_size', $containerSize)
-                    ->where('cargo_status', $cargoStatus)
-                    ->first();
-                if ($hRate?->chargeCode?->taxCode) {
-                    $chargeCodeId = $hRate->charge_code_id;
-                    $tax1Rate     = (float) $hRate->chargeCode->taxCode->tax1_rate;
-                    $tax2Rate     = (float) $hRate->chargeCode->taxCode->tax2_rate;
-                }
             }
 
             $freeDaysRemaining = max(0, $freeDays - $daysBeforePeriod);
@@ -256,6 +245,12 @@ class StorageHandlingController extends Controller
                     $handlingMult   = CurrencyService::tariffMultiplier($handlingCur, $exchangeRate);
                     $liftOffRate = round($liftOffRateUsd * $handlingMult, 2);
                     $liftOnRate  = round($liftOnRateUsd  * $handlingMult, 2);
+                    // Capture handling charge code and tax rates separately from storage
+                    $handlingChargeCodeId = $hRate->charge_code_id;
+                    if (! $taxExempt && $hRate->chargeCode?->taxCode) {
+                        $handlingTax1Rate = (float) $hRate->chargeCode->taxCode->tax1_rate;
+                        $handlingTax2Rate = (float) $hRate->chargeCode->taxCode->tax2_rate;
+                    }
                 }
             }
 
@@ -263,9 +258,15 @@ class StorageHandlingController extends Controller
                 ($hasLiftOff ? $liftOffRate : 0.0) + ($hasLiftOn ? $liftOnRate : 0.0),
                 2
             );
-            $lineTotal      = round($storageSubtotal + $handlingSubtotal, 2);
-            $lineSscl       = round($lineTotal * $tax1Rate / 100, 2);
-            $lineVat        = round(($lineTotal + $lineSscl) * $tax2Rate / 100, 2);
+            $lineTotal = round($storageSubtotal + $handlingSubtotal, 2);
+
+            // Calculate taxes separately so each portion uses its own charge code's rates
+            $storageSscl  = round($storageSubtotal  * $tax1Rate         / 100, 2);
+            $storageVat   = round(($storageSubtotal  + $storageSscl)  * $tax2Rate         / 100, 2);
+            $handlingSscl = round($handlingSubtotal * $handlingTax1Rate / 100, 2);
+            $handlingVat  = round(($handlingSubtotal + $handlingSscl) * $handlingTax2Rate / 100, 2);
+            $lineSscl       = round($storageSscl  + $handlingSscl, 2);
+            $lineVat        = round($storageVat   + $handlingVat,  2);
             $lineGrandTotal = round($lineTotal + $lineSscl + $lineVat, 2);
             // Value = default-currency (LKR) amount; Amount = invoice-currency amount
             $lineValue  = $lineGrandTotal;
@@ -314,6 +315,9 @@ class StorageHandlingController extends Controller
                 'charge_code_id'           => $chargeCodeId,
                 'tax1_rate'                => $tax1Rate,
                 'tax2_rate'                => $tax2Rate,
+                'handling_charge_code_id'  => $handlingChargeCodeId,
+                'handling_tax1_rate'       => $handlingTax1Rate,
+                'handling_tax2_rate'       => $handlingTax2Rate,
                 'line_total'               => $lineTotal,
                 'line_sscl'                => $lineSscl,
                 'line_vat'                 => $lineVat,
@@ -398,6 +402,9 @@ class StorageHandlingController extends Controller
             'lines.*.charge_code_id'              => 'nullable|integer',
             'lines.*.tax1_rate'                   => 'nullable|numeric|min:0',
             'lines.*.tax2_rate'                   => 'nullable|numeric|min:0',
+            'lines.*.handling_charge_code_id'     => 'nullable|integer',
+            'lines.*.handling_tax1_rate'          => 'nullable|numeric|min:0',
+            'lines.*.handling_tax2_rate'          => 'nullable|numeric|min:0',
             'lines.*.line_total'                  => 'required|numeric|min:0',
             'lines.*.line_sscl'                   => 'required|numeric|min:0',
             'lines.*.line_vat'                    => 'required|numeric|min:0',
@@ -479,6 +486,9 @@ class StorageHandlingController extends Controller
                     'charge_code_id'           => ($line['charge_code_id'] ?? null) ?: null,
                     'tax1_rate'                => $line['tax1_rate'] ?? 0,
                     'tax2_rate'                => $line['tax2_rate'] ?? 0,
+                    'handling_charge_code_id'  => ($line['handling_charge_code_id'] ?? null) ?: null,
+                    'handling_tax1_rate'       => $line['handling_tax1_rate'] ?? 0,
+                    'handling_tax2_rate'       => $line['handling_tax2_rate'] ?? 0,
                     'line_total'               => $line['line_total'],
                     'line_sscl'                => $line['line_sscl'],
                     'line_vat'                 => $line['line_vat'],
