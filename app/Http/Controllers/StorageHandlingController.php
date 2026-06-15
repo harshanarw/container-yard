@@ -630,16 +630,8 @@ class StorageHandlingController extends Controller
             }
         }
 
-        // ── Combine with section headers ──────────────────────────────────────
-        $lines = collect();
-        if ($storageLines->isNotEmpty()) {
-            $lines->push(['section_header' => 'Storage Charges']);
-            $lines = $lines->concat($storageLines);
-        }
-        if ($handlingLines->isNotEmpty()) {
-            $lines->push(['section_header' => 'Handling Charges — LOLO (Lift-On / Lift-Off)']);
-            $lines = $lines->concat($handlingLines);
-        }
+        // ── Combine: storage lines first, then LOLO lines ────────────────────
+        $lines = $storageLines->concat($handlingLines);
 
         // ── Derive rate labels from all line-level charge codes ───────────────
         $invoiceLines = $storageHandlingInvoice->lines;

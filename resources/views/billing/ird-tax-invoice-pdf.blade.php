@@ -88,11 +88,6 @@
         .inv-table tfoot tr.sscl-row td { background: #f8f8f8; font-size: 9.5px; }
         .inv-table tfoot tr.vat-row td  { background: #f0f0f0; }
         .inv-table tfoot tr.grand-row td { background: #e4e4e4; font-weight: bold; font-size: 11px; }
-        /* Section header row inside the line-items tbody */
-        .inv-table tr.section-hdr td {
-            background: #e8eef4; font-weight: bold; font-size: 8.5px;
-            letter-spacing: 0.5px; padding: 3px 6px; border: 1px solid #888;
-        }
 
         /* ── Footer boxes ── */
         .footer-box { border: 1px solid #888; border-top: none; padding: 5px 8px; font-size: 10px; }
@@ -275,14 +270,7 @@
         </tr>
     </thead>
     <tbody>
-        @php $hasLines = false; @endphp
-        @foreach($lines as $line)
-        @if(!empty($line['section_header']))
-        <tr class="section-hdr">
-            <td colspan="5">{{ strtoupper($line['section_header']) }}</td>
-        </tr>
-        @else
-        @php $hasLines = true; @endphp
+        @forelse($lines as $line)
         <tr>
             <td>{{ $line['reference'] ?? '—' }}</td>
             <td>{{ $line['description'] }}</td>
@@ -290,11 +278,9 @@
             <td class="r">{{ number_format($line['unit_price'], 2) }}</td>
             <td class="r">{{ number_format($line['amount_excl_vat'], 2) }}</td>
         </tr>
-        @endif
-        @endforeach
-        @if(!$hasLines)
+        @empty
         <tr><td colspan="5" style="text-align:center;font-style:italic">No line items</td></tr>
-        @endif
+        @endforelse
     </tbody>
     <tfoot>
         @php
