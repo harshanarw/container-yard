@@ -88,6 +88,11 @@
         .inv-table tfoot tr.sscl-row td { background: #f8f8f8; font-size: 9.5px; }
         .inv-table tfoot tr.vat-row td  { background: #f0f0f0; }
         .inv-table tfoot tr.grand-row td { background: #e4e4e4; font-weight: bold; font-size: 11px; }
+        /* Section header row inside the line-items tbody */
+        .inv-table tr.section-hdr td {
+            background: #e8eef4; font-weight: bold; font-size: 8.5px;
+            letter-spacing: 0.5px; padding: 3px 6px; border: 1px solid #888;
+        }
 
         /* ── Footer boxes ── */
         .footer-box { border: 1px solid #888; border-top: none; padding: 5px 8px; font-size: 10px; }
@@ -270,7 +275,14 @@
         </tr>
     </thead>
     <tbody>
-        @forelse($lines as $line)
+        @php $hasLines = false; @endphp
+        @foreach($lines as $line)
+        @if(!empty($line['section_header']))
+        <tr class="section-hdr">
+            <td colspan="5">{{ strtoupper($line['section_header']) }}</td>
+        </tr>
+        @else
+        @php $hasLines = true; @endphp
         <tr>
             <td>{{ $line['reference'] ?? '—' }}</td>
             <td>{{ $line['description'] }}</td>
@@ -278,11 +290,21 @@
             <td class="r">{{ number_format($line['unit_price'], 2) }}</td>
             <td class="r">{{ number_format($line['amount_excl_vat'], 2) }}</td>
         </tr>
-        @empty
+        @endif
+        @endforeach
+        @if(!$hasLines)
         <tr><td colspan="5" style="text-align:center;font-style:italic">No line items</td></tr>
-        @endforelse
+        @endif
     </tbody>
     <tfoot>
+        @php
+            // Use passed-in label strings when available (e.g. when rates differ across charge codes),
+            // otherwise fall back to the numeric percentage fields.
+            $ssclPctDisplay = $sscl_percentage_label
+                ?? ($sscl_percentage > 0 ? number_format($sscl_percentage, 2) . '%' : null);
+            $vatPctDisplay  = $vat_percentage_label
+                ?? number_format($vat_percentage, 2) . '%';
+        @endphp
         <tr class="sep-row">
             <td colspan="4" style="text-align:right;font-weight:bold">Total Value of Supply (Excl. VAT) &mdash; Rs.:</td>
             <td class="r" style="font-weight:bold">{{ number_format($subtotal + ($sscl_amount ?? 0), 2) }}</td>
@@ -295,14 +317,14 @@
         <tr class="sscl-row">
             <td colspan="4" style="text-align:right">
                 &nbsp;&nbsp;&nbsp;Social Security Contribution Levy
-                (SSCL{{ $sscl_percentage > 0 ? ' @ ' . number_format($sscl_percentage, 2) . '%' : '' }}) &mdash; Rs.:
+                (SSCL{{ $ssclPctDisplay ? ' @ ' . $ssclPctDisplay : '' }}) &mdash; Rs.:
             </td>
             <td class="r">{{ number_format($sscl_amount, 2) }}</td>
         </tr>
         @endif
         <tr class="vat-row">
             <td colspan="4" style="text-align:right">
-                VAT Amount &mdash; Total Value of Supply @ <strong>{{ number_format($vat_percentage, 2) }}%</strong> &mdash; Rs.:
+                VAT Amount &mdash; Total Value of Supply @ <strong>{{ $vatPctDisplay }}</strong> &mdash; Rs.:
             </td>
             <td class="r">{{ number_format($vat_amount, 2) }}</td>
         </tr>

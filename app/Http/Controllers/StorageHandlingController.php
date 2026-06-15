@@ -582,43 +582,102 @@ class StorageHandlingController extends Controller
 
     public function irdPrint(StorageHandlingInvoice $storageHandlingInvoice)
     {
-        $storageHandlingInvoice->load(['shippingLine', 'billingParty', 'lines', 'createdBy']);
+        $storageHandlingInvoice->load(['shippingLine', 'billingParty', 'lines.chargeCode', 'lines.handlingChargeCode', 'createdBy']);
         $company = CompanySetting::current();
 
-        $eqtCode = fn ($label) => trim(explode(' — ', $label ?? '')[0]) ?: '—';
+        $eqtCode = fn ($label) => trim(explode(' — ', $label ?? '')[0]) ?: '';
 
-        $lines = $storageHandlingInvoice->lines->map(fn ($l) => [
-            'reference'       => $l->container_no,
-            'description'     => 'Storage & Handling — ' . $eqtCode($l->equipment_type ?? $l->container_no)
-                                 . ' | ' . \Carbon\Carbon::parse($l->storage_from)->format('d M Y')
-                                 . ' to ' . \Carbon\Carbon::parse($l->storage_to)->format('d M Y'),
-            'quantity'        => $l->storage_chargeable_days ?? 1,
-            'unit_price'      => ($l->storage_subtotal + $l->handling_subtotal) / max(1, $l->storage_chargeable_days ?? 1),
-            'amount_excl_vat' => $l->storage_subtotal + $l->handling_subtotal,
-        ]);
+        // ── Build storage lines ───────────────────────────────────────────────
+        $storageLines = $storageHandlingInvoice->lines
+            ->filter(fn ($l) => ($l->storage_subtotal ?? 0) > 0 || ($l->storage_chargeable_days ?? 0) > 0)
+            ->map(fn ($l) => [
+                'reference'       => $l->container_no,
+                'description'     => implode(' — ', array_filter([
+                                         $l->chargeCode?->code,
+                                         'CONTAINER STORAGE',
+                                         trim($eqtCode($l->equipment_type) . ' ' . strtoupper($l->cargo_status ?? '')),
+                                     ])) . ' | '
+                                     . \Carbon\Carbon::parse($l->storage_from)->format('d M Y')
+                                     . ' TO ' . \Carbon\Carbon::parse($l->storage_to)->format('d M Y'),
+                'quantity'        => $l->storage_chargeable_days ?? 0,
+                'unit_price'      => $l->storage_daily_rate ?? 0,
+                'amount_excl_vat' => $l->storage_subtotal ?? 0,
+            ]);
+
+        // ── Build handling (LOLO) lines — separate lift-off and lift-on ───────
+        $handlingLines = collect();
+        foreach ($storageHandlingInvoice->lines as $l) {
+            $ccCode  = $l->handlingChargeCode?->code;
+            $eqtDesc = trim($eqtCode($l->equipment_type) . ' ' . strtoupper($l->cargo_status ?? ''));
+
+            if ($l->has_lift_off && ($l->lift_off_rate ?? 0) > 0) {
+                $handlingLines->push([
+                    'reference'       => $l->container_no,
+                    'description'     => implode(' — ', array_filter([$ccCode, 'LIFT-OFF (GATE-IN)', $eqtDesc])),
+                    'quantity'        => 1,
+                    'unit_price'      => $l->lift_off_rate,
+                    'amount_excl_vat' => $l->lift_off_rate,
+                ]);
+            }
+            if ($l->has_lift_on && ($l->lift_on_rate ?? 0) > 0) {
+                $handlingLines->push([
+                    'reference'       => $l->container_no,
+                    'description'     => implode(' — ', array_filter([$ccCode, 'LIFT-ON (GATE-OUT)', $eqtDesc])),
+                    'quantity'        => 1,
+                    'unit_price'      => $l->lift_on_rate,
+                    'amount_excl_vat' => $l->lift_on_rate,
+                ]);
+            }
+        }
+
+        // ── Combine with section headers ──────────────────────────────────────
+        $lines = collect();
+        if ($storageLines->isNotEmpty()) {
+            $lines->push(['section_header' => 'Storage Charges']);
+            $lines = $lines->concat($storageLines);
+        }
+        if ($handlingLines->isNotEmpty()) {
+            $lines->push(['section_header' => 'Handling Charges — LOLO (Lift-On / Lift-Off)']);
+            $lines = $lines->concat($handlingLines);
+        }
+
+        // ── Derive rate labels from all line-level charge codes ───────────────
+        $invoiceLines = $storageHandlingInvoice->lines;
+        $ssclRates = $invoiceLines->flatMap(fn ($l) => [
+            ($l->tax1_rate ?? 0) > 0          ? round((float)$l->tax1_rate, 4)          : null,
+            ($l->handling_tax1_rate ?? 0) > 0  ? round((float)$l->handling_tax1_rate, 4) : null,
+        ])->filter()->unique()->sort()->values();
+        $vatRates = $invoiceLines->flatMap(fn ($l) => [
+            ($l->tax2_rate ?? 0) > 0          ? round((float)$l->tax2_rate, 4)          : null,
+            ($l->handling_tax2_rate ?? 0) > 0  ? round((float)$l->handling_tax2_rate, 4) : null,
+        ])->filter()->unique()->sort()->values();
 
         $from         = $storageHandlingInvoice->billing_period_from?->format('d M Y');
         $to           = $storageHandlingInvoice->billing_period_to?->format('d M Y');
         $shippingLine = $storageHandlingInvoice->shippingLine ?? $storageHandlingInvoice->billingParty;
 
         $data = [
-            'ird_invoice_no'   => $storageHandlingInvoice->ird_invoice_no ?? '—',
-            'invoice_date'     => $storageHandlingInvoice->invoice_date,
-            'company'          => $company,
-            'customer'         => $shippingLine,
-            'lines'            => $lines,
-            'subtotal'         => $storageHandlingInvoice->subtotal,
-            'sscl_amount'      => $storageHandlingInvoice->sscl_amount ?? 0,
-            'sscl_percentage'  => (float) ($storageHandlingInvoice->lines->firstWhere('tax1_rate', '>', 0)?->tax1_rate
-                                  ?? $storageHandlingInvoice->sscl_percentage ?? 0),
-            'vat_amount'       => $storageHandlingInvoice->vat_amount ?? 0,
-            'vat_percentage'   => (float) ($storageHandlingInvoice->lines->firstWhere('tax2_rate', '>', 0)?->tax2_rate
-                                  ?? $storageHandlingInvoice->vat_percentage ?? 0),
-            'total_incl_vat'   => $storageHandlingInvoice->total_amount,
-            'invoice_currency' => $storageHandlingInvoice->invoice_currency,
-            'exchange_rate'    => $storageHandlingInvoice->exchange_rate,
-            'invoice_no'       => $storageHandlingInvoice->invoice_no,
-            'category_info'    => array_filter([
+            'ird_invoice_no'        => $storageHandlingInvoice->ird_invoice_no ?? '—',
+            'invoice_date'          => $storageHandlingInvoice->invoice_date,
+            'company'               => $company,
+            'customer'              => $shippingLine,
+            'lines'                 => $lines,
+            'subtotal'              => $storageHandlingInvoice->subtotal,
+            'sscl_amount'           => $storageHandlingInvoice->sscl_amount ?? 0,
+            'sscl_percentage'       => (float) ($ssclRates->first() ?? $storageHandlingInvoice->sscl_percentage ?? 0),
+            'sscl_percentage_label' => $ssclRates->isNotEmpty()
+                                        ? $ssclRates->map(fn($r) => number_format($r, 2).'%')->implode(' / ')
+                                        : null,
+            'vat_amount'            => $storageHandlingInvoice->vat_amount ?? 0,
+            'vat_percentage'        => (float) ($vatRates->first() ?? $storageHandlingInvoice->vat_percentage ?? 0),
+            'vat_percentage_label'  => $vatRates->isNotEmpty()
+                                        ? $vatRates->map(fn($r) => number_format($r, 2).'%')->implode(' / ')
+                                        : null,
+            'total_incl_vat'        => $storageHandlingInvoice->total_amount,
+            'invoice_currency'      => $storageHandlingInvoice->invoice_currency,
+            'exchange_rate'         => $storageHandlingInvoice->exchange_rate,
+            'invoice_no'            => $storageHandlingInvoice->invoice_no,
+            'category_info'         => array_filter([
                 'Category'          => 'Storage & Handling',
                 'Billing Period'    => $from && $to ? "{$from} to {$to}" : null,
                 'Shipping Line'     => $shippingLine?->name,
