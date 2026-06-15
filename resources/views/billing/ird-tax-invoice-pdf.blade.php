@@ -11,20 +11,26 @@
             font-size: 10px;
             color: #111;
             text-transform: uppercase;
+            /* leave room at the bottom so content never hides under the fixed footer */
+            padding-bottom: 14mm;
         }
 
-        @page { margin: 10mm 10mm 20mm; size: A4 portrait; }
+        @page { margin: 15mm 15mm 25mm; size: A4 portrait; }
 
-        /* ── Page footer: fixed to bottom, prints on every page ── */
+        /* ── Page footer: fixed to bottom of every page ─────────────
+           bottom: 0 = bottom of content area (above @page bottom margin).
+           background: #fff prevents content showing through on dense pages. ── */
         .page-footer {
             position: fixed;
-            bottom: -14mm;
+            bottom: 0;
             left: 0;
             right: 0;
             border-top: 1px solid #888;
             padding-top: 4px;
+            padding-bottom: 2px;
             font-size: 8px;
             text-transform: none;
+            background: #fff;
         }
         .pf-row { width: 100%; border-collapse: collapse; }
         .pf-row td { padding: 0; font-size: 8px; }
