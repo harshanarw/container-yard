@@ -26,7 +26,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register WebSocket channel auth route + channel definitions
         if (config('broadcasting.default') !== 'null') {
-            Broadcast::routes(['middleware' => ['auth']]);
+            Broadcast::routes(['middleware' => ['web', 'auth']]);
             if (file_exists(base_path('routes/channels.php'))) {
                 require base_path('routes/channels.php');
             }
