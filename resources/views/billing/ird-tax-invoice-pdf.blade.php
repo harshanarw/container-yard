@@ -222,9 +222,11 @@
     }
     $allInfo[] = ['label' => 'SYSTEM REF.', 'value' => strtoupper($invoice_no)];
 
-    $shortItems = array_values(array_filter($allInfo, fn($i) => strlen($i['value']) <= 16));
-    $longItems  = array_values(array_filter($allInfo, fn($i) => strlen($i['value']) >  16));
-    $shortRows  = array_chunk($shortItems, 3);
+    // Short: value fits in a half-row column (value ≤ 12 chars AND label ≤ 10 chars).
+    // Anything with a longer label or value gets a full row so it never wraps.
+    $shortItems = array_values(array_filter($allInfo, fn($i) => strlen($i['value']) <= 12 && strlen($i['label']) <= 10));
+    $longItems  = array_values(array_filter($allInfo, fn($i) => strlen($i['value']) >  12 || strlen($i['label']) >  10));
+    $shortRows  = array_chunk($shortItems, 2);
 @endphp
 <div class="ai-outer">
     <div class="ai-lbl-row">Additional Information</div>
@@ -234,9 +236,9 @@
             @foreach($row as $item)
             <td class="ai-lbl-cell">{{ $item['label'] }}</td>
             <td class="ai-sep-cell">:</td>
-            <td style="width:{{ intval(80 / 3) }}%">{{ $item['value'] }}</td>
+            <td style="width:40%">{{ $item['value'] }}</td>
             @endforeach
-            @for($f = count($row); $f < 3; $f++)
+            @for($f = count($row); $f < 2; $f++)
             <td></td><td></td><td></td>
             @endfor
         </tr>
@@ -245,7 +247,7 @@
         <tr>
             <td class="ai-lbl-cell">{{ $item['label'] }}</td>
             <td class="ai-sep-cell">:</td>
-            <td colspan="7">{{ $item['value'] }}</td>
+            <td colspan="4">{{ $item['value'] }}</td>
         </tr>
         @endforeach
     </table>
