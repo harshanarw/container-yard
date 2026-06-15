@@ -222,32 +222,44 @@
     }
     $allInfo[] = ['label' => 'SYSTEM REF.', 'value' => strtoupper($invoice_no)];
 
-    // Short: value fits in a half-row column (value ≤ 12 chars AND label ≤ 10 chars).
-    // Anything with a longer label or value gets a full row so it never wraps.
-    $shortItems = array_values(array_filter($allInfo, fn($i) => strlen($i['value']) <= 12 && strlen($i['label']) <= 10));
-    $longItems  = array_values(array_filter($allInfo, fn($i) => strlen($i['value']) >  12 || strlen($i['label']) >  10));
-    $shortRows  = array_chunk($shortItems, 2);
+    // Split evenly into left and right columns
+    $half     = (int) ceil(count($allInfo) / 2);
+    $leftCol  = array_slice($allInfo, 0, $half);
+    $rightCol = array_slice($allInfo, $half);
+    $infoRows = [];
+    for ($i = 0; $i < $half; $i++) {
+        $infoRows[] = ['left' => $leftCol[$i] ?? null, 'right' => $rightCol[$i] ?? null];
+    }
 @endphp
 <div class="ai-outer">
     <div class="ai-lbl-row">Additional Information</div>
     <table class="ai-tbl">
-        @foreach($shortRows as $row)
+        <colgroup>
+            <col style="width:15%">
+            <col style="width:2%">
+            <col style="width:29%">
+            <col style="width:4%">
+            <col style="width:15%">
+            <col style="width:2%">
+            <col style="width:33%">
+        </colgroup>
+        @foreach($infoRows as $row)
         <tr>
-            @foreach($row as $item)
-            <td class="ai-lbl-cell">{{ $item['label'] }}</td>
+            @if($row['left'])
+            <td class="ai-lbl-cell">{{ $row['left']['label'] }}</td>
             <td class="ai-sep-cell">:</td>
-            <td style="width:40%">{{ $item['value'] }}</td>
-            @endforeach
-            @for($f = count($row); $f < 2; $f++)
-            <td></td><td></td><td></td>
-            @endfor
-        </tr>
-        @endforeach
-        @foreach($longItems as $item)
-        <tr>
-            <td class="ai-lbl-cell">{{ $item['label'] }}</td>
+            <td>{{ $row['left']['value'] }}</td>
+            @else
+            <td colspan="3"></td>
+            @endif
+            <td></td>
+            @if($row['right'])
+            <td class="ai-lbl-cell">{{ $row['right']['label'] }}</td>
             <td class="ai-sep-cell">:</td>
-            <td colspan="4">{{ $item['value'] }}</td>
+            <td>{{ $row['right']['value'] }}</td>
+            @else
+            <td colspan="3"></td>
+            @endif
         </tr>
         @endforeach
     </table>

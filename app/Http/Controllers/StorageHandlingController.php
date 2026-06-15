@@ -669,7 +669,9 @@ class StorageHandlingController extends Controller
                 'Category'          => 'Storage & Handling',
                 'Billing Period'    => $from && $to ? "{$from} to {$to}" : null,
                 'Shipping Line'     => $shippingLine?->name,
-                'No. of Containers' => $storageHandlingInvoice->lines->count() . ' unit(s)',
+                'No. of Containers' => $storageHandlingInvoice->lines
+                    ->filter(fn($l) => ($l->storage_subtotal ?? 0) + ($l->handling_subtotal ?? 0) > 0)
+                    ->pluck('container_no')->unique()->count() . ' unit(s)',
             ]),
         ];
 
