@@ -6,28 +6,28 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
+        /* @page sets paper size only — DomPDF does not reliably enforce @page margins.
+           Document margins are applied via body margin instead. */
+        @page { margin: 0; size: A4 portrait; }
+
         body {
             font-family: 'Courier New', Courier, monospace;
             font-size: 10px;
             color: #111;
             text-transform: uppercase;
-            /* leave room at the bottom so content never hides under the fixed footer */
-            padding-bottom: 14mm;
+            /* 15mm sides + top; 22mm bottom clears the fixed footer */
+            margin: 15mm 15mm 22mm;
         }
 
-        @page { margin: 15mm 15mm 25mm; size: A4 portrait; }
-
-        /* ── Page footer: fixed to bottom of every page ─────────────
-           bottom: 0 = bottom of content area (above @page bottom margin).
-           background: #fff prevents content showing through on dense pages. ── */
+        /* ── Page footer: fixed to bottom of every page ── */
         .page-footer {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
+            /* left/right padding matches body margin so text aligns with content */
+            padding: 4px 15mm 4px;
             border-top: 1px solid #888;
-            padding-top: 4px;
-            padding-bottom: 2px;
             font-size: 8px;
             text-transform: none;
             background: #fff;
