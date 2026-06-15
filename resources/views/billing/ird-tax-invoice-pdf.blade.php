@@ -15,8 +15,8 @@
             font-size: 10px;
             color: #111;
             text-transform: uppercase;
-            /* 15mm sides + top; 22mm bottom clears the fixed footer */
-            margin: 15mm 15mm 22mm;
+            /* 8mm sides + top; 18mm bottom clears the fixed footer */
+            margin: 8mm 8mm 18mm;
         }
 
         /* ── Page footer: fixed to bottom of every page ── */
@@ -26,7 +26,7 @@
             left: 0;
             right: 0;
             /* left/right padding matches body margin so text aligns with content */
-            padding: 4px 15mm 4px;
+            padding: 4px 8mm 4px;
             border-top: 1px solid #888;
             font-size: 8px;
             text-transform: none;
