@@ -222,14 +222,26 @@
     }
     $allInfo[] = ['label' => 'SYSTEM REF.', 'value' => strtoupper($invoice_no)];
 
-    // Split evenly into left and right columns
-    $half     = (int) ceil(count($allInfo) / 2);
-    $leftCol  = array_slice($allInfo, 0, $half);
-    $rightCol = array_slice($allInfo, $half);
-    $infoRows = [];
-    for ($i = 0; $i < $half; $i++) {
-        $infoRows[] = ['left' => $leftCol[$i] ?? null, 'right' => $rightCol[$i] ?? null];
+    // Build a render plan: items with value > 28 chars get a full-width row;
+    // shorter items are buffered and flushed as 2-column pairs. Long items
+    // trigger a flush of the pending buffer so ordering is preserved.
+    $renderPlan = [];
+    $pending    = [];
+    $flushPending = function () use (&$pending, &$renderPlan) {
+        foreach (array_chunk($pending, 2) as $pair) {
+            $renderPlan[] = ['type' => 'pair', 'left' => $pair[0], 'right' => $pair[1] ?? null];
+        }
+        $pending = [];
+    };
+    foreach ($allInfo as $item) {
+        if (strlen($item['value']) > 28) {
+            $flushPending();
+            $renderPlan[] = ['type' => 'full', 'item' => $item];
+        } else {
+            $pending[] = $item;
+        }
     }
+    $flushPending();
 @endphp
 <div class="ai-outer">
     <div class="ai-lbl-row">Additional Information</div>
@@ -243,24 +255,28 @@
             <col style="width:2%">
             <col style="width:33%">
         </colgroup>
-        @foreach($infoRows as $row)
+        @foreach($renderPlan as $entry)
+        @if($entry['type'] === 'full')
         <tr>
-            @if($row['left'])
-            <td class="ai-lbl-cell">{{ $row['left']['label'] }}</td>
+            <td class="ai-lbl-cell">{{ $entry['item']['label'] }}</td>
             <td class="ai-sep-cell">:</td>
-            <td>{{ $row['left']['value'] }}</td>
-            @else
-            <td colspan="3"></td>
-            @endif
+            <td colspan="5">{{ $entry['item']['value'] }}</td>
+        </tr>
+        @else
+        <tr>
+            <td class="ai-lbl-cell">{{ $entry['left']['label'] }}</td>
+            <td class="ai-sep-cell">:</td>
+            <td>{{ $entry['left']['value'] }}</td>
             <td></td>
-            @if($row['right'])
-            <td class="ai-lbl-cell">{{ $row['right']['label'] }}</td>
+            @if($entry['right'])
+            <td class="ai-lbl-cell">{{ $entry['right']['label'] }}</td>
             <td class="ai-sep-cell">:</td>
-            <td>{{ $row['right']['value'] }}</td>
+            <td>{{ $entry['right']['value'] }}</td>
             @else
             <td colspan="3"></td>
             @endif
         </tr>
+        @endif
         @endforeach
     </table>
 </div>
