@@ -592,12 +592,9 @@ class StorageHandlingController extends Controller
             ->filter(fn ($l) => ($l->storage_subtotal ?? 0) > 0 || ($l->storage_chargeable_days ?? 0) > 0)
             ->map(fn ($l) => [
                 'reference'       => $l->container_no,
-                'description'     => implode(' — ', array_filter([
-                                         $l->chargeCode?->code,
-                                         'CONTAINER STORAGE',
-                                         trim($eqtCode($l->equipment_type) . ' ' . strtoupper($l->cargo_status ?? '')),
-                                     ])) . ' | '
-                                     . \Carbon\Carbon::parse($l->storage_from)->format('d M Y')
+                'description'     => 'CONTAINER STORAGE'
+                                     . (($eqt = trim($eqtCode($l->equipment_type) . ' ' . strtoupper($l->cargo_status ?? ''))) ? ' — ' . $eqt : '')
+                                     . ' | ' . \Carbon\Carbon::parse($l->storage_from)->format('d M Y')
                                      . ' TO ' . \Carbon\Carbon::parse($l->storage_to)->format('d M Y'),
                 'quantity'        => $l->storage_chargeable_days ?? 0,
                 'unit_price'      => $l->storage_daily_rate ?? 0,
@@ -607,13 +604,12 @@ class StorageHandlingController extends Controller
         // ── Build handling (LOLO) lines — separate lift-off and lift-on ───────
         $handlingLines = collect();
         foreach ($storageHandlingInvoice->lines as $l) {
-            $ccCode  = $l->handlingChargeCode?->code;
             $eqtDesc = trim($eqtCode($l->equipment_type) . ' ' . strtoupper($l->cargo_status ?? ''));
 
             if ($l->has_lift_off && ($l->lift_off_rate ?? 0) > 0) {
                 $handlingLines->push([
                     'reference'       => $l->container_no,
-                    'description'     => implode(' — ', array_filter([$ccCode, 'LIFT-OFF (GATE-IN)', $eqtDesc])),
+                    'description'     => 'LIFT-OFF (GATE-IN)' . ($eqtDesc ? ' — ' . $eqtDesc : ''),
                     'quantity'        => 1,
                     'unit_price'      => $l->lift_off_rate,
                     'amount_excl_vat' => $l->lift_off_rate,
@@ -622,7 +618,7 @@ class StorageHandlingController extends Controller
             if ($l->has_lift_on && ($l->lift_on_rate ?? 0) > 0) {
                 $handlingLines->push([
                     'reference'       => $l->container_no,
-                    'description'     => implode(' — ', array_filter([$ccCode, 'LIFT-ON (GATE-OUT)', $eqtDesc])),
+                    'description'     => 'LIFT-ON (GATE-OUT)' . ($eqtDesc ? ' — ' . $eqtDesc : ''),
                     'quantity'        => 1,
                     'unit_price'      => $l->lift_on_rate,
                     'amount_excl_vat' => $l->lift_on_rate,
