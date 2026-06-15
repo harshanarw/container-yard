@@ -1938,7 +1938,11 @@
             };
             $bcastCfg = null;
             if ($bcastKey && in_array($bcastDriver, ['reverb', 'pusher'])) {
-                $isTls    = config('broadcasting.connections.reverb.options.scheme', 'http') === 'https';
+                // Use client_port (443 = TLS via Nginx) OR explicit scheme=https.
+                // This keeps REVERB_SCHEME=http for the PHP→Reverb internal connection (plain HTTP on localhost)
+                // while still telling the browser to connect via wss:// when Nginx terminates TLS on port 443.
+                $isTls    = (int) config('broadcasting.connections.reverb.options.client_port', 80) === 443
+                         || config('broadcasting.connections.reverb.options.scheme', 'http') === 'https';
                 $bcastCfg = [
                     'driver'   => $bcastDriver,
                     'key'      => $bcastKey,
