@@ -604,7 +604,7 @@
             model-type="App\Models\GateMovement"
             :model-id="$movement->id"
             :folder="'gate-movements/' . $movement->movement_type . '/' . $movement->id"
-            title="Photos &amp; Documents"
+            title="Photos & Documents"
             accept="image/*,application/pdf"
             :max-files="10"
         />

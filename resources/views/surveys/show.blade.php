@@ -323,7 +323,7 @@
             model-type="App\Models\Inquiry"
             :model-id="$inquiry->id"
             :folder="'surveys/' . $inquiry->id"
-            title="Photos &amp; Documents"
+            title="Photos & Documents"
             accept="image/*,application/pdf,.doc,.docx"
             :max-files="20"
         />
