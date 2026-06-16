@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 
 class NotificationController extends Controller
 {
@@ -30,18 +31,24 @@ class NotificationController extends Controller
         return response()->json(compact('count', 'items'));
     }
 
-    /** AJAX — mark one notification as read. */
-    public function markRead(string $id): JsonResponse
+    /** Mark one notification as read (AJAX or form POST). */
+    public function markRead(string $id): JsonResponse|RedirectResponse
     {
         auth()->user()->notifications()->where('id', $id)->first()?->markAsRead();
-        return response()->json(['ok' => true]);
+        if (request()->ajax()) {
+            return response()->json(['ok' => true]);
+        }
+        return back();
     }
 
-    /** AJAX — mark all notifications as read. */
-    public function markAllRead(): JsonResponse
+    /** Mark all notifications as read (AJAX or form POST). */
+    public function markAllRead(): JsonResponse|RedirectResponse
     {
         auth()->user()->unreadNotifications()->update(['read_at' => now()]);
-        return response()->json(['ok' => true]);
+        if (request()->ajax()) {
+            return response()->json(['ok' => true]);
+        }
+        return back();
     }
 
     /** Full notification history page. */
