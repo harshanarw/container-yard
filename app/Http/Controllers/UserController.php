@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -79,7 +80,27 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        return view('users.edit', compact('user'));
+        $user->load('roles');
+
+        $roles = Role::with(['permissions:id,module'])
+            ->orderByDesc('is_system')
+            ->orderBy('display_name')
+            ->get();
+
+        // Build section → [module keys] map, preserving config order
+        $modules = config('modules');
+        $sections = [];
+        foreach ($modules as $moduleKey => $cfg) {
+            $section = $cfg['section'];
+            $sections[$section][] = $moduleKey;
+        }
+
+        // Build role → Set<module> lookup for fast cell rendering
+        $roleModules = $roles->mapWithKeys(fn ($role) => [
+            $role->id => $role->permissions->pluck('module')->flip(),
+        ]);
+
+        return view('users.edit', compact('user', 'roles', 'sections', 'roleModules'));
     }
 
     public function update(UpdateUserRequest $request, User $user)

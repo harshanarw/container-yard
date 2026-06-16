@@ -177,8 +177,13 @@
 
             {{-- Role & Access --}}
             <div class="card content-card mb-3">
-                <div class="card-header py-2">
-                    <i class="bi bi-shield-check me-2 text-primary"></i>Role & Access
+                <div class="card-header py-2 d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-shield-check me-2 text-primary"></i>Role & Access</span>
+                    @can('access-control.view')
+                    <a href="{{ route('access-control.users.show', $user) }}" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:.75rem;" target="_blank">
+                        <i class="bi bi-sliders me-1"></i>Manage Permissions
+                    </a>
+                    @endcan
                 </div>
                 <div class="card-body">
                     <div class="row g-3 mb-3">
@@ -211,42 +216,47 @@
                         </div>
                     </div>
 
-                    {{-- Role permission reference --}}
+                    {{-- Dynamic permission reference matrix --}}
+                    <p class="text-muted small mb-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Section-level access granted to each role. Managed via
+                        <a href="{{ route('access-control.roles.index') }}" target="_blank" class="text-decoration-none">Access Control → Roles</a>.
+                        <em>System Administrator</em> and <em>Administrator</em> have broad bypass access not listed here.
+                    </p>
+
+                    @if($roles->isEmpty())
+                    <div class="alert alert-warning py-2 small mb-0">
+                        No roles configured yet. Set up roles in
+                        <a href="{{ route('access-control.roles.index') }}">Access Control → Roles</a>.
+                    </div>
+                    @else
                     <div class="table-responsive">
-                        <table class="table table-sm table-bordered small mb-0">
+                        <table class="table table-sm table-bordered small mb-0" style="min-width:500px;">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Permission</th>
-                                    <th class="text-center">Admin</th>
-                                    <th class="text-center">Supervisor</th>
-                                    <th class="text-center">Gate</th>
-                                    <th class="text-center">Inspector</th>
-                                    <th class="text-center">Billing</th>
+                                    <th style="min-width:130px;">Section</th>
+                                    @foreach($roles as $role)
+                                    <th class="text-center" style="font-size:.72rem;white-space:nowrap;">
+                                        {{ $role->display_name }}
+                                    </th>
+                                    @endforeach
                                 </tr>
                             </thead>
                             <tbody>
-                                @php
-                                $permissions = [
-                                    'Dashboard'       => [true,  true,  true,  true,  true ],
-                                    'Gate In / Out'   => [true,  true,  true,  false, false],
-                                    'Surveys'         => [true,  true,  false, true,  false],
-                                    'Repair Estimate' => [true,  true,  false, true,  true ],
-                                    'Customers'       => [true,  true,  false, false, true ],
-                                    'Billing'         => [true,  false, false, false, true ],
-                                    'Reports'         => [true,  true,  false, false, true ],
-                                    'User Mgmt'       => [true,  false, false, false, false],
-                                    'System Settings' => [true,  false, false, false, false],
-                                ];
-                                @endphp
-                                @foreach($permissions as $perm => $access)
+                                @foreach($sections as $section => $moduleKeys)
                                 <tr>
-                                    <td>{{ $perm }}</td>
-                                    @foreach($access as $allowed)
+                                    <td class="fw-semibold text-muted" style="font-size:.78rem;">{{ $section }}</td>
+                                    @foreach($roles as $role)
+                                    @php
+                                        $hasAccess = collect($moduleKeys)->contains(
+                                            fn($key) => isset($roleModules[$role->id][$key])
+                                        );
+                                    @endphp
                                     <td class="text-center">
-                                        @if($allowed)
+                                        @if($hasAccess)
                                             <i class="bi bi-check-circle-fill text-success"></i>
                                         @else
-                                            <i class="bi bi-x-circle text-muted"></i>
+                                            <i class="bi bi-dash-circle text-muted opacity-50"></i>
                                         @endif
                                     </td>
                                     @endforeach
@@ -255,6 +265,7 @@
                             </tbody>
                         </table>
                     </div>
+                    @endif
                 </div>
             </div>
 
@@ -359,12 +370,24 @@
                             <span class="text-muted">Last Login</span>
                             <span>{{ $user->last_login ? $user->last_login->diffForHumans() : 'Never' }}</span>
                         </li>
-                        <li class="list-group-item d-flex justify-content-between py-2">
-                            <span class="text-muted">Current Role</span>
-                            <span class="badge bg-primary-subtle text-primary">
+                        <li class="list-group-item d-flex justify-content-between align-items-start py-2">
+                            <span class="text-muted flex-shrink-0 me-2">System Role</span>
+                            <span class="badge bg-primary-subtle text-primary text-wrap text-end">
                                 {{ ucwords(str_replace('_', ' ', $user->role)) }}
                             </span>
                         </li>
+                        @if($user->roles->isNotEmpty())
+                        <li class="list-group-item d-flex justify-content-between align-items-start py-2">
+                            <span class="text-muted flex-shrink-0 me-2">RBAC Roles</span>
+                            <span class="d-flex flex-wrap gap-1 justify-content-end">
+                                @foreach($user->roles as $r)
+                                <span class="badge bg-indigo-subtle text-indigo" style="background:#eef2ff;color:#6366f1;font-size:.68rem;">
+                                    {{ $r->display_name }}
+                                </span>
+                                @endforeach
+                            </span>
+                        </li>
+                        @endif
                     </ul>
                 </div>
             </div>
