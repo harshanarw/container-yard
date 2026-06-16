@@ -2217,14 +2217,22 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 processResults: data => data,
                 cache: true,
             },
-            // Format each dropdown option with container number bold + metadata
+            // Format each dropdown option: container number + equipment code badge + customer
             templateResult: function (item) {
                 if (item.loading) return item.text;
-                const parts = item.text.split(' — ');
-                const $el = $('<span>');
-                $('<strong class="font-monospace">').text(parts[0]).appendTo($el);
-                if (parts[1]) $('<span class="text-muted ms-2 small">').text('— ' + parts[1]).appendTo($el);
+                const $el = $('<span class="d-flex align-items-center gap-2 py-1">');
+                $('<strong class="font-monospace">').text(item.id || item.text).appendTo($el);
+                if (item.eqt_code) {
+                    $('<span class="badge border font-monospace" style="background:#f0f9ff;color:#0369a1;border-color:#bae6fd!important;font-size:.68rem;">').text(item.eqt_code).appendTo($el);
+                }
+                if (item.customer) {
+                    $('<span class="text-muted small ms-auto" style="font-size:.75rem;">').text(item.customer).appendTo($el);
+                }
                 return $el;
+            },
+            // When selected, show only the container number (keeps the field clean)
+            templateSelection: function (item) {
+                return item.id || item.text;
             },
         });
 

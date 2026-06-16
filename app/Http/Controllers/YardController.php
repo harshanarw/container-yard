@@ -1139,10 +1139,10 @@ class YardController extends Controller
 
         return response()->json([
             'results' => $containers->map(fn ($c) => [
-                'id'   => $c->container_no,
-                'text' => $c->container_no
-                    . ' — ' . ($c->customer->name ?? 'Unknown')
-                    . ' · '  . ($c->equipmentType->label ?? $c->equipmentType->code ?? ''),
+                'id'       => $c->container_no,
+                'text'     => $c->container_no,
+                'customer' => $c->customer->name ?? 'Unknown',
+                'eqt_code' => $c->equipmentType->code ?? null,
             ]),
         ]);
     }
