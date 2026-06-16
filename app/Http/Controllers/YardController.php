@@ -32,7 +32,7 @@ class YardController extends Controller
         $this->middleware('can:yard.gate-in')->only(['gateIn']);
         $this->middleware('can:yard.gate-out')->only(['gateOut']);
         $this->middleware('can:yard.movement-edit')->only(['editMovement', 'updateMovement', 'destroyMovementPhoto']);
-        $this->middleware('can:yard.movement-delete')->only(['destroyMovement']);
+        $this->middleware('can:yard.movement-delete')->only(['destroyMovement', 'deleteCheck']);
     }
 
     private function saveMovementPhotos(GateMovement $movement, array $photos): void
@@ -677,16 +677,154 @@ class YardController extends Controller
     }
 
     // -------------------------------------------------------------------------
-    // Gate Movement Delete
+    // Gate Movement Delete — pre-check + delete
     // -------------------------------------------------------------------------
+
+    /** AJAX pre-check: returns blocks (hard stops) and warnings before deletion. */
+    public function deleteCheck(GateMovement $movement): \Illuminate\Http\JsonResponse
+    {
+        [$blocks, $warnings] = $this->buildDeleteBlocks($movement);
+
+        return response()->json([
+            'safe'          => empty($blocks),
+            'container_no'  => $movement->container_no,
+            'movement_type' => $movement->movement_type,
+            'movement_time' => ($movement->gate_in_time ?? $movement->gate_out_time)?->format('d M Y, H:i'),
+            'blocks'        => $blocks,
+            'warnings'      => $warnings,
+        ]);
+    }
+
+    /** Validate dependencies then delete (server-side guard in addition to AJAX pre-check). */
     public function destroyMovement(GateMovement $movement)
     {
-        $ref  = $movement->container_no . ' (' . strtoupper($movement->movement_type) . ')';
+        [$blocks] = $this->buildDeleteBlocks($movement);
+
+        if (!empty($blocks)) {
+            return back()->with('error',
+                'Cannot delete this movement: ' . collect($blocks)->pluck('message')->implode(' · '));
+        }
+
+        $ref = $movement->container_no . ' (' . strtoupper($movement->movement_type) . ')';
+        $tab = $movement->movement_type === 'in' ? 'in' : 'out';
         $movement->delete();
 
         return redirect()
-            ->to(route('yard.gate') . '?tab=' . ($movement->movement_type === 'in' ? 'in' : 'out'))
-            ->with('success', "Gate movement for {$ref} has been deleted. Please verify the container status is correct.");
+            ->to(route('yard.gate') . '?tab=' . $tab)
+            ->with('success', "Gate movement for {$ref} deleted. Verify the container status is correct.");
+    }
+
+    /** Build the blocks/warnings arrays used by both deleteCheck and destroyMovement. */
+    private function buildDeleteBlocks(GateMovement $movement): array
+    {
+        $blocks   = [];
+        $warnings = [];
+        $isIn     = $movement->movement_type === 'in';
+
+        // ── Hard blocks ───────────────────────────────────────────────────────
+
+        // Gate-In: cannot delete while a paired Gate-Out exists
+        if ($isIn && $movement->container_id) {
+            $pairedOut = GateMovement::where('movement_type', 'out')
+                ->where('container_id', $movement->container_id)
+                ->where('gate_out_time', '>', $movement->gate_in_time)
+                ->orderBy('gate_out_time')
+                ->first();
+            if ($pairedOut) {
+                $blocks[] = [
+                    'icon'    => 'bi-arrow-up-circle-fill',
+                    'message' => 'A paired Gate-Out exists for this container on '
+                        . $pairedOut->gate_out_time->format('d M Y, H:i')
+                        . '. Delete the Gate-Out movement first.',
+                ];
+            }
+        }
+
+        // Reefer plug sessions (gate-in: gate_movement_id; gate-out: gate_out_movement_id)
+        $reeferField    = $isIn ? 'gate_movement_id' : 'gate_out_movement_id';
+        $reeferSessions = ReeferPlugSession::where($reeferField, $movement->id)->get();
+        if ($reeferSessions->isNotEmpty()) {
+            $blocks[] = [
+                'icon'    => 'bi-thermometer-half',
+                'message' => $reeferSessions->count() . ' reefer plug session(s) are linked to this movement and must be removed first.',
+            ];
+        }
+
+        // Pending / approved approval request
+        $approval = $movement->approvalRequest;
+        if ($approval && in_array($approval->status, ['pending', 'approved'])) {
+            $blocks[] = [
+                'icon'    => 'bi-shield-check',
+                'message' => 'This movement has a ' . ucfirst($approval->status) . ' approval request (#' . $approval->id . ') that must be cancelled first.',
+            ];
+        }
+
+        // Survey / Inquiry linked directly to this gate-in movement
+        if ($isIn && $movement->survey_id) {
+            $survey = $movement->survey;
+            $blocks[] = [
+                'icon'    => 'bi-clipboard-check',
+                'message' => 'Survey #' . ($survey?->inquiry_no ?? $movement->survey_id)
+                    . ' is linked to this movement.',
+            ];
+
+            // Estimates under that survey
+            $estCount = \App\Models\Estimate::where('inquiry_id', $movement->survey_id)->count();
+            if ($estCount > 0) {
+                $blocks[] = [
+                    'icon'    => 'bi-file-earmark-text',
+                    'message' => $estCount . ' estimate(s) exist under the linked survey.',
+                ];
+            }
+
+            // Work orders under those estimates
+            $woCount = \App\Models\WorkOrder::whereIn(
+                'estimate_id',
+                \App\Models\Estimate::where('inquiry_id', $movement->survey_id)->pluck('id')
+            )->count();
+            if ($woCount > 0) {
+                $blocks[] = [
+                    'icon'    => 'bi-wrench-adjustable',
+                    'message' => $woCount . ' work order(s) exist under the linked survey estimates.',
+                ];
+            }
+        }
+
+        // ── Warnings (non-blocking but important) ─────────────────────────────
+
+        // Documents attached (photos, PDFs via HasDocuments trait)
+        $docCount = $movement->documents()->count();
+        if ($docCount > 0) {
+            $warnings[] = [
+                'icon'    => 'bi-paperclip',
+                'message' => $docCount . ' attached document(s) / photo(s) will also be permanently deleted.',
+            ];
+        }
+
+        // Guard post capture linked
+        $guardCount = GuardCapture::where('linked_gate_movement_id', $movement->id)->count();
+        if ($guardCount > 0) {
+            $warnings[] = [
+                'icon'    => 'bi-camera',
+                'message' => $guardCount . ' guard post capture(s) are linked — the link will be cleared (captures kept).',
+            ];
+        }
+
+        // Open storage record (will become orphaned)
+        if ($isIn && $movement->container_id && $movement->gate_in_time) {
+            $storage = YardStorage::where('container_id', $movement->container_id)
+                ->whereDate('gate_in_date', $movement->gate_in_time->toDateString())
+                ->first();
+            if ($storage) {
+                $warnings[] = [
+                    'icon'    => 'bi-receipt',
+                    'message' => 'A storage billing record (gate-in: ' . $storage->gate_in_date->format('d M Y')
+                        . ') will be left without a linked movement. Review billing records after deletion.',
+                ];
+            }
+        }
+
+        return [$blocks, $warnings];
     }
 
     // Gate Movement Edit

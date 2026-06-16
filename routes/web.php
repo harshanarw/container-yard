@@ -147,6 +147,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/ocr-scan',       [ContainerOcrController::class, 'process'])->name('ocr-scan');
         Route::post('/ocr-plate',      [PlateOcrController::class,   'process'])->name('ocr-plate');
         Route::get('/movements/{movement}/edit',            [YardController::class, 'editMovement'])->name('movements.edit');
+        Route::get('/movements/{movement}/delete-check',  [YardController::class, 'deleteCheck'])->name('movements.delete-check');
         Route::patch('/movements/{movement}',             [YardController::class, 'updateMovement'])->name('movements.update');
         Route::delete('/movements/{movement}',            [YardController::class, 'destroyMovement'])->name('movements.destroy');
         Route::delete('/movements/{movement}/photos/{photo}', [YardController::class, 'destroyMovementPhoto'])->name('movements.photo.destroy');

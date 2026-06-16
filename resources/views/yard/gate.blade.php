@@ -1157,15 +1157,13 @@
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 @can('yard.movement-delete')
-                                <form method="POST" action="{{ route('yard.movements.destroy', $mv) }}"
-                                      style="display:contents;"
-                                      onsubmit="return confirm('Delete gate movement for {{ $mv->container_no }} ({{ strtoupper($mv->movement_type) }})?\n\nThis cannot be undone. Verify the container status manually after deletion.');">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm"
-                                            style="font-size:.65rem;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;" title="Delete movement">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-outline-danger btn-sm js-mv-delete"
+                                        style="font-size:.65rem;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;"
+                                        title="Delete movement"
+                                        data-check-url="{{ route('yard.movements.delete-check', $mv) }}"
+                                        data-delete-url="{{ route('yard.movements.destroy', $mv) }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                                 @endcan
                             </div>
                         </div>
@@ -3185,5 +3183,106 @@ window.gpRescan = async function (btnEl, url, type) {
     document.addEventListener('DOMContentLoaded', bindJobTypeEvents);
 })();
 
+// ── Gate Movement delete pre-check modal ────────────────────────────────────
+(function () {
+    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const modal      = document.getElementById('mvDeleteModal');
+    const bsModal    = modal ? new bootstrap.Modal(modal) : null;
+    const titleEl    = document.getElementById('mvDeleteTitle');
+    const bodyEl     = document.getElementById('mvDeleteBody');
+    const confirmBtn = document.getElementById('mvDeleteConfirmBtn');
+    let   deleteUrl  = '';
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.js-mv-delete');
+        if (!btn) return;
+        e.preventDefault();
+
+        deleteUrl = btn.dataset.deleteUrl;
+        const checkUrl = btn.dataset.checkUrl;
+
+        // Reset modal state
+        if (titleEl) titleEl.textContent = 'Checking…';
+        if (bodyEl)  bodyEl.innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span> Checking dependencies…</div>';
+        if (confirmBtn) { confirmBtn.classList.add('d-none'); confirmBtn.disabled = false; }
+        if (bsModal) bsModal.show();
+
+        fetch(checkUrl, { headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                const mvLabel = (data.movement_type === 'in' ? 'Gate-In' : 'Gate-Out')
+                    + ' · ' + data.container_no
+                    + (data.movement_time ? ' · ' + data.movement_time : '');
+
+                if (titleEl) titleEl.textContent = 'Delete ' + mvLabel;
+
+                let html = '';
+
+                if (data.blocks && data.blocks.length) {
+                    html += '<div class="alert alert-danger py-2 mb-3 small"><strong><i class="bi bi-x-octagon-fill me-1"></i>Cannot delete — resolve the following first:</strong>'
+                        + '<ul class="mb-0 mt-2 ps-3">';
+                    data.blocks.forEach(b => {
+                        html += '<li><i class="bi ' + b.icon + ' me-1"></i>' + b.message + '</li>';
+                    });
+                    html += '</ul></div>';
+                }
+
+                if (data.warnings && data.warnings.length) {
+                    html += '<div class="alert alert-warning py-2 mb-3 small"><strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Warnings — review before confirming:</strong>'
+                        + '<ul class="mb-0 mt-2 ps-3">';
+                    data.warnings.forEach(w => {
+                        html += '<li><i class="bi ' + w.icon + ' me-1"></i>' + w.message + '</li>';
+                    });
+                    html += '</ul></div>';
+                }
+
+                if (data.safe && !data.blocks?.length) {
+                    if (!data.warnings?.length) {
+                        html += '<p class="text-muted small mb-0">No linked transactions found. This movement can be safely deleted.</p>';
+                    }
+                    if (confirmBtn) confirmBtn.classList.remove('d-none');
+                }
+
+                if (bodyEl) bodyEl.innerHTML = html;
+            })
+            .catch(() => {
+                if (bodyEl) bodyEl.innerHTML = '<div class="alert alert-danger small">Failed to check dependencies. Please try again.</div>';
+            });
+    });
+
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function () {
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting…';
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = deleteUrl;
+            form.innerHTML = '<input type="hidden" name="_token" value="' + CSRF + '">'
+                           + '<input type="hidden" name="_method" value="DELETE">';
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
+})();
 </script>
+
+{{-- Movement delete confirmation modal --}}
+<div class="modal fade" id="mvDeleteModal" tabindex="-1" aria-labelledby="mvDeleteTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-1">
+                <h6 class="modal-title fw-semibold" id="mvDeleteTitle">Delete Movement</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-2" id="mvDeleteBody"></div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="mvDeleteConfirmBtn" class="btn btn-danger btn-sm d-none">
+                    <i class="bi bi-trash me-1"></i>Delete permanently
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endpush
