@@ -1143,6 +1143,7 @@ class YardController extends Controller
                 'text'     => $c->container_no,
                 'customer' => $c->customer->name ?? 'Unknown',
                 'eqt_code' => $c->equipmentType->code ?? null,
+                'days'     => $c->gate_in_date ? (int) $c->gate_in_date->diffInDays(today()) : null,
             ]),
         ]);
     }

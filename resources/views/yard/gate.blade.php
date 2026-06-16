@@ -2217,7 +2217,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 processResults: data => data,
                 cache: true,
             },
-            // Format each dropdown option: container number + equipment code badge + customer
+            // Format each dropdown option: container number + equipment code badge + days badge + customer
             templateResult: function (item) {
                 if (item.loading) return item.text;
                 const $el = $('<span class="d-flex align-items-center gap-2 py-1">');
@@ -2225,8 +2225,13 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 if (item.eqt_code) {
                     $('<span class="badge border font-monospace" style="background:#f0f9ff;color:#0369a1;border-color:#bae6fd!important;font-size:.68rem;">').text(item.eqt_code).appendTo($el);
                 }
+                if (item.days !== null && item.days !== undefined) {
+                    const daysLabel = item.days + 'd';
+                    const urgent = item.days >= 30;
+                    $('<span class="badge border" style="font-size:.68rem;' + (urgent ? 'background:#fff7ed;color:#c2410c;border-color:#fed7aa!important;' : 'background:#fefce8;color:#854d0e;border-color:#fde68a!important;') + '">').text(daysLabel).appendTo($el);
+                }
                 if (item.customer) {
-                    $('<span class="text-muted small ms-auto" style="font-size:.75rem;">').text(item.customer).appendTo($el);
+                    $('<span class="text-muted ms-auto" style="font-size:.72rem;">').text(item.customer).appendTo($el);
                 }
                 return $el;
             },
