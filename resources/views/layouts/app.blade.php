@@ -789,6 +789,26 @@
                     </a>
                 </li>
                 @endcan
+                @can('finance.gl.view')
+                <li class="nav-item">
+                    <a href="{{ route('finance.gl.journals.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.gl.journals.*') ? 'active' : '' }}">
+                        <i class="bi bi-journal-bookmark"></i><span>GL Journals</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.gl.account-ledger') }}"
+                       class="nav-link {{ request()->routeIs('finance.gl.account-ledger') ? 'active' : '' }}">
+                        <i class="bi bi-list-columns-reverse"></i><span>Account Ledger</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.gl.trial-balance') }}"
+                       class="nav-link {{ request()->routeIs('finance.gl.trial-balance') ? 'active' : '' }}">
+                        <i class="bi bi-receipt"></i><span>Trial Balance</span>
+                    </a>
+                </li>
+                @endcan
             </ul>
         </div>
         @endif

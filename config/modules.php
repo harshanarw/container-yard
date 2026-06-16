@@ -252,6 +252,12 @@ return [
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
+    'finance.gl' => [
+        'label'   => 'General Ledger',
+        'section' => 'Finance',
+        'actions' => ['view', 'create', 'post', 'void'],
+    ],
+
     // ── Reports ───────────────────────────────────────────────────────────────
 
     'reports' => [

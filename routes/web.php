@@ -53,6 +53,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Finance\FinancialYearController;
 use App\Http\Controllers\Finance\ChartOfAccountsController;
 use App\Http\Controllers\Finance\AccountMappingController;
+use App\Http\Controllers\Finance\GeneralLedgerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -560,6 +561,18 @@ Route::middleware(['auth'])->group(function () {
             Route::get('mappings',              [AccountMappingController::class, 'index'])->name('mappings.index');
             Route::post('mappings',             [AccountMappingController::class, 'store'])->name('mappings.store');
             Route::delete('mappings/{mapping}', [AccountMappingController::class, 'destroy'])->name('mappings.destroy');
+        });
+
+        // General Ledger
+        Route::prefix('gl')->name('gl.')->group(function () {
+            Route::get('journals',                    [GeneralLedgerController::class, 'journals'])->name('journals.index');
+            Route::get('journals/create',             [GeneralLedgerController::class, 'createJournal'])->name('journals.create');
+            Route::post('journals',                   [GeneralLedgerController::class, 'storeJournal'])->name('journals.store');
+            Route::get('journals/{journal}',          [GeneralLedgerController::class, 'showJournal'])->name('journals.show');
+            Route::post('journals/{journal}/post',    [GeneralLedgerController::class, 'postJournal'])->name('journals.post');
+            Route::post('journals/{journal}/void',    [GeneralLedgerController::class, 'voidJournal'])->name('journals.void');
+            Route::get('account-ledger',              [GeneralLedgerController::class, 'accountLedger'])->name('account-ledger');
+            Route::get('trial-balance',               [GeneralLedgerController::class, 'trialBalance'])->name('trial-balance');
         });
     });
 
