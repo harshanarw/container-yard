@@ -716,6 +716,15 @@ class YardController extends Controller
             ->whereDoesntHave('tempLogs')
             ->delete();
 
+        // Cascade-delete raw storage billing record when no invoice has been issued
+        // (downgraded from block → warning above; if issued invoice exists it would
+        // have remained a hard block and we would not reach this point).
+        if ($movement->movement_type === 'in' && $movement->container_id && $movement->gate_in_time) {
+            YardStorage::where('container_id', $movement->container_id)
+                ->whereDate('gate_in_date', $movement->gate_in_time->toDateString())
+                ->delete();
+        }
+
         $movement->delete();
 
         $fallback  = route('yard.gate') . '?tab=' . $tab;
@@ -838,7 +847,8 @@ class YardController extends Controller
             ];
         }
 
-        // Invoices — block if any invoice has been raised covering this cycle
+        // Invoices — only block if a finalized (issued / paid) invoice exists for this cycle.
+        // Draft and cancelled invoices do not block deletion.
         if ($movement->container_id) {
             $cycleDate = $isIn
                 ? $movement->gate_in_time?->toDateString()
@@ -847,17 +857,21 @@ class YardController extends Controller
 
             $invoiceTypes = [];
 
-            // Storage & Handling invoice lines
+            // Storage & Handling invoice lines — only if parent invoice is issued/paid
             if ($cycleDate && \App\Models\StorageHandlingInvoiceLine::where('container_id', $movement->container_id)
-                    ->whereDate($dateField, $cycleDate)->exists()) {
+                    ->whereDate($dateField, $cycleDate)
+                    ->whereHas('invoice', fn($q) => $q->whereIn('status', ['issued', 'paid']))
+                    ->exists()) {
                 $invoiceTypes[] = 'Storage & Handling';
             }
 
-            // Storage invoice details — this table has gate_in_date only (no gate_out_date).
-            // For gate-out movements, resolve the paired gate-in date first.
+            // Storage invoice details (gate_in_date only — gate-out uses paired gate-in date).
+            // Only block if parent invoice is issued/paid.
             if ($isIn && $cycleDate) {
                 if (\App\Models\StorageInvoiceDetail::where('container_id', $movement->container_id)
-                        ->whereDate('gate_in_date', $cycleDate)->exists()) {
+                        ->whereDate('gate_in_date', $cycleDate)
+                        ->whereHas('invoice', fn($q) => $q->whereIn('status', ['issued', 'paid']))
+                        ->exists()) {
                     $invoiceTypes[] = 'Storage';
                 }
             } elseif (!$isIn) {
@@ -868,25 +882,29 @@ class YardController extends Controller
                     ->first(['gate_in_time']);
                 if ($pairedIn?->gate_in_time &&
                     \App\Models\StorageInvoiceDetail::where('container_id', $movement->container_id)
-                        ->whereDate('gate_in_date', $pairedIn->gate_in_time->toDateString())->exists()) {
+                        ->whereDate('gate_in_date', $pairedIn->gate_in_time->toDateString())
+                        ->whereHas('invoice', fn($q) => $q->whereIn('status', ['issued', 'paid']))
+                        ->exists()) {
                     $invoiceTypes[] = 'Storage';
                 }
             }
 
-            // Reefer electricity invoice lines (scoped to plug dates within cycle window)
+            // Reefer electricity invoice lines — only if parent invoice is issued/paid
             $cycleStart = $isIn ? $movement->gate_in_time : null;
             $cycleEnd   = !$isIn ? $movement->gate_out_time : now();
             if ($cycleStart && \App\Models\ReeferElectricityInvoiceLine::where('container_id', $movement->container_id)
                     ->where('plug_in_at', '>=', $cycleStart)
                     ->when($cycleEnd, fn($q) => $q->where('plug_in_at', '<=', $cycleEnd))
+                    ->whereHas('invoice', fn($q) => $q->whereIn('status', ['issued', 'paid']))
                     ->exists()) {
                 $invoiceTypes[] = 'Reefer Electricity';
             }
 
-            // Repair invoices (via estimate/work-order chain on the same container)
+            // Repair invoices — only if issued/paid
             if ($movement->survey_id &&
                 \App\Models\RepairInvoice::where('container_id', $movement->container_id)
                     ->whereIn('estimate_id', \App\Models\Estimate::where('inquiry_id', $movement->survey_id)->pluck('id'))
+                    ->whereIn('status', ['issued', 'paid'])
                     ->exists()) {
                 $invoiceTypes[] = 'Repair';
             }
@@ -894,22 +912,35 @@ class YardController extends Controller
             if (!empty($invoiceTypes)) {
                 $blocks[] = [
                     'icon'    => 'bi-receipt-cutoff',
-                    'message' => implode(', ', $invoiceTypes) . ' invoice(s) have already been raised for this container cycle. Delete or void the invoice(s) before removing the movement.',
+                    'message' => implode(', ', $invoiceTypes) . ' invoice(s) have been issued or paid for this container cycle. Void or cancel the invoice(s) before removing the movement.',
                 ];
             }
         }
 
-        // Open storage record — blocks deletion (would become orphaned billing record)
+        // Raw storage billing record (yard_storage) — only block if a finalized invoice
+        // references this cycle. If no invoice has been issued yet, warn and auto-delete.
         if ($isIn && $movement->container_id && $movement->gate_in_time) {
             $storage = YardStorage::where('container_id', $movement->container_id)
                 ->whereDate('gate_in_date', $movement->gate_in_time->toDateString())
                 ->first();
             if ($storage) {
-                $blocks[] = [
-                    'icon'    => 'bi-receipt',
-                    'message' => 'A storage billing record (gate-in: ' . $storage->gate_in_date->format('d M Y')
-                        . ') exists for this movement. Remove or settle the billing record before deleting.',
-                ];
+                $hasIssuedInvoice = \App\Models\StorageInvoiceDetail::where('container_id', $movement->container_id)
+                    ->whereDate('gate_in_date', $movement->gate_in_time->toDateString())
+                    ->whereHas('invoice', fn($q) => $q->whereIn('status', ['issued', 'paid']))
+                    ->exists();
+                if ($hasIssuedInvoice) {
+                    $blocks[] = [
+                        'icon'    => 'bi-receipt',
+                        'message' => 'A storage invoice (gate-in: ' . $storage->gate_in_date->format('d M Y')
+                            . ') has been issued for this movement. Void or cancel the invoice before deleting.',
+                    ];
+                } else {
+                    $warnings[] = [
+                        'icon'    => 'bi-receipt',
+                        'message' => 'A storage billing record (gate-in: ' . $storage->gate_in_date->format('d M Y')
+                            . ') exists but no invoice has been issued — it will be removed along with this movement.',
+                    ];
+                }
             }
         }
 
