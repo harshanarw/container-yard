@@ -1079,8 +1079,9 @@ class YardController extends Controller
             ->latest()
             ->first();
 
-        // Get the linked Gate In movement
-        $gateInMovement = GateMovement::where('container_id', $container->id)
+        // Get the linked Gate In movement (with job details)
+        $gateInMovement = GateMovement::with('yardJob')
+            ->where('container_id', $container->id)
             ->where('movement_type', 'in')
             ->latest('gate_in_time')
             ->first();
@@ -1110,6 +1111,10 @@ class YardController extends Controller
             'gate_in_time'     => $gateInMovement?->gate_in_time?->format('d M Y, H:i'),
             'days_in_yard'     => $daysInYard,
             'gate_in_movement_id' => $gateInMovement?->id,
+            'job_no'           => $gateInMovement?->yardJob?->job_no,
+            'job_type'         => $gateInMovement?->yardJob?->job_type_code
+                                    ?? $gateInMovement?->job_type_code,
+            'job_status'       => $gateInMovement?->yardJob?->status,
             'grade_id'         => $container->grade_id,
             'grade_name'       => $container->grade?->name,
             'grade_code'       => $container->grade?->code,

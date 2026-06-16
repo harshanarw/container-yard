@@ -2265,6 +2265,16 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     const gradeInfo = data.grade_name ? ' <span class="text-muted">·</span> Grade: ' + data.grade_name : '';
                     const ventInfo  = data.ventilation_label
                         ? '<div class="col-6"><span class="text-muted">Ventilation:</span> ' + data.ventilation_label + '</div>' : '';
+                    const jobStatusMap = { open:'Open', in_progress:'In Progress', completed:'Completed', cancelled:'Cancelled' };
+                    const jobStatusColor = { open:'primary', in_progress:'warning', completed:'success', cancelled:'secondary' };
+                    const jobInfo = data.job_no
+                        ? '<div class="col-12 pt-1 mt-1" style="border-top:1px solid rgba(0,0,0,.08);">' +
+                              '<span class="text-muted">Job:</span> ' +
+                              '<strong class="font-monospace">' + data.job_no + '</strong>' +
+                              (data.job_type ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.68rem;">' + data.job_type + '</span>' : '') +
+                              (data.job_status ? ' <span class="badge bg-' + (jobStatusColor[data.job_status]||'secondary') + '-subtle text-' + (jobStatusColor[data.job_status]||'secondary') + ' border" style="font-size:.68rem;">' + (jobStatusMap[data.job_status]||data.job_status) + '</span>' : '') +
+                          '</div>'
+                        : '';
                     setInfoBox('success',
                         '<div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-check-circle-fill text-success fs-5"></i><strong class="font-monospace fs-6">' + data.container_no + '</strong>' + daysBadge + '</div>' +
                         '<div class="row g-1 small">' +
@@ -2275,6 +2285,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                             '<div class="col-6"><span class="text-muted">Location:</span> <strong class="font-monospace">' + (data.location||'—') + '</strong></div>' +
                             '<div class="col-6"><span class="text-muted">Gate In:</span> ' + (data.gate_in_time||data.gate_in_date||'—') + gradeInfo + '</div>' +
                             ventInfo +
+                            jobInfo +
                         '</div>'
                     );
                     if (gradeSelect) {
