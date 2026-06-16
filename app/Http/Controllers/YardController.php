@@ -707,6 +707,15 @@ class YardController extends Controller
 
         $ref = $movement->container_no . ' (' . strtoupper($movement->movement_type) . ')';
         $tab = $movement->movement_type === 'in' ? 'in' : 'out';
+
+        // Cascade-delete auto-created pending reefer stub sessions that had no
+        // plug details recorded (these downgraded from block → warning above).
+        ReeferPlugSession::where('gate_movement_id', $movement->id)
+            ->where('status', 'pending')
+            ->whereNull('plug_in_at')
+            ->whereDoesntHave('tempLogs')
+            ->delete();
+
         $movement->delete();
 
         $fallback  = route('yard.gate') . '?tab=' . $tab;
@@ -745,12 +754,28 @@ class YardController extends Controller
 
         // Reefer plug sessions (gate-in: gate_movement_id; gate-out: gate_out_movement_id)
         $reeferField    = $isIn ? 'gate_movement_id' : 'gate_out_movement_id';
-        $reeferSessions = ReeferPlugSession::where($reeferField, $movement->id)->get();
+        $reeferSessions = ReeferPlugSession::with('tempLogs')->where($reeferField, $movement->id)->get();
         if ($reeferSessions->isNotEmpty()) {
-            $blocks[] = [
-                'icon'    => 'bi-thermometer-half',
-                'message' => $reeferSessions->count() . ' reefer plug session(s) are linked to this movement and must be removed first.',
-            ];
+            // Separate auto-created stubs (pending, no plug_in_at, no temp logs) from
+            // sessions where reefer work has actually been recorded.
+            $stubSessions    = $reeferSessions->filter(
+                fn($s) => $s->status === 'pending' && is_null($s->plug_in_at) && $s->tempLogs->isEmpty()
+            );
+            $workedSessions  = $reeferSessions->diff($stubSessions);
+
+            if ($workedSessions->isNotEmpty()) {
+                $blocks[] = [
+                    'icon'    => 'bi-thermometer-half',
+                    'message' => $workedSessions->count() . ' reefer plug session(s) with recorded plug-in or temperature data are linked to this movement and must be removed first.',
+                ];
+            }
+
+            if ($stubSessions->isNotEmpty()) {
+                $warnings[] = [
+                    'icon'    => 'bi-thermometer-half',
+                    'message' => $stubSessions->count() . ' auto-created reefer plug session(s) with no plug details recorded will be deleted along with this movement.',
+                ];
+            }
         }
 
         // Pending / approved approval request
