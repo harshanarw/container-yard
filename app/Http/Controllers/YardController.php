@@ -860,16 +860,16 @@ class YardController extends Controller
             }
         }
 
-        // Open storage record (will become orphaned)
+        // Open storage record — blocks deletion (would become orphaned billing record)
         if ($isIn && $movement->container_id && $movement->gate_in_time) {
             $storage = YardStorage::where('container_id', $movement->container_id)
                 ->whereDate('gate_in_date', $movement->gate_in_time->toDateString())
                 ->first();
             if ($storage) {
-                $warnings[] = [
+                $blocks[] = [
                     'icon'    => 'bi-receipt',
                     'message' => 'A storage billing record (gate-in: ' . $storage->gate_in_date->format('d M Y')
-                        . ') will be left without a linked movement. Review billing records after deletion.',
+                        . ') exists for this movement. Remove or settle the billing record before deleting.',
                 ];
             }
         }
