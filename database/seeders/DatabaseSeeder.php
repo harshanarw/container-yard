@@ -68,6 +68,9 @@ class DatabaseSeeder extends Seeder
             NormalizeCargoStatusSeeder::class,   // 'full' → 'laden' on containers/movements
             InvoiceValueBackfillSeeder::class,   // backfill line_value / total_value on invoices
 
+            // ── Finance ──────────────────────────────────────────────────────
+            \Database\Seeders\Finance\DefaultCoaSeeder::class,
+
         ]);
     }
 }

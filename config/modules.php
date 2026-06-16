@@ -226,6 +226,32 @@ return [
         'actions'     => ['view', 'create', 'edit', 'delete'],
     ],
 
+    // ── Finance ───────────────────────────────────────────────────────────────
+
+    'finance.setup' => [
+        'label'   => 'Finance Setup (Fiscal Years)',
+        'section' => 'Finance',
+        'actions' => ['view', 'create', 'edit', 'delete'],
+    ],
+
+    'finance.periods' => [
+        'label'   => 'Accounting Periods',
+        'section' => 'Finance',
+        'actions' => ['view', 'close', 'reopen'],
+    ],
+
+    'finance.coa' => [
+        'label'   => 'Chart of Accounts',
+        'section' => 'Finance',
+        'actions' => ['view', 'create', 'edit', 'delete'],
+    ],
+
+    'finance.mappings' => [
+        'label'   => 'Account Mappings',
+        'section' => 'Finance',
+        'actions' => ['view', 'create', 'edit', 'delete'],
+    ],
+
     // ── Reports ───────────────────────────────────────────────────────────────
 
     'reports' => [

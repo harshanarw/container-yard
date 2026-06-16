@@ -50,6 +50,11 @@ class SettingController extends Controller
             // Gate Pass print defaults
             'default_gate_in_format'  => ['nullable', 'string', 'in:full,half,half-custom'],
             'default_gate_out_format' => ['nullable', 'string', 'in:full,half,half-custom'],
+
+            // Finance document prefixes
+            'prefix_receipt'    => ['required', 'string', 'max:10', 'alpha_num'],
+            'prefix_voucher'    => ['required', 'string', 'max:10', 'alpha_num'],
+            'prefix_journal'    => ['required', 'string', 'max:10', 'alpha_num'],
         ]);
 
         $settings = CompanySetting::current();

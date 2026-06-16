@@ -755,6 +755,44 @@
         </div>
         @endif
 
+        {{-- ── FINANCE ── --}}
+        @if(Auth::user()->can('finance.setup.view') || Auth::user()->can('finance.coa.view') || Auth::user()->can('finance.mappings.view'))
+        <button class="nav-section-label"
+                data-bs-toggle="collapse" data-bs-target="#nav-section-finance"
+                aria-expanded="{{ request()->routeIs('finance.*') ? 'true' : 'false' }}"
+                aria-controls="nav-section-finance">
+            <i class="bi bi-bank section-icon"></i><span>Finance</span><i class="bi bi-chevron-down section-chevron"></i>
+        </button>
+        <div class="collapse {{ request()->routeIs('finance.*') ? 'show' : '' }}" id="nav-section-finance">
+            <ul class="nav flex-column">
+                @can('finance.setup.view')
+                <li class="nav-item">
+                    <a href="{{ route('finance.setup.fiscal-years.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.setup.fiscal-years.*') ? 'active' : '' }}">
+                        <i class="bi bi-calendar3"></i><span>Fiscal Years</span>
+                    </a>
+                </li>
+                @endcan
+                @can('finance.coa.view')
+                <li class="nav-item">
+                    <a href="{{ route('finance.setup.accounts.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.setup.accounts.*') ? 'active' : '' }}">
+                        <i class="bi bi-diagram-3"></i><span>Chart of Accounts</span>
+                    </a>
+                </li>
+                @endcan
+                @can('finance.mappings.view')
+                <li class="nav-item">
+                    <a href="{{ route('finance.setup.mappings.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.setup.mappings.*') ? 'active' : '' }}">
+                        <i class="bi bi-arrow-left-right"></i><span>Account Mappings</span>
+                    </a>
+                </li>
+                @endcan
+            </ul>
+        </div>
+        @endif
+
         {{-- ── BILLING ── --}}
         @if(Auth::user()->can('billing.storage.view') || Auth::user()->can('billing.storage-handling.view') || Auth::user()->can('billing.reefer.view'))
         <button class="nav-section-label"

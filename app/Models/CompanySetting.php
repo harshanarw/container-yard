@@ -53,6 +53,10 @@ class CompanySetting extends Model
         // Gate Pass Defaults
         'default_gate_in_format',
         'default_gate_out_format',
+        // Finance Document Prefixes
+        'prefix_receipt',
+        'prefix_voucher',
+        'prefix_journal',
     ];
 
     protected $casts = [

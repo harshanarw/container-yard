@@ -195,6 +195,36 @@
                     @error('prefix_gate_out')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
+                <div class="col-md-4 col-lg-2">
+                    <label class="form-label fw-semibold">Receipt</label>
+                    <input type="text" name="prefix_receipt"
+                           class="form-control text-uppercase @error('prefix_receipt') is-invalid @enderror"
+                           value="{{ old('prefix_receipt', $settings->prefix_receipt ?? 'RCP') }}"
+                           maxlength="10" required placeholder="RCP">
+                    <div class="form-text">e.g. RCP-00001</div>
+                    @error('prefix_receipt')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
+                <div class="col-md-4 col-lg-2">
+                    <label class="form-label fw-semibold">Payment Voucher</label>
+                    <input type="text" name="prefix_voucher"
+                           class="form-control text-uppercase @error('prefix_voucher') is-invalid @enderror"
+                           value="{{ old('prefix_voucher', $settings->prefix_voucher ?? 'PV') }}"
+                           maxlength="10" required placeholder="PV">
+                    <div class="form-text">e.g. PV-00001</div>
+                    @error('prefix_voucher')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
+                <div class="col-md-4 col-lg-2">
+                    <label class="form-label fw-semibold">Journal Voucher</label>
+                    <input type="text" name="prefix_journal"
+                           class="form-control text-uppercase @error('prefix_journal') is-invalid @enderror"
+                           value="{{ old('prefix_journal', $settings->prefix_journal ?? 'JV') }}"
+                           maxlength="10" required placeholder="JV">
+                    <div class="form-text">e.g. JV-00001</div>
+                    @error('prefix_journal')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
             </div>
         </div>
     </div>

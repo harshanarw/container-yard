@@ -50,6 +50,9 @@ use App\Http\Controllers\ReeferBillingController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ContainerInquiryController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Finance\FinancialYearController;
+use App\Http\Controllers\Finance\ChartOfAccountsController;
+use App\Http\Controllers\Finance\AccountMappingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -532,6 +535,32 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/logo',         [CompanySettingController::class, 'deleteLogo'])->name('logo.delete');
         Route::delete('/icon',         [CompanySettingController::class, 'deleteIcon'])->name('icon.delete');
         Route::delete('/product-icon', [CompanySettingController::class, 'deleteProductIcon'])->name('product-icon.delete');
+    });
+
+    // ── Finance ──────────────────────────────────────────────────────────────
+    Route::prefix('finance')->name('finance.')->group(function () {
+        Route::prefix('setup')->name('setup.')->group(function () {
+            // Fiscal Years & Periods
+            Route::get('fiscal-years',                                              [FinancialYearController::class, 'index'])->name('fiscal-years.index');
+            Route::get('fiscal-years/create',                                       [FinancialYearController::class, 'create'])->name('fiscal-years.create');
+            Route::post('fiscal-years',                                             [FinancialYearController::class, 'store'])->name('fiscal-years.store');
+            Route::get('fiscal-years/{fiscalYear}',                                 [FinancialYearController::class, 'show'])->name('fiscal-years.show');
+            Route::patch('fiscal-years/{fiscalYear}',                               [FinancialYearController::class, 'update'])->name('fiscal-years.update');
+            Route::post('fiscal-years/{fiscalYear}/periods/{period}/close',         [FinancialYearController::class, 'closePeriod'])->name('fiscal-years.period.close');
+            Route::post('fiscal-years/{fiscalYear}/periods/{period}/reopen',        [FinancialYearController::class, 'reopenPeriod'])->name('fiscal-years.period.reopen');
+
+            // Chart of Accounts
+            Route::get('accounts',                [ChartOfAccountsController::class, 'index'])->name('accounts.index');
+            Route::post('accounts',               [ChartOfAccountsController::class, 'store'])->name('accounts.store');
+            Route::patch('accounts/{account}',    [ChartOfAccountsController::class, 'update'])->name('accounts.update');
+            Route::delete('accounts/{account}',   [ChartOfAccountsController::class, 'destroy'])->name('accounts.destroy');
+            Route::patch('accounts/{account}/toggle', [ChartOfAccountsController::class, 'toggleActive'])->name('accounts.toggle');
+
+            // Account Mappings
+            Route::get('mappings',              [AccountMappingController::class, 'index'])->name('mappings.index');
+            Route::post('mappings',             [AccountMappingController::class, 'store'])->name('mappings.store');
+            Route::delete('mappings/{mapping}', [AccountMappingController::class, 'destroy'])->name('mappings.destroy');
+        });
     });
 
     // Settings
