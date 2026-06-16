@@ -99,8 +99,10 @@ class InvoicePostingService
 
     private function buildLines(Model $invoice, string $invoiceType): array
     {
-        // Determine total amount — RepairInvoice uses grand_total
-        $total = (float) ($invoice->total_amount ?? $invoice->grand_total ?? $invoice->amount ?? 0);
+        // RepairInvoice uses grand_total; all others use total_amount
+        $total = (float) ($invoiceType === 'repair'
+            ? ($invoice->grand_total ?? 0)
+            : ($invoice->total_amount ?? 0));
 
         if ($total <= 0) {
             throw new \InvalidArgumentException('Invoice total must be greater than zero.');
@@ -128,21 +130,15 @@ class InvoicePostingService
             );
         }
 
-        // Tax amounts — sum up sscl + vat + generic tax
-        $taxAmount = (float) (
-            ($invoice->tax_amount ?? 0)
-            + ($invoice->sscl_amount ?? 0)
-            + ($invoice->vat_amount ?? 0)
-            // RepairInvoice uses sscl_total / vat_total
-            + ($invoice->sscl_total ?? 0)
-            + ($invoice->vat_total ?? 0)
-        );
+        // Tax extraction per invoice type (avoids double-counting):
+        // - RepairInvoice:           tax_amount = sscl_total + vat_total (already aggregated), use sscl_total+vat_total
+        // - StorageHandlingInvoice:  separate sscl_amount + vat_amount; tax_amount not stored
+        // - ReeferElectricityInvoice: separate sscl_amount + vat_amount
+        // - StorageInvoice:          total_amount is inclusive; no breakdown available
+        $taxAmount = (float) $this->extractTax($invoice, $invoiceType);
 
-        // Avoid double-counting if total_amount already includes taxes
-        // Use netAmount = total - taxes for revenue credit
         $netAmount = $total - $taxAmount;
         if ($netAmount <= 0) {
-            // Fallback: credit entire amount to revenue
             $netAmount = $total;
             $taxAmount = 0;
         }
@@ -184,6 +180,17 @@ class InvoicePostingService
         }
 
         return $lines;
+    }
+
+    private function extractTax(Model $invoice, string $invoiceType): float
+    {
+        return match ($invoiceType) {
+            // tax_amount already equals sscl_total + vat_total — don't double-count
+            'repair'           => (float)(($invoice->sscl_total ?? 0) + ($invoice->vat_total ?? 0)),
+            'storage-handling' => (float)(($invoice->sscl_amount ?? 0) + ($invoice->vat_amount ?? 0)),
+            'reefer'           => (float)(($invoice->sscl_amount ?? 0) + ($invoice->vat_amount ?? 0)),
+            default            => 0.0,
+        };
     }
 
     private function resolveRevenueAccount(string $invoiceType): ?Account
