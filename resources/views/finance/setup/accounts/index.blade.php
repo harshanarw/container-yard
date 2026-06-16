@@ -270,7 +270,8 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('edit_is_control').checked = !!d.is_control;
             document.getElementById('edit_is_receivable').checked = !!d.is_receivable;
             document.getElementById('edit_is_payable').checked = !!d.is_payable;
-            document.getElementById('editAccountForm').action = '/finance/setup/accounts/' + d.id;
+            var base = '{{ rtrim(route('finance.setup.accounts.update', ['account' => '__ID__']), '') }}';
+            document.getElementById('editAccountForm').action = base.replace('__ID__', d.id);
             var modal = new bootstrap.Modal(document.getElementById('editAccountModal'));
             modal.show();
         });

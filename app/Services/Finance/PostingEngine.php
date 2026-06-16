@@ -92,7 +92,10 @@ class PostingEngine
         }
 
         return DB::transaction(function () use ($journal, $userId, $reason) {
-            // Build reversal lines
+            // Reversal posts to today (current open period), not the original closed period
+            $reversalDate = Carbon::today();
+
+            // Build reversal lines (debits and credits swapped)
             $reversalLines = $journal->entries->map(function ($entry) {
                 return [
                     'account_id' => $entry->account_id,
@@ -103,7 +106,7 @@ class PostingEngine
             })->toArray();
 
             $reversal = $this->createJournal([
-                'journal_date'   => $journal->journal_date->toDateString(),
+                'journal_date'   => $reversalDate->toDateString(),
                 'journal_type'   => $journal->journal_type,
                 'reference_type' => $journal->reference_type,
                 'reference_id'   => $journal->reference_id,

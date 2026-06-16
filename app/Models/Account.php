@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Account extends Model
 {
@@ -44,6 +45,11 @@ class Account extends Model
     public function mappings()
     {
         return $this->hasMany(AccountMapping::class);
+    }
+
+    public function entries(): HasMany
+    {
+        return $this->hasMany(GlEntry::class);
     }
 
     public function getFullNameAttribute(): string

@@ -66,7 +66,7 @@
         </button>
         @endcan
         @can('finance.coa.delete')
-        @if(!$account->is_system && !$account->children()->exists())
+        @if(!$account->is_system && $account->allChildren->isEmpty())
         <form method="POST" action="{{ route('finance.setup.accounts.destroy', $account) }}" class="d-inline">
             @csrf @method('DELETE')
             <button type="submit" class="btn btn-sm btn-link p-0 text-danger ms-1"
