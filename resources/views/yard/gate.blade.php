@@ -1145,23 +1145,24 @@
                                     {{ $mv->customer?->name }}@if($mv->vehicle_plate) &nbsp;·&nbsp; {{ $mv->vehicle_plate }}@endif
                                 </div>
                             </div>
-                            <div class="d-flex gap-1 flex-shrink-0">
+                            <div class="d-flex align-items-center gap-1 flex-shrink-0">
                                 <a href="{{ route('yard.movements.gate-pass', $mv) }}" target="_blank"
-                                   class="btn btn-sm py-0 px-1 {{ $mv->movement_type === 'out' ? 'btn-outline-success' : 'btn-outline-primary' }}"
-                                   style="font-size:.65rem;" title="{{ $mv->movement_type === 'out' ? 'Gate Pass' : 'Inward Gate Pass' }}">
+                                   class="btn btn-sm {{ $mv->movement_type === 'out' ? 'btn-outline-success' : 'btn-outline-primary' }}"
+                                   style="font-size:.65rem;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;" title="{{ $mv->movement_type === 'out' ? 'Gate Pass' : 'Inward Gate Pass' }}">
                                     <i class="bi bi-printer"></i>
                                 </a>
                                 <a href="{{ route('yard.movements.edit', $mv) }}"
-                                   class="btn btn-outline-secondary btn-sm py-0 px-1"
-                                   style="font-size:.65rem;" title="Edit">
+                                   class="btn btn-outline-secondary btn-sm"
+                                   style="font-size:.65rem;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 @can('yard.movement-delete')
                                 <form method="POST" action="{{ route('yard.movements.destroy', $mv) }}"
+                                      style="display:contents;"
                                       onsubmit="return confirm('Delete gate movement for {{ $mv->container_no }} ({{ strtoupper($mv->movement_type) }})?\n\nThis cannot be undone. Verify the container status manually after deletion.');">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1"
-                                            style="font-size:.65rem;" title="Delete movement">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                                            style="font-size:.65rem;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;" title="Delete movement">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
