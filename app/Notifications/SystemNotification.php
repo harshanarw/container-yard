@@ -41,6 +41,7 @@ class SystemNotification extends Notification implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
+            'id'    => $this->id,
             'title' => $this->title,
             'body'  => $this->body,
             'type'  => $this->type,

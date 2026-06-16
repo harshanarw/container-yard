@@ -1832,11 +1832,27 @@
         var markAllBtn    = document.getElementById('notifMarkAllBtn');
         var csrfToken     = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-        var _storedPoll   = parseInt(sessionStorage.getItem('_npLastPoll') || '0', 10);
-        var _maxAge       = 300; // ignore stored timestamp if older than 5 minutes
-        var lastPollTs    = (_storedPoll && (Math.floor(Date.now()/1000) - _storedPoll) < _maxAge)
-                            ? _storedPoll
-                            : null;
+        // Track which notification IDs have already been toasted, by ID rather
+        // than timestamp — comparing client Date.now() against server-issued
+        // created_at timestamps breaks silently whenever the two clocks drift
+        // (badge count still updates from the DB, but the toast filter quietly
+        // discards every item because n.ts never exceeds the skewed lastPollTs).
+        var _seenRaw         = sessionStorage.getItem('_npSeenIds');
+        var seenIds          = new Set();
+        var seenInitialized   = false;
+        try {
+            if (_seenRaw) {
+                JSON.parse(_seenRaw).forEach(function (id) { seenIds.add(id); });
+                seenInitialized = true;
+            }
+        } catch (e) { /* corrupt storage — treat as first run */ }
+
+        function persistSeen() {
+            var ids = Array.from(seenIds);
+            if (ids.length > 200) { ids = ids.slice(-200); seenIds = new Set(ids); }
+            sessionStorage.setItem('_npSeenIds', JSON.stringify(ids));
+        }
+
         var POLL_INTERVAL = 5000;      // 5 s fallback; overridden to 60 s when Reverb WS is active
 
         var npIcons = {
@@ -1888,7 +1904,6 @@
         }
 
         async function fetchUnread() {
-            var nowTs = Math.floor(Date.now() / 1000);
             try {
                 var res  = await fetch('{{ route("notifications.unread") }}', {
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
@@ -1899,18 +1914,23 @@
                 updateBadge(data.count);
                 renderDropdown(data.items, data.count);
 
-                // Show side popups only for items newer than last poll
-                if (lastPollTs !== null && data.items && data.items.length) {
-                    data.items
-                        .filter(function (n) { return n.ts > lastPollTs; })
+                var items = data.items || [];
+                if (!seenInitialized) {
+                    // First poll this tab/session — record existing unread
+                    // without toasting them (they predate this page view).
+                    items.forEach(function (n) { seenIds.add(n.id); });
+                    seenInitialized = true;
+                } else {
+                    items
+                        .filter(function (n) { return !seenIds.has(n.id); })
                         .reverse()
                         .forEach(function (n) {
                             showSideNotification(n.title, n.body, n.type, n.url);
+                            seenIds.add(n.id);
                         });
                 }
+                persistSeen();
             } catch (e) { /* silent — never break the page */ }
-            lastPollTs = nowTs;
-            sessionStorage.setItem('_npLastPoll', nowTs);
         }
 
         // Delegate: clicking a notification item marks it read
@@ -1993,6 +2013,7 @@
 
             var _chan = _pusher.subscribe('private-App.Models.User.' + _bcastCfg.userId);
             _chan.bind('notification.new', function (data) {
+                if (data.id) { seenIds.add(data.id); persistSeen(); }
                 showSideNotification(data.title, data.body, data.type, data.url);
                 fetchUnread(); // sync badge + dropdown
             });
