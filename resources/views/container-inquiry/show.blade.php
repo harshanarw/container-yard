@@ -952,61 +952,68 @@
 // ── Gate Movement delete pre-check modal (Container Inquiry) ─────────────────
 (function () {
     const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
-    const modal      = document.getElementById('mvDeleteModal');
-    const bsModal    = modal ? new bootstrap.Modal(modal) : null;
-    const titleEl    = document.getElementById('mvDeleteTitle');
-    const bodyEl     = document.getElementById('mvDeleteBody');
-    const confirmBtn = document.getElementById('mvDeleteConfirmBtn');
-    let   deleteUrl  = '';
+    let deleteUrl = '';
 
     document.addEventListener('click', function (e) {
+        // Delete trigger button
         const btn = e.target.closest('.js-mv-delete');
-        if (!btn) return;
-        e.preventDefault();
+        if (btn) {
+            e.preventDefault();
 
-        deleteUrl = btn.dataset.deleteUrl;
-        const checkUrl = btn.dataset.checkUrl;
+            deleteUrl = btn.dataset.deleteUrl;
+            const checkUrl = btn.dataset.checkUrl;
 
-        if (titleEl) titleEl.textContent = 'Checking…';
-        if (bodyEl)  bodyEl.innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span> Checking dependencies…</div>';
-        if (confirmBtn) { confirmBtn.classList.add('d-none'); confirmBtn.disabled = false; }
-        if (bsModal) bsModal.show();
+            // Lazy-init — modal HTML follows </script> in the same @push block
+            const modalEl    = document.getElementById('mvDeleteModal');
+            if (!modalEl) return;
+            const bsModal    = bootstrap.Modal.getOrCreateInstance(modalEl);
+            const titleEl    = document.getElementById('mvDeleteTitle');
+            const bodyEl     = document.getElementById('mvDeleteBody');
+            const confirmBtn = document.getElementById('mvDeleteConfirmBtn');
 
-        fetch(checkUrl, { headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } })
-            .then(r => r.json())
-            .then(data => {
-                const mvLabel = (data.movement_type === 'in' ? 'Gate-In' : 'Gate-Out')
-                    + ' · ' + data.container_no
-                    + (data.movement_time ? ' · ' + data.movement_time : '');
+            if (titleEl)    titleEl.textContent = 'Checking…';
+            if (bodyEl)     bodyEl.innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span> Checking dependencies…</div>';
+            if (confirmBtn) { confirmBtn.classList.add('d-none'); confirmBtn.disabled = false; }
+            bsModal.show();
 
-                if (titleEl) titleEl.textContent = 'Delete ' + mvLabel;
+            fetch(checkUrl, { headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    const mvLabel = (data.movement_type === 'in' ? 'Gate-In' : 'Gate-Out')
+                        + ' · ' + data.container_no
+                        + (data.movement_time ? ' · ' + data.movement_time : '');
 
-                let html = '';
-                if (data.blocks && data.blocks.length) {
-                    html += '<div class="alert alert-danger py-2 mb-3 small"><strong><i class="bi bi-x-octagon-fill me-1"></i>Cannot delete — resolve the following first:</strong><ul class="mb-0 mt-2 ps-3">';
-                    data.blocks.forEach(b => { html += '<li><i class="bi ' + b.icon + ' me-1"></i>' + b.message + '</li>'; });
-                    html += '</ul></div>';
-                }
-                if (data.warnings && data.warnings.length) {
-                    html += '<div class="alert alert-warning py-2 mb-3 small"><strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Warnings — review before confirming:</strong><ul class="mb-0 mt-2 ps-3">';
-                    data.warnings.forEach(w => { html += '<li><i class="bi ' + w.icon + ' me-1"></i>' + w.message + '</li>'; });
-                    html += '</ul></div>';
-                }
-                if (data.safe && !data.blocks?.length) {
-                    if (!data.warnings?.length) html += '<p class="text-muted small mb-0">No linked transactions found. This movement can be safely deleted.</p>';
-                    if (confirmBtn) confirmBtn.classList.remove('d-none');
-                }
-                if (bodyEl) bodyEl.innerHTML = html;
-            })
-            .catch(() => {
-                if (bodyEl) bodyEl.innerHTML = '<div class="alert alert-danger small">Failed to check dependencies. Please try again.</div>';
-            });
-    });
+                    if (titleEl) titleEl.textContent = 'Delete ' + mvLabel;
 
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', function () {
-            this.disabled = true;
-            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting…';
+                    let html = '';
+                    if (data.blocks && data.blocks.length) {
+                        html += '<div class="alert alert-danger py-2 mb-3 small"><strong><i class="bi bi-x-octagon-fill me-1"></i>Cannot delete — resolve the following first:</strong><ul class="mb-0 mt-2 ps-3">';
+                        data.blocks.forEach(b => { html += '<li><i class="bi ' + b.icon + ' me-1"></i>' + b.message + '</li>'; });
+                        html += '</ul></div>';
+                    }
+                    if (data.warnings && data.warnings.length) {
+                        html += '<div class="alert alert-warning py-2 mb-3 small"><strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Warnings — review before confirming:</strong><ul class="mb-0 mt-2 ps-3">';
+                        data.warnings.forEach(w => { html += '<li><i class="bi ' + w.icon + ' me-1"></i>' + w.message + '</li>'; });
+                        html += '</ul></div>';
+                    }
+                    if (data.safe && !data.blocks?.length) {
+                        if (!data.warnings?.length) html += '<p class="text-muted small mb-0">No linked transactions found. This movement can be safely deleted.</p>';
+                        if (confirmBtn) confirmBtn.classList.remove('d-none');
+                    }
+                    if (bodyEl) bodyEl.innerHTML = html;
+                })
+                .catch(() => {
+                    const bodyEl2 = document.getElementById('mvDeleteBody');
+                    if (bodyEl2) bodyEl2.innerHTML = '<div class="alert alert-danger small">Failed to check dependencies. Please try again.</div>';
+                });
+            return;
+        }
+
+        // Confirm button (delegated — avoids the same init-timing problem)
+        const confirmBtn = e.target.closest('#mvDeleteConfirmBtn');
+        if (confirmBtn && !confirmBtn.disabled) {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting…';
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = deleteUrl;
@@ -1015,8 +1022,8 @@
                            + '<input type="hidden" name="_redirect" value="' + window.location.href + '">';
             document.body.appendChild(form);
             form.submit();
-        });
-    }
+        }
+    });
 })();
 </script>
 
