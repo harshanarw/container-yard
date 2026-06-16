@@ -3259,7 +3259,8 @@ window.gpRescan = async function (btnEl, url, type) {
             form.method = 'POST';
             form.action = deleteUrl;
             form.innerHTML = '<input type="hidden" name="_token" value="' + CSRF + '">'
-                           + '<input type="hidden" name="_method" value="DELETE">';
+                           + '<input type="hidden" name="_method" value="DELETE">'
+                           + '<input type="hidden" name="_redirect" value="' + window.location.href + '">';
             document.body.appendChild(form);
             form.submit();
         });

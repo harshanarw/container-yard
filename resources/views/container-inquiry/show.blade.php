@@ -570,11 +570,22 @@
                         {{-- Gate In Details --}}
                         <div class="col-12 col-md-6">
                             <div class="p-3 rounded-3 border bg-success-subtle" style="border-color:#86efac!important">
-                                <div class="fw-semibold small text-success mb-2">
-                                    <i class="bi bi-box-arrow-in-right me-1"></i>Gate In
-                                    @if($gateIn->gate_in_time)
-                                    <span class="text-muted fw-normal ms-1">{{ $gateIn->gate_in_time->format('d M Y H:i') }}</span>
-                                    @endif
+                                <div class="fw-semibold small text-success mb-2 d-flex align-items-center justify-content-between">
+                                    <span>
+                                        <i class="bi bi-box-arrow-in-right me-1"></i>Gate In
+                                        @if($gateIn->gate_in_time)
+                                        <span class="text-muted fw-normal ms-1">{{ $gateIn->gate_in_time->format('d M Y H:i') }}</span>
+                                        @endif
+                                    </span>
+                                    @can('yard.movement-delete')
+                                    <button type="button" class="btn btn-sm btn-outline-danger js-mv-delete"
+                                            style="font-size:.65rem;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;"
+                                            title="Delete Gate-In movement"
+                                            data-check-url="{{ route('yard.movements.delete-check', $gateIn) }}"
+                                            data-delete-url="{{ route('yard.movements.destroy', $gateIn) }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    @endcan
                                 </div>
                                 <div class="row g-1" style="font-size:.8rem">
                                     <div class="col-6"><span class="text-muted">Customer:</span>
@@ -620,11 +631,22 @@
                         <div class="col-12 col-md-6">
                             @if($gateOut)
                             <div class="p-3 rounded-3 border bg-danger-subtle" style="border-color:#fca5a5!important">
-                                <div class="fw-semibold small text-danger mb-2">
-                                    <i class="bi bi-box-arrow-right me-1"></i>Gate Out
-                                    @if($gateOut->gate_out_time)
-                                    <span class="text-muted fw-normal ms-1">{{ $gateOut->gate_out_time->format('d M Y H:i') }}</span>
-                                    @endif
+                                <div class="fw-semibold small text-danger mb-2 d-flex align-items-center justify-content-between">
+                                    <span>
+                                        <i class="bi bi-box-arrow-right me-1"></i>Gate Out
+                                        @if($gateOut->gate_out_time)
+                                        <span class="text-muted fw-normal ms-1">{{ $gateOut->gate_out_time->format('d M Y H:i') }}</span>
+                                        @endif
+                                    </span>
+                                    @can('yard.movement-delete')
+                                    <button type="button" class="btn btn-sm btn-outline-danger js-mv-delete"
+                                            style="font-size:.65rem;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;"
+                                            title="Delete Gate-Out movement"
+                                            data-check-url="{{ route('yard.movements.delete-check', $gateOut) }}"
+                                            data-delete-url="{{ route('yard.movements.destroy', $gateOut) }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    @endcan
                                 </div>
                                 <div class="row g-1" style="font-size:.8rem">
                                     <div class="col-6"><span class="text-muted">Vehicle:</span>
@@ -923,3 +945,98 @@
     }
 </style>
 @endpush
+
+@can('yard.movement-delete')
+@push('scripts')
+<script>
+// ── Gate Movement delete pre-check modal (Container Inquiry) ─────────────────
+(function () {
+    const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const modal      = document.getElementById('mvDeleteModal');
+    const bsModal    = modal ? new bootstrap.Modal(modal) : null;
+    const titleEl    = document.getElementById('mvDeleteTitle');
+    const bodyEl     = document.getElementById('mvDeleteBody');
+    const confirmBtn = document.getElementById('mvDeleteConfirmBtn');
+    let   deleteUrl  = '';
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.js-mv-delete');
+        if (!btn) return;
+        e.preventDefault();
+
+        deleteUrl = btn.dataset.deleteUrl;
+        const checkUrl = btn.dataset.checkUrl;
+
+        if (titleEl) titleEl.textContent = 'Checking…';
+        if (bodyEl)  bodyEl.innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span> Checking dependencies…</div>';
+        if (confirmBtn) { confirmBtn.classList.add('d-none'); confirmBtn.disabled = false; }
+        if (bsModal) bsModal.show();
+
+        fetch(checkUrl, { headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                const mvLabel = (data.movement_type === 'in' ? 'Gate-In' : 'Gate-Out')
+                    + ' · ' + data.container_no
+                    + (data.movement_time ? ' · ' + data.movement_time : '');
+
+                if (titleEl) titleEl.textContent = 'Delete ' + mvLabel;
+
+                let html = '';
+                if (data.blocks && data.blocks.length) {
+                    html += '<div class="alert alert-danger py-2 mb-3 small"><strong><i class="bi bi-x-octagon-fill me-1"></i>Cannot delete — resolve the following first:</strong><ul class="mb-0 mt-2 ps-3">';
+                    data.blocks.forEach(b => { html += '<li><i class="bi ' + b.icon + ' me-1"></i>' + b.message + '</li>'; });
+                    html += '</ul></div>';
+                }
+                if (data.warnings && data.warnings.length) {
+                    html += '<div class="alert alert-warning py-2 mb-3 small"><strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Warnings — review before confirming:</strong><ul class="mb-0 mt-2 ps-3">';
+                    data.warnings.forEach(w => { html += '<li><i class="bi ' + w.icon + ' me-1"></i>' + w.message + '</li>'; });
+                    html += '</ul></div>';
+                }
+                if (data.safe && !data.blocks?.length) {
+                    if (!data.warnings?.length) html += '<p class="text-muted small mb-0">No linked transactions found. This movement can be safely deleted.</p>';
+                    if (confirmBtn) confirmBtn.classList.remove('d-none');
+                }
+                if (bodyEl) bodyEl.innerHTML = html;
+            })
+            .catch(() => {
+                if (bodyEl) bodyEl.innerHTML = '<div class="alert alert-danger small">Failed to check dependencies. Please try again.</div>';
+            });
+    });
+
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function () {
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting…';
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = deleteUrl;
+            form.innerHTML = '<input type="hidden" name="_token" value="' + CSRF + '">'
+                           + '<input type="hidden" name="_method" value="DELETE">'
+                           + '<input type="hidden" name="_redirect" value="' + window.location.href + '">';
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
+})();
+</script>
+
+{{-- Movement delete confirmation modal --}}
+<div class="modal fade" id="mvDeleteModal" tabindex="-1" aria-labelledby="mvDeleteTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-1">
+                <h6 class="modal-title fw-semibold" id="mvDeleteTitle">Delete Movement</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-2" id="mvDeleteBody"></div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="mvDeleteConfirmBtn" class="btn btn-danger btn-sm d-none">
+                    <i class="bi bi-trash me-1"></i>Delete permanently
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endpush
+@endcan

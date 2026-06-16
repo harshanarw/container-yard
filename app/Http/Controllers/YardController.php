@@ -709,8 +709,11 @@ class YardController extends Controller
         $tab = $movement->movement_type === 'in' ? 'in' : 'out';
         $movement->delete();
 
+        $fallback  = route('yard.gate') . '?tab=' . $tab;
+        $redirectTo = request('_redirect', $fallback);
+
         return redirect()
-            ->to(route('yard.gate') . '?tab=' . $tab)
+            ->to($redirectTo)
             ->with('success', "Gate movement for {$ref} deleted. Verify the container status is correct.");
     }
 
