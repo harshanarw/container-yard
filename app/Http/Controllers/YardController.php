@@ -810,6 +810,53 @@ class YardController extends Controller
             ];
         }
 
+        // Invoices — block if any invoice has been raised covering this cycle
+        if ($movement->container_id) {
+            $cycleDate = $isIn
+                ? $movement->gate_in_time?->toDateString()
+                : $movement->gate_out_time?->toDateString();
+            $dateField = $isIn ? 'gate_in_date' : 'gate_out_date';
+
+            $invoiceTypes = [];
+
+            // Storage & Handling invoice lines
+            if ($cycleDate && \App\Models\StorageHandlingInvoiceLine::where('container_id', $movement->container_id)
+                    ->whereDate($dateField, $cycleDate)->exists()) {
+                $invoiceTypes[] = 'Storage & Handling';
+            }
+
+            // Storage invoice details
+            if ($cycleDate && \App\Models\StorageInvoiceDetail::where('container_id', $movement->container_id)
+                    ->whereDate($dateField, $cycleDate)->exists()) {
+                $invoiceTypes[] = 'Storage';
+            }
+
+            // Reefer electricity invoice lines (scoped to plug dates within cycle window)
+            $cycleStart = $isIn ? $movement->gate_in_time : null;
+            $cycleEnd   = !$isIn ? $movement->gate_out_time : now();
+            if ($cycleStart && \App\Models\ReeferElectricityInvoiceLine::where('container_id', $movement->container_id)
+                    ->where('plug_in_at', '>=', $cycleStart)
+                    ->when($cycleEnd, fn($q) => $q->where('plug_in_at', '<=', $cycleEnd))
+                    ->exists()) {
+                $invoiceTypes[] = 'Reefer Electricity';
+            }
+
+            // Repair invoices (via estimate/work-order chain on the same container)
+            if ($movement->survey_id &&
+                \App\Models\RepairInvoice::where('container_id', $movement->container_id)
+                    ->whereIn('estimate_id', \App\Models\Estimate::where('inquiry_id', $movement->survey_id)->pluck('id'))
+                    ->exists()) {
+                $invoiceTypes[] = 'Repair';
+            }
+
+            if (!empty($invoiceTypes)) {
+                $blocks[] = [
+                    'icon'    => 'bi-receipt-cutoff',
+                    'message' => implode(', ', $invoiceTypes) . ' invoice(s) have already been raised for this container cycle. Delete or void the invoice(s) before removing the movement.',
+                ];
+            }
+        }
+
         // Open storage record (will become orphaned)
         if ($isIn && $movement->container_id && $movement->gate_in_time) {
             $storage = YardStorage::where('container_id', $movement->container_id)
