@@ -15,11 +15,6 @@ abstract class AuditObserver
 
     abstract protected function getReference(Model $model): ?string;
 
-    protected function label(): string
-    {
-        return class_basename(static::class);
-    }
-
     public function created(Model $model): void
     {
         $ref = $this->getReference($model);

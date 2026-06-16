@@ -47,6 +47,7 @@ use App\Http\Controllers\GuardPostController;
 use App\Http\Controllers\ReeferTariffController;
 use App\Http\Controllers\ReeferController;
 use App\Http\Controllers\ReeferBillingController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ContainerInquiryController;
 use App\Http\Controllers\NotificationController;
 
@@ -510,6 +511,12 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Approval Workflows — System Administrator only
+    // Audit Log
+    Route::prefix('audit-log')->name('audit-log.')->group(function () {
+        Route::get('/',           [AuditLogController::class, 'index'])->name('index');
+        Route::get('/{auditLog}', [AuditLogController::class, 'detail'])->name('detail');
+    });
+
     Route::prefix('settings/approval-workflows')->name('settings.approval-workflows.')->group(function () {
         Route::get('/',                              [ApprovalWorkflowController::class, 'index'])->name('index');
         Route::post('/',                             [ApprovalWorkflowController::class, 'store'])->name('store');

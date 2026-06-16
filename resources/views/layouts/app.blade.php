@@ -1176,8 +1176,8 @@
         @endif
 
         {{-- ── SETTINGS ── --}}
-        @if(Auth::user()->isSuperUser() || Auth::user()->can('access-control.view') || Auth::user()->can('settings.company.view') || Auth::user()->can('settings.approval-workflows.view'))
-        @php $settingsOpen = request()->routeIs('settings.*') || request()->routeIs('access-control.*'); @endphp
+        @if(Auth::user()->isSuperUser() || Auth::user()->can('access-control.view') || Auth::user()->can('audit-log.view') || Auth::user()->can('settings.company.view') || Auth::user()->can('settings.approval-workflows.view'))
+        @php $settingsOpen = request()->routeIs('settings.*') || request()->routeIs('access-control.*') || request()->routeIs('audit-log.*'); @endphp
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-settings"
                 aria-expanded="{{ $settingsOpen ? 'true' : 'false' }}" aria-controls="nav-section-settings">
@@ -1198,6 +1198,17 @@
                     <a href="{{ route('access-control.users.index') }}"
                        class="nav-link {{ request()->routeIs('access-control.users.*') ? 'active' : '' }}">
                         <i class="bi bi-person-badge"></i><span>User Access</span>
+                    </a>
+                </li>
+            </ul>
+            @endcan
+
+            @can('audit-log.view')
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a href="{{ route('audit-log.index') }}"
+                       class="nav-link {{ request()->routeIs('audit-log.*') ? 'active' : '' }}">
+                        <i class="bi bi-journal-text"></i><span>Audit Log</span>
                     </a>
                 </li>
             </ul>

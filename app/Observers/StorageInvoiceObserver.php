@@ -28,7 +28,7 @@ class StorageInvoiceObserver extends AuditObserver
         ];
 
         $desc    = $descriptions[$newStatus] ?? null;
-        $event   = $newStatus === 'issued' ? 'approved' : ($newStatus ? 'updated' : 'updated');
+        $event   = $newStatus === 'issued' ? 'approved' : 'updated';
         $changed = implode(', ', array_keys($diff['old'] ?? []));
 
         AuditService::log(
