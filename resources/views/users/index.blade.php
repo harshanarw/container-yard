@@ -263,11 +263,28 @@
                     @endif
 
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                                   value="{{ old('name') }}" placeholder="e.g. Ahmad Razali" required>
-                            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Title</label>
+                            <select name="title" class="form-select">
+                                <option value="">—</option>
+                                @foreach(['Mr','Ms','Mrs','Dr','Prof','Engr','Rev'] as $t)
+                                <option value="{{ $t }}" {{ old('title') === $t ? 'selected' : '' }}>{{ $t }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+                            <input type="text" name="first_name"
+                                   class="form-control @error('first_name') is-invalid @enderror"
+                                   value="{{ old('first_name') }}" placeholder="e.g. Ahmad" required>
+                            @error('first_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" name="last_name"
+                                   class="form-control @error('last_name') is-invalid @enderror"
+                                   value="{{ old('last_name') }}" placeholder="e.g. Razali" required>
+                            @error('last_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
