@@ -55,6 +55,9 @@ use App\Http\Controllers\Finance\ChartOfAccountsController;
 use App\Http\Controllers\Finance\AccountMappingController;
 use App\Http\Controllers\Finance\GeneralLedgerController;
 use App\Http\Controllers\Finance\InvoicePostingController;
+use App\Http\Controllers\Finance\BankAccountController;
+use App\Http\Controllers\Finance\ReceiptController;
+use App\Http\Controllers\Finance\PaymentVoucherController;
 
 /*
 |--------------------------------------------------------------------------
@@ -581,6 +584,37 @@ Route::middleware(['auth'])->group(function () {
             Route::get('postings',                  [InvoicePostingController::class, 'index'])->name('postings.index');
             Route::post('postings',                 [InvoicePostingController::class, 'store'])->name('postings.store');
             Route::post('postings/{posting}/void',  [InvoicePostingController::class, 'void'])->name('postings.void');
+        });
+
+        // Bank Accounts
+        Route::prefix('bank-accounts')->name('bank-accounts.')->group(function () {
+            Route::get('/',               [BankAccountController::class, 'index'])->name('index');
+            Route::get('/create',         [BankAccountController::class, 'create'])->name('create');
+            Route::post('/',              [BankAccountController::class, 'store'])->name('store');
+            Route::get('/{bankAccount}',  [BankAccountController::class, 'edit'])->name('edit');
+            Route::patch('/{bankAccount}', [BankAccountController::class, 'update'])->name('update');
+            Route::delete('/{bankAccount}', [BankAccountController::class, 'destroy'])->name('destroy');
+        });
+
+        // Receipts
+        Route::prefix('receipts')->name('receipts.')->group(function () {
+            Route::get('/',                             [ReceiptController::class, 'index'])->name('index');
+            Route::get('/create',                       [ReceiptController::class, 'create'])->name('create');
+            Route::post('/',                            [ReceiptController::class, 'store'])->name('store');
+            Route::get('/{receipt}',                    [ReceiptController::class, 'show'])->name('show');
+            Route::post('/{receipt}/confirm',           [ReceiptController::class, 'confirm'])->name('confirm');
+            Route::post('/{receipt}/void',              [ReceiptController::class, 'void'])->name('void');
+            Route::post('/{receipt}/allocations',       [ReceiptController::class, 'storeAllocation'])->name('allocations.store');
+        });
+
+        // Payment Vouchers
+        Route::prefix('vouchers')->name('vouchers.')->group(function () {
+            Route::get('/',                             [PaymentVoucherController::class, 'index'])->name('index');
+            Route::get('/create',                       [PaymentVoucherController::class, 'create'])->name('create');
+            Route::post('/',                            [PaymentVoucherController::class, 'store'])->name('store');
+            Route::get('/{voucher}',                    [PaymentVoucherController::class, 'show'])->name('show');
+            Route::post('/{voucher}/confirm',           [PaymentVoucherController::class, 'confirm'])->name('confirm');
+            Route::post('/{voucher}/void',              [PaymentVoucherController::class, 'void'])->name('void');
         });
     });
 

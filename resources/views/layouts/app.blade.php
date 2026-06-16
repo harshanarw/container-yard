@@ -817,6 +817,28 @@
                     </a>
                 </li>
                 @endcan
+                @can('finance.receipts.view')
+                <li class="nav-item">
+                    <a href="{{ route('finance.bank-accounts.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.bank-accounts.*') ? 'active' : '' }}">
+                        <i class="bi bi-bank2"></i><span>Bank Accounts</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.receipts.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.receipts.*') ? 'active' : '' }}">
+                        <i class="bi bi-receipt"></i><span>Receipts</span>
+                    </a>
+                </li>
+                @endcan
+                @can('finance.vouchers.view')
+                <li class="nav-item">
+                    <a href="{{ route('finance.vouchers.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.vouchers.*') ? 'active' : '' }}">
+                        <i class="bi bi-cash-coin"></i><span>Payment Vouchers</span>
+                    </a>
+                </li>
+                @endcan
             </ul>
         </div>
         @endif

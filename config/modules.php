@@ -264,6 +264,18 @@ return [
         'actions' => ['view', 'post', 'void'],
     ],
 
+    'finance.receipts' => [
+        'label'   => 'Receipts',
+        'section' => 'Finance',
+        'actions' => ['view', 'create', 'edit', 'confirm', 'void'],
+    ],
+
+    'finance.vouchers' => [
+        'label'   => 'Payment Vouchers',
+        'section' => 'Finance',
+        'actions' => ['view', 'create', 'edit', 'confirm', 'void'],
+    ],
+
     // ── Reports ───────────────────────────────────────────────────────────────
 
     'reports' => [
