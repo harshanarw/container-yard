@@ -10,8 +10,9 @@ class SystemNotification extends Notification implements ShouldBroadcast
     public function __construct(
         public readonly string  $title,
         public readonly string  $body,
-        public readonly string  $type = 'info',
-        public readonly ?string $url  = null,
+        public readonly string  $type  = 'info',
+        public readonly ?string $url   = null,
+        public readonly ?string $actor = null,
     ) {}
 
     public function via($notifiable): array
@@ -30,6 +31,7 @@ class SystemNotification extends Notification implements ShouldBroadcast
             'body'  => $this->body,
             'type'  => $this->type,
             'url'   => $this->url,
+            'actor' => $this->actor,
         ];
     }
 
@@ -46,6 +48,7 @@ class SystemNotification extends Notification implements ShouldBroadcast
             'body'  => $this->body,
             'type'  => $this->type,
             'url'   => $this->url,
+            'actor' => $this->actor,
             'ts'    => now()->timestamp,
         ];
     }

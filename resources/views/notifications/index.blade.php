@@ -23,6 +23,7 @@
             $title = $n->data['title'] ?? 'Notification';
             $body  = $n->data['body']  ?? '';
             $url   = $n->data['url']   ?? null;
+            $actor = $n->data['actor'] ?? null;
             $icons = ['info'=>'bi-info-circle-fill text-primary','success'=>'bi-check-circle-fill text-success',
                       'warning'=>'bi-exclamation-triangle-fill text-warning','danger'=>'bi-exclamation-circle-fill text-danger'];
             $bgs   = ['info'=>'bg-primary-subtle','success'=>'bg-success-subtle',
@@ -42,6 +43,11 @@
                     </div>
                     @if($body)
                     <div class="text-muted fw-normal mt-1" style="font-size:.82rem;">{{ $body }}</div>
+                    @endif
+                    @if($actor)
+                    <div class="fw-semibold mt-1" style="font-size:.75rem;color:#6366f1;">
+                        <i class="bi bi-person-fill me-1"></i>{{ $actor }}
+                    </div>
                     @endif
                 </div>
                 <div class="d-flex gap-2 flex-shrink-0 align-items-start" style="margin-top:2px;">

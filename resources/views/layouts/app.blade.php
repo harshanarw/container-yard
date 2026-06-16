@@ -506,6 +506,7 @@
         .notif-popup.np-danger  { border-left-color: #dc3545; }
         .notif-popup-title  { font-size: .88rem; font-weight: 600; color: #111; margin-bottom: 3px; padding-right: 20px; }
         .notif-popup-body   { font-size: .80rem; color: #555; line-height: 1.4; }
+        .notif-popup-actor  { font-size: .73rem; font-weight: 600; color: #6366f1; margin-top: 5px; }
         .notif-popup-close  {
             position: absolute; top: 8px; right: 10px;
             background: none; border: none; padding: 0; cursor: pointer;
@@ -1779,7 +1780,7 @@
     var notifStack  = document.getElementById('notifStack');
     var notifColors = { info:'np-info', success:'np-success', warning:'np-warning', danger:'np-danger' };
 
-    window.showSideNotification = function (title, body, type, url, autoHideMs) {
+    window.showSideNotification = function (title, body, type, url, autoHideMs, actor) {
         if (!notifStack) return;
         type       = type || 'info';
         autoHideMs = (autoHideMs === undefined) ? 6000 : autoHideMs;
@@ -1790,7 +1791,8 @@
         el.innerHTML =
             '<button class="notif-popup-close" aria-label="Dismiss">&times;</button>' +
             '<div class="notif-popup-title">' + _npEsc(title) + '</div>' +
-            (body ? '<div class="notif-popup-body">' + _npEsc(body) + '</div>' : '');
+            (body ? '<div class="notif-popup-body">' + _npEsc(body) + '</div>' : '') +
+            (actor ? '<div class="notif-popup-actor"><i class="bi bi-person-fill me-1"></i>' + _npEsc(actor) + '</div>' : '');
 
         if (url) {
             el.style.cursor = 'pointer';
@@ -1891,7 +1893,8 @@
                     '<i class="bi ' + icon + '"></i></span>' +
                     '<div><div class="small fw-semibold" style="line-height:1.3;">' + _npEsc(n.title) + '</div>' +
                     (n.body ? '<div class="text-muted" style="font-size:.72rem;line-height:1.3;">' + _npEsc(n.body) + '</div>' : '') +
-                    '<div class="text-muted" style="font-size:.68rem;margin-top:2px;">' + _npEsc(n.at) + '</div>' +
+                    (n.actor ? '<div style="font-size:.68rem;color:#6366f1;margin-top:2px;font-weight:500;"><i class="bi bi-person-fill me-1"></i>' + _npEsc(n.actor) + '</div>' : '') +
+                    '<div class="text-muted" style="font-size:.68rem;margin-top:1px;">' + _npEsc(n.at) + '</div>' +
                     '</div></div></a>';
                 listEl.insertBefore(li, emptyEl);
             });
@@ -1925,7 +1928,7 @@
                         .filter(function (n) { return !seenIds.has(n.id); })
                         .reverse()
                         .forEach(function (n) {
-                            showSideNotification(n.title, n.body, n.type, n.url);
+                            showSideNotification(n.title, n.body, n.type, n.url, undefined, n.actor);
                             seenIds.add(n.id);
                         });
                 }
@@ -2014,7 +2017,7 @@
             var _chan = _pusher.subscribe('private-App.Models.User.' + _bcastCfg.userId);
             _chan.bind('notification.new', function (data) {
                 if (data.id) { seenIds.add(data.id); persistSeen(); }
-                showSideNotification(data.title, data.body, data.type, data.url);
+                showSideNotification(data.title, data.body, data.type, data.url, undefined, data.actor);
                 fetchUnread(); // sync badge + dropdown
             });
 

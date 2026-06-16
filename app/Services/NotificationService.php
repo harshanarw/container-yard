@@ -15,14 +15,12 @@ class NotificationService
         string  $type = 'info',
         ?string $url  = null
     ): void {
-        // Resolve the acting user synchronously — Auth state may not be
-        // reliably available once we're inside the terminating callback.
-        $body = static::appendActor($body);
+        // Capture actor synchronously — Auth state may not be available
+        // once inside the terminating callback.
+        $actor = static::resolveActorLabel();
 
-        // Defer until after the HTTP response is sent so the WebSocket message
-        // arrives on the redirected page, not on the form page being left.
         app()->terminating(
-            fn () => $user->notify(new SystemNotification($title, $body, $type, $url))
+            fn () => $user->notify(new SystemNotification($title, $body, $type, $url, $actor))
         );
     }
 
@@ -38,17 +36,16 @@ class NotificationService
         );
     }
 
-    /** Append "— by First Last (Role)" naming whoever triggered the action. */
-    private static function appendActor(string $body): string
+    /** Returns "First Last · Role" for the currently authenticated user, or null. */
+    private static function resolveActorLabel(): ?string
     {
         $actor = Auth::user();
         if (! $actor) {
-            return $body;
+            return null;
         }
 
-        $role  = $actor->role ? ucwords(str_replace('_', ' ', $actor->role)) : null;
-        $label = $role ? "{$actor->full_name} ({$role})" : $actor->full_name;
+        $role = $actor->role ? ucwords(str_replace('_', ' ', $actor->role)) : null;
 
-        return $body ? "{$body} — by {$label}" : "by {$label}";
+        return $role ? "{$actor->full_name} · {$role}" : $actor->full_name;
     }
 }
