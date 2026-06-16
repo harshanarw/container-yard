@@ -8,9 +8,12 @@
     <style>
         /* ── Page setup ──────────────────────────────────────────────────── */
         @page {
-            @if($format === 'half' || $format === 'half-custom')
+            @if($format === 'half')
             size: A5 landscape;
             margin: 8mm 10mm;
+            @elseif($format === 'half-custom')
+            size: A4 portrait;
+            margin: 8mm 15mm 148mm 15mm;
             @else
             size: A4 portrait;
             margin: 12mm 15mm;
@@ -49,7 +52,7 @@
 
         /* ── Document wrapper ────────────────────────────────────────────── */
         .gp-doc {
-            @if($format === 'half' || $format === 'half-custom')
+            @if($format === 'half')
             max-width: 194mm;
             @else
             max-width: 180mm;

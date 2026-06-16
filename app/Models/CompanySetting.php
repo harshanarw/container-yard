@@ -50,6 +50,9 @@ class CompanySetting extends Model
         'enable_digital_approvals',
         'enable_guard_post',
         'mr_dimension_uom',
+        // Gate Pass Defaults
+        'default_gate_in_format',
+        'default_gate_out_format',
     ];
 
     protected $casts = [

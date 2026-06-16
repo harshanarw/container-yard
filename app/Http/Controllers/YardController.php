@@ -1153,9 +1153,14 @@ class YardController extends Controller
 
     public function gatePass(Request $request, GateMovement $movement)
     {
+        $companySetting = \App\Models\CompanySetting::current();
+        $defaultFormat  = $movement->movement_type === 'in'
+            ? ($companySetting->default_gate_in_format  ?: 'full')
+            : ($companySetting->default_gate_out_format ?: 'full');
+
         $format = in_array($request->query('format'), ['full', 'half', 'half-custom'])
             ? $request->query('format')
-            : 'full';
+            : $defaultFormat;
 
         $movement->load(['container', 'customer', 'transporter', 'createdBy', 'approvalRequest.actions.actionedBy']);
 
