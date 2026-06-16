@@ -828,10 +828,24 @@ class YardController extends Controller
                 $invoiceTypes[] = 'Storage & Handling';
             }
 
-            // Storage invoice details
-            if ($cycleDate && \App\Models\StorageInvoiceDetail::where('container_id', $movement->container_id)
-                    ->whereDate($dateField, $cycleDate)->exists()) {
-                $invoiceTypes[] = 'Storage';
+            // Storage invoice details — this table has gate_in_date only (no gate_out_date).
+            // For gate-out movements, resolve the paired gate-in date first.
+            if ($isIn && $cycleDate) {
+                if (\App\Models\StorageInvoiceDetail::where('container_id', $movement->container_id)
+                        ->whereDate('gate_in_date', $cycleDate)->exists()) {
+                    $invoiceTypes[] = 'Storage';
+                }
+            } elseif (!$isIn) {
+                $pairedIn = GateMovement::where('container_id', $movement->container_id)
+                    ->where('movement_type', 'in')
+                    ->where('gate_in_time', '<=', $movement->gate_out_time)
+                    ->latest('gate_in_time')
+                    ->first(['gate_in_time']);
+                if ($pairedIn?->gate_in_time &&
+                    \App\Models\StorageInvoiceDetail::where('container_id', $movement->container_id)
+                        ->whereDate('gate_in_date', $pairedIn->gate_in_time->toDateString())->exists()) {
+                    $invoiceTypes[] = 'Storage';
+                }
             }
 
             // Reefer electricity invoice lines (scoped to plug dates within cycle window)
