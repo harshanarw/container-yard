@@ -483,16 +483,16 @@ class YardController extends Controller
             route('yard.movements.edit', $movement)
         );
 
-        $successMsg = "Gate IN recorded for {$container->container_no}.";
+        $gpNote = "Gate IN recorded for {$container->container_no}.";
         if ($yardJobNo) {
-            $successMsg .= "  Job No: <strong>{$yardJobNo}</strong>";
+            $gpNote .= "  Job No: <strong>{$yardJobNo}</strong>";
             if (isset($yardJob)) {
-                $successMsg .= ' &nbsp;<a href="' . route('yard.jobs.show', $yardJob) . '" class="alert-link">View Job →</a>';
+                $gpNote .= '  &mdash;  <a href="' . route('yard.jobs.show', $yardJob) . '" style="color:#93c5fd;">View Job &rarr;</a>';
             }
         }
 
-        $redirect = redirect()->to(route('yard.gate') . '?tab=in')
-            ->with('success_html', $successMsg);
+        $redirect = redirect()->route('yard.movements.gate-pass', $movement)
+            ->with('gp_note', $gpNote);
 
         if ($photoError) {
             $redirect->with('warning', $photoError);
@@ -666,8 +666,8 @@ class YardController extends Controller
             route('yard.movements.edit', $movement)
         );
 
-        $redirect = redirect()->to(route('yard.gate') . '?tab=out')
-            ->with('success', "Gate OUT recorded for {$container->container_no}.");
+        $redirect = redirect()->route('yard.movements.gate-pass', $movement)
+            ->with('gp_note', "Gate OUT recorded for {$container->container_no}.");
 
         if ($photoError) {
             $redirect->with('warning', $photoError);

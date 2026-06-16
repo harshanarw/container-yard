@@ -227,7 +227,19 @@
     <a href="{{ route('yard.movements.gate-pass', ['movement' => $movement->id, 'format' => 'half-custom']) }}"
        class="tb-btn {{ $format === 'half-custom' ? 'tb-btn-primary' : 'tb-btn-secondary' }}">Custom Half</a>
     <a href="{{ route('yard.movements.edit', $movement) }}" class="tb-btn tb-btn-outline">&#8592; Back</a>
+    <a href="{{ route('yard.gate') }}?tab=out" class="tb-btn tb-btn-outline">&#43; New Movement</a>
 </div>
+
+@if(session('gp_note') || session('warning'))
+<div class="screen-toolbar" style="background:#0f2744;padding:7px 18px;font-size:12px;gap:20px;">
+    @if(session('gp_note'))
+    <span style="color:#bfdbfe;">&#10003; {!! session('gp_note') !!}</span>
+    @endif
+    @if(session('warning'))
+    <span style="color:#fde68a;">&#9888; {{ session('warning') }}</span>
+    @endif
+</div>
+@endif
 
 @php
     $companyPrefix = strtoupper(trim($companySetting?->company_prefix ?? ''));
