@@ -53,7 +53,7 @@ class AccountMappingSeeder extends Seeder
             'VAT18SSCL25' => ['output' => '2101', 'input' => '1301'],
         ];
 
-        foreach ($rows as $tcCode => [$outCode, $inCode]) {
+        foreach ($rows as $tcCode => ['output' => $outCode, 'input' => $inCode]) {
             if (! isset($tc[$tcCode])) {
                 continue;
             }
