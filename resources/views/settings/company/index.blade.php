@@ -413,54 +413,6 @@
         </div>
     </div>
 
-    {{-- Gate Pass Print Defaults --}}
-    <div class="card content-card mb-4">
-        <div class="card-header py-2">
-            <i class="bi bi-printer me-2 text-primary"></i>Gate Pass Print Defaults
-        </div>
-        <div class="card-body">
-            <p class="text-muted small mb-3">
-                Select the default print format that opens automatically when a gate officer navigates to a gate pass.
-                The format selector on the print page remains available so they can switch at any time.
-            </p>
-            @php
-                $formatOptions = [
-                    'full'        => 'Full A4 (portrait, 210 × 297 mm)',
-                    'half'        => 'Landscape Half (A5 landscape, 210 × 148 mm)',
-                    'half-custom' => 'Custom Half (A4 portrait, top half only)',
-                ];
-            @endphp
-            <div class="row g-3">
-                <div class="col-md-5">
-                    <label class="form-label fw-semibold">Default Gate IN Pass Format</label>
-                    <select name="default_gate_in_format" class="form-select">
-                        @foreach($formatOptions as $val => $label)
-                        <option value="{{ $val }}" {{ old('default_gate_in_format', $settings->default_gate_in_format ?? 'full') === $val ? 'selected' : '' }}>
-                            {{ $label }}
-                        </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label fw-semibold">Default Gate OUT Pass Format</label>
-                    <select name="default_gate_out_format" class="form-select">
-                        @foreach($formatOptions as $val => $label)
-                        <option value="{{ $val }}" {{ old('default_gate_out_format', $settings->default_gate_out_format ?? 'full') === $val ? 'selected' : '' }}>
-                            {{ $label }}
-                        </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-12">
-                    <div class="form-text">
-                        <strong>Custom Half</strong> prints on A4 portrait paper but limits content to the top half of the page (~135 mm),
-                        so the sheet can be cut in half. The bottom half of the page is intentionally left blank.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     {{-- Digital Approvals --}}
     <div class="card content-card mb-4">
         <div class="card-header py-2">

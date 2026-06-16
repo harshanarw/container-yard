@@ -46,6 +46,10 @@ class SettingController extends Controller
 
             // M&R dimension measurement
             'mr_dimension_uom'  => ['required', 'in:ft_in,cm,m'],
+
+            // Gate Pass print defaults
+            'default_gate_in_format'  => ['nullable', 'string', 'in:full,half,half-custom'],
+            'default_gate_out_format' => ['nullable', 'string', 'in:full,half,half-custom'],
         ]);
 
         $settings = CompanySetting::current();
