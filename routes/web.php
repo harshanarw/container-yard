@@ -148,6 +148,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/ocr-plate',      [PlateOcrController::class,   'process'])->name('ocr-plate');
         Route::get('/movements/{movement}/edit',            [YardController::class, 'editMovement'])->name('movements.edit');
         Route::patch('/movements/{movement}',             [YardController::class, 'updateMovement'])->name('movements.update');
+        Route::delete('/movements/{movement}',            [YardController::class, 'destroyMovement'])->name('movements.destroy');
         Route::delete('/movements/{movement}/photos/{photo}', [YardController::class, 'destroyMovementPhoto'])->name('movements.photo.destroy');
         Route::get('/movements/{movement}/gate-pass',     [YardController::class, 'gatePass'])->name('movements.gate-pass');
     });

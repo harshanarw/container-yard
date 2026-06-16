@@ -1078,64 +1078,105 @@
     <!-- Recent Movements -->
     <div class="col-lg-6">
         <div class="card content-card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-clock-history me-2 text-primary"></i>Recent Gate Movements</span>
-                <span class="badge bg-primary rounded-pill">{{ $recentMovements->count() }}</span>
+            <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                <span class="text-nowrap"><i class="bi bi-clock-history me-2 text-primary"></i>Gate Movements</span>
+                {{-- Search bar --}}
+                <form method="GET" action="{{ route('yard.gate') }}" class="d-flex gap-1 flex-grow-1" style="max-width:260px;">
+                    @if(request('tab'))
+                        <input type="hidden" name="tab" value="{{ request('tab') }}">
+                    @endif
+                    <input type="text" name="search" value="{{ $search }}"
+                           class="form-control form-control-sm font-monospace"
+                           placeholder="Search container…" autocomplete="off"
+                           style="font-size:.75rem;" maxlength="11">
+                    <button class="btn btn-sm btn-outline-primary px-2" type="submit" title="Search"><i class="bi bi-search"></i></button>
+                    @if($search)
+                    <a href="{{ route('yard.gate') }}{{ request('tab') ? '?tab='.request('tab') : '' }}" class="btn btn-sm btn-outline-secondary px-2" title="Clear"><i class="bi bi-x-lg"></i></a>
+                    @endif
+                </form>
+                <span class="badge bg-primary rounded-pill text-nowrap">{{ $recentMovements->count() }}</span>
             </div>
             <div class="card-body p-0" style="max-height:680px;overflow-y:auto;">
                 <div class="list-group list-group-flush">
                     @forelse($recentMovements as $mv)
+                    @php
+                        $mvTime = $mv->gate_in_time ?? $mv->gate_out_time;
+                        if ($mv->movement_type === 'in' && $mv->gate_in_time) {
+                            $daysLabel = $mv->gate_in_time->diffInDays(now()) . 'd in yard';
+                            $daysColor = $mv->gate_in_time->diffInDays(now()) >= 30 ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary';
+                        } elseif ($mv->movement_type === 'out' && $mv->gate_out_time && $mv->container?->gate_in_date) {
+                            $stayed = (int) $mv->gate_out_time->diffInDays($mv->container->gate_in_date);
+                            $daysLabel = $stayed . 'd stayed';
+                            $daysColor = 'bg-success-subtle text-success';
+                        } else {
+                            $daysLabel = null;
+                        }
+                    @endphp
                     <div class="list-group-item px-3 py-2">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="text-muted small" style="width:45px;">
-                                {{ ($mv->gate_in_time ?? $mv->gate_out_time)?->format('H:i') }}
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="text-muted text-center" style="min-width:52px;font-size:.7rem;line-height:1.2;">
+                                <div>{{ $mvTime?->format('d M') }}</div>
+                                <div class="fw-semibold text-dark">{{ $mvTime?->format('H:i') }}</div>
                             </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="d-flex align-items-center gap-1 flex-wrap">
                                     <span class="font-monospace fw-semibold small">{{ $mv->container_no }}</span>
-                                    <span class="badge bg-secondary-subtle text-secondary {{ in_array($mv->container_type, ['RF','RH']) ? 'badge-reefer' : '' }}" style="font-size:.65rem;">{{ $mv->size }}' {{ $mv->container_type }}</span>
+                                    <span class="badge bg-secondary-subtle text-secondary {{ in_array($mv->container_type, ['RF','RH']) ? 'badge-reefer' : '' }}" style="font-size:.62rem;">{{ $mv->size }}' {{ $mv->container_type }}</span>
                                     @if($mv->movement_type === 'in')
-                                        <span class="badge bg-primary-subtle text-primary" style="font-size:.65rem;"><i class="bi bi-arrow-down-circle"></i> In</span>
+                                        <span class="badge bg-primary-subtle text-primary" style="font-size:.62rem;"><i class="bi bi-arrow-down-circle"></i> In</span>
                                     @else
-                                        <span class="badge bg-success-subtle text-success" style="font-size:.65rem;"><i class="bi bi-arrow-up-circle"></i> Out</span>
+                                        <span class="badge bg-success-subtle text-success" style="font-size:.62rem;"><i class="bi bi-arrow-up-circle"></i> Out</span>
+                                    @endif
+                                    @if($daysLabel)
+                                        <span class="badge border {{ $daysColor }}" style="font-size:.6rem;">{{ $daysLabel }}</span>
                                     @endif
                                     @if($mv->cargo_status)
-                                    <span class="badge rounded-pill {{ strtolower($mv->cargo_status) === 'laden' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-success-subtle text-success' }}" style="font-size:.62rem;">
+                                    <span class="badge rounded-pill {{ strtolower($mv->cargo_status) === 'laden' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-success-subtle text-success' }}" style="font-size:.6rem;">
                                         {{ strtolower($mv->cargo_status) === 'laden' ? 'Laden' : 'Empty' }}
                                     </span>
                                     @endif
                                     @if($mv->location_zone)
-                                        <span class="badge rounded-pill" style="font-size:.6rem;background:#e0e7ff;color:#3730a3;">
+                                        <span class="badge rounded-pill" style="font-size:.58rem;background:#e0e7ff;color:#3730a3;">
                                             {{ $mv->location_zone }}-{{ $mv->location_row }}{{ $mv->location_bay }}-T{{ $mv->location_tier }}
                                         </span>
                                     @endif
                                 </div>
-                                <div class="text-muted" style="font-size:.72rem;">
-                                    {{ $mv->customer?->name }} &nbsp;·&nbsp; {{ $mv->vehicle_plate }}
+                                <div class="text-muted text-truncate" style="font-size:.7rem;">
+                                    {{ $mv->customer?->name }}@if($mv->vehicle_plate) &nbsp;·&nbsp; {{ $mv->vehicle_plate }}@endif
                                 </div>
                             </div>
-                            @if($mv->movement_type === 'out')
-                            <a href="{{ route('yard.movements.gate-pass', $mv) }}" target="_blank"
-                               class="btn btn-outline-success btn-sm py-0 px-1"
-                               style="font-size:.65rem;" title="Gate Pass">
-                                <i class="bi bi-printer"></i>
-                            </a>
-                            @elseif($mv->movement_type === 'in')
-                            <a href="{{ route('yard.movements.gate-pass', $mv) }}" target="_blank"
-                               class="btn btn-outline-primary btn-sm py-0 px-1"
-                               style="font-size:.65rem;" title="Inward Gate Pass">
-                                <i class="bi bi-printer"></i>
-                            </a>
-                            @endif
-                            <a href="{{ route('yard.movements.edit', $mv) }}"
-                               class="btn btn-outline-secondary btn-sm py-0 px-1"
-                               style="font-size:.65rem;" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
+                            <div class="d-flex gap-1 flex-shrink-0">
+                                <a href="{{ route('yard.movements.gate-pass', $mv) }}" target="_blank"
+                                   class="btn btn-sm py-0 px-1 {{ $mv->movement_type === 'out' ? 'btn-outline-success' : 'btn-outline-primary' }}"
+                                   style="font-size:.65rem;" title="{{ $mv->movement_type === 'out' ? 'Gate Pass' : 'Inward Gate Pass' }}">
+                                    <i class="bi bi-printer"></i>
+                                </a>
+                                <a href="{{ route('yard.movements.edit', $mv) }}"
+                                   class="btn btn-outline-secondary btn-sm py-0 px-1"
+                                   style="font-size:.65rem;" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                @can('yard.movement-edit')
+                                <form method="POST" action="{{ route('yard.movements.destroy', $mv) }}"
+                                      onsubmit="return confirm('Delete gate movement for {{ $mv->container_no }} ({{ strtoupper($mv->movement_type) }})?\n\nThis cannot be undone. Verify the container status manually after deletion.');">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1"
+                                            style="font-size:.65rem;" title="Delete movement">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                @endcan
+                            </div>
                         </div>
                     </div>
                     @empty
-                    <div class="list-group-item text-center text-muted small py-4">No gate movements recorded yet.</div>
+                    <div class="list-group-item text-center text-muted small py-4">
+                        @if($search)
+                            No movements found for <strong class="font-monospace">{{ $search }}</strong>.
+                        @else
+                            No gate movements recorded yet.
+                        @endif
+                    </div>
                     @endforelse
                 </div>
             </div>
@@ -1144,7 +1185,7 @@
                 <div class="row text-center small">
                     <div class="col"><div class="text-muted">Gate-In</div><strong class="text-primary">{{ $inCount }}</strong></div>
                     <div class="col border-start border-end"><div class="text-muted">Gate-Out</div><strong class="text-success">{{ $outCount }}</strong></div>
-                    <div class="col"><div class="text-muted">Total</div><strong>{{ $recentMovements->count() }}</strong></div>
+                    <div class="col"><div class="text-muted">{{ $search ? 'Found' : 'Shown' }}</div><strong>{{ $recentMovements->count() }}</strong></div>
                 </div>
             </div>
         </div>

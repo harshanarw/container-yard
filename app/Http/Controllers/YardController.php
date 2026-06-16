@@ -31,7 +31,7 @@ class YardController extends Controller
         $this->middleware('can:yard.view')->only(['index', 'gate', 'storage', 'lookup', 'containerLookup', 'inYardSearch', 'tariffLookup', 'slotsByZone', 'surveyLookup', 'gatePass', 'verifyGatePass']);
         $this->middleware('can:yard.gate-in')->only(['gateIn']);
         $this->middleware('can:yard.gate-out')->only(['gateOut']);
-        $this->middleware('can:yard.movement-edit')->only(['editMovement', 'updateMovement', 'destroyMovementPhoto']);
+        $this->middleware('can:yard.movement-edit')->only(['editMovement', 'updateMovement', 'destroyMovementPhoto', 'destroyMovement']);
     }
 
     private function saveMovementPhotos(GateMovement $movement, array $photos): void
@@ -118,9 +118,11 @@ class YardController extends Controller
     // -------------------------------------------------------------------------
     public function gate(Request $request)
     {
+        $search = strtoupper(trim($request->get('search', '')));
         $recentMovements = GateMovement::with(['container', 'customer', 'createdBy'])
+            ->when($search, fn($q) => $q->where('container_no', 'like', '%' . $search . '%'))
             ->latest()
-            ->take(20)
+            ->take($search ? 100 : 20)
             ->get();
 
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
@@ -160,7 +162,7 @@ class YardController extends Controller
             ->orderBy('zone')->orderBy('row')->orderBy('bay')->orderBy('tier')
             ->get();
 
-        return view('yard.gate', compact('recentMovements', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones', 'prefill', 'guardCapture', 'jobTypes', 'emptySlots'));
+        return view('yard.gate', compact('recentMovements', 'search', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones', 'prefill', 'guardCapture', 'jobTypes', 'emptySlots'));
     }
 
     public function gateIn(Request $request)
@@ -674,6 +676,18 @@ class YardController extends Controller
     }
 
     // -------------------------------------------------------------------------
+    // Gate Movement Delete
+    // -------------------------------------------------------------------------
+    public function destroyMovement(GateMovement $movement)
+    {
+        $ref  = $movement->container_no . ' (' . strtoupper($movement->movement_type) . ')';
+        $movement->delete();
+
+        return redirect()
+            ->to(route('yard.gate') . '?tab=' . ($movement->movement_type === 'in' ? 'in' : 'out'))
+            ->with('success', "Gate movement for {$ref} has been deleted. Please verify the container status is correct.");
+    }
+
     // Gate Movement Edit
     // -------------------------------------------------------------------------
     public function editMovement(GateMovement $movement)
