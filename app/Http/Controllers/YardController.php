@@ -31,7 +31,8 @@ class YardController extends Controller
         $this->middleware('can:yard.view')->only(['index', 'gate', 'storage', 'lookup', 'containerLookup', 'inYardSearch', 'tariffLookup', 'slotsByZone', 'surveyLookup', 'gatePass', 'verifyGatePass']);
         $this->middleware('can:yard.gate-in')->only(['gateIn']);
         $this->middleware('can:yard.gate-out')->only(['gateOut']);
-        $this->middleware('can:yard.movement-edit')->only(['editMovement', 'updateMovement', 'destroyMovementPhoto', 'destroyMovement']);
+        $this->middleware('can:yard.movement-edit')->only(['editMovement', 'updateMovement', 'destroyMovementPhoto']);
+        $this->middleware('can:yard.movement-delete')->only(['destroyMovement']);
     }
 
     private function saveMovementPhotos(GateMovement $movement, array $photos): void

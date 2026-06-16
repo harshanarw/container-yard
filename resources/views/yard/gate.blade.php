@@ -1156,7 +1156,7 @@
                                    style="font-size:.65rem;" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                @can('yard.movement-edit')
+                                @can('yard.movement-delete')
                                 <form method="POST" action="{{ route('yard.movements.destroy', $mv) }}"
                                       onsubmit="return confirm('Delete gate movement for {{ $mv->container_no }} ({{ strtoupper($mv->movement_type) }})?\n\nThis cannot be undone. Verify the container status manually after deletion.');">
                                     @csrf @method('DELETE')
