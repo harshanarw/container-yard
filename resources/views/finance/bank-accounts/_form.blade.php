@@ -33,7 +33,7 @@
     </div>
     <div class="col-md-12">
         <label class="form-label fw-semibold small">GL Account (Cash/Bank)</label>
-        <select name="gl_account_id" class="form-select form-select-sm @error('gl_account_id') is-invalid @enderror">
+        <select name="gl_account_id" class="form-select form-select-sm select2 @error('gl_account_id') is-invalid @enderror">
             <option value="">— None (manual posting) —</option>
             @foreach($glAccounts as $acc)
             <option value="{{ $acc->id }}" {{ old('gl_account_id', $bankAccount->gl_account_id ?? '') == $acc->id ? 'selected' : '' }}>

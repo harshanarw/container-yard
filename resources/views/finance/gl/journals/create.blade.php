@@ -126,16 +126,21 @@
     </div>
 </form>
 
-{{-- Account data for JS --}}
+{{-- Account data for JS — embedded as JSON for @push('scripts') to pick up --}}
 @php
 $accountsByClass = $accounts->groupBy('classification');
 $classOrder = ['asset','liability','equity','income','expense'];
 @endphp
-
 <script>
-(function () {
-    var accountsByClass = @json($accountsByClass);
-    var classOrder = @json($classOrder);
+window._journalAccounts   = @json($accountsByClass);
+window._journalClassOrder = @json($classOrder);
+</script>
+
+@push('scripts')
+<script>
+$(function () {
+    var accountsByClass = window._journalAccounts;
+    var classOrder      = window._journalClassOrder;
     var lineCount = 0;
 
     function buildAccountOptions() {
@@ -180,11 +185,16 @@ $classOrder = ['asset','liability','equity','income','expense'];
             '</td>';
         document.getElementById('linesBody').appendChild(tr);
 
+        // Initialize Select2 on the account select in this new row
+        var $sel = $(tr).find('.account-select');
+        $sel.select2({ theme: 'bootstrap-5', width: '100%', placeholder: '— Select account —' });
+
         if (accountId) {
-            tr.querySelector('.account-select').value = accountId;
+            $sel.val(accountId).trigger('change');
         }
 
         tr.querySelector('.remove-row').addEventListener('click', function () {
+            $sel.select2('destroy');
             tr.remove();
             recalculate();
         });
@@ -242,7 +252,8 @@ $classOrder = ['asset','liability','equity','income','expense'];
     addRow('{{ old("lines.{$i}.debit") }}', '{{ old("lines.{$i}.credit") }}', '{{ old("lines.{$i}.narration") }}', '{{ old("lines.{$i}.account_id") }}');
     @endforeach
     @endif
-})();
+});
 </script>
+@endpush
 
 @endsection

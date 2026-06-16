@@ -304,6 +304,26 @@
 
 @push('scripts')
 <script>
+$(function () {
+    // Initialize Select2 on all account-selection dropdowns in all tab panes.
+    // width: '100%' is required so hidden-tab selects render correctly on first open.
+    var s2Opts = { theme: 'bootstrap-5', width: '100%' };
+    $('.mapping-select, .tax-select-output, .tax-select-input').select2(s2Opts);
+
+    // Re-init any selects that become visible when a tab is shown (handles width edge-cases)
+    document.querySelectorAll('[data-bs-toggle="tab"]').forEach(function (btn) {
+        btn.addEventListener('shown.bs.tab', function () {
+            var pane = document.querySelector(btn.dataset.bsTarget);
+            if (pane) {
+                $(pane).find('.mapping-select, .tax-select-output, .tax-select-input').each(function () {
+                    if (!$(this).data('select2')) { $(this).select2(s2Opts); }
+                });
+            }
+        });
+    });
+});
+</script>
+<script>
 (function () {
     var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     var saveUrl   = '{{ route("finance.setup.mappings.store") }}';

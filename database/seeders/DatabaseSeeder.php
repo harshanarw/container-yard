@@ -70,6 +70,7 @@ class DatabaseSeeder extends Seeder
 
             // ── Finance ──────────────────────────────────────────────────────
             \Database\Seeders\Finance\DefaultCoaSeeder::class,
+            \Database\Seeders\Finance\AccountMappingSeeder::class,
 
         ]);
     }

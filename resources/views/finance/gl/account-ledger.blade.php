@@ -20,7 +20,7 @@
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-sm-5 col-md-4">
                 <label class="form-label form-label-sm fw-semibold mb-1">Account <span class="text-danger">*</span></label>
-                <select name="account_id" class="form-select form-select-sm" required>
+                <select name="account_id" class="form-select form-select-sm select2" required>
                     <option value="">— Select Account —</option>
                     @php $accountsByClass = $accounts->groupBy('classification'); @endphp
                     @foreach(['asset','liability','equity','income','expense'] as $cls)

@@ -51,7 +51,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Expense Account</label>
-                    <select name="expense_account_id" class="form-select form-select-sm @error('expense_account_id') is-invalid @enderror">
+                    <select name="expense_account_id" class="form-select form-select-sm select2 @error('expense_account_id') is-invalid @enderror">
                         <option value="">— Select Expense Account —</option>
                         @php $lastClass = null; @endphp
                         @foreach($expenseAccounts as $acc)
