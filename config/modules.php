@@ -274,4 +274,10 @@ return [
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
+    'audit-log' => [
+        'label'   => 'Audit Log',
+        'section' => 'Settings',
+        'actions' => ['view'],
+    ],
+
 ];

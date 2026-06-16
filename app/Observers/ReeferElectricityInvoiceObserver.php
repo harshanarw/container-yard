@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Observers;
+
+use App\Services\AuditService;
+use Illuminate\Database\Eloquent\Model;
+
+class ReeferElectricityInvoiceObserver extends AuditObserver
+{
+    protected function getModule(): string            { return 'billing.reefer'; }
+    protected function getReference(Model $m): ?string { return $m->invoice_no ?? null; }
+
+    protected function describeCreated(Model $m, ?string $ref): string { return "Reefer Invoice {$ref} created"; }
+    protected function describeDeleted(Model $m, ?string $ref): string { return "Reefer Invoice {$ref} deleted"; }
+
+    public function updated(Model $m): void
+    {
+        $diff = AuditService::updatedDiff($m);
+        if (empty($diff)) return;
+
+        $ref       = $this->getReference($m);
+        $newStatus = $diff['new']['status'] ?? null;
+
+        $descriptions = [
+            'issued'    => ['approved', "Reefer Invoice {$ref} issued"],
+            'paid'      => ['updated',  "Reefer Invoice {$ref} marked paid"],
+            'cancelled' => ['deleted',  "Reefer Invoice {$ref} cancelled"],
+        ];
+
+        if ($newStatus && isset($descriptions[$newStatus])) {
+            [$event, $desc] = $descriptions[$newStatus];
+        } else {
+            $changed = implode(', ', array_keys($diff['old'] ?? []));
+            $event   = 'updated';
+            $desc    = "Reefer Invoice {$ref} updated [{$changed}]";
+        }
+
+        AuditService::log(event: $event, module: $this->getModule(),
+            description: $desc, reference: $ref, subject: $m, properties: $diff);
+    }
+}

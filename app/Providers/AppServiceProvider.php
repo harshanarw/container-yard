@@ -2,8 +2,36 @@
 
 namespace App\Providers;
 
+use App\Models\ApprovalRequest;
 use App\Models\CompanySetting;
+use App\Models\Container;
+use App\Models\Estimate;
+use App\Models\GateMovement;
+use App\Models\GuardCapture;
+use App\Models\Inquiry;
 use App\Models\Permission;
+use App\Models\ReeferElectricityInvoice;
+use App\Models\ReeferPlugSession;
+use App\Models\ReeferTempLog;
+use App\Models\RepairInvoice;
+use App\Models\StorageHandlingInvoice;
+use App\Models\StorageInvoice;
+use App\Models\WorkOrder;
+use App\Models\YardJob;
+use App\Observers\ApprovalRequestObserver;
+use App\Observers\ContainerObserver;
+use App\Observers\EstimateObserver;
+use App\Observers\GateMovementObserver;
+use App\Observers\GuardCaptureObserver;
+use App\Observers\InquiryObserver;
+use App\Observers\ReeferElectricityInvoiceObserver;
+use App\Observers\ReeferPlugSessionObserver;
+use App\Observers\ReeferTempLogObserver;
+use App\Observers\RepairInvoiceObserver;
+use App\Observers\StorageHandlingInvoiceObserver;
+use App\Observers\StorageInvoiceObserver;
+use App\Observers\WorkOrderObserver;
+use App\Observers\YardJobObserver;
 use App\Services\DocumentStorage\DocumentManager;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Cache;
@@ -24,6 +52,22 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // ── Audit log model observers ────────────────────────────────────────
+        GateMovement::observe(GateMovementObserver::class);
+        YardJob::observe(YardJobObserver::class);
+        Container::observe(ContainerObserver::class);
+        ReeferPlugSession::observe(ReeferPlugSessionObserver::class);
+        ReeferTempLog::observe(ReeferTempLogObserver::class);
+        Inquiry::observe(InquiryObserver::class);
+        Estimate::observe(EstimateObserver::class);
+        WorkOrder::observe(WorkOrderObserver::class);
+        RepairInvoice::observe(RepairInvoiceObserver::class);
+        StorageInvoice::observe(StorageInvoiceObserver::class);
+        StorageHandlingInvoice::observe(StorageHandlingInvoiceObserver::class);
+        ReeferElectricityInvoice::observe(ReeferElectricityInvoiceObserver::class);
+        GuardCapture::observe(GuardCaptureObserver::class);
+        ApprovalRequest::observe(ApprovalRequestObserver::class);
+
         // Register WebSocket channel auth route + channel definitions
         if (config('broadcasting.default') !== 'null') {
             Broadcast::routes(['middleware' => ['web', 'auth']]);
