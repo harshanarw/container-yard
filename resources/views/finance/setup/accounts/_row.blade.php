@@ -60,8 +60,11 @@
     </td>
     <td class="text-end">
         @can('finance.coa.edit')
+        @php
+        $_editData = $account->only(['id','code','name','classification','account_subtype','normal_balance','is_posting','is_control','is_receivable','is_payable','is_cash_bank','opening_balance','opening_balance_type','is_active']);
+        @endphp
         <button class="btn btn-sm btn-link p-0 text-secondary"
-                data-edit-account='@json($account->only(["id","code","name","classification","account_subtype","normal_balance","is_posting","is_control","is_receivable","is_payable","is_cash_bank","opening_balance","opening_balance_type","is_active"]))'>
+                data-edit-account='@json($_editData)'>
             <i class="bi bi-pencil"></i>
         </button>
         @endcan
