@@ -2219,8 +2219,8 @@ function initPhotoUploader(cfg) {
         submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
         const fd = new FormData(form);
         files.forEach(file => fd.append('photos[]', file));
-        fetch(form.action, { method: 'POST', body: fd, redirect: 'manual' })
-            .then(() => { window.location.href = cfg.redirectUrl || window.location.href; })
+        fetch(form.action, { method: 'POST', body: fd, redirect: 'follow' })
+            .then(function (response) { window.location.href = response.url || cfg.redirectUrl || window.location.href; })
             .catch(() => { submitBtn.disabled = false; submitBtn.innerHTML = origHtml; });
     });
 }
