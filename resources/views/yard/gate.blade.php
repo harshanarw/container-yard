@@ -2220,7 +2220,10 @@ function initPhotoUploader(cfg) {
         const fd = new FormData(form);
         files.forEach(file => fd.append('photos[]', file));
         fetch(form.action, { method: 'POST', body: fd, redirect: 'follow' })
-            .then(function (response) { window.location.href = response.url || cfg.redirectUrl || window.location.href; })
+            .then(function (response) {
+                var url = response.url || cfg.redirectUrl || window.location.href;
+                window.open(url, 'gate_pass_popup', 'width=940,height=1120,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,status=no');
+            })
             .catch(() => { submitBtn.disabled = false; submitBtn.innerHTML = origHtml; });
     });
 }

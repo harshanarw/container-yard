@@ -226,9 +226,19 @@
        class="tb-btn {{ $format === 'half' ? 'tb-btn-primary' : 'tb-btn-secondary' }}">Landscape</a>
     <a href="{{ route('yard.movements.gate-pass', ['movement' => $movement->id, 'format' => 'half-custom']) }}"
        class="tb-btn {{ $format === 'half-custom' ? 'tb-btn-primary' : 'tb-btn-secondary' }}">Custom Half</a>
-    <a href="{{ route('yard.movements.edit', $movement) }}" class="tb-btn tb-btn-outline">&#8592; Back</a>
-    <a href="{{ route('yard.gate') }}?tab=out" class="tb-btn tb-btn-outline">&#43; New Movement</a>
+    <a href="{{ route('yard.movements.edit', $movement) }}" class="tb-btn tb-btn-outline" id="tbBackBtn">&#8592; Back</a>
+    <a href="{{ route('yard.gate') }}?tab=out" class="tb-btn tb-btn-outline" id="tbNewMovementBtn">&#43; New Movement</a>
 </div>
+<script>
+(function () {
+    if (window.opener && !window.opener.closed) {
+        var back = document.getElementById('tbBackBtn');
+        var newMov = document.getElementById('tbNewMovementBtn');
+        if (back) { back.textContent = '× Close'; back.href = '#'; back.addEventListener('click', function (e) { e.preventDefault(); window.close(); }); }
+        if (newMov) { newMov.style.display = 'none'; }
+    }
+})();
+</script>
 
 @if(session('gp_note') || session('warning'))
 <div class="screen-toolbar" style="background:#0f2744;padding:7px 18px;font-size:12px;gap:20px;">
