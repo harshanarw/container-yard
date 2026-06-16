@@ -3197,7 +3197,7 @@ window.gpRescan = async function (btnEl, url, type) {
             deleteUrl = btn.dataset.deleteUrl;
             const checkUrl = btn.dataset.checkUrl;
 
-            // Lazy-init — modal HTML follows </script> in the same @push block
+            // Lazy-init: modal HTML is parsed after this script block, so getElementById works here
             const modalEl    = document.getElementById('mvDeleteModal');
             if (!modalEl) return;
             const bsModal    = bootstrap.Modal.getOrCreateInstance(modalEl);
