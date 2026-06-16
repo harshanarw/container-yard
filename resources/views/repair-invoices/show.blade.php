@@ -284,6 +284,70 @@ $statusColors = [
 </div>
 @endif
 
+{{-- ── Finance / GL Posting Card ── --}}
+@can('finance.ar.post')
+@php
+    $_posting = \App\Models\InvoicePosting::where('invoice_type', 'repair')
+        ->where('invoice_id', $invoice->id)
+        ->with('journal', 'postedBy')
+        ->first();
+@endphp
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0"><i class="bi bi-bank me-2 text-primary"></i>Finance — GL Posting</h5>
+    </div>
+    <div class="card-body">
+        @if($_posting && $_posting->isPosted())
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <span class="badge bg-success-subtle text-success fs-6">
+                    <i class="bi bi-check-circle me-1"></i>Posted
+                </span>
+                @if($_posting->journal)
+                <a href="{{ route('finance.gl.journals.show', $_posting->journal) }}"
+                   class="font-monospace fw-semibold text-decoration-none">
+                    {{ $_posting->journal->journal_no }}
+                </a>
+                @endif
+                <span class="text-muted small">
+                    by {{ $_posting->postedBy->name ?? '—' }}
+                    {{ $_posting->posted_at ? 'on ' . $_posting->posted_at->format('d M Y H:i') : '' }}
+                </span>
+            </div>
+        @elseif($_posting && $_posting->isVoided())
+            <span class="badge bg-secondary-subtle text-secondary fs-6">
+                <i class="bi bi-x-circle me-1"></i>Voided
+            </span>
+            @if($_posting->journal)
+            <span class="text-muted small ms-2">Journal: {{ $_posting->journal->journal_no }}</span>
+            @endif
+        @elseif($_posting && $_posting->isFailed())
+            <div class="alert alert-danger py-2 small mb-2">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                Posting failed: {{ $_posting->error_message }}
+            </div>
+            <form method="POST" action="{{ route('finance.ar.postings.store') }}" class="d-inline">
+                @csrf
+                <input type="hidden" name="invoice_type" value="repair">
+                <input type="hidden" name="invoice_id" value="{{ $invoice->id }}">
+                <button class="btn btn-sm btn-warning">
+                    <i class="bi bi-arrow-repeat me-1"></i>Retry Post to GL
+                </button>
+            </form>
+        @else
+            <p class="text-muted small mb-2">This invoice has not been posted to the General Ledger yet.</p>
+            <form method="POST" action="{{ route('finance.ar.postings.store') }}" class="d-inline">
+                @csrf
+                <input type="hidden" name="invoice_type" value="repair">
+                <input type="hidden" name="invoice_id" value="{{ $invoice->id }}">
+                <button class="btn btn-sm btn-primary">
+                    <i class="bi bi-bank me-1"></i>Post to GL
+                </button>
+            </form>
+        @endif
+    </div>
+</div>
+@endcan
+
 <!-- Payment Modal -->
 @can('billing.repair.approve')
 @if($canMarkPaid)

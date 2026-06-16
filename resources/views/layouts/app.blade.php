@@ -809,6 +809,14 @@
                     </a>
                 </li>
                 @endcan
+                @can('finance.ar.view')
+                <li class="nav-item">
+                    <a href="{{ route('finance.ar.postings.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.ar.*') ? 'active' : '' }}">
+                        <i class="bi bi-receipt-cutoff"></i><span>AR Postings</span>
+                    </a>
+                </li>
+                @endcan
             </ul>
         </div>
         @endif

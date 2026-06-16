@@ -258,6 +258,12 @@ return [
         'actions' => ['view', 'create', 'post', 'void'],
     ],
 
+    'finance.ar' => [
+        'label'   => 'AR / Invoice Posting',
+        'section' => 'Finance',
+        'actions' => ['view', 'post', 'void'],
+    ],
+
     // ── Reports ───────────────────────────────────────────────────────────────
 
     'reports' => [

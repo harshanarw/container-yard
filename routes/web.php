@@ -54,6 +54,7 @@ use App\Http\Controllers\Finance\FinancialYearController;
 use App\Http\Controllers\Finance\ChartOfAccountsController;
 use App\Http\Controllers\Finance\AccountMappingController;
 use App\Http\Controllers\Finance\GeneralLedgerController;
+use App\Http\Controllers\Finance\InvoicePostingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -573,6 +574,13 @@ Route::middleware(['auth'])->group(function () {
             Route::post('journals/{journal}/void',    [GeneralLedgerController::class, 'voidJournal'])->name('journals.void');
             Route::get('account-ledger',              [GeneralLedgerController::class, 'accountLedger'])->name('account-ledger');
             Route::get('trial-balance',               [GeneralLedgerController::class, 'trialBalance'])->name('trial-balance');
+        });
+
+        // AR / Invoice Postings
+        Route::prefix('ar')->name('ar.')->group(function () {
+            Route::get('postings',                  [InvoicePostingController::class, 'index'])->name('postings.index');
+            Route::post('postings',                 [InvoicePostingController::class, 'store'])->name('postings.store');
+            Route::post('postings/{posting}/void',  [InvoicePostingController::class, 'void'])->name('postings.void');
         });
     });
 
