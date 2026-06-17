@@ -537,6 +537,16 @@ class YardController extends Controller
 
         $container = Container::where('container_no', $validated['container_no'])->firstOrFail();
 
+        // Block gate-out while container is on active hire — the hire must be completed first
+        if ($container->activeHire()->exists()) {
+            return redirect()->back()
+                ->withErrors(['container_no' =>
+                    "Container {$container->container_no} is currently on hire. "
+                    . 'Complete or cancel the hire before gating it out.'
+                ])
+                ->withInput();
+        }
+
         // Resolve actual gate-out datetime — admin can override, others use now()
         $gateOutTime = (auth()->user()->can('yard.backdate') && !empty($validated['gate_out_time']))
             ? \Carbon\Carbon::parse($validated['gate_out_time'])

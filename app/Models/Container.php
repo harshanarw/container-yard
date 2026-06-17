@@ -105,6 +105,16 @@ class Container extends Model
         return $this->hasMany(YardStorage::class);
     }
 
+    public function hires()
+    {
+        return $this->hasMany(ContainerHire::class);
+    }
+
+    public function activeHire()
+    {
+        return $this->hasOne(ContainerHire::class)->where('status', 'active');
+    }
+
     public function yardLocation()
     {
         return $this->hasOne(YardLocation::class);

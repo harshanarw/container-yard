@@ -140,7 +140,9 @@ class StorageBillingController extends Controller
             $container = $storage->container;
             if (! $container) continue;
 
-            $gateIn = $storage->gate_in_date;
+            // billing_gate_in_date returns effective_gate_in_date when set (resumed after off-hire),
+            // falling back to gate_in_date — ensures free days are not reset by hire splits
+            $gateIn = $storage->billing_gate_in_date;
 
             // Effective period start for this container: later of gate-in and billing period start
             $fromDate = $gateIn->gt($periodFrom) ? $gateIn->copy() : $periodFrom->copy();
