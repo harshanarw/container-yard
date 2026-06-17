@@ -2221,10 +2221,16 @@ function initPhotoUploader(cfg) {
         files.forEach(file => fd.append('photos[]', file));
         fetch(form.action, { method: 'POST', body: fd, redirect: 'follow' })
             .then(function (response) {
-                var url = response.url || cfg.redirectUrl || window.location.href;
-                window.open(url, 'gate_pass_popup', 'width=940,height=1120,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,status=no');
-                // Redirect main window back to the clean gate form so it's ready for the next entry
-                window.location.href = cfg.redirectUrl || window.location.pathname;
+                var finalUrl = response.url || '';
+                // Only open the popup if we actually landed on a gate-pass page.
+                // If the server redirected back to the form (validation error), navigate
+                // the main window there so the user sees the error message.
+                if (finalUrl.indexOf('gate-pass') !== -1) {
+                    window.open(finalUrl, 'gate_pass_popup', 'width=940,height=1120,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,status=no');
+                    window.location.href = cfg.redirectUrl || window.location.pathname;
+                } else {
+                    window.location.href = finalUrl || cfg.redirectUrl || window.location.pathname;
+                }
             })
             .catch(() => { submitBtn.disabled = false; submitBtn.innerHTML = origHtml; });
     });

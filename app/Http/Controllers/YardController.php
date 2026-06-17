@@ -270,7 +270,7 @@ class YardController extends Controller
                 ->where('gate_in_date', '<=', $proposedDate)
                 ->where(function ($q) use ($proposedDate) {
                     $q->whereNull('gate_out_date')
-                      ->orWhere('gate_out_date', '>=', $proposedDate);
+                      ->orWhere('gate_out_date', '>', $proposedDate); // '>' not '>=' — same-day re-entry is valid
                 })
                 ->first();
 
