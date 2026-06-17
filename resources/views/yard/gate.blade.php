@@ -2223,6 +2223,8 @@ function initPhotoUploader(cfg) {
             .then(function (response) {
                 var url = response.url || cfg.redirectUrl || window.location.href;
                 window.open(url, 'gate_pass_popup', 'width=940,height=1120,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,status=no');
+                // Redirect main window back to the clean gate form so it's ready for the next entry
+                window.location.href = cfg.redirectUrl || window.location.pathname;
             })
             .catch(() => { submitBtn.disabled = false; submitBtn.innerHTML = origHtml; });
     });
