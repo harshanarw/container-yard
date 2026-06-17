@@ -155,10 +155,8 @@ class GeneralLedgerController extends Controller
                 ->whereHas('journal', fn ($q) => $q->where('status', 'posted')
                     ->whereBetween('journal_date', [$from, $to]))
                 ->where('account_id', $account->id)
-                ->join('gl_journals', 'gl_entries.journal_id', '=', 'gl_journals.id')
-                ->orderBy('gl_journals.journal_date')
-                ->orderBy('gl_journals.id')
-                ->select('gl_entries.*')
+                ->orderByRaw('(SELECT journal_date FROM gl_journals WHERE gl_journals.id = gl_entries.journal_id)')
+                ->orderBy('journal_id')
                 ->get();
 
             $runningBalance = $openingBalance;

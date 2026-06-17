@@ -23,20 +23,21 @@ class InvoicePostingService
      */
     public function post(Model $invoice, string $invoiceType, int $userId): InvoicePosting
     {
-        // Guard: already posted?
-        $existing = InvoicePosting::where('invoice_type', $invoiceType)
-            ->where('invoice_id', $invoice->id)
-            ->where('status', 'posted')
-            ->first();
-
-        if ($existing) {
-            throw new \RuntimeException(
-                "Invoice {$invoiceType}#{$invoice->id} is already posted to GL journal "
-                . ($existing->journal->journal_no ?? '?') . '.'
-            );
-        }
-
         return DB::transaction(function () use ($invoice, $invoiceType, $userId) {
+            // Guard inside transaction with row-lock to prevent concurrent double-posts
+            $existing = InvoicePosting::where('invoice_type', $invoiceType)
+                ->where('invoice_id', $invoice->id)
+                ->where('status', 'posted')
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing) {
+                throw new \RuntimeException(
+                    "Invoice {$invoiceType}#{$invoice->id} is already posted to GL journal "
+                    . ($existing->journal->journal_no ?? '?') . '.'
+                );
+            }
+
             // Create or retrieve the posting record
             $posting = InvoicePosting::firstOrCreate(
                 ['invoice_type' => $invoiceType, 'invoice_id' => $invoice->id],
@@ -213,13 +214,14 @@ class InvoicePostingService
 
     private function resolveAccount(string $mappingType, ?string $sourceType, ?int $sourceId): ?Account
     {
-        $mapping = AccountMapping::where('mapping_type', $mappingType)
-            ->where('source_type', $sourceType)
-            ->where('source_id', $sourceId)
-            ->where('is_active', true)
-            ->first();
+        $query = AccountMapping::where('mapping_type', $mappingType)->where('is_active', true);
 
-        return $mapping?->account;
+        // Eloquent's where('col', null) generates "col = NULL" which never matches in SQL.
+        // Must use whereNull() / where() explicitly.
+        $sourceType === null ? $query->whereNull('source_type') : $query->where('source_type', $sourceType);
+        $sourceId   === null ? $query->whereNull('source_id')   : $query->where('source_id',   $sourceId);
+
+        return $query->first()?->account;
     }
 
     private function narration(Model $invoice, string $invoiceType): string

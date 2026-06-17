@@ -108,6 +108,9 @@ class ChartOfAccountsController extends Controller
         if ($account->mappings()->where('is_active', true)->exists()) {
             return back()->with('error', 'Account is used in mappings. Remove mappings first.');
         }
+        if ($account->entries()->exists()) {
+            return back()->with('error', 'Account has GL entries and cannot be deleted. Deactivate it instead.');
+        }
 
         $account->delete();
         return back()->with('success', 'Account deleted.');

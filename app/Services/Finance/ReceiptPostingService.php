@@ -45,18 +45,19 @@ class ReceiptPostingService
                 );
             }
 
+            $customerName = $receipt->customer?->name ?? 'Unknown';
             $journal = $this->engine->createJournal([
                 'journal_date'   => $receipt->receipt_date->toDateString(),
                 'journal_type'   => 'receipt',
                 'reference_type' => Receipt::class,
                 'reference_id'   => $receipt->id,
-                'narration'      => "Receipt {$receipt->receipt_no} — {$receipt->customer->name}",
+                'narration'      => "Receipt {$receipt->receipt_no} — {$customerName}",
             ], [
                 [
                     'account_id' => $bankAccount->id,
                     'debit'      => (float) $receipt->amount,
                     'credit'     => 0,
-                    'narration'  => "Receipt from {$receipt->customer->name}",
+                    'narration'  => "Receipt from {$customerName}",
                 ],
                 [
                     'account_id' => $arAccount->id,
