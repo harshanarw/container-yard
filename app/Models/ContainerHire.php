@@ -11,6 +11,7 @@ class ContainerHire extends Model
         'original_customer_id',
         'hire_customer_id',
         'on_hire_date',
+        'original_gate_in_date',
         'off_hire_date',
         'hire_reference',
         'on_hire_notes',
@@ -24,8 +25,9 @@ class ContainerHire extends Model
     ];
 
     protected $casts = [
-        'on_hire_date'  => 'date',
-        'off_hire_date' => 'date',
+        'on_hire_date'          => 'date',
+        'original_gate_in_date' => 'date',
+        'off_hire_date'         => 'date',
     ];
 
     // ── Relationships ────────────────────────────────────────────────────────────

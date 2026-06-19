@@ -616,9 +616,15 @@ class YardController extends Controller
             ->first();
 
         if ($storage) {
-            $gateOutCarbon  = \Carbon\Carbon::parse($gateOutDate);
-            $totalDays      = max(1, $storage->gate_in_date->diffInDays($gateOutCarbon));
-            $chargeableDays = max(0, $totalDays - $storage->free_days);
+            $gateOutCarbon = \Carbon\Carbon::parse($gateOutDate);
+            // For resumed storage after off-hire, billing_gate_in_date is the original
+            // physical gate-in date; free-days already consumed before hire must be
+            // subtracted from the allowance so the customer isn't double-credited.
+            $billingGateIn       = $storage->billing_gate_in_date;
+            $daysConsumedBefore  = max(0, (int) $billingGateIn->diffInDays($storage->gate_in_date));
+            $freeDaysRemaining   = max(0, $storage->free_days - $daysConsumedBefore);
+            $totalDays           = max(1, (int) $storage->gate_in_date->diffInDays($gateOutCarbon));
+            $chargeableDays      = max(0, $totalDays - $freeDaysRemaining);
             $subtotal       = $chargeableDays * $storage->daily_rate;
 
             $storage->update([
@@ -1375,7 +1381,7 @@ class YardController extends Controller
             ->first();
 
         $daysInYard = $storage
-            ? max(0, $storage->gate_in_date->diffInDays(today()))
+            ? max(0, $storage->billing_gate_in_date->diffInDays(today()))
             : ($container->gate_in_date ? $container->gate_in_date->diffInDays(today()) : null);
 
         return response()->json([

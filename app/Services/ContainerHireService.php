@@ -49,9 +49,11 @@ class ContainerHireService
             ]);
 
             // 2. Open a hire-period storage record
+            //    customer_id is null for internal hires — this prevents the original
+            //    customer from being billed for the hire period via WHERE customer_id = ?
             $hireStorage = YardStorage::create([
                 'container_id'  => $container->id,
-                'customer_id'   => $data['hire_customer_id'] ?? $originalCustomerId,
+                'customer_id'   => $data['hire_customer_id'] ?? null,
                 'gate_in_date'  => $onHireDate->toDateString(),
                 'gate_out_date' => null,
                 'free_days'     => 0,
@@ -61,18 +63,19 @@ class ContainerHireService
 
             // 3. Create the ContainerHire record
             $hire = ContainerHire::create([
-                'container_id'            => $container->id,
-                'original_customer_id'    => $originalCustomerId,
-                'hire_customer_id'        => $data['hire_customer_id'] ?? null,
-                'on_hire_date'            => $onHireDate->toDateString(),
-                'off_hire_date'           => null,
-                'hire_reference'          => $data['hire_reference'] ?? null,
-                'on_hire_notes'           => $data['on_hire_notes'] ?? null,
-                'status'                  => 'active',
+                'container_id'             => $container->id,
+                'original_customer_id'     => $originalCustomerId,
+                'hire_customer_id'         => $data['hire_customer_id'] ?? null,
+                'on_hire_date'             => $onHireDate->toDateString(),
+                'original_gate_in_date'    => $originalGateIn->toDateString(),
+                'off_hire_date'            => null,
+                'hire_reference'           => $data['hire_reference'] ?? null,
+                'on_hire_notes'            => $data['on_hire_notes'] ?? null,
+                'status'                   => 'active',
                 'original_yard_storage_id' => $originalStorage->id,
-                'hire_yard_storage_id'    => $hireStorage->id,
-                'created_by'              => $userId,
-                'updated_by'              => $userId,
+                'hire_yard_storage_id'     => $hireStorage->id,
+                'created_by'               => $userId,
+                'updated_by'               => $userId,
             ]);
 
             // Back-fill hire_id on both storage records
@@ -125,9 +128,12 @@ class ContainerHireService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            // Determine the original physical gate-in date (for free-day continuity)
+            // Determine the original physical gate-in date (for free-day continuity).
+            // Primary: denormalised date on hire record (survives original storage deletion).
+            // Fallback: live originalYardStorage billing date, then hire storage gate_in.
             $originalStorage    = $hire->originalYardStorage;
-            $originalGateInDate = $originalStorage?->billing_gate_in_date
+            $originalGateInDate = $hire->original_gate_in_date
+                ?? $originalStorage?->billing_gate_in_date
                 ?? $hireStorage->gate_in_date;
 
             // 1. Close the hire storage the day before off-hire
@@ -191,9 +197,10 @@ class ContainerHireService
                 );
             }
 
-            // Reopen the original storage (remove the administrative gate-out)
-            if ($hire->originalYardStorage) {
-                $hire->originalYardStorage->update([
+            // Reopen the original storage (remove the administrative gate-out).
+            // Use findOrFail via ID to avoid silent null from stale lazy-load.
+            if ($hire->original_yard_storage_id) {
+                YardStorage::findOrFail($hire->original_yard_storage_id)->update([
                     'gate_out_date' => null,
                     'hire_id'       => null,
                 ]);
