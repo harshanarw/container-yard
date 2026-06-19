@@ -48,6 +48,7 @@ use App\Http\Controllers\ReeferTariffController;
 use App\Http\Controllers\ReeferController;
 use App\Http\Controllers\ReeferBillingController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\ContainerHireController;
 use App\Http\Controllers\ContainerInquiryController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Finance\FinancialYearController;
@@ -161,6 +162,17 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/movements/{movement}',            [YardController::class, 'destroyMovement'])->name('movements.destroy');
         Route::delete('/movements/{movement}/photos/{photo}', [YardController::class, 'destroyMovementPhoto'])->name('movements.photo.destroy');
         Route::get('/movements/{movement}/gate-pass',     [YardController::class, 'gatePass'])->name('movements.gate-pass');
+    });
+
+    // Container Hires (On Hire / Off Hire)
+    Route::prefix('yard/hires')->name('yard.hires.')->group(function () {
+        Route::get('/',                              [ContainerHireController::class, 'index'])->name('index');
+        Route::get('/create',                        [ContainerHireController::class, 'create'])->name('create');
+        Route::post('/',                             [ContainerHireController::class, 'store'])->name('store');
+        Route::get('/{hire}',                        [ContainerHireController::class, 'show'])->name('show');
+        Route::get('/{hire}/off-hire',               [ContainerHireController::class, 'offHireForm'])->name('off-hire');
+        Route::post('/{hire}/off-hire',              [ContainerHireController::class, 'processOffHire'])->name('off-hire.process');
+        Route::post('/{hire}/cancel',                [ContainerHireController::class, 'cancel'])->name('cancel');
     });
 
     // Yard Jobs

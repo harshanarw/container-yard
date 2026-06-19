@@ -247,10 +247,11 @@ class ContainerHireService
             ->whereIn('hire_type', ['normal', 'resumed'])
             ->min('gate_in_date');
 
-        if ($earliestGateIn && $onHireDate->lt(Carbon::parse($earliestGateIn))) {
+        if ($earliestGateIn && $onHireDate->lte(Carbon::parse($earliestGateIn))) {
             throw new \RuntimeException(
-                'On-hire date cannot be before the container\'s gate-in date ('
-                . Carbon::parse($earliestGateIn)->format('d M Y') . ').'
+                'On-hire date must be after the container\'s gate-in date ('
+                . Carbon::parse($earliestGateIn)->format('d M Y') . '). '
+                . 'At least one day of storage must accrue on the original customer\'s account before hire begins.'
             );
         }
     }
