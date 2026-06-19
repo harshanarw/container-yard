@@ -28,10 +28,30 @@
             <span class="badge {{ $statusBadge[$container->status] ?? 'bg-secondary' }} ms-1" style="font-size:.7rem; vertical-align:middle;">
                 {{ str_replace('_',' ',ucfirst($container->status ?? '')) }}
             </span>
+            @if($container->activeHire)
+            <span class="badge bg-warning text-dark ms-1" style="font-size:.7rem; vertical-align:middle;">
+                On Hire
+            </span>
+            @endif
         </h4>
         <p class="text-muted mb-0 small">Container master profile</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
+        @if($container->activeHire)
+        @can('yard.hire.view')
+        <a href="{{ route('yard.hires.show', $container->activeHire) }}" class="btn btn-warning btn-sm">
+            <i class="bi bi-arrow-left-right me-1"></i>View Hire
+        </a>
+        @endcan
+        @else
+        @can('yard.hire.create')
+        @if($container->status === 'in_yard')
+        <a href="{{ route('yard.hires.create', ['container_id' => $container->id]) }}" class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-arrow-right-circle me-1"></i>On Hire
+        </a>
+        @endif
+        @endcan
+        @endif
         <a href="{{ route('containers.edit', $container) }}" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
@@ -283,9 +303,73 @@
                             —
                         @endif
                     </dd>
+                    @if($container->activeHire)
+                    <dt class="col-6 text-muted">Hire Status</dt>
+                    <dd class="col-6">
+                        <span class="badge bg-warning text-dark">On Hire</span>
+                    </dd>
+                    <dt class="col-6 text-muted">Hire Party</dt>
+                    <dd class="col-6">{{ $container->activeHire->hire_party_name }}</dd>
+                    <dt class="col-6 text-muted">On Hire Since</dt>
+                    <dd class="col-6">{{ $container->activeHire->on_hire_date->format('d M Y') }}</dd>
+                    @endif
                 </dl>
             </div>
         </div>
+
+        @if($container->hires->isNotEmpty())
+        <div class="card content-card mb-4">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-arrow-left-right me-2 text-warning"></i>Hire History</span>
+                @can('yard.hire.create')
+                @if($container->status === 'in_yard' && !$container->activeHire)
+                <a href="{{ route('yard.hires.create', ['container_id' => $container->id]) }}"
+                   class="btn btn-outline-warning btn-xs py-0 px-2" style="font-size:.75rem;">
+                    + On Hire
+                </a>
+                @endif
+                @endcan
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0" style="font-size:.8rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">On Hire</th>
+                            <th>Off Hire</th>
+                            <th>Hire Party</th>
+                            <th class="text-center">Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach($container->hires as $h)
+                    <tr>
+                        <td class="ps-3">{{ $h->on_hire_date->format('d M Y') }}</td>
+                        <td>{{ $h->off_hire_date?->format('d M Y') ?? '—' }}</td>
+                        <td>{{ $h->hire_party_name }}</td>
+                        <td class="text-center">
+                            @if($h->isActive())
+                                <span class="badge bg-warning text-dark">Active</span>
+                            @elseif($h->isCompleted())
+                                <span class="badge bg-success">Done</span>
+                            @else
+                                <span class="badge bg-secondary">Cancelled</span>
+                            @endif
+                        </td>
+                        <td class="pe-3 text-end">
+                            @can('yard.hire.view')
+                            <a href="{{ route('yard.hires.show', $h) }}" class="btn btn-xs btn-outline-secondary py-0 px-1">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            @endcan
+                        </td>
+                    </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
 
         @if($container->yardLocation)
         <div class="card content-card mb-4">

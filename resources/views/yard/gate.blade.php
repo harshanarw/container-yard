@@ -2326,6 +2326,15 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                               (data.job_status ? ' <span class="badge bg-' + (jobStatusColor[data.job_status]||'secondary') + '-subtle text-' + (jobStatusColor[data.job_status]||'secondary') + ' border" style="font-size:.68rem;">' + (jobStatusMap[data.job_status]||data.job_status) + '</span>' : '') +
                           '</div>'
                         : '';
+                    // On Hire warning banner
+                    const onHireInfo = data.on_hire
+                        ? '<div class="col-12 pt-1 mt-1" style="border-top:1px solid rgba(0,0,0,.08);">' +
+                              '<span class="badge bg-warning text-dark me-1">On Hire</span>' +
+                              '<span class="text-muted small">Hire party: <strong>' + data.on_hire.hire_party + '</strong>' +
+                              ' · since ' + data.on_hire.on_hire_date +
+                              ' &nbsp;<a href="' + data.on_hire.hire_url + '" target="_blank" style="font-size:.72rem;">View Hire →</a></span>' +
+                          '</div>'
+                        : '';
                     setInfoBox('success',
                         '<div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-check-circle-fill text-success fs-5"></i><strong class="font-monospace fs-6">' + data.container_no + '</strong>' + daysBadge + '</div>' +
                         '<div class="row g-1 small">' +
@@ -2337,6 +2346,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                             '<div class="col-6"><span class="text-muted">Gate In:</span> ' + (data.gate_in_time||data.gate_in_date||'—') + gradeInfo + '</div>' +
                             ventInfo +
                             jobInfo +
+                            onHireInfo +
                         '</div>'
                     );
                     if (gradeSelect) {

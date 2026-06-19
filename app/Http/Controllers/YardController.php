@@ -98,7 +98,7 @@ class YardController extends Controller
             ->groupBy('zone');
 
         // Containers currently in yard
-        $inYardContainers = Container::with(['customer', 'equipmentType'])
+        $inYardContainers = Container::with(['customer', 'equipmentType', 'activeHire'])
             ->where('status', 'in_yard')
             ->orderBy('location_zone')->orderBy('location_row')->orderBy('location_bay')
             ->get();
@@ -1346,7 +1346,7 @@ class YardController extends Controller
             return response()->json(['found' => false, 'message' => 'Container number is required.']);
         }
 
-        $container = Container::with(['customer', 'equipmentType', 'grade'])
+        $container = Container::with(['customer', 'equipmentType', 'grade', 'activeHire.hireCustomer'])
             ->where('container_no', $no)
             ->first();
 
@@ -1412,6 +1412,11 @@ class YardController extends Controller
                 ? ((\App\Models\EquipmentType::VENTILATION_TYPES[$container->effective_ventilation_type] ?? $container->effective_ventilation_type)
                     . ($container->effective_vent_count > 0 ? ' · ' . $container->effective_vent_count . ' vents' : ''))
                 : null,
+            'on_hire'          => $container->activeHire ? [
+                'hire_party'   => $container->activeHire->hire_party_name,
+                'on_hire_date' => $container->activeHire->on_hire_date->format('d M Y'),
+                'hire_url'     => route('yard.hires.show', $container->activeHire),
+            ] : null,
         ]);
     }
 

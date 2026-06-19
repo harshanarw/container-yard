@@ -385,7 +385,13 @@
                         <span class="badge bg-{{ $condCls }}-subtle text-{{ $condCls }}">{{ $condLabel }}</span>
                     </td>
                     <td>
-                        <span class="badge rounded-pill bg-primary">In Yard</span>
+                        @if($c->activeHire)
+                            <span class="badge rounded-pill bg-warning text-dark" title="On Hire to {{ $c->activeHire->hire_party_name }} since {{ $c->activeHire->on_hire_date->format('d M Y') }}">
+                                On Hire
+                            </span>
+                        @else
+                            <span class="badge rounded-pill bg-primary">In Yard</span>
+                        @endif
                     </td>
                     <td class="text-end pe-3">
                         <div class="d-flex flex-wrap justify-content-end gap-1">
@@ -395,6 +401,13 @@
                             <a href="{{ route('inquiries.create') }}" class="btn btn-outline-warning btn-sm" title="New Inquiry">
                                 <i class="bi bi-card-checklist"></i>
                             </a>
+                            @if($c->activeHire)
+                            @can('yard.hire.view')
+                            <a href="{{ route('yard.hires.show', $c->activeHire) }}" class="btn btn-warning btn-sm" title="View Hire">
+                                <i class="bi bi-arrow-left-right"></i>
+                            </a>
+                            @endcan
+                            @endif
                         </div>
                     </td>
                 </tr>

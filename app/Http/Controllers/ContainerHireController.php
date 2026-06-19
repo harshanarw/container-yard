@@ -154,6 +154,7 @@ class ContainerHireController extends Controller
 
         try {
             $this->service->offHire($hire, $validated, auth()->id());
+            $hire->loadMissing('container');
             return redirect()
                 ->route('yard.hires.show', $hire)
                 ->with('success', "Container {$hire->container->container_no} off-hired successfully.");
@@ -170,6 +171,7 @@ class ContainerHireController extends Controller
 
         try {
             $this->service->cancelHire($hire, auth()->id());
+            $hire->loadMissing('container');
             return redirect()
                 ->route('yard.hires.show', $hire)
                 ->with('success', "Hire for container {$hire->container->container_no} has been cancelled.");
