@@ -778,6 +778,21 @@ class YardController extends Controller
             }
         }
 
+        // Gate-In: cannot delete while an active hire is in effect — the hire split
+        // references the original storage record via original_yard_storage_id; deleting
+        // the gate-in would cascade-delete that storage record and break the hire trail.
+        if ($isIn && $movement->container_id) {
+            $activeHireExists = \App\Models\Container::where('id', $movement->container_id)
+                ->whereHas('activeHire')
+                ->exists();
+            if ($activeHireExists) {
+                $blocks[] = [
+                    'icon'    => 'bi-arrow-left-right',
+                    'message' => 'This container has an active hire. Complete or cancel the hire before deleting the gate-in movement.',
+                ];
+            }
+        }
+
         // Reefer plug sessions (gate-in: gate_movement_id; gate-out: gate_out_movement_id)
         $reeferField    = $isIn ? 'gate_movement_id' : 'gate_out_movement_id';
         $reeferSessions = ReeferPlugSession::with('tempLogs')->where($reeferField, $movement->id)->get();
@@ -1136,6 +1151,7 @@ class YardController extends Controller
                     ->update(['gate_in_date' => $newGateInDate]);
                 YardStorage::where('container_id', $movement->container_id)
                     ->whereNull('gate_out_date')
+                    ->whereIn('hire_type', ['normal', 'resumed'])
                     ->update(['gate_in_date' => $newGateInDate]);
             }
         } else {
@@ -1503,6 +1519,7 @@ class YardController extends Controller
 
         $storage = YardStorage::where('container_id', $container->id)
             ->whereNull('gate_out_date')
+            ->whereIn('hire_type', ['normal', 'resumed'])
             ->latest()
             ->first();
 
