@@ -631,7 +631,7 @@
         @endif
 
         {{-- ── OPERATIONS ── --}}
-        @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.reefer.view') || Auth::user()->can('surveys.view') || Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view') || Auth::user()->can('billing.repair.view'))
+        @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.reefer.view') || Auth::user()->can('yard.hire.view') || Auth::user()->can('surveys.view') || Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view') || Auth::user()->can('billing.repair.view'))
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-operations"
                 aria-expanded="false" aria-controls="nav-section-operations">
@@ -639,7 +639,7 @@
         </button>
         <div class="collapse" id="nav-section-operations">
             {{-- Yard sub-group --}}
-            @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.jobs.view') || Auth::user()->can('yard.reefer.view'))
+            @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.jobs.view') || Auth::user()->can('yard.reefer.view') || Auth::user()->can('yard.hire.view'))
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-yard"
                     aria-expanded="false" aria-controls="nav-sub-ops-yard">
@@ -666,6 +666,14 @@
                         <a href="{{ route('yard.storage') }}"
                            class="nav-link {{ request()->routeIs('yard.storage*') ? 'active' : '' }}">
                             <i class="bi bi-calculator"></i><span>Storage Calculator</span>
+                        </a>
+                    </li>
+                    @endcan
+                    @can('yard.hire.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('yard.hires.index') }}"
+                           class="nav-link {{ request()->routeIs('yard.hires.*') ? 'active' : '' }}">
+                            <i class="bi bi-arrow-left-right"></i><span>Container Hires</span>
                         </a>
                     </li>
                     @endcan
