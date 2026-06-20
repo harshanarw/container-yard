@@ -145,19 +145,29 @@ class StorageBillingController extends Controller
             $container = $storage->container;
             if (! $container) continue;
 
-            // billing_gate_in_date returns effective_gate_in_date when set (resumed after off-hire),
-            // falling back to gate_in_date — ensures free days are not reset by hire splits
+            // billing_gate_in_date is the free-day continuity anchor:
+            //   normal records  → gate_in_date (same)
+            //   resumed records → original physical gate-in date (earlier than gate_in_date)
             $gateIn = $storage->billing_gate_in_date;
 
-            // Effective period start for this container: later of gate-in and billing period start
-            $fromDate = $gateIn->gt($periodFrom) ? $gateIn->copy() : $periodFrom->copy();
-            $toDate   = $periodTo->copy();
+            // fromDate: start of the chargeable window for this record.
+            // MUST use the record's actual gate_in_date (not billing_gate_in_date) so that
+            // resumed records (gate_in = off-hire date) are never billed before they existed.
+            $fromDate = $storage->gate_in_date->gt($periodFrom)
+                ? $storage->gate_in_date->copy()
+                : $periodFrom->copy();
 
-            // Days in this billing period for this container
+            // toDate: cap at gate_out_date for closed records (e.g., original storage closed
+            // at on_hire_date − 1).  Open records (null gate_out) run to the period end.
+            $toDate = $periodTo->copy();
+            if ($storage->gate_out_date && $storage->gate_out_date->lt($toDate)) {
+                $toDate = $storage->gate_out_date->copy();
+            }
+
+            // Days in this billing period for this storage record
             $totalDays = max(1, (int) $fromDate->diffInDays($toDate) + 1);
 
-            // Days already elapsed in yard before the billing period started
-            // (used to determine how many free days have already been consumed)
+            // Free days already consumed from the original gate-in up to fromDate
             $daysBeforePeriod = max(0, (int) $gateIn->diffInDays($fromDate));
 
             // Resolve rate from tariff, fall back to stored rate at gate-in

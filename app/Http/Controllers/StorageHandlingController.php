@@ -173,11 +173,17 @@ class StorageHandlingController extends Controller
             if (! $container) continue;
 
             // ── Storage calculation ───────────────────────────────────────────
-            // billing_gate_in_date returns effective_gate_in_date on resumed records,
-            // preserving free-day continuity across hire splits
+            // billing_gate_in_date is the free-day anchor (original physical gate-in).
+            // fromDate uses gate_in_date so resumed records aren't billed before they exist.
+            // toDate is capped at gate_out_date for records closed mid-period.
             $gateIn   = $storage->billing_gate_in_date;
-            $fromDate = $gateIn->gt($periodFrom) ? $gateIn->copy() : $periodFrom->copy();
+            $fromDate = $storage->gate_in_date->gt($periodFrom)
+                ? $storage->gate_in_date->copy()
+                : $periodFrom->copy();
             $toDate   = $periodTo->copy();
+            if ($storage->gate_out_date && $storage->gate_out_date->lt($toDate)) {
+                $toDate = $storage->gate_out_date->copy();
+            }
 
             $totalDays        = max(1, (int) $fromDate->diffInDays($toDate) + 1);
             $daysBeforePeriod = max(0, (int) $gateIn->diffInDays($fromDate));

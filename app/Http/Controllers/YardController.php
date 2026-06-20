@@ -1369,10 +1369,12 @@ class YardController extends Controller
             ]);
         }
 
-        // Get the open storage record for days-in-yard calculation
+        // Get the open normal/resumed storage record for days-in-yard calculation.
+        // Exclude on_hire records so an on-hire container shows days from original gate-in.
         $storage = YardStorage::where('container_id', $container->id)
             ->whereNull('gate_out_date')
-            ->latest()
+            ->whereIn('hire_type', ['normal', 'resumed'])
+            ->latest('gate_in_date')
             ->first();
 
         // Get the linked Gate In movement (with job details)

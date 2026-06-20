@@ -190,7 +190,10 @@ class ContainerHireService
                 throw new \RuntimeException('Only active hires can be cancelled.');
             }
 
-            $hireStorage = $hire->hireYardStorage;
+            // Lock hireStorage explicitly to prevent concurrent cancel/off-hire races
+            $hireStorage = $hire->hire_yard_storage_id
+                ? YardStorage::lockForUpdate()->find($hire->hire_yard_storage_id)
+                : null;
 
             // Guard: block cancel if hire period has been invoiced
             if ($hireStorage && $this->storageHasInvoices($hireStorage)) {
