@@ -111,8 +111,11 @@ class ContainerHireService
 
         $offHireDate = Carbon::parse($data['off_hire_date']);
 
-        if ($offHireDate->lt($hire->on_hire_date)) {
-            throw new \RuntimeException('Off-hire date cannot be before the on-hire date.');
+        if ($offHireDate->lte($hire->on_hire_date)) {
+            throw new \RuntimeException(
+                'Off-hire date must be at least one day after the on-hire date. '
+                . 'The hire period must span at least one day.'
+            );
         }
 
         return DB::transaction(function () use ($hire, $data, $offHireDate, $userId) {

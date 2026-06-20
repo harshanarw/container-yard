@@ -90,11 +90,16 @@ class StorageBillingController extends Controller
         $ssclPct         = (float) ($validated['sscl_pct'] ?? 0);  // fallback rate
         $vatPct          = (float) ($validated['vat_pct'] ?? 0);    // fallback rate
 
-        // All active yard storage records for this customer whose gate-in is on or before period end
+        // Storage records for this customer that were active at any point during the billing period.
+        // Includes closed records (gate_out_date set) that were still open at period start — this
+        // ensures the pre-hire portion is billed when on-hire closes the record mid-period.
+        // Excludes on_hire records (hire_type) which belong to the hire customer, not the original owner.
         $storageRecords = YardStorage::with(['container.equipmentType'])
             ->where('customer_id', $customer->id)
-            ->whereNull('gate_out_date')
+            ->whereIn('hire_type', ['normal', 'resumed'])
             ->where('gate_in_date', '<=', $periodTo)
+            ->where(fn ($q) => $q->whereNull('gate_out_date')
+                                  ->orWhere('gate_out_date', '>=', $periodFrom))
             ->orderBy('gate_in_date')
             ->get();
 

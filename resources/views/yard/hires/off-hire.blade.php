@@ -80,7 +80,7 @@
                 <input type="date" name="off_hire_date"
                        class="form-control @error('off_hire_date') is-invalid @enderror"
                        value="{{ old('off_hire_date', today()->toDateString()) }}"
-                       min="{{ $hire->on_hire_date->toDateString() }}"
+                       min="{{ $hire->on_hire_date->addDay()->toDateString() }}"
                        required>
                 @error('off_hire_date')
                     <div class="invalid-feedback">{{ $message }}</div>
@@ -88,7 +88,7 @@
                 <div class="form-text">
                     Hire storage will be closed on (off-hire date − 1).
                     The original owner's billing resumes <strong>from this date</strong>.
-                    Original free-day count (from <strong>{{ $hire->originalYardStorage?->billing_gate_in_date?->format('d M Y') ?? $hire->on_hire_date->format('d M Y') }}</strong>) is preserved.
+                    Original free-day count (from <strong>{{ ($hire->original_gate_in_date ?? $hire->on_hire_date)->format('d M Y') }}</strong>) is preserved.
                 </div>
             </div>
 

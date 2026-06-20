@@ -148,7 +148,7 @@ class ContainerHireController extends Controller
         $this->authorize('yard.hire.off_hire');
 
         $validated = $request->validate([
-            'off_hire_date'  => ['required', 'date', 'after_or_equal:' . $hire->on_hire_date->toDateString()],
+            'off_hire_date'  => ['required', 'date', 'after:' . $hire->on_hire_date->toDateString()],
             'off_hire_notes' => ['nullable', 'string', 'max:1000'],
         ]);
 

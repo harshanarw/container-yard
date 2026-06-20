@@ -612,7 +612,8 @@ class YardController extends Controller
         // Finalise open storage record — use actual gate-out date
         $storage = YardStorage::where('container_id', $container->id)
             ->whereNull('gate_out_date')
-            ->latest()
+            ->whereIn('hire_type', ['normal', 'resumed'])
+            ->latest('gate_in_date')
             ->first();
 
         if ($storage) {
@@ -1299,6 +1300,7 @@ class YardController extends Controller
     public function storage(Request $request)
     {
         $storageRecords = YardStorage::with(['container', 'customer'])
+            ->nonHire()  // exclude on_hire records; those belong to the hire customer's ledger
             ->when($request->customer_id, fn ($q, $v) => $q->where('customer_id', $v))
             ->when($request->status === 'active',   fn ($q) => $q->whereNull('gate_out_date'))
             ->when($request->status === 'completed', fn ($q) => $q->whereNotNull('gate_out_date'))

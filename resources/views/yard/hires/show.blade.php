@@ -154,7 +154,7 @@
                             <td class="small">{{ $hire->originalCustomer->name ?? '—' }}</td>
                             <td class="small">{{ $hire->originalYardStorage->gate_in_date->format('d M Y') }}</td>
                             <td class="small">{{ $hire->originalYardStorage->gate_out_date?->format('d M Y') ?? '—' }}</td>
-                            <td class="text-center"><span class="badge bg-secondary">normal/resumed</span></td>
+                            <td class="text-center"><span class="badge bg-secondary">{{ $hire->originalYardStorage->hire_type }}</span></td>
                         </tr>
                         @endif
                         @if($hire->hireYardStorage)

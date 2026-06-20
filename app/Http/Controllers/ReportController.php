@@ -47,6 +47,7 @@ class ReportController extends Controller
     public function billing(Request $request)
     {
         $storageRecords = YardStorage::with(['container', 'customer'])
+            ->nonHire()  // exclude on_hire records (zero-rated, hire customer billed separately)
             ->when($request->customer_id, fn ($q, $v) => $q->where('customer_id', $v))
             ->when($request->date_from,   fn ($q, $v) => $q->whereDate('gate_in_date', '>=', $v))
             ->when($request->date_to,     fn ($q, $v) => $q->whereDate('gate_out_date', '<=', $v))
