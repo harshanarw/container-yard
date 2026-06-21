@@ -10,7 +10,9 @@ use App\Models\Document;
 use App\Models\EstimateApprovalAction;
 use App\Models\EstimateLineItem;
 use App\Models\Inquiry;
+use App\Models\InternalNotificationEmail;
 use App\Models\PortalToken;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
@@ -471,12 +473,56 @@ class PortalEstimateController extends Controller
 
     private function notifyDepot(mixed $estimate, string $action, ?string $notes): void
     {
+        // In-app push notification to all active yard users
+        $label = match ($action) {
+            'approved'           => 'Approved',
+            'rejected'           => 'Rejected',
+            'partially_approved' => 'Partially Approved',
+            default              => ucfirst($action),
+        };
+        $notifType = match ($action) {
+            'approved'           => 'success',
+            'rejected'           => 'danger',
+            'partially_approved' => 'warning',
+            default              => 'info',
+        };
+
+        NotificationService::notifyAll(
+            title: "Estimate {$label} — {$estimate->estimate_no}",
+            body:  "Owner/principal {$label} repair estimate for container {$estimate->container_no}.",
+            type:  $notifType,
+            url:   route('estimates.show', $estimate),
+        );
+
+        // Email — createdBy + all active internal recipients for estimate_approval
         try {
             $estimate->load('createdBy');
-            if ($estimate->createdBy && $estimate->createdBy->email) {
-                Mail::to($estimate->createdBy->email)
-                    ->send(new EstimateApprovalReceivedMail($estimate, $action, $notes));
+            $internalList = InternalNotificationEmail::forCategory('estimate_approval');
+
+            $toEmails = collect([$estimate->createdBy?->email])
+                ->merge($internalList->where('address_type', 'to')->pluck('email'))
+                ->filter()
+                ->unique()
+                ->values();
+
+            $ccEmails = $internalList->where('address_type', 'cc')
+                ->pluck('email')
+                ->filter()
+                ->values();
+
+            if ($toEmails->isEmpty()) {
+                return;
             }
+
+            $mail = Mail::to($toEmails->first());
+
+            $allCC = $toEmails->slice(1)->merge($ccEmails)->values()->toArray();
+            if (!empty($allCC)) {
+                $mail->cc($allCC);
+            }
+
+            $mail->send(new EstimateApprovalReceivedMail($estimate, $action, $notes));
+
         } catch (\Throwable $e) {
             \Log::error('Failed to send depot notification email: ' . $e->getMessage());
         }

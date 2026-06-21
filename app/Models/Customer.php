@@ -97,4 +97,9 @@ class Customer extends Model
             })
             ->latestOfMany('valid_from');
     }
+
+    public function emailContacts()
+    {
+        return $this->hasMany(\App\Models\CustomerEmailContact::class)->orderBy('category')->orderBy('sort_order');
+    }
 }

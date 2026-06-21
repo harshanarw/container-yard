@@ -59,6 +59,8 @@ use App\Http\Controllers\Finance\InvoicePostingController;
 use App\Http\Controllers\Finance\BankAccountController;
 use App\Http\Controllers\Finance\ReceiptController;
 use App\Http\Controllers\Finance\PaymentVoucherController;
+use App\Http\Controllers\InternalNotificationEmailController;
+use App\Http\Controllers\CustomerEmailContactController;
 
 /*
 |--------------------------------------------------------------------------
@@ -100,6 +102,11 @@ Route::middleware(['auth'])->group(function () {
     // Customer Management
     Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search');
     Route::resource('customers', CustomerController::class);
+
+    // Customer Email Contacts
+    Route::post('customers/{customer}/email-contacts', [CustomerEmailContactController::class, 'store'])->name('customers.email-contacts.store');
+    Route::patch('customers/{customer}/email-contacts/{contact}', [CustomerEmailContactController::class, 'update'])->name('customers.email-contacts.update');
+    Route::delete('customers/{customer}/email-contacts/{contact}', [CustomerEmailContactController::class, 'destroy'])->name('customers.email-contacts.destroy');
 
     // Container Master
     Route::get('containers/master-lookup', [ContainerController::class, 'masterLookup'])->name('containers.master-lookup');
@@ -653,6 +660,13 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/gdrive/callback',     [CloudStorageSettingController::class, 'gdriveCallback'])->name('gdrive.callback');
             Route::get('/dropbox/auth',        [CloudStorageSettingController::class, 'dropboxAuth'])->name('dropbox.auth');
             Route::get('/dropbox/callback',    [CloudStorageSettingController::class, 'dropboxCallback'])->name('dropbox.callback');
+        });
+
+        // Internal Notification Email Recipients
+        Route::prefix('internal-emails')->name('internal-emails.')->group(function () {
+            Route::post('/',              [InternalNotificationEmailController::class, 'store'])->name('store');
+            Route::patch('/{internalEmail}', [InternalNotificationEmailController::class, 'update'])->name('update');
+            Route::delete('/{internalEmail}', [InternalNotificationEmailController::class, 'destroy'])->name('destroy');
         });
     });
 

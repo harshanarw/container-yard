@@ -171,6 +171,150 @@ $catColors = ['estimate' => 'primary', 'invoice' => 'success', 'stock_report' =>
     </div>
 </div>
 
+{{-- ═══════════════════════════════════════════════════════════════════════
+     INTERNAL NOTIFICATION RECIPIENTS
+     ═══════════════════════════════════════════════════════════════════════ --}}
+<div class="page-header d-flex align-items-center justify-content-between mt-4 mb-2">
+    <div>
+        <h5 class="mb-0"><i class="bi bi-people-fill me-2 text-warning"></i>Internal Notification Recipients</h5>
+        <p class="text-muted mb-0 small">Define who receives internal email alerts for each notification category</p>
+    </div>
+</div>
+
+@php
+$intCategories = [
+    'estimate_approval' => ['label' => 'Estimate Approval / Rejection', 'icon' => 'bi-file-earmark-check', 'color' => 'primary'],
+    'invoice'           => ['label' => 'Invoice Notifications',          'icon' => 'bi-receipt',             'color' => 'success'],
+    'movement_report'   => ['label' => 'Movement Reports',               'icon' => 'bi-truck',               'color' => 'info'],
+    'general'           => ['label' => 'General Notifications',          'icon' => 'bi-bell',                'color' => 'secondary'],
+];
+$internalEmails = \App\Models\InternalNotificationEmail::orderBy('category')->orderBy('sort_order')->orderBy('address_type')->get()->groupBy('category');
+@endphp
+
+<div class="row g-3 mb-4">
+@foreach($intCategories as $catKey => $catInfo)
+<div class="col-lg-6">
+<div class="card content-card h-100">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi {{ $catInfo['icon'] }} text-{{ $catInfo['color'] }}"></i>
+        <span class="fw-semibold small">{{ $catInfo['label'] }}</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0 small align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3" style="width:40%">Email</th>
+                    <th style="width:30%">Label</th>
+                    <th class="text-center" style="width:15%">Type</th>
+                    <th class="text-center" style="width:15%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($internalEmails->get($catKey, collect()) as $rec)
+                <tr>
+                    <td class="ps-3">
+                        <span class="{{ $rec->is_active ? '' : 'text-muted text-decoration-line-through' }}">{{ $rec->email }}</span>
+                    </td>
+                    <td class="text-muted">{{ $rec->label ?: '—' }}</td>
+                    <td class="text-center">
+                        <span class="badge bg-{{ $rec->address_type === 'to' ? 'primary' : 'secondary' }}">{{ strtoupper($rec->address_type) }}</span>
+                    </td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-1">
+                            <button class="btn btn-xs btn-outline-secondary" data-bs-toggle="modal"
+                                    data-bs-target="#editIntEmail{{ $rec->id }}" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <form method="POST" action="{{ route('settings.internal-emails.destroy', $rec) }}">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-xs btn-outline-danger"
+                                        data-confirm="Remove this recipient?"
+                                        data-confirm-title="Remove Recipient"
+                                        data-confirm-class="btn-danger"
+                                        data-confirm-label="Remove">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {{-- Edit modal --}}
+                <div class="modal fade" id="editIntEmail{{ $rec->id }}" tabindex="-1">
+                    <div class="modal-dialog modal-sm">
+                        <div class="modal-content">
+                            <form method="POST" action="{{ route('settings.internal-emails.update', $rec) }}">
+                                @csrf @method('PATCH')
+                                <div class="modal-header py-2">
+                                    <h6 class="modal-title">Edit Recipient</h6>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body py-2">
+                                    <div class="mb-2">
+                                        <label class="form-label form-label-sm">Email</label>
+                                        <input type="email" name="email" class="form-control form-control-sm" value="{{ $rec->email }}" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label form-label-sm">Label / Name</label>
+                                        <input type="text" name="label" class="form-control form-control-sm" value="{{ $rec->label }}" placeholder="Optional">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label form-label-sm">Type</label>
+                                        <select name="address_type" class="form-select form-select-sm">
+                                            <option value="to" {{ $rec->address_type === 'to' ? 'selected' : '' }}>TO — Primary recipient</option>
+                                            <option value="cc" {{ $rec->address_type === 'cc' ? 'selected' : '' }}>CC — Copy</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="is_active" value="1" id="intActive{{ $rec->id }}" {{ $rec->is_active ? 'checked' : '' }}>
+                                        <label class="form-check-label small" for="intActive{{ $rec->id }}">Active</label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer py-2">
+                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @empty
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-3 small fst-italic">No recipients configured</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+        {{-- Add row form --}}
+        <form method="POST" action="{{ route('settings.internal-emails.store') }}" class="border-top px-3 py-2">
+            @csrf
+            <input type="hidden" name="category" value="{{ $catKey }}">
+            <div class="d-flex gap-2 align-items-end flex-wrap">
+                <div style="flex:2;min-width:160px;">
+                    <label class="form-label form-label-sm mb-1">Email address</label>
+                    <input type="email" name="email" class="form-control form-control-sm" placeholder="staff@yard.com" required>
+                </div>
+                <div style="flex:1;min-width:100px;">
+                    <label class="form-label form-label-sm mb-1">Label</label>
+                    <input type="text" name="label" class="form-control form-control-sm" placeholder="Name">
+                </div>
+                <div style="min-width:90px;">
+                    <label class="form-label form-label-sm mb-1">Type</label>
+                    <select name="address_type" class="form-select form-select-sm">
+                        <option value="to">TO</option>
+                        <option value="cc">CC</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i></button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+@endforeach
+</div>
+
 @endsection
 
 @push('scripts')

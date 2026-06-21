@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Mail\EstimateIssuedMail;
+use App\Models\CustomerEmailContact;
 use App\Models\EmailConfig;
 use App\Models\Estimate;
 use App\Models\PortalToken;
@@ -38,8 +39,26 @@ class SendEstimateEmailJob implements ShouldQueue
 
         $pending = $mailerInstance->to($this->portalToken->email);
 
+        // CC: manual CC from the send form
+        $ccList = [];
         if ($this->estimate->send_cc_email) {
-            $pending->cc($this->estimate->send_cc_email);
+            $ccList[] = $this->estimate->send_cc_email;
+        }
+
+        // CC: configured customer email contacts for 'estimate' category
+        if ($this->estimate->customer_id) {
+            $contacts = CustomerEmailContact::forCustomerCategory($this->estimate->customer_id, 'estimate');
+            // TO-type contacts become additional CC (portal token is the primary To)
+            foreach ($contacts->where('address_type', 'to') as $c) {
+                $ccList[] = $c->email;
+            }
+            foreach ($contacts->where('address_type', 'cc') as $c) {
+                $ccList[] = $c->email;
+            }
+        }
+
+        if (!empty($ccList)) {
+            $pending->cc(array_unique($ccList));
         }
 
         $pending->send($mailable);

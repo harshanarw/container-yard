@@ -90,16 +90,17 @@
       @endif
 
       {{-- ── Line items ── --}}
-      {{-- columns: # | Component | Repair Type | Labour | Materials | Line Total --}}
+      {{-- columns: # | Component | Repair Type | Qty/Size | Labour | Materials | Line Total --}}
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:.875rem;margin-bottom:4px;">
         <thead>
           <tr style="background:#e9ecef;">
             <th style="padding:8px 6px;text-align:left;color:#495057;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:4%;">#</th>
             <th style="padding:8px 8px;text-align:left;color:#495057;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;">Component</th>
-            <th style="padding:8px 8px;text-align:left;color:#495057;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:14%;">Repair Type</th>
-            <th style="padding:8px 8px;text-align:right;color:#1a56db;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:16%;">&#x1F527; Labour</th>
-            <th style="padding:8px 8px;text-align:right;color:#166534;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:14%;">&#x1F4E6; Materials</th>
-            <th style="padding:8px 8px;text-align:right;color:#495057;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:14%;">Line Total</th>
+            <th style="padding:8px 8px;text-align:left;color:#495057;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:13%;">Repair Type</th>
+            <th style="padding:8px 8px;text-align:right;color:#495057;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:11%;">Qty / Size</th>
+            <th style="padding:8px 8px;text-align:right;color:#1a56db;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:14%;">&#x1F527; Labour</th>
+            <th style="padding:8px 8px;text-align:right;color:#166534;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:13%;">&#x1F4E6; Materials</th>
+            <th style="padding:8px 8px;text-align:right;color:#495057;font-size:.75rem;font-weight:700;border-bottom:2px solid #dee2e6;width:13%;">Line Total</th>
           </tr>
         </thead>
         <tbody>
@@ -125,6 +126,41 @@
             {{-- Repair Type --}}
             <td style="padding:9px 8px;border-bottom:1px solid #f1f3f5;vertical-align:top;color:#6c757d;">
               {{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}
+            </td>
+
+            {{-- Qty / Size --}}
+            @php
+              $eL  = (float)($line->dim_length ?? 0);
+              $eW  = (float)($line->dim_width  ?? 0);
+              $eUom = $line->dim_uom ?? 'ft_in';
+              $eDimStr = null;
+              if ($eL > 0) {
+                if ($eUom === 'ft_in') {
+                  $eFtL = (int)floor($eL / 12); $eInL = round(fmod($eL, 12), 2);
+                  $eDimStr = ($eFtL > 0 ? $eFtL.' ft ' : '').$eInL.' in';
+                  if ($eW > 0) {
+                    $eFtW = (int)floor($eW / 12); $eInW = round(fmod($eW, 12), 2);
+                    $eDimStr .= ' × '.($eFtW > 0 ? $eFtW.' ft ' : '').$eInW.' in';
+                  }
+                } else {
+                  $eU = $eUom === 'm' ? 'm' : 'cm';
+                  $eDimStr = number_format($eL, 1).' '.$eU;
+                  if ($eW > 0) $eDimStr .= ' × '.number_format($eW, 1).' '.$eU;
+                }
+              }
+              $eQtyUnit = '';
+              if ($eL > 0 && $eW > 0)  $eQtyUnit = 'sqft';
+              elseif ($eL > 0)          $eQtyUnit = $eUom === 'ft_in' ? 'in' : $eUom;
+            @endphp
+            <td style="padding:9px 8px;text-align:right;border-bottom:1px solid #f1f3f5;vertical-align:top;white-space:nowrap;">
+              @if($line->qty > 0)
+                <div style="font-weight:700;font-size:.88rem;">{{ number_format($line->qty, 2) }}@if($eQtyUnit)<span style="font-size:.72rem;font-weight:400;color:#6c757d;"> {{ $eQtyUnit }}</span>@endif</div>
+              @endif
+              @if($eDimStr)
+                <div style="font-size:.72rem;color:#6c757d;">📏 {{ $eDimStr }}</div>
+              @elseif(!($line->qty > 0))
+                <span style="color:#adb5bd;">—</span>
+              @endif
             </td>
 
             {{-- Labour: hrs + cost stacked --}}
@@ -160,23 +196,23 @@
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="5" style="padding:8px 8px;text-align:right;color:#6c757d;font-size:.82rem;border-top:1px solid #dee2e6;">Subtotal</td>
+            <td colspan="6" style="padding:8px 8px;text-align:right;color:#6c757d;font-size:.82rem;border-top:1px solid #dee2e6;">Subtotal</td>
             <td style="padding:8px 8px;text-align:right;border-top:1px solid #dee2e6;white-space:nowrap;">{{ number_format($estimate->subtotal, 2) }}</td>
           </tr>
           @if($estimate->sscl_amount > 0)
           <tr>
-            <td colspan="5" style="padding:4px 8px;text-align:right;color:#6c757d;font-size:.82rem;">SSCL</td>
+            <td colspan="6" style="padding:4px 8px;text-align:right;color:#6c757d;font-size:.82rem;">SSCL</td>
             <td style="padding:4px 8px;text-align:right;white-space:nowrap;">{{ number_format($estimate->sscl_amount, 2) }}</td>
           </tr>
           @endif
           @if($estimate->vat_amount > 0)
           <tr>
-            <td colspan="5" style="padding:4px 8px;text-align:right;color:#6c757d;font-size:.82rem;">VAT</td>
+            <td colspan="6" style="padding:4px 8px;text-align:right;color:#6c757d;font-size:.82rem;">VAT</td>
             <td style="padding:4px 8px;text-align:right;white-space:nowrap;">{{ number_format($estimate->vat_amount, 2) }}</td>
           </tr>
           @endif
           <tr style="background:#f0f4ff;">
-            <td colspan="5" style="padding:10px 8px;text-align:right;font-weight:700;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;">Grand Total</td>
+            <td colspan="6" style="padding:10px 8px;text-align:right;font-weight:700;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;">Grand Total</td>
             <td style="padding:10px 8px;text-align:right;font-weight:800;font-size:.95rem;border-top:2px solid #1a56db;color:#1a56db;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
           </tr>
         </tfoot>

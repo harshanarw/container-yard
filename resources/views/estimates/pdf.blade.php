@@ -166,16 +166,17 @@
     <div class="section">
         <div class="section-title">Repair Line Items</div>
         <table>
-            {{-- columns: # | Description (+ code chips) | Repair Type | Labour Hrs | Labour Cost | Materials | Line Total --}}
+            {{-- columns: # | Description (+ code chips) | Repair Type | Qty/Size | Labour Hrs | Labour Cost | Materials | Line Total --}}
             <thead>
                 <tr>
                     <th style="width:3%">#</th>
-                    <th style="width:30%">Description</th>
-                    <th style="width:13%">Repair Type</th>
-                    <th class="text-right" style="width:10%">Labour Hrs</th>
-                    <th class="text-right" style="width:13%">Labour Cost</th>
-                    <th class="text-right" style="width:13%">Materials</th>
-                    <th class="text-right" style="width:18%">Line Total</th>
+                    <th style="width:27%">Description</th>
+                    <th style="width:12%">Repair Type</th>
+                    <th class="text-right" style="width:11%">Qty / Size</th>
+                    <th class="text-right" style="width:9%">Labour Hrs</th>
+                    <th class="text-right" style="width:12%">Labour Cost</th>
+                    <th class="text-right" style="width:12%">Materials</th>
+                    <th class="text-right" style="width:14%">Line Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -194,6 +195,41 @@
                         </div>
                     </td>
                     <td>{{ ucfirst(str_replace('_', ' ', $item->repair_type)) }}</td>
+                    {{-- Qty / Size --}}
+                    @php
+                      $pL  = (float)($item->dim_length ?? 0);
+                      $pW  = (float)($item->dim_width  ?? 0);
+                      $pUom = $item->dim_uom ?? 'ft_in';
+                      $pDimStr = null;
+                      if ($pL > 0) {
+                        if ($pUom === 'ft_in') {
+                          $pFtL = (int)floor($pL / 12); $pInL = round(fmod($pL, 12), 2);
+                          $pDimStr = ($pFtL > 0 ? $pFtL.' ft ' : '').$pInL.' in';
+                          if ($pW > 0) {
+                            $pFtW = (int)floor($pW / 12); $pInW = round(fmod($pW, 12), 2);
+                            $pDimStr .= ' × '.($pFtW > 0 ? $pFtW.' ft ' : '').$pInW.' in';
+                          }
+                        } else {
+                          $pU = $pUom === 'm' ? 'm' : 'cm';
+                          $pDimStr = number_format($pL, 1).' '.$pU;
+                          if ($pW > 0) $pDimStr .= ' × '.number_format($pW, 1).' '.$pU;
+                        }
+                      }
+                      $pQtyUnit = '';
+                      if ($pL > 0 && $pW > 0)  $pQtyUnit = 'sqft';
+                      elseif ($pL > 0)          $pQtyUnit = $pUom === 'ft_in' ? 'in' : $pUom;
+                    @endphp
+                    <td class="text-right" style="white-space:nowrap;">
+                        @if($item->qty > 0)
+                            <strong style="color:#1a56db;">{{ number_format($item->qty, 2) }}</strong>
+                            @if($pQtyUnit)<span style="font-size:9px;color:#666;"> {{ $pQtyUnit }}</span>@endif
+                        @endif
+                        @if($pDimStr)
+                            <div style="font-size:8px;color:#888;white-space:nowrap;">{{ $pDimStr }}</div>
+                        @elseif(!($item->qty > 0))
+                            <span style="color:#adb5bd">—</span>
+                        @endif
+                    </td>
                     <td class="text-right">
                         @if($item->std_labor_hours > 0)
                             <strong style="color:#1a56db;">{{ number_format($item->std_labor_hours, 2) }}</strong>
@@ -235,12 +271,12 @@
             </tbody>
             <tfoot>
                 <tr class="subtax-row">
-                    <td colspan="6" style="text-align:right; padding-right:10px">Subtotal:</td>
+                    <td colspan="7" style="text-align:right; padding-right:10px">Subtotal:</td>
                     <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}</td>
                 </tr>
                 @if(($estimate->sscl_amount ?? 0) > 0)
                 <tr class="subtax-row">
-                    <td colspan="6" style="text-align:right; padding-right:10px">
+                    <td colspan="7" style="text-align:right; padding-right:10px">
                         SSCL:
                     </td>
                     <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->sscl_amount, 2) }}</td>
@@ -248,14 +284,14 @@
                 @endif
                 @if(($estimate->vat_amount ?? 0) > 0)
                 <tr class="subtax-row">
-                    <td colspan="6" style="text-align:right; padding-right:10px">
+                    <td colspan="7" style="text-align:right; padding-right:10px">
                         VAT:
                     </td>
                     <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->vat_amount, 2) }}</td>
                 </tr>
                 @endif
                 <tr class="total-row">
-                    <td colspan="6" style="text-align:right; padding-right:10px">GRAND TOTAL:</td>
+                    <td colspan="7" style="text-align:right; padding-right:10px">GRAND TOTAL:</td>
                     <td class="text-right">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</td>
                 </tr>
             </tfoot>
