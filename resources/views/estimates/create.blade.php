@@ -721,7 +721,7 @@
         const bdAncAmt    = parseFloat(data.ancillary_amount  ?? 0);
         const bdTotal     = bdLaborAmt + bdMatAmt + bdAncAmt;
 
-        return `<tr class="estimate-line">
+        return `<tr class="estimate-line" data-unit-type="${data._unit_type ?? data.unit_type ?? ''}">
             <td class="ps-2 text-center">${sourceBadge}</td>
             <td class="ps-1">
                 ${buildCodeSelect(`line_items[${i}][component_code_id]`, mrCmpCodeOpts, data.component_code_id ?? '')}
@@ -740,9 +740,6 @@
                 <input type="hidden" name="line_items[${i}][material_rate]"      value="${data.material_rate      ?? 0}">
                 <input type="hidden" name="line_items[${i}][material_amount]"    value="${bdMatAmt.toFixed(4)}">
                 <input type="hidden" name="line_items[${i}][ancillary_amount]"   value="${bdAncAmt.toFixed(4)}">
-                <input type="hidden" name="line_items[${i}][dim_length]"         value="${data.dim_length         ?? ''}">
-                <input type="hidden" name="line_items[${i}][dim_width]"          value="${data.dim_width          ?? ''}">
-                <input type="hidden" name="line_items[${i}][dim_uom]"            value="${data.dim_uom            ?? ''}">
                 ${fromDamage && data.cedex_code ? `<small class="text-muted font-monospace" style="font-size:.68rem;">${esc(data.cedex_code)}</small>` : ''}
             </td>
             <td>
@@ -779,7 +776,7 @@
                 </div>
             </td>
         </tr>
-        <tr class="bd-row${bdTotal > 0 ? '' : ' d-none'}">
+        <tr class="bd-row${(bdTotal > 0 || parseFloat(data.dim_length) > 0) ? '' : ' d-none'}">
             <td colspan="10" class="pt-0 pb-2 ps-4 pe-3">
                 <div class="rounded border bg-light px-3 py-2 bd-panel">
                     <div class="d-flex flex-wrap align-items-end gap-3 small">
@@ -807,6 +804,20 @@
                         <div>
                             <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Ancillary Amt</div>
                             <input type="number" class="form-control form-control-sm bd-ancillary-amt" value="${bdAncAmt.toFixed(2)}" min="0" step="0.01" style="width:90px">
+                        </div>
+                        <div class="vr mx-1"></div>
+                        <div>
+                            <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Dims L &times; W [${DIM_UOM_LABEL}]</div>
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="number" name="line_items[${i}][dim_length]"
+                                       class="form-control form-control-sm bd-dim-l"
+                                       value="${data.dim_length ?? ''}" min="0" step="0.1" style="width:60px" placeholder="L">
+                                <span class="text-muted" style="font-size:.85rem;">&times;</span>
+                                <input type="number" name="line_items[${i}][dim_width]"
+                                       class="form-control form-control-sm bd-dim-w"
+                                       value="${data.dim_width ?? ''}" min="0" step="0.1" style="width:60px" placeholder="W">
+                                <input type="hidden" name="line_items[${i}][dim_uom]" value="${data.dim_uom || YARD_DIM_UOM}">
+                            </div>
                         </div>
                         <div class="ms-auto text-end">
                             <div class="text-muted" style="font-size:.7rem;white-space:nowrap;">Total ÷ Qty → Unit Price</div>
@@ -966,6 +977,21 @@
         const bdRow = e.target.closest('.bd-row');
         if (bdRow) {
             syncBreakdown(bdRow, e.target);
+            if (e.target.classList.contains('bd-dim-l') || e.target.classList.contains('bd-dim-w')) {
+                const mainRow  = bdRow.previousElementSibling;
+                const unitType = mainRow?.dataset.unitType;
+                const dimL     = parseFloat(bdRow.querySelector('.bd-dim-l')?.value) || 0;
+                const dimW     = parseFloat(bdRow.querySelector('.bd-dim-w')?.value) || 0;
+                const computed = dimsToQty(unitType, dimL, dimW);
+                if (computed !== null && computed > 0) {
+                    const qtyInput = mainRow?.querySelector('.qty');
+                    if (qtyInput) {
+                        qtyInput.value = computed.toFixed(4);
+                        const total = parseFloat(bdRow.querySelector('.bd-total')?.textContent) || 0;
+                        mainRow.querySelector('.unit-price').value = (computed > 0 ? total / computed : total).toFixed(4);
+                    }
+                }
+            }
         } else if (e.target.classList.contains('qty')) {
             const mainRow = e.target.closest('.estimate-line');
             const sibBd   = mainRow?.nextElementSibling;
@@ -1284,6 +1310,7 @@
                 dim_length:      selectedItem.dimL ?? '',
                 dim_width:       selectedItem.dimW ?? '',
                 dim_uom:         selectedItem.dimUom ?? '',
+                unit_type:       selectedItem.unit ?? '',
             });
             recalculate();
             bootstrap.Modal.getInstance(document.getElementById('getRateModal'))?.hide();
