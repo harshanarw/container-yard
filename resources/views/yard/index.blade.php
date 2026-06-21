@@ -407,6 +407,12 @@
                                 <i class="bi bi-arrow-left-right"></i>
                             </a>
                             @endcan
+                            @else
+                            @can('yard.hire.create')
+                            <a href="{{ route('yard.hires.create', ['container_id' => $c->id]) }}" class="btn btn-outline-warning btn-sm" title="On Hire">
+                                <i class="bi bi-arrow-right-circle"></i>
+                            </a>
+                            @endcan
                             @endif
                         </div>
                     </td>

@@ -194,6 +194,9 @@
        class="tb-btn {{ $format === 'half-custom' ? 'tb-btn-primary' : 'tb-btn-secondary' }}">Custom Half</a>
     <a href="{{ route('yard.movements.edit', $movement) }}" class="tb-btn tb-btn-outline" id="tbBackBtn">&#8592; Back</a>
     <a href="{{ route('yard.gate') }}?tab=in" class="tb-btn tb-btn-outline" id="tbNewMovementBtn">&#43; New Movement</a>
+    @can('yard.hire.create')
+    <a href="{{ route('yard.hires.create', ['container_id' => $movement->container_id]) }}" class="tb-btn" style="background:#92400e;color:#fef3c7;border:none;">&#x21c6; On Hire</a>
+    @endcan
 </div>
 <script>
 (function () {
