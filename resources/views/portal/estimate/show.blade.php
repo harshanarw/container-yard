@@ -157,14 +157,15 @@
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      {{-- columns: # | Component | Repair Type | Labour | Materials | Line Total | Status | [Action] --}}
+      {{-- columns: # | Component | Repair Type | Qty/Size | Labour | Materials | Line Total | Status | [Action] --}}
       <table class="table align-middle mb-0 small">
         <thead class="table-light">
           <tr>
             <th class="ps-3" style="width:3%">#</th>
             <th>Component</th>
-            <th style="width:12%">Repair Type</th>
-            <th class="text-end" style="width:14%">
+            <th style="width:11%">Repair Type</th>
+            <th class="text-end" style="width:10%">Qty / Size</th>
+            <th class="text-end" style="width:13%">
               <i class="bi bi-tools me-1 text-primary"></i>Labour
             </th>
             <th class="text-end" style="width:12%">
@@ -187,20 +188,6 @@
               @if($line->damage?->description)
                 <div class="text-muted mt-1" style="font-size:.78rem;line-height:1.4;">{{ $line->damage->description }}</div>
               @endif
-              {{-- Dimensions (for area-based repairs) --}}
-              @if($line->dim_length > 0 && $line->dim_width > 0)
-                @php
-                  $tL = (float) $line->dim_length; $tW = (float) $line->dim_width;
-                  if ($line->dim_uom === 'ft_in') {
-                    $ftL = (int) floor($tL / 12); $inL = round(fmod($tL, 12), 2);
-                    $ftW = (int) floor($tW / 12); $inW = round(fmod($tW, 12), 2);
-                    $dimStr = ($ftL > 0 ? $ftL.' ft ' : '').$inL.' in × '.($ftW > 0 ? $ftW.' ft ' : '').$inW.' in';
-                  } else {
-                    $dimStr = number_format($tL, 1).' × '.number_format($tW, 1).' cm';
-                  }
-                @endphp
-                <div class="text-muted" style="font-size:.72rem;white-space:nowrap;">&#x1F4CF; {{ $dimStr }}</div>
-              @endif
               <div class="mt-1 d-flex flex-wrap gap-1">
                 @if($line->locationCode)
                   <span class="code-chip orange" title="{{ $line->locationCode->name }}">{{ $line->locationCode->code }}</span>
@@ -222,6 +209,44 @@
 
             {{-- Repair type --}}
             <td class="text-muted">{{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}</td>
+
+            {{-- Qty / Size: computed quantity with raw dimensions as context --}}
+            <td class="text-end" style="white-space:nowrap;">
+              @php
+                $tL  = (float)($line->dim_length ?? 0);
+                $tW  = (float)($line->dim_width  ?? 0);
+                $uom = $line->dim_uom ?? 'ft_in';
+                $dimStr2 = null;
+                if ($tL > 0) {
+                  if ($uom === 'ft_in') {
+                    $ftL2 = (int)floor($tL / 12); $inL2 = round(fmod($tL, 12), 2);
+                    $dimStr2 = ($ftL2 > 0 ? $ftL2.' ft ' : '').$inL2.' in';
+                    if ($tW > 0) {
+                      $ftW2 = (int)floor($tW / 12); $inW2 = round(fmod($tW, 12), 2);
+                      $dimStr2 .= ' &times; '.($ftW2 > 0 ? $ftW2.' ft ' : '').$inW2.' in';
+                    }
+                  } else {
+                    $u2      = $uom === 'm' ? 'm' : 'cm';
+                    $dimStr2 = number_format($tL, 1).' '.$u2;
+                    if ($tW > 0) $dimStr2 .= ' &times; '.number_format($tW, 1).' '.$u2;
+                  }
+                }
+                $qtyUnit = '';
+                if ($tL > 0 && $tW > 0)      $qtyUnit = 'sqft';
+                elseif ($tL > 0)              $qtyUnit = $uom === 'ft_in' ? 'in' : $uom;
+              @endphp
+              @if($line->qty > 0)
+                <div class="fw-bold">
+                  {{ number_format($line->qty, 2) }}
+                  @if($qtyUnit)<span class="text-muted fw-normal" style="font-size:.75rem;"> {{ $qtyUnit }}</span>@endif
+                </div>
+              @endif
+              @if($dimStr2)
+                <div class="text-muted" style="font-size:.72rem;">&#x1F4CF; {!! $dimStr2 !!}</div>
+              @elseif(!($line->qty > 0))
+                <span class="text-muted">—</span>
+              @endif
+            </td>
 
             {{-- Labour: hours × rate = cost stacked --}}
             <td class="text-end">
