@@ -470,6 +470,16 @@
         <!-- Send to Owner -->
         @can('estimates.edit')
         @if($canSend)
+        @php
+            // Auto-populate To Email: last sent → first saved TO contact → customer primary email
+            $savedEstimateToEmail = $estimate->customer_id
+                ? \App\Models\CustomerEmailContact::forCustomerCategory($estimate->customer_id, 'estimate')
+                    ->where('address_type', 'to')->first()?->email
+                : null;
+            $defaultSendToEmail = old('send_to_email',
+                $estimate->send_to_email ?? $savedEstimateToEmail ?? $estimate->customer?->email
+            );
+        @endphp
         <div class="card content-card mb-3 {{ $isResend ? 'border-warning' : 'border-primary' }}">
             <div class="card-header {{ $isResend ? 'bg-warning-subtle' : 'bg-primary-subtle' }}">
                 <i class="bi bi-send me-2 text-primary"></i>
@@ -482,14 +492,16 @@
                 <form method="POST" action="{{ route('estimates.send', $estimate) }}">
                     @csrf
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small">To Email <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold small">Portal Recipient (To) <span class="text-danger">*</span></label>
                         <input type="email" name="send_to_email" class="form-control form-control-sm"
-                               value="{{ old('send_to_email', $estimate->send_to_email) }}" required>
+                               value="{{ $defaultSendToEmail }}" required>
+                        <div class="form-text">This person receives the approval portal link.</div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small">CC Email</label>
+                        <label class="form-label fw-semibold small">Additional CC <span class="text-muted fw-normal">(optional, one-off)</span></label>
                         <input type="email" name="send_cc_email" class="form-control form-control-sm"
                                value="{{ old('send_cc_email', $estimate->send_cc_email) }}">
+                        <div class="form-text">Saved CC contacts below are added automatically.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Custom Message</label>
@@ -510,9 +522,10 @@
                 {{-- Inline customer recipient shortcut (Phase 4) --}}
                 <div class="mt-3">
                     @include('partials._customer-contacts-inline', [
-                        'customer' => $estimate->customer,
-                        'category' => 'estimate',
-                        'title'    => 'Saved Estimate Recipients',
+                        'customer'        => $estimate->customer,
+                        'category'        => 'estimate',
+                        'title'           => 'Saved Estimate Recipients',
+                        'showPortalHint'  => true,
                     ])
                 </div>
             </div>

@@ -7,14 +7,17 @@
     navigating to the customer profile.
 
     Params:
-      $customer  \App\Models\Customer|null  the customer whose contacts to show
-      $category  string                     one of config('email_categories.customer') keys
-      $title     string|null                optional heading override
+      $customer       \App\Models\Customer|null  the customer whose contacts to show
+      $category       string                     one of config('email_categories.customer') keys
+      $title          string|null                optional heading override
+      $showPortalHint bool                       when true, adds a note that the first TO contact
+                                                 pre-fills the portal recipient field (estimate send form)
 --}}
 @php
-    $ccCustomer = $customer ?? null;
-    $ccCategory = $category ?? 'general';
-    $ccTitle    = $title ?? (config("email_categories.customer.$ccCategory.label") ?? 'Email Contacts');
+    $ccCustomer      = $customer ?? null;
+    $ccCategory      = $category ?? 'general';
+    $ccTitle         = $title ?? (config("email_categories.customer.$ccCategory.label") ?? 'Email Contacts');
+    $showPortalHint  = $showPortalHint ?? false;
     $ccIcon     = config("email_categories.customer.$ccCategory.icon", 'bi-envelope-at');
     $ccColor    = config("email_categories.customer.$ccCategory.color", 'secondary');
 
@@ -45,7 +48,11 @@
         <div class="text-muted fst-italic">No customer linked — saved recipients unavailable.</div>
     @else
         <div class="text-muted mb-2" style="font-size:.78rem;">
-            These saved recipients are added automatically when this {{ strtolower($ccTitle) }} email is sent.
+            @if($showPortalHint)
+                The first saved <strong>TO</strong> contact pre-fills the portal recipient field above. All saved contacts (TO and CC) are automatically included when the email is sent.
+            @else
+                Saved contacts are automatically included when this email is sent.
+            @endif
         </div>
 
         {{-- Current saved recipients --}}
