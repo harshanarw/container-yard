@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendInvoiceEmailJob;
 use App\Models\CompanySetting;
 use App\Models\Customer;
 use App\Models\StorageInvoice;
@@ -593,18 +594,22 @@ class StorageBillingController extends Controller
             'message'  => ['nullable', 'string', 'max:1000'],
         ]);
 
+        $invoice->loadMissing(['customer', 'billingParty', 'details', 'createdBy']);
+
         // Mark as issued if still draft
         if ($invoice->isDraft()) {
             $invoice->update(['status' => 'issued', 'sent_at' => now()]);
         }
 
-        // TODO: Implement actual email delivery once mail is configured.
-        // Example:
-        // Mail::send('billing.email', compact('invoice', 'validated'), function ($m) use ($invoice, $validated) {
-        //     $m->to($validated['to_email'])->subject("Storage Invoice {$invoice->invoice_no}");
-        //     if ($validated['cc_email']) $m->cc($validated['cc_email']);
-        // });
+        $manualCc = $validated['cc_email'] ? [$validated['cc_email']] : [];
 
-        return back()->with('success', "Invoice {$invoice->invoice_no} sent to {$validated['to_email']}. (Configure mail settings to enable delivery.)");
+        SendInvoiceEmailJob::dispatchSync(
+            $invoice,
+            $validated['to_email'],
+            $validated['message'] ?? null,
+            $manualCc,
+        );
+
+        return back()->with('success', "Invoice {$invoice->invoice_no} sent to {$validated['to_email']}.");
     }
 }

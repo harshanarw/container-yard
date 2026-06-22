@@ -502,6 +502,10 @@
 
 <!-- Email Modal -->
 @can('billing.storage.email')
+@php
+    $emailBillingParty = $invoice->billingParty ?? $invoice->customer;
+    $defaultToEmail    = $emailBillingParty?->email ?? $invoice->customer?->email;
+@endphp
 <div class="modal fade" id="emailModal" tabindex="-1">
     <div class="modal-dialog">
         <form method="POST" action="{{ route('billing.email', $invoice) }}">
@@ -517,11 +521,16 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">To (Email) <span class="text-danger">*</span></label>
                         <input type="email" name="to_email" class="form-control"
-                               value="{{ $invoice->customer?->email }}" required>
+                               value="{{ $defaultToEmail }}" required>
+                        @if($emailBillingParty && $emailBillingParty->id !== $invoice->customer_id)
+                        <div class="form-text">Pre-filled from billing party: {{ $emailBillingParty->name }}</div>
+                        @endif
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">CC (Email)</label>
-                        <input type="email" name="cc_email" class="form-control">
+                        <input type="email" name="cc_email" class="form-control"
+                               placeholder="Optional additional CC">
+                        <div class="form-text">Configured invoice contacts and internal staff are CC'd automatically.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Message</label>
@@ -530,7 +539,7 @@
                     </div>
                     <div class="alert alert-info small py-2 mb-0">
                         <i class="bi bi-info-circle me-1"></i>
-                        Invoice {{ $invoice->invoice_no }} will be attached as a PDF. Ensure mail settings are configured.
+                        Invoice {{ $invoice->invoice_no }} will be attached as a PDF.
                     </div>
                 </div>
                 <div class="modal-footer">
