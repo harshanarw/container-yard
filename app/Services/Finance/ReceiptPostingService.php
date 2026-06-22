@@ -46,6 +46,13 @@ class ReceiptPostingService
             }
 
             $customerName = $receipt->customer?->name ?? 'Unknown';
+
+            // GL is maintained in the base/reporting currency. Convert the
+            // receipt's foreign-currency amount before posting (both legs use
+            // the same converted value, so the journal stays balanced).
+            $baseAmount = $this->toBaseAmount($receipt->amount, $receipt->exchange_rate);
+            $fxNote     = $this->fxNote($receipt->amount, $receipt->currency, $receipt->exchange_rate);
+
             $journal = $this->engine->createJournal([
                 'journal_date'   => $receipt->receipt_date->toDateString(),
                 'journal_type'   => 'receipt',
@@ -55,14 +62,14 @@ class ReceiptPostingService
             ], [
                 [
                     'account_id' => $bankAccount->id,
-                    'debit'      => (float) $receipt->amount,
+                    'debit'      => $baseAmount,
                     'credit'     => 0,
-                    'narration'  => "Receipt from {$customerName}",
+                    'narration'  => "Receipt from {$customerName}{$fxNote}",
                 ],
                 [
                     'account_id' => $arAccount->id,
                     'debit'      => 0,
-                    'credit'     => (float) $receipt->amount,
+                    'credit'     => $baseAmount,
                     'narration'  => "Customer payment",
                 ],
             ]);
@@ -140,6 +147,11 @@ class ReceiptPostingService
                 );
             }
 
+            // Convert the voucher's foreign-currency amount into base currency
+            // for the GL (both legs use the same value → balanced journal).
+            $baseAmount = $this->toBaseAmount($voucher->amount, $voucher->exchange_rate);
+            $fxNote     = $this->fxNote($voucher->amount, $voucher->currency, $voucher->exchange_rate);
+
             $journal = $this->engine->createJournal([
                 'journal_date'   => $voucher->voucher_date->toDateString(),
                 'journal_type'   => 'payment',
@@ -149,14 +161,14 @@ class ReceiptPostingService
             ], [
                 [
                     'account_id' => $expenseAccount->id,
-                    'debit'      => (float) $voucher->amount,
+                    'debit'      => $baseAmount,
                     'credit'     => 0,
-                    'narration'  => "Payment to {$voucher->payee_name}",
+                    'narration'  => "Payment to {$voucher->payee_name}{$fxNote}",
                 ],
                 [
                     'account_id' => $bankAccount->id,
                     'debit'      => 0,
-                    'credit'     => (float) $voucher->amount,
+                    'credit'     => $baseAmount,
                     'narration'  => "Bank payment",
                 ],
             ]);
@@ -191,6 +203,32 @@ class ReceiptPostingService
                 'voided_at' => now(),
             ]);
         });
+    }
+
+    /**
+     * Convert a transaction amount into base/reporting currency for the GL.
+     * exchange_rate is "base units per 1 transaction-currency unit"
+     * (defaults to 1.0 for same-currency transactions).
+     */
+    private function toBaseAmount($amount, $exchangeRate): float
+    {
+        $rate = (float) ($exchangeRate ?: 1);
+
+        return round((float) $amount * $rate, 2);
+    }
+
+    /**
+     * Short traceability suffix shown on the GL line when the transaction was
+     * in a foreign currency. Empty for base-currency (rate 1) transactions.
+     */
+    private function fxNote($amount, ?string $currency, $exchangeRate): string
+    {
+        $rate = (float) ($exchangeRate ?: 1);
+        if ($rate == 1.0) {
+            return '';
+        }
+
+        return ' (' . number_format((float) $amount, 2) . ' ' . ($currency ?? '') . ' @ ' . rtrim(rtrim(number_format($rate, 6, '.', ''), '0'), '.') . ')';
     }
 
     private function resolveArAccount(): ?Account

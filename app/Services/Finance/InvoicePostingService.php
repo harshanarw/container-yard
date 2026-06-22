@@ -132,10 +132,10 @@ class InvoicePostingService
         }
 
         // Tax extraction per invoice type (avoids double-counting):
-        // - RepairInvoice:           tax_amount = sscl_total + vat_total (already aggregated), use sscl_total+vat_total
-        // - StorageHandlingInvoice:  separate sscl_amount + vat_amount; tax_amount not stored
-        // - ReeferElectricityInvoice: separate sscl_amount + vat_amount
-        // - StorageInvoice:          total_amount is inclusive; no breakdown available
+        // - RepairInvoice:            sscl_total + vat_total (header aggregates equal tax_amount)
+        // - ReeferElectricityInvoice: separate sscl_amount + vat_amount on the header
+        // - StorageInvoice:           single tax_amount on the header
+        // - StorageHandlingInvoice:   single tax_amount on the header
         $taxAmount = (float) $this->extractTax($invoice, $invoiceType);
 
         $netAmount = $total - $taxAmount;
@@ -186,10 +186,13 @@ class InvoicePostingService
     private function extractTax(Model $invoice, string $invoiceType): float
     {
         return match ($invoiceType) {
-            // tax_amount already equals sscl_total + vat_total — don't double-count
+            // Repair: header sscl_total + vat_total (equals its tax_amount) — don't double-count.
             'repair'           => (float)(($invoice->sscl_total ?? 0) + ($invoice->vat_total ?? 0)),
-            'storage-handling' => (float)(($invoice->sscl_amount ?? 0) + ($invoice->vat_amount ?? 0)),
+            // Reefer: tax is split into separate SSCL + VAT columns on the header.
             'reefer'           => (float)(($invoice->sscl_amount ?? 0) + ($invoice->vat_amount ?? 0)),
+            // Storage & storage-handling: a single combined tax_amount on the header.
+            'storage'          => (float)($invoice->tax_amount ?? 0),
+            'storage-handling' => (float)($invoice->tax_amount ?? 0),
             default            => 0.0,
         };
     }
