@@ -1313,14 +1313,25 @@
 
             {{-- Configuration sub-group --}}
             @if(Auth::user()->isSuperUser() || Auth::user()->can('settings.company.view') || Auth::user()->can('settings.approval-workflows.view'))
+            @php
+            $configSubActive = request()->routeIs('settings.index')
+                            || request()->routeIs('settings.update')
+                            || request()->routeIs('settings.company.*')
+                            || request()->routeIs('settings.email-config.*')
+                            || request()->routeIs('settings.internal-emails.*')
+                            || request()->routeIs('settings.countries.*')
+                            || request()->routeIs('settings.cloud-storage.*')
+                            || request()->routeIs('settings.approval-workflows.*');
+            @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-settings-config"
-                    aria-expanded="false" aria-controls="nav-sub-settings-config">
+                    aria-expanded="{{ $configSubActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-settings-config">
                 <i class="bi bi-sliders nav-sub-icon"></i>
                 <span>Configuration</span>
                 <i class="bi bi-chevron-down sub-chevron"></i>
             </button>
-            <div class="collapse" id="nav-sub-settings-config">
+            <div class="collapse {{ $configSubActive ? 'show' : '' }}" id="nav-sub-settings-config">
                 <ul class="nav flex-column">
                     @if(auth()->user()->isSuperUser())
                     <li class="nav-item sub-item">
