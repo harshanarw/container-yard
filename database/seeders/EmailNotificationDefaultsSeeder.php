@@ -56,8 +56,15 @@ class EmailNotificationDefaultsSeeder extends Seeder
         $defaultEmail = CompanySetting::current()->email ?: 'sysadmin@containeryard.com';
         $domain       = str_contains($defaultEmail, '@') ? explode('@', $defaultEmail)[1] : 'containeryard.com';
 
+        // Match on the external general config specifically — an internal
+        // 'general' sender (scope=internal) can now coexist.
+        $match = ['category' => 'general'];
+        if (Schema::hasColumn('email_configs', 'scope')) {
+            $match['scope'] = 'external';
+        }
+
         EmailConfig::firstOrCreate(
-            ['category' => 'general'],
+            $match,
             [
                 'name'       => 'Default (General) — configure & activate',
                 'driver'     => 'smtp',

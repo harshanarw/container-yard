@@ -10,7 +10,12 @@ class EmailConfigController extends Controller
 {
     public function index(Request $request)
     {
-        $configs = EmailConfig::orderBy('category')->orderByDesc('is_default')->get();
+        $allConfigs = EmailConfig::orderBy('category')->orderByDesc('is_default')->get();
+
+        // External (customer-facing) sender configs and the optional dedicated
+        // internal sender are managed in their respective tabs.
+        $configs        = $allConfigs->where('scope', '!=', 'internal')->values();
+        $internalConfig = $allConfigs->firstWhere('scope', 'internal');
 
         $categories = collect(config('email_categories.external'))
             ->map(fn ($c) => $c['label'])
@@ -32,7 +37,7 @@ class EmailConfigController extends Controller
         }
 
         return view('settings.email-config.index', compact(
-            'configs', 'categories',
+            'configs', 'internalConfig', 'categories',
             'customerSearch', 'customerResults', 'selectedCustomer',
         ));
     }
@@ -41,15 +46,18 @@ class EmailConfigController extends Controller
     {
         $data = $request->validate($this->rules());
 
+        $data['scope']     = $data['scope'] ?? 'external';
         $data['cc_emails'] = $this->parseCcEmails($request->input('cc_emails'));
 
         if (!empty($data['is_default'])) {
-            EmailConfig::where('category', $data['category'])->update(['is_default' => false]);
+            EmailConfig::where('category', $data['category'])
+                ->where('scope', $data['scope'])
+                ->update(['is_default' => false]);
         }
 
         EmailConfig::create($data);
 
-        return redirect()->route('settings.email-config.index', ['tab' => 'external'])
+        return redirect()->route('settings.email-config.index', ['tab' => $this->tabFor($data['scope'])])
             ->with('success', 'Email configuration added.');
     }
 
@@ -57,10 +65,12 @@ class EmailConfigController extends Controller
     {
         $data = $request->validate($this->rules());
 
+        $data['scope']     = $data['scope'] ?? $emailConfig->scope ?? 'external';
         $data['cc_emails'] = $this->parseCcEmails($request->input('cc_emails'));
 
         if (!empty($data['is_default'])) {
             EmailConfig::where('category', $data['category'])
+                ->where('scope', $data['scope'])
                 ->where('id', '!=', $emailConfig->id)
                 ->update(['is_default' => false]);
         }
@@ -74,8 +84,14 @@ class EmailConfigController extends Controller
 
         $emailConfig->update($data);
 
-        return redirect()->route('settings.email-config.index', ['tab' => 'external'])
+        return redirect()->route('settings.email-config.index', ['tab' => $this->tabFor($data['scope'])])
             ->with('success', 'Email configuration updated.');
+    }
+
+    /** Settings tab a given scope belongs to (drives post-save redirects). */
+    private function tabFor(?string $scope): string
+    {
+        return $scope === 'internal' ? 'internal' : 'external';
     }
 
     /**
@@ -88,6 +104,7 @@ class EmailConfigController extends Controller
             'name'              => ['required', 'string', 'max:100'],
             'driver'            => ['required', 'in:smtp,mailgun,sendgrid'],
             'category'          => ['required', Rule::in(array_keys(config('email_categories.external')))],
+            'scope'             => ['nullable', 'in:external,internal'],
             'is_default'        => ['boolean'],
             'is_active'         => ['boolean'],
             'smtp_host'         => ['nullable', 'string', 'max:255'],
@@ -127,8 +144,9 @@ class EmailConfigController extends Controller
 
     public function destroy(EmailConfig $emailConfig)
     {
+        $tab = $this->tabFor($emailConfig->scope);
         $emailConfig->delete();
-        return redirect()->route('settings.email-config.index', ['tab' => 'external'])
+        return redirect()->route('settings.email-config.index', ['tab' => $tab])
             ->with('success', 'Email configuration deleted.');
     }
 
@@ -150,10 +168,10 @@ class EmailConfigController extends Controller
                 }
             );
 
-            return redirect()->route('settings.email-config.index', ['tab' => 'external'])
+            return redirect()->route('settings.email-config.index', ['tab' => $this->tabFor($emailConfig->scope)])
                 ->with('success', "Test email sent to {$request->test_email}.");
         } catch (\Throwable $e) {
-            return redirect()->route('settings.email-config.index', ['tab' => 'external'])
+            return redirect()->route('settings.email-config.index', ['tab' => $this->tabFor($emailConfig->scope)])
                 ->with('error', 'Send failed: ' . $e->getMessage());
         }
     }

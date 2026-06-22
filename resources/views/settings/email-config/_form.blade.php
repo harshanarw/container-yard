@@ -1,10 +1,16 @@
+@php
+    // Internal sender = a single dedicated config for staff notifications.
+    // It has no per-category split and no customer common-CC concept.
+    $isInternal = $isInternal ?? (isset($config) && ($config->scope ?? 'external') === 'internal');
+@endphp
 <div class="row g-3">
-    <div class="col-md-6">
+    <input type="hidden" name="scope" value="{{ $isInternal ? 'internal' : 'external' }}">
+    <div class="{{ $isInternal ? 'col-md-8' : 'col-md-6' }}">
         <label class="form-label fw-semibold small">Configuration Name <span class="text-danger">*</span></label>
         <input type="text" name="name" class="form-control form-control-sm"
-               value="{{ old('name', $config->name ?? '') }}" required>
+               value="{{ old('name', $config->name ?? ($isInternal ? 'Internal Notifications Sender' : '')) }}" required>
     </div>
-    <div class="col-md-3">
+    <div class="{{ $isInternal ? 'col-md-4' : 'col-md-3' }}">
         <label class="form-label fw-semibold small">Email Driver <span class="text-danger">*</span></label>
         <select name="driver" class="form-select form-select-sm" data-driver-toggle>
             <option value="smtp"     {{ old('driver', $config->driver ?? 'smtp') === 'smtp'     ? 'selected' : '' }}>SMTP</option>
@@ -12,6 +18,10 @@
             <option value="sendgrid" {{ old('driver', $config->driver ?? '') === 'sendgrid' ? 'selected' : '' }}>SendGrid</option>
         </select>
     </div>
+    @if($isInternal)
+        {{-- Internal sender is not per-category; fix to 'general'. --}}
+        <input type="hidden" name="category" value="general">
+    @else
     <div class="col-md-3">
         <label class="form-label fw-semibold small">Category <span class="text-danger">*</span></label>
         <select name="category" class="form-select form-select-sm">
@@ -22,6 +32,7 @@
             @endforeach
         </select>
     </div>
+    @endif
 
     {{-- SMTP fields --}}
     <div class="col-12" data-driver-section="smtp">
@@ -116,7 +127,8 @@
         </div>
     </div>
 
-    {{-- Common CC --}}
+    {{-- Common CC — external only (internal recipients live in the recipient lists) --}}
+    @unless($isInternal)
     <div class="col-12">
         <div class="border-top pt-3">
             <div class="text-muted small fw-semibold mb-2">Common CC (optional)</div>
@@ -131,9 +143,11 @@
                       placeholder="accounts@yard.com&#10;manager@yard.com">{{ $ccValue }}</textarea>
         </div>
     </div>
+    @endunless
 
     <div class="col-12">
         <div class="d-flex gap-4">
+            @unless($isInternal)
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="is_default" value="1" id="isDefault_{{ $config->id ?? 'new' }}"
                        {{ old('is_default', $config->is_default ?? false) ? 'checked' : '' }}>
@@ -141,6 +155,10 @@
                     Set as default for this category
                 </label>
             </div>
+            @else
+                {{-- A single internal sender is always the default for its scope. --}}
+                <input type="hidden" name="is_default" value="1">
+            @endunless
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="is_active" value="1" id="isActive_{{ $config->id ?? 'new' }}"
                        {{ old('is_active', $config->is_active ?? true) ? 'checked' : '' }}>

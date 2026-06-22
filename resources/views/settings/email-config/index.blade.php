@@ -61,6 +61,147 @@
         These are CC'd on customer-facing emails or sent directly for internal-only alerts.
     </p>
 
+    {{-- ─── Internal Sender (driver / SMTP) ───────────────────────────────
+         Optional dedicated mail server for internal staff notifications. When
+         no active internal sender exists, internal alerts fall back to the
+         external 'General' sender configured in the External tab. --}}
+    @php
+        $intDriverIcons  = ['smtp' => 'bi-server', 'mailgun' => 'bi-lightning', 'sendgrid' => 'bi-send'];
+        $intDriverColors = ['smtp' => 'primary', 'mailgun' => 'warning', 'sendgrid' => 'info'];
+    @endphp
+    <div class="card content-card mb-4 border-warning">
+        <div class="card-header bg-warning-subtle d-flex align-items-center justify-content-between">
+            <span class="fw-semibold"><i class="bi bi-hdd-network me-2 text-warning"></i>Internal Sender (Mail Server)</span>
+            @if($internalConfig)
+                <div class="d-flex gap-1">
+                    <button class="btn btn-xs btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editInternalSender" title="Edit">
+                        <i class="bi bi-pencil me-1"></i>Edit
+                    </button>
+                    <button class="btn btn-xs btn-outline-primary" data-bs-toggle="modal" data-bs-target="#testInternalSender" title="Send test">
+                        <i class="bi bi-send me-1"></i>Test
+                    </button>
+                    <form method="POST" action="{{ route('settings.email-config.destroy', $internalConfig) }}" class="d-inline">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="btn btn-xs btn-outline-danger"
+                                data-confirm="Remove the internal sender? Internal alerts will fall back to the external General sender."
+                                data-confirm-title="Remove Internal Sender"
+                                data-confirm-class="btn-danger"
+                                data-confirm-label="Remove" title="Remove">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            @else
+                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#addInternalSender">
+                    <i class="bi bi-plus-lg me-1"></i>Configure Internal Sender
+                </button>
+            @endif
+        </div>
+        <div class="card-body small">
+            @if($internalConfig)
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-3">
+                        <span class="badge bg-{{ $intDriverColors[$internalConfig->driver] ?? 'secondary' }}">
+                            <i class="bi {{ $intDriverIcons[$internalConfig->driver] ?? 'bi-envelope' }} me-1"></i>{{ strtoupper($internalConfig->driver) }}
+                        </span>
+                        @if($internalConfig->is_active)
+                            <span class="badge bg-success ms-1">Active</span>
+                        @else
+                            <span class="badge bg-secondary ms-1">Inactive — falls back to General</span>
+                        @endif
+                    </div>
+                    @if($internalConfig->driver === 'smtp')
+                        <div class="col-md-4"><span class="text-muted">Host:</span> {{ $internalConfig->smtp_host ?? '—' }}:{{ $internalConfig->smtp_port ?? '—' }}</div>
+                        <div class="col-md-3"><span class="text-muted">User:</span> {{ $internalConfig->smtp_username ?? '—' }}</div>
+                    @elseif($internalConfig->driver === 'mailgun')
+                        <div class="col-md-4"><span class="text-muted">Domain:</span> {{ $internalConfig->mailgun_domain ?? '—' }}</div>
+                    @elseif($internalConfig->driver === 'sendgrid')
+                        <div class="col-md-4"><span class="text-muted">API Key:</span> ••••••••••••</div>
+                    @endif
+                    @if($internalConfig->from_email)
+                        <div class="col-md-12 mt-1"><span class="text-muted">From:</span> {{ $internalConfig->from_name ? $internalConfig->from_name . ' <' . $internalConfig->from_email . '>' : $internalConfig->from_email }}</div>
+                    @endif
+                </div>
+            @else
+                <div class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>No dedicated internal sender configured.
+                    Internal notifications are currently sent through the external <strong>General</strong> sender (External tab).
+                    Configure one here if internal alerts should use a different mail server or sender identity.
+                </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- Add Internal Sender Modal --}}
+    <div class="modal fade" id="addInternalSender" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('settings.email-config.store') }}">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title">Configure Internal Sender</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @include('settings.email-config._form', ['config' => null, 'categories' => $categories, 'isInternal' => true])
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning">Save Internal Sender</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @if($internalConfig)
+    {{-- Edit Internal Sender Modal --}}
+    <div class="modal fade" id="editInternalSender" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('settings.email-config.update', $internalConfig) }}">
+                    @csrf @method('PATCH')
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Internal Sender</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @include('settings.email-config._form', ['config' => $internalConfig, 'categories' => $categories, 'isInternal' => true])
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Test Internal Sender Modal --}}
+    <div class="modal fade" id="testInternalSender" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('settings.email-config.test', $internalConfig) }}">
+                    @csrf
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title">Send Test Email</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body py-2">
+                        <label class="form-label small fw-semibold">Send test to</label>
+                        <input type="email" name="test_email" class="form-control form-control-sm" required
+                               placeholder="recipient@example.com">
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-primary">Send Test</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
     @php
     $intCategories = config('email_categories.internal');
     $internalEmails = \App\Models\InternalNotificationEmail::orderBy('category')

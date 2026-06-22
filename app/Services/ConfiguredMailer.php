@@ -16,9 +16,9 @@ use Illuminate\Support\Facades\Mail;
  */
 class ConfiguredMailer
 {
-    public static function forCategory(string $category): Mailer
+    public static function forCategory(string $category, string $scope = 'external'): Mailer
     {
-        $config = EmailConfig::forCategory($category);
+        $config = EmailConfig::forCategory($category, $scope);
 
         if ($config && self::configureFromEmailConfig($config)) {
             return Mail::mailer('dynamic');

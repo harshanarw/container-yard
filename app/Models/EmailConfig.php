@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class EmailConfig extends Model
 {
     protected $fillable = [
-        'name', 'driver', 'category', 'is_default', 'is_active',
+        'name', 'driver', 'category', 'scope', 'is_default', 'is_active',
         'smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_username', 'smtp_password',
         'mailgun_domain', 'mailgun_secret', 'mailgun_endpoint',
         'sendgrid_api_key',
@@ -25,16 +25,47 @@ class EmailConfig extends Model
         'smtp_password', 'mailgun_secret', 'sendgrid_api_key',
     ];
 
-    public static function forCategory(string $category): ?self
+    /**
+     * Resolve the active sender config for a category and direction.
+     *
+     *  - scope 'external' (default): the category's own config, else the
+     *    external 'general' config (historical behaviour).
+     *  - scope 'internal': the dedicated internal sender if one is active,
+     *    otherwise it falls back to the external 'general' config so internal
+     *    notifications keep sending even when no internal server is set up.
+     */
+    public static function forCategory(string $category, string $scope = 'external'): ?self
     {
-        return static::where('category', $category)
-            ->where('is_active', true)
-            ->orderByDesc('is_default')
-            ->first()
-            ?? static::where('category', 'general')
+        if ($scope === 'internal') {
+            $internal = static::where('scope', 'internal')
                 ->where('is_active', true)
                 ->orderByDesc('is_default')
                 ->first();
+
+            if ($internal) {
+                return $internal;
+            }
+
+            // Fall back to the external general sender.
+            return static::externalGeneral();
+        }
+
+        return static::where('scope', 'external')
+            ->where('category', $category)
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->first()
+            ?? static::externalGeneral();
+    }
+
+    /** The active external 'general' config, used as the universal fallback. */
+    private static function externalGeneral(): ?self
+    {
+        return static::where('scope', 'external')
+            ->where('category', 'general')
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->first();
     }
 
     /**

@@ -514,10 +514,10 @@ class PortalEstimateController extends Controller
                 return;
             }
 
-            // Route through the configured driver (falls back to the default
-            // mailer) so internal alerts use the same delivery path as
-            // customer-facing emails.
-            $mail = ConfiguredMailer::forCategory('general')->to($toEmails->first());
+            // Route through the dedicated internal sender when configured;
+            // otherwise this falls back to the external 'general' config and,
+            // failing that, the default mailer.
+            $mail = ConfiguredMailer::forCategory('estimate_approval', 'internal')->to($toEmails->first());
 
             $allCC = $toEmails->slice(1)->merge($ccEmails)->values()->toArray();
             if (!empty($allCC)) {
