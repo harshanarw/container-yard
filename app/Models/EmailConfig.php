@@ -47,6 +47,6 @@ class EmailConfig extends Model
     {
         $config = static::forCategory($category);
 
-        return array_values(array_filter($config->cc_emails ?? []));
+        return array_values(array_filter($config?->cc_emails ?? []));
     }
 }

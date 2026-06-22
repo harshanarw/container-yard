@@ -20,6 +20,7 @@ use App\Models\ExchangeRate;
 use App\Models\TaxCode;
 use App\Services\CurrencyService;
 use App\Services\EstimateMailService;
+use App\Services\ExternalRecipientResolver;
 use App\Services\NotificationService;
 use App\Services\RepairCategoryResolver;
 use Illuminate\Http\Request;
@@ -415,11 +416,16 @@ class EstimateController extends Controller
         }
 
         try {
-            $ccList  = EstimateMailService::ccList($estimate);
-            $pending = EstimateMailService::resolveMailer()->to($token->email);
+            $recipients = ExternalRecipientResolver::resolve(
+                category: 'estimate',
+                customerId: $estimate->customer_id,
+                primaryTo: $token->email,
+            );
 
-            if (!empty($ccList)) {
-                $pending->cc($ccList);
+            $pending = EstimateMailService::resolveMailer()->to($recipients['to']);
+
+            if (!empty($recipients['cc'])) {
+                $pending->cc($recipients['cc']);
             }
 
             $pending->send(new EstimateReminderMail($estimate, $token));

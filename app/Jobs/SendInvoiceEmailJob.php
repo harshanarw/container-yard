@@ -3,10 +3,9 @@
 namespace App\Jobs;
 
 use App\Mail\InvoiceIssuedMail;
-use App\Models\CustomerEmailContact;
-use App\Models\InternalNotificationEmail;
 use App\Models\StorageInvoice;
 use App\Services\ConfiguredMailer;
+use App\Services\ExternalRecipientResolver;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -30,33 +29,19 @@ class SendInvoiceEmailJob implements ShouldQueue
     {
         $mailable = new InvoiceIssuedMail($this->invoice, $this->customMessage);
 
-        // Billing-party-first: resolve invoice contacts against billing_party_id with fallback to customer_id
-        $partyId  = $this->invoice->billing_party_id ?? $this->invoice->customer_id;
-        $cc       = array_filter($this->manualCc);
+        // Billing-party-first: resolve invoice contacts against billing_party_id with fallback to customer_id.
+        // Internal 'invoice' staff are copied (CC) on the customer email.
+        $recipients = ExternalRecipientResolver::resolve(
+            category: 'invoice',
+            customerId: $this->invoice->billing_party_id ?? $this->invoice->customer_id,
+            primaryTo: $this->toEmail,
+            manualCc: $this->manualCc,
+        );
 
-        if ($partyId) {
-            $contacts = CustomerEmailContact::forCustomerCategory($partyId, 'invoice');
-            // TO-type contacts CC'd because $toEmail already holds the primary To
-            foreach ($contacts->where('address_type', 'to') as $c) {
-                $cc[] = $c->email;
-            }
-            foreach ($contacts->where('address_type', 'cc') as $c) {
-                $cc[] = $c->email;
-            }
-        }
+        $pending = ConfiguredMailer::forCategory('invoice')->to($recipients['to']);
 
-        // CC internal staff configured under the 'invoice' notification category
-        $internalCc = InternalNotificationEmail::forCategory('invoice');
-        foreach ($internalCc as $r) {
-            $cc[] = $r->email;
-        }
-
-        $cc = array_values(array_unique(array_filter($cc)));
-
-        $pending = ConfiguredMailer::forCategory('invoice')->to($this->toEmail);
-
-        if (!empty($cc)) {
-            $pending->cc($cc);
+        if (!empty($recipients['cc'])) {
+            $pending->cc($recipients['cc']);
         }
 
         $pending->send($mailable);

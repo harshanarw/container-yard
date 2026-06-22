@@ -6,6 +6,7 @@ use App\Mail\EstimateIssuedMail;
 use App\Models\Estimate;
 use App\Models\PortalToken;
 use App\Services\EstimateMailService;
+use App\Services\ExternalRecipientResolver;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -29,12 +30,18 @@ class SendEstimateEmailJob implements ShouldQueue
         $mailable = new EstimateIssuedMail($this->estimate, $this->portalToken, $this->customMessage);
 
         $manualCc = $this->estimate->send_cc_email ? [$this->estimate->send_cc_email] : [];
-        $ccList   = EstimateMailService::ccList($this->estimate, $manualCc);
 
-        $pending = EstimateMailService::resolveMailer()->to($this->portalToken->email);
+        $recipients = ExternalRecipientResolver::resolve(
+            category: 'estimate',
+            customerId: $this->estimate->customer_id,
+            primaryTo: $this->portalToken->email,
+            manualCc: $manualCc,
+        );
 
-        if (!empty($ccList)) {
-            $pending->cc($ccList);
+        $pending = EstimateMailService::resolveMailer()->to($recipients['to']);
+
+        if (!empty($recipients['cc'])) {
+            $pending->cc($recipients['cc']);
         }
 
         $pending->send($mailable);
