@@ -19,10 +19,10 @@ use App\Models\PortalToken;
 use App\Models\ExchangeRate;
 use App\Models\TaxCode;
 use App\Services\CurrencyService;
+use App\Services\EstimateMailService;
 use App\Services\NotificationService;
 use App\Services\RepairCategoryResolver;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class EstimateController extends Controller
@@ -415,7 +415,14 @@ class EstimateController extends Controller
         }
 
         try {
-            Mail::to($token->email)->send(new EstimateReminderMail($estimate, $token));
+            $ccList  = EstimateMailService::ccList($estimate);
+            $pending = EstimateMailService::resolveMailer()->to($token->email);
+
+            if (!empty($ccList)) {
+                $pending->cc($ccList);
+            }
+
+            $pending->send(new EstimateReminderMail($estimate, $token));
             return back()->with('success', "Reminder sent to {$token->email}.");
         } catch (\Throwable $e) {
             return back()->with('error', 'Failed to send reminder: ' . $e->getMessage());
