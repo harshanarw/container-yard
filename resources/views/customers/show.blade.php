@@ -243,112 +243,51 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
             </div>
             <div class="card-body p-0">
                 @foreach($emailContactCategories as $catKey => $catInfo)
-                <div class="border-bottom">
-                    <div class="d-flex align-items-center gap-2 px-3 py-2 bg-light">
-                        <i class="bi {{ $catInfo['icon'] }} text-{{ $catInfo['color'] }} small"></i>
-                        <span class="fw-semibold small">{{ $catInfo['label'] }}</span>
-                    </div>
-                    <table class="table table-sm mb-0 small align-middle">
-                        <tbody>
-                            @forelse($emailContacts->get($catKey, collect()) as $contact)
-                            <tr>
-                                <td class="ps-4" style="width:38%">
-                                    <span class="{{ $contact->is_active ? '' : 'text-muted text-decoration-line-through' }}">{{ $contact->email }}</span>
-                                </td>
-                                <td class="text-muted" style="width:30%">{{ $contact->label ?: '—' }}</td>
-                                <td class="text-center" style="width:15%">
-                                    <span class="badge bg-{{ $contact->address_type === 'to' ? 'primary' : 'secondary' }}">{{ strtoupper($contact->address_type) }}</span>
-                                </td>
-                                <td class="text-end pe-3" style="width:17%">
-                                    <div class="d-flex justify-content-end gap-1">
-                                        <button class="btn btn-xs btn-outline-secondary" data-bs-toggle="modal"
-                                                data-bs-target="#editContact{{ $contact->id }}" title="Edit">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <form method="POST" action="{{ route('customers.email-contacts.destroy', [$customer, $contact]) }}">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-xs btn-outline-danger"
-                                                    data-confirm="Remove this contact?"
-                                                    data-confirm-title="Remove Contact"
-                                                    data-confirm-class="btn-danger"
-                                                    data-confirm-label="Remove">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="4" class="ps-4 text-muted small fst-italic py-2">No contacts configured</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                    {{-- Edit modals rendered outside the table to avoid invalid HTML (div inside tbody) --}}
-                    @foreach($emailContacts->get($catKey, collect()) as $contact)
-                    <div class="modal fade" id="editContact{{ $contact->id }}" tabindex="-1">
-                        <div class="modal-dialog modal-sm">
-                            <div class="modal-content">
-                                <form method="POST" action="{{ route('customers.email-contacts.update', [$customer, $contact]) }}">
-                                    @csrf @method('PATCH')
-                                    <div class="modal-header py-2">
-                                        <h6 class="modal-title">Edit Contact</h6>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body py-2">
-                                        <div class="mb-2">
-                                            <label class="form-label form-label-sm">Email</label>
-                                            <input type="email" name="email" class="form-control form-control-sm" value="{{ $contact->email }}" required>
-                                        </div>
-                                        <div class="mb-2">
-                                            <label class="form-label form-label-sm">Label / Name</label>
-                                            <input type="text" name="label" class="form-control form-control-sm" value="{{ $contact->label }}" placeholder="Optional">
-                                        </div>
-                                        <div class="mb-2">
-                                            <label class="form-label form-label-sm">Type</label>
-                                            <select name="address_type" class="form-select form-select-sm">
-                                                <option value="to" {{ $contact->address_type === 'to' ? 'selected' : '' }}>TO — Primary recipient</option>
-                                                <option value="cc" {{ $contact->address_type === 'cc' ? 'selected' : '' }}>CC — Copy</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="is_active" value="1" id="cActive{{ $contact->id }}" {{ $contact->is_active ? 'checked' : '' }}>
-                                            <label class="form-check-label small" for="cActive{{ $contact->id }}">Active</label>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer py-2">
-                                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                                    </div>
-                                </form>
+                    @php
+                        $catContacts = $emailContacts->get($catKey, collect());
+                        $fmt = fn ($c) => $c->label ? "{$c->label} <{$c->email}>" : $c->email;
+                        $toLines = $catContacts->where('address_type', 'to')->map($fmt)->implode("\n");
+                        $ccLines = $catContacts->where('address_type', 'cc')->map($fmt)->implode("\n");
+                    @endphp
+                    <div class="border-bottom px-3 py-3">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi {{ $catInfo['icon'] }} text-{{ $catInfo['color'] }}"></i>
+                            <span class="fw-semibold small">{{ $catInfo['label'] }}</span>
+                            @if($catContacts->isEmpty())
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1">No recipients</span>
+                            @else
+                                <span class="badge bg-light text-muted border ms-1">{{ $catContacts->where('address_type','to')->count() }} TO · {{ $catContacts->where('address_type','cc')->count() }} CC</span>
+                            @endif
+                        </div>
+                        <form method="POST" action="{{ route('customers.email-contacts.sync', $customer) }}">
+                            @csrf @method('PUT')
+                            <input type="hidden" name="category" value="{{ $catKey }}">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label form-label-sm mb-1">
+                                        <span class="badge bg-primary">TO</span> Primary recipients
+                                    </label>
+                                    <textarea name="to_emails" class="form-control form-control-sm font-monospace" rows="3"
+                                              placeholder="one email per line&#10;Sophie Lim &lt;sophie@cmacgm.com&gt;&#10;ops@cmacgm.com">{{ old('to_emails', $toLines) }}</textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label form-label-sm mb-1">
+                                        <span class="badge bg-secondary">CC</span> Copies <span class="text-muted fw-normal">(optional)</span>
+                                    </label>
+                                    <textarea name="cc_emails" class="form-control form-control-sm font-monospace" rows="3"
+                                              placeholder="one email per line&#10;accounts@cmacgm.com">{{ old('cc_emails', $ccLines) }}</textarea>
+                                </div>
                             </div>
-                        </div>
+                            <div class="d-flex align-items-center justify-content-between mt-2">
+                                <span class="form-text mb-0">
+                                    <i class="bi bi-info-circle me-1"></i>One email per line (or comma-separated). Optional name as <code>Name &lt;email&gt;</code>. Saving replaces this category's list.
+                                </span>
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-check2 me-1"></i>Update {{ $catInfo['label'] }}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    @endforeach
-                    <form method="POST" action="{{ route('customers.email-contacts.store', $customer) }}" class="d-flex gap-2 align-items-end flex-wrap px-3 py-2 border-top bg-white">
-                        @csrf
-                        <input type="hidden" name="category" value="{{ $catKey }}">
-                        <div style="flex:2;min-width:150px;">
-                            <label class="form-label form-label-sm mb-1">Email</label>
-                            <input type="email" name="email" class="form-control form-control-sm" placeholder="contact@company.com" required>
-                        </div>
-                        <div style="flex:1;min-width:90px;">
-                            <label class="form-label form-label-sm mb-1">Label</label>
-                            <input type="text" name="label" class="form-control form-control-sm" placeholder="Name">
-                        </div>
-                        <div style="min-width:85px;">
-                            <label class="form-label form-label-sm mb-1">Type</label>
-                            <select name="address_type" class="form-select form-select-sm">
-                                <option value="to">TO</option>
-                                <option value="cc">CC</option>
-                            </select>
-                        </div>
-                        <div>
-                            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i></button>
-                        </div>
-                    </form>
-                </div>
                 @endforeach
             </div>
         </div>

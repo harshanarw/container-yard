@@ -105,6 +105,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Customer Email Contacts
     Route::post('customers/{customer}/email-contacts', [CustomerEmailContactController::class, 'store'])->name('customers.email-contacts.store');
+    Route::put('customers/{customer}/email-contacts/sync', [CustomerEmailContactController::class, 'sync'])->name('customers.email-contacts.sync');
     Route::patch('customers/{customer}/email-contacts/{contact}', [CustomerEmailContactController::class, 'update'])->name('customers.email-contacts.update');
     Route::delete('customers/{customer}/email-contacts/{contact}', [CustomerEmailContactController::class, 'destroy'])->name('customers.email-contacts.destroy');
 
