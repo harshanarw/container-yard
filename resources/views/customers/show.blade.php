@@ -224,11 +224,7 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
         <!-- Email Notification Contacts -->
         @can('customers.edit')
         @php
-        $emailContactCategories = [
-            'estimate'        => ['label' => 'Repair Estimate Emails',   'icon' => 'bi-file-earmark-text',  'color' => 'primary'],
-            'invoice'         => ['label' => 'Invoice Emails',            'icon' => 'bi-receipt',             'color' => 'success'],
-            'movement_report' => ['label' => 'Movement Report Emails',    'icon' => 'bi-truck',               'color' => 'info'],
-        ];
+        $emailContactCategories = config('email_categories.customer');
         $emailContacts = $customer->emailContacts->groupBy('category');
         @endphp
         <div class="card content-card mb-3">

@@ -116,6 +116,22 @@
         </div>
     </div>
 
+    {{-- Common CC --}}
+    <div class="col-12">
+        <div class="border-top pt-3">
+            <div class="text-muted small fw-semibold mb-2">Common CC (optional)</div>
+            <label class="form-label small">
+                Addresses copied on <strong>every</strong> customer-facing email in this category.
+                One per line (or comma-separated).
+            </label>
+            @php
+                $ccValue = old('cc_emails', isset($config) && is_array($config->cc_emails) ? implode("\n", $config->cc_emails) : '');
+            @endphp
+            <textarea name="cc_emails" class="form-control form-control-sm" rows="3"
+                      placeholder="accounts@yard.com&#10;manager@yard.com">{{ $ccValue }}</textarea>
+        </div>
+    </div>
+
     <div class="col-12">
         <div class="d-flex gap-4">
             <div class="form-check">

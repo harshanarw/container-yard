@@ -3,13 +3,14 @@ namespace App\Http\Controllers;
 
 use App\Models\InternalNotificationEmail;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class InternalNotificationEmailController extends Controller
 {
     public function store(Request $request)
     {
         $data = $request->validate([
-            'category'     => ['required', 'string', 'in:estimate_approval,invoice,movement_report,general'],
+            'category'     => ['required', 'string', Rule::in(array_keys(config('email_categories.internal')))],
             'email'        => ['required', 'email', 'max:255'],
             'label'        => ['nullable', 'string', 'max:100'],
             'address_type' => ['required', 'in:to,cc'],

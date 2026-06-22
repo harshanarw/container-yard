@@ -182,12 +182,7 @@ $catColors = ['estimate' => 'primary', 'invoice' => 'success', 'stock_report' =>
 </div>
 
 @php
-$intCategories = [
-    'estimate_approval' => ['label' => 'Estimate Approval / Rejection', 'icon' => 'bi-file-earmark-check', 'color' => 'primary'],
-    'invoice'           => ['label' => 'Invoice Notifications',          'icon' => 'bi-receipt',             'color' => 'success'],
-    'movement_report'   => ['label' => 'Movement Reports',               'icon' => 'bi-truck',               'color' => 'info'],
-    'general'           => ['label' => 'General Notifications',          'icon' => 'bi-bell',                'color' => 'secondary'],
-];
+$intCategories = config('email_categories.internal');
 $internalEmails = \App\Models\InternalNotificationEmail::orderBy('category')->orderBy('sort_order')->orderBy('address_type')->get()->groupBy('category');
 @endphp
 

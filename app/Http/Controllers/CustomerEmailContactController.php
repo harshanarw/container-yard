@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\CustomerEmailContact;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CustomerEmailContactController extends Controller
 {
@@ -15,7 +16,7 @@ class CustomerEmailContactController extends Controller
     public function store(Request $request, Customer $customer)
     {
         $data = $request->validate([
-            'category'     => ['required', 'string', 'in:estimate,invoice,movement_report'],
+            'category'     => ['required', 'string', Rule::in(array_keys(config('email_categories.customer')))],
             'email'        => ['required', 'email', 'max:255'],
             'label'        => ['nullable', 'string', 'max:100'],
             'address_type' => ['required', 'in:to,cc'],
