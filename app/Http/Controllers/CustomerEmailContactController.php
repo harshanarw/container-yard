@@ -32,12 +32,18 @@ class CustomerEmailContactController extends Controller
 
     public function update(Request $request, Customer $customer, CustomerEmailContact $contact)
     {
+        abort_if($contact->customer_id !== $customer->id, 404);
+
         $data = $request->validate([
             'email'        => ['required', 'email', 'max:255'],
             'label'        => ['nullable', 'string', 'max:100'],
             'address_type' => ['required', 'in:to,cc'],
             'is_active'    => ['boolean'],
         ]);
+
+        // Unchecked checkboxes are not submitted — resolve explicitly so a
+        // contact can actually be deactivated from the edit form.
+        $data['is_active'] = $request->boolean('is_active');
 
         $contact->update($data);
 
@@ -46,6 +52,8 @@ class CustomerEmailContactController extends Controller
 
     public function destroy(Customer $customer, CustomerEmailContact $contact)
     {
+        abort_if($contact->customer_id !== $customer->id, 404);
+
         $contact->delete();
         return back()->with('success', 'Email contact removed.');
     }

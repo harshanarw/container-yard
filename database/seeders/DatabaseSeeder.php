@@ -72,6 +72,9 @@ class DatabaseSeeder extends Seeder
             \Database\Seeders\Finance\DefaultCoaSeeder::class,
             \Database\Seeders\Finance\AccountMappingSeeder::class,
 
+            // ── Email notifications ──────────────────────────────────────────
+            EmailNotificationDefaultsSeeder::class, // internal + external default recipients — needs company settings + customers
+
         ]);
     }
 }

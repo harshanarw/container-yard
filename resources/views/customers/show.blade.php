@@ -481,3 +481,9 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
 </div>
 
 @endsection
+
+@push('styles')
+<style>
+    .btn-xs { padding: .18rem .5rem; font-size: .72rem; line-height: 1.2; }
+</style>
+@endpush

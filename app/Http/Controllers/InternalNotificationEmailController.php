@@ -30,6 +30,10 @@ class InternalNotificationEmailController extends Controller
             'is_active'    => ['boolean'],
         ]);
 
+        // Unchecked checkboxes are not submitted — resolve explicitly so a
+        // recipient can actually be deactivated from the edit form.
+        $data['is_active'] = $request->boolean('is_active');
+
         $internalEmail->update($data);
 
         return back()->with('success', 'Recipient updated.');

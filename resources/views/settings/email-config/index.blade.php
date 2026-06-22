@@ -317,6 +317,12 @@ $internalEmails = \App\Models\InternalNotificationEmail::orderBy('category')->or
 
 @endsection
 
+@push('styles')
+<style>
+    .btn-xs { padding: .18rem .5rem; font-size: .72rem; line-height: 1.2; }
+</style>
+@endpush
+
 @push('scripts')
 <script>
 // Show/hide driver-specific fields
