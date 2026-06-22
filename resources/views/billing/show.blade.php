@@ -508,16 +508,18 @@
 @endphp
 <div class="modal fade" id="emailModal" tabindex="-1">
     <div class="modal-dialog">
-        <form method="POST" action="{{ route('billing.email', $invoice) }}">
-            @csrf
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-envelope me-2"></i>Email Invoice
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-envelope me-2"></i>Email Invoice
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {{-- Email form (wraps only its own fields so the recipient
+                     shortcut below can be a sibling form, not nested) --}}
+                <form method="POST" action="{{ route('billing.email', $invoice) }}" id="invoiceEmailForm">
+                    @csrf
                     <div class="mb-3">
                         <label class="form-label fw-semibold">To (Email) <span class="text-danger">*</span></label>
                         <input type="email" name="to_email" class="form-control"
@@ -541,15 +543,24 @@
                         <i class="bi bi-info-circle me-1"></i>
                         Invoice {{ $invoice->invoice_no }} will be attached as a PDF.
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-send me-1"></i>Send Email
-                    </button>
+                </form>
+
+                {{-- Inline customer recipient shortcut (Phase 4) --}}
+                <div class="mt-3">
+                    @include('partials._customer-contacts-inline', [
+                        'customer' => $emailBillingParty,
+                        'category' => 'invoice',
+                        'title'    => 'Saved Invoice Recipients',
+                    ])
                 </div>
             </div>
-        </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="invoiceEmailForm" class="btn btn-primary">
+                    <i class="bi bi-send me-1"></i>Send Email
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 @endcan

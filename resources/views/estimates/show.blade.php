@@ -506,6 +506,15 @@
                         {{ $isResend ? 'Re-send & Increment Version' : 'Send Estimate to Owner' }}
                     </button>
                 </form>
+
+                {{-- Inline customer recipient shortcut (Phase 4) --}}
+                <div class="mt-3">
+                    @include('partials._customer-contacts-inline', [
+                        'customer' => $estimate->customer,
+                        'category' => 'estimate',
+                        'title'    => 'Saved Estimate Recipients',
+                    ])
+                </div>
             </div>
         </div>
         @endif
