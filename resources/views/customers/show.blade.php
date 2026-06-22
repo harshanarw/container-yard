@@ -278,45 +278,6 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                                     </div>
                                 </td>
                             </tr>
-                            {{-- Edit modal --}}
-                            <div class="modal fade" id="editContact{{ $contact->id }}" tabindex="-1">
-                                <div class="modal-dialog modal-sm">
-                                    <div class="modal-content">
-                                        <form method="POST" action="{{ route('customers.email-contacts.update', [$customer, $contact]) }}">
-                                            @csrf @method('PATCH')
-                                            <div class="modal-header py-2">
-                                                <h6 class="modal-title">Edit Contact</h6>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body py-2">
-                                                <div class="mb-2">
-                                                    <label class="form-label form-label-sm">Email</label>
-                                                    <input type="email" name="email" class="form-control form-control-sm" value="{{ $contact->email }}" required>
-                                                </div>
-                                                <div class="mb-2">
-                                                    <label class="form-label form-label-sm">Label / Name</label>
-                                                    <input type="text" name="label" class="form-control form-control-sm" value="{{ $contact->label }}" placeholder="Optional">
-                                                </div>
-                                                <div class="mb-2">
-                                                    <label class="form-label form-label-sm">Type</label>
-                                                    <select name="address_type" class="form-select form-select-sm">
-                                                        <option value="to" {{ $contact->address_type === 'to' ? 'selected' : '' }}>TO — Primary recipient</option>
-                                                        <option value="cc" {{ $contact->address_type === 'cc' ? 'selected' : '' }}>CC — Copy</option>
-                                                    </select>
-                                                </div>
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" name="is_active" value="1" id="cActive{{ $contact->id }}" {{ $contact->is_active ? 'checked' : '' }}>
-                                                    <label class="form-check-label small" for="cActive{{ $contact->id }}">Active</label>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer py-2">
-                                                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
                             @empty
                             <tr>
                                 <td colspan="4" class="ps-4 text-muted small fst-italic py-2">No contacts configured</td>
@@ -324,6 +285,47 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                             @endforelse
                         </tbody>
                     </table>
+                    {{-- Edit modals rendered outside the table to avoid invalid HTML (div inside tbody) --}}
+                    @foreach($emailContacts->get($catKey, collect()) as $contact)
+                    <div class="modal fade" id="editContact{{ $contact->id }}" tabindex="-1">
+                        <div class="modal-dialog modal-sm">
+                            <div class="modal-content">
+                                <form method="POST" action="{{ route('customers.email-contacts.update', [$customer, $contact]) }}">
+                                    @csrf @method('PATCH')
+                                    <div class="modal-header py-2">
+                                        <h6 class="modal-title">Edit Contact</h6>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body py-2">
+                                        <div class="mb-2">
+                                            <label class="form-label form-label-sm">Email</label>
+                                            <input type="email" name="email" class="form-control form-control-sm" value="{{ $contact->email }}" required>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label form-label-sm">Label / Name</label>
+                                            <input type="text" name="label" class="form-control form-control-sm" value="{{ $contact->label }}" placeholder="Optional">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label form-label-sm">Type</label>
+                                            <select name="address_type" class="form-select form-select-sm">
+                                                <option value="to" {{ $contact->address_type === 'to' ? 'selected' : '' }}>TO — Primary recipient</option>
+                                                <option value="cc" {{ $contact->address_type === 'cc' ? 'selected' : '' }}>CC — Copy</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="is_active" value="1" id="cActive{{ $contact->id }}" {{ $contact->is_active ? 'checked' : '' }}>
+                                            <label class="form-check-label small" for="cActive{{ $contact->id }}">Active</label>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer py-2">
+                                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
                     <form method="POST" action="{{ route('customers.email-contacts.store', $customer) }}" class="d-flex gap-2 align-items-end flex-wrap px-3 py-2 border-top bg-white">
                         @csrf
                         <input type="hidden" name="category" value="{{ $catKey }}">
