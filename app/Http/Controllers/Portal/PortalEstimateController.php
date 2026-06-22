@@ -12,9 +12,9 @@ use App\Models\EstimateLineItem;
 use App\Models\Inquiry;
 use App\Models\InternalNotificationEmail;
 use App\Models\PortalToken;
+use App\Services\ConfiguredMailer;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 
 class PortalEstimateController extends Controller
 {
@@ -514,7 +514,10 @@ class PortalEstimateController extends Controller
                 return;
             }
 
-            $mail = Mail::to($toEmails->first());
+            // Route through the configured driver (falls back to the default
+            // mailer) so internal alerts use the same delivery path as
+            // customer-facing emails.
+            $mail = ConfiguredMailer::forCategory('general')->to($toEmails->first());
 
             $allCC = $toEmails->slice(1)->merge($ccEmails)->values()->toArray();
             if (!empty($allCC)) {
