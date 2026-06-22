@@ -1,14 +1,16 @@
 @php
-    // Internal sender = a single dedicated config for staff notifications.
-    // It has no per-category split and no customer common-CC concept.
-    $isInternal = $isInternal ?? (isset($config) && ($config->scope ?? 'external') === 'internal');
+    // Internal sender = a per-internal-category staff-notification sender.
+    // It has no customer common-CC concept; its category is fixed per slot.
+    $isInternal     = $isInternal ?? (isset($config) && ($config->scope ?? 'external') === 'internal');
+    $fixedCategory  = $fixedCategory ?? (isset($config) ? $config->category : 'general');
+    $fixedCatLabel  = $fixedCatLabel ?? null;
 @endphp
 <div class="row g-3">
     <input type="hidden" name="scope" value="{{ $isInternal ? 'internal' : 'external' }}">
     <div class="{{ $isInternal ? 'col-md-8' : 'col-md-6' }}">
         <label class="form-label fw-semibold small">Configuration Name <span class="text-danger">*</span></label>
         <input type="text" name="name" class="form-control form-control-sm"
-               value="{{ old('name', $config->name ?? ($isInternal ? 'Internal Notifications Sender' : '')) }}" required>
+               value="{{ old('name', $config->name ?? ($isInternal ? trim(($fixedCatLabel ?? 'Internal') . ' Sender') : '')) }}" required>
     </div>
     <div class="{{ $isInternal ? 'col-md-4' : 'col-md-3' }}">
         <label class="form-label fw-semibold small">Email Driver <span class="text-danger">*</span></label>
@@ -19,8 +21,8 @@
         </select>
     </div>
     @if($isInternal)
-        {{-- Internal sender is not per-category; fix to 'general'. --}}
-        <input type="hidden" name="category" value="general">
+        {{-- Internal sender's category is fixed per slot. --}}
+        <input type="hidden" name="category" value="{{ old('category', $fixedCategory) }}">
     @else
     <div class="col-md-3">
         <label class="form-label fw-semibold small">Category <span class="text-danger">*</span></label>

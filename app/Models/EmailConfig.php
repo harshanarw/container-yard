@@ -37,17 +37,19 @@ class EmailConfig extends Model
     public static function forCategory(string $category, string $scope = 'external'): ?self
     {
         if ($scope === 'internal') {
-            $internal = static::where('scope', 'internal')
+            // Internal sender for this category, else the internal 'general'
+            // sender, else fall back to the external 'general' sender.
+            return static::where('scope', 'internal')
+                ->where('category', $category)
                 ->where('is_active', true)
                 ->orderByDesc('is_default')
-                ->first();
-
-            if ($internal) {
-                return $internal;
-            }
-
-            // Fall back to the external general sender.
-            return static::externalGeneral();
+                ->first()
+                ?? static::where('scope', 'internal')
+                    ->where('category', 'general')
+                    ->where('is_active', true)
+                    ->orderByDesc('is_default')
+                    ->first()
+                ?? static::externalGeneral();
         }
 
         return static::where('scope', 'external')

@@ -12,10 +12,10 @@ class EmailConfigController extends Controller
     {
         $allConfigs = EmailConfig::orderBy('category')->orderByDesc('is_default')->get();
 
-        // External (customer-facing) sender configs and the optional dedicated
-        // internal sender are managed in their respective tabs.
-        $configs        = $allConfigs->where('scope', '!=', 'internal')->values();
-        $internalConfig = $allConfigs->firstWhere('scope', 'internal');
+        // External (customer-facing) sender configs and the per-category
+        // internal senders are managed in their respective tabs.
+        $configs         = $allConfigs->where('scope', '!=', 'internal')->values();
+        $internalConfigs = $allConfigs->where('scope', 'internal')->values();
 
         $categories = collect(config('email_categories.external'))
             ->map(fn ($c) => $c['label'])
@@ -37,14 +37,14 @@ class EmailConfigController extends Controller
         }
 
         return view('settings.email-config.index', compact(
-            'configs', 'internalConfig', 'categories',
+            'configs', 'internalConfigs', 'categories',
             'customerSearch', 'customerResults', 'selectedCustomer',
         ));
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate($this->rules());
+        $data = $request->validate($this->rules($request));
 
         $data['scope']     = $data['scope'] ?? 'external';
         $data['cc_emails'] = $this->parseCcEmails($request->input('cc_emails'));
@@ -63,7 +63,7 @@ class EmailConfigController extends Controller
 
     public function update(Request $request, EmailConfig $emailConfig)
     {
-        $data = $request->validate($this->rules());
+        $data = $request->validate($this->rules($request));
 
         $data['scope']     = $data['scope'] ?? $emailConfig->scope ?? 'external';
         $data['cc_emails'] = $this->parseCcEmails($request->input('cc_emails'));
@@ -95,15 +95,19 @@ class EmailConfigController extends Controller
     }
 
     /**
-     * Shared validation rules for store/update. Category list is derived from
-     * config so it stays in sync with the rest of the email system.
+     * Shared validation rules for store/update. The valid category list depends
+     * on the scope (internal vs external) and is derived from config so it stays
+     * in sync with the rest of the email system.
      */
-    private function rules(): array
+    private function rules(Request $request): array
     {
+        $scope    = $request->input('scope') === 'internal' ? 'internal' : 'external';
+        $catKeys  = array_keys(config("email_categories.{$scope}"));
+
         return [
             'name'              => ['required', 'string', 'max:100'],
             'driver'            => ['required', 'in:smtp,mailgun,sendgrid'],
-            'category'          => ['required', Rule::in(array_keys(config('email_categories.external')))],
+            'category'          => ['required', Rule::in($catKeys)],
             'scope'             => ['nullable', 'in:external,internal'],
             'is_default'        => ['boolean'],
             'is_active'         => ['boolean'],
