@@ -8,7 +8,7 @@ use Illuminate\Validation\Rule;
 
 class EmailConfigController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $configs = EmailConfig::orderBy('category')->orderByDesc('is_default')->get();
 
@@ -16,7 +16,25 @@ class EmailConfigController extends Controller
             ->map(fn ($c) => $c['label'])
             ->all();
 
-        return view('settings.email-config.index', compact('configs', 'categories'));
+        $customerSearch     = $request->input('customer_search', '');
+        $selectedCustomerId = $request->integer('customer_id');
+        $customerResults    = collect();
+        $selectedCustomer   = null;
+
+        if ($selectedCustomerId) {
+            $selectedCustomer = \App\Models\Customer::with('emailContacts')->find($selectedCustomerId);
+        }
+
+        if ($customerSearch) {
+            $customerResults = \App\Models\Customer::where('name', 'like', "%{$customerSearch}%")
+                ->orWhere('code', 'like', "%{$customerSearch}%")
+                ->orderBy('name')->limit(20)->get();
+        }
+
+        return view('settings.email-config.index', compact(
+            'configs', 'categories',
+            'customerSearch', 'customerResults', 'selectedCustomer',
+        ));
     }
 
     public function store(Request $request)
@@ -31,7 +49,8 @@ class EmailConfigController extends Controller
 
         EmailConfig::create($data);
 
-        return back()->with('success', 'Email configuration added.');
+        return redirect()->route('settings.email-config.index', ['tab' => 'external'])
+            ->with('success', 'Email configuration added.');
     }
 
     public function update(Request $request, EmailConfig $emailConfig)
@@ -55,7 +74,8 @@ class EmailConfigController extends Controller
 
         $emailConfig->update($data);
 
-        return back()->with('success', 'Email configuration updated.');
+        return redirect()->route('settings.email-config.index', ['tab' => 'external'])
+            ->with('success', 'Email configuration updated.');
     }
 
     /**
@@ -108,7 +128,8 @@ class EmailConfigController extends Controller
     public function destroy(EmailConfig $emailConfig)
     {
         $emailConfig->delete();
-        return back()->with('success', 'Email configuration deleted.');
+        return redirect()->route('settings.email-config.index', ['tab' => 'external'])
+            ->with('success', 'Email configuration deleted.');
     }
 
     public function test(Request $request, EmailConfig $emailConfig)
@@ -129,9 +150,11 @@ class EmailConfigController extends Controller
                 }
             );
 
-            return back()->with('success', "Test email sent to {$request->test_email}.");
+            return redirect()->route('settings.email-config.index', ['tab' => 'external'])
+                ->with('success', "Test email sent to {$request->test_email}.");
         } catch (\Throwable $e) {
-            return back()->with('error', 'Send failed: ' . $e->getMessage());
+            return redirect()->route('settings.email-config.index', ['tab' => 'external'])
+                ->with('error', 'Send failed: ' . $e->getMessage());
         }
     }
 
