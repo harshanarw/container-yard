@@ -54,6 +54,9 @@ class CustomerController extends Controller
         $customers = Customer::query()
             ->with('types')
             ->withCount('containers')
+            ->withCount(['emailContacts as email_to_count' => fn ($q) =>
+                $q->where('address_type', 'to')->where('is_active', true)
+            ])
             ->when($request->search, fn ($q, $search) =>
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%")
@@ -97,7 +100,6 @@ class CustomerController extends Controller
             $data['logo'] = $request->file('logo')->store('customers/logos', 'public');
         }
 
-        $data['email_notifications'] = $request->boolean('email_notifications');
         $data['auto_invoice']        = $request->boolean('auto_invoice');
         $data['tax_exempt']          = $request->boolean('tax_exempt');
         $data['local_agent_id']      = $request->input('local_agent_id') ?: null;
@@ -155,7 +157,6 @@ class CustomerController extends Controller
             $data['logo'] = $request->file('logo')->store('customers/logos', 'public');
         }
 
-        $data['email_notifications'] = $request->boolean('email_notifications');
         $data['auto_invoice']        = $request->boolean('auto_invoice');
         $data['tax_exempt']          = $request->boolean('tax_exempt');
         $data['local_agent_id']      = $request->input('local_agent_id') ?: null;

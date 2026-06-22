@@ -266,10 +266,6 @@
                     </div>
                     <div class="mb-0">
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="email_notifications" id="emailNotif" checked>
-                            <label class="form-check-label small" for="emailNotif">Email Notifications</label>
-                        </div>
-                        <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="auto_invoice" id="autoInvoice" checked>
                             <label class="form-check-label small" for="autoInvoice">Auto Invoice Generation</label>
                         </div>

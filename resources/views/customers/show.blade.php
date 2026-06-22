@@ -227,10 +227,19 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
         $emailContactCategories = config('email_categories.customer');
         $emailContacts = $customer->emailContacts->groupBy('category');
         @endphp
-        <div class="card content-card mb-3">
+        <div class="card content-card mb-3" id="email-contacts" style="scroll-margin-top:80px;">
             <div class="card-header d-flex align-items-center justify-content-between">
                 <span><i class="bi bi-envelope-at me-2 text-warning"></i>Email Notification Contacts</span>
                 <span class="badge bg-light text-muted border small">Per-category recipient lists</span>
+            </div>
+            <div class="px-3 py-2 border-bottom bg-light-subtle small text-muted">
+                <i class="bi bi-info-circle me-1"></i>These are the customer-facing <strong>TO</strong> / <strong>CC</strong> recipients for this customer's emails.
+                Sender identity and common (always-CC) addresses are managed in
+                @if(auth()->user()->isSystemAdmin())
+                    <a href="{{ route('settings.email-config.index', ['tab' => 'external', 'customer_id' => $customer->id]) }}">Settings → Email Configuration</a>.
+                @else
+                    Settings → Email Configuration.
+                @endif
             </div>
             <div class="card-body p-0">
                 @foreach($emailContactCategories as $catKey => $catInfo)
@@ -424,12 +433,6 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                     <div>{{ $customer->contract_end?->format('d M Y') ?? '—' }}</div>
                 </div>
                 <hr class="my-2">
-                <div class="d-flex justify-content-between small mb-1">
-                    <span>Email Notifications</span>
-                    <span class="badge bg-{{ $customer->email_notifications ? 'success' : 'secondary' }}">
-                        {{ $customer->email_notifications ? 'On' : 'Off' }}
-                    </span>
-                </div>
                 <div class="d-flex justify-content-between small">
                     <span>Auto Invoice</span>
                     <span class="badge bg-{{ $customer->auto_invoice ? 'success' : 'secondary' }}">

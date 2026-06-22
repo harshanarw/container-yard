@@ -163,6 +163,21 @@
                         <td class="small text-muted">
                             {{ $customer->phone_office }}<br>
                             <a href="mailto:{{ $customer->email }}" class="text-decoration-none">{{ $customer->email }}</a>
+                            @if($customer->email_to_count > 0)
+                                <a href="{{ route('customers.show', $customer) }}#email-contacts"
+                                   class="badge bg-success-subtle text-success border border-success-subtle text-decoration-none ms-1"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   title="{{ $customer->email_to_count }} email recipient(s) configured">
+                                    <i class="bi bi-envelope-check"></i> {{ $customer->email_to_count }}
+                                </a>
+                            @else
+                                <a href="{{ route('customers.show', $customer) }}#email-contacts"
+                                   class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle text-decoration-none ms-1"
+                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                   title="No email recipients configured — click to set up">
+                                    <i class="bi bi-envelope-exclamation"></i> Set up
+                                </a>
+                            @endif
                         </td>
                         <td class="text-center">
                             <span class="badge bg-primary rounded-pill">{{ $customer->containers_count }}</span>

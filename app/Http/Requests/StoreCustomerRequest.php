@@ -39,7 +39,6 @@ class StoreCustomerRequest extends FormRequest
             'status'              => ['required', 'in:active,pending,inactive'],
             'contract_start'      => ['nullable', 'date'],
             'contract_end'        => ['nullable', 'date', 'after_or_equal:contract_start'],
-            'email_notifications' => ['nullable'],
             'auto_invoice'        => ['nullable'],
             'tax_exempt'          => ['nullable'],
             'local_agent_id'      => ['nullable', 'integer', 'exists:customers,id'],
