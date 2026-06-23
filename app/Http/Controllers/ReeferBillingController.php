@@ -149,7 +149,7 @@ class ReeferBillingController extends Controller
 
     // ── Status transitions ────────────────────────────────────────────────────
 
-    public function markIssued(ReeferElectricityInvoice $reeferInvoice)
+    public function markIssued(ReeferElectricityInvoice $reeferInvoice, \App\Services\Finance\CreditService $credit)
     {
         if (!$reeferInvoice->isDraft()) {
             return back()->with('error', 'Only draft invoices can be issued.');
@@ -167,7 +167,12 @@ class ReeferBillingController extends Controller
             route('billing.reefer.show', $reeferInvoice)
         );
 
-        return back()->with('success', 'Invoice marked as Issued.');
+        $redirect = back()->with('success', 'Invoice marked as Issued.');
+        if ($reeferInvoice->customer && ($warning = $credit->arOverLimitWarning($reeferInvoice->customer))) {
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
     }
 
     public function markPaid(ReeferElectricityInvoice $reeferInvoice)

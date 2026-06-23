@@ -539,7 +539,7 @@ class StorageHandlingController extends Controller
 
     // ── Status transitions ────────────────────────────────────────────────────
 
-    public function markIssued(StorageHandlingInvoice $storageHandlingInvoice)
+    public function markIssued(StorageHandlingInvoice $storageHandlingInvoice, \App\Services\Finance\CreditService $credit)
     {
         if ($storageHandlingInvoice->status !== 'draft') {
             return back()->with('error', 'Only draft invoices can be issued.');
@@ -557,7 +557,14 @@ class StorageHandlingController extends Controller
             route('billing.storage-handling.show', $storageHandlingInvoice)
         );
 
-        return back()->with('success', "Invoice {$storageHandlingInvoice->invoice_no} marked as issued.");
+        // AR exposure for handling invoices is keyed on the shipping line (debtor).
+        $redirect = back()->with('success', "Invoice {$storageHandlingInvoice->invoice_no} marked as issued.");
+        $debtor   = \App\Models\Customer::find($storageHandlingInvoice->shipping_line_id);
+        if ($debtor && ($warning = $credit->arOverLimitWarning($debtor))) {
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
     }
 
     public function markPaid(StorageHandlingInvoice $storageHandlingInvoice)

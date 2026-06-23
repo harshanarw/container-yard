@@ -114,33 +114,38 @@ class CustomerController extends Controller
             ->with('success', 'Customer created successfully.');
     }
 
-    public function show(Customer $customer)
+    public function show(Customer $customer, \App\Services\Finance\CreditService $credit)
     {
         $customer->loadCount(['containers', 'inquiries', 'estimates', 'gateMovements']);
         $customer->load(['activeTariff.details', 'types', 'localAgent', 'billingParty', 'emailContacts']);
         $recentContainers = $customer->containers()->latest()->take(5)->get();
         $recentEstimates  = $customer->estimates()->latest()->take(5)->get();
 
+        // Accounts-Receivable exposure (this contact acting as a debtor).
+        $arVisible   = auth()->user()->can('finance.ar.view');
+        $arExposure  = $arVisible ? $credit->arExposure((int) $customer->id) : 0.0;
+        $arAvailable = $arVisible ? $credit->arAvailable($customer) : null;
+        $arOverLimit = $arVisible && $credit->isArOverLimit($customer);
+
         // Accounts-Payable view of this contact (when acting as a supplier/creditor).
         $apVisible     = auth()->user()->can('finance.ap.view');
         $recentApBills = collect();
-        $apOutstanding = 0.0;
+        $apExposure    = 0.0;
+        $apAvailable   = null;
+        $apOverLimit   = false;
         if ($apVisible) {
             $recentApBills = $customer->supplierInvoices()
                 ->latest('invoice_date')->take(10)->get();
 
-            $apOutstanding = $customer->supplierInvoices()
-                ->whereIn('status', ['approved', 'partially_paid'])
-                ->get()
-                ->sum(fn ($inv) => max(0, (float) $inv->total_amount
-                    - (float) $inv->allocations()
-                        ->whereHas('voucher', fn ($q) => $q->whereIn('status', ['draft', 'confirmed']))
-                        ->sum('allocated_amount')));
+            $apExposure  = $credit->apExposure($customer);
+            $apAvailable = $credit->apAvailable($customer);
+            $apOverLimit = $credit->isApOverLimit($customer);
         }
 
         return view('customers.show', compact(
             'customer', 'recentContainers', 'recentEstimates',
-            'apVisible', 'recentApBills', 'apOutstanding'
+            'arVisible', 'arExposure', 'arAvailable', 'arOverLimit',
+            'apVisible', 'recentApBills', 'apExposure', 'apAvailable', 'apOverLimit'
         ));
     }
 

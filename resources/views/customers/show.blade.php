@@ -77,14 +77,17 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
     </div>
 </div>
 
-@if($apVisible && ($recentApBills->isNotEmpty() || $apOutstanding > 0))
+@if($apVisible && ($recentApBills->isNotEmpty() || $apExposure > 0))
 {{-- Accounts Payable — this contact acting as a supplier/creditor --}}
 <div class="card content-card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="bi bi-receipt-cutoff me-2 text-danger"></i>Accounts Payable (as Supplier)</span>
         <span class="small">
             <span class="text-muted">Outstanding:</span>
-            <span class="font-monospace fw-semibold {{ $apOutstanding > 0 ? 'text-danger' : 'text-success' }}">{{ number_format($apOutstanding, 2) }}</span>
+            <span class="font-monospace fw-semibold {{ $apExposure > 0 ? 'text-danger' : 'text-success' }}">{{ number_format($apExposure, 2) }}</span>
+            @if($apOverLimit)
+                <span class="badge bg-danger ms-1"><i class="bi bi-exclamation-triangle me-1"></i>Over AP Limit</span>
+            @endif
         </span>
     </div>
     <div class="table-responsive">
@@ -360,10 +363,30 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                     <div class="text-muted small">AR Credit Limit</div>
                     <div class="fw-semibold">{{ $customer->currency }} {{ number_format($customer->credit_limit, 2) }}</div>
                 </div>
-                <div class="mb-0">
+                <div class="mb-2">
                     <div class="text-muted small">AR Payment Terms</div>
                     <div>{{ $paymentLabels[$customer->payment_terms] ?? $customer->payment_terms }}</div>
                 </div>
+                @if($arVisible)
+                <hr class="my-2">
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted">Outstanding (exposure)</span>
+                    <span class="font-monospace fw-semibold {{ $arOverLimit ? 'text-danger' : '' }}">{{ $customer->currency }} {{ number_format($arExposure, 2) }}</span>
+                </div>
+                @if($customer->credit_limit > 0)
+                <div class="d-flex justify-content-between small mb-0">
+                    <span class="text-muted">Available credit</span>
+                    <span class="font-monospace fw-semibold {{ ($arAvailable ?? 0) < 0 ? 'text-danger' : 'text-success' }}">{{ $customer->currency }} {{ number_format($arAvailable ?? 0, 2) }}</span>
+                </div>
+                @if($arOverLimit)
+                <div class="alert alert-danger py-1 px-2 small mb-0 mt-2">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Over credit limit.
+                </div>
+                @endif
+                @else
+                <div class="text-muted small fst-italic mt-1">No AR credit limit set (unlimited).</div>
+                @endif
+                @endif
             </div>
         </div>
 
@@ -377,10 +400,30 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                     <div class="text-muted small">AP Credit Limit</div>
                     <div class="fw-semibold">{{ $customer->currency }} {{ number_format($customer->ap_credit_limit ?? 0, 2) }}</div>
                 </div>
-                <div class="mb-0">
+                <div class="mb-2">
                     <div class="text-muted small">AP Payment Terms</div>
                     <div>{{ $paymentLabels[$customer->ap_payment_terms ?? ''] ?? ($customer->ap_payment_terms ? $customer->ap_payment_terms : '—') }}</div>
                 </div>
+                @if($apVisible)
+                <hr class="my-2">
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted">Outstanding (we owe)</span>
+                    <span class="font-monospace fw-semibold {{ $apOverLimit ? 'text-danger' : '' }}">{{ $customer->currency }} {{ number_format($apExposure, 2) }}</span>
+                </div>
+                @if(($customer->ap_credit_limit ?? 0) > 0)
+                <div class="d-flex justify-content-between small mb-0">
+                    <span class="text-muted">Available</span>
+                    <span class="font-monospace fw-semibold {{ ($apAvailable ?? 0) < 0 ? 'text-danger' : 'text-success' }}">{{ $customer->currency }} {{ number_format($apAvailable ?? 0, 2) }}</span>
+                </div>
+                @if($apOverLimit)
+                <div class="alert alert-danger py-1 px-2 small mb-0 mt-2">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Over AP credit limit.
+                </div>
+                @endif
+                @else
+                <div class="text-muted small fst-italic mt-1">No AP credit limit set (unlimited).</div>
+                @endif
+                @endif
             </div>
         </div>
 

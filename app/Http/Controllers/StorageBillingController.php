@@ -426,7 +426,7 @@ class StorageBillingController extends Controller
 
     // ── Status transitions ────────────────────────────────────────────────────
 
-    public function markIssued(StorageInvoice $invoice)
+    public function markIssued(StorageInvoice $invoice, \App\Services\Finance\CreditService $credit)
     {
         if ($invoice->status !== 'draft') {
             return back()->with('error', 'Only draft invoices can be issued.');
@@ -444,7 +444,12 @@ class StorageBillingController extends Controller
             route('billing.show', $invoice)
         );
 
-        return back()->with('success', "Invoice {$invoice->invoice_no} marked as issued.");
+        $redirect = back()->with('success', "Invoice {$invoice->invoice_no} marked as issued.");
+        if ($invoice->customer && ($warning = $credit->arOverLimitWarning($invoice->customer))) {
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
     }
 
     public function markPaid(StorageInvoice $invoice)

@@ -136,7 +136,9 @@ class RepairInvoiceController extends Controller
             'container_no'   => $estimate->container_no,
             'customer_id'    => $estimate->customer_id,
             'invoice_date'   => now()->toDateString(),
-            'due_date'       => now()->addDays(30)->toDateString(),
+            'due_date'       => \App\Services\Finance\PaymentTermsHelper::dueDate(
+                                    $estimate->customer->payment_terms ?? 'net30', now()
+                                )->toDateString(),
             'currency'       => $estimate->customer->currency ?? 'USD',
             'status'         => 'draft',
             'subtotal'       => $subtotal,
@@ -214,7 +216,7 @@ class RepairInvoiceController extends Controller
         return redirect()->route('repair-invoices.index')->with('success', "Invoice $invoice_no deleted.");
     }
 
-    public function issue(Request $request, RepairInvoice $invoice)
+    public function issue(Request $request, RepairInvoice $invoice, \App\Services\Finance\CreditService $credit)
     {
         if ($invoice->status !== 'draft') {
             return back()->with('error', 'Only draft invoices can be issued.');
@@ -237,7 +239,12 @@ class RepairInvoiceController extends Controller
             route('repair-invoices.show', $invoice)
         );
 
-        return redirect()->route('repair-invoices.show', $invoice)->with('success', 'Invoice issued successfully.');
+        $redirect = redirect()->route('repair-invoices.show', $invoice)->with('success', 'Invoice issued successfully.');
+        if ($invoice->customer && ($warning = $credit->arOverLimitWarning($invoice->customer))) {
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
     }
 
     public function recordPayment(Request $request, RepairInvoice $invoice)
