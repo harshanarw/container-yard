@@ -810,10 +810,28 @@
                         <i class="bi bi-list-columns-reverse"></i><span>Account Ledger</span>
                     </a>
                 </li>
+                {{-- Reports group --}}
+                <li class="nav-item mt-1">
+                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
+                        Reports
+                    </span>
+                </li>
                 <li class="nav-item">
                     <a href="{{ route('finance.gl.trial-balance') }}"
                        class="nav-link {{ request()->routeIs('finance.gl.trial-balance') ? 'active' : '' }}">
                         <i class="bi bi-receipt"></i><span>Trial Balance</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.reports.income-statement') }}"
+                       class="nav-link {{ request()->routeIs('finance.reports.income-statement') ? 'active' : '' }}">
+                        <i class="bi bi-graph-up-arrow"></i><span>Income Statement</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.reports.balance-sheet') }}"
+                       class="nav-link {{ request()->routeIs('finance.reports.balance-sheet') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-line"></i><span>Balance Sheet</span>
                     </a>
                 </li>
                 @endcan

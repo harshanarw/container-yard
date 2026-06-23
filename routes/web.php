@@ -599,6 +599,12 @@ Route::middleware(['auth'])->group(function () {
             Route::get('trial-balance',               [GeneralLedgerController::class, 'trialBalance'])->name('trial-balance');
         });
 
+        // Financial Reports
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('income-statement', [GeneralLedgerController::class, 'incomeStatement'])->name('income-statement');
+            Route::get('balance-sheet',    [GeneralLedgerController::class, 'balanceSheet'])->name('balance-sheet');
+        });
+
         // AR / Invoice Postings
         Route::prefix('ar')->name('ar.')->group(function () {
             Route::get('postings',                  [InvoicePostingController::class, 'index'])->name('postings.index');

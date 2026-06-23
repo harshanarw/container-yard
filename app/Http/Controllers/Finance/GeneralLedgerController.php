@@ -202,6 +202,192 @@ class GeneralLedgerController extends Controller
         return view('finance.gl.trial-balance', compact('rows', 'grouped', 'from', 'to', 'totalDebit', 'totalCredit'));
     }
 
+    /**
+     * Income Statement (P&L) — activity within a period.
+     *
+     * Excludes journal_type = 'closing' so that period-closing entries
+     * (Phase 2) never inflate the revenue/expense lines of the period
+     * in which they were posted.
+     */
+    public function incomeStatement(Request $request)
+    {
+        $this->authorize('finance.gl.view');
+
+        $from = $request->input('from', Carbon::now()->startOfYear()->toDateString());
+        $to   = $request->input('to',   Carbon::now()->toDateString());
+
+        // Load all income/expense accounts (posting + parent headers)
+        $allAccounts = Account::where('is_active', true)
+            ->whereIn('classification', ['income', 'expense'])
+            ->with('parent')
+            ->orderBy('code')
+            ->get();
+
+        // Compute period net balance for posting accounts only
+        $balances = Account::where('is_active', true)
+            ->where('is_posting', true)
+            ->whereIn('classification', ['income', 'expense'])
+            ->withSum(['entries as period_debit' => fn ($q) => $q->whereHas('journal',
+                fn ($j) => $j->where('status', 'posted')
+                             ->whereBetween('journal_date', [$from, $to])
+                             ->where('journal_type', '!=', 'closing')
+            )], 'debit')
+            ->withSum(['entries as period_credit' => fn ($q) => $q->whereHas('journal',
+                fn ($j) => $j->where('status', 'posted')
+                             ->whereBetween('journal_date', [$from, $to])
+                             ->where('journal_type', '!=', 'closing')
+            )], 'credit')
+            ->get()
+            ->map(function ($acc) {
+                $d = (float) ($acc->period_debit  ?? 0);
+                $c = (float) ($acc->period_credit ?? 0);
+                // Income accounts are credit-normal: positive balance = credit > debit
+                // Expense accounts are debit-normal:  positive balance = debit > credit
+                $acc->balance = $acc->normal_balance === 'credit' ? ($c - $d) : ($d - $c);
+                return $acc;
+            })
+            ->keyBy('id');
+
+        // Build hierarchical structure: parent → posting children
+        $parents = $allAccounts->where('is_posting', false)->keyBy('id');
+        $posting = $allAccounts->where('is_posting', true);
+
+        // Group posting accounts by their direct parent (fall back to self if no parent)
+        $grouped = $posting->groupBy('parent_id');
+
+        // Separate income and expense sections; attach balance from computed set
+        $incomeGroups  = collect();
+        $expenseGroups = collect();
+
+        foreach ($grouped as $parentId => $children) {
+            $parent  = $parentId ? $parents->get($parentId) : null;
+            $section = $parent?->classification ?? $children->first()->classification;
+
+            $rows = $children->map(fn ($a) => [
+                'account' => $a,
+                'balance' => $balances->get($a->id)?->balance ?? 0.0,
+            ])->sortBy(fn ($r) => $r['account']->code);
+
+            $subtotal = $rows->sum('balance');
+            $entry    = compact('parent', 'rows', 'subtotal');
+
+            if ($section === 'income') {
+                $incomeGroups->push($entry);
+            } else {
+                $expenseGroups->push($entry);
+            }
+        }
+
+        $incomeGroups  = $incomeGroups->sortBy(fn ($g) => $g['parent']?->code ?? '9999');
+        $expenseGroups = $expenseGroups->sortBy(fn ($g) => $g['parent']?->code ?? '9999');
+
+        $totalRevenue = $balances->where('classification', 'income')->sum('balance');
+        $totalExpense = $balances->where('classification', 'expense')->sum('balance');
+        $netProfit    = $totalRevenue - $totalExpense;
+
+        return view('finance.reports.income-statement', compact(
+            'incomeGroups', 'expenseGroups',
+            'totalRevenue', 'totalExpense', 'netProfit',
+            'from', 'to'
+        ));
+    }
+
+    /**
+     * Balance Sheet — cumulative account balances as of a date.
+     *
+     * Equity section includes a live "Current Year Earnings" line computed
+     * from YTD income/expense activity (excluding closing entries).  Once
+     * year-end closing entries are posted (Phase 2), this line will be zero
+     * and the amount will live permanently in Retained Earnings instead.
+     */
+    public function balanceSheet(Request $request)
+    {
+        $this->authorize('finance.gl.view');
+
+        $asOf = $request->input('as_of', Carbon::today()->toDateString());
+
+        // Helper: compute cumulative posted entry sums up to $asOf for given classifications
+        $loadAccounts = function (array $classifications) use ($asOf) {
+            return Account::where('is_active', true)
+                ->whereIn('classification', $classifications)
+                ->with('parent')
+                ->withSum(['entries as cum_debit' => fn ($q) => $q->whereHas('journal',
+                    fn ($j) => $j->where('status', 'posted')->where('journal_date', '<=', $asOf)
+                )], 'debit')
+                ->withSum(['entries as cum_credit' => fn ($q) => $q->whereHas('journal',
+                    fn ($j) => $j->where('status', 'posted')->where('journal_date', '<=', $asOf)
+                )], 'credit')
+                ->orderBy('code')
+                ->get()
+                ->map(function ($acc) {
+                    $d = (float) ($acc->cum_debit  ?? 0);
+                    $c = (float) ($acc->cum_credit ?? 0);
+                    $acc->balance = $acc->normal_balance === 'credit' ? ($c - $d) : ($d - $c);
+                    return $acc;
+                });
+        };
+
+        $bsAccounts = $loadAccounts(['asset', 'liability', 'equity']);
+
+        // Live YTD P&L: income/expense activity up to $asOf, excluding closing entries.
+        // This becomes zero once Phase 2 year-end closing entries are posted.
+        $plAccounts = $loadAccounts(['income', 'expense']);
+        $plAccounts = $plAccounts->map(function ($acc) use ($asOf) {
+            // Re-query excluding closing journals
+            $d = (float) \App\Models\GlEntry::where('account_id', $acc->id)
+                ->whereHas('journal', fn ($j) => $j->where('status', 'posted')
+                    ->where('journal_date', '<=', $asOf)
+                    ->where('journal_type', '!=', 'closing'))
+                ->sum('debit');
+            $c = (float) \App\Models\GlEntry::where('account_id', $acc->id)
+                ->whereHas('journal', fn ($j) => $j->where('status', 'posted')
+                    ->where('journal_date', '<=', $asOf)
+                    ->where('journal_type', '!=', 'closing'))
+                ->sum('credit');
+            $acc->balance = $acc->normal_balance === 'credit' ? ($c - $d) : ($d - $c);
+            return $acc;
+        });
+
+        $ytdRevenue     = $plAccounts->where('classification', 'income')->sum('balance');
+        $ytdExpense     = $plAccounts->where('classification', 'expense')->sum('balance');
+        $currentYearPL  = $ytdRevenue - $ytdExpense;  // positive = profit, negative = loss
+
+        // Build hierarchical groups per classification
+        $buildGroups = function ($classification) use ($bsAccounts) {
+            $accounts = $bsAccounts->where('classification', $classification);
+            $parents  = $accounts->where('is_posting', false)->keyBy('id');
+            $posting  = $accounts->where('is_posting', true);
+
+            return $posting->groupBy('parent_id')
+                ->map(function ($children, $parentId) use ($parents) {
+                    $parent   = $parentId ? $parents->get($parentId) : null;
+                    $rows     = $children->sortBy('code');
+                    $subtotal = $rows->sum('balance');
+                    return compact('parent', 'rows', 'subtotal');
+                })
+                ->sortBy(fn ($g) => $g['parent']?->code ?? '9999')
+                ->values();
+        };
+
+        $assetGroups     = $buildGroups('asset');
+        $liabilityGroups = $buildGroups('liability');
+        $equityGroups    = $buildGroups('equity');
+
+        $totalAssets      = $bsAccounts->where('classification', 'asset')->where('is_posting', true)->sum('balance');
+        $totalLiabilities = $bsAccounts->where('classification', 'liability')->where('is_posting', true)->sum('balance');
+        $totalEquity      = $bsAccounts->where('classification', 'equity')->where('is_posting', true)->sum('balance') + $currentYearPL;
+
+        $balanceDiff = round(abs($totalAssets - ($totalLiabilities + $totalEquity)), 2);
+        $balanced    = $balanceDiff < 0.01;
+
+        return view('finance.reports.balance-sheet', compact(
+            'assetGroups', 'liabilityGroups', 'equityGroups',
+            'totalAssets', 'totalLiabilities', 'totalEquity',
+            'currentYearPL', 'ytdRevenue', 'ytdExpense',
+            'asOf', 'balanced', 'balanceDiff'
+        ));
+    }
+
     // AR Aging: outstanding receivables by customer and age bucket
     public function arAging(Request $request)
     {
