@@ -5,14 +5,20 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\BankAccount;
+use App\Models\PaymentAllocation;
 use App\Models\PaymentVoucher;
+use App\Models\Supplier;
+use App\Services\Finance\ApAllocationService;
 use App\Services\Finance\ReceiptPostingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PaymentVoucherController extends Controller
 {
-    public function __construct(private ReceiptPostingService $postingService) {}
+    public function __construct(
+        private ReceiptPostingService $postingService,
+        private ApAllocationService $allocationService,
+    ) {}
 
     public function index(Request $request)
     {
@@ -53,8 +59,9 @@ class PaymentVoucherController extends Controller
             ->orderBy('classification')
             ->orderBy('code')
             ->get();
+        $suppliers = Supplier::where('status', 'active')->orderBy('name')->get(['id', 'code', 'name']);
 
-        return view('finance.vouchers.create', compact('bankAccounts', 'expenseAccounts'));
+        return view('finance.vouchers.create', compact('bankAccounts', 'expenseAccounts', 'suppliers'));
     }
 
     public function store(Request $request)
@@ -63,6 +70,7 @@ class PaymentVoucherController extends Controller
 
         $validated = $request->validate([
             'voucher_date'      => ['required', 'date'],
+            'supplier_id'       => ['nullable', 'exists:suppliers,id'],
             'payee_name'        => ['required', 'string', 'max:150'],
             'bank_account_id'   => ['nullable', 'exists:bank_accounts,id'],
             'amount'            => ['required', 'numeric', 'min:0.0001'],
@@ -89,9 +97,94 @@ class PaymentVoucherController extends Controller
     {
         $this->authorize('finance.vouchers.view');
 
-        $voucher->load(['bankAccount.glAccount', 'expenseAccount', 'journal', 'createdBy', 'voidedBy']);
+        $voucher->load(['bankAccount.glAccount', 'expenseAccount', 'journal', 'createdBy', 'voidedBy',
+            'supplier', 'allocations.invoice']);
 
-        return view('finance.vouchers.show', compact('voucher'));
+        // AP allocation context — only relevant when the voucher is tied to a supplier.
+        $pendingInvoices   = $voucher->supplier_id
+            ? $this->allocationService->pendingForSupplier($voucher->supplier_id)
+            : collect();
+        $totalAllocated    = (float) $voucher->allocations->sum('allocated_amount');
+        $unallocatedAmount = round((float) $voucher->amount - $totalAllocated, 2);
+
+        return view('finance.vouchers.show', compact(
+            'voucher', 'pendingInvoices', 'totalAllocated', 'unallocatedAmount'
+        ));
+    }
+
+    /**
+     * Allocate part of a draft voucher against a supplier invoice (AP sub-ledger).
+     */
+    public function storeAllocation(Request $request, PaymentVoucher $voucher)
+    {
+        $this->authorize('finance.vouchers.create');
+
+        if (!$voucher->isDraft()) {
+            return back()->with('error', 'Allocations can only be added to draft vouchers.');
+        }
+
+        if (!$voucher->supplier_id) {
+            return back()->with('error', 'Link this voucher to a supplier before allocating it to invoices.');
+        }
+
+        $validated = $request->validate([
+            'supplier_invoice_id' => ['required', 'integer', 'min:1'],
+            'allocated_amount'    => ['required', 'numeric', 'min:0.01'],
+            'notes'               => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $invoice = $this->allocationService->resolveInvoice((int) $validated['supplier_invoice_id']);
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        if ((int) $invoice->supplier_id !== (int) $voucher->supplier_id) {
+            return back()->with('error', 'That invoice belongs to a different supplier.');
+        }
+
+        $outstanding = $this->allocationService->getOutstanding($invoice);
+        if ((float) $validated['allocated_amount'] > round($outstanding + 0.005, 2)) {
+            return back()->with('error',
+                'Allocated amount exceeds the invoice outstanding balance of ' . number_format($outstanding, 2) . '.');
+        }
+
+        $totalAllocated = (float) $voucher->allocations()->sum('allocated_amount');
+        $remaining      = (float) $voucher->amount - $totalAllocated;
+        if ((float) $validated['allocated_amount'] > round($remaining + 0.005, 2)) {
+            return back()->with('error',
+                "Allocated amount exceeds the voucher's unallocated balance of " . number_format($remaining, 2) . '.');
+        }
+
+        $voucher->allocations()->create($validated);
+        $this->allocationService->syncInvoiceStatus($invoice);
+
+        return back()->with('success', 'Allocation added.');
+    }
+
+    public function deleteAllocation(PaymentVoucher $voucher, PaymentAllocation $allocation)
+    {
+        $this->authorize('finance.vouchers.create');
+
+        if (!$voucher->isDraft()) {
+            return back()->with('error', 'Allocations can only be removed from draft vouchers.');
+        }
+
+        if ($allocation->payment_voucher_id !== $voucher->id) {
+            abort(404);
+        }
+
+        $invoiceId = $allocation->supplier_invoice_id;
+        $allocation->delete();
+
+        try {
+            $invoice = $this->allocationService->resolveInvoice($invoiceId);
+            $this->allocationService->syncInvoiceStatus($invoice);
+        } catch (\Throwable) {
+            // best-effort
+        }
+
+        return back()->with('success', 'Allocation removed.');
     }
 
     public function confirm(PaymentVoucher $voucher)

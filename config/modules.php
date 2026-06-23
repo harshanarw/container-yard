@@ -276,6 +276,18 @@ return [
         'actions' => ['view', 'create', 'edit', 'confirm', 'void'],
     ],
 
+    'finance.suppliers' => [
+        'label'   => 'Suppliers',
+        'section' => 'Finance',
+        'actions' => ['view', 'create', 'edit', 'delete'],
+    ],
+
+    'finance.ap' => [
+        'label'   => 'AP / Supplier Invoices',
+        'section' => 'Finance',
+        'actions' => ['view', 'create', 'post', 'void'],
+    ],
+
     // ── Reports ───────────────────────────────────────────────────────────────
 
     'reports' => [

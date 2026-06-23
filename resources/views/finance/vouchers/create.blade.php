@@ -26,8 +26,21 @@
             @csrf
             <div class="row g-3">
                 <div class="col-md-6">
+                    <label class="form-label fw-semibold small">Supplier</label>
+                    <select name="supplier_id" id="supplierSelect" class="form-select form-select-sm @error('supplier_id') is-invalid @enderror">
+                        <option value="">— None / one-off payee —</option>
+                        @foreach($suppliers as $sup)
+                        <option value="{{ $sup->id }}" data-name="{{ $sup->name }}" {{ old('supplier_id') == $sup->id ? 'selected' : '' }}>
+                            {{ $sup->code }} — {{ $sup->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                    <div class="form-text small">Link to a supplier to allocate this payment against their invoices.</div>
+                    @error('supplier_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-6">
                     <label class="form-label fw-semibold small">Payee Name <span class="text-danger">*</span></label>
-                    <input type="text" name="payee_name" class="form-control form-control-sm @error('payee_name') is-invalid @enderror"
+                    <input type="text" name="payee_name" id="payeeName" class="form-control form-control-sm @error('payee_name') is-invalid @enderror"
                            value="{{ old('payee_name') }}" required maxlength="150" placeholder="Supplier / Vendor name">
                     @error('payee_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
@@ -66,6 +79,7 @@
                         @endforeach
                         @if($lastClass !== null)</optgroup>@endif
                     </select>
+                    <div class="form-text small" id="expenseAccountHint">Ignored when a supplier is selected — the payment debits Accounts Payable instead.</div>
                     @error('expense_account_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-6">
@@ -131,6 +145,13 @@
 <script>
 document.getElementById('paymentMethod').addEventListener('change', function () {
     document.getElementById('chequeNoRow').style.display = this.value === 'cheque' ? '' : 'none';
+});
+
+// Auto-fill payee name from the selected supplier (only if payee is empty).
+document.getElementById('supplierSelect')?.addEventListener('change', function () {
+    const name = this.options[this.selectedIndex]?.dataset.name || '';
+    const payee = document.getElementById('payeeName');
+    if (name && !payee.value.trim()) payee.value = name;
 });
 </script>
 @endpush

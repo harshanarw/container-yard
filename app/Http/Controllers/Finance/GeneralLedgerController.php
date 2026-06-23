@@ -7,11 +7,14 @@ use App\Models\Account;
 use App\Models\Customer;
 use App\Models\GlEntry;
 use App\Models\GlJournal;
+use App\Models\PaymentAllocation;
 use App\Models\ReceiptAllocation;
 use App\Models\ReeferElectricityInvoice;
 use App\Models\RepairInvoice;
 use App\Models\StorageHandlingInvoice;
 use App\Models\StorageInvoice;
+use App\Models\Supplier;
+use App\Models\SupplierInvoice;
 use App\Services\Finance\PostingEngine;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -500,5 +503,83 @@ class GeneralLedgerController extends Controller
         ];
 
         return view('finance.ar.aging', compact('byCustomer', 'grandTotals', 'asOf'));
+    }
+
+    // AP Aging: outstanding payables by supplier and age bucket
+    public function apAging(Request $request)
+    {
+        $this->authorize('finance.ap.view');
+
+        $asOf     = $request->input('as_of', Carbon::today()->toDateString());
+        $asOfDate = Carbon::parse($asOf);
+
+        // Allocations from non-voided vouchers: [supplier_invoice_id => total_allocated]
+        $allocations = PaymentAllocation::whereHas(
+            'voucher', fn ($q) => $q->whereIn('status', ['draft', 'confirmed'])
+        )->select('supplier_invoice_id', DB::raw('SUM(allocated_amount) as total_allocated'))
+         ->groupBy('supplier_invoice_id')
+         ->get()
+         ->keyBy('supplier_invoice_id');
+
+        $rows = collect();
+
+        SupplierInvoice::whereIn('status', ['approved', 'partially_paid'])
+            ->orderBy('invoice_date')
+            ->get()
+            ->each(function ($inv) use ($asOfDate, $allocations, &$rows) {
+                $total       = (float) ($inv->total_amount ?? 0);
+                $allocated   = (float) ($allocations->get($inv->id)?->total_allocated ?? 0);
+                $outstanding = max(0.0, round($total - $allocated, 2));
+
+                if ($outstanding <= 0) return;
+
+                $invDate = Carbon::parse($inv->invoice_date);
+                $ageDays = max(0, (int) $invDate->diffInDays($asOfDate, false));
+
+                $bucket = match (true) {
+                    $ageDays <= 30 => 'current',
+                    $ageDays <= 60 => '31-60',
+                    $ageDays <= 90 => '61-90',
+                    default        => '90+',
+                };
+
+                $rows->push([
+                    'supplier_id'  => $inv->supplier_id,
+                    'id'           => $inv->id,
+                    'invoice_no'   => $inv->invoice_no,
+                    'invoice_date' => $invDate,
+                    'total'        => $total,
+                    'allocated'    => $allocated,
+                    'outstanding'  => $outstanding,
+                    'age_days'     => $ageDays,
+                    'bucket'       => $bucket,
+                ]);
+            });
+
+        $supplierIds = $rows->pluck('supplier_id')->filter()->unique();
+        $suppliers   = Supplier::whereIn('id', $supplierIds)->get()->keyBy('id');
+
+        $bySupplier = $rows->groupBy('supplier_id')->map(function ($invRows) use ($suppliers) {
+            $supId = $invRows->first()['supplier_id'];
+            return [
+                'supplier' => $suppliers->get($supId),
+                'invoices' => $invRows->sortBy('invoice_date'),
+                'current'  => $invRows->where('bucket', 'current')->sum('outstanding'),
+                '31-60'    => $invRows->where('bucket', '31-60')->sum('outstanding'),
+                '61-90'    => $invRows->where('bucket', '61-90')->sum('outstanding'),
+                '90+'      => $invRows->where('bucket', '90+')->sum('outstanding'),
+                'total'    => $invRows->sum('outstanding'),
+            ];
+        })->sortByDesc('total')->values();
+
+        $grandTotals = [
+            'current' => $rows->where('bucket', 'current')->sum('outstanding'),
+            '31-60'   => $rows->where('bucket', '31-60')->sum('outstanding'),
+            '61-90'   => $rows->where('bucket', '61-90')->sum('outstanding'),
+            '90+'     => $rows->where('bucket', '90+')->sum('outstanding'),
+            'total'   => $rows->sum('outstanding'),
+        ];
+
+        return view('finance.ap.aging', compact('bySupplier', 'grandTotals', 'asOf'));
     }
 }

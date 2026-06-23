@@ -59,6 +59,8 @@ use App\Http\Controllers\Finance\InvoicePostingController;
 use App\Http\Controllers\Finance\BankAccountController;
 use App\Http\Controllers\Finance\ReceiptController;
 use App\Http\Controllers\Finance\PaymentVoucherController;
+use App\Http\Controllers\Finance\SupplierController;
+use App\Http\Controllers\Finance\SupplierInvoiceController;
 use App\Http\Controllers\InternalNotificationEmailController;
 use App\Http\Controllers\CustomerEmailContactController;
 
@@ -615,6 +617,31 @@ Route::middleware(['auth'])->group(function () {
             Route::get('aging',                     [GeneralLedgerController::class, 'arAging'])->name('aging');
         });
 
+        // Suppliers (AP master)
+        Route::prefix('suppliers')->name('suppliers.')->group(function () {
+            Route::get('/',                 [SupplierController::class, 'index'])->name('index');
+            Route::get('/search',           [SupplierController::class, 'search'])->name('search');
+            Route::get('/create',           [SupplierController::class, 'create'])->name('create');
+            Route::post('/',                [SupplierController::class, 'store'])->name('store');
+            Route::get('/{supplier}',       [SupplierController::class, 'show'])->name('show');
+            Route::get('/{supplier}/edit',  [SupplierController::class, 'edit'])->name('edit');
+            Route::patch('/{supplier}',     [SupplierController::class, 'update'])->name('update');
+            Route::delete('/{supplier}',    [SupplierController::class, 'destroy'])->name('destroy');
+        });
+
+        // AP / Supplier Invoices
+        Route::prefix('ap')->name('ap.')->group(function () {
+            Route::get('invoices',                          [SupplierInvoiceController::class, 'index'])->name('invoices.index');
+            Route::get('invoices/create',                   [SupplierInvoiceController::class, 'create'])->name('invoices.create');
+            Route::post('invoices',                         [SupplierInvoiceController::class, 'store'])->name('invoices.store');
+            Route::get('invoices/{supplierInvoice}',        [SupplierInvoiceController::class, 'show'])->name('invoices.show');
+            Route::delete('invoices/{supplierInvoice}',     [SupplierInvoiceController::class, 'destroy'])->name('invoices.destroy');
+            Route::post('invoices/{supplierInvoice}/approve',    [SupplierInvoiceController::class, 'approve'])->name('invoices.approve');
+            Route::post('invoices/{supplierInvoice}/retry-post', [SupplierInvoiceController::class, 'retryPost'])->name('invoices.retry-post');
+            Route::post('invoices/{supplierInvoice}/cancel',     [SupplierInvoiceController::class, 'cancel'])->name('invoices.cancel');
+            Route::get('aging',                             [GeneralLedgerController::class, 'apAging'])->name('aging');
+        });
+
         // Bank Accounts
         Route::prefix('bank-accounts')->name('bank-accounts.')->group(function () {
             Route::get('/',               [BankAccountController::class, 'index'])->name('index');
@@ -645,6 +672,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{voucher}',                    [PaymentVoucherController::class, 'show'])->name('show');
             Route::post('/{voucher}/confirm',           [PaymentVoucherController::class, 'confirm'])->name('confirm');
             Route::post('/{voucher}/void',              [PaymentVoucherController::class, 'void'])->name('void');
+            Route::post('/{voucher}/allocations',                    [PaymentVoucherController::class, 'storeAllocation'])->name('allocations.store');
+            Route::delete('/{voucher}/allocations/{allocation}',     [PaymentVoucherController::class, 'deleteAllocation'])->name('allocations.destroy');
         });
     });
 

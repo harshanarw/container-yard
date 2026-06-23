@@ -9,6 +9,7 @@ class PaymentVoucher extends Model
     protected $fillable = [
         'voucher_no',
         'voucher_date',
+        'supplier_id',
         'payee_name',
         'bank_account_id',
         'amount',
@@ -32,6 +33,16 @@ class PaymentVoucher extends Model
         'amount'        => 'decimal:4',
         'exchange_rate' => 'decimal:6',
     ];
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    public function allocations()
+    {
+        return $this->hasMany(PaymentAllocation::class);
+    }
 
     public function bankAccount()
     {

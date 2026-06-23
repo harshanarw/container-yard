@@ -74,6 +74,16 @@
                         <td>{{ \Carbon\Carbon::parse($voucher->voucher_date)->format('d M Y') }}</td>
                     </tr>
                     <tr>
+                        <td class="text-muted">Supplier</td>
+                        <td>
+                            @if($voucher->supplier)
+                            <a href="{{ route('finance.suppliers.show', $voucher->supplier_id) }}" class="text-decoration-none">{{ $voucher->supplier->name }}</a>
+                            @else
+                            <span class="fst-italic text-muted">One-off payee</span>
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
                         <td class="text-muted">Payee</td>
                         <td class="fw-semibold">{{ $voucher->payee_name }}</td>
                     </tr>
@@ -183,6 +193,111 @@
         </div>
     </div>
 </div>
+
+{{-- AP Allocations (supplier-linked vouchers only) --}}
+@if($voucher->supplier_id)
+<div class="card content-card mt-3">
+    <div class="card-header bg-transparent py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <strong class="small"><i class="bi bi-link-45deg me-1"></i>Apply to Supplier Invoices</strong>
+        <span class="small">
+            <span class="text-muted">Voucher:</span> <span class="font-monospace">{{ number_format($voucher->amount, 2) }}</span>
+            · <span class="text-muted">Allocated:</span> <span class="font-monospace">{{ number_format($totalAllocated, 2) }}</span>
+            · <span class="text-muted">Unallocated:</span>
+            <span class="font-monospace fw-semibold {{ $unallocatedAmount > 0 ? 'text-success' : 'text-muted' }}">{{ number_format($unallocatedAmount, 2) }}</span>
+        </span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th>Invoice</th>
+                    <th class="text-end">Invoice Total</th>
+                    <th class="text-end">Allocated</th>
+                    <th>Notes</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($voucher->allocations as $alloc)
+                <tr>
+                    <td class="font-monospace">
+                        @if($alloc->invoice)
+                        <a href="{{ route('finance.ap.invoices.show', $alloc->invoice) }}" class="text-decoration-none">{{ $alloc->invoice->invoice_no }}</a>
+                        @else <span class="text-muted">#{{ $alloc->supplier_invoice_id }}</span> @endif
+                    </td>
+                    <td class="text-end font-monospace">{{ $alloc->invoice ? number_format($alloc->invoice->total_amount, 2) : '—' }}</td>
+                    <td class="text-end font-monospace fw-semibold">{{ number_format($alloc->allocated_amount, 2) }}</td>
+                    <td class="text-muted">{{ $alloc->notes ?: '—' }}</td>
+                    <td class="text-end">
+                        @can('finance.vouchers.create')
+                        @if($voucher->isDraft())
+                        <form method="POST" action="{{ route('finance.vouchers.allocations.destroy', [$voucher, $alloc]) }}" class="d-inline"
+                              onsubmit="return confirm('Remove this allocation?')">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-x-circle"></i></button>
+                        </form>
+                        @endif
+                        @endcan
+                    </td>
+                </tr>
+                @empty
+                <tr><td colspan="5" class="text-center text-muted py-3">No allocations yet.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    @can('finance.vouchers.create')
+    @if($voucher->isDraft())
+        @if($pendingInvoices->isNotEmpty() && $unallocatedAmount > 0)
+        <div class="card-footer bg-transparent">
+            <form method="POST" action="{{ route('finance.vouchers.allocations.store', $voucher) }}" class="row g-2 align-items-end">
+                @csrf
+                <div class="col-md-5">
+                    <label class="form-label small mb-1">Supplier Invoice</label>
+                    <select name="supplier_invoice_id" id="allocInvoice" class="form-select form-select-sm" required>
+                        <option value="">— Select invoice —</option>
+                        @foreach($pendingInvoices as $pi)
+                        <option value="{{ $pi['id'] }}" data-outstanding="{{ $pi['outstanding'] }}">{{ $pi['label'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Amount</label>
+                    <input type="number" step="0.01" min="0.01" name="allocated_amount" id="allocAmount" class="form-control form-control-sm text-end font-monospace" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Notes</label>
+                    <input type="text" name="notes" class="form-control form-control-sm" maxlength="255">
+                </div>
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-plus-lg"></i></button>
+                </div>
+            </form>
+        </div>
+        @elseif($unallocatedAmount <= 0)
+        <div class="card-footer bg-transparent small text-muted"><i class="bi bi-check-circle me-1 text-success"></i>Voucher fully allocated.</div>
+        @else
+        <div class="card-footer bg-transparent small text-muted">No outstanding invoices for this supplier.</div>
+        @endif
+    @endif
+    @endcan
+</div>
+
+@push('scripts')
+<script>
+(function () {
+    const sel = document.getElementById('allocInvoice');
+    const amt = document.getElementById('allocAmount');
+    const unallocated = {{ $unallocatedAmount }};
+    sel?.addEventListener('change', function () {
+        const out = parseFloat(this.options[this.selectedIndex]?.dataset.outstanding || 0);
+        if (out > 0) amt.value = Math.min(out, unallocated).toFixed(2);
+    });
+})();
+</script>
+@endpush
+@endif
 
 {{-- Void Modal --}}
 @can('finance.vouchers.void')

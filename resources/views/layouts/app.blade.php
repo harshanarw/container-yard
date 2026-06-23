@@ -764,7 +764,7 @@
         @endif
 
         {{-- ── FINANCE ── --}}
-        @if(Auth::user()->can('finance.setup.view') || Auth::user()->can('finance.coa.view') || Auth::user()->can('finance.mappings.view'))
+        @if(Auth::user()->can('finance.setup.view') || Auth::user()->can('finance.coa.view') || Auth::user()->can('finance.mappings.view') || Auth::user()->can('finance.suppliers.view') || Auth::user()->can('finance.ap.view'))
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-finance"
                 aria-expanded="{{ request()->routeIs('finance.*') ? 'true' : 'false' }}"
@@ -846,6 +846,28 @@
                     <a href="{{ route('finance.ar.aging') }}"
                        class="nav-link {{ request()->routeIs('finance.ar.aging') ? 'active' : '' }}">
                         <i class="bi bi-clock-history"></i><span>AR Aging</span>
+                    </a>
+                </li>
+                @endcan
+                @can('finance.suppliers.view')
+                <li class="nav-item">
+                    <a href="{{ route('finance.suppliers.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.suppliers.*') ? 'active' : '' }}">
+                        <i class="bi bi-truck"></i><span>Suppliers</span>
+                    </a>
+                </li>
+                @endcan
+                @can('finance.ap.view')
+                <li class="nav-item">
+                    <a href="{{ route('finance.ap.invoices.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.ap.invoices.*') ? 'active' : '' }}">
+                        <i class="bi bi-receipt-cutoff"></i><span>Supplier Invoices</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.ap.aging') }}"
+                       class="nav-link {{ request()->routeIs('finance.ap.aging') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i><span>AP Aging</span>
                     </a>
                 </li>
                 @endcan

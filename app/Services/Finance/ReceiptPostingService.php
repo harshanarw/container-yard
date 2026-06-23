@@ -120,6 +120,19 @@ class ReceiptPostingService
             $expenseAccount = $voucher->expenseAccount;
             $bankAccount    = $voucher->bankAccount?->glAccount;
 
+            // A supplier-linked voucher settles Accounts Payable — it must debit the
+            // AP control account that the supplier invoice posting credited, NOT an
+            // expense account (otherwise the cost is booked twice: once at invoice
+            // approval, again here). The expense_account_id is ignored in this case.
+            if ($voucher->supplier_id) {
+                $expenseAccount = $this->resolveApAccount();
+                if (!$expenseAccount) {
+                    throw new \RuntimeException(
+                        'No AP control account mapped. Configure Account Mappings → AR/AP Controls.'
+                    );
+                }
+            }
+
             if (!$expenseAccount && $voucher->payment_method !== 'cash') {
                 throw new \RuntimeException(
                     'No expense/AP account selected for this voucher.'
