@@ -103,6 +103,7 @@
                         <th class="ps-3">Invoice No.</th>
                         <th>Customer</th>
                         <th>Invoice Date</th>
+                        <th>Due Date</th>
                         <th>Billing Period</th>
                         <th>Containers</th>
                         <th class="text-end">Total Amount</th>
@@ -120,6 +121,15 @@
                         </td>
                         <td>{{ $inv->customer->name ?? '—' }}</td>
                         <td class="small text-muted">{{ $inv->invoice_date->format('d M Y') }}</td>
+                        @php $pastDue = $inv->due_date && $inv->status === 'issued' && now()->startOfDay()->gt($inv->due_date); @endphp
+                        <td class="small {{ $pastDue ? 'text-danger fw-semibold' : 'text-muted' }}">
+                            @if($inv->due_date)
+                                {{ $inv->due_date->format('d M Y') }}
+                                @if($pastDue)<i class="bi bi-exclamation-circle ms-1" title="Past due"></i>@endif
+                            @else
+                                —
+                            @endif
+                        </td>
                         <td class="small text-muted">
                             {{ $inv->billing_period_from->format('d M Y') }}
                             &rarr;

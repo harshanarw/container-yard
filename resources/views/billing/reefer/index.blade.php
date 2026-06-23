@@ -66,6 +66,7 @@
                     <th>Invoice No</th>
                     <th>Customer</th>
                     <th>Date</th>
+                    <th>Due Date</th>
                     <th>Period</th>
                     <th class="text-end">Amount</th>
                     <th>Lines</th>
@@ -79,6 +80,15 @@
                     <td class="font-monospace fw-medium">{{ $invoice->invoice_no }}</td>
                     <td>{{ $invoice->customer?->name }}</td>
                     <td class="small">{{ $invoice->invoice_date?->format('d M Y') }}</td>
+                    @php $pastDue = $invoice->due_date && $invoice->status === 'issued' && now()->startOfDay()->gt($invoice->due_date); @endphp
+                    <td class="small {{ $pastDue ? 'text-danger fw-semibold' : '' }}">
+                        @if($invoice->due_date)
+                            {{ $invoice->due_date->format('d M Y') }}
+                            @if($pastDue)<i class="bi bi-exclamation-circle ms-1" title="Past due"></i>@endif
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
                     <td class="small text-nowrap">{{ $invoice->billing_period_from?->format('d M Y') }} – {{ $invoice->billing_period_to?->format('d M Y') }}</td>
                     <td class="text-end font-monospace small">
                         {{ $invoice->invoice_currency }} {{ number_format($invoice->total_amount, 2) }}
@@ -94,7 +104,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">
+                    <td colspan="9" class="text-center text-muted py-4">
                         <i class="bi bi-file-earmark-x fs-2 d-block mb-2 opacity-25"></i>
                         No reefer electricity invoices found.
                     </td>

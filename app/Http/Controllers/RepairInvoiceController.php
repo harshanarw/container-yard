@@ -137,9 +137,9 @@ class RepairInvoiceController extends Controller
             'customer_id'    => $estimate->customer_id,
             'invoice_date'   => now()->toDateString(),
             'due_date'       => \App\Services\Finance\PaymentTermsHelper::dueDate(
-                                    $estimate->customer->payment_terms ?? 'net30', now()
+                                    $estimate->customer?->payment_terms ?? 'net30', now()
                                 )->toDateString(),
-            'currency'       => $estimate->customer->currency ?? 'USD',
+            'currency'       => $estimate->customer?->currency ?? 'USD',
             'status'         => 'draft',
             'subtotal'       => $subtotal,
             'sscl_total'     => $ssclTotal,
@@ -340,6 +340,7 @@ class RepairInvoiceController extends Controller
             'invoice_no'            => $invoice->invoice_no,
             'category_info'         => array_filter([
                 'Category'      => 'Container Repair',
+                'Payment Due'   => $invoice->due_date?->format('d M Y'),
                 'Container No.' => $invoice->container_no,
                 'Work Order'    => $invoice->workOrder?->wo_no ?? ($invoice->work_order_id ? "WO-{$invoice->work_order_id}" : null),
                 'Estimate No.'  => $invoice->estimate?->estimate_no ?? ($invoice->estimate_id ? "EST-{$invoice->estimate_id}" : null),

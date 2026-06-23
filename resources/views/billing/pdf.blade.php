@@ -118,6 +118,12 @@
                         <td class="info-label">Invoice Date</td>
                         <td class="info-value">{{ $invoice->invoice_date->format('d M Y') }}</td>
                     </tr>
+                    @if($invoice->due_date)
+                    <tr>
+                        <td class="info-label">Payment Due</td>
+                        <td class="info-value">{{ $invoice->due_date->format('d M Y') }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <td class="info-label">Billing Period</td>
                         <td class="info-value">

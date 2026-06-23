@@ -85,6 +85,18 @@
                         @if($group['supplier'])
                         <a href="{{ route('customers.show', $group['supplier']->id) }}" class="text-decoration-none">{{ $group['supplier']->name }}</a>
                         @else Unknown @endif
+                        @if(($group['credit_limit'] ?? 0) > 0)
+                            <div class="text-muted fw-normal mt-1" style="font-size:.72rem;">
+                                AP Limit: {{ number_format($group['credit_limit'], 2) }}
+                            </div>
+                            @if(($group['over_limit'] ?? 0) > 0)
+                                <span class="badge bg-danger mt-1" title="Payable exceeds AP credit limit">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Over by {{ number_format($group['over_limit'], 2) }}
+                                </span>
+                            @endif
+                        @else
+                            <div class="text-muted fw-normal fst-italic mt-1" style="font-size:.72rem;">No limit</div>
+                        @endif
                     </td>
                     @endif
 

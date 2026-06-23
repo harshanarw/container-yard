@@ -119,6 +119,7 @@
                         <th class="ps-3">Invoice No.</th>
                         <th>Shipping Line</th>
                         <th>Invoice Date</th>
+                        <th>Due Date</th>
                         <th>Billing Period</th>
                         <th class="text-end">Storage</th>
                         <th class="text-end">Handling</th>
@@ -137,6 +138,15 @@
                             <div class="text-muted" style="font-size:.7rem;">{{ $inv->shippingLine->code ?? '' }}</div>
                         </td>
                         <td class="small">{{ $inv->invoice_date->format('d M Y') }}</td>
+                        @php $pastDue = $inv->due_date && $inv->status === 'issued' && now()->startOfDay()->gt($inv->due_date); @endphp
+                        <td class="small {{ $pastDue ? 'text-danger fw-semibold' : '' }}">
+                            @if($inv->due_date)
+                                {{ $inv->due_date->format('d M Y') }}
+                                @if($pastDue)<i class="bi bi-exclamation-circle ms-1" title="Past due"></i>@endif
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </td>
                         <td class="small">
                             {{ $inv->billing_period_from->format('d M Y') }}<br>
                             <span class="text-muted">– {{ $inv->billing_period_to->format('d M Y') }}</span>
@@ -159,7 +169,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="text-center text-muted py-5">
+                        <td colspan="11" class="text-center text-muted py-5">
                             <i class="bi bi-file-earmark-ruled fs-3 d-block mb-2"></i>
                             No invoices found. Click <strong>Generate Invoice</strong> to create one.
                         </td>

@@ -291,6 +291,7 @@ class ReeferBillingController extends Controller
             'invoice_no'            => $reeferInvoice->invoice_no,
             'category_info'         => array_filter([
                 'Category'          => 'Reefer Electricity',
+                'Payment Due'       => $reeferInvoice->due_date?->format('d M Y'),
                 'Billing Period'    => $from && $to ? "{$from} to {$to}" : null,
                 'No. of Sessions'   => $reeferInvoice->lines->count() . ' session(s)',
             ]),

@@ -103,9 +103,9 @@ class ArAllocationService
     {
         $pending = collect();
 
-        // Storage invoices
+        // Storage invoices (status enum has no 'overdue' — past-due is derived from due_date)
         StorageInvoice::where('customer_id', $customerId)
-            ->whereIn('status', ['issued', 'overdue'])
+            ->where('status', 'issued')
             ->orderByDesc('invoice_date')
             ->get()
             ->each(function ($inv) use (&$pending) {
@@ -117,7 +117,7 @@ class ArAllocationService
 
         // Storage-handling invoices use shipping_line_id
         StorageHandlingInvoice::where('shipping_line_id', $customerId)
-            ->whereIn('status', ['issued', 'overdue'])
+            ->where('status', 'issued')
             ->orderByDesc('invoice_date')
             ->get()
             ->each(function ($inv) use (&$pending) {
@@ -129,7 +129,7 @@ class ArAllocationService
 
         // Reefer invoices
         ReeferElectricityInvoice::where('customer_id', $customerId)
-            ->whereIn('status', ['issued', 'overdue'])
+            ->where('status', 'issued')
             ->orderByDesc('invoice_date')
             ->get()
             ->each(function ($inv) use (&$pending) {
@@ -171,14 +171,26 @@ class ArAllocationService
 
     private function row(Model $inv, string $type, string $label, float $outstanding): array
     {
+        // Repair invoices carry a due_date column directly; the other AR types
+        // gained one in migration 000209. Fall back to the invoice date for any
+        // legacy row still lacking one so the allocation UI always has a value.
+        $dueDate = !empty($inv->due_date)
+            ? \Carbon\Carbon::parse($inv->due_date)
+            : ($inv->invoice_date ? \Carbon\Carbon::parse($inv->invoice_date) : null);
+        $pastDue = $dueDate ? \Carbon\Carbon::today()->gt($dueDate) : false;
+
         return [
             'type'         => $type,
             'id'           => $inv->id,
             'invoice_no'   => $inv->invoice_no,
             'invoice_date' => $inv->invoice_date,
+            'due_date'     => $dueDate,
+            'past_due'     => $pastDue,
             'total'        => $this->getTotal($inv, $type),
             'outstanding'  => $outstanding,
-            'label'        => "[{$label}] {$inv->invoice_no} — outstanding: " . number_format($outstanding, 2),
+            'label'        => "[{$label}] {$inv->invoice_no} — outstanding: " . number_format($outstanding, 2)
+                              . ($dueDate ? ' · due ' . $dueDate->format('d M Y') : '')
+                              . ($pastDue ? ' (PAST DUE)' : ''),
         ];
     }
 }

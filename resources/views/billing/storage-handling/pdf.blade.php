@@ -109,6 +109,12 @@
                     <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Invoice Date</td>
                     <td style="font-weight:bold; font-size:11px;">{{ $invoice->invoice_date->format('d M Y') }}</td>
                 </tr>
+                @if($invoice->due_date)
+                <tr>
+                    <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Payment Due</td>
+                    <td style="font-weight:bold;">{{ $invoice->due_date->format('d M Y') }}</td>
+                </tr>
+                @endif
                 <tr>
                     <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Billing Period</td>
                     <td style="font-weight:bold;">

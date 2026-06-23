@@ -689,6 +689,7 @@ class StorageHandlingController extends Controller
             'invoice_no'            => $storageHandlingInvoice->invoice_no,
             'category_info'         => array_filter([
                 'Category'          => 'Storage & Handling',
+                'Payment Due'       => $storageHandlingInvoice->due_date?->format('d M Y'),
                 'Billing Period'    => $from && $to ? "{$from} to {$to}" : null,
                 'Shipping Line'     => $shippingLine?->name,
                 'No. of Containers' => $storageHandlingInvoice->lines

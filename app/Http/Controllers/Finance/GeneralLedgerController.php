@@ -464,16 +464,18 @@ class GeneralLedgerController extends Controller
             }
         };
 
+        // Storage / handling / reefer enums have no 'overdue' value — past-due is
+        // derived dynamically from due_date below, so only 'issued' is queried here.
         $addRows(
-            StorageInvoice::whereIn('status', ['issued', 'overdue'])->orderBy('invoice_date')->get(),
+            StorageInvoice::where('status', 'issued')->orderBy('invoice_date')->get(),
             'storage', 'Storage'
         );
         $addRows(
-            StorageHandlingInvoice::whereIn('status', ['issued', 'overdue'])->orderBy('invoice_date')->get(),
+            StorageHandlingInvoice::where('status', 'issued')->orderBy('invoice_date')->get(),
             'storage-handling', 'Handling'
         );
         $addRows(
-            ReeferElectricityInvoice::whereIn('status', ['issued', 'overdue'])->orderBy('invoice_date')->get(),
+            ReeferElectricityInvoice::where('status', 'issued')->orderBy('invoice_date')->get(),
             'reefer', 'Reefer'
         );
         $addRows(
@@ -573,15 +575,21 @@ class GeneralLedgerController extends Controller
         $suppliers   = Customer::whereIn('id', $customerIds)->get()->keyBy('id');
 
         $bySupplier = $rows->groupBy('customer_id')->map(function ($invRows) use ($suppliers) {
-            $supId = $invRows->first()['customer_id'];
+            $supId    = $invRows->first()['customer_id'];
+            $supplier = $suppliers->get($supId);
+            $total    = $invRows->sum('outstanding');
+            $limit    = (float) ($supplier->ap_credit_limit ?? 0);
+
             return [
-                'supplier' => $suppliers->get($supId),
-                'invoices' => $invRows->sortBy('invoice_date'),
-                'current'  => $invRows->where('bucket', 'current')->sum('outstanding'),
-                '31-60'    => $invRows->where('bucket', '31-60')->sum('outstanding'),
-                '61-90'    => $invRows->where('bucket', '61-90')->sum('outstanding'),
-                '90+'      => $invRows->where('bucket', '90+')->sum('outstanding'),
-                'total'    => $invRows->sum('outstanding'),
+                'supplier'     => $supplier,
+                'invoices'     => $invRows->sortBy('invoice_date'),
+                'current'      => $invRows->where('bucket', 'current')->sum('outstanding'),
+                '31-60'        => $invRows->where('bucket', '31-60')->sum('outstanding'),
+                '61-90'        => $invRows->where('bucket', '61-90')->sum('outstanding'),
+                '90+'          => $invRows->where('bucket', '90+')->sum('outstanding'),
+                'total'        => $total,
+                'credit_limit' => $limit,
+                'over_limit'   => $limit > 0 ? round($total - $limit, 2) : 0.0,
             ];
         })->sortByDesc('total')->values();
 

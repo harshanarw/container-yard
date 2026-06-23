@@ -77,6 +77,64 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
     </div>
 </div>
 
+@if($arVisible && ($openArInvoices->isNotEmpty() || $arExposure > 0))
+{{-- Accounts Receivable — this contact acting as a debtor --}}
+<div class="card content-card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-cash-stack me-2 text-success"></i>Accounts Receivable (as Customer)</span>
+        <span class="small">
+            <span class="text-muted">Outstanding:</span>
+            <span class="font-monospace fw-semibold {{ $arExposure > 0 ? 'text-danger' : 'text-success' }}">{{ number_format($arExposure, 2) }}</span>
+            @if($arOverLimit)
+                <span class="badge bg-danger ms-1"><i class="bi bi-exclamation-triangle me-1"></i>Over AR Limit</span>
+            @endif
+        </span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th>Invoice No</th>
+                    <th>Type</th>
+                    <th>Due Date</th>
+                    <th class="text-end">Outstanding</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($openArInvoices as $arInv)
+                @php
+                    $arRoute = match($arInv['type']) {
+                        'storage'          => route('billing.show', $arInv['id']),
+                        'storage-handling' => route('billing.storage-handling.show', $arInv['id']),
+                        'reefer'           => route('billing.reefer.show', $arInv['id']),
+                        'repair'           => route('repair-invoices.show', $arInv['id']),
+                        default            => null,
+                    };
+                @endphp
+                <tr>
+                    <td class="font-monospace fw-semibold">
+                        @if($arRoute)
+                            <a href="{{ $arRoute }}" class="text-decoration-none">{{ $arInv['invoice_no'] }}</a>
+                        @else
+                            {{ $arInv['invoice_no'] }}
+                        @endif
+                    </td>
+                    <td><span class="badge bg-secondary-subtle text-secondary">{{ ucfirst($arInv['type']) }}</span></td>
+                    <td class="{{ $arInv['past_due'] ? 'text-danger fw-semibold' : 'text-muted' }}">
+                        {{ $arInv['due_date'] ? $arInv['due_date']->format('d M Y') : '—' }}
+                        @if($arInv['past_due'])<i class="bi bi-exclamation-circle ms-1" title="Past due"></i>@endif
+                    </td>
+                    <td class="text-end font-monospace text-danger">{{ number_format($arInv['outstanding'], 2) }}</td>
+                </tr>
+                @empty
+                <tr><td colspan="4" class="text-center text-muted py-3">No outstanding receivables for this contact.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
 @if($apVisible && ($recentApBills->isNotEmpty() || $apExposure > 0))
 {{-- Accounts Payable — this contact acting as a supplier/creditor --}}
 <div class="card content-card mb-3">

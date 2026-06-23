@@ -446,7 +446,7 @@ class StorageBillingController extends Controller
 
         NotificationService::notifyAll(
             'Storage Invoice Issued — ' . $invoice->invoice_no,
-            ($invoice->customer->name ?? 'Unknown') . ' · ' . $invoice->currency . ' ' . number_format($invoice->grand_total, 2),
+            ($invoice->customer->name ?? 'Unknown') . ' · ' . $invoice->invoice_currency . ' ' . number_format($invoice->total_amount, 2),
             'success',
             route('billing.show', $invoice)
         );
@@ -469,7 +469,7 @@ class StorageBillingController extends Controller
 
         NotificationService::notifyAll(
             'Storage Invoice Paid — ' . $invoice->invoice_no,
-            ($invoice->customer->name ?? 'Unknown') . ' · ' . $invoice->currency . ' ' . number_format($invoice->grand_total, 2),
+            ($invoice->customer->name ?? 'Unknown') . ' · ' . $invoice->invoice_currency . ' ' . number_format($invoice->total_amount, 2),
             'success',
             route('billing.show', $invoice)
         );
@@ -564,6 +564,7 @@ class StorageBillingController extends Controller
             'invoice_no'            => $invoice->invoice_no,
             'category_info'         => array_filter([
                 'Category'           => 'Container Storage',
+                'Payment Due'        => $invoice->due_date?->format('d M Y'),
                 'Billing Period'     => $from && $to ? "{$from} to {$to}" : null,
                 'No. of Containers'  => $invoice->details
                     ->filter(fn ($d) => ($d->subtotal ?? 0) > 0)

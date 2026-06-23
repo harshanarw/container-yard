@@ -24,12 +24,18 @@ class CreditService
         private ApAllocationService $apAlloc,
     ) {}
 
+    /** Request-scoped memo so a single page load never re-runs the same exposure query. */
+    private array $arExposureCache = [];
+    private array $apExposureCache = [];
+
     // ── Accounts Receivable (contact as debtor) ──────────────────────────────
 
     /** Total outstanding AR across all four invoice types. */
     public function arExposure(int $customerId): float
     {
-        return round((float) $this->arAlloc->pendingForCustomer($customerId)->sum('outstanding'), 2);
+        return $this->arExposureCache[$customerId] ??= round(
+            (float) $this->arAlloc->pendingForCustomer($customerId)->sum('outstanding'), 2
+        );
     }
 
     /**
@@ -61,7 +67,7 @@ class CreditService
     /** Total outstanding AP we owe this contact (open bills, net of settlements). */
     public function apExposure(Customer $customer): float
     {
-        return round(
+        return $this->apExposureCache[$customer->id] ??= round(
             (float) $customer->supplierInvoices()
                 ->whereIn('status', ['approved', 'partially_paid'])
                 ->get()

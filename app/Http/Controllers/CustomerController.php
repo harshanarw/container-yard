@@ -122,10 +122,15 @@ class CustomerController extends Controller
         $recentEstimates  = $customer->estimates()->latest()->take(5)->get();
 
         // Accounts-Receivable exposure (this contact acting as a debtor).
-        $arVisible   = auth()->user()->can('finance.ar.view');
-        $arExposure  = $arVisible ? $credit->arExposure((int) $customer->id) : 0.0;
-        $arAvailable = $arVisible ? $credit->arAvailable($customer) : null;
-        $arOverLimit = $arVisible && $credit->isArOverLimit($customer);
+        $arVisible    = auth()->user()->can('finance.ar.view');
+        $arExposure   = $arVisible ? $credit->arExposure((int) $customer->id) : 0.0;
+        $arAvailable  = $arVisible ? $credit->arAvailable($customer) : null;
+        $arOverLimit  = $arVisible && $credit->isArOverLimit($customer);
+        // Outstanding AR invoices (debtor view) — parallel to the AP bills list below.
+        $openArInvoices = $arVisible
+            ? app(\App\Services\Finance\ArAllocationService::class)
+                ->pendingForCustomer((int) $customer->id)->take(10)
+            : collect();
 
         // Accounts-Payable view of this contact (when acting as a supplier/creditor).
         $apVisible     = auth()->user()->can('finance.ap.view');
@@ -144,7 +149,7 @@ class CustomerController extends Controller
 
         return view('customers.show', compact(
             'customer', 'recentContainers', 'recentEstimates',
-            'arVisible', 'arExposure', 'arAvailable', 'arOverLimit',
+            'arVisible', 'arExposure', 'arAvailable', 'arOverLimit', 'openArInvoices',
             'apVisible', 'recentApBills', 'apExposure', 'apAvailable', 'apOverLimit'
         ));
     }
