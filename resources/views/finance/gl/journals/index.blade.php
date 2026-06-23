@@ -44,7 +44,7 @@
                 <label class="form-label form-label-sm fw-semibold mb-1">Type</label>
                 <select name="type" class="form-select form-select-sm">
                     <option value="">All Types</option>
-                    @foreach(['invoice','receipt','payment','journal','adjustment','opening'] as $t)
+                    @foreach(['invoice','receipt','payment','journal','adjustment','opening','closing'] as $t)
                     <option value="{{ $t }}" {{ request('type') === $t ? 'selected' : '' }}>{{ ucfirst($t) }}</option>
                     @endforeach
                 </select>

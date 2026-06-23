@@ -90,8 +90,8 @@ class DefaultCoaSeeder extends Seeder
             // ── EQUITY (normal_balance: credit) ──────────────────────────────
             ['code' => '3000', 'name' => 'Shareholders Equity',         'classification' => 'equity', 'normal_balance' => 'credit', 'sort_order' => 200],
             ['code' => '3001', 'name' => 'Share Capital',               'classification' => 'equity', 'normal_balance' => 'credit', 'parent' => '3000', 'is_posting' => true, 'sort_order' => 201],
-            ['code' => '3002', 'name' => 'Retained Earnings',           'classification' => 'equity', 'normal_balance' => 'credit', 'parent' => '3000', 'is_posting' => true, 'sort_order' => 202],
-            ['code' => '3003', 'name' => 'Current Year Profit / Loss',  'classification' => 'equity', 'normal_balance' => 'credit', 'parent' => '3000', 'is_posting' => true, 'sort_order' => 203],
+            ['code' => '3002', 'name' => 'Retained Earnings',           'classification' => 'equity', 'normal_balance' => 'credit', 'parent' => '3000', 'is_posting' => true, 'is_system' => true, 'sort_order' => 202],
+            ['code' => '3003', 'name' => 'Current Year Profit / Loss',  'classification' => 'equity', 'normal_balance' => 'credit', 'parent' => '3000', 'is_posting' => true, 'is_system' => true, 'sort_order' => 203],
 
             // ── INCOME (normal_balance: credit) ──────────────────────────────
             ['code' => '4000', 'name' => 'Operating Revenue',           'classification' => 'income', 'normal_balance' => 'credit', 'sort_order' => 300],

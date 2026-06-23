@@ -329,11 +329,11 @@ class GeneralLedgerController extends Controller
 
         $bsAccounts = $loadAccounts(['asset', 'liability', 'equity']);
 
-        // Live YTD P&L: income/expense activity up to $asOf, excluding closing entries.
-        // This becomes zero once Phase 2 year-end closing entries are posted.
-        $plAccounts = $loadAccounts(['income', 'expense']);
-        $plAccounts = $plAccounts->map(function ($acc) use ($asOf) {
-            // Re-query excluding closing journals
+        // Current-year P&L = raw income/expense activity (excluding closing
+        // entries) up to $asOf. This is the full year's profit regardless of
+        // how many periods have been P&L-closed — closing entries only MOVE the
+        // amount between accounts, they don't change the underlying activity.
+        $plAccounts = $loadAccounts(['income', 'expense'])->map(function ($acc) use ($asOf) {
             $d = (float) \App\Models\GlEntry::where('account_id', $acc->id)
                 ->whereHas('journal', fn ($j) => $j->where('status', 'posted')
                     ->where('journal_date', '<=', $asOf)
@@ -348,13 +348,24 @@ class GeneralLedgerController extends Controller
             return $acc;
         });
 
-        $ytdRevenue     = $plAccounts->where('classification', 'income')->sum('balance');
-        $ytdExpense     = $plAccounts->where('classification', 'expense')->sum('balance');
-        $currentYearPL  = $ytdRevenue - $ytdExpense;  // positive = profit, negative = loss
+        $ytdRevenue    = $plAccounts->where('classification', 'income')->sum('balance');
+        $ytdExpense    = $plAccounts->where('classification', 'expense')->sum('balance');
+        $currentYearPL = round($ytdRevenue - $ytdExpense, 2);  // positive = profit
 
-        // Build hierarchical groups per classification
-        $buildGroups = function ($classification) use ($bsAccounts) {
-            $accounts = $bsAccounts->where('classification', $classification);
+        // The Current Year P/L account (3003) holds whatever has already been
+        // P&L-closed. Its balance is folded INTO the Current Year Earnings line
+        // below — so it must be excluded from the regular equity listing to
+        // avoid double-counting. $residualPL is the still-unclosed remainder.
+        $cypCode      = \App\Services\Finance\ClosingService::CURRENT_YEAR_PL;   // '3003'
+        $reCode       = \App\Services\Finance\ClosingService::RETAINED_EARNINGS; // '3002'
+        $cyp3003      = $bsAccounts->firstWhere('code', $cypCode);
+        $closedToCYP  = round((float) ($cyp3003->balance ?? 0), 2);
+        $residualPL   = round($currentYearPL - $closedToCYP, 2);
+
+        // Build hierarchical groups per classification; equity excludes 3003.
+        $buildGroups = function ($classification, array $excludeCodes = []) use ($bsAccounts) {
+            $accounts = $bsAccounts->where('classification', $classification)
+                ->whereNotIn('code', $excludeCodes);
             $parents  = $accounts->where('is_posting', false)->keyBy('id');
             $posting  = $accounts->where('is_posting', true);
 
@@ -371,11 +382,15 @@ class GeneralLedgerController extends Controller
 
         $assetGroups     = $buildGroups('asset');
         $liabilityGroups = $buildGroups('liability');
-        $equityGroups    = $buildGroups('equity');
+        $equityGroups    = $buildGroups('equity', [$cypCode]);
 
         $totalAssets      = $bsAccounts->where('classification', 'asset')->where('is_posting', true)->sum('balance');
         $totalLiabilities = $bsAccounts->where('classification', 'liability')->where('is_posting', true)->sum('balance');
-        $totalEquity      = $bsAccounts->where('classification', 'equity')->where('is_posting', true)->sum('balance') + $currentYearPL;
+
+        // Base equity excludes 3003 (its amount is represented inside currentYearPL).
+        $baseEquity  = $bsAccounts->where('classification', 'equity')->where('is_posting', true)
+            ->whereNotIn('code', [$cypCode])->sum('balance');
+        $totalEquity = round($baseEquity + $currentYearPL, 2);
 
         $balanceDiff = round(abs($totalAssets - ($totalLiabilities + $totalEquity)), 2);
         $balanced    = $balanceDiff < 0.01;
@@ -384,6 +399,7 @@ class GeneralLedgerController extends Controller
             'assetGroups', 'liabilityGroups', 'equityGroups',
             'totalAssets', 'totalLiabilities', 'totalEquity',
             'currentYearPL', 'ytdRevenue', 'ytdExpense',
+            'closedToCYP', 'residualPL',
             'asOf', 'balanced', 'balanceDiff'
         ));
     }

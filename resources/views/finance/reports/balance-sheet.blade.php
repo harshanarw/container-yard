@@ -224,14 +224,21 @@
                     </tbody>
                 @endforeach
 
-                {{-- Current Year Earnings: live YTD P&L until year-end closing entries are posted --}}
+                {{-- Current Year Earnings: full-year P&L. As periods are P&L-closed,
+                     part of it sits in 3003 (closed) and the rest stays live (unclosed);
+                     both are folded into this single line so it always shows the
+                     full year and the sheet stays balanced. --}}
                 <tbody>
                 <tr class="{{ $currentYearPL >= 0 ? 'table-success' : 'table-warning' }} border-top">
                     <td class="ps-3">
                         <span class="text-muted font-monospace me-2">YTD</span>
                         Current Year Earnings
                         <small class="text-muted ms-1 fst-italic">
-                            (live — Revenue {{ number_format($ytdRevenue,2) }} − Expenses {{ number_format($ytdExpense,2) }})
+                            @if($closedToCYP != 0)
+                                (closed {{ number_format($closedToCYP, 2) }} + unclosed {{ number_format($residualPL, 2) }})
+                            @else
+                                (live — Revenue {{ number_format($ytdRevenue, 2) }} − Expenses {{ number_format($ytdExpense, 2) }})
+                            @endif
                         </small>
                     </td>
                     <td class="text-end pe-3 font-monospace fw-semibold {{ $currentYearPL >= 0 ? 'text-success' : 'text-danger' }}">

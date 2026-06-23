@@ -125,6 +125,57 @@ class PostingEngine
         });
     }
 
+    /**
+     * Create and immediately post a 'closing' journal into an explicit period.
+     *
+     * Closing entries (monthly P&L close, year-end retained-earnings roll) must
+     * post INTO the period being closed — which is no longer 'open' — so they
+     * bypass the open-period resolution that normal journals go through. The
+     * caller is responsible for supplying the correct period and a balanced set
+     * of lines.
+     */
+    public function createAndPostClosing(array $header, array $lines, AccountingPeriod $period, int $userId): GlJournal
+    {
+        $totalDebit  = collect($lines)->sum('debit');
+        $totalCredit = collect($lines)->sum('credit');
+
+        if (round($totalDebit, 4) !== round($totalCredit, 4)) {
+            throw new \InvalidArgumentException(
+                "Closing journal does not balance: debit {$totalDebit} ≠ credit {$totalCredit}"
+            );
+        }
+
+        return DB::transaction(function () use ($header, $lines, $period, $userId, $totalDebit, $totalCredit) {
+            $journal = GlJournal::create([
+                'journal_no'        => $this->nextJournalNo(),
+                'journal_date'      => Carbon::parse($header['journal_date'])->toDateString(),
+                'financial_year_id' => $period->financial_year_id,
+                'period_id'         => $period->id,
+                'journal_type'      => 'closing',
+                'reference_type'    => $header['reference_type'] ?? null,
+                'reference_id'      => $header['reference_id'] ?? null,
+                'narration'         => $header['narration'],
+                'total_debit'       => $totalDebit,
+                'total_credit'      => $totalCredit,
+                'status'            => 'posted',
+                'created_by'        => $userId,
+                'posted_by'         => $userId,
+                'posted_at'         => now(),
+            ]);
+
+            foreach ($lines as $line) {
+                $journal->entries()->create([
+                    'account_id' => $line['account_id'],
+                    'debit'      => $line['debit'] ?? 0,
+                    'credit'     => $line['credit'] ?? 0,
+                    'narration'  => $line['narration'] ?? null,
+                ]);
+            }
+
+            return $journal;
+        });
+    }
+
     private function resolvePeriod(Carbon $date): AccountingPeriod
     {
         $period = $this->periods->periodFor($date);

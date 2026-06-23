@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Models\AccountingPeriod;
 use App\Models\FinancialYear;
+use App\Services\Finance\ClosingService;
 use App\Services\Finance\PeriodManager;
 use Illuminate\Http\Request;
 
 class FinancialYearController extends Controller
 {
-    public function __construct(private PeriodManager $periods) {}
+    public function __construct(
+        private PeriodManager  $periods,
+        private ClosingService $closing,
+    ) {}
 
     public function index()
     {
@@ -112,5 +116,61 @@ class FinancialYearController extends Controller
 
         $this->periods->reopenPeriod($period);
         return back()->with('success', "Period '{$period->name}' reopened.");
+    }
+
+    /**
+     * Run the P&L close for a period (closed → locked). Posts the period's
+     * closing journal and, on the final period, the year-end retained-earnings
+     * roll.
+     */
+    public function closePeriodPL(FinancialYear $fiscalYear, AccountingPeriod $period)
+    {
+        $this->authorize('finance.periods.close');
+
+        if ($period->financial_year_id !== $fiscalYear->id) {
+            abort(404);
+        }
+
+        try {
+            $result = $this->closing->closePeriodPL($period, auth()->id());
+
+            $msg = "Period '{$period->name}' P&L closed";
+            if ($result['period_journal']) {
+                $verb = $result['net_pl'] >= 0 ? 'profit' : 'loss';
+                $msg .= " — net {$verb} " . number_format(abs($result['net_pl']), 2)
+                      . " (journal {$result['period_journal']->journal_no})";
+            } else {
+                $msg .= " — no P&L activity in this period";
+            }
+            if ($result['year_end']) {
+                $msg .= '. Year-end complete: Current Year P/L transferred to Retained Earnings'
+                      . ($result['year_end_journal'] ? " (journal {$result['year_end_journal']->journal_no})" : '')
+                      . ' and the fiscal year is now closed';
+            }
+
+            return back()->with('success', $msg . '.');
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Reverse a P&L close (locked → closed). Voids the period's closing
+     * journals and reopens the fiscal year if a year-end close is undone.
+     */
+    public function reversePeriodPL(FinancialYear $fiscalYear, AccountingPeriod $period)
+    {
+        $this->authorize('finance.periods.reopen');
+
+        if ($period->financial_year_id !== $fiscalYear->id) {
+            abort(404);
+        }
+
+        try {
+            $this->closing->reversePeriodClose($period, auth()->id());
+            return back()->with('success', "Period '{$period->name}' P&L close reversed. The period is now closed (not locked) and can be reopened or re-closed.");
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 }

@@ -573,6 +573,8 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('fiscal-years/{fiscalYear}',                               [FinancialYearController::class, 'update'])->name('fiscal-years.update');
             Route::post('fiscal-years/{fiscalYear}/periods/{period}/close',         [FinancialYearController::class, 'closePeriod'])->name('fiscal-years.period.close');
             Route::post('fiscal-years/{fiscalYear}/periods/{period}/reopen',        [FinancialYearController::class, 'reopenPeriod'])->name('fiscal-years.period.reopen');
+            Route::post('fiscal-years/{fiscalYear}/periods/{period}/close-pl',      [FinancialYearController::class, 'closePeriodPL'])->name('fiscal-years.period.close-pl');
+            Route::post('fiscal-years/{fiscalYear}/periods/{period}/reverse-pl',    [FinancialYearController::class, 'reversePeriodPL'])->name('fiscal-years.period.reverse-pl');
 
             // Chart of Accounts
             Route::get('accounts',                [ChartOfAccountsController::class, 'index'])->name('accounts.index');

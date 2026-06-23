@@ -84,6 +84,7 @@ class GlJournal extends Model
             'journal'    => 'info',
             'adjustment' => 'info',
             'opening'    => 'info',
+            'closing'    => 'dark',
             default      => 'secondary',
         };
     }

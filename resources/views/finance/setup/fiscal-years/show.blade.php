@@ -101,6 +101,18 @@
                 <span><i class="bi bi-calendar-week me-2 text-primary"></i>Accounting Periods</span>
                 <span class="badge bg-secondary-subtle text-secondary">{{ $fiscalYear->periods->count() }} periods</span>
             </div>
+            <div class="px-3 pt-2 pb-1 small text-muted border-bottom" style="background:#fbfcfd">
+                <i class="bi bi-info-circle me-1"></i>
+                <strong>Close workflow:</strong>
+                <span class="badge bg-success-subtle text-success">Open</span>
+                <i class="bi bi-arrow-right mx-1"></i>
+                <span class="badge bg-secondary-subtle text-secondary">Closed</span>
+                <small>(stops posting)</small>
+                <i class="bi bi-arrow-right mx-1"></i>
+                <span class="badge bg-dark-subtle text-dark">P&amp;L Closed</span>
+                <small>(posts closing journal, locks period)</small>.
+                Periods must be P&amp;L-closed in order; closing the final period transfers Current Year P/L into Retained Earnings and closes the fiscal year.
+            </div>
             <div class="table-responsive">
                 <table class="table table-sm table-hover mb-0 align-middle">
                     <thead class="table-light">
@@ -122,8 +134,9 @@
                                 {{ $period->start_date->format('d M') }} – {{ $period->end_date->format('d M Y') }}
                             </td>
                             <td class="text-center">
-                                <span class="badge bg-{{ \App\Models\AccountingPeriod::statusBadge($period->status) }}-subtle text-{{ \App\Models\AccountingPeriod::statusBadge($period->status) }}">
-                                    {{ ucfirst($period->status) }}
+                                <span class="badge bg-{{ \App\Models\AccountingPeriod::statusBadge($period->status) }}-subtle text-{{ \App\Models\AccountingPeriod::statusBadge($period->status) }}"
+                                      title="{{ $period->status === 'locked' ? 'P&L closed — period is locked' : ($period->status === 'closed' ? 'Period-end done — ready for P&L close' : 'Open for posting') }}">
+                                    {{ $period->status === 'locked' ? 'P&L Closed' : ucfirst($period->status) }}
                                 </span>
                             </td>
                             <td class="text-muted small">
@@ -135,27 +148,60 @@
                                 @endif
                             </td>
                             <td class="text-end">
-                                @if($period->isOpen())
+                                @php
+                                    $plJournal = $period->status === 'locked'
+                                        ? \App\Models\GlJournal::where('journal_type', 'closing')
+                                            ->where('status', 'posted')
+                                            ->where('reference_type', \App\Models\AccountingPeriod::class)
+                                            ->where('reference_id', $period->id)
+                                            ->first()
+                                        : null;
+                                @endphp
+
+                                @if($period->status === 'open')
                                     @can('finance.periods.close')
                                     <form method="POST" action="{{ route('finance.setup.fiscal-years.period.close', [$fiscalYear, $period]) }}" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2"
-                                                onclick="return confirm('Close period {{ $period->name }}?')">
-                                            <i class="bi bi-lock me-1"></i>Close
+                                                onclick="return confirm('Close period {{ $period->name }}? This stops new postings to this period.')">
+                                            <i class="bi bi-lock me-1"></i>Close Period
                                         </button>
                                     </form>
                                     @endcan
-                                @else
+                                @elseif($period->status === 'closed')
+                                    @can('finance.periods.close')
+                                    <form method="POST" action="{{ route('finance.setup.fiscal-years.period.close-pl', [$fiscalYear, $period]) }}" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-primary py-0 px-2"
+                                                onclick="return confirm('Run the P&L close for {{ $period->name }}?\n\nThis posts the period closing journal (income/expense → Current Year P/L) and locks the period.{{ $loop->last ? '\n\nThis is the FINAL period — the year-end transfer to Retained Earnings will also run and the fiscal year will be closed.' : '' }}')">
+                                            <i class="bi bi-journal-check me-1"></i>Close P&amp;L
+                                        </button>
+                                    </form>
+                                    @endcan
                                     @can('finance.periods.reopen')
-                                    @if($period->status !== 'locked')
                                     <form method="POST" action="{{ route('finance.setup.fiscal-years.period.reopen', [$fiscalYear, $period]) }}" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2"
-                                                onclick="return confirm('Reopen period {{ $period->name }}?')">
+                                                onclick="return confirm('Reopen period {{ $period->name }}? This allows new postings again.')">
                                             <i class="bi bi-unlock me-1"></i>Reopen
                                         </button>
                                     </form>
+                                    @endcan
+                                @else {{-- locked: P&L closed --}}
+                                    @if($plJournal)
+                                    <a href="{{ route('finance.gl.journals.show', $plJournal) }}"
+                                       class="btn btn-sm btn-outline-info py-0 px-2" title="View closing journal">
+                                        <i class="bi bi-journal-text me-1"></i>{{ $plJournal->journal_no }}
+                                    </a>
                                     @endif
+                                    @can('finance.periods.reopen')
+                                    <form method="POST" action="{{ route('finance.setup.fiscal-years.period.reverse-pl', [$fiscalYear, $period]) }}" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-warning py-0 px-2"
+                                                onclick="return confirm('Reverse the P&L close for {{ $period->name }}?\n\nThis voids the closing journal(s) and unlocks the period back to Closed.{{ $loop->last ? '\n\nThe year-end Retained Earnings transfer will also be reversed and the fiscal year reopened.' : '' }}')">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i>Reverse
+                                        </button>
+                                    </form>
                                     @endcan
                                 @endif
                             </td>
