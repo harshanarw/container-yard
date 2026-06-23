@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class StorageHandlingInvoice extends Model
 {
     protected $fillable = [
-        'invoice_no', 'invoice_type', 'shipping_line_id', 'billing_party_id', 'invoice_date',
+        'invoice_no', 'invoice_type', 'shipping_line_id', 'billing_party_id', 'invoice_date', 'due_date',
         'invoice_currency', 'exchange_rate',
         'billing_period_from', 'billing_period_to',
         'storage_subtotal', 'handling_subtotal', 'subtotal',
@@ -19,6 +19,7 @@ class StorageHandlingInvoice extends Model
 
     protected $casts = [
         'invoice_date'        => 'date',
+        'due_date'            => 'date',
         'billing_period_from' => 'date',
         'billing_period_to'   => 'date',
         'exchange_rate'       => 'decimal:4',

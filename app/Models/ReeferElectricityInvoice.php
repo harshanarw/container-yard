@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ReeferElectricityInvoice extends Model
 {
     protected $fillable = [
-        'invoice_no', 'customer_id', 'invoice_date',
+        'invoice_no', 'customer_id', 'invoice_date', 'due_date',
         'billing_period_from', 'billing_period_to',
         'invoice_currency', 'exchange_rate',
         'subtotal', 'sscl_percentage', 'sscl_amount',
@@ -19,6 +19,7 @@ class ReeferElectricityInvoice extends Model
 
     protected $casts = [
         'invoice_date'        => 'date',
+        'due_date'            => 'date',
         'billing_period_from' => 'date',
         'billing_period_to'   => 'date',
         'exchange_rate'       => 'decimal:4',

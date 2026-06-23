@@ -164,6 +164,15 @@
                     <div class="text-muted">Invoice Date</div>
                     <div>{{ $invoice->invoice_date->format('d M Y') }}</div>
                 </div>
+                <div class="mb-2">
+                    <div class="text-muted">Due Date</div>
+                    <div>
+                        {{ $invoice->due_date?->format('d M Y') ?? '—' }}
+                        @if($invoice->due_date && $invoice->status === 'issued' && $invoice->due_date->isPast())
+                            <span class="badge bg-danger ms-1">Past due</span>
+                        @endif
+                    </div>
+                </div>
                 <div class="row g-2 mb-2">
                     <div class="col-6">
                         <div class="text-muted">Invoice Currency</div>

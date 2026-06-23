@@ -28,11 +28,12 @@
 {{-- Grand Total Summary --}}
 <div class="row g-3 mb-3">
     @foreach([
-        ['Current (0–30)', 'current', 'success'],
-        ['31–60 days',     '31-60',  'warning'],
-        ['61–90 days',     '61-90',  'orange'],
-        ['Over 90 days',   '90+',    'danger'],
-        ['Total Outstanding', 'total', 'primary'],
+        ['Not Due',           'current', 'success'],
+        ['1–30 days',         '1-30',    'info'],
+        ['31–60 days',        '31-60',   'warning'],
+        ['61–90 days',        '61-90',   'orange'],
+        ['Over 90 days',      '90+',     'danger'],
+        ['Total Outstanding', 'total',   'primary'],
     ] as [$label, $key, $color])
     <div class="col-md col-6">
         <div class="card content-card text-center py-3">
@@ -65,11 +66,13 @@
                     <th>Customer</th>
                     <th>Invoice</th>
                     <th>Type</th>
-                    <th>Date</th>
-                    <th class="text-end">Age</th>
+                    <th>Inv Date</th>
+                    <th>Due Date</th>
+                    <th class="text-end">Past Due</th>
                     <th class="text-end">Total</th>
                     <th class="text-end">Settled</th>
-                    <th class="text-end text-success-emphasis">0–30</th>
+                    <th class="text-end text-success-emphasis">Not Due</th>
+                    <th class="text-end text-info-emphasis">1–30</th>
                     <th class="text-end text-warning-emphasis">31–60</th>
                     <th class="text-end" style="color:#c47200">61–90</th>
                     <th class="text-end text-danger-emphasis">90+</th>
@@ -126,17 +129,27 @@
 
                     <td class="text-muted">{{ $inv['invoice_date']->format('d M Y') }}</td>
 
+                    <td class="{{ $inv['past_due'] ? 'text-danger fw-semibold' : 'text-muted' }}">
+                        {{ $inv['due_date']->format('d M Y') }}
+                        @if($inv['past_due'])<i class="bi bi-exclamation-circle ms-1" title="Past due"></i>@endif
+                    </td>
+
                     <td class="text-end">
                         @php
                             $bc = match($inv['bucket']) {
                                 'current' => 'success',
+                                '1-30'    => 'info',
                                 '31-60'   => 'warning',
                                 '61-90'   => 'warning',
                                 '90+'     => 'danger',
                                 default   => 'secondary',
                             };
                         @endphp
-                        <span class="badge bg-{{ $bc }}-subtle text-{{ $bc }}">{{ $inv['age_days'] }}d</span>
+                        @if($inv['past_due'])
+                            <span class="badge bg-{{ $bc }}-subtle text-{{ $bc }}">{{ $inv['age_days'] }}d</span>
+                        @else
+                            <span class="text-muted small">—</span>
+                        @endif
                     </td>
 
                     <td class="text-end font-monospace">{{ number_format($inv['total'], 2) }}</td>
@@ -145,6 +158,9 @@
                     {{-- Bucket columns --}}
                     <td class="text-end font-monospace {{ $inv['bucket'] === 'current' ? 'fw-semibold text-success' : 'text-muted' }}">
                         {{ $inv['bucket'] === 'current' ? number_format($inv['outstanding'], 2) : '—' }}
+                    </td>
+                    <td class="text-end font-monospace {{ $inv['bucket'] === '1-30' ? 'fw-semibold text-info' : 'text-muted' }}">
+                        {{ $inv['bucket'] === '1-30' ? number_format($inv['outstanding'], 2) : '—' }}
                     </td>
                     <td class="text-end font-monospace {{ $inv['bucket'] === '31-60' ? 'fw-semibold text-warning' : 'text-muted' }}">
                         {{ $inv['bucket'] === '31-60' ? number_format($inv['outstanding'], 2) : '—' }}
@@ -165,10 +181,11 @@
 
                 {{-- Customer subtotal row --}}
                 <tr class="table-light fw-semibold small border-bottom">
-                    <td class="text-end text-muted fst-italic ps-2" colspan="7">
+                    <td class="text-end text-muted fst-italic ps-2" colspan="8">
                         {{ $group['customer']?->name ?? 'Unknown' }} subtotal
                     </td>
                     <td class="text-end font-monospace text-success">{{ number_format($group['current'], 2) }}</td>
+                    <td class="text-end font-monospace text-info">{{ number_format($group['1-30'], 2) }}</td>
                     <td class="text-end font-monospace text-warning">{{ number_format($group['31-60'], 2) }}</td>
                     <td class="text-end font-monospace" style="color:#c47200">{{ number_format($group['61-90'], 2) }}</td>
                     <td class="text-end font-monospace text-danger">{{ number_format($group['90+'], 2) }}</td>
@@ -178,8 +195,9 @@
 
                 {{-- Grand total --}}
                 <tr class="table-dark fw-bold">
-                    <td colspan="7" class="text-end small">Grand Total</td>
+                    <td colspan="8" class="text-end small">Grand Total</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['current'], 2) }}</td>
+                    <td class="text-end font-monospace">{{ number_format($grandTotals['1-30'], 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['31-60'], 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['61-90'], 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['90+'], 2) }}</td>

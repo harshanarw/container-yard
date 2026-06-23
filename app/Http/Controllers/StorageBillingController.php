@@ -345,12 +345,19 @@ class StorageBillingController extends Controller
         $invoice = null;
 
         DB::transaction(function () use ($validated, $invoiceNo, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $subtotal, $ssclAmount, $vatAmount, $totalAmount, $totalValue, &$invoice) {
+            // Due date follows the debtor's AR payment terms (Net 30 default).
+            $debtorTerms = \App\Models\Customer::where('id', $validated['customer_id'])->value('payment_terms') ?? 'net30';
+            $dueDate     = \App\Services\Finance\PaymentTermsHelper::dueDate(
+                $debtorTerms, \Carbon\Carbon::parse($validated['invoice_date'])
+            )->toDateString();
+
             $invoice = StorageInvoice::create([
                 'invoice_no'          => $invoiceNo,
                 'invoice_type'        => $validated['invoice_type'] ?? 'invoice',
                 'customer_id'         => $validated['customer_id'],
                 'billing_party_id'    => $validated['billing_party_id'] ?? $validated['customer_id'],
                 'invoice_date'        => $validated['invoice_date'],
+                'due_date'            => $dueDate,
                 'invoice_currency'    => $invoiceCurrency,
                 'exchange_rate'       => $exchangeRate,
                 'billing_period_from' => $validated['period_from'],

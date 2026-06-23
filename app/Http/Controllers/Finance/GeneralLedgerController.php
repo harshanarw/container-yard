@@ -427,12 +427,16 @@ class GeneralLedgerController extends Controller
 
                 if ($outstanding <= 0) continue;
 
-                $invDate  = Carbon::parse($inv->invoice_date);
-                $ageDays  = (int) $invDate->diffInDays($asOfDate, false);
-                $ageDays  = max(0, $ageDays);
+                $invDate = Carbon::parse($inv->invoice_date);
+                // Age off the due date (proper debtors ageing = days past due);
+                // fall back to the invoice date for any row still lacking one.
+                $dueDate = !empty($inv->due_date) ? Carbon::parse($inv->due_date) : $invDate;
+                $ageDays = max(0, (int) $dueDate->diffInDays($asOfDate, false));
+                $pastDue = $asOfDate->gt($dueDate);
 
                 $bucket = match (true) {
-                    $ageDays <= 30  => 'current',
+                    $ageDays <= 0   => 'current',
+                    $ageDays <= 30  => '1-30',
                     $ageDays <= 60  => '31-60',
                     $ageDays <= 90  => '61-90',
                     default         => '90+',
@@ -449,6 +453,8 @@ class GeneralLedgerController extends Controller
                     'id'           => $inv->id,
                     'invoice_no'   => $inv->invoice_no,
                     'invoice_date' => $invDate,
+                    'due_date'     => $dueDate,
+                    'past_due'     => $pastDue,
                     'total'        => $total,
                     'allocated'    => $allocated,
                     'outstanding'  => $outstanding,
@@ -490,6 +496,7 @@ class GeneralLedgerController extends Controller
                 'customer'     => $customer,
                 'invoices'     => $invRows->sortBy('invoice_date'),
                 'current'      => $invRows->where('bucket', 'current')->sum('outstanding'),
+                '1-30'         => $invRows->where('bucket', '1-30')->sum('outstanding'),
                 '31-60'        => $invRows->where('bucket', '31-60')->sum('outstanding'),
                 '61-90'        => $invRows->where('bucket', '61-90')->sum('outstanding'),
                 '90+'          => $invRows->where('bucket', '90+')->sum('outstanding'),
@@ -501,6 +508,7 @@ class GeneralLedgerController extends Controller
 
         $grandTotals = [
             'current' => $rows->where('bucket', 'current')->sum('outstanding'),
+            '1-30'    => $rows->where('bucket', '1-30')->sum('outstanding'),
             '31-60'   => $rows->where('bucket', '31-60')->sum('outstanding'),
             '61-90'   => $rows->where('bucket', '61-90')->sum('outstanding'),
             '90+'     => $rows->where('bucket', '90+')->sum('outstanding'),

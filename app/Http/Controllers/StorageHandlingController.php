@@ -442,12 +442,19 @@ class StorageHandlingController extends Controller
         $invoice = null;
 
         DB::transaction(function () use ($v, $invoiceNo, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $ssclAmount, $vatAmount, $totalAmount, $totalValue, &$invoice) {
+            // Due date follows the debtor's (shipping line's) AR payment terms.
+            $debtorTerms = \App\Models\Customer::where('id', $v['shipping_line_id'])->value('payment_terms') ?? 'net30';
+            $dueDate     = \App\Services\Finance\PaymentTermsHelper::dueDate(
+                $debtorTerms, \Carbon\Carbon::parse($v['invoice_date'])
+            )->toDateString();
+
             $invoice = StorageHandlingInvoice::create([
                 'invoice_no'          => $invoiceNo,
                 'invoice_type'        => $v['invoice_type'] ?? 'invoice',
                 'shipping_line_id'    => $v['shipping_line_id'],
                 'billing_party_id'    => $v['billing_party_id'] ?? $v['shipping_line_id'],
                 'invoice_date'        => $v['invoice_date'],
+                'due_date'            => $dueDate,
                 'invoice_currency'    => $invoiceCurrency,
                 'exchange_rate'       => $exchangeRate,
                 'billing_period_from' => $v['period_from'],

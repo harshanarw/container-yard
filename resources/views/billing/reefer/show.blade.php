@@ -77,6 +77,13 @@
                     <dd class="col-sm-7">{{ $reeferInvoice->customer?->name }}</dd>
                     <dt class="col-sm-5 text-muted">Invoice Date</dt>
                     <dd class="col-sm-7">{{ $reeferInvoice->invoice_date?->format('d M Y') }}</dd>
+                    <dt class="col-sm-5 text-muted">Due Date</dt>
+                    <dd class="col-sm-7">
+                        {{ $reeferInvoice->due_date?->format('d M Y') ?? '—' }}
+                        @if($reeferInvoice->due_date && $reeferInvoice->status === 'issued' && $reeferInvoice->due_date->isPast())
+                            <span class="badge bg-danger ms-1">Past due</span>
+                        @endif
+                    </dd>
                     <dt class="col-sm-5 text-muted">Billing Period</dt>
                     <dd class="col-sm-7">
                         {{ $reeferInvoice->billing_period_from?->format('d M Y') }}

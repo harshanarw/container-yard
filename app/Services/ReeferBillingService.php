@@ -230,10 +230,17 @@ class ReeferBillingService
         ?string $notes
     ): ReeferElectricityInvoice {
         return DB::transaction(function () use ($preview, $invoiceDate, $periodFrom, $periodTo, $notes) {
+            // Due date follows the debtor's AR payment terms (Net 30 default).
+            $dueDate = \App\Services\Finance\PaymentTermsHelper::dueDate(
+                $preview['customer']->payment_terms ?? 'net30',
+                \Carbon\Carbon::parse($invoiceDate)
+            )->toDateString();
+
             $invoice = ReeferElectricityInvoice::create([
                 'invoice_no'          => ReeferElectricityInvoice::nextInvoiceNo(),
                 'customer_id'         => $preview['customer']->id,
                 'invoice_date'        => $invoiceDate,
+                'due_date'            => $dueDate,
                 'billing_period_from' => $periodFrom,
                 'billing_period_to'   => $periodTo,
                 'invoice_currency'    => $preview['invoice_currency'],
