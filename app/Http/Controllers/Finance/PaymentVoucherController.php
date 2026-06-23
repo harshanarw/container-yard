@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\BankAccount;
+use App\Models\Customer;
 use App\Models\PaymentAllocation;
 use App\Models\PaymentVoucher;
-use App\Models\Supplier;
 use App\Services\Finance\ApAllocationService;
 use App\Services\Finance\ReceiptPostingService;
 use Illuminate\Http\Request;
@@ -59,7 +59,7 @@ class PaymentVoucherController extends Controller
             ->orderBy('classification')
             ->orderBy('code')
             ->get();
-        $suppliers = Supplier::where('status', 'active')->orderBy('name')->get(['id', 'code', 'name']);
+        $suppliers = Customer::apContacts()->get(['id', 'code', 'name']);
 
         return view('finance.vouchers.create', compact('bankAccounts', 'expenseAccounts', 'suppliers'));
     }
@@ -70,7 +70,7 @@ class PaymentVoucherController extends Controller
 
         $validated = $request->validate([
             'voucher_date'      => ['required', 'date'],
-            'supplier_id'       => ['nullable', 'exists:suppliers,id'],
+            'customer_id'       => ['nullable', 'exists:customers,id'],
             'payee_name'        => ['required', 'string', 'max:150'],
             'bank_account_id'   => ['nullable', 'exists:bank_accounts,id'],
             'amount'            => ['required', 'numeric', 'min:0.0001'],
@@ -100,9 +100,9 @@ class PaymentVoucherController extends Controller
         $voucher->load(['bankAccount.glAccount', 'expenseAccount', 'journal', 'createdBy', 'voidedBy',
             'supplier', 'allocations.invoice']);
 
-        // AP allocation context — only relevant when the voucher is tied to a supplier.
-        $pendingInvoices   = $voucher->supplier_id
-            ? $this->allocationService->pendingForSupplier($voucher->supplier_id)
+        // AP allocation context — only relevant when the voucher is tied to a contact.
+        $pendingInvoices   = $voucher->customer_id
+            ? $this->allocationService->pendingForSupplier($voucher->customer_id)
             : collect();
         $totalAllocated    = (float) $voucher->allocations->sum('allocated_amount');
         $unallocatedAmount = round((float) $voucher->amount - $totalAllocated, 2);
@@ -123,8 +123,8 @@ class PaymentVoucherController extends Controller
             return back()->with('error', 'Allocations can only be added to draft vouchers.');
         }
 
-        if (!$voucher->supplier_id) {
-            return back()->with('error', 'Link this voucher to a supplier before allocating it to invoices.');
+        if (!$voucher->customer_id) {
+            return back()->with('error', 'Link this voucher to a contact before allocating it to invoices.');
         }
 
         $validated = $request->validate([
@@ -139,8 +139,8 @@ class PaymentVoucherController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        if ((int) $invoice->supplier_id !== (int) $voucher->supplier_id) {
-            return back()->with('error', 'That invoice belongs to a different supplier.');
+        if ((int) $invoice->customer_id !== (int) $voucher->customer_id) {
+            return back()->with('error', 'That invoice belongs to a different contact.');
         }
 
         $outstanding = $this->allocationService->getOutstanding($invoice);

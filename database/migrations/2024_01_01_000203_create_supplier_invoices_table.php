@@ -6,8 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Supplier (purchase) invoices — the bills we owe. A single consistent model
- * with a supplier_id and total_amount, unlike the four AR invoice types, to
+ * with a customer_id and total_amount, unlike the four AR invoice types, to
  * avoid replicating their column-name asymmetry.
+ *
+ * customer_id points to the unified Contact/Party master (customers table):
+ * the same external party can be both a debtor (AR) and a creditor (AP), so
+ * there is no separate supplier master to duplicate company profiles.
  *
  * Posting state is tracked directly on the row (journal_id + posting_error)
  * since there is only one invoice type — no polymorphic posting ledger needed.
@@ -20,7 +24,7 @@ return new class extends Migration
             $table->id();
             $table->string('invoice_no', 30)->unique();          // our internal reference
             $table->string('supplier_invoice_no', 50)->nullable(); // supplier's own bill number
-            $table->foreignId('supplier_id')->constrained('suppliers')->cascadeOnDelete();
+            $table->foreignId('customer_id')->constrained('customers')->cascadeOnDelete();
             $table->date('invoice_date');
             $table->date('due_date')->nullable();
             $table->string('currency', 10)->default('LKR');
@@ -37,7 +41,7 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index('supplier_id');
+            $table->index('customer_id');
             $table->index('invoice_date');
             $table->index('status');
         });

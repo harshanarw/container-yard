@@ -144,7 +144,7 @@
             <div class="card-header bg-transparent py-2"><strong class="small">Details</strong></div>
             <div class="card-body small">
                 <dl class="row mb-0">
-                    <dt class="col-5 text-muted fw-normal">Supplier</dt><dd class="col-7"><a href="{{ route('finance.suppliers.show', $inv->supplier_id) }}" class="text-decoration-none">{{ $inv->supplier->name ?? '' }}</a></dd>
+                    <dt class="col-5 text-muted fw-normal">Supplier</dt><dd class="col-7"><a href="{{ route('customers.show', $inv->customer_id) }}" class="text-decoration-none">{{ $inv->supplier->name ?? '' }}</a></dd>
                     <dt class="col-5 text-muted fw-normal">Bill No</dt><dd class="col-7">{{ $inv->supplier_invoice_no ?: '—' }}</dd>
                     <dt class="col-5 text-muted fw-normal">Invoice Date</dt><dd class="col-7">{{ $inv->invoice_date->format('d M Y') }}</dd>
                     <dt class="col-5 text-muted fw-normal">Due Date</dt><dd class="col-7">{{ $inv->due_date?->format('d M Y') ?: '—' }}</dd>

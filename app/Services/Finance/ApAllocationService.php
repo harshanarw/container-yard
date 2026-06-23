@@ -74,12 +74,12 @@ class ApAllocationService
     }
 
     /**
-     * All outstanding invoices for a supplier, ready for an allocation dropdown.
+     * All outstanding invoices for a contact, ready for an allocation dropdown.
      * Rows: id, invoice_no, invoice_date, total, outstanding, label
      */
-    public function pendingForSupplier(int $supplierId): Collection
+    public function pendingForSupplier(int $customerId): Collection
     {
-        return SupplierInvoice::where('supplier_id', $supplierId)
+        return SupplierInvoice::where('customer_id', $customerId)
             ->whereIn('status', ['approved', 'partially_paid'])
             ->orderByDesc('invoice_date')
             ->get()

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class SupplierInvoice extends Model
 {
     protected $fillable = [
-        'invoice_no', 'supplier_invoice_no', 'supplier_id', 'invoice_date', 'due_date',
+        'invoice_no', 'supplier_invoice_no', 'customer_id', 'invoice_date', 'due_date',
         'currency', 'exchange_rate', 'subtotal', 'tax_amount', 'total_amount',
         'status', 'journal_id', 'posting_error', 'notes',
         'approved_by', 'approved_at', 'created_by',
@@ -25,9 +25,20 @@ class SupplierInvoice extends Model
         'total_amount'  => 'decimal:4',
     ];
 
+    /**
+     * The Contact/Party we owe (unified customers master). Named supplier() for
+     * readability on the AP side, but it resolves to a Customer — the same
+     * external party that may also be an AR debtor.
+     */
     public function supplier(): BelongsTo
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    /** Semantic alias — the underlying record is a unified Contact. */
+    public function contact(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
     }
 
     public function lines(): HasMany

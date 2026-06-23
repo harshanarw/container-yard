@@ -30,12 +30,12 @@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label small">Supplier <span class="text-danger">*</span></label>
-                    <select name="supplier_id" id="supplierSelect" class="form-select form-select-sm" required>
-                        <option value="">— Select supplier —</option>
+                    <label class="form-label small">Supplier / Contact <span class="text-danger">*</span></label>
+                    <select name="customer_id" id="supplierSelect" class="form-select form-select-sm" required>
+                        <option value="">— Select contact —</option>
                         @foreach($suppliers as $sup)
                         <option value="{{ $sup->id }}" data-currency="{{ $sup->currency }}"
-                            {{ (string) old('supplier_id', request('supplier_id')) === (string) $sup->id ? 'selected' : '' }}>
+                            {{ (string) old('customer_id', request('customer_id')) === (string) $sup->id ? 'selected' : '' }}>
                             {{ $sup->code }} — {{ $sup->name }}
                         </option>
                         @endforeach

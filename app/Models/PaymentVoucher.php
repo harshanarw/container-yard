@@ -9,7 +9,7 @@ class PaymentVoucher extends Model
     protected $fillable = [
         'voucher_no',
         'voucher_date',
-        'supplier_id',
+        'customer_id',
         'payee_name',
         'bank_account_id',
         'amount',
@@ -34,9 +34,20 @@ class PaymentVoucher extends Model
         'exchange_rate' => 'decimal:6',
     ];
 
+    /**
+     * The Contact/Party being paid (unified customers master). Named supplier()
+     * for AP readability, but resolves to a Customer — the same external party
+     * that may also be an AR debtor.
+     */
     public function supplier()
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    /** Semantic alias — the underlying record is a unified Contact. */
+    public function contact()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
     }
 
     public function allocations()

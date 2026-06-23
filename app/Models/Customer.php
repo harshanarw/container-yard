@@ -102,4 +102,30 @@ class Customer extends Model
     {
         return $this->hasMany(\App\Models\CustomerEmailContact::class)->orderBy('category')->orderBy('sort_order');
     }
+
+    // ── Accounts Payable (this Contact acting as a creditor / supplier) ──────
+
+    /** Purchase bills owed to this contact. */
+    public function supplierInvoices()
+    {
+        return $this->hasMany(SupplierInvoice::class, 'customer_id');
+    }
+
+    /** Payment vouchers issued to this contact. */
+    public function paymentVouchers()
+    {
+        return $this->hasMany(PaymentVoucher::class, 'customer_id');
+    }
+
+    /**
+     * Contacts eligible to be billed as a supplier/creditor in the AP module.
+     * The unified master means any active contact can owe-or-be-owed, so this
+     * simply lists active parties (ordered for dropdowns); the Customer Type
+     * tags (Vendor, Transporter, Shipping Line, …) remain available for
+     * filtering and reporting.
+     */
+    public function scopeApContacts($query)
+    {
+        return $query->where('status', 'active')->orderBy('name');
+    }
 }

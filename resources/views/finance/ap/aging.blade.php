@@ -82,7 +82,9 @@
                 <tr class="{{ $i === 0 ? 'border-top border-2' : '' }}">
                     @if($i === 0)
                     <td rowspan="{{ $supRowspan }}" class="fw-semibold align-top pt-2">
-                        {{ $group['supplier']?->name ?? 'Unknown' }}
+                        @if($group['supplier'])
+                        <a href="{{ route('customers.show', $group['supplier']->id) }}" class="text-decoration-none">{{ $group['supplier']->name }}</a>
+                        @else Unknown @endif
                     </td>
                     @endif
 

@@ -13,7 +13,6 @@ use App\Models\ReeferElectricityInvoice;
 use App\Models\RepairInvoice;
 use App\Models\StorageHandlingInvoice;
 use App\Models\StorageInvoice;
-use App\Models\Supplier;
 use App\Models\SupplierInvoice;
 use App\Services\Finance\PostingEngine;
 use Carbon\Carbon;
@@ -544,7 +543,7 @@ class GeneralLedgerController extends Controller
                 };
 
                 $rows->push([
-                    'supplier_id'  => $inv->supplier_id,
+                    'customer_id'  => $inv->customer_id,
                     'id'           => $inv->id,
                     'invoice_no'   => $inv->invoice_no,
                     'invoice_date' => $invDate,
@@ -556,11 +555,11 @@ class GeneralLedgerController extends Controller
                 ]);
             });
 
-        $supplierIds = $rows->pluck('supplier_id')->filter()->unique();
-        $suppliers   = Supplier::whereIn('id', $supplierIds)->get()->keyBy('id');
+        $customerIds = $rows->pluck('customer_id')->filter()->unique();
+        $suppliers   = Customer::whereIn('id', $customerIds)->get()->keyBy('id');
 
-        $bySupplier = $rows->groupBy('supplier_id')->map(function ($invRows) use ($suppliers) {
-            $supId = $invRows->first()['supplier_id'];
+        $bySupplier = $rows->groupBy('customer_id')->map(function ($invRows) use ($suppliers) {
+            $supId = $invRows->first()['customer_id'];
             return [
                 'supplier' => $suppliers->get($supId),
                 'invoices' => $invRows->sortBy('invoice_date'),

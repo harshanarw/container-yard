@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\CompanySetting;
-use App\Models\Supplier;
+use App\Models\Customer;
 use App\Models\SupplierInvoice;
 use App\Services\Finance\ApAllocationService;
 use App\Services\Finance\SupplierInvoicePostingService;
@@ -26,7 +26,7 @@ class SupplierInvoiceController extends Controller
 
         $invoices = SupplierInvoice::query()
             ->with('supplier')
-            ->when($request->supplier_id, fn ($q, $id) => $q->where('supplier_id', $id))
+            ->when($request->customer_id, fn ($q, $id) => $q->where('customer_id', $id))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->search, fn ($q, $s) =>
                 $q->where(fn ($qb) => $qb->where('invoice_no', 'like', "%{$s}%")
@@ -36,7 +36,7 @@ class SupplierInvoiceController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $suppliers = Supplier::where('status', 'active')->orderBy('name')->get(['id', 'code', 'name']);
+        $suppliers = Customer::apContacts()->get(['id', 'code', 'name']);
 
         return view('finance.supplier-invoices.index', compact('invoices', 'suppliers'));
     }
@@ -45,7 +45,7 @@ class SupplierInvoiceController extends Controller
     {
         $this->authorize('finance.ap.create');
 
-        $suppliers = Supplier::where('status', 'active')->orderBy('name')->get(['id', 'code', 'name', 'currency']);
+        $suppliers = Customer::apContacts()->get(['id', 'code', 'name', 'currency']);
         $accounts  = Account::where('is_posting', true)->where('is_active', true)
             ->whereIn('classification', ['expense', 'asset'])
             ->orderBy('code')->get(['id', 'code', 'name']);
@@ -58,7 +58,7 @@ class SupplierInvoiceController extends Controller
         $this->authorize('finance.ap.create');
 
         $validated = $request->validate([
-            'supplier_id'          => ['required', 'exists:suppliers,id'],
+            'customer_id'          => ['required', 'exists:customers,id'],
             'supplier_invoice_no'  => ['nullable', 'string', 'max:50'],
             'invoice_date'         => ['required', 'date'],
             'due_date'             => ['nullable', 'date', 'after_or_equal:invoice_date'],
@@ -80,7 +80,7 @@ class SupplierInvoiceController extends Controller
             $invoice = SupplierInvoice::create([
                 'invoice_no'          => $this->nextInvoiceNo(),
                 'supplier_invoice_no' => $validated['supplier_invoice_no'] ?? null,
-                'supplier_id'         => $validated['supplier_id'],
+                'customer_id'         => $validated['customer_id'],
                 'invoice_date'        => $validated['invoice_date'],
                 'due_date'            => $validated['due_date'] ?? null,
                 'currency'            => $validated['currency'],
@@ -104,7 +104,7 @@ class SupplierInvoiceController extends Controller
             return $invoice;
         });
 
-        return redirect()->route('finance.supplier-invoices.show', $invoice)
+        return redirect()->route('finance.ap.invoices.show', $invoice)
             ->with('success', "Supplier invoice {$invoice->invoice_no} created as draft.");
     }
 
@@ -132,7 +132,7 @@ class SupplierInvoiceController extends Controller
 
         $supplierInvoice->delete();
 
-        return redirect()->route('finance.supplier-invoices.index')
+        return redirect()->route('finance.ap.invoices.index')
             ->with('success', 'Draft supplier invoice deleted.');
     }
 

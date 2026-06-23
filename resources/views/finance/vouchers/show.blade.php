@@ -74,10 +74,10 @@
                         <td>{{ \Carbon\Carbon::parse($voucher->voucher_date)->format('d M Y') }}</td>
                     </tr>
                     <tr>
-                        <td class="text-muted">Supplier</td>
+                        <td class="text-muted">Supplier / Contact</td>
                         <td>
                             @if($voucher->supplier)
-                            <a href="{{ route('finance.suppliers.show', $voucher->supplier_id) }}" class="text-decoration-none">{{ $voucher->supplier->name }}</a>
+                            <a href="{{ route('customers.show', $voucher->customer_id) }}" class="text-decoration-none">{{ $voucher->supplier->name }}</a>
                             @else
                             <span class="fst-italic text-muted">One-off payee</span>
                             @endif
@@ -194,8 +194,8 @@
     </div>
 </div>
 
-{{-- AP Allocations (supplier-linked vouchers only) --}}
-@if($voucher->supplier_id)
+{{-- AP Allocations (contact-linked vouchers only) --}}
+@if($voucher->customer_id)
 <div class="card content-card mt-3">
     <div class="card-header bg-transparent py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <strong class="small"><i class="bi bi-link-45deg me-1"></i>Apply to Supplier Invoices</strong>

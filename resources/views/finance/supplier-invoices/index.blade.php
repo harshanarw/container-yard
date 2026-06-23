@@ -34,11 +34,11 @@
                 <input type="text" name="search" class="form-control form-control-sm" value="{{ request('search') }}" placeholder="Invoice no.">
             </div>
             <div class="col-sm-auto">
-                <label class="form-label form-label-sm fw-semibold mb-1">Supplier</label>
-                <select name="supplier_id" class="form-select form-select-sm">
+                <label class="form-label form-label-sm fw-semibold mb-1">Supplier / Contact</label>
+                <select name="customer_id" class="form-select form-select-sm">
                     <option value="">All</option>
                     @foreach($suppliers as $sup)
-                    <option value="{{ $sup->id }}" {{ (string) request('supplier_id') === (string) $sup->id ? 'selected' : '' }}>{{ $sup->name }}</option>
+                    <option value="{{ $sup->id }}" {{ (string) request('customer_id') === (string) $sup->id ? 'selected' : '' }}>{{ $sup->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -53,7 +53,7 @@
             </div>
             <div class="col-sm-auto">
                 <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-funnel me-1"></i>Filter</button>
-                @if(request()->hasAny(['search','supplier_id','status']))
+                @if(request()->hasAny(['search','customer_id','status']))
                 <a href="{{ route('finance.ap.invoices.index') }}" class="btn btn-sm btn-link text-muted">Clear</a>
                 @endif
             </div>

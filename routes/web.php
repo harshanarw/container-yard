@@ -59,7 +59,6 @@ use App\Http\Controllers\Finance\InvoicePostingController;
 use App\Http\Controllers\Finance\BankAccountController;
 use App\Http\Controllers\Finance\ReceiptController;
 use App\Http\Controllers\Finance\PaymentVoucherController;
-use App\Http\Controllers\Finance\SupplierController;
 use App\Http\Controllers\Finance\SupplierInvoiceController;
 use App\Http\Controllers\InternalNotificationEmailController;
 use App\Http\Controllers\CustomerEmailContactController;
@@ -617,19 +616,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('aging',                     [GeneralLedgerController::class, 'arAging'])->name('aging');
         });
 
-        // Suppliers (AP master)
-        Route::prefix('suppliers')->name('suppliers.')->group(function () {
-            Route::get('/',                 [SupplierController::class, 'index'])->name('index');
-            Route::get('/search',           [SupplierController::class, 'search'])->name('search');
-            Route::get('/create',           [SupplierController::class, 'create'])->name('create');
-            Route::post('/',                [SupplierController::class, 'store'])->name('store');
-            Route::get('/{supplier}',       [SupplierController::class, 'show'])->name('show');
-            Route::get('/{supplier}/edit',  [SupplierController::class, 'edit'])->name('edit');
-            Route::patch('/{supplier}',     [SupplierController::class, 'update'])->name('update');
-            Route::delete('/{supplier}',    [SupplierController::class, 'destroy'])->name('destroy');
-        });
-
-        // AP / Supplier Invoices
+        // AP / Supplier Invoices — the supplier/contact master is the unified
+        // Customer (Contact) model; AP simply tags & bills the same parties.
         Route::prefix('ap')->name('ap.')->group(function () {
             Route::get('invoices',                          [SupplierInvoiceController::class, 'index'])->name('invoices.index');
             Route::get('invoices/create',                   [SupplierInvoiceController::class, 'create'])->name('invoices.create');

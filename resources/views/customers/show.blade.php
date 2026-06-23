@@ -77,6 +77,54 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
     </div>
 </div>
 
+@if($apVisible && ($recentApBills->isNotEmpty() || $apOutstanding > 0))
+{{-- Accounts Payable — this contact acting as a supplier/creditor --}}
+<div class="card content-card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-receipt-cutoff me-2 text-danger"></i>Accounts Payable (as Supplier)</span>
+        <span class="small">
+            <span class="text-muted">Outstanding:</span>
+            <span class="font-monospace fw-semibold {{ $apOutstanding > 0 ? 'text-danger' : 'text-success' }}">{{ number_format($apOutstanding, 2) }}</span>
+        </span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th>Invoice No</th>
+                    <th>Bill No</th>
+                    <th>Date</th>
+                    <th class="text-end">Total</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($recentApBills as $bill)
+                <tr>
+                    <td class="font-monospace fw-semibold">
+                        <a href="{{ route('finance.ap.invoices.show', $bill) }}" class="text-decoration-none">{{ $bill->invoice_no }}</a>
+                    </td>
+                    <td class="text-muted">{{ $bill->supplier_invoice_no ?: '—' }}</td>
+                    <td>{{ $bill->invoice_date->format('d M Y') }}</td>
+                    <td class="text-end font-monospace">{{ number_format($bill->total_amount, 2) }} <span class="text-muted">{{ $bill->currency }}</span></td>
+                    <td><span class="badge {{ $bill->status_badge_class }}">{{ $bill->status_label }}</span></td>
+                </tr>
+                @empty
+                <tr><td colspan="5" class="text-center text-muted py-3">No supplier invoices for this contact.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+    @can('finance.ap.create')
+    <div class="card-footer bg-transparent py-2">
+        <a href="{{ route('finance.ap.invoices.create', ['customer_id' => $customer->id]) }}" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-plus-lg me-1"></i>New Supplier Invoice
+        </a>
+    </div>
+    @endcan
+</div>
+@endif
+
 <div class="row g-3">
     <!-- Left Column -->
     <div class="col-lg-8">

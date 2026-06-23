@@ -120,7 +120,27 @@ class CustomerController extends Controller
         $recentContainers = $customer->containers()->latest()->take(5)->get();
         $recentEstimates  = $customer->estimates()->latest()->take(5)->get();
 
-        return view('customers.show', compact('customer', 'recentContainers', 'recentEstimates'));
+        // Accounts-Payable view of this contact (when acting as a supplier/creditor).
+        $apVisible     = auth()->user()->can('finance.ap.view');
+        $recentApBills = collect();
+        $apOutstanding = 0.0;
+        if ($apVisible) {
+            $recentApBills = $customer->supplierInvoices()
+                ->latest('invoice_date')->take(10)->get();
+
+            $apOutstanding = $customer->supplierInvoices()
+                ->whereIn('status', ['approved', 'partially_paid'])
+                ->get()
+                ->sum(fn ($inv) => max(0, (float) $inv->total_amount
+                    - (float) $inv->allocations()
+                        ->whereHas('voucher', fn ($q) => $q->whereIn('status', ['draft', 'confirmed']))
+                        ->sum('allocated_amount')));
+        }
+
+        return view('customers.show', compact(
+            'customer', 'recentContainers', 'recentEstimates',
+            'apVisible', 'recentApBills', 'apOutstanding'
+        ));
     }
 
     public function edit(Customer $customer)

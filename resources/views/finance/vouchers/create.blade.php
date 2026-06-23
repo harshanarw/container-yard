@@ -26,17 +26,17 @@
             @csrf
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold small">Supplier</label>
-                    <select name="supplier_id" id="supplierSelect" class="form-select form-select-sm @error('supplier_id') is-invalid @enderror">
+                    <label class="form-label fw-semibold small">Supplier / Contact</label>
+                    <select name="customer_id" id="supplierSelect" class="form-select form-select-sm @error('customer_id') is-invalid @enderror">
                         <option value="">— None / one-off payee —</option>
                         @foreach($suppliers as $sup)
-                        <option value="{{ $sup->id }}" data-name="{{ $sup->name }}" {{ old('supplier_id') == $sup->id ? 'selected' : '' }}>
+                        <option value="{{ $sup->id }}" data-name="{{ $sup->name }}" {{ old('customer_id') == $sup->id ? 'selected' : '' }}>
                             {{ $sup->code }} — {{ $sup->name }}
                         </option>
                         @endforeach
                     </select>
-                    <div class="form-text small">Link to a supplier to allocate this payment against their invoices.</div>
-                    @error('supplier_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="form-text small">Link to a contact to allocate this payment against their supplier invoices.</div>
+                    @error('customer_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Payee Name <span class="text-danger">*</span></label>
