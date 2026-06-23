@@ -764,7 +764,7 @@
         @endif
 
         {{-- ── FINANCE ── --}}
-        @if(Auth::user()->can('finance.setup.view') || Auth::user()->can('finance.coa.view') || Auth::user()->can('finance.mappings.view') || Auth::user()->can('finance.ap.view'))
+        @if(Auth::user()->can('finance.setup.view') || Auth::user()->can('finance.coa.view') || Auth::user()->can('finance.mappings.view') || Auth::user()->can('finance.gl.view') || Auth::user()->can('finance.ar.view') || Auth::user()->can('finance.ap.view') || Auth::user()->can('finance.receipts.view') || Auth::user()->can('finance.vouchers.view'))
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-finance"
                 aria-expanded="{{ request()->routeIs('finance.*') ? 'true' : 'false' }}"
@@ -773,6 +773,14 @@
         </button>
         <div class="collapse {{ request()->routeIs('finance.*') ? 'show' : '' }}" id="nav-section-finance">
             <ul class="nav flex-column">
+                {{-- ── Setup ─────────────────────────────────────────────── --}}
+                @if(Auth::user()->can('finance.setup.view') || Auth::user()->can('finance.coa.view') || Auth::user()->can('finance.mappings.view'))
+                <li class="nav-item">
+                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
+                        Setup
+                    </span>
+                </li>
+                @endif
                 @can('finance.setup.view')
                 <li class="nav-item">
                     <a href="{{ route('finance.setup.fiscal-years.index') }}"
@@ -797,7 +805,14 @@
                     </a>
                 </li>
                 @endcan
+
+                {{-- ── General Ledger ────────────────────────────────────── --}}
                 @can('finance.gl.view')
+                <li class="nav-item mt-1">
+                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
+                        General Ledger
+                    </span>
+                </li>
                 <li class="nav-item">
                     <a href="{{ route('finance.gl.journals.index') }}"
                        class="nav-link {{ request()->routeIs('finance.gl.journals.*') ? 'active' : '' }}">
@@ -810,7 +825,83 @@
                         <i class="bi bi-list-columns-reverse"></i><span>Account Ledger</span>
                     </a>
                 </li>
-                {{-- Reports group --}}
+                @endcan
+
+                {{-- ── Accounts Receivable ───────────────────────────────── --}}
+                @can('finance.ar.view')
+                <li class="nav-item mt-1">
+                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
+                        Accounts Receivable
+                    </span>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.ar.postings.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.ar.postings*') ? 'active' : '' }}">
+                        <i class="bi bi-receipt-cutoff"></i><span>AR Postings</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.ar.aging') }}"
+                       class="nav-link {{ request()->routeIs('finance.ar.aging') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i><span>AR Aging</span>
+                    </a>
+                </li>
+                @endcan
+
+                {{-- ── Accounts Payable ──────────────────────────────────── --}}
+                @can('finance.ap.view')
+                <li class="nav-item mt-1">
+                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
+                        Accounts Payable
+                    </span>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.ap.invoices.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.ap.invoices.*') ? 'active' : '' }}">
+                        <i class="bi bi-receipt-cutoff"></i><span>Supplier Invoices</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.ap.aging') }}"
+                       class="nav-link {{ request()->routeIs('finance.ap.aging') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i><span>AP Aging</span>
+                    </a>
+                </li>
+                @endcan
+
+                {{-- ── Cash & Bank ───────────────────────────────────────── --}}
+                @if(Auth::user()->can('finance.receipts.view') || Auth::user()->can('finance.vouchers.view'))
+                <li class="nav-item mt-1">
+                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
+                        Cash &amp; Bank
+                    </span>
+                </li>
+                @endif
+                @can('finance.receipts.view')
+                <li class="nav-item">
+                    <a href="{{ route('finance.bank-accounts.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.bank-accounts.*') ? 'active' : '' }}">
+                        <i class="bi bi-bank2"></i><span>Bank Accounts</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.receipts.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.receipts.*') ? 'active' : '' }}">
+                        <i class="bi bi-receipt"></i><span>Receipts</span>
+                    </a>
+                </li>
+                @endcan
+                @can('finance.vouchers.view')
+                <li class="nav-item">
+                    <a href="{{ route('finance.vouchers.index') }}"
+                       class="nav-link {{ request()->routeIs('finance.vouchers.*') ? 'active' : '' }}">
+                        <i class="bi bi-cash-coin"></i><span>Payment Vouchers</span>
+                    </a>
+                </li>
+                @endcan
+
+                {{-- ── Reports ───────────────────────────────────────────── --}}
+                @can('finance.gl.view')
                 <li class="nav-item mt-1">
                     <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
                         Reports
@@ -832,56 +923,6 @@
                     <a href="{{ route('finance.reports.balance-sheet') }}"
                        class="nav-link {{ request()->routeIs('finance.reports.balance-sheet') ? 'active' : '' }}">
                         <i class="bi bi-bar-chart-line"></i><span>Balance Sheet</span>
-                    </a>
-                </li>
-                @endcan
-                @can('finance.ar.view')
-                <li class="nav-item">
-                    <a href="{{ route('finance.ar.postings.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.ar.postings*') ? 'active' : '' }}">
-                        <i class="bi bi-receipt-cutoff"></i><span>AR Postings</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.ar.aging') }}"
-                       class="nav-link {{ request()->routeIs('finance.ar.aging') ? 'active' : '' }}">
-                        <i class="bi bi-clock-history"></i><span>AR Aging</span>
-                    </a>
-                </li>
-                @endcan
-                @can('finance.ap.view')
-                <li class="nav-item">
-                    <a href="{{ route('finance.ap.invoices.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.ap.invoices.*') ? 'active' : '' }}">
-                        <i class="bi bi-receipt-cutoff"></i><span>Supplier Invoices</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.ap.aging') }}"
-                       class="nav-link {{ request()->routeIs('finance.ap.aging') ? 'active' : '' }}">
-                        <i class="bi bi-clock-history"></i><span>AP Aging</span>
-                    </a>
-                </li>
-                @endcan
-                @can('finance.receipts.view')
-                <li class="nav-item">
-                    <a href="{{ route('finance.bank-accounts.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.bank-accounts.*') ? 'active' : '' }}">
-                        <i class="bi bi-bank2"></i><span>Bank Accounts</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.receipts.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.receipts.*') ? 'active' : '' }}">
-                        <i class="bi bi-receipt"></i><span>Receipts</span>
-                    </a>
-                </li>
-                @endcan
-                @can('finance.vouchers.view')
-                <li class="nav-item">
-                    <a href="{{ route('finance.vouchers.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.vouchers.*') ? 'active' : '' }}">
-                        <i class="bi bi-cash-coin"></i><span>Payment Vouchers</span>
                     </a>
                 </li>
                 @endcan
