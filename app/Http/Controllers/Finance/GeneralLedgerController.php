@@ -329,38 +329,33 @@ class GeneralLedgerController extends Controller
 
         $bsAccounts = $loadAccounts(['asset', 'liability', 'equity']);
 
-        // Current-year P&L = raw income/expense activity (excluding closing
-        // entries) up to $asOf. This is the full year's profit regardless of
-        // how many periods have been P&L-closed — closing entries only MOVE the
-        // amount between accounts, they don't change the underlying activity.
-        $plAccounts = $loadAccounts(['income', 'expense'])->map(function ($acc) use ($asOf) {
-            $d = (float) \App\Models\GlEntry::where('account_id', $acc->id)
-                ->whereHas('journal', fn ($j) => $j->where('status', 'posted')
-                    ->where('journal_date', '<=', $asOf)
-                    ->where('journal_type', '!=', 'closing'))
-                ->sum('debit');
-            $c = (float) \App\Models\GlEntry::where('account_id', $acc->id)
-                ->whereHas('journal', fn ($j) => $j->where('status', 'posted')
-                    ->where('journal_date', '<=', $asOf)
-                    ->where('journal_type', '!=', 'closing'))
-                ->sum('credit');
-            $acc->balance = $acc->normal_balance === 'credit' ? ($c - $d) : ($d - $c);
-            return $acc;
-        });
+        // Income/expense ACTUAL residual balances up to $asOf — these include the
+        // effect of any closing entries, so a period that has been P&L-closed has
+        // already been zeroed out here and only un-closed activity remains.
+        $plAccounts = $loadAccounts(['income', 'expense']);
 
-        $ytdRevenue    = $plAccounts->where('classification', 'income')->sum('balance');
-        $ytdExpense    = $plAccounts->where('classification', 'expense')->sum('balance');
-        $currentYearPL = round($ytdRevenue - $ytdExpense, 2);  // positive = profit
+        $ytdRevenue = round($plAccounts->where('classification', 'income')->sum('balance'), 2);
+        $ytdExpense = round($plAccounts->where('classification', 'expense')->sum('balance'), 2);
+        $residualPL = round($ytdRevenue - $ytdExpense, 2);   // still sitting in income/expense
 
         // The Current Year P/L account (3003) holds whatever has already been
-        // P&L-closed. Its balance is folded INTO the Current Year Earnings line
-        // below — so it must be excluded from the regular equity listing to
-        // avoid double-counting. $residualPL is the still-unclosed remainder.
+        // P&L-closed but NOT yet rolled into Retained Earnings. Its balance is
+        // folded INTO the Current Year Earnings line below, so it must be excluded
+        // from the regular equity listing to avoid double-counting.
         $cypCode      = \App\Services\Finance\ClosingService::CURRENT_YEAR_PL;   // '3003'
         $reCode       = \App\Services\Finance\ClosingService::RETAINED_EARNINGS; // '3002'
         $cyp3003      = $bsAccounts->firstWhere('code', $cypCode);
         $closedToCYP  = round((float) ($cyp3003->balance ?? 0), 2);
-        $residualPL   = round($currentYearPL - $closedToCYP, 2);
+
+        // Current Year Earnings = un-closed residual + closed-but-not-yet-rolled.
+        //   • Before any close:   residual = full-year P&L, 3003 = 0  → full year shown.
+        //   • Mid-year closes:    residual = un-closed part, 3003 = closed part → full year.
+        //   • After year-end roll: residual = 0 AND 3003 = 0 (rolled into 3002) → drops to 0,
+        //                          with the profit now living permanently in Retained Earnings.
+        // Because 3003 is excluded from baseEquity, totalEquity reduces to the pure
+        // ledger identity (all equity incl. 3003 + actual P&L residual), so the sheet
+        // stays balanced in every state.
+        $currentYearPL = round($residualPL + $closedToCYP, 2);  // positive = profit
 
         // Build hierarchical groups per classification; equity excludes 3003.
         $buildGroups = function ($classification, array $excludeCodes = []) use ($bsAccounts) {

@@ -22,7 +22,10 @@ class PostingEngine
         $totalDebit  = collect($lines)->sum('debit');
         $totalCredit = collect($lines)->sum('credit');
 
-        if (round($totalDebit, 4) !== round($totalCredit, 4)) {
+        // Epsilon compare — strict !== on floats can reject a balanced journal on
+        // the last bit (e.g. total vs (total - tax) + tax). 0.0001 is far below
+        // the 2-dp money precision we post at.
+        if (abs($totalDebit - $totalCredit) >= 0.0001) {
             throw new \InvalidArgumentException(
                 "Journal does not balance: debit {$totalDebit} ≠ credit {$totalCredit}"
             );
@@ -139,7 +142,7 @@ class PostingEngine
         $totalDebit  = collect($lines)->sum('debit');
         $totalCredit = collect($lines)->sum('credit');
 
-        if (round($totalDebit, 4) !== round($totalCredit, 4)) {
+        if (abs($totalDebit - $totalCredit) >= 0.0001) {
             throw new \InvalidArgumentException(
                 "Closing journal does not balance: debit {$totalDebit} ≠ credit {$totalCredit}"
             );
