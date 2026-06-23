@@ -86,7 +86,11 @@ class SupplierInvoicePostingService
                 throw new \InvalidArgumentException('Supplier invoice total must be greater than zero.');
             }
 
-            // CR AP control — exact sum of all debit legs keeps the journal balanced.
+            // CR AP control — recompute from the FINAL debit legs (the tax-fallback
+            // path may have re-rounded the last leg) so the credit exactly matches
+            // what was debited and the journal balances to the cent.
+            $totalDr = round(array_sum(array_column($lines, 'debit')), 2);
+
             $apAccount = $this->resolveApAccount();
             if (!$apAccount) {
                 throw new \RuntimeException(

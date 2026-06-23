@@ -81,6 +81,7 @@ class ApAllocationService
     {
         return SupplierInvoice::where('customer_id', $customerId)
             ->whereIn('status', ['approved', 'partially_paid'])
+            ->whereNotNull('journal_id') // only GL-posted bills can be settled
             ->orderByDesc('invoice_date')
             ->get()
             ->map(function ($inv) {

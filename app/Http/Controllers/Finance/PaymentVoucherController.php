@@ -143,6 +143,16 @@ class PaymentVoucherController extends Controller
             return back()->with('error', 'That invoice belongs to a different contact.');
         }
 
+        if (!$invoice->isPosted()) {
+            return back()->with('error',
+                'That invoice is not yet posted to the GL — post it before allocating a payment.');
+        }
+
+        if (strtoupper((string) $invoice->currency) !== strtoupper((string) $voucher->currency)) {
+            return back()->with('error',
+                "Currency mismatch: the voucher is in {$voucher->currency} but the invoice is in {$invoice->currency}.");
+        }
+
         $outstanding = $this->allocationService->getOutstanding($invoice);
         if ((float) $validated['allocated_amount'] > round($outstanding + 0.005, 2)) {
             return back()->with('error',
@@ -205,28 +215,44 @@ class PaymentVoucherController extends Controller
 
         $reason = $request->input('reason', '');
 
+        // Capture the invoices this voucher settled BEFORE voiding — once the
+        // voucher flips to 'voided' its allocations stop counting toward the
+        // allocated total, so any invoice it had marked paid/partially_paid must
+        // be re-synced or it is left with a stale (wrongly-paid) status.
+        $invoiceIds = $voucher->allocations()->pluck('supplier_invoice_id')->unique();
+
         try {
             $this->postingService->voidVoucher($voucher, auth()->id(), $reason);
-            return back()->with('success', "Voucher {$voucher->voucher_no} has been voided.");
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
+
+        foreach ($invoiceIds as $invId) {
+            try {
+                $this->allocationService->syncInvoiceStatus(
+                    $this->allocationService->resolveInvoice((int) $invId)
+                );
+            } catch (\Throwable) {
+                // best-effort: invoice may have been removed
+            }
+        }
+
+        return back()->with('success', "Voucher {$voucher->voucher_no} has been voided.");
     }
 
     private function nextVoucherNo(): string
     {
         return DB::transaction(function () {
             $prefix = \App\Models\CompanySetting::current()->prefix_voucher ?? 'PV';
+            // Order by the numeric suffix (not the string) so PV-1000 sorts after
+            // PV-999 and the next sequence is always correct.
             $last   = PaymentVoucher::where('voucher_no', 'like', "{$prefix}-%")
-                ->orderByDesc('voucher_no')
+                ->orderByRaw('CAST(SUBSTRING(voucher_no, ' . (strlen($prefix) + 2) . ') AS UNSIGNED) DESC')
                 ->lockForUpdate()
                 ->value('voucher_no');
-            $seq = 1;
-            if ($last) {
-                $parts = explode('-', $last);
-                $seq   = ((int) end($parts)) + 1;
-            }
-            return $prefix . '-' . str_pad($seq, 6, '0', STR_PAD_LEFT);
+            $seq = $last ? ((int) substr($last, strlen($prefix) + 1)) + 1 : 1;
+
+            return $prefix . '-' . str_pad((string) $seq, 6, '0', STR_PAD_LEFT);
         });
     }
 }

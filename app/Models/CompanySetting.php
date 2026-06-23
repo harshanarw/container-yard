@@ -57,6 +57,7 @@ class CompanySetting extends Model
         'prefix_receipt',
         'prefix_voucher',
         'prefix_journal',
+        'prefix_supplier_invoice',
     ];
 
     protected $casts = [

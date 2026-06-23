@@ -124,12 +124,28 @@ class ReceiptController extends Controller
 
         $reason = $request->input('reason', '');
 
+        // Capture the invoices this receipt settled BEFORE voiding — a voided
+        // receipt's allocations stop counting, so any invoice it had marked
+        // paid/partially_paid must be re-synced or it keeps a stale status.
+        $affected = $receipt->allocations()->get(['invoice_type', 'invoice_id'])
+            ->unique(fn ($a) => $a->invoice_type . '#' . $a->invoice_id);
+
         try {
             $this->postingService->voidReceipt($receipt, auth()->id(), $reason);
-            return back()->with('success', "Receipt {$receipt->receipt_no} has been voided.");
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
+
+        foreach ($affected as $a) {
+            try {
+                $invoice = $this->allocationService->resolveInvoice($a->invoice_type, (int) $a->invoice_id);
+                $this->allocationService->syncInvoiceStatus($invoice, $a->invoice_type);
+            } catch (\Throwable) {
+                // best-effort
+            }
+        }
+
+        return back()->with('success', "Receipt {$receipt->receipt_no} has been voided.");
     }
 
     public function storeAllocation(Request $request, Receipt $receipt)
