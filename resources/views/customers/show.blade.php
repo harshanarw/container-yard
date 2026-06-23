@@ -346,10 +346,10 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
     <!-- Right Column -->
     <div class="col-lg-4">
 
-        <!-- Billing & Rates -->
+        <!-- AR Terms -->
         <div class="card content-card mb-3">
             <div class="card-header">
-                <i class="bi bi-cash-stack me-2 text-primary"></i>Billing & Rates
+                <i class="bi bi-cash-stack me-2 text-success"></i>Receivable Terms <span class="text-muted fw-normal small">(AR)</span>
             </div>
             <div class="card-body">
                 <div class="mb-2">
@@ -357,23 +357,45 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                     <div class="fw-semibold">{{ $customer->currency }}</div>
                 </div>
                 <div class="mb-2">
-                    <div class="text-muted small">Credit Limit</div>
+                    <div class="text-muted small">AR Credit Limit</div>
                     <div class="fw-semibold">{{ $customer->currency }} {{ number_format($customer->credit_limit, 2) }}</div>
                 </div>
-                <div class="mb-3">
-                    <div class="text-muted small">Payment Terms</div>
+                <div class="mb-0">
+                    <div class="text-muted small">AR Payment Terms</div>
                     <div>{{ $paymentLabels[$customer->payment_terms] ?? $customer->payment_terms }}</div>
                 </div>
-                <hr class="my-2">
-                @php $tariff = $customer->activeTariff; @endphp
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-muted small">Storage Tariff</span>
-                    <a href="{{ route('masters.storage-tariff.index') }}"
-                       class="btn btn-xs btn-outline-primary btn-sm py-0 px-2"
-                       style="font-size:.72rem;" title="Manage Storage Tariffs">
-                        <i class="bi bi-calendar2-range me-1"></i>Manage
-                    </a>
+            </div>
+        </div>
+
+        <!-- AP Terms -->
+        <div class="card content-card mb-3">
+            <div class="card-header">
+                <i class="bi bi-receipt-cutoff me-2 text-danger"></i>Payable Terms <span class="text-muted fw-normal small">(AP)</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <div class="text-muted small">AP Credit Limit</div>
+                    <div class="fw-semibold">{{ $customer->currency }} {{ number_format($customer->ap_credit_limit ?? 0, 2) }}</div>
                 </div>
+                <div class="mb-0">
+                    <div class="text-muted small">AP Payment Terms</div>
+                    <div>{{ $paymentLabels[$customer->ap_payment_terms ?? ''] ?? ($customer->ap_payment_terms ? $customer->ap_payment_terms : '—') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Storage Tariff -->
+        <div class="card content-card mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-calendar2-range me-2 text-primary"></i>Storage Tariff</span>
+                <a href="{{ route('masters.storage-tariff.index') }}"
+                   class="btn btn-xs btn-outline-primary btn-sm py-0 px-2"
+                   style="font-size:.72rem;" title="Manage Storage Tariffs">
+                    <i class="bi bi-calendar2-range me-1"></i>Manage
+                </a>
+            </div>
+            <div class="card-body">
+                @php $tariff = $customer->activeTariff; @endphp
                 @if($tariff)
                     <div class="d-flex justify-content-between small mb-1">
                         <span class="text-muted">Free Days</span>

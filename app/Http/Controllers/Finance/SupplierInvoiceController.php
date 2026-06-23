@@ -8,6 +8,7 @@ use App\Models\CompanySetting;
 use App\Models\Customer;
 use App\Models\SupplierInvoice;
 use App\Services\Finance\ApAllocationService;
+use App\Services\Finance\PaymentTermsHelper;
 use App\Services\Finance\SupplierInvoicePostingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -77,12 +78,24 @@ class SupplierInvoiceController extends Controller
         $total    = round($subtotal + $tax, 4);
 
         $invoice = DB::transaction(function () use ($validated, $subtotal, $tax, $total) {
+            // Auto-derive due_date from the contact's AP payment terms when not supplied.
+            $dueDate = $validated['due_date'] ?? null;
+            if (!$dueDate) {
+                $contact = Customer::find($validated['customer_id']);
+                if ($contact && $contact->ap_payment_terms) {
+                    $dueDate = PaymentTermsHelper::dueDate(
+                        $contact->ap_payment_terms,
+                        \Carbon\Carbon::parse($validated['invoice_date'])
+                    )->toDateString();
+                }
+            }
+
             $invoice = SupplierInvoice::create([
                 'invoice_no'          => $this->nextInvoiceNo(),
                 'supplier_invoice_no' => $validated['supplier_invoice_no'] ?? null,
                 'customer_id'         => $validated['customer_id'],
                 'invoice_date'        => $validated['invoice_date'],
-                'due_date'            => $validated['due_date'] ?? null,
+                'due_date'            => $dueDate,
                 'currency'            => $validated['currency'],
                 'exchange_rate'       => $validated['exchange_rate'],
                 'subtotal'            => $subtotal,

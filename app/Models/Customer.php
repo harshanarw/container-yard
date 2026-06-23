@@ -29,6 +29,7 @@ class Customer extends Model
         'code', 'name', 'registration_no', 'tin_number', 'address', 'city', 'state',
         'country', 'country_id', 'state_id', 'district_id', 'contact_person', 'designation', 'phone_office', 'phone_mobile',
         'fax', 'email', 'website', 'currency', 'credit_limit', 'payment_terms',
+        'ap_credit_limit', 'ap_payment_terms',
         'status',
         'contract_start', 'contract_end', 'email_notifications', 'auto_invoice',
         'tax_exempt',
@@ -38,6 +39,7 @@ class Customer extends Model
 
     protected $casts = [
         'credit_limit'        => 'decimal:2',
+        'ap_credit_limit'     => 'decimal:2',
         'contract_start'      => 'date',
         'contract_end'        => 'date',
         'email_notifications' => 'boolean',

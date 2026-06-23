@@ -36,6 +36,8 @@ class StoreCustomerRequest extends FormRequest
             'currency'            => ['required', 'in:LKR,USD,SGD'],
             'credit_limit'        => ['nullable', 'numeric', 'min:0'],
             'payment_terms'       => ['required', 'in:cod,net15,net30,net45,net60'],
+            'ap_credit_limit'     => ['nullable', 'numeric', 'min:0'],
+            'ap_payment_terms'    => ['nullable', 'in:cod,net15,net30,net45,net60'],
             'status'              => ['required', 'in:active,pending,inactive'],
             'contract_start'      => ['nullable', 'date'],
             'contract_end'        => ['nullable', 'date', 'after_or_equal:contract_start'],

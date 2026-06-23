@@ -197,10 +197,10 @@
                 </div>
             </div>
 
-            <!-- Billing & Rate Configuration -->
+            <!-- Receivable Terms (AR) -->
             <div class="card content-card mb-3">
                 <div class="card-header">
-                    <i class="bi bi-cash-stack me-2 text-primary"></i>Billing & Rate Configuration
+                    <i class="bi bi-cash-stack me-2 text-success"></i>Receivable Terms <span class="text-muted fw-normal small">(as Customer / AR)</span>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
@@ -213,24 +213,57 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Credit Limit</label>
+                            <label class="form-label fw-semibold">AR Credit Limit</label>
                             <div class="input-group">
                                 <span class="input-group-text">LKR</span>
                                 <input type="number" name="credit_limit" class="form-control"
                                        placeholder="0.00" min="0" step="0.01" value="{{ old('credit_limit') }}">
                             </div>
+                            <div class="form-text">Maximum outstanding balance allowed on AR invoices.</div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Payment Terms</label>
+                            <label class="form-label fw-semibold">AR Payment Terms</label>
                             <select name="payment_terms" class="form-select">
+                                <option value="cod">Cash on Delivery</option>
+                                <option value="net15">Net 15 Days</option>
+                                <option value="net30" selected>Net 30 Days</option>
+                                <option value="net45">Net 45 Days</option>
+                                <option value="net60">Net 60 Days</option>
+                            </select>
+                            <div class="form-text">Used to derive due dates on customer invoices.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payable Terms (AP) -->
+            <div class="card content-card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-receipt-cutoff me-2 text-danger"></i>Payable Terms <span class="text-muted fw-normal small">(as Supplier / AP)</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">AP Credit Limit</label>
+                            <div class="input-group">
+                                <span class="input-group-text">LKR</span>
+                                <input type="number" name="ap_credit_limit" class="form-control"
+                                       placeholder="0.00" min="0" step="0.01" value="{{ old('ap_credit_limit') }}">
+                            </div>
+                            <div class="form-text">Maximum outstanding AP balance before a soft warning is raised.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">AP Payment Terms</label>
+                            <select name="ap_payment_terms" class="form-select">
+                                <option value="">— Not specified —</option>
                                 <option value="cod">Cash on Delivery</option>
                                 <option value="net15">Net 15 Days</option>
                                 <option value="net30">Net 30 Days</option>
                                 <option value="net45">Net 45 Days</option>
                                 <option value="net60">Net 60 Days</option>
                             </select>
+                            <div class="form-text">Auto-fills due date on supplier invoices when left blank.</div>
                         </div>
-
                     </div>
                 </div>
             </div>
