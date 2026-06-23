@@ -53,11 +53,26 @@ class FinancialYearController extends Controller
                 ->with('error', 'Date range overlaps with an existing active financial year.');
         }
 
-        $fy = FinancialYear::create($data + ['created_by' => auth()->id()]);
+        // Open this year automatically when no other year is currently open.
+        // A freshly created year defaults to 'draft', and GL posting requires an
+        // OPEN year (PeriodManager::periodFor filters on financialYear.status='open').
+        // Without this, "set up a fiscal year" silently leaves posting blocked with
+        // "no open accounting period". The single-open-year invariant is preserved:
+        // if another year is already open, this one stays draft for manual opening.
+        $noOpenYear = ! FinancialYear::where('status', 'open')->exists();
+
+        $fy = FinancialYear::create(
+            $data + ['status' => $noOpenYear ? 'open' : 'draft', 'created_by' => auth()->id()]
+        );
         $fy->generatePeriods();
 
+        $message = "Financial year {$fy->code} created with 12 monthly periods"
+            . ($noOpenYear
+                ? ' and opened — you can now post invoices to it.'
+                : '. Another financial year is currently open, so this one was saved as draft; open it from this page when you are ready.');
+
         return redirect()->route('finance.setup.fiscal-years.show', $fy)
-            ->with('success', "Financial year {$fy->code} created with 12 monthly periods.");
+            ->with('success', $message);
     }
 
     public function show(FinancialYear $fiscalYear)

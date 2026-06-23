@@ -182,12 +182,55 @@ class PostingEngine
     private function resolvePeriod(Carbon $date): AccountingPeriod
     {
         $period = $this->periods->periodFor($date);
-        if (!$period) {
+        if ($period) {
+            return $period;
+        }
+
+        // No postable period — work out *why* so the message is actionable
+        // instead of the generic "open a financial year and period first".
+        $dateStr = $date->toDateString();
+
+        // 1. Is any financial year open at all?
+        if (! FinancialYear::where('status', 'open')->exists()) {
+            $covering = FinancialYear::where('start_date', '<=', $dateStr)
+                ->where('end_date', '>=', $dateStr)
+                ->first();
+
+            if ($covering) {
+                throw new \RuntimeException(
+                    "Financial year {$covering->code} covers {$dateStr} but its status is "
+                    . "'{$covering->status}', not open. Open it under Finance → Setup → "
+                    . "Financial Years, then post again."
+                );
+            }
+
             throw new \RuntimeException(
-                "No open accounting period found for date {$date->toDateString()}. Open a financial year and period first."
+                "No open financial year found for {$dateStr}. Create and open a financial year "
+                . "under Finance → Setup → Financial Years before posting."
             );
         }
-        return $period;
+
+        // 2. An open year exists — is the covering period closed/locked?
+        $coveringPeriod = AccountingPeriod::whereHas(
+                'financialYear', fn ($q) => $q->where('status', 'open')
+            )
+            ->where('start_date', '<=', $dateStr)
+            ->where('end_date', '>=', $dateStr)
+            ->first();
+
+        if ($coveringPeriod) {
+            $label = $coveringPeriod->status === 'locked' ? 'P&L-closed (locked)' : $coveringPeriod->status;
+            throw new \RuntimeException(
+                "Accounting period '{$coveringPeriod->name}' is {$label} for {$dateStr}. "
+                . "Reopen the period before posting to it."
+            );
+        }
+
+        // 3. Open year exists but the date sits outside its range.
+        throw new \RuntimeException(
+            "{$dateStr} falls outside the open financial year's date range. Post within the "
+            . "open year, or open the financial year that covers this date."
+        );
     }
 
     private function nextJournalNo(): string
