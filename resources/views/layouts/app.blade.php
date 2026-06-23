@@ -772,161 +772,209 @@
             <i class="bi bi-bank section-icon"></i><span>Finance</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
         <div class="collapse {{ request()->routeIs('finance.*') ? 'show' : '' }}" id="nav-section-finance">
-            <ul class="nav flex-column">
-                {{-- ── Setup ─────────────────────────────────────────────── --}}
-                @if(Auth::user()->can('finance.setup.view') || Auth::user()->can('finance.coa.view') || Auth::user()->can('finance.mappings.view'))
-                <li class="nav-item">
-                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
-                        Setup
-                    </span>
-                </li>
-                @endif
-                @can('finance.setup.view')
-                <li class="nav-item">
-                    <a href="{{ route('finance.setup.fiscal-years.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.setup.fiscal-years.*') ? 'active' : '' }}">
-                        <i class="bi bi-calendar3"></i><span>Fiscal Years</span>
-                    </a>
-                </li>
-                @endcan
-                @can('finance.coa.view')
-                <li class="nav-item">
-                    <a href="{{ route('finance.setup.accounts.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.setup.accounts.*') ? 'active' : '' }}">
-                        <i class="bi bi-diagram-3"></i><span>Chart of Accounts</span>
-                    </a>
-                </li>
-                @endcan
-                @can('finance.mappings.view')
-                <li class="nav-item">
-                    <a href="{{ route('finance.setup.mappings.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.setup.mappings.*') ? 'active' : '' }}">
-                        <i class="bi bi-arrow-left-right"></i><span>Account Mappings</span>
-                    </a>
-                </li>
-                @endcan
 
-                {{-- ── General Ledger ────────────────────────────────────── --}}
-                @can('finance.gl.view')
-                <li class="nav-item mt-1">
-                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
-                        General Ledger
-                    </span>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.gl.journals.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.gl.journals.*') ? 'active' : '' }}">
-                        <i class="bi bi-journal-bookmark"></i><span>GL Journals</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.gl.account-ledger') }}"
-                       class="nav-link {{ request()->routeIs('finance.gl.account-ledger') ? 'active' : '' }}">
-                        <i class="bi bi-list-columns-reverse"></i><span>Account Ledger</span>
-                    </a>
-                </li>
-                @endcan
+            {{-- ── Setup ──────────────────────────────────────────────────── --}}
+            @if(Auth::user()->can('finance.setup.view') || Auth::user()->can('finance.coa.view') || Auth::user()->can('finance.mappings.view'))
+            @php $finSetupActive = request()->routeIs('finance.setup.*'); @endphp
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-fin-setup"
+                    aria-expanded="{{ $finSetupActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-fin-setup">
+                <i class="bi bi-sliders nav-sub-icon"></i>
+                <span>Setup</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ $finSetupActive ? 'show' : '' }}" id="nav-sub-fin-setup">
+                <ul class="nav flex-column">
+                    @can('finance.setup.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.setup.fiscal-years.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.setup.fiscal-years.*') ? 'active' : '' }}">
+                            <i class="bi bi-calendar3"></i><span>Fiscal Years</span>
+                        </a>
+                    </li>
+                    @endcan
+                    @can('finance.coa.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.setup.accounts.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.setup.accounts.*') ? 'active' : '' }}">
+                            <i class="bi bi-diagram-3"></i><span>Chart of Accounts</span>
+                        </a>
+                    </li>
+                    @endcan
+                    @can('finance.mappings.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.setup.mappings.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.setup.mappings.*') ? 'active' : '' }}">
+                            <i class="bi bi-arrow-left-right"></i><span>Account Mappings</span>
+                        </a>
+                    </li>
+                    @endcan
+                </ul>
+            </div>
+            @endif
 
-                {{-- ── Accounts Receivable ───────────────────────────────── --}}
-                @can('finance.ar.view')
-                <li class="nav-item mt-1">
-                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
-                        Accounts Receivable
-                    </span>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.ar.postings.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.ar.postings*') ? 'active' : '' }}">
-                        <i class="bi bi-receipt-cutoff"></i><span>AR Postings</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.ar.aging') }}"
-                       class="nav-link {{ request()->routeIs('finance.ar.aging') ? 'active' : '' }}">
-                        <i class="bi bi-clock-history"></i><span>AR Aging</span>
-                    </a>
-                </li>
-                @endcan
+            {{-- ── General Ledger ───────────────────────────────────────────── --}}
+            @can('finance.gl.view')
+            @php $finGlActive = request()->routeIs('finance.gl.journals.*') || request()->routeIs('finance.gl.account-ledger'); @endphp
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-fin-gl"
+                    aria-expanded="{{ $finGlActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-fin-gl">
+                <i class="bi bi-journal-bookmark nav-sub-icon"></i>
+                <span>General Ledger</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ $finGlActive ? 'show' : '' }}" id="nav-sub-fin-gl">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.gl.journals.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.gl.journals.*') ? 'active' : '' }}">
+                            <i class="bi bi-journal-text"></i><span>GL Journals</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.gl.account-ledger') }}"
+                           class="nav-link {{ request()->routeIs('finance.gl.account-ledger') ? 'active' : '' }}">
+                            <i class="bi bi-list-columns-reverse"></i><span>Account Ledger</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            @endcan
 
-                {{-- ── Accounts Payable ──────────────────────────────────── --}}
-                @can('finance.ap.view')
-                <li class="nav-item mt-1">
-                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
-                        Accounts Payable
-                    </span>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.ap.invoices.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.ap.invoices.*') ? 'active' : '' }}">
-                        <i class="bi bi-receipt-cutoff"></i><span>Supplier Invoices</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.ap.aging') }}"
-                       class="nav-link {{ request()->routeIs('finance.ap.aging') ? 'active' : '' }}">
-                        <i class="bi bi-clock-history"></i><span>AP Aging</span>
-                    </a>
-                </li>
-                @endcan
+            {{-- ── Accounts Receivable ──────────────────────────────────────── --}}
+            @can('finance.ar.view')
+            @php $finArActive = request()->routeIs('finance.ar.*'); @endphp
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-fin-ar"
+                    aria-expanded="{{ $finArActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-fin-ar">
+                <i class="bi bi-arrow-down-circle nav-sub-icon"></i>
+                <span>Receivables</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ $finArActive ? 'show' : '' }}" id="nav-sub-fin-ar">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.ar.postings.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.ar.postings*') ? 'active' : '' }}">
+                            <i class="bi bi-receipt-cutoff"></i><span>AR Postings</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.ar.aging') }}"
+                           class="nav-link {{ request()->routeIs('finance.ar.aging') ? 'active' : '' }}">
+                            <i class="bi bi-clock-history"></i><span>AR Aging</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            @endcan
 
-                {{-- ── Cash & Bank ───────────────────────────────────────── --}}
-                @if(Auth::user()->can('finance.receipts.view') || Auth::user()->can('finance.vouchers.view'))
-                <li class="nav-item mt-1">
-                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
-                        Cash &amp; Bank
-                    </span>
-                </li>
-                @endif
-                @can('finance.receipts.view')
-                <li class="nav-item">
-                    <a href="{{ route('finance.bank-accounts.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.bank-accounts.*') ? 'active' : '' }}">
-                        <i class="bi bi-bank2"></i><span>Bank Accounts</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.receipts.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.receipts.*') ? 'active' : '' }}">
-                        <i class="bi bi-receipt"></i><span>Receipts</span>
-                    </a>
-                </li>
-                @endcan
-                @can('finance.vouchers.view')
-                <li class="nav-item">
-                    <a href="{{ route('finance.vouchers.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.vouchers.*') ? 'active' : '' }}">
-                        <i class="bi bi-cash-coin"></i><span>Payment Vouchers</span>
-                    </a>
-                </li>
-                @endcan
+            {{-- ── Accounts Payable ─────────────────────────────────────────── --}}
+            @can('finance.ap.view')
+            @php $finApActive = request()->routeIs('finance.ap.*'); @endphp
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-fin-ap"
+                    aria-expanded="{{ $finApActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-fin-ap">
+                <i class="bi bi-arrow-up-circle nav-sub-icon"></i>
+                <span>Payables</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ $finApActive ? 'show' : '' }}" id="nav-sub-fin-ap">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.ap.invoices.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.ap.invoices.*') ? 'active' : '' }}">
+                            <i class="bi bi-receipt-cutoff"></i><span>Supplier Invoices</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.ap.aging') }}"
+                           class="nav-link {{ request()->routeIs('finance.ap.aging') ? 'active' : '' }}">
+                            <i class="bi bi-clock-history"></i><span>AP Aging</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            @endcan
 
-                {{-- ── Reports ───────────────────────────────────────────── --}}
-                @can('finance.gl.view')
-                <li class="nav-item mt-1">
-                    <span class="nav-link text-muted small ps-3 py-1 fw-semibold" style="font-size:0.65rem;letter-spacing:0.07em;text-transform:uppercase;pointer-events:none">
-                        Reports
-                    </span>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.gl.trial-balance') }}"
-                       class="nav-link {{ request()->routeIs('finance.gl.trial-balance') ? 'active' : '' }}">
-                        <i class="bi bi-receipt"></i><span>Trial Balance</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.reports.income-statement') }}"
-                       class="nav-link {{ request()->routeIs('finance.reports.income-statement') ? 'active' : '' }}">
-                        <i class="bi bi-graph-up-arrow"></i><span>Income Statement</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('finance.reports.balance-sheet') }}"
-                       class="nav-link {{ request()->routeIs('finance.reports.balance-sheet') ? 'active' : '' }}">
-                        <i class="bi bi-bar-chart-line"></i><span>Balance Sheet</span>
-                    </a>
-                </li>
-                @endcan
-            </ul>
+            {{-- ── Cash & Bank ───────────────────────────────────────────────── --}}
+            @if(Auth::user()->can('finance.receipts.view') || Auth::user()->can('finance.vouchers.view'))
+            @php $finCashActive = request()->routeIs('finance.bank-accounts.*') || request()->routeIs('finance.receipts.*') || request()->routeIs('finance.vouchers.*'); @endphp
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-fin-cash"
+                    aria-expanded="{{ $finCashActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-fin-cash">
+                <i class="bi bi-bank2 nav-sub-icon"></i>
+                <span>Cash &amp; Bank</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ $finCashActive ? 'show' : '' }}" id="nav-sub-fin-cash">
+                <ul class="nav flex-column">
+                    @can('finance.receipts.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.bank-accounts.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.bank-accounts.*') ? 'active' : '' }}">
+                            <i class="bi bi-building-fill"></i><span>Bank Accounts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.receipts.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.receipts.*') ? 'active' : '' }}">
+                            <i class="bi bi-receipt"></i><span>Receipts</span>
+                        </a>
+                    </li>
+                    @endcan
+                    @can('finance.vouchers.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.vouchers.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.vouchers.*') ? 'active' : '' }}">
+                            <i class="bi bi-cash-coin"></i><span>Payment Vouchers</span>
+                        </a>
+                    </li>
+                    @endcan
+                </ul>
+            </div>
+            @endif
+
+            {{-- ── Reports ────────────────────────────────────────────────────── --}}
+            @can('finance.gl.view')
+            @php $finRptActive = request()->routeIs('finance.gl.trial-balance') || request()->routeIs('finance.reports.*'); @endphp
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-fin-reports"
+                    aria-expanded="{{ $finRptActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-fin-reports">
+                <i class="bi bi-bar-chart-line nav-sub-icon"></i>
+                <span>Reports</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ $finRptActive ? 'show' : '' }}" id="nav-sub-fin-reports">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.gl.trial-balance') }}"
+                           class="nav-link {{ request()->routeIs('finance.gl.trial-balance') ? 'active' : '' }}">
+                            <i class="bi bi-table"></i><span>Trial Balance</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.reports.income-statement') }}"
+                           class="nav-link {{ request()->routeIs('finance.reports.income-statement') ? 'active' : '' }}">
+                            <i class="bi bi-graph-up-arrow"></i><span>Income Statement</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.reports.balance-sheet') }}"
+                           class="nav-link {{ request()->routeIs('finance.reports.balance-sheet') ? 'active' : '' }}">
+                            <i class="bi bi-bar-chart-line"></i><span>Balance Sheet</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            @endcan
+
         </div>
         @endif
 
