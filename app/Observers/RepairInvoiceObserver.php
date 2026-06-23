@@ -3,7 +3,9 @@
 namespace App\Observers;
 
 use App\Services\AuditService;
+use App\Services\Finance\InvoicePostingService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class RepairInvoiceObserver extends AuditObserver
 {
@@ -41,6 +43,15 @@ class RepairInvoiceObserver extends AuditObserver
             [$event, $desc] = $eventMap[$newStatus];
             AuditService::log(event: $event, module: $this->getModule(),
                 description: $desc, reference: $ref, subject: $m, properties: $diff);
+
+            if ($newStatus === 'issued') {
+                try {
+                    app(InvoicePostingService::class)->post($m, 'repair', auth()->id() ?? 1);
+                } catch (\Throwable $e) {
+                    Log::error("Auto-post failed for repair invoice {$ref}: {$e->getMessage()}");
+                }
+            }
+
             return;
         }
 

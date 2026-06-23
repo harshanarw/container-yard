@@ -3,7 +3,9 @@
 namespace App\Observers;
 
 use App\Services\AuditService;
+use App\Services\Finance\InvoicePostingService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class StorageInvoiceObserver extends AuditObserver
 {
@@ -37,5 +39,13 @@ class StorageInvoiceObserver extends AuditObserver
             description: $desc ?? "Storage Invoice {$ref} updated [{$changed}]",
             reference: $ref, subject: $m, properties: $diff,
         );
+
+        if ($newStatus === 'issued') {
+            try {
+                app(InvoicePostingService::class)->post($m, 'storage', auth()->id() ?? 1);
+            } catch (\Throwable $e) {
+                Log::error("Auto-post failed for storage invoice {$ref}: {$e->getMessage()}");
+            }
+        }
     }
 }

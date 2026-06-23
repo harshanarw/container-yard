@@ -36,7 +36,6 @@
 
 @php
     $fmt = fn ($n) => number_format($n, 2);
-    $pct = fn ($n, $base) => $base != 0 ? number_format(abs($n / $base) * 100, 1) . '%' : '—';
 @endphp
 
 <div class="row g-3 mb-3">
