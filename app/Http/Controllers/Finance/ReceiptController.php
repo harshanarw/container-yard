@@ -6,13 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\Receipt;
+use App\Models\ReceiptAllocation;
+use App\Services\Finance\ArAllocationService;
 use App\Services\Finance\ReceiptPostingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ReceiptController extends Controller
 {
-    public function __construct(private ReceiptPostingService $postingService) {}
+    public function __construct(
+        private ReceiptPostingService $postingService,
+        private ArAllocationService   $allocationService,
+    ) {}
 
     public function index(Request $request)
     {
@@ -87,7 +92,18 @@ class ReceiptController extends Controller
 
         $receipt->load(['customer', 'bankAccount.glAccount', 'journal', 'allocations', 'createdBy', 'voidedBy']);
 
-        return view('finance.receipts.show', compact('receipt'));
+        // Outstanding invoices for this customer — used to populate allocation dropdown
+        $pendingInvoices = $receipt->customer_id
+            ? $this->allocationService->pendingForCustomer($receipt->customer_id)
+            : collect();
+
+        // Amounts: total receipt, already allocated across all allocations, unallocated remainder
+        $totalAllocated   = $receipt->allocations->sum('allocated_amount');
+        $unallocatedAmount = max(0, (float) $receipt->amount - $totalAllocated);
+
+        return view('finance.receipts.show', compact(
+            'receipt', 'pendingInvoices', 'totalAllocated', 'unallocatedAmount'
+        ));
     }
 
     public function confirm(Receipt $receipt)
@@ -120,6 +136,10 @@ class ReceiptController extends Controller
     {
         $this->authorize('finance.receipts.create');
 
+        if (!$receipt->isDraft()) {
+            return back()->with('error', 'Allocations can only be added to draft receipts.');
+        }
+
         $validated = $request->validate([
             'invoice_type'     => ['required', 'in:storage,storage-handling,reefer,repair'],
             'invoice_id'       => ['required', 'integer', 'min:1'],
@@ -127,9 +147,69 @@ class ReceiptController extends Controller
             'notes'            => ['nullable', 'string', 'max:255'],
         ]);
 
+        try {
+            $invoice = $this->allocationService->resolveInvoice($validated['invoice_type'], (int) $validated['invoice_id']);
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        // Ensure the invoice belongs to the same customer as the receipt
+        $invoiceCustomerId = $this->allocationService->getCustomerId($invoice, $validated['invoice_type']);
+        if ($invoiceCustomerId && $receipt->customer_id && $invoiceCustomerId !== $receipt->customer_id) {
+            return back()->with('error', 'This invoice does not belong to the receipt\'s customer.');
+        }
+
+        // Ensure the allocated amount does not exceed the outstanding balance
+        $outstanding = $this->allocationService->getOutstanding($invoice, $validated['invoice_type']);
+        if ((float) $validated['allocated_amount'] > round($outstanding + 0.005, 2)) {
+            return back()->with('error',
+                "Allocated amount exceeds the invoice outstanding balance of " . number_format($outstanding, 2) . "."
+            );
+        }
+
+        // Ensure we don't over-allocate against the receipt's own unallocated balance
+        $totalAllocated = (float) $receipt->allocations()->sum('allocated_amount');
+        $remaining      = (float) $receipt->amount - $totalAllocated;
+        if ((float) $validated['allocated_amount'] > round($remaining + 0.005, 2)) {
+            return back()->with('error',
+                "Allocated amount exceeds the receipt's unallocated balance of " . number_format($remaining, 2) . "."
+            );
+        }
+
         $receipt->allocations()->create($validated);
 
+        // Keep invoice status in sync
+        $this->allocationService->syncInvoiceStatus($invoice, $validated['invoice_type']);
+
         return back()->with('success', 'Allocation added.');
+    }
+
+    public function deleteAllocation(Request $request, Receipt $receipt, ReceiptAllocation $allocation)
+    {
+        $this->authorize('finance.receipts.create');
+
+        if (!$receipt->isDraft()) {
+            return back()->with('error', 'Allocations can only be removed from draft receipts.');
+        }
+
+        if ($allocation->receipt_id !== $receipt->id) {
+            abort(404);
+        }
+
+        $invoiceType = $allocation->invoice_type;
+        $invoiceId   = $allocation->invoice_id;
+
+        $allocation->delete();
+
+        // Re-sync invoice status after removal
+        try {
+            $invoice = $this->allocationService->resolveInvoice($invoiceType, $invoiceId);
+            $this->allocationService->syncInvoiceStatus($invoice, $invoiceType);
+        } catch (\Throwable) {
+            // Invoice may no longer exist; status sync is best-effort
+        }
+
+        return back()->with('success', 'Allocation removed.');
     }
 
     private function nextReceiptNo(): string

@@ -170,31 +170,104 @@
     {{-- Allocations --}}
     <div class="col-12">
         <div class="card content-card">
-            <div class="card-header bg-transparent py-2 d-flex justify-content-between align-items-center">
+            <div class="card-header bg-transparent py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <strong class="small">Invoice Allocations</strong>
+                <div class="d-flex gap-3 small">
+                    <span class="text-muted">
+                        Receipt total: <span class="fw-semibold font-monospace">{{ $receipt->currency }} {{ number_format($receipt->amount, 2) }}</span>
+                    </span>
+                    <span class="{{ $totalAllocated > 0 ? 'text-success' : 'text-muted' }}">
+                        Allocated: <span class="fw-semibold font-monospace">{{ number_format($totalAllocated, 2) }}</span>
+                    </span>
+                    @if($unallocatedAmount > 0)
+                    <span class="text-warning">
+                        Unallocated: <span class="fw-semibold font-monospace">{{ number_format($unallocatedAmount, 2) }}</span>
+                    </span>
+                    @else
+                    <span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>Fully Allocated</span>
+                    @endif
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-0 small">
                         <thead class="table-light">
                             <tr>
-                                <th>Invoice Type</th>
-                                <th>Invoice ID</th>
-                                <th class="text-end">Allocated Amount</th>
+                                <th>Invoice</th>
+                                <th>Type</th>
+                                <th class="text-end">Invoice Total</th>
+                                <th class="text-end">Allocated</th>
+                                <th class="text-end">Outstanding</th>
                                 <th>Notes</th>
+                                @if($receipt->isDraft()) <th></th> @endif
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($receipt->allocations as $alloc)
+                            @php
+                                // Resolve invoice for display (best-effort — may not exist)
+                                try {
+                                    $allocInvoice = app(\App\Services\Finance\ArAllocationService::class)
+                                        ->resolveInvoice($alloc->invoice_type, $alloc->invoice_id);
+                                    $allocTotal = app(\App\Services\Finance\ArAllocationService::class)
+                                        ->getTotal($allocInvoice, $alloc->invoice_type);
+                                    $allocOutstanding = app(\App\Services\Finance\ArAllocationService::class)
+                                        ->getOutstanding($allocInvoice, $alloc->invoice_type);
+                                    $allocInvoiceNo = $allocInvoice->invoice_no ?? "#{$alloc->invoice_id}";
+                                    $allocInvoiceRoute = match($alloc->invoice_type) {
+                                        'storage'          => route('billing.show', $alloc->invoice_id),
+                                        'storage-handling' => route('billing.storage-handling.show', $alloc->invoice_id),
+                                        'reefer'           => route('billing.reefer.show', $alloc->invoice_id),
+                                        'repair'           => route('repair-invoices.show', $alloc->invoice_id),
+                                        default            => null,
+                                    };
+                                } catch (\Throwable) {
+                                    $allocInvoice = null; $allocTotal = 0; $allocOutstanding = 0;
+                                    $allocInvoiceNo = "#{$alloc->invoice_id}"; $allocInvoiceRoute = null;
+                                }
+                            @endphp
                             <tr>
-                                <td>{{ ucfirst(str_replace('-', ' ', $alloc->invoice_type)) }}</td>
-                                <td class="font-monospace">{{ $alloc->invoice_id }}</td>
-                                <td class="text-end font-monospace">{{ number_format($alloc->allocated_amount, 2) }}</td>
+                                <td>
+                                    @if($allocInvoiceRoute)
+                                    <a href="{{ $allocInvoiceRoute }}" class="fw-semibold font-monospace text-decoration-none">
+                                        {{ $allocInvoiceNo }}
+                                    </a>
+                                    @else
+                                    <span class="font-monospace text-muted">{{ $allocInvoiceNo }}</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary small">
+                                        {{ ucwords(str_replace('-', ' ', $alloc->invoice_type)) }}
+                                    </span>
+                                </td>
+                                <td class="text-end font-monospace">{{ number_format($allocTotal, 2) }}</td>
+                                <td class="text-end font-monospace fw-semibold text-success">{{ number_format($alloc->allocated_amount, 2) }}</td>
+                                <td class="text-end font-monospace {{ $allocOutstanding > 0 ? 'text-danger' : 'text-success' }}">
+                                    {{ number_format($allocOutstanding, 2) }}
+                                </td>
                                 <td class="text-muted">{{ $alloc->notes ?? '—' }}</td>
+                                @if($receipt->isDraft())
+                                <td class="text-end">
+                                    @can('finance.receipts.create')
+                                    <form method="POST"
+                                          action="{{ route('finance.receipts.allocations.destroy', [$receipt, $alloc]) }}"
+                                          onsubmit="return confirm('Remove this allocation?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger btn-xs py-0 px-1 small">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                    @endcan
+                                </td>
+                                @endif
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-3 small fst-italic">No allocations yet.</td>
+                                <td colspan="{{ $receipt->isDraft() ? 7 : 6 }}"
+                                    class="text-center text-muted py-3 small fst-italic">
+                                    No allocations yet.
+                                </td>
                             </tr>
                             @endforelse
                         </tbody>
@@ -203,42 +276,90 @@
             </div>
             @if($receipt->isDraft())
             @can('finance.receipts.create')
-            <div class="card-footer bg-transparent">
-                <form method="POST" action="{{ route('finance.receipts.allocations.store', $receipt) }}" class="row g-2 align-items-end">
+            <div class="card-footer bg-transparent pt-3">
+                @if($pendingInvoices->isNotEmpty())
+                <form method="POST" action="{{ route('finance.receipts.allocations.store', $receipt) }}"
+                      class="row g-2 align-items-end" id="allocForm">
                     @csrf
-                    <div class="col-md-2">
-                        <label class="form-label small mb-1">Invoice Type</label>
-                        <select name="invoice_type" class="form-select form-select-sm" required>
-                            <option value="storage">Storage</option>
-                            <option value="storage-handling">Storage Handling</option>
-                            <option value="reefer">Reefer</option>
-                            <option value="repair">Repair</option>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1 fw-semibold">
+                            Outstanding Invoice
+                            <span class="text-muted fw-normal">({{ $pendingInvoices->count() }} pending for {{ $receipt->customer->name ?? 'this customer' }})</span>
+                        </label>
+                        <select name="_pending_key" class="form-select form-select-sm" id="pendingInvoiceSelect" required>
+                            <option value="">— Select invoice —</option>
+                            @foreach($pendingInvoices as $pi)
+                            <option value="{{ $pi['type'] }}|{{ $pi['id'] }}"
+                                    data-type="{{ $pi['type'] }}"
+                                    data-id="{{ $pi['id'] }}"
+                                    data-outstanding="{{ $pi['outstanding'] }}">
+                                {{ $pi['label'] }}
+                            </option>
+                            @endforeach
                         </select>
+                        <input type="hidden" name="invoice_type" id="allocInvoiceType">
+                        <input type="hidden" name="invoice_id"   id="allocInvoiceId">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1 fw-semibold">
+                            Amount
+                            @if($unallocatedAmount > 0)
+                            <span class="text-muted fw-normal">(receipt balance: {{ number_format($unallocatedAmount, 2) }})</span>
+                            @endif
+                        </label>
+                        <input type="number" name="allocated_amount" id="allocAmount"
+                               class="form-control form-control-sm" min="0.01" step="0.01"
+                               placeholder="0.00" required>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small mb-1">Invoice ID</label>
-                        <input type="number" name="invoice_id" class="form-control form-control-sm" required min="1">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small mb-1">Amount</label>
-                        <input type="number" name="allocated_amount" class="form-control form-control-sm" required min="0.01" step="0.01">
-                    </div>
-                    <div class="col-md-4">
                         <label class="form-label small mb-1">Notes</label>
                         <input type="text" name="notes" class="form-control form-control-sm" maxlength="255">
                     </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-plus-lg me-1"></i>Add
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">
+                            <i class="bi bi-plus-lg"></i>
                         </button>
                     </div>
                 </form>
+                @else
+                <p class="text-muted small mb-0 fst-italic">
+                    <i class="bi bi-info-circle me-1"></i>
+                    No outstanding invoices found for {{ $receipt->customer->name ?? 'this customer' }}.
+                </p>
+                @endif
             </div>
             @endcan
             @endif
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sel = document.getElementById('pendingInvoiceSelect');
+    if (!sel) return;
+
+    sel.addEventListener('change', function () {
+        const opt = this.options[this.selectedIndex];
+        document.getElementById('allocInvoiceType').value = opt.dataset.type ?? '';
+        document.getElementById('allocInvoiceId').value   = opt.dataset.id ?? '';
+
+        const outstanding = parseFloat(opt.dataset.outstanding ?? 0);
+        const amtInput    = document.getElementById('allocAmount');
+        if (outstanding > 0) {
+            // Pre-fill with the lesser of outstanding and unallocated receipt balance
+            const receiptBalance = {{ (float) $unallocatedAmount }};
+            amtInput.value = Math.min(outstanding, receiptBalance).toFixed(2);
+            amtInput.max   = outstanding;
+        } else {
+            amtInput.value = '';
+            amtInput.removeAttribute('max');
+        }
+    });
+});
+</script>
+@endpush
 
 {{-- Void Modal --}}
 @can('finance.receipts.void')

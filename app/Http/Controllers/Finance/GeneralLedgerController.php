@@ -4,11 +4,18 @@ namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\Customer;
 use App\Models\GlEntry;
 use App\Models\GlJournal;
+use App\Models\ReceiptAllocation;
+use App\Models\ReeferElectricityInvoice;
+use App\Models\RepairInvoice;
+use App\Models\StorageHandlingInvoice;
+use App\Models\StorageInvoice;
 use App\Services\Finance\PostingEngine;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class GeneralLedgerController extends Controller
 {
@@ -193,5 +200,108 @@ class GeneralLedgerController extends Controller
         $grouped     = $rows->groupBy('classification');
 
         return view('finance.gl.trial-balance', compact('rows', 'grouped', 'from', 'to', 'totalDebit', 'totalCredit'));
+    }
+
+    // AR Aging: outstanding receivables by customer and age bucket
+    public function arAging(Request $request)
+    {
+        $this->authorize('finance.ar.view');
+
+        $asOf = $request->input('as_of', Carbon::today()->toDateString());
+        $asOfDate = Carbon::parse($asOf);
+
+        // Load all active allocations into a lookup: [type-id => total_allocated]
+        $allocations = ReceiptAllocation::whereHas(
+            'receipt', fn ($q) => $q->whereIn('status', ['draft', 'confirmed'])
+        )->select('invoice_type', 'invoice_id', DB::raw('SUM(allocated_amount) as total_allocated'))
+         ->groupBy('invoice_type', 'invoice_id')
+         ->get()
+         ->keyBy(fn ($r) => $r->invoice_type . '-' . $r->invoice_id);
+
+        $rows = collect();
+
+        $addRows = function ($invoices, string $type, string $label) use ($asOfDate, $allocations, &$rows) {
+            foreach ($invoices as $inv) {
+                $total     = (float) ($type === 'repair' ? ($inv->grand_total ?? 0) : ($inv->total_amount ?? 0));
+                $allocated = (float) ($allocations->get("{$type}-{$inv->id}")?->total_allocated ?? 0);
+                $outstanding = max(0.0, round($total - $allocated, 2));
+
+                if ($outstanding <= 0) continue;
+
+                $invDate  = Carbon::parse($inv->invoice_date);
+                $ageDays  = (int) $invDate->diffInDays($asOfDate, false);
+                $ageDays  = max(0, $ageDays);
+
+                $bucket = match (true) {
+                    $ageDays <= 30  => 'current',
+                    $ageDays <= 60  => '31-60',
+                    $ageDays <= 90  => '61-90',
+                    default         => '90+',
+                };
+
+                $customerId   = $type === 'storage-handling'
+                    ? ($inv->shipping_line_id ?? $inv->customer_id)
+                    : $inv->customer_id;
+
+                $rows->push([
+                    'customer_id'  => $customerId,
+                    'type'         => $type,
+                    'type_label'   => $label,
+                    'id'           => $inv->id,
+                    'invoice_no'   => $inv->invoice_no,
+                    'invoice_date' => $invDate,
+                    'total'        => $total,
+                    'allocated'    => $allocated,
+                    'outstanding'  => $outstanding,
+                    'age_days'     => $ageDays,
+                    'bucket'       => $bucket,
+                ]);
+            }
+        };
+
+        $addRows(
+            StorageInvoice::whereIn('status', ['issued', 'overdue'])->orderBy('invoice_date')->get(),
+            'storage', 'Storage'
+        );
+        $addRows(
+            StorageHandlingInvoice::whereIn('status', ['issued', 'overdue'])->orderBy('invoice_date')->get(),
+            'storage-handling', 'Handling'
+        );
+        $addRows(
+            ReeferElectricityInvoice::whereIn('status', ['issued', 'overdue'])->orderBy('invoice_date')->get(),
+            'reefer', 'Reefer'
+        );
+        $addRows(
+            RepairInvoice::whereIn('status', ['issued', 'partially_paid', 'overdue'])->orderBy('invoice_date')->get(),
+            'repair', 'Repair'
+        );
+
+        // Load customer names for display
+        $customerIds = $rows->pluck('customer_id')->filter()->unique();
+        $customers   = Customer::whereIn('id', $customerIds)->get()->keyBy('id');
+
+        // Group by customer, then compute bucket totals per customer
+        $byCustomer = $rows->groupBy('customer_id')->map(function ($invRows) use ($customers) {
+            $custId = $invRows->first()['customer_id'];
+            return [
+                'customer'  => $customers->get($custId),
+                'invoices'  => $invRows->sortBy('invoice_date'),
+                'current'   => $invRows->where('bucket', 'current')->sum('outstanding'),
+                '31-60'     => $invRows->where('bucket', '31-60')->sum('outstanding'),
+                '61-90'     => $invRows->where('bucket', '61-90')->sum('outstanding'),
+                '90+'       => $invRows->where('bucket', '90+')->sum('outstanding'),
+                'total'     => $invRows->sum('outstanding'),
+            ];
+        })->sortByDesc('total')->values();
+
+        $grandTotals = [
+            'current' => $rows->where('bucket', 'current')->sum('outstanding'),
+            '31-60'   => $rows->where('bucket', '31-60')->sum('outstanding'),
+            '61-90'   => $rows->where('bucket', '61-90')->sum('outstanding'),
+            '90+'     => $rows->where('bucket', '90+')->sum('outstanding'),
+            'total'   => $rows->sum('outstanding'),
+        ];
+
+        return view('finance.ar.aging', compact('byCustomer', 'grandTotals', 'asOf'));
     }
 }

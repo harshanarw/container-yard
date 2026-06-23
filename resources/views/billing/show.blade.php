@@ -565,4 +565,11 @@
 </div>
 @endcan
 
+@include('partials._invoice-settlements', [
+    'invoiceType'     => 'storage',
+    'invoiceId'       => $invoice->id,
+    'invoiceTotal'    => $invoice->total_amount ?? 0,
+    'invoiceCurrency' => $invoice->invoice_currency ?? 'LKR',
+])
+
 @endsection

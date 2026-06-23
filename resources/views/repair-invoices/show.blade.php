@@ -389,4 +389,10 @@ $statusColors = [
 @endif
 @endcan
 
+@include('partials._invoice-settlements', [
+    'invoiceType'  => 'repair',
+    'invoiceId'    => $invoice->id,
+    'invoiceTotal' => $invoice->grand_total ?? 0,
+])
+
 @endsection

@@ -604,6 +604,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('postings',                  [InvoicePostingController::class, 'index'])->name('postings.index');
             Route::post('postings',                 [InvoicePostingController::class, 'store'])->name('postings.store');
             Route::post('postings/{posting}/void',  [InvoicePostingController::class, 'void'])->name('postings.void');
+            Route::get('aging',                     [GeneralLedgerController::class, 'arAging'])->name('aging');
         });
 
         // Bank Accounts
@@ -624,7 +625,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{receipt}',                    [ReceiptController::class, 'show'])->name('show');
             Route::post('/{receipt}/confirm',           [ReceiptController::class, 'confirm'])->name('confirm');
             Route::post('/{receipt}/void',              [ReceiptController::class, 'void'])->name('void');
-            Route::post('/{receipt}/allocations',       [ReceiptController::class, 'storeAllocation'])->name('allocations.store');
+            Route::post('/{receipt}/allocations',                            [ReceiptController::class, 'storeAllocation'])->name('allocations.store');
+            Route::delete('/{receipt}/allocations/{allocation}',             [ReceiptController::class, 'deleteAllocation'])->name('allocations.destroy');
         });
 
         // Payment Vouchers

@@ -820,8 +820,14 @@
                 @can('finance.ar.view')
                 <li class="nav-item">
                     <a href="{{ route('finance.ar.postings.index') }}"
-                       class="nav-link {{ request()->routeIs('finance.ar.*') ? 'active' : '' }}">
+                       class="nav-link {{ request()->routeIs('finance.ar.postings*') ? 'active' : '' }}">
                         <i class="bi bi-receipt-cutoff"></i><span>AR Postings</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('finance.ar.aging') }}"
+                       class="nav-link {{ request()->routeIs('finance.ar.aging') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i><span>AR Aging</span>
                     </a>
                 </li>
                 @endcan
