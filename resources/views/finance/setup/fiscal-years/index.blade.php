@@ -69,7 +69,7 @@
                             <span class="badge bg-secondary-subtle text-secondary">{{ $fy->periods_count }}</span>
                         </td>
                         <td class="text-center">
-                            <span class="badge bg-{{ FinancialYear::statusBadge($fy->status) }}-subtle text-{{ FinancialYear::statusBadge($fy->status) }}">
+                            <span class="badge bg-{{ \App\Models\FinancialYear::statusBadge($fy->status) }}-subtle text-{{ \App\Models\FinancialYear::statusBadge($fy->status) }}">
                                 {{ ucfirst($fy->status) }}
                             </span>
                         </td>
