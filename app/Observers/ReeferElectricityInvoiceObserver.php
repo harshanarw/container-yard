@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Models\InvoicePosting;
 use App\Services\AuditService;
 use App\Services\Finance\InvoicePostingService;
 use Illuminate\Database\Eloquent\Model;
@@ -45,6 +46,20 @@ class ReeferElectricityInvoiceObserver extends AuditObserver
                 app(InvoicePostingService::class)->post($m, 'reefer', auth()->id() ?? 1);
             } catch (\Throwable $e) {
                 Log::error("Auto-post failed for reefer invoice {$ref}: {$e->getMessage()}");
+            }
+        }
+
+        if ($newStatus === 'cancelled') {
+            $posting = InvoicePosting::where('invoice_type', 'reefer')
+                ->where('invoice_id', $m->id)
+                ->where('status', 'posted')
+                ->first();
+            if ($posting) {
+                try {
+                    app(InvoicePostingService::class)->void($posting, auth()->id() ?? 1, "Invoice {$ref} cancelled");
+                } catch (\Throwable $e) {
+                    Log::error("Auto-void failed for reefer invoice {$ref}: {$e->getMessage()}");
+                }
             }
         }
     }

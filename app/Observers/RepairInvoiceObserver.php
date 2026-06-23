@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Models\InvoicePosting;
 use App\Services\AuditService;
 use App\Services\Finance\InvoicePostingService;
 use Illuminate\Database\Eloquent\Model;
@@ -49,6 +50,20 @@ class RepairInvoiceObserver extends AuditObserver
                     app(InvoicePostingService::class)->post($m, 'repair', auth()->id() ?? 1);
                 } catch (\Throwable $e) {
                     Log::error("Auto-post failed for repair invoice {$ref}: {$e->getMessage()}");
+                }
+            }
+
+            if (in_array($newStatus, ['cancelled', 'void'])) {
+                $posting = InvoicePosting::where('invoice_type', 'repair')
+                    ->where('invoice_id', $m->id)
+                    ->where('status', 'posted')
+                    ->first();
+                if ($posting) {
+                    try {
+                        app(InvoicePostingService::class)->void($posting, auth()->id() ?? 1, "Invoice {$ref} {$newStatus}");
+                    } catch (\Throwable $e) {
+                        Log::error("Auto-void failed for repair invoice {$ref}: {$e->getMessage()}");
+                    }
                 }
             }
 
