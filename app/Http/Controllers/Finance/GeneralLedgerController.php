@@ -481,15 +481,21 @@ class GeneralLedgerController extends Controller
 
         // Group by customer, then compute bucket totals per customer
         $byCustomer = $rows->groupBy('customer_id')->map(function ($invRows) use ($customers) {
-            $custId = $invRows->first()['customer_id'];
+            $custId   = $invRows->first()['customer_id'];
+            $customer = $customers->get($custId);
+            $total    = $invRows->sum('outstanding');
+            $limit    = (float) ($customer->credit_limit ?? 0);
+
             return [
-                'customer'  => $customers->get($custId),
-                'invoices'  => $invRows->sortBy('invoice_date'),
-                'current'   => $invRows->where('bucket', 'current')->sum('outstanding'),
-                '31-60'     => $invRows->where('bucket', '31-60')->sum('outstanding'),
-                '61-90'     => $invRows->where('bucket', '61-90')->sum('outstanding'),
-                '90+'       => $invRows->where('bucket', '90+')->sum('outstanding'),
-                'total'     => $invRows->sum('outstanding'),
+                'customer'     => $customer,
+                'invoices'     => $invRows->sortBy('invoice_date'),
+                'current'      => $invRows->where('bucket', 'current')->sum('outstanding'),
+                '31-60'        => $invRows->where('bucket', '31-60')->sum('outstanding'),
+                '61-90'        => $invRows->where('bucket', '61-90')->sum('outstanding'),
+                '90+'          => $invRows->where('bucket', '90+')->sum('outstanding'),
+                'total'        => $total,
+                'credit_limit' => $limit,
+                'over_limit'   => $limit > 0 ? round($total - $limit, 2) : 0.0,
             ];
         })->sortByDesc('total')->values();
 

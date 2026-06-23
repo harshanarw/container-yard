@@ -83,7 +83,23 @@
                 <tr class="{{ $i === 0 ? 'border-top border-2' : '' }}">
                     @if($i === 0)
                     <td rowspan="{{ $custRowspan }}" class="fw-semibold align-top pt-2">
-                        {{ $group['customer']?->name ?? 'Unknown' }}
+                        @if($group['customer'])
+                            <a href="{{ route('customers.show', $group['customer']) }}" class="text-decoration-none">{{ $group['customer']->name }}</a>
+                        @else
+                            Unknown
+                        @endif
+                        @if($group['credit_limit'] > 0)
+                            <div class="text-muted fw-normal mt-1" style="font-size:.72rem;">
+                                Limit: {{ number_format($group['credit_limit'], 2) }}
+                            </div>
+                            @if($group['over_limit'] > 0)
+                                <span class="badge bg-danger mt-1" title="Outstanding exceeds credit limit">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Over by {{ number_format($group['over_limit'], 2) }}
+                                </span>
+                            @endif
+                        @else
+                            <div class="text-muted fw-normal fst-italic mt-1" style="font-size:.72rem;">No limit</div>
+                        @endif
                     </td>
                     @endif
 
