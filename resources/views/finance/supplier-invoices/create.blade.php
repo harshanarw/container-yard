@@ -143,28 +143,32 @@
     const ajaxBase    = @json(route('finance.ap.charge-code.details', ['chargeCode' => '__ID__']));
     let idx = 0;
 
-    // Build grouped structure once (null category → 'General')
+    // Build grouped structure once — keeps code + name separate for chip styling.
+    // null/missing category falls back to 'General'.
     const ccGroups = (() => {
         const groups = {};
         chargeCodes.forEach(cc => {
             const cat   = cc.category || 'general';
             const label = cat.charAt(0).toUpperCase() + cat.slice(1);
             if (!groups[cat]) groups[cat] = { label, items: [] };
-            groups[cat].items.push({ id: cc.id, text: cc.code + ' — ' + cc.description });
+            groups[cat].items.push({ id: cc.id, code: cc.code, name: cc.description });
         });
         return Object.values(groups);
     })();
 
-    // Populate a bare <select> with <optgroup>/<option> elements so Select2
-    // (which reads from the DOM on <select> elements) can search and display them.
+    // Populate a bare <select> with <optgroup>/<option> DOM elements.
+    // Select2 on a <select> reads from the DOM, not from a JS data array.
+    // data-code / data-name enable the layout's s2CodeResult/s2CodeSelection templates.
     function populateCcOptions(selectEl) {
         ccGroups.forEach(group => {
             const og = document.createElement('optgroup');
             og.label = group.label;
             group.items.forEach(item => {
-                const opt = document.createElement('option');
-                opt.value = item.id;
-                opt.textContent = item.text;
+                const opt       = document.createElement('option');
+                opt.value       = item.id;
+                opt.textContent = item.code + ' — ' + item.name;
+                opt.dataset.code = item.code;
+                opt.dataset.name = item.name;
                 og.appendChild(opt);
             });
             selectEl.appendChild(og);
@@ -179,12 +183,14 @@
     function rowHtml(i, line) {
         const desc  = (line?.description || '').replace(/"/g, '&quot;');
         const net   = line?.amount   || '';
-        const t1r   = parseFloat(line?.tax1_rate ?? 0);
-        const t2r   = parseFloat(line?.tax2_rate ?? 0);
-        const sscl  = line?.tax1_amount != null ? parseFloat(line.tax1_amount) : 0;
-        const vat   = line?.tax2_amount != null ? parseFloat(line.tax2_amount) : 0;
+        const t1r   = parseFloat(line?.tax1_rate  ?? 0);
+        const t2r   = parseFloat(line?.tax2_rate  ?? 0);
+        const sscl  = line?.tax1_amount  != null ? parseFloat(line.tax1_amount)  : 0;
+        const vat   = line?.tax2_amount  != null ? parseFloat(line.tax2_amount)  : 0;
         const gross = line?.gross_amount != null ? parseFloat(line.gross_amount) : 0;
-        const tcLabel = (line?.tax_code_code || '') ? `<span class="badge bg-secondary-subtle text-secondary font-monospace">${line.tax_code_code}</span>` : '<span class="text-muted small">—</span>';
+        const tcLabel = (line?.tax_code_code || '')
+            ? `<span class="badge bg-secondary-subtle text-secondary font-monospace">${line.tax_code_code}</span>`
+            : '<span class="text-muted small">—</span>';
 
         return `<tr>
             <td>
@@ -207,8 +213,8 @@
                     class="form-control form-control-sm text-end font-monospace line-net"
                     value="${net}" required>
             </td>
-            <td class="text-end font-monospace small text-muted line-sscl-cell">${sscl ? sscl.toFixed(2) : '0.00'}</td>
-            <td class="text-end font-monospace small text-muted line-vat-cell">${vat  ? vat.toFixed(2)  : '0.00'}</td>
+            <td class="text-end font-monospace small text-muted line-sscl-cell">${sscl  ? sscl.toFixed(2)  : '0.00'}</td>
+            <td class="text-end font-monospace small text-muted line-vat-cell">${vat    ? vat.toFixed(2)   : '0.00'}</td>
             <td class="text-end font-monospace small fw-semibold line-gross-cell">${gross ? gross.toFixed(2) : '0.00'}</td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-link text-danger p-0 remove-line">
@@ -218,32 +224,43 @@
         </tr>`;
     }
 
-    function addRow(line) {
-        body.insertAdjacentHTML('beforeend', rowHtml(idx++, line));
-        const lastRow = body.lastElementChild;
-        const ccEl    = lastRow.querySelector('.cc-select');
-        // Populate DOM options first — Select2 on a <select> reads from the DOM, not data:
+    function initRow(row, savedCcId) {
+        // ── Charge code Select2 ──────────────────────────────────────────────
+        const ccEl = row.querySelector('.cc-select');
         populateCcOptions(ccEl);
 
+        // Use the layout's Code-chip template helpers (defined in DOMContentLoaded)
         const $ccSel = jQuery(ccEl).select2({
+            theme             : 'bootstrap-5',
+            width             : '100%',
+            placeholder       : '— charge code —',
+            allowClear        : true,
+            templateResult    : window.s2CodeResult    || null,
+            templateSelection : window.s2CodeSelection || null,
+        });
+
+        // Restore old() selection before binding handler so AJAX is not re-triggered
+        if (savedCcId) {
+            $ccSel.val(String(savedCcId)).trigger('change.select2');
+        }
+        $ccSel.on('change', function () { handleChargeCodeChange(this); });
+
+        // ── Account Select2 ──────────────────────────────────────────────────
+        // Options are already in the DOM via buildAccountOpts; just wrap with Select2.
+        jQuery(row.querySelector('.acct-select')).select2({
             theme      : 'bootstrap-5',
             width      : '100%',
-            placeholder: '— charge code —',
-            allowClear : true,
+            placeholder: '— account —',
         });
+    }
 
-        // Restore selected value from old() BEFORE binding change handler so the
-        // AJAX auto-fill is not triggered on repopulation (rates are already set).
-        const savedId = ccEl.dataset.ccid;
-        if (savedId) {
-            $ccSel.val(savedId).trigger('change.select2');
-        }
+    function addRow(line) {
+        body.insertAdjacentHTML('beforeend', rowHtml(idx++, line));
+        const lastRow   = body.lastElementChild;
+        const savedCcId = line?.charge_code_id || '';
 
-        $ccSel.on('change', function () {
-            handleChargeCodeChange(this);
-        });
+        initRow(lastRow, savedCcId);
 
-        // Recompute display amounts when seeding from old() (rates present, amounts are not)
         if (line && (parseFloat(line.tax1_rate) > 0 || parseFloat(line.tax2_rate) > 0)) {
             recalcRow(lastRow);
         }
@@ -262,29 +279,25 @@
         fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(r => r.json())
             .then(data => {
-                // Auto-fill description if currently blank
                 const descInput = row.querySelector('input[name$="[description]"]');
-                if (descInput && !descInput.value.trim()) {
-                    descInput.value = data.description || '';
-                }
-                // Auto-select expense account
+                if (descInput && !descInput.value.trim()) descInput.value = data.description || '';
+
+                // Update account Select2 value
                 if (data.expense_account_id) {
-                    const acctSel = row.querySelector('.acct-select');
-                    if (acctSel) acctSel.value = data.expense_account_id;
+                    jQuery(row.querySelector('.acct-select'))
+                        .val(data.expense_account_id).trigger('change.select2');
                 }
-                // Set hidden tax fields
+
                 row.querySelector('.tax-code-id').value = data.tax_code_id || '';
                 row.querySelector('.tax1-rate').value   = data.tax1_rate   || 0;
                 row.querySelector('.tax2-rate').value   = data.tax2_rate   || 0;
-                // Update tax code badge
+
                 const tcDisplay = row.querySelector('.tc-display');
                 if (tcDisplay) {
-                    if (data.tax_code_code) {
-                        tcDisplay.innerHTML = `<span class="badge bg-secondary-subtle text-secondary font-monospace">${data.tax_code_code}</span>`
-                            + (data.tax_code_desc ? `<br><span class="text-muted" style="font-size:.7rem">${data.tax_code_desc}</span>` : '');
-                    } else {
-                        tcDisplay.innerHTML = '<span class="text-muted small">—</span>';
-                    }
+                    tcDisplay.innerHTML = data.tax_code_code
+                        ? `<span class="badge bg-secondary-subtle text-secondary font-monospace">${data.tax_code_code}</span>`
+                            + (data.tax_code_desc ? `<br><span class="text-muted" style="font-size:.7rem">${data.tax_code_desc}</span>` : '')
+                        : '<span class="text-muted small">—</span>';
                 }
                 recalcRow(row);
                 recalc();
@@ -302,11 +315,11 @@
     }
 
     function recalcRow(row) {
-        const net  = parseFloat(row.querySelector('.line-net')?.value || 0);
+        const net  = parseFloat(row.querySelector('.line-net')?.value  || 0);
         const t1   = parseFloat(row.querySelector('.tax1-rate')?.value || 0);
         const t2   = parseFloat(row.querySelector('.tax2-rate')?.value || 0);
-        const sscl = Math.round(net * t1 / 100 * 100) / 100;
-        const vat  = Math.round((net + sscl) * t2 / 100 * 100) / 100;
+        const sscl  = Math.round(net * t1 / 100 * 100) / 100;
+        const vat   = Math.round((net + sscl) * t2 / 100 * 100) / 100;
         const gross = Math.round((net + sscl + vat) * 100) / 100;
         row.querySelector('.line-sscl-cell').textContent  = sscl.toFixed(2);
         row.querySelector('.line-vat-cell').textContent   = vat.toFixed(2);
@@ -332,29 +345,34 @@
 
     body.addEventListener('input', e => {
         const row = e.target.closest('tr');
-        if (row && e.target.classList.contains('line-net')) {
-            recalcRow(row);
-            recalc();
-        }
+        if (row && e.target.classList.contains('line-net')) { recalcRow(row); recalc(); }
     });
 
     body.addEventListener('click', e => {
         if (e.target.closest('.remove-line')) {
-            if (body.children.length > 1) e.target.closest('tr').remove();
+            const row = e.target.closest('tr');
+            if (body.children.length > 1) {
+                jQuery(row.querySelector('.cc-select')).select2('destroy');
+                jQuery(row.querySelector('.acct-select')).select2('destroy');
+                row.remove();
+            }
             recalc();
         }
     });
 
-    // Sync currency from supplier default
     const supSel = document.getElementById('supplierSelect');
     if (supSel) supSel.addEventListener('change', function () {
         const cur = this.options[this.selectedIndex]?.dataset.currency;
         if (cur) document.getElementById('currencySelect').value = cur;
     });
 
-    // Seed rows from old() input (validation failure) or one blank row
-    const seed = @json(array_values($oldLines));
-    if (seed.length) seed.forEach(addRow); else addRow();
+    // Defer row seeding to DOMContentLoaded so the layout's handler runs first
+    // and defines window.s2CodeResult / window.s2CodeSelection before we use them.
+    // (The layout registers its DOMContentLoaded at line ~1858; ours fires after.)
+    document.addEventListener('DOMContentLoaded', function () {
+        const seed = @json(array_values($oldLines));
+        if (seed.length) seed.forEach(line => addRow(line)); else addRow();
+    });
 })();
 </script>
 @endpush
