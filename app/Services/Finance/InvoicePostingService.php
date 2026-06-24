@@ -27,11 +27,10 @@ class InvoicePostingService
             // Guard inside transaction with row-lock to prevent concurrent double-posts
             $existing = InvoicePosting::where('invoice_type', $invoiceType)
                 ->where('invoice_id', $invoice->id)
-                ->where('status', 'posted')
                 ->lockForUpdate()
                 ->first();
 
-            if ($existing) {
+            if ($existing?->status === 'posted') {
                 throw new \RuntimeException(
                     "Invoice {$invoiceType}#{$invoice->id} is already posted to GL journal "
                     . ($existing->journal->journal_no ?? '?') . '.'
@@ -146,7 +145,8 @@ class InvoicePostingService
 
         $taxAccount = null;
         if ($taxAmount > 0) {
-            $taxAccount = $this->resolveAccount('tax_output', null, null);
+            $taxAccount = $this->resolveAccount('tax_output', null, null)
+                ?? Account::where('code', '2101')->where('is_active', true)->first();
         }
 
         $lines = [];
@@ -190,9 +190,12 @@ class InvoicePostingService
             'repair'           => (float)(($invoice->sscl_total ?? 0) + ($invoice->vat_total ?? 0)),
             // Reefer: tax is split into separate SSCL + VAT columns on the header.
             'reefer'           => (float)(($invoice->sscl_amount ?? 0) + ($invoice->vat_amount ?? 0)),
-            // Storage & storage-handling: a single combined tax_amount on the header.
-            'storage'          => (float)($invoice->tax_amount ?? 0),
-            'storage-handling' => (float)($invoice->tax_amount ?? 0),
+            // Storage & storage-handling: store sscl_amount + vat_amount separately;
+            // tax_amount is a legacy fallback for rows that predate the split columns.
+            'storage'          => (float)(($invoice->sscl_amount ?? 0) + ($invoice->vat_amount ?? 0))
+                                  ?: (float)($invoice->tax_amount ?? 0),
+            'storage-handling' => (float)(($invoice->sscl_amount ?? 0) + ($invoice->vat_amount ?? 0))
+                                  ?: (float)($invoice->tax_amount ?? 0),
             default            => 0.0,
         };
     }

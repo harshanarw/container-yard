@@ -267,7 +267,7 @@ return [
     'finance.receipts' => [
         'label'   => 'Receipts',
         'section' => 'Finance',
-        'actions' => ['view', 'create', 'edit', 'confirm', 'void'],
+        'actions' => ['view', 'create', 'edit', 'confirm', 'void', 'delete'],
     ],
 
     'finance.vouchers' => [

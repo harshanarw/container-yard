@@ -576,8 +576,8 @@ class StorageHandlingController extends Controller
 
     public function markPaid(StorageHandlingInvoice $storageHandlingInvoice)
     {
-        if (! in_array($storageHandlingInvoice->status, ['issued', 'draft'])) {
-            return back()->with('error', 'Invoice cannot be marked as paid from its current status.');
+        if ($storageHandlingInvoice->status !== 'issued') {
+            return back()->with('error', 'Only issued invoices can be marked as paid.');
         }
         $storageHandlingInvoice->update(['status' => 'paid']);
 
