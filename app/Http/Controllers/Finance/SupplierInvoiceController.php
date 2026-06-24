@@ -9,6 +9,7 @@ use App\Models\ChargeCode;
 use App\Models\CompanySetting;
 use App\Models\Customer;
 use App\Models\SupplierInvoice;
+use App\Models\TaxCode;
 use App\Services\Finance\ApAllocationService;
 use App\Services\Finance\PaymentTermsHelper;
 use App\Services\Finance\SupplierInvoicePostingService;
@@ -59,7 +60,11 @@ class SupplierInvoiceController extends Controller
             ->orderBy('category')->orderBy('sort_order')->orderBy('code')
             ->get(['id', 'code', 'description', 'category']);
 
-        return view('finance.supplier-invoices.create', compact('suppliers', 'accounts', 'chargeCodes'));
+        $taxCodes = TaxCode::where('is_active', true)
+            ->orderBy('code')
+            ->get(['id', 'code', 'description', 'tax1_rate', 'tax2_rate']);
+
+        return view('finance.supplier-invoices.create', compact('suppliers', 'accounts', 'chargeCodes', 'taxCodes'));
     }
 
     public function store(Request $request)

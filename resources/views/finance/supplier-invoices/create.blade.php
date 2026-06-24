@@ -130,6 +130,13 @@
         'description' => $c->description,
         'category'    => $c->category,
     ])->values()->all();
+    $taxCodesData = $taxCodes->map(fn($t) => [
+        'id'        => $t->id,
+        'code'      => $t->code,
+        'description' => $t->description,
+        'tax1_rate' => $t->tax1_rate,
+        'tax2_rate' => $t->tax2_rate,
+    ])->values()->all();
     $oldLines = old('lines', [['description' => '', 'expense_account_id' => '', 'amount' => '',
                                'charge_code_id' => '', 'tax_code_id' => '', 'tax1_rate' => 0, 'tax2_rate' => 0]]);
 @endphp
@@ -140,11 +147,11 @@
     const body        = document.getElementById('linesBody');
     const accountOpts = @json($accountOptionsHtml);
     const chargeCodes = @json($chargeCodesData);
+    const taxCodes    = @json($taxCodesData);
     const ajaxBase    = @json(route('finance.ap.charge-code.details', ['chargeCode' => '__ID__']));
     let idx = 0;
 
     // Build grouped structure once — keeps code + name separate for chip styling.
-    // null/missing category falls back to 'General'.
     const ccGroups = (() => {
         const groups = {};
         chargeCodes.forEach(cc => {
@@ -156,22 +163,34 @@
         return Object.values(groups);
     })();
 
-    // Populate a bare <select> with <optgroup>/<option> DOM elements.
-    // Select2 on a <select> reads from the DOM, not from a JS data array.
-    // data-code / data-name enable the layout's s2CodeResult/s2CodeSelection templates.
+    // Populate charge code <select> with grouped DOM options.
+    // Select2 on a <select> reads from the DOM; data-code/data-name enable chip templates.
     function populateCcOptions(selectEl) {
         ccGroups.forEach(group => {
             const og = document.createElement('optgroup');
             og.label = group.label;
             group.items.forEach(item => {
-                const opt       = document.createElement('option');
-                opt.value       = item.id;
-                opt.textContent = item.code + ' — ' + item.name;
+                const opt        = document.createElement('option');
+                opt.value        = item.id;
+                opt.textContent  = item.code + ' — ' + item.name;
                 opt.dataset.code = item.code;
                 opt.dataset.name = item.name;
                 og.appendChild(opt);
             });
             selectEl.appendChild(og);
+        });
+    }
+
+    // Populate tax code <select> with flat DOM options.
+    function populateTcOptions(selectEl, selectedId) {
+        taxCodes.forEach(tc => {
+            const opt        = document.createElement('option');
+            opt.value        = tc.id;
+            opt.textContent  = tc.code + ' — ' + tc.description;
+            opt.dataset.t1   = tc.tax1_rate;
+            opt.dataset.t2   = tc.tax2_rate;
+            if (selectedId && String(tc.id) === String(selectedId)) opt.selected = true;
+            selectEl.appendChild(opt);
         });
     }
 
@@ -182,24 +201,20 @@
 
     function rowHtml(i, line) {
         const desc  = (line?.description || '').replace(/"/g, '&quot;');
-        const net   = line?.amount   || '';
+        const net   = line?.amount       || '';
         const t1r   = parseFloat(line?.tax1_rate  ?? 0);
         const t2r   = parseFloat(line?.tax2_rate  ?? 0);
         const sscl  = line?.tax1_amount  != null ? parseFloat(line.tax1_amount)  : 0;
         const vat   = line?.tax2_amount  != null ? parseFloat(line.tax2_amount)  : 0;
         const gross = line?.gross_amount != null ? parseFloat(line.gross_amount) : 0;
-        const tcLabel = (line?.tax_code_code || '')
-            ? `<span class="badge bg-secondary-subtle text-secondary font-monospace">${line.tax_code_code}</span>`
-            : '<span class="text-muted small">—</span>';
 
         return `<tr>
             <td>
-                <select name="lines[${i}][charge_code_id]" class="form-select form-select-sm cc-select" data-ccid="${line?.charge_code_id || ''}">
+                <select name="lines[${i}][charge_code_id]" class="form-select form-select-sm cc-select">
                     <option value=""></option>
                 </select>
-                <input type="hidden" name="lines[${i}][tax_code_id]"  class="tax-code-id"  value="${line?.tax_code_id || ''}">
-                <input type="hidden" name="lines[${i}][tax1_rate]"    class="tax1-rate"    value="${t1r}">
-                <input type="hidden" name="lines[${i}][tax2_rate]"    class="tax2-rate"    value="${t2r}">
+                <input type="hidden" name="lines[${i}][tax1_rate]" class="tax1-rate" value="${t1r}">
+                <input type="hidden" name="lines[${i}][tax2_rate]" class="tax2-rate" value="${t2r}">
             </td>
             <td><input type="text" name="lines[${i}][description]" class="form-control form-control-sm" value="${desc}" required></td>
             <td>
@@ -207,7 +222,11 @@
                     ${buildAccountOpts(line?.expense_account_id)}
                 </select>
             </td>
-            <td class="tc-display">${tcLabel}</td>
+            <td>
+                <select name="lines[${i}][tax_code_id]" class="form-select form-select-sm tc-select">
+                    <option value="">— none —</option>
+                </select>
+            </td>
             <td>
                 <input type="number" step="0.01" min="0.01" name="lines[${i}][amount]"
                     class="form-control form-control-sm text-end font-monospace line-net"
@@ -224,12 +243,11 @@
         </tr>`;
     }
 
-    function initRow(row, savedCcId) {
+    function initRow(row, savedCcId, savedTcId) {
         // ── Charge code Select2 ──────────────────────────────────────────────
         const ccEl = row.querySelector('.cc-select');
         populateCcOptions(ccEl);
 
-        // Use the layout's Code-chip template helpers (defined in DOMContentLoaded)
         const $ccSel = jQuery(ccEl).select2({
             theme             : 'bootstrap-5',
             width             : '100%',
@@ -239,14 +257,22 @@
             templateSelection : window.s2CodeSelection || null,
         });
 
-        // Restore old() selection before binding handler so AJAX is not re-triggered
-        if (savedCcId) {
-            $ccSel.val(String(savedCcId)).trigger('change.select2');
-        }
+        if (savedCcId) $ccSel.val(String(savedCcId)).trigger('change.select2');
         $ccSel.on('change', function () { handleChargeCodeChange(this); });
 
+        // ── Tax code Select2 ─────────────────────────────────────────────────
+        const tcEl = row.querySelector('.tc-select');
+        populateTcOptions(tcEl, savedTcId);
+
+        const $tcSel = jQuery(tcEl).select2({
+            theme      : 'bootstrap-5',
+            width      : '100%',
+            placeholder: '— none —',
+            allowClear : true,
+        });
+        $tcSel.on('change', function () { handleTaxCodeChange(this); });
+
         // ── Account Select2 ──────────────────────────────────────────────────
-        // Options are already in the DOM via buildAccountOpts; just wrap with Select2.
         jQuery(row.querySelector('.acct-select')).select2({
             theme      : 'bootstrap-5',
             width      : '100%',
@@ -256,10 +282,11 @@
 
     function addRow(line) {
         body.insertAdjacentHTML('beforeend', rowHtml(idx++, line));
-        const lastRow   = body.lastElementChild;
+        const lastRow  = body.lastElementChild;
         const savedCcId = line?.charge_code_id || '';
+        const savedTcId = line?.tax_code_id    || '';
 
-        initRow(lastRow, savedCcId);
+        initRow(lastRow, savedCcId, savedTcId);
 
         if (line && (parseFloat(line.tax1_rate) > 0 || parseFloat(line.tax2_rate) > 0)) {
             recalcRow(lastRow);
@@ -267,6 +294,8 @@
         recalc();
     }
 
+    // When user picks a charge code, fetch defaults and populate description,
+    // account, and tax code. Description always syncs to the selected charge code.
     function handleChargeCodeChange(selectEl) {
         const ccId = selectEl.value;
         const row  = selectEl.closest('tr');
@@ -279,39 +308,34 @@
         fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(r => r.json())
             .then(data => {
+                // Always update description from charge code when charge code changes
                 const descInput = row.querySelector('input[name$="[description]"]');
-                if (descInput && !descInput.value.trim()) descInput.value = data.description || '';
+                if (descInput) descInput.value = data.description || '';
 
-                // Update account Select2 value
                 if (data.expense_account_id) {
                     jQuery(row.querySelector('.acct-select'))
                         .val(data.expense_account_id).trigger('change.select2');
                 }
 
-                row.querySelector('.tax-code-id').value = data.tax_code_id || '';
-                row.querySelector('.tax1-rate').value   = data.tax1_rate   || 0;
-                row.querySelector('.tax2-rate').value   = data.tax2_rate   || 0;
-
-                const tcDisplay = row.querySelector('.tc-display');
-                if (tcDisplay) {
-                    tcDisplay.innerHTML = data.tax_code_code
-                        ? `<span class="badge bg-secondary-subtle text-secondary font-monospace">${data.tax_code_code}</span>`
-                            + (data.tax_code_desc ? `<br><span class="text-muted" style="font-size:.7rem">${data.tax_code_desc}</span>` : '')
-                        : '<span class="text-muted small">—</span>';
-                }
-                recalcRow(row);
-                recalc();
+                // Set tax code dropdown — triggers handleTaxCodeChange which updates rates
+                jQuery(row.querySelector('.tc-select'))
+                    .val(data.tax_code_id || '').trigger('change');
             })
             .catch(() => { /* silent — user can fill manually */ });
     }
 
-    function resetTaxFields(row) {
-        row.querySelector('.tax-code-id').value = '';
-        row.querySelector('.tax1-rate').value   = 0;
-        row.querySelector('.tax2-rate').value   = 0;
-        const tcDisplay = row.querySelector('.tc-display');
-        if (tcDisplay) tcDisplay.innerHTML = '<span class="text-muted small">—</span>';
+    // When user changes the tax code dropdown, look up rates from JS array and recalc.
+    function handleTaxCodeChange(selectEl) {
+        const row = selectEl.closest('tr');
+        const tc  = taxCodes.find(t => String(t.id) === String(selectEl.value));
+        row.querySelector('.tax1-rate').value = tc ? tc.tax1_rate : 0;
+        row.querySelector('.tax2-rate').value = tc ? tc.tax2_rate : 0;
         recalcRow(row);
+        recalc();
+    }
+
+    function resetTaxFields(row) {
+        jQuery(row.querySelector('.tc-select')).val('').trigger('change');
     }
 
     function recalcRow(row) {
@@ -353,6 +377,7 @@
             const row = e.target.closest('tr');
             if (body.children.length > 1) {
                 jQuery(row.querySelector('.cc-select')).select2('destroy');
+                jQuery(row.querySelector('.tc-select')).select2('destroy');
                 jQuery(row.querySelector('.acct-select')).select2('destroy');
                 row.remove();
             }
@@ -366,9 +391,8 @@
         if (cur) document.getElementById('currencySelect').value = cur;
     });
 
-    // Defer row seeding to DOMContentLoaded so the layout's handler runs first
-    // and defines window.s2CodeResult / window.s2CodeSelection before we use them.
-    // (The layout registers its DOMContentLoaded at line ~1858; ours fires after.)
+    // Defer seeding to DOMContentLoaded so the layout's handler (which defines
+    // window.s2CodeResult / window.s2CodeSelection) runs first.
     document.addEventListener('DOMContentLoaded', function () {
         const seed = @json(array_values($oldLines));
         if (seed.length) seed.forEach(line => addRow(line)); else addRow();
