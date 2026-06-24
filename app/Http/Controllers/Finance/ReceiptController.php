@@ -171,6 +171,14 @@ class ReceiptController extends Controller
             return back()->with('error', 'This invoice does not belong to the receipt\'s customer.');
         }
 
+        $invoiceCurrency = strtoupper((string) ($invoice->invoice_currency ?? $invoice->currency ?? ''));
+        $receiptCurrency = strtoupper((string) ($receipt->currency ?? ''));
+        if ($invoiceCurrency && $receiptCurrency && $invoiceCurrency !== $receiptCurrency) {
+            return back()->with('error',
+                "Currency mismatch: the receipt is in {$receipt->currency} but the invoice is in {$invoiceCurrency}."
+            );
+        }
+
         try {
             DB::transaction(function () use ($receipt, $invoice, $validated) {
                 $locked = Receipt::lockForUpdate()->find($receipt->id);

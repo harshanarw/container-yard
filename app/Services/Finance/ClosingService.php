@@ -178,15 +178,12 @@ class ClosingService
             ->whereIn('classification', ['income', 'expense'])
             ->get();
 
-        $from = $period->start_date->toDateString();
-        $to   = $period->end_date->toDateString();
-
         $lines = [];
 
         foreach ($accounts as $acc) {
             $sums = GlEntry::where('account_id', $acc->id)
                 ->whereHas('journal', fn ($j) => $j->where('status', 'posted')
-                    ->whereBetween('journal_date', [$from, $to])
+                    ->where('period_id', $period->id)
                     ->where('journal_type', '!=', 'closing'))
                 ->selectRaw('COALESCE(SUM(debit),0) as d, COALESCE(SUM(credit),0) as c')
                 ->first();

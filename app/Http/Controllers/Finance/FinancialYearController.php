@@ -92,29 +92,44 @@ class FinancialYearController extends Controller
             'notes'       => ['nullable', 'string', 'max:500'],
         ]);
 
-        if ($data['status'] === 'open') {
-            $alreadyOpen = FinancialYear::where('status', 'open')
-                ->where('id', '!=', $fiscalYear->id)
-                ->exists();
-            if ($alreadyOpen) {
-                return back()->with('error', 'Another financial year is already open. Close it first.');
+        // All validation and the update run inside one transaction with row-locks so
+        // two concurrent "open" requests cannot both pass the single-open-year check.
+        $error = null;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($fiscalYear, $data, &$error) {
+            // Lock this row and all 'open' rows to serialize concurrent status changes.
+            FinancialYear::lockForUpdate()->where(fn ($q) =>
+                $q->where('id', $fiscalYear->id)->orWhere('status', 'open')
+            )->get();
+
+            if ($data['status'] === 'open') {
+                $alreadyOpen = FinancialYear::where('status', 'open')
+                    ->where('id', '!=', $fiscalYear->id)
+                    ->exists();
+                if ($alreadyOpen) {
+                    $error = 'Another financial year is already open. Close it first.';
+                    return;
+                }
             }
+
+            // Guard invalid status jumps: draft can only become open (not directly closed/archived).
+            $current = $fiscalYear->status;
+            $next    = $data['status'];
+            $invalid = ($current === 'draft' && in_array($next, ['closed', 'archived']))
+                    || ($current === 'closed' && $next === 'draft')
+                    || ($current === 'archived');
+            if ($invalid) {
+                $error = "Cannot transition a financial year from '{$current}' to '{$next}'.";
+                return;
+            }
+
+            $fiscalYear->update($data);
+        });
+
+        if ($error) {
+            return back()->with('error', $error);
         }
 
-        // Guard invalid status jumps: draft can only become open (not directly closed/archived).
-        // Closing a year must go draft → open → closed, using the Period P&L Close workflow.
-        $current = $fiscalYear->status;
-        $next    = $data['status'];
-        $invalid = ($current === 'draft' && in_array($next, ['closed', 'archived']))
-                || ($current === 'closed' && $next === 'draft')
-                || ($current === 'archived');
-        if ($invalid) {
-            return back()->with('error',
-                "Cannot transition a financial year from '{$current}' to '{$next}'."
-            );
-        }
-
-        $fiscalYear->update($data);
         return back()->with('success', 'Financial year updated.');
     }
 
