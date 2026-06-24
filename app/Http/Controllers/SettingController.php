@@ -31,14 +31,6 @@ class SettingController extends Controller
             'free_storage_days' => ['required', 'integer', 'min:0', 'max:365'],
             'timezone'          => ['required', 'string', 'max:100'],
 
-            // Prefixes
-            'prefix_invoice'    => ['required', 'string', 'max:20', 'alpha_num'],
-            'prefix_sh_invoice' => ['required', 'string', 'max:20', 'alpha_num'],
-            'prefix_survey'     => ['required', 'string', 'max:20', 'alpha_num'],
-            'prefix_estimate'   => ['required', 'string', 'max:20', 'alpha_num'],
-            'prefix_gate_in'    => ['required', 'string', 'max:20', 'alpha_num'],
-            'prefix_gate_out'   => ['required', 'string', 'max:20', 'alpha_num'],
-
             // Billing defaults
             'default_tax_rate'  => ['required', 'numeric', 'min:0', 'max:100'],
             'surcharge_overtime' => ['required', 'numeric', 'min:0', 'max:500'],
@@ -50,11 +42,6 @@ class SettingController extends Controller
             // Gate Pass print defaults
             'default_gate_in_format'  => ['nullable', 'string', 'in:full,half,half-custom'],
             'default_gate_out_format' => ['nullable', 'string', 'in:full,half,half-custom'],
-
-            // Finance document prefixes
-            'prefix_receipt'    => ['required', 'string', 'max:10', 'alpha_num'],
-            'prefix_voucher'    => ['required', 'string', 'max:10', 'alpha_num'],
-            'prefix_journal'    => ['required', 'string', 'max:10', 'alpha_num'],
         ]);
 
         $settings = CompanySetting::current();

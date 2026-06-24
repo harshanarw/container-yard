@@ -238,18 +238,6 @@ class ReceiptController extends Controller
 
     private function nextReceiptNo(): string
     {
-        return DB::transaction(function () {
-            $prefix = \App\Models\CompanySetting::current()->prefix_receipt ?? 'RCP';
-            $last   = Receipt::where('receipt_no', 'like', "{$prefix}-%")
-                ->orderByDesc('receipt_no')
-                ->lockForUpdate()
-                ->value('receipt_no');
-            $seq = 1;
-            if ($last) {
-                $parts = explode('-', $last);
-                $seq   = ((int) end($parts)) + 1;
-            }
-            return $prefix . '-' . str_pad($seq, 6, '0', STR_PAD_LEFT);
-        });
+        return app(\App\Services\NumberSequenceService::class)->generate('receipt');
     }
 }

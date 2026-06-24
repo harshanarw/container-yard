@@ -248,17 +248,6 @@ class PaymentVoucherController extends Controller
 
     private function nextVoucherNo(): string
     {
-        return DB::transaction(function () {
-            $prefix = \App\Models\CompanySetting::current()->prefix_voucher ?? 'PV';
-            // Order by the numeric suffix (not the string) so PV-1000 sorts after
-            // PV-999 and the next sequence is always correct.
-            $last   = PaymentVoucher::where('voucher_no', 'like', "{$prefix}-%")
-                ->orderByRaw('CAST(SUBSTRING(voucher_no, ' . (strlen($prefix) + 2) . ') AS UNSIGNED) DESC')
-                ->lockForUpdate()
-                ->value('voucher_no');
-            $seq = $last ? ((int) substr($last, strlen($prefix) + 1)) + 1 : 1;
-
-            return $prefix . '-' . str_pad((string) $seq, 6, '0', STR_PAD_LEFT);
-        });
+        return app(\App\Services\NumberSequenceService::class)->generate('payment_voucher');
     }
 }

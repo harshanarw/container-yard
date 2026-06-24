@@ -234,16 +234,6 @@ class SupplierInvoiceController extends Controller
 
     private function nextInvoiceNo(): string
     {
-        return DB::transaction(function () {
-            $prefix = CompanySetting::current()->prefix_supplier_invoice ?? 'SINV';
-            $last   = SupplierInvoice::where('invoice_no', 'like', "{$prefix}-%")
-                ->orderByRaw('CAST(SUBSTRING(invoice_no, ' . (strlen($prefix) + 2) . ') AS UNSIGNED) DESC')
-                ->lockForUpdate()
-                ->value('invoice_no');
-
-            $n = $last ? ((int) substr($last, strlen($prefix) + 1)) + 1 : 1;
-
-            return "{$prefix}-" . str_pad((string) $n, 6, '0', STR_PAD_LEFT);
-        });
+        return app(\App\Services\NumberSequenceService::class)->generate('supplier_invoice');
     }
 }

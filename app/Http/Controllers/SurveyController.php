@@ -365,8 +365,6 @@ class SurveyController extends Controller
 
     private function generateSurveyNo(): string
     {
-        $last = Inquiry::latest('id')->value('inquiry_no');
-        $next = $last ? (int) Str::afterLast($last, '-') + 1 : 1;
-        return 'SRV-' . str_pad($next, 4, '0', STR_PAD_LEFT);
+        return app(\App\Services\NumberSequenceService::class)->generate('survey');
     }
 }

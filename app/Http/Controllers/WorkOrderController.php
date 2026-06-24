@@ -178,9 +178,7 @@ class WorkOrderController extends Controller
             return back()->withErrors(['repair_category_id' => 'No unassigned line items found for this category.'])->withInput();
         }
 
-        $lastWo = WorkOrder::orderByDesc('id')->value('wo_no');
-        $nextNo = $lastWo ? (int) substr($lastWo, 3) + 1 : 1;
-        $woNo   = 'WO-' . str_pad($nextNo, 4, '0', STR_PAD_LEFT);
+        $woNo = app(\App\Services\NumberSequenceService::class)->generate('work_order');
 
         $workOrder = WorkOrder::create([
             'wo_no'              => $woNo,

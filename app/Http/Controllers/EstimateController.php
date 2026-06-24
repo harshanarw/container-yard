@@ -759,9 +759,6 @@ class EstimateController extends Controller
 
     private function generateEstimateNo(): string
     {
-        $max = Estimate::selectRaw("MAX(CAST(SUBSTRING(estimate_no, 4) AS UNSIGNED)) as max_no")
-            ->value('max_no');
-
-        return 'RE-' . str_pad(($max ?? 0) + 1, 4, '0', STR_PAD_LEFT);
+        return app(\App\Services\NumberSequenceService::class)->generate('estimate');
     }
 }

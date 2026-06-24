@@ -435,13 +435,7 @@ class StorageHandlingController extends Controller
         $invoice = null;
 
         DB::transaction(function () use ($v, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $ssclAmount, $vatAmount, $totalAmount, $totalValue, &$invoice) {
-            // Generate sequential invoice number inside the transaction so the
-            // lockForUpdate actually serialises concurrent invoice creations.
-            $prefix    = 'SHI-' . now()->format('Ym') . '-';
-            $lastNo    = StorageHandlingInvoice::where('invoice_no', 'like', $prefix . '%')
-                            ->lockForUpdate()
-                            ->count();
-            $invoiceNo = $prefix . str_pad($lastNo + 1, 4, '0', STR_PAD_LEFT);
+            $invoiceNo = app(\App\Services\NumberSequenceService::class)->generate('storage_handling_invoice');
             // Due date follows the debtor's (shipping line's) AR payment terms.
             $debtorTerms = \App\Models\Customer::where('id', $v['shipping_line_id'])->value('payment_terms') ?? 'net30';
             $dueDate     = \App\Services\Finance\PaymentTermsHelper::dueDate(

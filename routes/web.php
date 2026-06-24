@@ -62,6 +62,7 @@ use App\Http\Controllers\Finance\PaymentVoucherController;
 use App\Http\Controllers\Finance\SupplierInvoiceController;
 use App\Http\Controllers\InternalNotificationEmailController;
 use App\Http\Controllers\CustomerEmailContactController;
+use App\Http\Controllers\NumberSequenceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -695,6 +696,14 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/',              [InternalNotificationEmailController::class, 'store'])->name('store');
             Route::patch('/{internalEmail}', [InternalNotificationEmailController::class, 'update'])->name('update');
             Route::delete('/{internalEmail}', [InternalNotificationEmailController::class, 'destroy'])->name('destroy');
+        });
+
+        // Number Sequences
+        Route::prefix('number-sequences')->name('number-sequences.')->group(function () {
+            Route::get('/',                                   [NumberSequenceController::class, 'index'])->name('index');
+            Route::put('/{numberSequence}',                   [NumberSequenceController::class, 'update'])->name('update');
+            Route::get('/{numberSequence}/preview',           [NumberSequenceController::class, 'preview'])->name('preview');
+            Route::post('/{numberSequence}/reset-counter',    [NumberSequenceController::class, 'resetCounter'])->name('reset');
         });
     });
 

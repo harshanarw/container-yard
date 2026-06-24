@@ -338,13 +338,7 @@ class StorageBillingController extends Controller
         $invoice = null;
 
         DB::transaction(function () use ($validated, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $subtotal, $ssclAmount, $vatAmount, $totalAmount, $totalValue, &$invoice) {
-            // Generate sequential invoice number inside the transaction so the
-            // lockForUpdate actually serialises concurrent invoice creations.
-            $prefix    = 'SBI-' . now()->format('Ym') . '-';
-            $lastNo    = StorageInvoice::where('invoice_no', 'like', $prefix . '%')
-                            ->lockForUpdate()
-                            ->count();
-            $invoiceNo = $prefix . str_pad($lastNo + 1, 4, '0', STR_PAD_LEFT);
+            $invoiceNo = app(\App\Services\NumberSequenceService::class)->generate('storage_invoice');
             // Due date follows the debtor's AR payment terms (Net 30 default).
             $debtorTerms = \App\Models\Customer::where('id', $validated['customer_id'])->value('payment_terms') ?? 'net30';
             $dueDate     = \App\Services\Finance\PaymentTermsHelper::dueDate(

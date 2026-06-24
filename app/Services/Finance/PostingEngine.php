@@ -235,21 +235,6 @@ class PostingEngine
 
     private function nextJournalNo(): string
     {
-        // Use DB lock to avoid race conditions
-        $setting = \App\Models\CompanySetting::current();
-        $prefix  = $setting->prefix_journal ?? 'JV';
-
-        $last = GlJournal::where('journal_no', 'like', "{$prefix}-%")
-            ->orderByDesc('journal_no')
-            ->lockForUpdate()
-            ->value('journal_no');
-
-        $seq = 1;
-        if ($last) {
-            $parts = explode('-', $last);
-            $seq   = ((int) end($parts)) + 1;
-        }
-
-        return $prefix . '-' . str_pad($seq, 6, '0', STR_PAD_LEFT);
+        return app(\App\Services\NumberSequenceService::class)->generate('journal_voucher');
     }
 }

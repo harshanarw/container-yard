@@ -12,7 +12,7 @@
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
         <h4><i class="bi bi-gear-wide me-2 text-primary"></i>System Settings</h4>
-        <p class="text-muted mb-0 small">Configure operational defaults, document prefixes and billing parameters.</p>
+        <p class="text-muted mb-0 small">Configure operational defaults, billing parameters and number sequences.</p>
     </div>
 </div>
 
@@ -126,106 +126,24 @@
         </div>
     </div>
 
-    {{-- ── 2. Document Number Prefixes ── --}}
+    {{-- ── 2. Number Sequences ── --}}
     <div class="card content-card mb-4">
-        <div class="card-header py-2">
-            <i class="bi bi-hash me-2 text-primary"></i>Document Number Prefixes
-            <small class="text-muted fw-normal ms-2">— used when auto-generating reference numbers</small>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-
-                <div class="col-md-4 col-lg-2">
-                    <label class="form-label fw-semibold">Storage Invoice</label>
-                    <input type="text" name="prefix_invoice"
-                           class="form-control text-uppercase @error('prefix_invoice') is-invalid @enderror"
-                           value="{{ old('prefix_invoice', $settings->prefix_invoice ?? 'INV') }}"
-                           maxlength="20" required placeholder="INV">
-                    <div class="form-text">e.g. INV-00001</div>
-                    @error('prefix_invoice')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="col-md-4 col-lg-2">
-                    <label class="form-label fw-semibold">S&amp;H Invoice</label>
-                    <input type="text" name="prefix_sh_invoice"
-                           class="form-control text-uppercase @error('prefix_sh_invoice') is-invalid @enderror"
-                           value="{{ old('prefix_sh_invoice', $settings->prefix_sh_invoice ?? 'SH') }}"
-                           maxlength="20" required placeholder="SH">
-                    <div class="form-text">e.g. SH-00001</div>
-                    @error('prefix_sh_invoice')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="col-md-4 col-lg-2">
-                    <label class="form-label fw-semibold">Survey</label>
-                    <input type="text" name="prefix_survey"
-                           class="form-control text-uppercase @error('prefix_survey') is-invalid @enderror"
-                           value="{{ old('prefix_survey', $settings->prefix_survey ?? 'SRV') }}"
-                           maxlength="20" required placeholder="SRV">
-                    <div class="form-text">e.g. SRV-00001</div>
-                    @error('prefix_survey')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="col-md-4 col-lg-2">
-                    <label class="form-label fw-semibold">Repair Estimate</label>
-                    <input type="text" name="prefix_estimate"
-                           class="form-control text-uppercase @error('prefix_estimate') is-invalid @enderror"
-                           value="{{ old('prefix_estimate', $settings->prefix_estimate ?? 'RE') }}"
-                           maxlength="20" required placeholder="RE">
-                    <div class="form-text">e.g. RE-00001</div>
-                    @error('prefix_estimate')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="col-md-4 col-lg-2">
-                    <label class="form-label fw-semibold">Gate In</label>
-                    <input type="text" name="prefix_gate_in"
-                           class="form-control text-uppercase @error('prefix_gate_in') is-invalid @enderror"
-                           value="{{ old('prefix_gate_in', $settings->prefix_gate_in ?? 'GIN') }}"
-                           maxlength="20" required placeholder="GIN">
-                    <div class="form-text">e.g. GIN-00001</div>
-                    @error('prefix_gate_in')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="col-md-4 col-lg-2">
-                    <label class="form-label fw-semibold">Gate Out</label>
-                    <input type="text" name="prefix_gate_out"
-                           class="form-control text-uppercase @error('prefix_gate_out') is-invalid @enderror"
-                           value="{{ old('prefix_gate_out', $settings->prefix_gate_out ?? 'GOUT') }}"
-                           maxlength="20" required placeholder="GOUT">
-                    <div class="form-text">e.g. GOUT-00001</div>
-                    @error('prefix_gate_out')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="col-md-4 col-lg-2">
-                    <label class="form-label fw-semibold">Receipt</label>
-                    <input type="text" name="prefix_receipt"
-                           class="form-control text-uppercase @error('prefix_receipt') is-invalid @enderror"
-                           value="{{ old('prefix_receipt', $settings->prefix_receipt ?? 'RCP') }}"
-                           maxlength="10" required placeholder="RCP">
-                    <div class="form-text">e.g. RCP-00001</div>
-                    @error('prefix_receipt')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="col-md-4 col-lg-2">
-                    <label class="form-label fw-semibold">Payment Voucher</label>
-                    <input type="text" name="prefix_voucher"
-                           class="form-control text-uppercase @error('prefix_voucher') is-invalid @enderror"
-                           value="{{ old('prefix_voucher', $settings->prefix_voucher ?? 'PV') }}"
-                           maxlength="10" required placeholder="PV">
-                    <div class="form-text">e.g. PV-00001</div>
-                    @error('prefix_voucher')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="col-md-4 col-lg-2">
-                    <label class="form-label fw-semibold">Journal Voucher</label>
-                    <input type="text" name="prefix_journal"
-                           class="form-control text-uppercase @error('prefix_journal') is-invalid @enderror"
-                           value="{{ old('prefix_journal', $settings->prefix_journal ?? 'JV') }}"
-                           maxlength="10" required placeholder="JV">
-                    <div class="form-text">e.g. JV-00001</div>
-                    @error('prefix_journal')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-
+        <div class="card-header py-2 d-flex align-items-center justify-content-between">
+            <div>
+                <i class="bi bi-hash me-2 text-primary"></i>Number Sequences
+                <small class="text-muted fw-normal ms-2">— format and counter settings for all auto-generated reference numbers</small>
             </div>
+            <a href="{{ route('settings.number-sequences.index') }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-pencil-square me-1"></i>Configure Sequences
+            </a>
+        </div>
+        <div class="card-body py-2">
+            <p class="text-muted small mb-0">
+                Number sequences define how each document type's reference number is formatted, including the
+                module prefix (e.g. <code>RE</code> for Repair Estimates), optional date component, digit padding,
+                and whether the company prefix is prepended.
+                Click <strong>Configure Sequences</strong> to view and edit all sequences.
+            </p>
         </div>
     </div>
 

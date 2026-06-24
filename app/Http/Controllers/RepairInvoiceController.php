@@ -72,9 +72,7 @@ class RepairInvoiceController extends Controller
             return back()->withErrors(['estimate_id' => 'Only approved estimates can generate repair invoices.'])->withInput();
         }
 
-        $lastInv = \App\Models\RepairInvoice::orderByDesc('id')->value('invoice_no');
-        $nextNo  = $lastInv ? (int) substr($lastInv, 3) + 1 : 1;
-        $invNo   = 'RI-' . str_pad($nextNo, 6, '0', STR_PAD_LEFT);
+        $invNo = app(\App\Services\NumberSequenceService::class)->generate('repair_invoice');
 
         $subtotal    = 0;
         $ssclTotal   = 0;
