@@ -4,6 +4,8 @@ namespace App\Services\Finance;
 
 use App\Models\Account;
 use App\Models\AccountMapping;
+use App\Models\ChargeCode;
+use App\Models\Customer;
 use App\Models\GlJournal;
 use App\Models\InvoicePosting;
 use Illuminate\Database\Eloquent\Model;
@@ -97,6 +99,8 @@ class InvoicePostingService
         });
     }
 
+    // ─── Line building ────────────────────────────────────────────────────────
+
     private function buildLines(Model $invoice, string $invoiceType): array
     {
         // RepairInvoice uses grand_total; all others use total_amount
@@ -112,7 +116,7 @@ class InvoicePostingService
         $customerId = $invoice->customer_id ?? $invoice->shipping_line_id ?? null;
 
         // Resolve AR control account
-        $arAccount = $this->resolveAccount('customer_ar', \App\Models\Customer::class, $customerId)
+        $arAccount = $this->resolveAccount('customer_ar', Customer::class, $customerId)
             ?? $this->resolveAccount('customer_ar', null, null);
 
         if (!$arAccount) {
@@ -121,22 +125,8 @@ class InvoicePostingService
             );
         }
 
-        // Resolve revenue account based on invoice type
-        $revenueAccount = $this->resolveRevenueAccount($invoiceType);
-
-        if (!$revenueAccount) {
-            throw new \RuntimeException(
-                "No revenue account mapped for invoice type '{$invoiceType}'. Configure Account Mappings → Revenue."
-            );
-        }
-
-        // Tax extraction per invoice type (avoids double-counting):
-        // - RepairInvoice:            sscl_total + vat_total (header aggregates equal tax_amount)
-        // - ReeferElectricityInvoice: separate sscl_amount + vat_amount on the header
-        // - StorageInvoice:           single tax_amount on the header
-        // - StorageHandlingInvoice:   single tax_amount on the header
+        // Tax extraction per invoice type
         $taxAmount = (float) $this->extractTax($invoice, $invoiceType);
-
         $netAmount = $total - $taxAmount;
         if ($netAmount <= 0) {
             $netAmount = $total;
@@ -149,6 +139,16 @@ class InvoicePostingService
                 ?? Account::where('code', '2101')->where('is_active', true)->first();
         }
 
+        // Build revenue credit lines broken down by charge code → account
+        $revenueCredits = $this->buildRevenueCredits($invoice, $invoiceType, $netAmount);
+
+        if (empty($revenueCredits)) {
+            throw new \RuntimeException(
+                "No revenue account could be resolved for invoice type '{$invoiceType}'. "
+                . "Configure Account Mappings → Revenue or ensure charge codes have account mappings."
+            );
+        }
+
         $lines = [];
 
         // Debit AR (full invoice amount)
@@ -159,15 +159,17 @@ class InvoicePostingService
             'narration'  => 'Trade debtors',
         ];
 
-        // Credit Revenue (net amount)
-        $lines[] = [
-            'account_id' => $revenueAccount->id,
-            'debit'      => 0,
-            'credit'     => $netAmount,
-            'narration'  => 'Revenue',
-        ];
+        // Credit revenue — one line per distinct account
+        foreach ($revenueCredits as $rc) {
+            $lines[] = [
+                'account_id' => $rc['account_id'],
+                'debit'      => 0,
+                'credit'     => $rc['amount'],
+                'narration'  => $rc['narration'],
+            ];
+        }
 
-        // Credit Tax (if applicable)
+        // Credit tax
         if ($taxAmount > 0 && $taxAccount) {
             $lines[] = [
                 'account_id' => $taxAccount->id,
@@ -176,12 +178,167 @@ class InvoicePostingService
                 'narration'  => 'Output tax',
             ];
         } elseif ($taxAmount > 0 && !$taxAccount) {
-            // No tax account mapped — merge tax into revenue credit
+            // No tax account mapped — absorb into first revenue credit line
             $lines[1]['credit'] += $taxAmount;
         }
 
         return $lines;
     }
+
+    /**
+     * Build revenue credit line(s) split by charge code → account mapping.
+     *
+     * Each invoice type has a distinct strategy:
+     *
+     * storage-handling — two separate header aggregates (storage_subtotal /
+     *   handling_subtotal) are posted to their own revenue accounts (4001 / 4002).
+     *   This is the core fix: previously everything was collapsed into a single
+     *   4002 credit, so Storage Income was never recorded.
+     *
+     * storage / reefer — iterate detail/line rows, group by charge_code_id and
+     *   resolve the account via charge_revenue AccountMapping. Falls back to the
+     *   type-default account code when no mapping exists.
+     *
+     * repair — same per-line approach. Different charge codes (e.g. SRV/EST for
+     *   survey lines vs DMR/WLD for repair lines) correctly map to different
+     *   revenue accounts (4005 vs 4003).
+     *
+     * All strategies fall back to a single net-amount credit to the type-default
+     * account when no lines are present or no charge code mappings resolve.
+     */
+    private function buildRevenueCredits(Model $invoice, string $invoiceType, float $netAmount): array
+    {
+        $accumulator = []; // account_id => ['amount' => float, 'narration' => string]
+
+        $add = function (int $accountId, float $amount, string $narration) use (&$accumulator): void {
+            if (!isset($accumulator[$accountId])) {
+                $accumulator[$accountId] = ['amount' => 0.0, 'narration' => $narration];
+            }
+            $accumulator[$accountId]['amount'] += $amount;
+        };
+
+        switch ($invoiceType) {
+            case 'storage-handling':
+                // The header already carries pre-aggregated subtotals per component.
+                // Storage lines use charge_code_id  → resolves to 4001 (Storage Revenue).
+                // Handling lines use handling_charge_code_id → resolves to 4002 (Handling Revenue).
+                // We use the header aggregates for amounts to avoid per-line float accumulation.
+                $storageAmt  = round((float) ($invoice->storage_subtotal  ?? 0), 2);
+                $handlingAmt = round((float) ($invoice->handling_subtotal ?? 0), 2);
+
+                if ($storageAmt > 0) {
+                    $acc = $this->resolveDefaultRevenueAccount('storage');
+                    if ($acc) $add($acc->id, $storageAmt, 'Storage income');
+                }
+                if ($handlingAmt > 0) {
+                    $acc = $this->resolveDefaultRevenueAccount('storage-handling');
+                    if ($acc) $add($acc->id, $handlingAmt, 'Handling income');
+                }
+                break;
+
+            case 'storage':
+                $invoice->loadMissing('details');
+                foreach ($invoice->details as $detail) {
+                    $amt = round((float) ($detail->subtotal ?? 0), 2);
+                    if ($amt <= 0) continue;
+                    $acc = $this->resolveChargeRevenueAccount($detail->charge_code_id, '4001');
+                    if ($acc) $add($acc->id, $amt, 'Storage income');
+                }
+                break;
+
+            case 'reefer':
+                $invoice->loadMissing('lines');
+                foreach ($invoice->lines as $line) {
+                    $amt = round((float) ($line->subtotal ?? 0), 2);
+                    if ($amt <= 0) continue;
+                    $acc = $this->resolveChargeRevenueAccount($line->charge_code_id, '4004');
+                    if ($acc) $add($acc->id, $amt, 'Reefer electricity income');
+                }
+                break;
+
+            case 'repair':
+                // line_amount is the pre-tax net per line (gross_amount = line_amount + taxes)
+                $invoice->loadMissing('lines');
+                foreach ($invoice->lines as $line) {
+                    $amt = round((float) ($line->line_amount ?? 0), 2);
+                    if ($amt <= 0) continue;
+                    $acc = $this->resolveChargeRevenueAccount($line->charge_code_id, '4003');
+                    if ($acc) $add($acc->id, $amt, 'Repair income');
+                }
+                break;
+        }
+
+        // Fallback: if no per-line amounts resolved, post the full net to the type default
+        if (empty($accumulator)) {
+            $acc = $this->resolveDefaultRevenueAccount($invoiceType);
+            if ($acc) {
+                $add($acc->id, $netAmount, 'Revenue');
+            }
+        }
+
+        $credits = [];
+        foreach ($accumulator as $accountId => $entry) {
+            $credits[] = [
+                'account_id' => $accountId,
+                'amount'     => round($entry['amount'], 2),
+                'narration'  => $entry['narration'],
+            ];
+        }
+
+        return $credits;
+    }
+
+    // ─── Account resolution helpers ──────────────────────────────────────────
+
+    /**
+     * Resolve revenue account for a charge code via charge_revenue AccountMapping.
+     * Falls back to the account with $fallbackCode when no mapping is configured.
+     */
+    private function resolveChargeRevenueAccount(?int $chargeCodeId, string $fallbackCode): ?Account
+    {
+        if ($chargeCodeId !== null) {
+            $mapped = $this->resolveAccount('charge_revenue', ChargeCode::class, $chargeCodeId);
+            if ($mapped) {
+                return $mapped;
+            }
+        }
+
+        return Account::where('code', $fallbackCode)->where('is_active', true)->first();
+    }
+
+    /**
+     * Resolve the type-level default revenue account (used for storage-handling splits
+     * and as the last-resort fallback when no per-line charge codes are present).
+     */
+    private function resolveDefaultRevenueAccount(string $invoiceType): ?Account
+    {
+        $systemCodeMap = [
+            'storage'          => '4001',
+            'storage-handling' => '4002',
+            'reefer'           => '4004',
+            'repair'           => '4003',
+        ];
+
+        $code = $systemCodeMap[$invoiceType] ?? null;
+
+        return $code
+            ? Account::where('code', $code)->where('is_active', true)->first()
+            : null;
+    }
+
+    private function resolveAccount(string $mappingType, ?string $sourceType, ?int $sourceId): ?Account
+    {
+        $query = AccountMapping::where('mapping_type', $mappingType)->where('is_active', true);
+
+        // Eloquent's where('col', null) generates "col = NULL" which never matches in SQL.
+        // Must use whereNull() / where() explicitly.
+        $sourceType === null ? $query->whereNull('source_type') : $query->where('source_type', $sourceType);
+        $sourceId   === null ? $query->whereNull('source_id')   : $query->where('source_id',   $sourceId);
+
+        return $query->first()?->account;
+    }
+
+    // ─── Tax extraction ───────────────────────────────────────────────────────
 
     private function extractTax(Model $invoice, string $invoiceType): float
     {
@@ -200,35 +357,7 @@ class InvoicePostingService
         };
     }
 
-    private function resolveRevenueAccount(string $invoiceType): ?Account
-    {
-        // System fallback account codes by invoice type
-        $systemCodeMap = [
-            'storage'          => '4001',
-            'storage-handling' => '4002',
-            'reefer'           => '4004',
-            'repair'           => '4003',
-        ];
-
-        $code = $systemCodeMap[$invoiceType] ?? null;
-        if ($code) {
-            return Account::where('code', $code)->where('is_active', true)->first();
-        }
-
-        return null;
-    }
-
-    private function resolveAccount(string $mappingType, ?string $sourceType, ?int $sourceId): ?Account
-    {
-        $query = AccountMapping::where('mapping_type', $mappingType)->where('is_active', true);
-
-        // Eloquent's where('col', null) generates "col = NULL" which never matches in SQL.
-        // Must use whereNull() / where() explicitly.
-        $sourceType === null ? $query->whereNull('source_type') : $query->where('source_type', $sourceType);
-        $sourceId   === null ? $query->whereNull('source_id')   : $query->where('source_id',   $sourceId);
-
-        return $query->first()?->account;
-    }
+    // ─── Narration ────────────────────────────────────────────────────────────
 
     private function narration(Model $invoice, string $invoiceType): string
     {
