@@ -236,6 +236,10 @@ class ClosingService
         $pl = Account::where('code', self::CURRENT_YEAR_PL)->first();
         $re = Account::where('code', self::RETAINED_EARNINGS)->where('is_active', true)->first();
 
+        if (!$pl) {
+            throw new RuntimeException('Current Year P/L account (3003) is missing. Check the Chart of Accounts.');
+        }
+
         if (!$re) {
             throw new RuntimeException('Retained Earnings account (3002) is missing or inactive. Check the Chart of Accounts.');
         }

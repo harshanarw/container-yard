@@ -130,7 +130,9 @@ class SupplierInvoicePostingService
     public function void(SupplierInvoice $invoice, int $userId, string $reason = ''): void
     {
         if (!$invoice->isPosted()) {
-            return; // nothing posted — no-op
+            throw new \RuntimeException(
+                "Supplier invoice {$invoice->invoice_no} is not posted — nothing to void."
+            );
         }
 
         DB::transaction(function () use ($invoice, $userId, $reason) {

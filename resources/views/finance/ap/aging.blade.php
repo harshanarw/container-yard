@@ -28,11 +28,12 @@
 {{-- Grand Total Summary --}}
 <div class="row g-3 mb-3">
     @foreach([
-        ['Current (0–30)', 'current', 'success'],
-        ['31–60 days',     '31-60',  'warning'],
-        ['61–90 days',     '61-90',  'orange'],
-        ['Over 90 days',   '90+',    'danger'],
-        ['Total Outstanding', 'total', 'primary'],
+        ['Current (not due)', 'current', 'success'],
+        ['1–30 days',         '1-30',   'info'],
+        ['31–60 days',        '31-60',  'warning'],
+        ['61–90 days',        '61-90',  'orange'],
+        ['Over 90 days',      '90+',    'danger'],
+        ['Total Outstanding', 'total',  'primary'],
     ] as [$label, $key, $color])
     <div class="col-md col-6">
         <div class="card content-card text-center py-3">
@@ -68,7 +69,8 @@
                     <th class="text-end">Age</th>
                     <th class="text-end">Total</th>
                     <th class="text-end">Paid</th>
-                    <th class="text-end text-success-emphasis">0–30</th>
+                    <th class="text-end text-success-emphasis">Current</th>
+                    <th class="text-end text-info-emphasis">1–30</th>
                     <th class="text-end text-warning-emphasis">31–60</th>
                     <th class="text-end" style="color:#c47200">61–90</th>
                     <th class="text-end text-danger-emphasis">90+</th>
@@ -110,13 +112,15 @@
                         @php
                             $bc = match($inv['bucket']) {
                                 'current' => 'success',
+                                '1-30'    => 'info',
                                 '31-60'   => 'warning',
                                 '61-90'   => 'warning',
                                 '90+'     => 'danger',
                                 default   => 'secondary',
                             };
+                            $ageLabel = $inv['age_days'] <= 0 ? 'Current' : $inv['age_days'] . 'd';
                         @endphp
-                        <span class="badge bg-{{ $bc }}-subtle text-{{ $bc }}">{{ $inv['age_days'] }}d</span>
+                        <span class="badge bg-{{ $bc }}-subtle text-{{ $bc }}">{{ $ageLabel }}</span>
                     </td>
 
                     <td class="text-end font-monospace">{{ number_format($inv['total'], 2) }}</td>
@@ -125,6 +129,9 @@
                     {{-- Bucket columns --}}
                     <td class="text-end font-monospace {{ $inv['bucket'] === 'current' ? 'fw-semibold text-success' : 'text-muted' }}">
                         {{ $inv['bucket'] === 'current' ? number_format($inv['outstanding'], 2) : '—' }}
+                    </td>
+                    <td class="text-end font-monospace {{ $inv['bucket'] === '1-30' ? 'fw-semibold text-info' : 'text-muted' }}">
+                        {{ $inv['bucket'] === '1-30' ? number_format($inv['outstanding'], 2) : '—' }}
                     </td>
                     <td class="text-end font-monospace {{ $inv['bucket'] === '31-60' ? 'fw-semibold text-warning' : 'text-muted' }}">
                         {{ $inv['bucket'] === '31-60' ? number_format($inv['outstanding'], 2) : '—' }}
@@ -149,6 +156,7 @@
                         {{ $group['supplier']?->name ?? 'Unknown' }} subtotal
                     </td>
                     <td class="text-end font-monospace text-success">{{ number_format($group['current'], 2) }}</td>
+                    <td class="text-end font-monospace text-info">{{ number_format($group['1-30'], 2) }}</td>
                     <td class="text-end font-monospace text-warning">{{ number_format($group['31-60'], 2) }}</td>
                     <td class="text-end font-monospace" style="color:#c47200">{{ number_format($group['61-90'], 2) }}</td>
                     <td class="text-end font-monospace text-danger">{{ number_format($group['90+'], 2) }}</td>
@@ -160,6 +168,7 @@
                 <tr class="table-dark fw-bold">
                     <td colspan="6" class="text-end small">Grand Total</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['current'], 2) }}</td>
+                    <td class="text-end font-monospace">{{ number_format($grandTotals['1-30'], 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['31-60'], 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['61-90'], 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['90+'], 2) }}</td>

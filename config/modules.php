@@ -279,7 +279,7 @@ return [
     'finance.ap' => [
         'label'   => 'AP / Supplier Invoices',
         'section' => 'Finance',
-        'actions' => ['view', 'create', 'post', 'void'],
+        'actions' => ['view', 'create', 'post', 'void', 'delete'],
     ],
 
     // ── Reports ───────────────────────────────────────────────────────────────

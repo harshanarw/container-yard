@@ -335,16 +335,16 @@ class StorageBillingController extends Controller
         $totalAmount     = round(array_sum(array_column($validated['lines'], 'line_total')), 2);
         $totalValue      = round(array_sum(array_column($validated['lines'], 'line_value')), 2) ?: $totalAmount;
 
-        // Generate sequential invoice number: SBI-YYYYMM-XXXX
-        $prefix    = 'SBI-' . now()->format('Ym') . '-';
-        $lastNo    = StorageInvoice::where('invoice_no', 'like', $prefix . '%')
-                        ->lockForUpdate()
-                        ->count();
-        $invoiceNo = $prefix . str_pad($lastNo + 1, 4, '0', STR_PAD_LEFT);
-
         $invoice = null;
 
-        DB::transaction(function () use ($validated, $invoiceNo, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $subtotal, $ssclAmount, $vatAmount, $totalAmount, $totalValue, &$invoice) {
+        DB::transaction(function () use ($validated, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $subtotal, $ssclAmount, $vatAmount, $totalAmount, $totalValue, &$invoice) {
+            // Generate sequential invoice number inside the transaction so the
+            // lockForUpdate actually serialises concurrent invoice creations.
+            $prefix    = 'SBI-' . now()->format('Ym') . '-';
+            $lastNo    = StorageInvoice::where('invoice_no', 'like', $prefix . '%')
+                            ->lockForUpdate()
+                            ->count();
+            $invoiceNo = $prefix . str_pad($lastNo + 1, 4, '0', STR_PAD_LEFT);
             // Due date follows the debtor's AR payment terms (Net 30 default).
             $debtorTerms = \App\Models\Customer::where('id', $validated['customer_id'])->value('payment_terms') ?? 'net30';
             $dueDate     = \App\Services\Finance\PaymentTermsHelper::dueDate(
@@ -609,9 +609,11 @@ class StorageBillingController extends Controller
 
         $invoice->loadMissing(['customer', 'billingParty', 'details', 'createdBy']);
 
-        // Mark as issued if still draft
+        // Mark as issued if still draft (assign ird_invoice_no same as markIssued)
         if ($invoice->isDraft()) {
-            $invoice->update(['status' => 'issued', 'sent_at' => now()]);
+            $irdNo = $invoice->ird_invoice_no
+                ?? app(\App\Services\Finance\IrdInvoiceNumberService::class)->generate('storage', $invoice->invoice_date);
+            $invoice->update(['status' => 'issued', 'sent_at' => now(), 'ird_invoice_no' => $irdNo]);
         }
 
         $manualCc = $validated['cc_email'] ? [$validated['cc_email']] : [];

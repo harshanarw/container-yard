@@ -77,15 +77,18 @@ class ReeferElectricityInvoice extends Model
     /** Generate the next invoice number in sequence (REF-YYYY-NNNNN). */
     public static function nextInvoiceNo(): string
     {
-        $year   = now()->year;
-        $prefix = "REF-{$year}-";
+        return \Illuminate\Support\Facades\DB::transaction(function () {
+            $year   = now()->year;
+            $prefix = "REF-{$year}-";
 
-        $last = static::where('invoice_no', 'like', "{$prefix}%")
-                       ->orderByDesc('invoice_no')
-                       ->value('invoice_no');
+            $last = static::where('invoice_no', 'like', "{$prefix}%")
+                           ->orderByDesc('invoice_no')
+                           ->lockForUpdate()
+                           ->value('invoice_no');
 
-        $seq = $last ? ((int) substr($last, strlen($prefix))) + 1 : 1;
+            $seq = $last ? ((int) substr($last, strlen($prefix))) + 1 : 1;
 
-        return $prefix . str_pad($seq, 5, '0', STR_PAD_LEFT);
+            return $prefix . str_pad($seq, 5, '0', STR_PAD_LEFT);
+        });
     }
 }

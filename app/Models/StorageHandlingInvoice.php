@@ -42,6 +42,11 @@ class StorageHandlingInvoice extends Model
         return $this->belongsTo(Customer::class, 'shipping_line_id');
     }
 
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'shipping_line_id');
+    }
+
     public function billingParty()
     {
         return $this->belongsTo(Customer::class, 'billing_party_id');

@@ -101,6 +101,19 @@ class FinancialYearController extends Controller
             }
         }
 
+        // Guard invalid status jumps: draft can only become open (not directly closed/archived).
+        // Closing a year must go draft → open → closed, using the Period P&L Close workflow.
+        $current = $fiscalYear->status;
+        $next    = $data['status'];
+        $invalid = ($current === 'draft' && in_array($next, ['closed', 'archived']))
+                || ($current === 'closed' && $next === 'draft')
+                || ($current === 'archived');
+        if ($invalid) {
+            return back()->with('error',
+                "Cannot transition a financial year from '{$current}' to '{$next}'."
+            );
+        }
+
         $fiscalYear->update($data);
         return back()->with('success', 'Financial year updated.');
     }

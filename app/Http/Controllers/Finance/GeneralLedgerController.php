@@ -88,6 +88,10 @@ class GeneralLedgerController extends Controller
             'narration'  => $l['narration'] ?? null,
         ])->filter(fn ($l) => $l['debit'] > 0 || $l['credit'] > 0)->values()->toArray();
 
+        if (count($lines) < 2) {
+            return back()->withInput()->with('error', 'At least two non-zero journal lines are required.');
+        }
+
         try {
             $journal = $this->engine->createJournal([
                 'journal_date' => $validated['journal_date'],
@@ -123,6 +127,11 @@ class GeneralLedgerController extends Controller
     {
         $this->authorize('finance.gl.void');
         $request->validate(['reason' => ['nullable', 'string', 'max:255']]);
+
+        if ($journal->journal_type === 'closing') {
+            return back()->with('error', 'Closing journals cannot be voided manually. Reverse the period P&L close instead.');
+        }
+
         try {
             $this->engine->voidJournal($journal, auth()->id(), $request->input('reason', ''));
             return back()->with('success', "Journal {$journal->journal_no} voided and reversal created.");
@@ -549,10 +558,14 @@ class GeneralLedgerController extends Controller
                 if ($outstanding <= 0) return;
 
                 $invDate = Carbon::parse($inv->invoice_date);
-                $ageDays = max(0, (int) $invDate->diffInDays($asOfDate, false));
+                // Age measured from due_date so the bucket reflects actual overdue days,
+                // not time elapsed since the invoice was raised.
+                $ageDate = !empty($inv->due_date) ? Carbon::parse($inv->due_date) : $invDate;
+                $ageDays = (int) $ageDate->diffInDays($asOfDate, false); // negative = not yet due
 
                 $bucket = match (true) {
-                    $ageDays <= 30 => 'current',
+                    $ageDays <= 0  => 'current',
+                    $ageDays <= 30 => '1-30',
                     $ageDays <= 60 => '31-60',
                     $ageDays <= 90 => '61-90',
                     default        => '90+',
@@ -563,6 +576,7 @@ class GeneralLedgerController extends Controller
                     'id'           => $inv->id,
                     'invoice_no'   => $inv->invoice_no,
                     'invoice_date' => $invDate,
+                    'due_date'     => $ageDate,
                     'total'        => $total,
                     'allocated'    => $allocated,
                     'outstanding'  => $outstanding,
@@ -584,6 +598,7 @@ class GeneralLedgerController extends Controller
                 'supplier'     => $supplier,
                 'invoices'     => $invRows->sortBy('invoice_date'),
                 'current'      => $invRows->where('bucket', 'current')->sum('outstanding'),
+                '1-30'         => $invRows->where('bucket', '1-30')->sum('outstanding'),
                 '31-60'        => $invRows->where('bucket', '31-60')->sum('outstanding'),
                 '61-90'        => $invRows->where('bucket', '61-90')->sum('outstanding'),
                 '90+'          => $invRows->where('bucket', '90+')->sum('outstanding'),
@@ -595,6 +610,7 @@ class GeneralLedgerController extends Controller
 
         $grandTotals = [
             'current' => $rows->where('bucket', 'current')->sum('outstanding'),
+            '1-30'    => $rows->where('bucket', '1-30')->sum('outstanding'),
             '31-60'   => $rows->where('bucket', '31-60')->sum('outstanding'),
             '61-90'   => $rows->where('bucket', '61-90')->sum('outstanding'),
             '90+'     => $rows->where('bucket', '90+')->sum('outstanding'),

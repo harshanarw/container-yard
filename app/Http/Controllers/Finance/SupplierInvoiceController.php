@@ -137,7 +137,7 @@ class SupplierInvoiceController extends Controller
 
     public function destroy(SupplierInvoice $supplierInvoice)
     {
-        $this->authorize('finance.ap.create');
+        $this->authorize('finance.ap.delete');
 
         if (!$supplierInvoice->isDraft()) {
             return back()->with('error', 'Only draft invoices can be deleted.');
