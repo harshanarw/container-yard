@@ -169,13 +169,13 @@ class InvoicePostingService
             ];
         }
 
-        // Credit tax
+        // Credit VAT only (SSCL is embedded in the revenue lines)
         if ($taxAmount > 0 && $taxAccount) {
             $lines[] = [
                 'account_id' => $taxAccount->id,
                 'debit'      => 0,
                 'credit'     => $taxAmount,
-                'narration'  => 'Output tax',
+                'narration'  => 'Output VAT',
             ];
         } elseif ($taxAmount > 0 && !$taxAccount) {
             // No tax account mapped — absorb into first revenue credit line
@@ -190,20 +190,22 @@ class InvoicePostingService
      *
      * Each invoice type has a distinct strategy:
      *
-     * storage-handling — two separate header aggregates (storage_subtotal /
-     *   handling_subtotal) are posted to their own revenue accounts (4001 / 4002).
-     *   This is the core fix: previously everything was collapsed into a single
-     *   4002 credit, so Storage Income was never recorded.
+     * Revenue amounts are SSCL-inclusive (net + SSCL) because SSCL is treated as
+     * embedded income. Only VAT is separated out as a liability in buildLines().
      *
-     * storage / reefer — iterate detail/line rows, group by charge_code_id and
-     *   resolve the account via charge_revenue AccountMapping. Falls back to the
-     *   type-default account code when no mapping exists.
+     * storage-handling — netAmount (= total - VAT) is split proportionally between
+     *   the two revenue accounts (4001 storage / 4002 handling) using the header's
+     *   storage_subtotal : handling_subtotal ratio. Proportional split is used because
+     *   the header carries a single combined sscl_amount without a per-component split.
      *
-     * repair — same per-line approach. Different charge codes (e.g. SRV/EST for
-     *   survey lines vs DMR/WLD for repair lines) correctly map to different
-     *   revenue accounts (4005 vs 4003).
+     * storage / reefer — iterate detail/line rows; revenue = subtotal + line_sscl per
+     *   line. Grouped by charge_code_id → account via charge_revenue AccountMapping,
+     *   falling back to the type-default account code when no mapping exists.
      *
-     * All strategies fall back to a single net-amount credit to the type-default
+     * repair — same per-line approach; revenue = line_amount + tax1_amount (SSCL).
+     *   Different charge codes (e.g. SRV/EST vs DMR/WLD) map to different accounts.
+     *
+     * All strategies fall back to a single netAmount credit to the type-default
      * account when no lines are present or no charge code mappings resolve.
      */
     private function buildRevenueCredits(Model $invoice, string $invoiceType, float $netAmount): array
@@ -219,27 +221,33 @@ class InvoicePostingService
 
         switch ($invoiceType) {
             case 'storage-handling':
-                // The header already carries pre-aggregated subtotals per component.
-                // Storage lines use charge_code_id  → resolves to 4001 (Storage Revenue).
-                // Handling lines use handling_charge_code_id → resolves to 4002 (Handling Revenue).
-                // We use the header aggregates for amounts to avoid per-line float accumulation.
-                $storageAmt  = round((float) ($invoice->storage_subtotal  ?? 0), 2);
-                $handlingAmt = round((float) ($invoice->handling_subtotal ?? 0), 2);
+                // netAmount = total - VAT = subtotal + SSCL (SSCL-inclusive revenue).
+                // The header stores a single combined sscl_amount with no per-component split,
+                // so we allocate netAmount proportionally by storage_subtotal : handling_subtotal.
+                $storagePre  = (float) ($invoice->storage_subtotal  ?? 0);
+                $handlingPre = (float) ($invoice->handling_subtotal ?? 0);
+                $preTotal    = $storagePre + $handlingPre;
 
-                if ($storageAmt > 0) {
-                    $acc = $this->resolveDefaultRevenueAccount('storage');
-                    if ($acc) $add($acc->id, $storageAmt, 'Storage income');
-                }
-                if ($handlingAmt > 0) {
-                    $acc = $this->resolveDefaultRevenueAccount('storage-handling');
-                    if ($acc) $add($acc->id, $handlingAmt, 'Handling income');
+                if ($preTotal > 0) {
+                    $storageAmt  = round($netAmount * ($storagePre  / $preTotal), 2);
+                    $handlingAmt = round($netAmount - $storageAmt, 2); // remainder avoids rounding gap
+
+                    if ($storageAmt > 0) {
+                        $acc = $this->resolveDefaultRevenueAccount('storage');
+                        if ($acc) $add($acc->id, $storageAmt, 'Storage income');
+                    }
+                    if ($handlingAmt > 0) {
+                        $acc = $this->resolveDefaultRevenueAccount('storage-handling');
+                        if ($acc) $add($acc->id, $handlingAmt, 'Handling income');
+                    }
                 }
                 break;
 
             case 'storage':
+                // Revenue = net + SSCL per line (subtotal + line_sscl).
                 $invoice->loadMissing('details');
                 foreach ($invoice->details as $detail) {
-                    $amt = round((float) ($detail->subtotal ?? 0), 2);
+                    $amt = round((float) ($detail->subtotal ?? 0) + (float) ($detail->line_sscl ?? 0), 2);
                     if ($amt <= 0) continue;
                     $acc = $this->resolveChargeRevenueAccount($detail->charge_code_id, '4001');
                     if ($acc) $add($acc->id, $amt, 'Storage income');
@@ -247,9 +255,10 @@ class InvoicePostingService
                 break;
 
             case 'reefer':
+                // Revenue = net + SSCL per line (subtotal + line_sscl).
                 $invoice->loadMissing('lines');
                 foreach ($invoice->lines as $line) {
-                    $amt = round((float) ($line->subtotal ?? 0), 2);
+                    $amt = round((float) ($line->subtotal ?? 0) + (float) ($line->line_sscl ?? 0), 2);
                     if ($amt <= 0) continue;
                     $acc = $this->resolveChargeRevenueAccount($line->charge_code_id, '4004');
                     if ($acc) $add($acc->id, $amt, 'Reefer electricity income');
@@ -257,10 +266,10 @@ class InvoicePostingService
                 break;
 
             case 'repair':
-                // line_amount is the pre-tax net per line (gross_amount = line_amount + taxes)
+                // Revenue = net + SSCL per line (line_amount + tax1_amount).
                 $invoice->loadMissing('lines');
                 foreach ($invoice->lines as $line) {
-                    $amt = round((float) ($line->line_amount ?? 0), 2);
+                    $amt = round((float) ($line->line_amount ?? 0) + (float) ($line->tax1_amount ?? 0), 2);
                     if ($amt <= 0) continue;
                     $acc = $this->resolveChargeRevenueAccount($line->charge_code_id, '4003');
                     if ($acc) $add($acc->id, $amt, 'Repair income');
@@ -342,17 +351,14 @@ class InvoicePostingService
 
     private function extractTax(Model $invoice, string $invoiceType): float
     {
+        // Only VAT (Tax 2) is extracted as a liability. SSCL (Tax 1) is recognised
+        // as part of revenue because it is levied on the service provider and embedded
+        // in the service price — VAT is then calculated on (net + SSCL).
         return match ($invoiceType) {
-            // Repair: header sscl_total + vat_total (equals its tax_amount) — don't double-count.
-            'repair'           => (float)(($invoice->sscl_total ?? 0) + ($invoice->vat_total ?? 0)),
-            // Reefer: tax is split into separate SSCL + VAT columns on the header.
-            'reefer'           => (float)(($invoice->sscl_amount ?? 0) + ($invoice->vat_amount ?? 0)),
-            // Storage & storage-handling: store sscl_amount + vat_amount separately;
-            // tax_amount is a legacy fallback for rows that predate the split columns.
-            'storage'          => (float)(($invoice->sscl_amount ?? 0) + ($invoice->vat_amount ?? 0))
-                                  ?: (float)($invoice->tax_amount ?? 0),
-            'storage-handling' => (float)(($invoice->sscl_amount ?? 0) + ($invoice->vat_amount ?? 0))
-                                  ?: (float)($invoice->tax_amount ?? 0),
+            'repair'           => (float)($invoice->vat_total ?? 0),
+            'reefer'           => (float)($invoice->vat_amount ?? 0),
+            'storage'          => (float)($invoice->vat_amount ?? 0),
+            'storage-handling' => (float)($invoice->vat_amount ?? 0),
             default            => 0.0,
         };
     }
