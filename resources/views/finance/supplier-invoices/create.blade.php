@@ -137,28 +137,23 @@
 @push('scripts')
 <script>
 (function () {
-    const body         = document.getElementById('linesBody');
-    const accountOpts  = @json($accountOptionsHtml);
-    const chargeCodes  = @json($chargeCodesData);
-    const ajaxBase     = @json(route('finance.ap.charge-code.details', ['chargeCode' => '__ID__']));
+    const body        = document.getElementById('linesBody');
+    const accountOpts = @json($accountOptionsHtml);
+    const chargeCodes = @json($chargeCodesData);
+    const ajaxBase    = @json(route('finance.ap.charge-code.details', ['chargeCode' => '__ID__']));
     let idx = 0;
 
-    // Build charge code <select> options
-    function buildChargeCodeOpts(selectedId) {
-        let html = '<option value="">— select charge code —</option>';
-        let lastCat = null;
+    // Build Select2 grouped-data array once (null category → 'General')
+    const ccSelect2Data = (() => {
+        const groups = {};
         chargeCodes.forEach(cc => {
-            if (cc.category !== lastCat) {
-                if (lastCat !== null) html += '</optgroup>';
-                html += `<optgroup label="${cc.category.charAt(0).toUpperCase() + cc.category.slice(1)}">`;
-                lastCat = cc.category;
-            }
-            const sel = String(selectedId) === String(cc.id) ? ' selected' : '';
-            html += `<option value="${cc.id}"${sel}>${cc.code} — ${cc.description}</option>`;
+            const cat   = cc.category || 'general';
+            const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+            if (!groups[cat]) groups[cat] = { text: label, children: [] };
+            groups[cat].children.push({ id: cc.id, text: cc.code + ' — ' + cc.description });
         });
-        if (lastCat !== null) html += '</optgroup>';
-        return html;
-    }
+        return Object.values(groups);
+    })();
 
     function buildAccountOpts(selectedId) {
         if (!selectedId) return accountOpts;
@@ -177,8 +172,8 @@
 
         return `<tr>
             <td>
-                <select name="lines[${i}][charge_code_id]" class="form-select form-select-sm cc-select" data-row="${i}">
-                    ${buildChargeCodeOpts(line?.charge_code_id)}
+                <select name="lines[${i}][charge_code_id]" class="form-select form-select-sm cc-select" data-ccid="${line?.charge_code_id || ''}">
+                    <option value=""></option>
                 </select>
                 <input type="hidden" name="lines[${i}][tax_code_id]"  class="tax-code-id"  value="${line?.tax_code_id || ''}">
                 <input type="hidden" name="lines[${i}][tax1_rate]"    class="tax1-rate"    value="${t1r}">
@@ -209,24 +204,28 @@
 
     function addRow(line) {
         body.insertAdjacentHTML('beforeend', rowHtml(idx++, line));
-        // Initialise Select2 on the newly added charge-code select
         const lastRow = body.lastElementChild;
-        if (window.jQuery && window.jQuery.fn.select2) {
-            jQuery(lastRow.querySelector('.cc-select')).select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                placeholder: '— charge code —',
-                allowClear: true,
-            }).on('change', function () {
-                handleChargeCodeChange(this);
-            });
-        } else {
-            // Fallback: native change event
-            lastRow.querySelector('.cc-select').addEventListener('change', function () {
-                handleChargeCodeChange(this);
-            });
+        const ccEl    = lastRow.querySelector('.cc-select');
+        const $ccSel  = jQuery(ccEl).select2({
+            theme      : 'bootstrap-5',
+            width      : '100%',
+            placeholder: '— charge code —',
+            allowClear : true,
+            data       : ccSelect2Data,
+        });
+
+        // Restore selected value from old() BEFORE binding change handler so the
+        // AJAX auto-fill is not triggered on repopulation (rates are already set).
+        const savedId = ccEl.dataset.ccid;
+        if (savedId) {
+            $ccSel.val(savedId).trigger('change.select2');
         }
-        // Recalculate display amounts when seeding from old() (rates are set but amounts aren't submitted)
+
+        $ccSel.on('change', function () {
+            handleChargeCodeChange(this);
+        });
+
+        // Recompute display amounts when seeding from old() (rates present, amounts are not)
         if (line && (parseFloat(line.tax1_rate) > 0 || parseFloat(line.tax2_rate) > 0)) {
             recalcRow(lastRow);
         }
@@ -272,7 +271,7 @@
                 recalcRow(row);
                 recalc();
             })
-            .catch(() => { /* silent — user can still fill manually */ });
+            .catch(() => { /* silent — user can fill manually */ });
     }
 
     function resetTaxFields(row) {
@@ -299,16 +298,16 @@
     function recalc() {
         let subNet = 0, subSscl = 0, subVat = 0, subGross = 0;
         document.querySelectorAll('#linesBody tr').forEach(row => {
-            subNet   += parseFloat(row.querySelector('.line-net')?.value        || 0);
-            subSscl  += parseFloat(row.querySelector('.line-sscl-cell')?.textContent || 0);
-            subVat   += parseFloat(row.querySelector('.line-vat-cell')?.textContent  || 0);
+            subNet   += parseFloat(row.querySelector('.line-net')?.value              || 0);
+            subSscl  += parseFloat(row.querySelector('.line-sscl-cell')?.textContent  || 0);
+            subVat   += parseFloat(row.querySelector('.line-vat-cell')?.textContent   || 0);
             subGross += parseFloat(row.querySelector('.line-gross-cell')?.textContent || 0);
         });
-        document.getElementById('subtotalCell').textContent  = subNet.toFixed(2);
-        document.getElementById('ssclTotalCell').textContent = subSscl.toFixed(2);
-        document.getElementById('vatTotalCell').textContent  = subVat.toFixed(2);
+        document.getElementById('subtotalCell').textContent   = subNet.toFixed(2);
+        document.getElementById('ssclTotalCell').textContent  = subSscl.toFixed(2);
+        document.getElementById('vatTotalCell').textContent   = subVat.toFixed(2);
         document.getElementById('grossTotalCell').textContent = subGross.toFixed(2);
-        document.getElementById('totalCell').textContent     = subGross.toFixed(2);
+        document.getElementById('totalCell').textContent      = subGross.toFixed(2);
     }
 
     document.getElementById('addLine').addEventListener('click', () => addRow());
