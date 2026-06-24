@@ -178,8 +178,8 @@ class InvoicePostingService
                 'narration'  => 'Output VAT',
             ];
         } elseif ($taxAmount > 0 && !$taxAccount) {
-            // No tax account mapped — absorb into first revenue credit line
-            $lines[1]['credit'] += $taxAmount;
+            // No tax account mapped — absorb into the last revenue credit line
+            $lines[count($lines) - 1]['credit'] += $taxAmount;
         }
 
         return $lines;

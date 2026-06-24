@@ -281,8 +281,8 @@
 
 @include('partials._invoice-settlements', [
     'invoiceType'     => 'reefer',
-    'invoiceId'       => $invoice->id,
-    'invoiceTotal'    => $invoice->total_amount ?? 0,
+    'invoiceId'       => $reeferInvoice->id,
+    'invoiceTotal'    => $reeferInvoice->total_amount ?? 0,
 ])
 
 @endsection

@@ -194,9 +194,11 @@ class StorageHandlingController extends Controller
             $storageRate  = 0.0;
             $storageCur   = 'USD';
             $chargeCodeId         = null;
+            $taxCodeId            = null;
             $tax1Rate             = $taxExempt ? 0.0 : $ssclPct;  // storage fallback
             $tax2Rate             = $taxExempt ? 0.0 : $vatPct;   // storage fallback
             $handlingChargeCodeId = null;
+            $handlingTaxCodeId    = null;
             $handlingTax1Rate     = $taxExempt ? 0.0 : $ssclPct;  // handling fallback
             $handlingTax2Rate     = $taxExempt ? 0.0 : $vatPct;   // handling fallback
 

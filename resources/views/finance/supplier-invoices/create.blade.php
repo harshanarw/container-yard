@@ -124,6 +124,12 @@
     foreach ($accounts as $a) {
         $accountOptionsHtml .= '<option value="' . $a->id . '">' . e($a->code . ' — ' . $a->name) . '</option>';
     }
+    $chargeCodesData = $chargeCodes->map(fn($c) => [
+        'id'          => $c->id,
+        'code'        => $c->code,
+        'description' => $c->description,
+        'category'    => $c->category,
+    ])->values()->all();
     $oldLines = old('lines', [['description' => '', 'expense_account_id' => '', 'amount' => '',
                                'charge_code_id' => '', 'tax_code_id' => '', 'tax1_rate' => 0, 'tax2_rate' => 0]]);
 @endphp
@@ -133,7 +139,7 @@
 (function () {
     const body         = document.getElementById('linesBody');
     const accountOpts  = @json($accountOptionsHtml);
-    const chargeCodes  = @json($chargeCodes->map(fn($c) => ['id' => $c->id, 'code' => $c->code, 'description' => $c->description, 'category' => $c->category]));
+    const chargeCodes  = @json($chargeCodesData);
     const ajaxBase     = @json(route('finance.ap.charge-code.details', ['chargeCode' => '__ID__']));
     let idx = 0;
 
@@ -219,6 +225,10 @@
             lastRow.querySelector('.cc-select').addEventListener('change', function () {
                 handleChargeCodeChange(this);
             });
+        }
+        // Recalculate display amounts when seeding from old() (rates are set but amounts aren't submitted)
+        if (line && (parseFloat(line.tax1_rate) > 0 || parseFloat(line.tax2_rate) > 0)) {
+            recalcRow(lastRow);
         }
         recalc();
     }

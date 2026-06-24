@@ -178,6 +178,7 @@ class StorageBillingController extends Controller
             $dailyRate     = 0.0;
             $currency      = 'LKR';
             $chargeCodeId  = null;
+            $taxCodeId     = null;
             $tax1Rate      = $taxExempt ? 0.0 : $ssclPct;  // fallback
             $tax2Rate      = $taxExempt ? 0.0 : $vatPct;   // fallback
 

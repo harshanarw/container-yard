@@ -70,27 +70,29 @@ class SupplierInvoicePostingService
                 ];
             }
 
-            // DR input VAT (recoverable) — aggregated across all lines.
-            $vatBase = round((float) $invoice->vat_amount * $rate, 2);
-            if ($vatBase > 0) {
-                // Try per-invoice tax code first (use first line's tax_code_id as representative)
-                $taxCodeId  = $invoice->lines->first()?->tax_code_id;
-                $vatAccount = $this->resolveInputVatAccount($taxCodeId);
+            // DR input VAT (recoverable) — resolved per line by tax code so mixed-rate
+            // invoices post each VAT portion to the correct input-tax account.
+            $vatByAccount = []; // account_id => accumulated amount
+            foreach ($invoice->lines as $line) {
+                $lineVatBase = round((float) $line->tax2_amount * $rate, 2);
+                if ($lineVatBase <= 0) continue;
 
+                $vatAccount = $this->resolveInputVatAccount($line->tax_code_id);
                 if (!$vatAccount) {
-                    // No input VAT account mapped — fold into the last expense leg to keep balance
-                    if (empty($lines)) {
-                        throw new \RuntimeException('Cannot post VAT with no expense lines.');
-                    }
-                    $lines[count($lines) - 1]['debit'] = round($lines[count($lines) - 1]['debit'] + $vatBase, 2);
-                } else {
-                    $lines[] = [
-                        'account_id' => $vatAccount->id,
-                        'debit'      => $vatBase,
-                        'credit'     => 0,
-                        'narration'  => 'Input VAT',
-                    ];
+                    throw new \RuntimeException(
+                        'No input VAT account mapped. Configure Account Mappings → Tax Input or create an account with code 1301.'
+                    );
                 }
+                $vatByAccount[$vatAccount->id] = round(($vatByAccount[$vatAccount->id] ?? 0) + $lineVatBase, 2);
+            }
+
+            foreach ($vatByAccount as $acctId => $vatAmt) {
+                $lines[] = [
+                    'account_id' => $acctId,
+                    'debit'      => $vatAmt,
+                    'credit'     => 0,
+                    'narration'  => 'Input VAT',
+                ];
             }
 
             if (empty($lines)) {
