@@ -150,6 +150,7 @@
       @if($company->address)
       <p style="margin:4px 0 0;font-size:.75rem;color:#adb5bd;">{{ $company->address }}</p>
       @endif
+      <p style="margin:6px 0 0;font-size:.72rem;color:#ced4da;">&copy; {{ date('Y') }} {{ $company->software_provider ?? 'CYM Software' }}</p>
     </td>
   </tr>
 

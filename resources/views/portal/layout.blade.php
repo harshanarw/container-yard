@@ -67,6 +67,7 @@
 <footer class="portal-footer">
   {{ $company->company_name ?? 'Container Yard' }} · Owner Portal
   @if(isset($company) && $company->address) · {{ $company->address }} @endif
+  <br><small>&copy; {{ date('Y') }} {{ $company->software_provider ?? 'CYM Software' }}</small>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

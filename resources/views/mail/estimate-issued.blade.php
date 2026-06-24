@@ -363,6 +363,9 @@
       <div style="color:#adb5bd;font-size:.75rem;margin-top:10px;border-top:1px solid #e9ecef;padding-top:10px;">
         This email was sent automatically. Please do not reply directly.
       </div>
+      <div style="color:#ced4da;font-size:.72rem;margin-top:6px;">
+        &copy; {{ date('Y') }} {{ $company->software_provider ?? 'CYM Software' }}
+      </div>
     </td>
   </tr>
 

@@ -379,10 +379,11 @@
 </div>
 @endif
 
+@php $softwareCopyright = '© ' . date('Y') . ' ' . (\App\Models\CompanySetting::current()->software_provider ?? 'CYM Software'); @endphp
 <div class="doc-footer">
     <table style="width:100%;">
         <tr>
-            <td>Generated: {{ now()->format('d M Y, H:i') }} &nbsp;&middot;&nbsp; {{ $invoice->invoice_no }}</td>
+            <td>{{ $softwareCopyright }} &nbsp;&middot;&nbsp; Generated {{ now()->format('d M Y, H:i') }}</td>
             <td class="r">{{ $invoice->shippingLine->name ?? '' }}</td>
         </tr>
     </table>

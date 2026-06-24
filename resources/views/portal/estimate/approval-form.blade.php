@@ -394,6 +394,9 @@
     <span>{{ $company->company_name }}@if(!empty($company->email)) &nbsp;·&nbsp; {{ $company->email }}@endif</span>
     <span>Generated {{ now()->format('d M Y H:i') }} &nbsp;·&nbsp; {{ $estimate->estimate_no }}</span>
   </div>
+  <div style="text-align:center;font-size:8px;color:#aaa;margin-top:6px;">
+    &copy; {{ date('Y') }} {{ $company->software_provider ?? 'CYM Software' }}
+  </div>
 
 </div>
 

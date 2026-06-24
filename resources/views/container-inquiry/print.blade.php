@@ -481,8 +481,9 @@
 @endif
 
 {{-- Footer --}}
+@php $softwareCopyright = '© ' . date('Y') . ' ' . (\App\Models\CompanySetting::current()->software_provider ?? 'CYM Software'); @endphp
 <div class="footer">
-    <span>Container Yard Management System</span>
+    <span>{{ $softwareCopyright }}</span>
     <span>Generated {{ now()->format('d M Y H:i') }}</span>
 </div>
 

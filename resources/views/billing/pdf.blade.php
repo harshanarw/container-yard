@@ -283,10 +283,11 @@
 </div>
 @endif
 
+@php $softwareCopyright = '© ' . date('Y') . ' ' . (\App\Models\CompanySetting::current()->software_provider ?? 'CYM Software'); @endphp
 <div class="doc-footer">
     <table style="width:100%;">
         <tr>
-            <td>Container Yard Management System &nbsp;&middot;&nbsp; Generated {{ now()->format('d M Y H:i') }}</td>
+            <td>{{ $softwareCopyright }} &nbsp;&middot;&nbsp; Generated {{ now()->format('d M Y H:i') }}</td>
             <td class="r">This is a computer-generated invoice.</td>
         </tr>
     </table>

@@ -53,6 +53,7 @@
   <div class="footer">
     <p>{{ $company->company_name }}
     @if($company->email) · {{ $company->email }} @endif</p>
+    <p style="margin:4px 0 0;font-size:.75em;color:#adb5bd;">&copy; {{ date('Y') }} {{ $company->software_provider ?? 'CYM Software' }}</p>
   </div>
 </div>
 </body>

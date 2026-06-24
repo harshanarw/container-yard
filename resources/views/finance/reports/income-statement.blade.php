@@ -190,6 +190,11 @@
     </div>
 </div>
 
+<div class="print-footer d-none d-print-block text-center text-muted mt-4 pt-3 border-top" style="font-size:.78rem;">
+    &copy; {{ date('Y') }} {{ $companySetting?->software_provider ?? 'CYM Software' }}
+    &nbsp;&middot;&nbsp; Printed {{ now()->format('d M Y H:i') }}
+</div>
+
 @push('styles')
 <style>
 @media print {
