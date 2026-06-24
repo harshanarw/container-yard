@@ -24,6 +24,7 @@ use App\Services\ExternalRecipientResolver;
 use App\Services\NotificationService;
 use App\Services\RepairCategoryResolver;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class EstimateController extends Controller
@@ -109,89 +110,94 @@ class EstimateController extends Controller
         $lineItems = array_values($request->line_items);
         $totals    = $this->calculateLineTotals($lineItems);
 
-        $estimate = Estimate::create([
-            'estimate_no'       => $this->generateEstimateNo(),
-            'inquiry_id'        => $request->inquiry_id,
-            'container_id'      => $container->id,
-            'equipment_type_id' => $request->equipment_type_id ?? $container->equipment_type_id,
-            'container_no'      => $container->container_no,
-            'customer_id'       => $request->customer_id,
-            'size'              => $container->size,
-            'type_code'         => $container->type_code,
-            'estimate_date'  => $request->estimate_date,
-            'valid_until'    => $request->valid_until,
-            'currency'       => $request->currency,
-            'exchange_rate'  => $request->exchange_rate ?? 1.0,
-            'priority'       => $request->priority,
-            'status'         => 'draft',
-            'scope_of_work'  => $request->scope_of_work,
-            'terms'          => $request->terms,
-            'subtotal'       => $totals['subtotal'],
-            'sscl_amount'    => $totals['sscl_amount'],
-            'vat_amount'     => $totals['vat_amount'],
-            'tax_percentage' => $totals['effective_tax_pct'],
-            'tax_amount'     => $totals['tax_amount'],
-            'grand_total'    => $totals['grand_total'],
-            'send_to_email'  => $request->send_to_email,
-            'send_cc_email'  => $request->send_cc_email,
-            'email_message'  => $request->email_message,
-            'attach_pdf'     => $request->boolean('attach_pdf'),
-            'attach_photos'  => $request->boolean('attach_photos'),
-            'created_by'     => auth()->id(),
-        ]);
+        $estimate = DB::transaction(function () use ($container, $request, $lineItems, $totals) {
+            $resolver = new RepairCategoryResolver();
 
-        $resolver = new RepairCategoryResolver();
-        foreach ($lineItems as $idx => $item) {
-            $meta = $totals['lines'][$idx];
-            $repairCategoryId = $item['repair_category_id']
-                ?? $resolver->resolve(
-                    isset($item['component_code_id']) ? (int) $item['component_code_id'] : null,
-                    $item['repair_type'] ?? null
-                )?->id;
-            $estimate->lineItems()->create([
-                'component'           => $item['component'],
-                'repair_type'         => $item['repair_type'],
-                'qty'                 => $item['qty'],
-                'unit_price'          => $item['unit_price'],
-                'tax_percentage'      => $meta['tax1_rate'] + $meta['tax2_rate'],
-                'line_amount'         => $meta['line_amount'],
-                'tax1_rate'           => $meta['tax1_rate'],
-                'tax2_rate'           => $meta['tax2_rate'],
-                'tax1_amount'         => $meta['tax1_amount'],
-                'tax2_amount'         => $meta['tax2_amount'],
-                'gross_amount'        => $meta['gross_amount'],
-                // MR code traceability
-                'damage_id'           => $item['damage_id'] ?? null,
-                'mr_tariff_rule_id'   => $item['mr_tariff_rule_id'] ?? null,
-                'location_code_id'    => $item['location_code_id'] ?? null,
-                'component_code_id'   => $item['component_code_id'] ?? null,
-                'damage_code_id'      => $item['damage_code_id'] ?? null,
-                'repair_code_id'      => $item['repair_code_id'] ?? null,
-                'material_code_id'    => $item['material_code_id'] ?? null,
-                'cedex_code'          => $item['cedex_code'] ?? null,
-                'repair_category_id'  => $repairCategoryId,
-                // Charge / tax code
-                'charge_code_id'      => $item['charge_code_id'] ?? null,
-                'tax_code_id'         => $item['tax_code_id'] ?? null,
-                // Labor / material breakdown
-                'std_labor_hours'     => $item['std_labor_hours'] ?? 0,
-                'labor_rate'          => $item['labor_rate'] ?? 0,
-                'labor_amount'        => $item['labor_amount'] ?? 0,
-                'material_qty'        => $item['material_qty'] ?? 0,
-                'material_rate'       => $item['material_rate'] ?? 0,
-                'material_amount'     => $item['material_amount'] ?? 0,
-                'ancillary_amount'    => $item['ancillary_amount'] ?? 0,
-                // Dimension audit trail
-                'dim_length'          => $item['dim_length'] ?? null,
-                'dim_width'           => $item['dim_width'] ?? null,
-                'dim_uom'             => $item['dim_uom'] ?? null,
+            $estimate = Estimate::create([
+                'estimate_no'       => $this->generateEstimateNo(),
+                'inquiry_id'        => $request->inquiry_id,
+                'container_id'      => $container->id,
+                'equipment_type_id' => $request->equipment_type_id ?? $container->equipment_type_id,
+                'container_no'      => $container->container_no,
+                'customer_id'       => $request->customer_id,
+                'size'              => $container->size,
+                'type_code'         => $container->type_code,
+                'estimate_date'  => $request->estimate_date,
+                'valid_until'    => $request->valid_until,
+                'currency'       => $request->currency,
+                'exchange_rate'  => $request->exchange_rate ?? 1.0,
+                'priority'       => $request->priority,
+                'status'         => 'draft',
+                'scope_of_work'  => $request->scope_of_work,
+                'terms'          => $request->terms,
+                'subtotal'       => $totals['subtotal'],
+                'sscl_amount'    => $totals['sscl_amount'],
+                'vat_amount'     => $totals['vat_amount'],
+                'tax_percentage' => $totals['effective_tax_pct'],
+                'tax_amount'     => $totals['tax_amount'],
+                'grand_total'    => $totals['grand_total'],
+                'send_to_email'  => $request->send_to_email,
+                'send_cc_email'  => $request->send_cc_email,
+                'email_message'  => $request->email_message,
+                'attach_pdf'     => $request->boolean('attach_pdf'),
+                'attach_photos'  => $request->boolean('attach_photos'),
+                'created_by'     => auth()->id(),
             ]);
-        }
 
-        if ($request->inquiry_id) {
-            Inquiry::where('id', $request->inquiry_id)
-                ->update(['status' => 'estimate_sent']);
-        }
+            foreach ($lineItems as $idx => $item) {
+                $meta = $totals['lines'][$idx];
+                $repairCategoryId = $item['repair_category_id']
+                    ?? $resolver->resolve(
+                        isset($item['component_code_id']) ? (int) $item['component_code_id'] : null,
+                        $item['repair_type'] ?? null
+                    )?->id;
+                $estimate->lineItems()->create([
+                    'component'           => $item['component'],
+                    'repair_type'         => $item['repair_type'],
+                    'qty'                 => $item['qty'],
+                    'unit_price'          => $item['unit_price'],
+                    'tax_percentage'      => $meta['tax1_rate'] + $meta['tax2_rate'],
+                    'line_amount'         => $meta['line_amount'],
+                    'tax1_rate'           => $meta['tax1_rate'],
+                    'tax2_rate'           => $meta['tax2_rate'],
+                    'tax1_amount'         => $meta['tax1_amount'],
+                    'tax2_amount'         => $meta['tax2_amount'],
+                    'gross_amount'        => $meta['gross_amount'],
+                    // MR code traceability
+                    'damage_id'           => $item['damage_id'] ?? null,
+                    'mr_tariff_rule_id'   => $item['mr_tariff_rule_id'] ?? null,
+                    'location_code_id'    => $item['location_code_id'] ?? null,
+                    'component_code_id'   => $item['component_code_id'] ?? null,
+                    'damage_code_id'      => $item['damage_code_id'] ?? null,
+                    'repair_code_id'      => $item['repair_code_id'] ?? null,
+                    'material_code_id'    => $item['material_code_id'] ?? null,
+                    'cedex_code'          => $item['cedex_code'] ?? null,
+                    'repair_category_id'  => $repairCategoryId,
+                    // Charge / tax code
+                    'charge_code_id'      => $item['charge_code_id'] ?? null,
+                    'tax_code_id'         => $item['tax_code_id'] ?? null,
+                    // Labor / material breakdown
+                    'std_labor_hours'     => $item['std_labor_hours'] ?? 0,
+                    'labor_rate'          => $item['labor_rate'] ?? 0,
+                    'labor_amount'        => $item['labor_amount'] ?? 0,
+                    'material_qty'        => $item['material_qty'] ?? 0,
+                    'material_rate'       => $item['material_rate'] ?? 0,
+                    'material_amount'     => $item['material_amount'] ?? 0,
+                    'ancillary_amount'    => $item['ancillary_amount'] ?? 0,
+                    // Dimension audit trail
+                    'dim_length'          => $item['dim_length'] ?? null,
+                    'dim_width'           => $item['dim_width'] ?? null,
+                    'dim_uom'             => $item['dim_uom'] ?? null,
+                ]);
+            }
+
+            if ($request->inquiry_id) {
+                Inquiry::where('id', $request->inquiry_id)
+                    ->update(['status' => 'estimate_sent']);
+            }
+
+            return $estimate;
+        });
 
         return redirect()->route('estimates.show', $estimate)
             ->with('success', "Estimate {$estimate->estimate_no} created successfully.");

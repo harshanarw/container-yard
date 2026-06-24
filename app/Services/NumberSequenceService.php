@@ -71,11 +71,13 @@ class NumberSequenceService
 
     /**
      * Compute the current period string for a sequence.
-     * Empty string is returned for never-reset sequences.
+     * Returns empty string when no date_format is configured.
+     * Note: reset_period='never' does NOT suppress the date — a sequence can
+     * include a year stamp without auto-resetting its counter.
      */
     private function computePeriod(NumberSequence $seq): string
     {
-        if (!$seq->date_format || $seq->reset_period === 'never') {
+        if (!$seq->date_format) {
             return '';
         }
 

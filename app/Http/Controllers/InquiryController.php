@@ -15,6 +15,7 @@ use App\Models\InquiryChecklist;
 use App\Models\InquiryPhoto;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
@@ -76,59 +77,63 @@ class InquiryController extends Controller
     {
         $container = Container::findOrFail($request->container_id);
 
-        $inquiry = Inquiry::create([
-            'inquiry_no'            => $this->generateInquiryNo(),
-            'container_id'          => $container->id,
-            'container_no'          => $container->container_no,
-            'equipment_type_id'     => $container->equipment_type_id,
-            'size'                  => $container->size,
-            'type_code'             => $container->type_code,
-            'customer_id'           => $request->customer_id,
-            'inquiry_type'          => $request->inquiry_type,
-            'inspector_id'          => $request->inspector_id,
-            'inspection_date'       => $request->inspection_date,
-            'gate_in_ref'           => $request->gate_in_ref,
-            'priority'              => $request->priority,
-            'overall_condition'     => $request->overall_condition,
-            'findings'              => $request->findings,
-            'recommended_action'    => $request->recommended_action,
-            'estimated_repair_cost' => $request->estimated_repair_cost,
-            'status'                => 'open',
-        ]);
-
-        // Save damages
-        if ($request->damages) {
-            foreach ($request->damages as $damage) {
-                // Auto-compute area from dimensions
-                if (!empty($damage['dim_length']) && !empty($damage['dim_width'])) {
-                    $damage['dim_area'] = round($damage['dim_length'] * $damage['dim_width'] / 10000, 4);
-                }
-                $dmg   = $inquiry->damages()->create($damage);
-                $cedex = $dmg->buildCedexCode();
-                if ($cedex) $dmg->update(['cedex_code' => $cedex]);
-            }
-        }
-
-        // Save checklist from master items
-        $masterItems = ChecklistMasterItem::active()->get();
-        $checked     = $request->checklist ?? [];
-        foreach ($masterItems as $master) {
-            $inquiry->checklists()->create([
-                'checklist_item' => $master->code,
-                'is_checked'     => in_array($master->code, $checked),
+        $inquiry = DB::transaction(function () use ($container, $request) {
+            $_inquiry = Inquiry::create([
+                'inquiry_no'            => $this->generateInquiryNo(),
+                'container_id'          => $container->id,
+                'container_no'          => $container->container_no,
+                'equipment_type_id'     => $container->equipment_type_id,
+                'size'                  => $container->size,
+                'type_code'             => $container->type_code,
+                'customer_id'           => $request->customer_id,
+                'inquiry_type'          => $request->inquiry_type,
+                'inspector_id'          => $request->inspector_id,
+                'inspection_date'       => $request->inspection_date,
+                'gate_in_ref'           => $request->gate_in_ref,
+                'priority'              => $request->priority,
+                'overall_condition'     => $request->overall_condition,
+                'findings'              => $request->findings,
+                'recommended_action'    => $request->recommended_action,
+                'estimated_repair_cost' => $request->estimated_repair_cost,
+                'status'                => 'open',
             ]);
-        }
 
-        // Save photos
-        if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $photo) {
-                $path = $this->saveInquiryPhoto($photo, $inquiry->id);
-                $inquiry->photos()->create([
-                    'photo_path'  => $path,
-                    'uploaded_by' => auth()->id(),
+            // Save damages
+            if ($request->damages) {
+                foreach ($request->damages as $damage) {
+                    // Auto-compute area from dimensions
+                    if (!empty($damage['dim_length']) && !empty($damage['dim_width'])) {
+                        $damage['dim_area'] = round($damage['dim_length'] * $damage['dim_width'] / 10000, 4);
+                    }
+                    $dmg   = $_inquiry->damages()->create($damage);
+                    $cedex = $dmg->buildCedexCode();
+                    if ($cedex) $dmg->update(['cedex_code' => $cedex]);
+                }
+            }
+
+            // Save checklist from master items
+            $masterItems = ChecklistMasterItem::active()->get();
+            $checked     = $request->checklist ?? [];
+            foreach ($masterItems as $master) {
+                $_inquiry->checklists()->create([
+                    'checklist_item' => $master->code,
+                    'is_checked'     => in_array($master->code, $checked),
                 ]);
             }
-        }
+
+            // Save photos
+            if ($request->hasFile('photos')) {
+                foreach ($request->file('photos') as $photo) {
+                    $path = $this->saveInquiryPhoto($photo, $_inquiry->id);
+                    $_inquiry->photos()->create([
+                        'photo_path'  => $path,
+                        'uploaded_by' => auth()->id(),
+                    ]);
+                }
+            }
+
+            return $_inquiry;
+        });
 
         if ($request->wantsJson()) {
             return response()->json(['redirect' => route('inquiries.show', $inquiry)]);

@@ -76,11 +76,13 @@ class ReceiptController extends Controller
             'narration'       => ['required', 'string', 'max:255'],
         ]);
 
-        $validated['receipt_no'] = $this->nextReceiptNo();
         $validated['created_by'] = auth()->id();
         $validated['status']     = 'draft';
 
-        $receipt = Receipt::create($validated);
+        $receipt = DB::transaction(function () use ($validated) {
+            $validated['receipt_no'] = $this->nextReceiptNo();
+            return Receipt::create($validated);
+        });
 
         return redirect()->route('finance.receipts.show', $receipt)
             ->with('success', "Receipt {$receipt->receipt_no} created successfully.");

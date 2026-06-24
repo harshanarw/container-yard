@@ -17,6 +17,7 @@ use App\Models\MrCode;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
@@ -116,67 +117,71 @@ class SurveyController extends Controller
             $container = Container::findOrFail($request->container_id);
             \Log::debug('[StoreSurvey] Container found: ' . $container->container_no);
 
-            $inquiry = Inquiry::create([
-                'inquiry_no'            => $this->generateSurveyNo(),
-                'container_id'          => $container->id,
-                'container_no'          => $container->container_no,
-                'equipment_type_id'     => $container->equipment_type_id,
-                'size'                  => $container->size,
-                'type_code'             => $container->type_code,
-                'customer_id'           => $request->customer_id,
-                'inquiry_type'          => $request->inquiry_type,
-                'inspector_id'          => $request->inspector_id,
-                'inspection_date'       => $request->inspection_date,
-                'gate_in_ref'           => $request->gate_in_ref,
-                'priority'              => $request->priority,
-                'overall_condition'     => $request->overall_condition,
-                'findings'              => $request->findings,
-                'recommended_action'    => $request->recommended_action,
-                'estimated_repair_cost' => $request->estimated_repair_cost,
-                'status'                => 'open',
-            ]);
-            \Log::debug('[StoreSurvey] Inquiry created: id=' . $inquiry->id . ' no=' . $inquiry->inquiry_no);
-
-            // Save damages
-            $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'cm';
-            if ($request->damages) {
-                foreach ($request->damages as $damage) {
-                    $damage['dim_uom'] = $dimUom;
-                    if (!empty($damage['dim_length']) && !empty($damage['dim_width'])) {
-                        $l = (float)$damage['dim_length'];
-                        $w = (float)$damage['dim_width'];
-                        // ft_in: dim_length/dim_width are total decimal inches → area in sq ft
-                        // cm:    dim_length/dim_width are centimetres → area in m²
-                        $damage['dim_area'] = $dimUom === 'ft_in'
-                            ? round($l * $w / 144, 4)
-                            : round($l * $w / 10000, 4);
-                    }
-                    $dmg   = $inquiry->damages()->create($damage);
-                    $cedex = $dmg->buildCedexCode();
-                    if ($cedex) $dmg->update(['cedex_code' => $cedex]);
-                }
-            }
-            \Log::debug('[StoreSurvey] Damages saved');
-
-            // Save checklist from master items
-            $masterItems = ChecklistMasterItem::active()->get();
-            $checked     = $request->checklist ?? [];
-            foreach ($masterItems as $master) {
-                $inquiry->checklists()->create([
-                    'checklist_item' => $master->code,
-                    'is_checked'     => in_array($master->code, $checked),
+            $inquiry = DB::transaction(function () use ($container, $request) {
+                $_inquiry = Inquiry::create([
+                    'inquiry_no'            => $this->generateSurveyNo(),
+                    'container_id'          => $container->id,
+                    'container_no'          => $container->container_no,
+                    'equipment_type_id'     => $container->equipment_type_id,
+                    'size'                  => $container->size,
+                    'type_code'             => $container->type_code,
+                    'customer_id'           => $request->customer_id,
+                    'inquiry_type'          => $request->inquiry_type,
+                    'inspector_id'          => $request->inspector_id,
+                    'inspection_date'       => $request->inspection_date,
+                    'gate_in_ref'           => $request->gate_in_ref,
+                    'priority'              => $request->priority,
+                    'overall_condition'     => $request->overall_condition,
+                    'findings'              => $request->findings,
+                    'recommended_action'    => $request->recommended_action,
+                    'estimated_repair_cost' => $request->estimated_repair_cost,
+                    'status'                => 'open',
                 ]);
-            }
-            \Log::debug('[StoreSurvey] Checklist saved');
+                \Log::debug('[StoreSurvey] Inquiry created: id=' . $_inquiry->id . ' no=' . $_inquiry->inquiry_no);
 
-            // Save photos via DocumentManager
-            $photoCount = $request->hasFile('photos') ? count($request->file('photos')) : 0;
-            \Log::debug('[StoreSurvey] Photos count=' . $photoCount);
-            if ($request->hasFile('photos')) {
-                foreach ($request->file('photos') as $photo) {
-                    Documents::uploadFor($inquiry, $photo, "surveys/{$inquiry->id}", ['document_type' => 'photo']);
+                // Save damages
+                $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'cm';
+                if ($request->damages) {
+                    foreach ($request->damages as $damage) {
+                        $damage['dim_uom'] = $dimUom;
+                        if (!empty($damage['dim_length']) && !empty($damage['dim_width'])) {
+                            $l = (float)$damage['dim_length'];
+                            $w = (float)$damage['dim_width'];
+                            // ft_in: dim_length/dim_width are total decimal inches → area in sq ft
+                            // cm:    dim_length/dim_width are centimetres → area in m²
+                            $damage['dim_area'] = $dimUom === 'ft_in'
+                                ? round($l * $w / 144, 4)
+                                : round($l * $w / 10000, 4);
+                        }
+                        $dmg   = $_inquiry->damages()->create($damage);
+                        $cedex = $dmg->buildCedexCode();
+                        if ($cedex) $dmg->update(['cedex_code' => $cedex]);
+                    }
                 }
-            }
+                \Log::debug('[StoreSurvey] Damages saved');
+
+                // Save checklist from master items
+                $masterItems = ChecklistMasterItem::active()->get();
+                $checked     = $request->checklist ?? [];
+                foreach ($masterItems as $master) {
+                    $_inquiry->checklists()->create([
+                        'checklist_item' => $master->code,
+                        'is_checked'     => in_array($master->code, $checked),
+                    ]);
+                }
+                \Log::debug('[StoreSurvey] Checklist saved');
+
+                // Save photos via DocumentManager
+                $photoCount = $request->hasFile('photos') ? count($request->file('photos')) : 0;
+                \Log::debug('[StoreSurvey] Photos count=' . $photoCount);
+                if ($request->hasFile('photos')) {
+                    foreach ($request->file('photos') as $photo) {
+                        Documents::uploadFor($_inquiry, $photo, "surveys/{$_inquiry->id}", ['document_type' => 'photo']);
+                    }
+                }
+
+                return $_inquiry;
+            });
 
             $redirectUrl = route('surveys.show', $inquiry);
             \Log::debug('[StoreSurvey] Success — redirect=' . $redirectUrl . ' wants_json=' . ($request->wantsJson() ? 'yes' : 'no'));

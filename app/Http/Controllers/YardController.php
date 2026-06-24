@@ -19,7 +19,9 @@ use App\Models\YardJob;
 use App\Models\YardJobType;
 use App\Models\YardStorage;
 use App\Services\NotificationService;
+use App\Services\NumberSequenceService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -336,43 +338,46 @@ class YardController extends Controller
         );
 
         // Record gate movement
-        $movement = GateMovement::create([
-            'container_id'     => $container->id,
-            'container_no'     => $container->container_no,
-            'job_type_id'      => $jobType->id,
-            'job_type_code'    => $jobType->job_type_code,
-            'customer_id'      => $validated['customer_id'],
-            'transporter_id'   => $validated['transporter_id'] ?? null,
-            'movement_type'    => 'in',
-            'size'             => $eqt->size,
-            'container_type'   => $eqt->type_code,
-            'ventilation_type' => $validated['ventilation_type'] ?? $container->effective_ventilation_type,
-            'vent_count'       => $validated['vent_count'] ?? $container->effective_vent_count,
-            'location_zone'   => $validated['location_zone'],
-            'location_row'    => $validated['location_row'],
-            'location_bay'    => $validated['location_bay'],
-            'location_tier'   => $validated['location_tier'],
-            'condition'       => $validated['condition'],
-            'grade_id'        => $validated['grade_id'] ?? null,
-            'cargo_status'    => $validated['cargo_status'],
-            'seal_no'         => $validated['seal_no'],
-            'vehicle_plate'   => $validated['vehicle_plate'],
-            'driver_name'     => $validated['driver_name'] ?? null,
-            'driver_ic'       => $validated['driver_ic'] ?? null,
-            'driver_phone'    => $validated['driver_phone'] ?? null,
-            'gate_in_time'    => $gateInTime,
-            'movement_status' => 'done',
-            'remarks'         => $validated['remarks'],
-            'created_by'      => auth()->id(),
-            // Import shipment information
-            'vessel_name'     => $validated['vessel_name'] ?? null,
-            'voyage_no'       => $validated['voyage_no'] ?? null,
-            'berthing_date'   => $validated['berthing_date'] ?? null,
-            'bl_number'       => $validated['bl_number'] ?? null,
-            'do_expiry_date'  => $validated['do_expiry_date'] ?? null,
-            'fcl_expiry_date' => $validated['fcl_expiry_date'] ?? null,
-            'consignee'       => $validated['consignee'] ?? null,
-        ]);
+        $movement = DB::transaction(function () use ($container, $jobType, $eqt, $validated, $gateInTime) {
+            return GateMovement::create([
+                'container_id'     => $container->id,
+                'container_no'     => $container->container_no,
+                'job_type_id'      => $jobType->id,
+                'job_type_code'    => $jobType->job_type_code,
+                'customer_id'      => $validated['customer_id'],
+                'transporter_id'   => $validated['transporter_id'] ?? null,
+                'movement_type'    => 'in',
+                'eir_no'           => app(NumberSequenceService::class)->generate('gate_in'),
+                'size'             => $eqt->size,
+                'container_type'   => $eqt->type_code,
+                'ventilation_type' => $validated['ventilation_type'] ?? $container->effective_ventilation_type,
+                'vent_count'       => $validated['vent_count'] ?? $container->effective_vent_count,
+                'location_zone'   => $validated['location_zone'],
+                'location_row'    => $validated['location_row'],
+                'location_bay'    => $validated['location_bay'],
+                'location_tier'   => $validated['location_tier'],
+                'condition'       => $validated['condition'],
+                'grade_id'        => $validated['grade_id'] ?? null,
+                'cargo_status'    => $validated['cargo_status'],
+                'seal_no'         => $validated['seal_no'],
+                'vehicle_plate'   => $validated['vehicle_plate'],
+                'driver_name'     => $validated['driver_name'] ?? null,
+                'driver_ic'       => $validated['driver_ic'] ?? null,
+                'driver_phone'    => $validated['driver_phone'] ?? null,
+                'gate_in_time'    => $gateInTime,
+                'movement_status' => 'done',
+                'remarks'         => $validated['remarks'],
+                'created_by'      => auth()->id(),
+                // Import shipment information
+                'vessel_name'     => $validated['vessel_name'] ?? null,
+                'voyage_no'       => $validated['voyage_no'] ?? null,
+                'berthing_date'   => $validated['berthing_date'] ?? null,
+                'bl_number'       => $validated['bl_number'] ?? null,
+                'do_expiry_date'  => $validated['do_expiry_date'] ?? null,
+                'fcl_expiry_date' => $validated['fcl_expiry_date'] ?? null,
+                'consignee'       => $validated['consignee'] ?? null,
+            ]);
+        });
 
         // Save OCR-captured images
         $this->saveMovementOcrImages($movement, $validated);
@@ -554,39 +559,42 @@ class YardController extends Controller
         $gateOutDate = $gateOutTime->toDateString();
 
         // Record gate movement
-        $movement = GateMovement::create([
-            'container_id'     => $container->id,
-            'container_no'     => $container->container_no,
-            'customer_id'      => $container->customer_id,
-            'transporter_id'   => $validated['transporter_id'] ?? null,
-            'movement_type'    => 'out',
-            'size'             => $container->size,
-            'container_type'   => $container->type_code,
-            'ventilation_type' => $container->effective_ventilation_type,
-            'vent_count'       => $container->effective_vent_count,
-            'location_zone'   => $container->location_zone,
-            'location_row'    => $container->location_row,
-            'location_bay'    => $container->location_bay,
-            'location_tier'   => $container->location_tier,
-            'condition'       => $container->condition,
-            'grade_id'        => $validated['grade_id'] ?? $container->grade_id,
-            'cargo_status'    => $container->cargo_status,
-            'vehicle_plate'   => $validated['vehicle_plate'],
-            'driver_name'     => $validated['driver_name'],
-            'driver_ic'       => $validated['driver_ic'],
-            'driver_phone'    => $validated['driver_phone'] ?? null,
-            'release_order'   => $validated['release_order'],
-            'seal_no'         => $validated['seal_no'] ?? null,
-            'gate_out_time'   => $gateOutTime,
-            'movement_status' => 'done',
-            'remarks'         => $validated['remarks'],
-            'created_by'      => auth()->id(),
-            // Export information
-            'loading_vessel'  => $validated['loading_vessel'] ?? null,
-            'loading_voyage'  => $validated['loading_voyage'] ?? null,
-            'sailing_date'    => $validated['sailing_date'] ?? null,
-            'shipper'         => $validated['shipper'] ?? null,
-        ]);
+        $movement = DB::transaction(function () use ($container, $validated, $gateOutTime) {
+            return GateMovement::create([
+                'container_id'     => $container->id,
+                'container_no'     => $container->container_no,
+                'customer_id'      => $container->customer_id,
+                'transporter_id'   => $validated['transporter_id'] ?? null,
+                'movement_type'    => 'out',
+                'eir_no'           => app(NumberSequenceService::class)->generate('gate_out'),
+                'size'             => $container->size,
+                'container_type'   => $container->type_code,
+                'ventilation_type' => $container->effective_ventilation_type,
+                'vent_count'       => $container->effective_vent_count,
+                'location_zone'   => $container->location_zone,
+                'location_row'    => $container->location_row,
+                'location_bay'    => $container->location_bay,
+                'location_tier'   => $container->location_tier,
+                'condition'       => $container->condition,
+                'grade_id'        => $validated['grade_id'] ?? $container->grade_id,
+                'cargo_status'    => $container->cargo_status,
+                'vehicle_plate'   => $validated['vehicle_plate'],
+                'driver_name'     => $validated['driver_name'],
+                'driver_ic'       => $validated['driver_ic'],
+                'driver_phone'    => $validated['driver_phone'] ?? null,
+                'release_order'   => $validated['release_order'],
+                'seal_no'         => $validated['seal_no'] ?? null,
+                'gate_out_time'   => $gateOutTime,
+                'movement_status' => 'done',
+                'remarks'         => $validated['remarks'],
+                'created_by'      => auth()->id(),
+                // Export information
+                'loading_vessel'  => $validated['loading_vessel'] ?? null,
+                'loading_voyage'  => $validated['loading_voyage'] ?? null,
+                'sailing_date'    => $validated['sailing_date'] ?? null,
+                'shipper'         => $validated['shipper'] ?? null,
+            ]);
+        });
 
         // Save OCR-captured images
         $this->saveMovementOcrImages($movement, $validated);

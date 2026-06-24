@@ -253,7 +253,7 @@
 
 @php
     $companyPrefix = strtoupper(trim($companySetting?->company_prefix ?? ''));
-    $gpNumber = ($companyPrefix ? $companyPrefix . '-' : '') . 'OGP-' . str_pad($movement->id, 5, '0', STR_PAD_LEFT);
+    $gpNumber = $movement->eir_no ?: (($companyPrefix ? $companyPrefix . '-' : '') . 'OGP-' . str_pad($movement->id, 5, '0', STR_PAD_LEFT));
     $isLaden   = strtolower($movement->cargo_status ?? '') === 'laden';
     $softwareCopyright = '© ' . date('Y') . ' ' . ($companySetting?->software_provider ?? 'CYM Software');
     $printedAt = now()->format('d M Y H:i');

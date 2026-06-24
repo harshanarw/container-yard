@@ -83,11 +83,13 @@ class PaymentVoucherController extends Controller
             'expense_account_id' => ['nullable', 'exists:accounts,id'],
         ]);
 
-        $validated['voucher_no']  = $this->nextVoucherNo();
         $validated['created_by']  = auth()->id();
         $validated['status']      = 'draft';
 
-        $voucher = PaymentVoucher::create($validated);
+        $voucher = DB::transaction(function () use ($validated) {
+            $validated['voucher_no'] = $this->nextVoucherNo();
+            return PaymentVoucher::create($validated);
+        });
 
         return redirect()->route('finance.vouchers.show', $voucher)
             ->with('success', "Voucher {$voucher->voucher_no} created successfully.");
