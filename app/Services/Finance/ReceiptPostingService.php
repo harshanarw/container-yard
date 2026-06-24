@@ -24,6 +24,12 @@ class ReceiptPostingService
             throw new \RuntimeException('Only draft receipts can be confirmed.');
         }
 
+        if ($receipt->allocations()->doesntExist()) {
+            throw new \RuntimeException(
+                'Add at least one invoice allocation before confirming this receipt.'
+            );
+        }
+
         return DB::transaction(function () use ($receipt, $userId) {
             $arAccount   = $this->resolveArAccount();
             $bankAccount = $receipt->bankAccount?->glAccount;

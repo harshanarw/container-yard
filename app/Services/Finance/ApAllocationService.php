@@ -33,7 +33,7 @@ class ApAllocationService
     public function getAllocatedTotal(int $invoiceId): float
     {
         return (float) PaymentAllocation::where('supplier_invoice_id', $invoiceId)
-            ->whereHas('voucher', fn ($q) => $q->whereIn('status', ['draft', 'confirmed']))
+            ->whereHas('voucher', fn ($q) => $q->where('status', 'confirmed'))
             ->sum('allocated_amount');
     }
 

@@ -53,7 +53,7 @@ class ArAllocationService
     {
         return (float) ReceiptAllocation::where('invoice_type', $type)
             ->where('invoice_id', $id)
-            ->whereHas('receipt', fn ($q) => $q->whereIn('status', ['draft', 'confirmed']))
+            ->whereHas('receipt', fn ($q) => $q->where('status', 'confirmed'))
             ->sum('allocated_amount');
     }
 

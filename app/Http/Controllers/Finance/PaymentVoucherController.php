@@ -117,7 +117,7 @@ class PaymentVoucherController extends Controller
      */
     public function storeAllocation(Request $request, PaymentVoucher $voucher)
     {
-        $this->authorize('finance.vouchers.create');
+        $this->authorize('finance.vouchers.edit');
 
         if (!$voucher->isDraft()) {
             return back()->with('error', 'Allocations can only be added to draft vouchers.');
@@ -153,28 +153,38 @@ class PaymentVoucherController extends Controller
                 "Currency mismatch: the voucher is in {$voucher->currency} but the invoice is in {$invoice->currency}.");
         }
 
-        $outstanding = $this->allocationService->getOutstanding($invoice);
-        if ((float) $validated['allocated_amount'] > round($outstanding + 0.005, 2)) {
-            return back()->with('error',
-                'Allocated amount exceeds the invoice outstanding balance of ' . number_format($outstanding, 2) . '.');
-        }
+        try {
+            DB::transaction(function () use ($voucher, $invoice, $validated) {
+                $locked = PaymentVoucher::lockForUpdate()->find($voucher->id);
 
-        $totalAllocated = (float) $voucher->allocations()->sum('allocated_amount');
-        $remaining      = (float) $voucher->amount - $totalAllocated;
-        if ((float) $validated['allocated_amount'] > round($remaining + 0.005, 2)) {
-            return back()->with('error',
-                "Allocated amount exceeds the voucher's unallocated balance of " . number_format($remaining, 2) . '.');
-        }
+                $outstanding = $this->allocationService->getOutstanding($invoice);
+                if ((float) $validated['allocated_amount'] > round($outstanding + 0.005, 2)) {
+                    throw new \RuntimeException(
+                        'Allocated amount exceeds the invoice outstanding balance of ' . number_format($outstanding, 2) . '.'
+                    );
+                }
 
-        $voucher->allocations()->create($validated);
-        $this->allocationService->syncInvoiceStatus($invoice);
+                $totalAllocated = (float) $locked->allocations()->sum('allocated_amount');
+                $remaining      = (float) $locked->amount - $totalAllocated;
+                if ((float) $validated['allocated_amount'] > round($remaining + 0.005, 2)) {
+                    throw new \RuntimeException(
+                        "Allocated amount exceeds the voucher's unallocated balance of " . number_format($remaining, 2) . '.'
+                    );
+                }
+
+                $locked->allocations()->create($validated);
+                $this->allocationService->syncInvoiceStatus($invoice);
+            });
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return back()->with('success', 'Allocation added.');
     }
 
     public function deleteAllocation(PaymentVoucher $voucher, PaymentAllocation $allocation)
     {
-        $this->authorize('finance.vouchers.create');
+        $this->authorize('finance.vouchers.edit');
 
         if (!$voucher->isDraft()) {
             return back()->with('error', 'Allocations can only be removed from draft vouchers.');
@@ -222,19 +232,15 @@ class PaymentVoucherController extends Controller
         $invoiceIds = $voucher->allocations()->pluck('supplier_invoice_id')->unique();
 
         try {
-            $this->postingService->voidVoucher($voucher, auth()->id(), $reason);
+            DB::transaction(function () use ($voucher, $reason, $invoiceIds) {
+                $this->postingService->voidVoucher($voucher, auth()->id(), $reason);
+                foreach ($invoiceIds as $invId) {
+                    $invoice = $this->allocationService->resolveInvoice((int) $invId);
+                    $this->allocationService->syncInvoiceStatus($invoice);
+                }
+            });
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
-        }
-
-        foreach ($invoiceIds as $invId) {
-            try {
-                $this->allocationService->syncInvoiceStatus(
-                    $this->allocationService->resolveInvoice((int) $invId)
-                );
-            } catch (\Throwable) {
-                // best-effort: invoice may have been removed
-            }
         }
 
         return back()->with('success', "Voucher {$voucher->voucher_no} has been voided.");
