@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\RepairCategoryResolver;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class WorkOrderController extends Controller
 {
@@ -178,45 +179,49 @@ class WorkOrderController extends Controller
             return back()->withErrors(['repair_category_id' => 'No unassigned line items found for this category.'])->withInput();
         }
 
-        $woNo = app(\App\Services\NumberSequenceService::class)->generate('work_order');
+        $workOrder = DB::transaction(function () use ($estimate, $lines, $validated) {
+            $woNo = app(\App\Services\NumberSequenceService::class)->generate('work_order');
 
-        $workOrder = WorkOrder::create([
-            'wo_no'              => $woNo,
-            'estimate_id'        => $estimate->id,
-            'container_id'       => $estimate->container_id,
-            'container_no'       => $estimate->container_no,
-            'customer_id'        => $estimate->customer_id,
-            'repair_category_id' => $validated['repair_category_id'],
-            'assigned_to'        => $validated['assigned_to'],
-            'status'             => 'pending',
-            'priority'           => $validated['priority'],
-            'target_date'        => $validated['target_date'],
-            'instructions'       => $validated['instructions'],
-            'created_by'         => auth()->id(),
-        ]);
-
-        foreach ($lines as $line) {
-            $workOrder->lines()->create([
-                'estimate_line_item_id' => $line->id,
-                'location_code_id'      => $line->location_code_id,
-                'component_code_id'     => $line->component_code_id,
-                'damage_code_id'        => $line->damage_code_id,
-                'repair_code_id'        => $line->repair_code_id,
-                'cedex_code'            => $line->cedex_code,
-                'qty'                   => $line->qty ?? 1,
-                'status'                => 'pending',
+            $workOrder = WorkOrder::create([
+                'wo_no'              => $woNo,
+                'estimate_id'        => $estimate->id,
+                'container_id'       => $estimate->container_id,
+                'container_no'       => $estimate->container_no,
+                'customer_id'        => $estimate->customer_id,
+                'repair_category_id' => $validated['repair_category_id'],
+                'assigned_to'        => $validated['assigned_to'],
+                'status'             => 'pending',
+                'priority'           => $validated['priority'],
+                'target_date'        => $validated['target_date'],
+                'instructions'       => $validated['instructions'],
+                'created_by'         => auth()->id(),
             ]);
-        }
+
+            foreach ($lines as $line) {
+                $workOrder->lines()->create([
+                    'estimate_line_item_id' => $line->id,
+                    'location_code_id'      => $line->location_code_id,
+                    'component_code_id'     => $line->component_code_id,
+                    'damage_code_id'        => $line->damage_code_id,
+                    'repair_code_id'        => $line->repair_code_id,
+                    'cedex_code'            => $line->cedex_code,
+                    'qty'                   => $line->qty ?? 1,
+                    'status'                => 'pending',
+                ]);
+            }
+
+            return $workOrder;
+        });
 
         NotificationService::notifyAll(
-            'Work Order Created — ' . $woNo,
+            'Work Order Created — ' . $workOrder->wo_no,
             ($estimate->customer->name ?? 'Unknown') . ' · ' . $estimate->container_no . ' · ' . $workOrder->repairCategory->name,
             'info',
             route('work-orders.show', $workOrder)
         );
 
         return redirect()->route('work-orders.show', $workOrder)
-                         ->with('success', "Work order {$woNo} created for: {$workOrder->repairCategory->name}.");
+                         ->with('success', "Work order {$workOrder->wo_no} created for: {$workOrder->repairCategory->name}.");
     }
 
     public function show(WorkOrder $workOrder)

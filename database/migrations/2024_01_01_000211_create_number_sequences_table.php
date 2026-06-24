@@ -206,7 +206,7 @@ return new class extends Migration
                 'seq_padding'        => 6,
                 'reset_period'       => 'never',
                 'current_period'     => '',
-                'last_number'        => $maxSeq('supplier_invoices', 'SINV-%'),
+                'last_number'        => $maxSeq('supplier_invoices', '%SINV-%'),
             ],
             [
                 'module_code'        => 'journal_voucher',

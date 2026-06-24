@@ -31,10 +31,17 @@ class NumberSequenceController extends Controller
             'prefix'             => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/'],
             'use_company_prefix' => ['boolean'],
             'separator'          => ['required', 'string', 'size:1'],
-            'date_format'        => ['nullable', 'in:Ym,Y,ym,yM'],
+            'date_format'        => ['nullable', 'in:Ym,Y,ym'],
             'seq_padding'        => ['required', 'integer', 'min:3', 'max:9'],
             'reset_period'       => ['required', 'in:never,monthly,yearly'],
         ]);
+
+        // A non-never reset_period is meaningless without a date_format to drive the period key.
+        if (in_array($validated['reset_period'], ['monthly', 'yearly']) && empty($validated['date_format'])) {
+            return back()->withErrors([
+                'date_format' => 'A date component is required when Counter Reset is set to Monthly or Yearly.',
+            ])->withInput();
+        }
 
         // Normalise: prefix always uppercase, use_company_prefix defaults to false if omitted
         $validated['prefix']             = strtoupper($validated['prefix']);

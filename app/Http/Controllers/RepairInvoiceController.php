@@ -8,6 +8,7 @@ use App\Services\IrdInvoiceNumberService;
 use App\Services\NotificationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class RepairInvoiceController extends Controller
 {
@@ -72,8 +73,6 @@ class RepairInvoiceController extends Controller
             return back()->withErrors(['estimate_id' => 'Only approved estimates can generate repair invoices.'])->withInput();
         }
 
-        $invNo = app(\App\Services\NumberSequenceService::class)->generate('repair_invoice');
-
         $subtotal    = 0;
         $ssclTotal   = 0;
         $vatTotal    = 0;
@@ -127,36 +126,42 @@ class RepairInvoiceController extends Controller
         $grandTotal = round($subtotal + $taxAmount, 2);
         $taxPct     = $subtotal > 0 ? round($taxAmount / $subtotal * 100, 4) : 0;
 
-        $invoice = \App\Models\RepairInvoice::create([
-            'invoice_no'     => $invNo,
-            'estimate_id'    => $estimate->id,
-            'container_id'   => $estimate->container_id,
-            'container_no'   => $estimate->container_no,
-            'customer_id'    => $estimate->customer_id,
-            'invoice_date'   => now()->toDateString(),
-            'due_date'       => \App\Services\Finance\PaymentTermsHelper::dueDate(
-                                    $estimate->customer?->payment_terms ?? 'net30', now()
-                                )->toDateString(),
-            'currency'       => $estimate->customer?->currency ?? 'USD',
-            'status'         => 'draft',
-            'subtotal'       => $subtotal,
-            'sscl_total'     => $ssclTotal,
-            'vat_total'      => $vatTotal,
-            'tax_percentage' => $taxPct,
-            'tax_amount'     => $taxAmount,
-            'grand_total'    => $grandTotal,
-            'amount_paid'    => 0,
-            'balance_due'    => $grandTotal,
-            'notes'          => $validated['notes'],
-            'created_by'     => auth()->id(),
-        ]);
+        $invoice = DB::transaction(function () use ($estimate, $lineRecords, $subtotal, $ssclTotal, $vatTotal, $taxAmount, $grandTotal, $taxPct, $validated) {
+            $invNo = app(\App\Services\NumberSequenceService::class)->generate('repair_invoice');
 
-        foreach ($lineRecords as $lineData) {
-            $lineData['repair_invoice_id'] = $invoice->id;
-            \App\Models\RepairInvoiceLine::create($lineData);
-        }
+            $invoice = \App\Models\RepairInvoice::create([
+                'invoice_no'     => $invNo,
+                'estimate_id'    => $estimate->id,
+                'container_id'   => $estimate->container_id,
+                'container_no'   => $estimate->container_no,
+                'customer_id'    => $estimate->customer_id,
+                'invoice_date'   => now()->toDateString(),
+                'due_date'       => \App\Services\Finance\PaymentTermsHelper::dueDate(
+                                        $estimate->customer?->payment_terms ?? 'net30', now()
+                                    )->toDateString(),
+                'currency'       => $estimate->customer?->currency ?? 'USD',
+                'status'         => 'draft',
+                'subtotal'       => $subtotal,
+                'sscl_total'     => $ssclTotal,
+                'vat_total'      => $vatTotal,
+                'tax_percentage' => $taxPct,
+                'tax_amount'     => $taxAmount,
+                'grand_total'    => $grandTotal,
+                'amount_paid'    => 0,
+                'balance_due'    => $grandTotal,
+                'notes'          => $validated['notes'],
+                'created_by'     => auth()->id(),
+            ]);
 
-        return redirect()->route('repair-invoices.show', $invoice)->with('success', "Repair invoice {$invNo} created.");
+            foreach ($lineRecords as $lineData) {
+                $lineData['repair_invoice_id'] = $invoice->id;
+                \App\Models\RepairInvoiceLine::create($lineData);
+            }
+
+            return $invoice;
+        });
+
+        return redirect()->route('repair-invoices.show', $invoice)->with('success', "Repair invoice {$invoice->invoice_no} created.");
     }
 
     public function show(RepairInvoice $invoice)

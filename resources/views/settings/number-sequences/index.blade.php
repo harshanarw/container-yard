@@ -138,7 +138,7 @@
                             <option value="" {{ !$seq->date_format ? 'selected' : '' }}>None</option>
                             <option value="Ym"  {{ $seq->date_format === 'Ym'  ? 'selected' : '' }}>YYYYMM (monthly)</option>
                             <option value="Y"   {{ $seq->date_format === 'Y'   ? 'selected' : '' }}>YYYY (yearly)</option>
-                            <option value="yM"  {{ $seq->date_format === 'yM'  ? 'selected' : '' }}>YYMM (monthly, short)</option>
+                            <option value="ym"  {{ $seq->date_format === 'ym'  ? 'selected' : '' }}>YYMM (monthly, short)</option>
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -181,7 +181,7 @@
                     </button>
                     @if(auth()->user()->isSystemAdmin())
                     <button type="button" class="btn btn-outline-danger btn-sm ms-auto"
-                            onclick="confirmReset({{ $seq->id }}, '{{ addslashes($seq->label) }}')">
+                            onclick="confirmReset({{ $seq->id }}, {{ json_encode($seq->label) }})">
                         <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Counter
                     </button>
                     @endif
