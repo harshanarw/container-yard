@@ -623,6 +623,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('invoices',                          [SupplierInvoiceController::class, 'index'])->name('invoices.index');
             Route::get('invoices/create',                   [SupplierInvoiceController::class, 'create'])->name('invoices.create');
             Route::post('invoices',                         [SupplierInvoiceController::class, 'store'])->name('invoices.store');
+            Route::get('charge-code/{chargeCode}',          [SupplierInvoiceController::class, 'chargeCodeDetails'])->name('charge-code.details');
             Route::get('invoices/{supplierInvoice}',        [SupplierInvoiceController::class, 'show'])->name('invoices.show');
             Route::delete('invoices/{supplierInvoice}',     [SupplierInvoiceController::class, 'destroy'])->name('invoices.destroy');
             Route::post('invoices/{supplierInvoice}/approve',    [SupplierInvoiceController::class, 'approve'])->name('invoices.approve');

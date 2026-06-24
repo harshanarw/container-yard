@@ -13,7 +13,7 @@ class ReeferElectricityInvoiceLine extends Model
         'total_hours', 'total_days', 'free_hours', 'free_days',
         'chargeable_hours', 'chargeable_days',
         'rate', 'currency', 'subtotal',
-        'charge_code_id', 'tax1_rate', 'tax2_rate',
+        'charge_code_id', 'tax_code_id', 'tax1_rate', 'tax2_rate',
         'line_sscl', 'line_vat', 'line_total', 'line_value',
     ];
 
@@ -25,8 +25,8 @@ class ReeferElectricityInvoiceLine extends Model
         'chargeable_hours' => 'decimal:2',
         'rate'             => 'decimal:2',
         'subtotal'         => 'decimal:2',
-        'tax1_rate'        => 'float',
-        'tax2_rate'        => 'float',
+        'tax1_rate'        => 'decimal:4',
+        'tax2_rate'        => 'decimal:4',
         'line_sscl'        => 'decimal:2',
         'line_vat'         => 'decimal:2',
         'line_total'       => 'decimal:2',
@@ -53,5 +53,10 @@ class ReeferElectricityInvoiceLine extends Model
     public function chargeCode()
     {
         return $this->belongsTo(ChargeCode::class);
+    }
+
+    public function taxCode()
+    {
+        return $this->belongsTo(TaxCode::class);
     }
 }

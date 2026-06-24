@@ -10,7 +10,7 @@ class SupplierInvoice extends Model
 {
     protected $fillable = [
         'invoice_no', 'supplier_invoice_no', 'customer_id', 'invoice_date', 'due_date',
-        'currency', 'exchange_rate', 'subtotal', 'tax_amount', 'total_amount',
+        'currency', 'exchange_rate', 'subtotal', 'tax_amount', 'sscl_amount', 'vat_amount', 'total_amount',
         'status', 'journal_id', 'posting_error', 'notes',
         'approved_by', 'approved_at', 'created_by',
     ];
@@ -20,9 +20,11 @@ class SupplierInvoice extends Model
         'due_date'      => 'date',
         'approved_at'   => 'datetime',
         'exchange_rate' => 'decimal:6',
-        'subtotal'      => 'decimal:4',
-        'tax_amount'    => 'decimal:4',
-        'total_amount'  => 'decimal:4',
+        'subtotal'      => 'decimal:2',
+        'tax_amount'    => 'decimal:2',
+        'sscl_amount'   => 'decimal:2',
+        'vat_amount'    => 'decimal:2',
+        'total_amount'  => 'decimal:2',
     ];
 
     /**

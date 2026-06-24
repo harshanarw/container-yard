@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\AccountMapping;
+use App\Models\ChargeCode;
 use App\Models\CompanySetting;
 use App\Models\Customer;
 use App\Models\SupplierInvoice;
 use App\Services\Finance\ApAllocationService;
 use App\Services\Finance\PaymentTermsHelper;
 use App\Services\Finance\SupplierInvoicePostingService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -47,11 +50,16 @@ class SupplierInvoiceController extends Controller
         $this->authorize('finance.ap.create');
 
         $suppliers = Customer::apContacts()->get(['id', 'code', 'name', 'currency']);
-        $accounts  = Account::where('is_posting', true)->where('is_active', true)
+
+        $accounts = Account::where('is_posting', true)->where('is_active', true)
             ->whereIn('classification', ['expense', 'asset'])
             ->orderBy('code')->get(['id', 'code', 'name']);
 
-        return view('finance.supplier-invoices.create', compact('suppliers', 'accounts'));
+        $chargeCodes = ChargeCode::where('is_active', true)
+            ->orderBy('category')->orderBy('sort_order')->orderBy('code')
+            ->get(['id', 'code', 'description', 'category']);
+
+        return view('finance.supplier-invoices.create', compact('suppliers', 'accounts', 'chargeCodes'));
     }
 
     public function store(Request $request)
@@ -59,26 +67,24 @@ class SupplierInvoiceController extends Controller
         $this->authorize('finance.ap.create');
 
         $validated = $request->validate([
-            'customer_id'          => ['required', 'exists:customers,id'],
-            'supplier_invoice_no'  => ['nullable', 'string', 'max:50'],
-            'invoice_date'         => ['required', 'date'],
-            'due_date'             => ['nullable', 'date', 'after_or_equal:invoice_date'],
-            'currency'             => ['required', 'string', 'max:10'],
-            'exchange_rate'        => ['required', 'numeric', 'min:0.000001'],
-            'tax_amount'           => ['nullable', 'numeric', 'min:0'],
-            'notes'                => ['nullable', 'string', 'max:1000'],
-            'lines'                => ['required', 'array', 'min:1'],
-            'lines.*.description'  => ['required', 'string', 'max:255'],
-            'lines.*.expense_account_id' => ['required', 'exists:accounts,id'],
-            'lines.*.amount'       => ['required', 'numeric', 'gt:0'],
+            'customer_id'                  => ['required', 'exists:customers,id'],
+            'supplier_invoice_no'          => ['nullable', 'string', 'max:50'],
+            'invoice_date'                 => ['required', 'date'],
+            'due_date'                     => ['nullable', 'date', 'after_or_equal:invoice_date'],
+            'currency'                     => ['required', 'string', 'max:10'],
+            'exchange_rate'                => ['required', 'numeric', 'min:0.000001'],
+            'notes'                        => ['nullable', 'string', 'max:1000'],
+            'lines'                        => ['required', 'array', 'min:1'],
+            'lines.*.description'          => ['required', 'string', 'max:255'],
+            'lines.*.expense_account_id'   => ['required', 'exists:accounts,id'],
+            'lines.*.amount'               => ['required', 'numeric', 'gt:0'],
+            'lines.*.charge_code_id'       => ['nullable', 'exists:charge_codes,id'],
+            'lines.*.tax_code_id'          => ['nullable', 'exists:tax_codes,id'],
+            'lines.*.tax1_rate'            => ['nullable', 'numeric', 'min:0'],
+            'lines.*.tax2_rate'            => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $subtotal = collect($validated['lines'])->sum(fn ($l) => (float) $l['amount']);
-        $tax      = (float) ($validated['tax_amount'] ?? 0);
-        $total    = round($subtotal + $tax, 4);
-
-        $invoice = DB::transaction(function () use ($validated, $subtotal, $tax, $total) {
-            // Auto-derive due_date from the contact's AP payment terms when not supplied.
+        $invoice = DB::transaction(function () use ($validated) {
             $dueDate = $validated['due_date'] ?? null;
             if (!$dueDate) {
                 $contact = Customer::find($validated['customer_id']);
@@ -90,6 +96,43 @@ class SupplierInvoiceController extends Controller
                 }
             }
 
+            $subtotal    = 0.0;
+            $ssclTotal   = 0.0;
+            $vatTotal    = 0.0;
+            $lineRecords = [];
+
+            foreach ($validated['lines'] as $line) {
+                $net   = (float) $line['amount'];
+                $t1    = (float) ($line['tax1_rate'] ?? 0);
+                $t2    = (float) ($line['tax2_rate'] ?? 0);
+                $sscl  = round($net * $t1 / 100, 2);
+                $vat   = round(($net + $sscl) * $t2 / 100, 2);
+                $gross = round($net + $sscl + $vat, 2);
+
+                $subtotal  += $net;
+                $ssclTotal += $sscl;
+                $vatTotal  += $vat;
+
+                $lineRecords[] = [
+                    'description'        => $line['description'],
+                    'charge_code_id'     => ($line['charge_code_id'] ?? null) ?: null,
+                    'tax_code_id'        => ($line['tax_code_id'] ?? null) ?: null,
+                    'expense_account_id' => $line['expense_account_id'],
+                    'amount'             => $net,
+                    'tax1_rate'          => $t1,
+                    'tax2_rate'          => $t2,
+                    'tax1_amount'        => $sscl,
+                    'tax2_amount'        => $vat,
+                    'gross_amount'       => $gross,
+                ];
+            }
+
+            $subtotal  = round($subtotal,  2);
+            $ssclTotal = round($ssclTotal, 2);
+            $vatTotal  = round($vatTotal,  2);
+            $taxAmount = round($ssclTotal + $vatTotal, 2);
+            $total     = round($subtotal + $taxAmount, 2);
+
             $invoice = SupplierInvoice::create([
                 'invoice_no'          => $this->nextInvoiceNo(),
                 'supplier_invoice_no' => $validated['supplier_invoice_no'] ?? null,
@@ -99,19 +142,17 @@ class SupplierInvoiceController extends Controller
                 'currency'            => $validated['currency'],
                 'exchange_rate'       => $validated['exchange_rate'],
                 'subtotal'            => $subtotal,
-                'tax_amount'          => $tax,
+                'sscl_amount'         => $ssclTotal,
+                'vat_amount'          => $vatTotal,
+                'tax_amount'          => $taxAmount,
                 'total_amount'        => $total,
                 'status'              => 'draft',
                 'notes'               => $validated['notes'] ?? null,
                 'created_by'          => auth()->id(),
             ]);
 
-            foreach ($validated['lines'] as $line) {
-                $invoice->lines()->create([
-                    'description'        => $line['description'],
-                    'expense_account_id' => $line['expense_account_id'],
-                    'amount'             => $line['amount'],
-                ]);
+            foreach ($lineRecords as $lr) {
+                $invoice->lines()->create($lr);
             }
 
             return $invoice;
@@ -125,7 +166,7 @@ class SupplierInvoiceController extends Controller
     {
         $this->authorize('finance.ap.view');
 
-        $supplierInvoice->load(['supplier', 'lines.expenseAccount', 'journal']);
+        $supplierInvoice->load(['supplier', 'lines.expenseAccount', 'lines.chargeCode', 'lines.taxCode', 'journal']);
         $settlements = $this->allocationService->settlementsFor($supplierInvoice->id);
         $outstanding = $this->allocationService->getOutstanding($supplierInvoice);
         $allocated   = $this->allocationService->getAllocatedTotal($supplierInvoice->id);
@@ -149,11 +190,6 @@ class SupplierInvoiceController extends Controller
             ->with('success', 'Draft supplier invoice deleted.');
     }
 
-    /**
-     * Approve a draft invoice and auto-post it to the GL.
-     * A posting failure is recorded (posting_error) but does not block the
-     * approval — the user can fix the mapping and retry.
-     */
     public function approve(SupplierInvoice $supplierInvoice)
     {
         $this->authorize('finance.ap.post');
@@ -182,9 +218,6 @@ class SupplierInvoiceController extends Controller
             "Supplier invoice {$supplierInvoice->invoice_no} approved and posted to the GL.");
     }
 
-    /**
-     * Retry posting for an approved invoice whose auto-post failed.
-     */
     public function retryPost(SupplierInvoice $supplierInvoice)
     {
         $this->authorize('finance.ap.post');
@@ -203,9 +236,6 @@ class SupplierInvoiceController extends Controller
         }
     }
 
-    /**
-     * Cancel an invoice and reverse its GL posting (if any).
-     */
     public function cancel(SupplierInvoice $supplierInvoice)
     {
         $this->authorize('finance.ap.void');
@@ -230,6 +260,38 @@ class SupplierInvoiceController extends Controller
         $supplierInvoice->update(['status' => 'cancelled']);
 
         return back()->with('success', "Supplier invoice {$supplierInvoice->invoice_no} cancelled.");
+    }
+
+    /**
+     * AJAX: return charge code details for the supplier invoice line auto-fill.
+     * Called when the user picks a charge code from the Select2 dropdown.
+     * Returns: description, tax_code_id, tax1_rate, tax2_rate, expense_account_id.
+     */
+    public function chargeCodeDetails(ChargeCode $chargeCode): JsonResponse
+    {
+        $this->authorize('finance.ap.create');
+
+        $expenseMapping = AccountMapping::where('mapping_type', 'charge_expense')
+            ->where('source_type', ChargeCode::class)
+            ->where('source_id', $chargeCode->id)
+            ->where('is_active', true)
+            ->with('account:id,code,name')
+            ->first();
+
+        $taxCode = $chargeCode->taxCode;
+
+        return response()->json([
+            'description'        => $chargeCode->description,
+            'tax_code_id'        => $chargeCode->tax_code_id,
+            'tax_code_code'      => $taxCode?->code,
+            'tax_code_desc'      => $taxCode?->description,
+            'tax1_rate'          => (float) ($taxCode?->tax1_rate ?? 0),
+            'tax2_rate'          => (float) ($taxCode?->tax2_rate ?? 0),
+            'expense_account_id' => $expenseMapping?->account_id,
+            'expense_account'    => $expenseMapping?->account
+                ? $expenseMapping->account->code . ' — ' . $expenseMapping->account->name
+                : null,
+        ]);
     }
 
     private function nextInvoiceNo(): string

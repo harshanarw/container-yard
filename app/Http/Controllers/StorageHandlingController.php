@@ -209,6 +209,7 @@ class StorageHandlingController extends Controller
                     $storageRate  = (float) $detail->storage_rate;
                     $storageCur   = $detail->currency;
                     $chargeCodeId = $detail->charge_code_id;
+                    $taxCodeId    = $detail->chargeCode?->tax_code_id;
 
                     if (! $taxExempt && $detail->chargeCode?->taxCode) {
                         $tax1Rate = (float) $detail->chargeCode->taxCode->tax1_rate;
@@ -255,6 +256,7 @@ class StorageHandlingController extends Controller
                     $liftOnRate  = round($liftOnRateUsd  * $handlingMult, 2);
                     // Capture handling charge code and tax rates separately from storage
                     $handlingChargeCodeId = $hRate->charge_code_id;
+                    $handlingTaxCodeId    = $hRate->chargeCode?->tax_code_id;
                     if (! $taxExempt && $hRate->chargeCode?->taxCode) {
                         $handlingTax1Rate = (float) $hRate->chargeCode->taxCode->tax1_rate;
                         $handlingTax2Rate = (float) $hRate->chargeCode->taxCode->tax2_rate;
@@ -321,9 +323,11 @@ class StorageHandlingController extends Controller
                 'handling_currency'        => $defaultCurrency,
                 'handling_subtotal'        => $handlingSubtotal,
                 'charge_code_id'           => $chargeCodeId,
+                'tax_code_id'              => $taxCodeId ?? null,
                 'tax1_rate'                => $tax1Rate,
                 'tax2_rate'                => $tax2Rate,
                 'handling_charge_code_id'  => $handlingChargeCodeId,
+                'handling_tax_code_id'     => $handlingTaxCodeId ?? null,
                 'handling_tax1_rate'       => $handlingTax1Rate,
                 'handling_tax2_rate'       => $handlingTax2Rate,
                 'line_total'               => $lineTotal,
@@ -493,9 +497,11 @@ class StorageHandlingController extends Controller
                     'handling_currency'        => $line['handling_currency'],
                     'handling_subtotal'        => $line['handling_subtotal'],
                     'charge_code_id'           => ($line['charge_code_id'] ?? null) ?: null,
+                    'tax_code_id'              => ($line['tax_code_id'] ?? null) ?: null,
                     'tax1_rate'                => $line['tax1_rate'] ?? 0,
                     'tax2_rate'                => $line['tax2_rate'] ?? 0,
                     'handling_charge_code_id'  => ($line['handling_charge_code_id'] ?? null) ?: null,
+                    'handling_tax_code_id'     => ($line['handling_tax_code_id'] ?? null) ?: null,
                     'handling_tax1_rate'       => $line['handling_tax1_rate'] ?? 0,
                     'handling_tax2_rate'       => $line['handling_tax2_rate'] ?? 0,
                     'line_total'               => $line['line_total'],

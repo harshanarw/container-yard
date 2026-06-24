@@ -79,21 +79,55 @@
             <div class="table-responsive">
                 <table class="table table-sm align-middle mb-0">
                     <thead class="table-light">
-                        <tr><th>Description</th><th>Account</th><th class="text-end">Amount</th></tr>
+                        <tr>
+                            <th>Charge Code</th>
+                            <th>Description</th>
+                            <th>Account</th>
+                            <th>Tax Code</th>
+                            <th class="text-end">Net</th>
+                            <th class="text-end">SSCL</th>
+                            <th class="text-end">VAT</th>
+                            <th class="text-end">Gross</th>
+                        </tr>
                     </thead>
                     <tbody>
                         @foreach($inv->lines as $line)
                         <tr>
+                            <td class="small font-monospace">
+                                @if($line->chargeCode)
+                                    <span class="badge bg-primary-subtle text-primary">{{ $line->chargeCode->code }}</span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                             <td class="small">{{ $line->description }}</td>
                             <td class="small font-monospace text-muted">{{ $line->expenseAccount->code ?? '' }} — {{ $line->expenseAccount->name ?? '' }}</td>
+                            <td class="small">
+                                @if($line->taxCode)
+                                    <span class="badge bg-secondary-subtle text-secondary font-monospace">{{ $line->taxCode->code }}</span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                             <td class="text-end font-monospace small">{{ number_format($line->amount, 2) }}</td>
+                            <td class="text-end font-monospace small text-muted">{{ number_format($line->tax1_amount, 2) }}</td>
+                            <td class="text-end font-monospace small text-muted">{{ number_format($line->tax2_amount, 2) }}</td>
+                            <td class="text-end font-monospace small fw-semibold">{{ number_format($line->gross_amount, 2) }}</td>
                         </tr>
                         @endforeach
                     </tbody>
                     <tfoot>
-                        <tr><td colspan="2" class="text-end small text-muted">Subtotal</td><td class="text-end font-monospace">{{ number_format($inv->subtotal, 2) }}</td></tr>
-                        <tr><td colspan="2" class="text-end small text-muted">Input Tax</td><td class="text-end font-monospace">{{ number_format($inv->tax_amount, 2) }}</td></tr>
-                        <tr class="table-light fw-bold"><td colspan="2" class="text-end">Total Payable</td><td class="text-end font-monospace">{{ number_format($inv->total_amount, 2) }} {{ $inv->currency }}</td></tr>
+                        <tr>
+                            <td colspan="4" class="text-end small text-muted">Subtotal (net)</td>
+                            <td class="text-end font-monospace">{{ number_format($inv->subtotal, 2) }}</td>
+                            <td class="text-end font-monospace text-muted">{{ number_format($inv->sscl_amount ?? 0, 2) }}</td>
+                            <td class="text-end font-monospace text-muted">{{ number_format($inv->vat_amount ?? 0, 2) }}</td>
+                            <td></td>
+                        </tr>
+                        <tr class="table-light fw-bold">
+                            <td colspan="7" class="text-end">Total Payable</td>
+                            <td class="text-end font-monospace">{{ number_format($inv->total_amount, 2) }} {{ $inv->currency }}</td>
+                        </tr>
                     </tfoot>
                 </table>
             </div>

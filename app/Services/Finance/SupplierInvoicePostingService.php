@@ -4,20 +4,23 @@ namespace App\Services\Finance;
 
 use App\Models\Account;
 use App\Models\AccountMapping;
+use App\Models\ChargeCode;
 use App\Models\SupplierInvoice;
+use App\Models\TaxCode;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Posts a supplier (purchase) invoice to the GL — the AP counterpart to
  * InvoicePostingService.
  *
- *   DR  Expense / Asset account(s)   (one leg per invoice line, net of tax)
- *   DR  Input Tax Receivable          (recoverable tax, if any)
- *   CR  Trade Creditors (AP Control)  (gross total)
+ *   DR  Expense account(s)       net + SSCL (SSCL is an irrecoverable cost, same as AR treatment)
+ *   DR  Input VAT Receivable     VAT only (recoverable)
+ *   CR  Trade Creditors (AP)     gross total
  *
- * Amounts are converted to base/reporting currency via exchange_rate so the
- * GL stays single-currency. The credit leg is built from the exact sum of the
- * debit legs, so the journal is balanced by construction.
+ * Expense account is resolved per line via charge_expense AccountMapping keyed to
+ * the line's charge_code_id. Falls back to expense_account_id when no mapping exists.
+ * Input VAT account is resolved via tax_input AccountMapping keyed to tax_code_id,
+ * then the global tax_input mapping, then the default account (1301).
  */
 class SupplierInvoicePostingService
 {
@@ -26,7 +29,6 @@ class SupplierInvoicePostingService
     public function post(SupplierInvoice $invoice, int $userId): SupplierInvoice
     {
         return DB::transaction(function () use ($invoice, $userId) {
-            // Lock + guard against a concurrent double-post.
             $locked = SupplierInvoice::where('id', $invoice->id)->lockForUpdate()->first();
             if ($locked->isPosted()) {
                 throw new \RuntimeException(
@@ -40,57 +42,63 @@ class SupplierInvoicePostingService
                 throw new \InvalidArgumentException('Supplier invoice has no line items to post.');
             }
 
-            $rate    = (float) ($invoice->exchange_rate ?: 1);
-            $fxNote  = $this->fxNote($invoice->currency, $rate);
-            $lines   = [];
-            $totalDr = 0.0;
+            $rate   = (float) ($invoice->exchange_rate ?: 1);
+            $fxNote = $this->fxNote($invoice->currency, $rate);
+            $lines  = [];
 
-            // DR each expense/asset line (net), converted to base currency.
+            // DR expense lines — one per line item; amount = (net + SSCL) in base currency.
+            // SSCL (tax1) is an irrecoverable levy embedded in the cost of the service.
             foreach ($invoice->lines as $line) {
-                $base = round((float) $line->amount * $rate, 2);
-                if ($base == 0.0) {
+                $expenseBase = round(((float) $line->amount + (float) $line->tax1_amount) * $rate, 2);
+                if ($expenseBase == 0.0) {
                     continue;
                 }
-                $totalDr += $base;
+
+                $expenseAccount = $this->resolveExpenseAccount($line->charge_code_id, $line->expense_account_id);
+                if (!$expenseAccount) {
+                    throw new \RuntimeException(
+                        "No expense account for line \"{$line->description}\". "
+                        . 'Configure Account Mappings → Charge Expense or set an account on the line.'
+                    );
+                }
+
                 $lines[] = [
-                    'account_id' => $line->expense_account_id,
-                    'debit'      => $base,
+                    'account_id' => $expenseAccount->id,
+                    'debit'      => $expenseBase,
                     'credit'     => 0,
                     'narration'  => $line->description . $fxNote,
                 ];
             }
 
-            // DR input tax (recoverable), if any.
-            $taxBase = round((float) $invoice->tax_amount * $rate, 2);
-            if ($taxBase > 0) {
-                $taxAccount = $this->resolveTaxInputAccount();
-                if (!$taxAccount) {
-                    // No input-tax account mapped — fold tax into the last expense leg
-                    // so the journal still balances rather than silently dropping it.
+            // DR input VAT (recoverable) — aggregated across all lines.
+            $vatBase = round((float) $invoice->vat_amount * $rate, 2);
+            if ($vatBase > 0) {
+                // Try per-invoice tax code first (use first line's tax_code_id as representative)
+                $taxCodeId  = $invoice->lines->first()?->tax_code_id;
+                $vatAccount = $this->resolveInputVatAccount($taxCodeId);
+
+                if (!$vatAccount) {
+                    // No input VAT account mapped — fold into the last expense leg to keep balance
                     if (empty($lines)) {
-                        throw new \RuntimeException('Cannot post tax with no expense lines.');
+                        throw new \RuntimeException('Cannot post VAT with no expense lines.');
                     }
-                    $lines[count($lines) - 1]['debit'] = round($lines[count($lines) - 1]['debit'] + $taxBase, 2);
+                    $lines[count($lines) - 1]['debit'] = round($lines[count($lines) - 1]['debit'] + $vatBase, 2);
                 } else {
                     $lines[] = [
-                        'account_id' => $taxAccount->id,
-                        'debit'      => $taxBase,
+                        'account_id' => $vatAccount->id,
+                        'debit'      => $vatBase,
                         'credit'     => 0,
-                        'narration'  => 'Input tax',
+                        'narration'  => 'Input VAT',
                     ];
                 }
-                $totalDr += $taxBase;
             }
 
-            if ($totalDr <= 0) {
+            if (empty($lines)) {
                 throw new \InvalidArgumentException('Supplier invoice total must be greater than zero.');
             }
 
-            // CR AP control — recompute from the FINAL debit legs (the tax-fallback
-            // path may have re-rounded the last leg) so the credit exactly matches
-            // what was debited and the journal balances to the cent.
-            $totalDr = round(array_sum(array_column($lines, 'debit')), 2);
-
+            // CR AP control — sum of ALL debit legs (computed last to avoid rounding gaps)
+            $totalDr   = round(array_sum(array_column($lines, 'debit')), 2);
             $apAccount = $this->resolveApAccount();
             if (!$apAccount) {
                 throw new \RuntimeException(
@@ -124,9 +132,6 @@ class SupplierInvoicePostingService
         });
     }
 
-    /**
-     * Void the posted journal for a supplier invoice (used on cancel).
-     */
     public function void(SupplierInvoice $invoice, int $userId, string $reason = ''): void
     {
         if (!$invoice->isPosted()) {
@@ -141,13 +146,52 @@ class SupplierInvoicePostingService
         });
     }
 
-    private function fxNote(?string $currency, float $rate): string
+    // ─── Account resolution ───────────────────────────────────────────────────
+
+    /**
+     * Resolve expense account for a line: charge_expense mapping → expense_account_id fallback.
+     */
+    private function resolveExpenseAccount(?int $chargeCodeId, ?int $fallbackAccountId): ?Account
     {
-        if ($rate == 1.0) {
-            return '';
+        if ($chargeCodeId !== null) {
+            $mapped = AccountMapping::where('mapping_type', 'charge_expense')
+                ->where('source_type', ChargeCode::class)
+                ->where('source_id', $chargeCodeId)
+                ->where('is_active', true)
+                ->first()?->account;
+
+            if ($mapped) {
+                return $mapped;
+            }
         }
 
-        return ' (@ ' . rtrim(rtrim(number_format($rate, 6, '.', ''), '0'), '.') . ' ' . ($currency ?? '') . ')';
+        return $fallbackAccountId ? Account::find($fallbackAccountId) : null;
+    }
+
+    /**
+     * Resolve input VAT account: per-TaxCode tax_input mapping → global tax_input → default 1301.
+     */
+    private function resolveInputVatAccount(?int $taxCodeId): ?Account
+    {
+        if ($taxCodeId !== null) {
+            $mapped = AccountMapping::where('mapping_type', 'tax_input')
+                ->where('source_type', TaxCode::class)
+                ->where('source_id', $taxCodeId)
+                ->where('is_active', true)
+                ->first()?->account;
+
+            if ($mapped) {
+                return $mapped;
+            }
+        }
+
+        // Global (non-keyed) input tax mapping
+        $global = AccountMapping::where('mapping_type', 'tax_input')
+            ->whereNull('source_type')->whereNull('source_id')
+            ->where('is_active', true)
+            ->first()?->account;
+
+        return $global ?? Account::where('code', '1301')->where('is_active', true)->first();
     }
 
     private function resolveApAccount(): ?Account
@@ -160,12 +204,12 @@ class SupplierInvoicePostingService
             ?? Account::where('code', '2011')->where('is_active', true)->first();
     }
 
-    private function resolveTaxInputAccount(): ?Account
+    private function fxNote(?string $currency, float $rate): string
     {
-        $mapping = AccountMapping::where('mapping_type', 'tax_input')
-            ->where('is_active', true)->first();
+        if ($rate == 1.0) {
+            return '';
+        }
 
-        return $mapping?->account
-            ?? Account::where('code', '1301')->where('is_active', true)->first();
+        return ' (@ ' . rtrim(rtrim(number_format($rate, 6, '.', ''), '0'), '.') . ' ' . ($currency ?? '') . ')';
     }
 }

@@ -190,6 +190,7 @@ class StorageBillingController extends Controller
                     $dailyRate    = (float) $detail->storage_rate;
                     $currency     = $detail->currency;
                     $chargeCodeId = $detail->charge_code_id;
+                    $taxCodeId    = $detail->chargeCode?->tax_code_id;
 
                     if (! $taxExempt && $detail->chargeCode?->taxCode) {
                         $tax1Rate = (float) $detail->chargeCode->taxCode->tax1_rate;
@@ -245,6 +246,7 @@ class StorageBillingController extends Controller
                 'currency'        => $defaultCurrency,
                 'subtotal'        => $lineSubtotal,
                 'charge_code_id'  => $chargeCodeId,
+                'tax_code_id'     => $taxCodeId ?? null,
                 'tax1_rate'       => $tax1Rate,
                 'tax2_rate'       => $tax2Rate,
                 'line_sscl'       => $lineSscl,
@@ -386,6 +388,7 @@ class StorageBillingController extends Controller
                     'currency'           => $line['currency'],
                     'subtotal'           => $line['subtotal'],
                     'charge_code_id'     => ($line['charge_code_id'] ?? null) ?: null,
+                    'tax_code_id'        => ($line['tax_code_id'] ?? null) ?: null,
                     'tax1_rate'          => $line['tax1_rate'] ?? 0,
                     'tax2_rate'          => $line['tax2_rate'] ?? 0,
                     'line_sscl'          => $line['line_sscl'],

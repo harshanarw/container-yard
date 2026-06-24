@@ -146,8 +146,9 @@ class ReeferBillingService
             ->orderBy('sort_order')
             ->first();
 
-        $tax1Rate = $chargeCode?->taxCode?->tax1_rate ?? 0;
-        $tax2Rate = $chargeCode?->taxCode?->tax2_rate ?? 0;
+        $tax1Rate  = $chargeCode?->taxCode?->tax1_rate ?? 0;
+        $tax2Rate  = $chargeCode?->taxCode?->tax2_rate ?? 0;
+        $taxCodeId = $chargeCode?->tax_code_id;
 
         // Prefer charge-code-derived rates; fall back to caller-supplied
         $resolvedSscl = $tax1Rate > 0 ? $tax1Rate : $ssclPct;
@@ -184,6 +185,7 @@ class ReeferBillingService
                 'container_id'     => $session->container_id,
                 'container_no'     => $session->container->container_no ?? '',
                 'charge_code_id'   => $chargeCode?->id,
+                'tax_code_id'      => $taxCodeId ?? null,
                 'tax1_rate'        => $resolvedSscl,
                 'tax2_rate'        => $resolvedVat,
                 'subtotal_display' => $subtotal,
@@ -276,6 +278,7 @@ class ReeferBillingService
                     'currency'                      => $line['currency'],
                     'subtotal'                      => $line['subtotal_display'],
                     'charge_code_id'                => $line['charge_code_id'],
+                    'tax_code_id'                   => $line['tax_code_id'] ?? null,
                     'tax1_rate'                     => $line['tax1_rate'],
                     'tax2_rate'                     => $line['tax2_rate'],
                     'line_sscl'                     => $line['line_sscl'],
