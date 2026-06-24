@@ -492,16 +492,18 @@
                 <form method="POST" action="{{ route('estimates.send', $estimate) }}">
                     @csrf
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small">Portal Recipient (To) <span class="text-danger">*</span></label>
-                        <input type="email" name="send_to_email" class="form-control form-control-sm"
-                               value="{{ $defaultSendToEmail }}" required>
-                        <div class="form-text">This person receives the approval portal link.</div>
+                        <label class="form-label fw-semibold small">To (Recipients) <span class="text-danger">*</span></label>
+                        <textarea name="send_to_email" class="form-control form-control-sm" rows="2"
+                                  placeholder="owner@example.com&#10;another@example.com" required
+                                  style="resize:vertical;">{{ old('send_to_email', $defaultSendToEmail) }}</textarea>
+                        <div class="form-text">The first address receives the portal approval link. Separate multiple addresses with a comma, semicolon, or new line.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Additional CC <span class="text-muted fw-normal">(optional, one-off)</span></label>
-                        <input type="email" name="send_cc_email" class="form-control form-control-sm"
-                               value="{{ old('send_cc_email', $estimate->send_cc_email) }}">
-                        <div class="form-text">Saved CC contacts below are added automatically.</div>
+                        <textarea name="send_cc_email" class="form-control form-control-sm" rows="2"
+                                  placeholder="cc@example.com&#10;another@example.com"
+                                  style="resize:vertical;">{{ old('send_cc_email', $estimate->send_cc_email) }}</textarea>
+                        <div class="form-text">Saved CC contacts are added automatically. Separate multiple with comma, semicolon, or new line.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Custom Message</label>

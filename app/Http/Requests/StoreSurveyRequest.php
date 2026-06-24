@@ -69,7 +69,7 @@ class StoreSurveyRequest extends FormRequest
             'checklist.*'              => ['in:exterior_panels_inspected,floor_board_condition_checked,door_mechanism_tested,door_seals_gaskets_checked,roof_integrity_verified,corner_castings_inspected,base_rails_cross_members,forklift_pockets_checked,csc_plate_visible_valid,photos_documented'],
 
             // Photos
-            'photos'                   => ['nullable', 'array', 'max:10'],
+            'photos'                   => ['nullable', 'array', 'max:30'],
             'photos.*'                 => ['image', 'max:20480'],
         ];
     }

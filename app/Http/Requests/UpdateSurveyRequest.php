@@ -61,7 +61,7 @@ class UpdateSurveyRequest extends FormRequest
             'damages.*.description'            => ['nullable', 'string'],
 
             'checklist'             => ['nullable', 'array'],
-            'photos'                => ['nullable', 'array', 'max:10'],
+            'photos'                => ['nullable', 'array', 'max:30'],
             'photos.*'              => ['image', 'max:20480'],
         ];
     }

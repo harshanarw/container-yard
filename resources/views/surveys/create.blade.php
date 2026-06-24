@@ -330,7 +330,7 @@
             <div class="card content-card mb-3">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <span><i class="bi bi-camera me-2 text-primary"></i>Photo Evidence</span>
-                    <span id="photoCounter" class="badge bg-secondary-subtle text-secondary">0 / 10 photos</span>
+                    <span id="photoCounter" class="badge bg-secondary-subtle text-secondary">0 / 30 photos</span>
                 </div>
                 <div class="card-body">
 
@@ -352,7 +352,7 @@
                             </button>
                         </div>
                         <div class="text-muted mt-2" style="font-size:.75rem;">
-                            or drag &amp; drop &nbsp;·&nbsp; Max 20 MB per file &nbsp;·&nbsp; Up to 10 files
+                            or drag &amp; drop &nbsp;·&nbsp; Max 20 MB per file &nbsp;·&nbsp; Up to 30 files
                         </div>
                     </div>
 
@@ -854,7 +854,7 @@
     })();
 
     // ── Photo Uploader ────────────────────────────────────────────────
-    const MAX_FILES     = 10;
+    const MAX_FILES     = 30;
     const MAX_SIZE_MB   = 20;
     const MAX_SIZE_BYTE = MAX_SIZE_MB * 1024 * 1024;
 

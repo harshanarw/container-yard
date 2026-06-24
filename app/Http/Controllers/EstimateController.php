@@ -357,11 +357,20 @@ class EstimateController extends Controller
     public function send(Request $request, Estimate $estimate)
     {
         $request->validate([
-            'send_to_email' => ['required', 'email'],
-            'send_cc_email' => ['nullable', 'email'],
+            'send_to_email' => ['required', 'string', 'max:2000'],
+            'send_cc_email' => ['nullable', 'string', 'max:2000'],
             'email_message' => ['nullable', 'string'],
             'expiry_days'   => ['nullable', 'integer', 'min:1', 'max:365'],
         ]);
+
+        $toEmails = $this->parseEmails($request->send_to_email);
+        $ccEmails = $this->parseEmails($request->send_cc_email ?? '');
+
+        if (empty($toEmails)) {
+            return back()->withInput()->with('error', 'Please enter at least one valid To email address.');
+        }
+
+        $primaryTo = $toEmails[0];
 
         $isResend = in_array($estimate->status, ['sent', 'under_review', 'returned', 'rejected']);
 
@@ -373,8 +382,8 @@ class EstimateController extends Controller
         $estimate->update([
             'status'        => 'sent',
             'sent_at'       => now(),
-            'send_to_email' => $request->send_to_email,
-            'send_cc_email' => $request->send_cc_email,
+            'send_to_email' => implode(', ', $toEmails),
+            'send_cc_email' => $ccEmails ? implode(', ', $ccEmails) : null,
             'email_message' => $request->email_message,
         ]);
 
@@ -384,20 +393,42 @@ class EstimateController extends Controller
             ->update(['revoked_at' => now()]);
 
         $expiryDays  = (int) ($request->expiry_days ?? 30);
-        $portalToken = PortalToken::generate($estimate, $request->send_to_email, $expiryDays);
+        $portalToken = PortalToken::generate($estimate, $primaryTo, $expiryDays);
 
         SendEstimateEmailJob::dispatchSync($estimate, $portalToken, $request->email_message);
 
-        $versionNote = $isResend ? " (v{$estimate->version_no})" : '';
+        $versionNote  = $isResend ? " (v{$estimate->version_no})" : '';
+        $toSummary    = count($toEmails) > 1
+            ? $primaryTo . ' +' . (count($toEmails) - 1) . ' more'
+            : $primaryTo;
 
         NotificationService::notifyAll(
             'Estimate Sent — ' . $estimate->estimate_no,
-            ($estimate->customer->name ?? 'Unknown') . ' · Sent to ' . $request->send_to_email . $versionNote,
+            ($estimate->customer->name ?? 'Unknown') . ' · Sent to ' . $toSummary . $versionNote,
             'info',
             route('estimates.show', $estimate)
         );
 
-        return back()->with('success', "Estimate sent to {$request->send_to_email}{$versionNote}.");
+        return back()->with('success', "Estimate sent to {$toSummary}{$versionNote}.");
+    }
+
+    /**
+     * Parse a comma/semicolon/newline-separated string into a clean array of
+     * valid, de-duplicated email addresses.
+     *
+     * @return string[]
+     */
+    private function parseEmails(?string $raw): array
+    {
+        if (blank($raw)) {
+            return [];
+        }
+
+        $parts  = preg_split('/[\r\n,;]+/', $raw) ?: [];
+        $parts  = array_map('trim', $parts);
+        $parts  = array_filter($parts, fn ($e) => $e !== '' && filter_var($e, FILTER_VALIDATE_EMAIL));
+
+        return array_values(array_unique($parts));
     }
 
     public function sendReminder(Estimate $estimate)

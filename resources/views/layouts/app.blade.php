@@ -1636,30 +1636,38 @@
 <main id="main-content">
 
     {{-- Flash Messages --}}
+    {{-- Each server-side flash is also saved to sessionStorage so that one --}}
+    {{-- deliberate page refresh still shows the message (clears after that). --}}
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+        <div class="alert alert-success alert-dismissible fade show mb-3 js-flash-alert" role="alert"
+             data-flash-type="success" data-flash-msg="{{ addslashes(session('success')) }}">
             <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
     @if(session('success_html'))
-        <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+        <div class="alert alert-success alert-dismissible fade show mb-3 js-flash-alert" role="alert"
+             data-flash-type="success_html" data-flash-msg="{{ addslashes(session('success_html')) }}">
             <i class="bi bi-check-circle-fill me-2"></i>{!! session('success_html') !!}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show mb-3 js-flash-alert" role="alert"
+             data-flash-type="error" data-flash-msg="{{ addslashes(session('error')) }}">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
     @if(session('warning'))
-        <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
+        <div class="alert alert-warning alert-dismissible fade show mb-3 js-flash-alert" role="alert"
+             data-flash-type="warning" data-flash-msg="{{ addslashes(session('warning')) }}">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('warning') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
+    {{-- Restored flash (from sessionStorage after a single refresh) --}}
+    <div id="restoredFlashContainer"></div>
 
     @yield('content')
 
@@ -1680,6 +1688,101 @@
 <script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.js"></script>
 <!-- Pusher JS (Reverb uses the Pusher WebSocket protocol) -->
 <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+
+<script>
+// ── Flash alert persistence + auto-dismiss ────────────────────────────────
+// Flash alerts saved to sessionStorage survive one page refresh. After that
+// they are cleared. Each alert also auto-dismisses after 10 seconds.
+(function () {
+    'use strict';
+
+    var STORAGE_KEY  = '_flashAlerts';
+    var TTL_MS       = 30000; // 30 s — only restore within this window
+    var AUTO_HIDE_MS = 10000; // 10 s auto-dismiss
+
+    var typeConfig = {
+        success:      { classes: 'alert-success',  icon: 'bi-check-circle-fill me-2' },
+        success_html: { classes: 'alert-success',  icon: 'bi-check-circle-fill me-2' },
+        error:        { classes: 'alert-danger',   icon: 'bi-exclamation-triangle-fill me-2' },
+        warning:      { classes: 'alert-warning',  icon: 'bi-exclamation-triangle-fill me-2' },
+    };
+
+    // 1. Save any server-rendered flash alerts to sessionStorage.
+    document.querySelectorAll('.js-flash-alert[data-flash-type]').forEach(function (el) {
+        var type = el.getAttribute('data-flash-type');
+        var msg  = el.getAttribute('data-flash-msg');
+        if (!type || !msg) return;
+
+        var stored = [];
+        try { stored = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]'); } catch (e) {}
+        // Remove any previously stored entry for the same message to avoid duplicates.
+        stored = stored.filter(function (s) { return s.msg !== msg; });
+        stored.push({ type: type, msg: msg, ts: Date.now() });
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    });
+
+    // 2. On pages with NO server-rendered flash, restore from sessionStorage
+    //    (handles the one-refresh case). Clear after restoration.
+    var hasServerFlash = document.querySelectorAll('.js-flash-alert').length > 0;
+    if (!hasServerFlash) {
+        var stored = [];
+        try { stored = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]'); } catch (e) {}
+        sessionStorage.removeItem(STORAGE_KEY);
+
+        var container = document.getElementById('restoredFlashContainer');
+        if (container) {
+            stored.forEach(function (item) {
+                if (!item.type || !item.msg || (Date.now() - item.ts) > TTL_MS) return;
+                var cfg = typeConfig[item.type];
+                if (!cfg) return;
+                var div = document.createElement('div');
+                div.className = 'alert ' + cfg.classes + ' alert-dismissible fade show mb-3';
+                div.setAttribute('role', 'alert');
+                // Use textContent for plain messages; success_html uses innerHTML.
+                if (item.type === 'success_html') {
+                    div.innerHTML = '<i class="bi ' + cfg.icon + '"></i>' + item.msg +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                } else {
+                    var icon = document.createElement('i');
+                    icon.className = 'bi ' + cfg.icon;
+                    var text = document.createTextNode(item.msg);
+                    var btn  = document.createElement('button');
+                    btn.type = 'button'; btn.className = 'btn-close';
+                    btn.setAttribute('data-bs-dismiss', 'alert');
+                    div.appendChild(icon);
+                    div.appendChild(text);
+                    div.appendChild(btn);
+                }
+                container.appendChild(div);
+            });
+        }
+    }
+
+    // 3. Auto-dismiss ALL visible flash alerts after AUTO_HIDE_MS.
+    function scheduleAutoDismiss() {
+        var all = document.querySelectorAll(
+            '.js-flash-alert, #restoredFlashContainer .alert'
+        );
+        all.forEach(function (el) {
+            setTimeout(function () {
+                if (!el.parentNode) return;
+                try {
+                    bootstrap.Alert.getOrCreateInstance(el).close();
+                } catch (e) {
+                    el.style.display = 'none';
+                }
+            }, AUTO_HIDE_MS);
+        });
+    }
+
+    // Run after Bootstrap JS is ready (it's loaded before this block).
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', scheduleAutoDismiss);
+    } else {
+        scheduleAutoDismiss();
+    }
+}());
+</script>
 
 <script>
     // English locale for AirDatepicker (library defaults to Russian)
