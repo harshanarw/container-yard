@@ -40,6 +40,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use App\Services\Mail\Microsoft365Token;
+use Symfony\Component\Mailer\Transport\Smtp\Auth\XOAuth2Authenticator;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
 
@@ -85,6 +87,43 @@ class AppServiceProvider extends ServiceProvider
                 // Table may not exist yet during migrations
                 $view->with('companySetting', null);
             }
+        });
+
+        // Microsoft 365 SMTP via XOAUTH2 (Client Credentials OAuth2 flow).
+        // Fetches a Bearer token from Azure AD, then authenticates to Office 365
+        // SMTP using only the XOAuth2Authenticator so the LOGIN method is never
+        // attempted with a token that would be rejected by that mechanism.
+        Mail::extend('microsoft365', function (array $config) {
+            $token = Microsoft365Token::get(
+                $config['tenant_id']     ?? '',
+                $config['client_id']     ?? '',
+                $config['client_secret'] ?? '',
+            );
+
+            $stream = new SocketStream();
+            $stream->setStreamOptions([
+                'ssl' => [
+                    'verify_peer'       => false,
+                    'verify_peer_name'  => false,
+                    'allow_self_signed' => true,
+                ],
+            ]);
+
+            // Port 587 with STARTTLS: tls=false (STARTTLS is negotiated post-connect)
+            $transport = new EsmtpTransport(
+                $config['host'] ?? 'smtp.office365.com',
+                (int) ($config['port'] ?? 587),
+                false,   // not implicit TLS — STARTTLS
+                null,
+                null,
+                $stream,
+                [new XOAuth2Authenticator()],  // skip LOGIN; go straight to XOAUTH2
+            );
+
+            $transport->setUsername($config['username'] ?? '');
+            $transport->setPassword($token);
+
+            return $transport;
         });
 
         // Custom SMTP transport that skips SSL certificate peer verification.

@@ -11,6 +11,7 @@ class EmailConfig extends Model
         'smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_username', 'smtp_password',
         'mailgun_domain', 'mailgun_secret', 'mailgun_endpoint',
         'sendgrid_api_key',
+        'oauth2_tenant_id', 'oauth2_client_id', 'oauth2_client_secret',
         'from_name', 'from_email', 'reply_to', 'cc_emails',
     ];
 
@@ -22,7 +23,7 @@ class EmailConfig extends Model
     ];
 
     protected $hidden = [
-        'smtp_password', 'mailgun_secret', 'sendgrid_api_key',
+        'smtp_password', 'mailgun_secret', 'sendgrid_api_key', 'oauth2_client_secret',
     ];
 
     /**

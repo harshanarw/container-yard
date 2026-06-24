@@ -76,7 +76,7 @@ class EmailConfigController extends Controller
         }
 
         // Don't overwrite secrets with empty strings
-        foreach (['smtp_password', 'mailgun_secret', 'sendgrid_api_key'] as $field) {
+        foreach (['smtp_password', 'mailgun_secret', 'sendgrid_api_key', 'oauth2_client_secret'] as $field) {
             if (empty($data[$field])) {
                 unset($data[$field]);
             }
@@ -106,7 +106,7 @@ class EmailConfigController extends Controller
 
         return [
             'name'              => ['required', 'string', 'max:100'],
-            'driver'            => ['required', 'in:smtp,mailgun,sendgrid'],
+            'driver'            => ['required', 'in:smtp,mailgun,sendgrid,microsoft365'],
             'category'          => ['required', Rule::in($catKeys)],
             'scope'             => ['nullable', 'in:external,internal'],
             'is_default'        => ['boolean'],
@@ -120,6 +120,9 @@ class EmailConfigController extends Controller
             'mailgun_secret'    => ['nullable', 'string', 'max:255'],
             'mailgun_endpoint'  => ['nullable', 'string', 'max:100'],
             'sendgrid_api_key'  => ['nullable', 'string', 'max:255'],
+            'oauth2_tenant_id'  => ['nullable', 'string', 'max:255'],
+            'oauth2_client_id'  => ['nullable', 'string', 'max:255'],
+            'oauth2_client_secret' => ['nullable', 'string', 'max:512'],
             'from_name'         => ['nullable', 'string', 'max:150'],
             'from_email'        => ['nullable', 'email', 'max:255'],
             'reply_to'          => ['nullable', 'email', 'max:255'],
@@ -204,6 +207,15 @@ class EmailConfigController extends Controller
                 'encryption'=> 'tls',
                 'username'  => 'apikey',
                 'password'  => $config->sendgrid_api_key,
+            ],
+            'microsoft365' => [
+                'transport'     => 'microsoft365',
+                'host'          => $config->smtp_host ?? 'smtp.office365.com',
+                'port'          => $config->smtp_port ?? 587,
+                'username'      => $config->smtp_username,
+                'tenant_id'     => $config->oauth2_tenant_id,
+                'client_id'     => $config->oauth2_client_id,
+                'client_secret' => $config->oauth2_client_secret,
             ],
             default => [],
         };

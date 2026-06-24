@@ -15,9 +15,10 @@
     <div class="{{ $isInternal ? 'col-md-4' : 'col-md-3' }}">
         <label class="form-label fw-semibold small">Email Driver <span class="text-danger">*</span></label>
         <select name="driver" class="form-select form-select-sm" data-driver-toggle>
-            <option value="smtp"     {{ old('driver', $config->driver ?? 'smtp') === 'smtp'     ? 'selected' : '' }}>SMTP</option>
-            <option value="mailgun"  {{ old('driver', $config->driver ?? '') === 'mailgun'  ? 'selected' : '' }}>Mailgun</option>
-            <option value="sendgrid" {{ old('driver', $config->driver ?? '') === 'sendgrid' ? 'selected' : '' }}>SendGrid</option>
+            <option value="smtp"         {{ old('driver', $config->driver ?? 'smtp') === 'smtp'         ? 'selected' : '' }}>SMTP</option>
+            <option value="mailgun"      {{ old('driver', $config->driver ?? '') === 'mailgun'      ? 'selected' : '' }}>Mailgun</option>
+            <option value="sendgrid"     {{ old('driver', $config->driver ?? '') === 'sendgrid'     ? 'selected' : '' }}>SendGrid</option>
+            <option value="microsoft365" {{ old('driver', $config->driver ?? '') === 'microsoft365' ? 'selected' : '' }}>Microsoft 365 (XOAUTH2)</option>
         </select>
     </div>
     @if($isInternal)
@@ -101,6 +102,54 @@
                     @if($config) <span class="text-muted">(leave blank to keep)</span> @endif
                 </label>
                 <input type="password" name="sendgrid_api_key" class="form-control form-control-sm" autocomplete="new-password">
+            </div>
+        </div>
+    </div>
+
+    {{-- Microsoft 365 / XOAUTH2 fields --}}
+    <div class="col-12" data-driver-section="microsoft365" style="display:none">
+        <div class="row g-3">
+            <div class="col-12">
+                <div class="alert alert-info py-2 mb-1 small">
+                    <strong>Azure AD prerequisites:</strong>
+                    App Registration with <em>Office 365 Exchange Online → SMTP.SendAsApp</em> (Application) permission,
+                    admin consent granted, and SMTP AUTH enabled per-mailbox in Exchange Admin Center.
+                </div>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label fw-semibold small">SMTP Host</label>
+                <input type="text" name="smtp_host" class="form-control form-control-sm"
+                       value="{{ old('smtp_host', $config->smtp_host ?? 'smtp.office365.com') }}"
+                       placeholder="smtp.office365.com">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small">Port</label>
+                <input type="number" name="smtp_port" class="form-control form-control-sm"
+                       value="{{ old('smtp_port', $config->smtp_port ?? 587) }}" placeholder="587">
+            </div>
+            <div class="col-md-5">
+                <label class="form-label fw-semibold small">Mailbox (SMTP Username)</label>
+                <input type="text" name="smtp_username" class="form-control form-control-sm"
+                       value="{{ old('smtp_username', $config->smtp_username ?? '') }}"
+                       placeholder="noreply@yourdomain.com" autocomplete="off">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small">Tenant ID (Directory ID)</label>
+                <input type="text" name="oauth2_tenant_id" class="form-control form-control-sm"
+                       value="{{ old('oauth2_tenant_id', $config->oauth2_tenant_id ?? '') }}"
+                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small">Client ID (Application ID)</label>
+                <input type="text" name="oauth2_client_id" class="form-control form-control-sm"
+                       value="{{ old('oauth2_client_id', $config->oauth2_client_id ?? '') }}"
+                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small">Client Secret
+                    @if(isset($config) && $config->exists) <span class="text-muted">(leave blank to keep)</span> @endif
+                </label>
+                <input type="password" name="oauth2_client_secret" class="form-control form-control-sm" autocomplete="new-password">
             </div>
         </div>
     </div>

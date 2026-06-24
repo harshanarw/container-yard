@@ -64,6 +64,15 @@ class ConfiguredMailer
                 'username'   => 'apikey',
                 'password'   => $config->sendgrid_api_key,
             ],
+            'microsoft365' => [
+                'transport'     => 'microsoft365',
+                'host'          => $config->smtp_host ?? 'smtp.office365.com',
+                'port'          => $config->smtp_port ?? 587,
+                'username'      => $config->smtp_username,
+                'tenant_id'     => $config->oauth2_tenant_id,
+                'client_id'     => $config->oauth2_client_id,
+                'client_secret' => $config->oauth2_client_secret,
+            ],
             default => [],
         };
 
