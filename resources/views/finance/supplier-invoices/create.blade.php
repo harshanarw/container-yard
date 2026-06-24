@@ -143,17 +143,33 @@
     const ajaxBase    = @json(route('finance.ap.charge-code.details', ['chargeCode' => '__ID__']));
     let idx = 0;
 
-    // Build Select2 grouped-data array once (null category → 'General')
-    const ccSelect2Data = (() => {
+    // Build grouped structure once (null category → 'General')
+    const ccGroups = (() => {
         const groups = {};
         chargeCodes.forEach(cc => {
             const cat   = cc.category || 'general';
             const label = cat.charAt(0).toUpperCase() + cat.slice(1);
-            if (!groups[cat]) groups[cat] = { text: label, children: [] };
-            groups[cat].children.push({ id: cc.id, text: cc.code + ' — ' + cc.description });
+            if (!groups[cat]) groups[cat] = { label, items: [] };
+            groups[cat].items.push({ id: cc.id, text: cc.code + ' — ' + cc.description });
         });
         return Object.values(groups);
     })();
+
+    // Populate a bare <select> with <optgroup>/<option> elements so Select2
+    // (which reads from the DOM on <select> elements) can search and display them.
+    function populateCcOptions(selectEl) {
+        ccGroups.forEach(group => {
+            const og = document.createElement('optgroup');
+            og.label = group.label;
+            group.items.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.text;
+                og.appendChild(opt);
+            });
+            selectEl.appendChild(og);
+        });
+    }
 
     function buildAccountOpts(selectedId) {
         if (!selectedId) return accountOpts;
@@ -206,12 +222,14 @@
         body.insertAdjacentHTML('beforeend', rowHtml(idx++, line));
         const lastRow = body.lastElementChild;
         const ccEl    = lastRow.querySelector('.cc-select');
-        const $ccSel  = jQuery(ccEl).select2({
+        // Populate DOM options first — Select2 on a <select> reads from the DOM, not data:
+        populateCcOptions(ccEl);
+
+        const $ccSel = jQuery(ccEl).select2({
             theme      : 'bootstrap-5',
             width      : '100%',
             placeholder: '— charge code —',
             allowClear : true,
-            data       : ccSelect2Data,
         });
 
         // Restore selected value from old() BEFORE binding change handler so the
