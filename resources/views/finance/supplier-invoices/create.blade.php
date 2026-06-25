@@ -222,7 +222,7 @@
             </td>
             <td><input type="text" name="lines[${i}][description]" class="form-control form-control-sm" value="${desc}" required></td>
             <td>
-                <select name="lines[${i}][expense_account_id]" class="form-select form-select-sm acct-select" required>
+                <select name="lines[${i}][expense_account_id]" class="form-select form-select-sm acct-select" data-s2-sel="name" required>
                     ${buildAccountOpts(line?.expense_account_id)}
                 </select>
             </td>
