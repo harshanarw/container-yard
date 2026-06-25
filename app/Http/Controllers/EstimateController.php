@@ -380,31 +380,43 @@ class EstimateController extends Controller
 
         $isResend = in_array($estimate->status, ['sent', 'under_review', 'returned', 'rejected']);
 
-        if ($isResend) {
-            $estimate->increment('version_no');
-            $estimate->lineItems()->update(['approval_status' => 'pending']);
+        $versionNote = '';
+        $toSummary   = '';
+
+        try {
+            DB::beginTransaction();
+
+            if ($isResend) {
+                $estimate->increment('version_no');
+                $estimate->lineItems()->update(['approval_status' => 'pending']);
+            }
+
+            $estimate->update([
+                'status'        => 'sent',
+                'sent_at'       => now(),
+                'send_to_email' => implode(', ', $toEmails),
+                'send_cc_email' => $ccEmails ? implode(', ', $ccEmails) : null,
+                'email_message' => $request->email_message,
+            ]);
+
+            PortalToken::where('tokenable_type', Estimate::class)
+                ->where('tokenable_id', $estimate->id)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+
+            $expiryDays  = (int) ($request->expiry_days ?? 30);
+            $portalToken = PortalToken::generate($estimate, $primaryTo, $expiryDays);
+
+            SendEstimateEmailJob::dispatchSync($estimate, $portalToken, $request->email_message);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', $this->friendlyMailError($e));
         }
 
-        $estimate->update([
-            'status'        => 'sent',
-            'sent_at'       => now(),
-            'send_to_email' => implode(', ', $toEmails),
-            'send_cc_email' => $ccEmails ? implode(', ', $ccEmails) : null,
-            'email_message' => $request->email_message,
-        ]);
-
-        PortalToken::where('tokenable_type', Estimate::class)
-            ->where('tokenable_id', $estimate->id)
-            ->whereNull('revoked_at')
-            ->update(['revoked_at' => now()]);
-
-        $expiryDays  = (int) ($request->expiry_days ?? 30);
-        $portalToken = PortalToken::generate($estimate, $primaryTo, $expiryDays);
-
-        SendEstimateEmailJob::dispatchSync($estimate, $portalToken, $request->email_message);
-
-        $versionNote  = $isResend ? " (v{$estimate->version_no})" : '';
-        $toSummary    = count($toEmails) > 1
+        $versionNote = $isResend ? " (v{$estimate->version_no})" : '';
+        $toSummary   = count($toEmails) > 1
             ? $primaryTo . ' +' . (count($toEmails) - 1) . ' more'
             : $primaryTo;
 
@@ -435,6 +447,29 @@ class EstimateController extends Controller
         $parts  = array_filter($parts, fn ($e) => $e !== '' && filter_var($e, FILTER_VALIDATE_EMAIL));
 
         return array_values(array_unique($parts));
+    }
+
+    private function friendlyMailError(\Throwable $e): string
+    {
+        $msg = $e->getMessage() . ' ' . ($e->getPrevious()?->getMessage() ?? '');
+
+        if (str_contains($msg, 'getaddrinfo') || str_contains($msg, 'No such host') || str_contains($msg, 'Name or service not known') || str_contains($msg, 'nodename nor servname')) {
+            return 'Email could not be sent: the mail server hostname could not be resolved. Please check the server address in Settings → Email Config.';
+        }
+
+        if (str_contains($msg, 'Connection refused') || str_contains($msg, 'Connection timed out') || str_contains($msg, 'connect()') || str_contains($msg, 'Network is unreachable')) {
+            return 'Email could not be sent: unable to connect to the mail server. Please verify the server address and port in Settings → Email Config.';
+        }
+
+        if (str_contains($msg, '535') || str_contains($msg, 'Authentication') || str_contains($msg, 'Invalid credentials') || str_contains($msg, 'Username and Password not accepted')) {
+            return 'Email could not be sent: authentication failed. Please check the email username and password in Settings → Email Config.';
+        }
+
+        if (str_contains($msg, '550') || str_contains($msg, 'Relay access denied') || str_contains($msg, 'Sender address rejected')) {
+            return 'Email could not be sent: the mail server rejected the message. Please verify the sender address in Settings → Email Config.';
+        }
+
+        return 'Email could not be sent: ' . rtrim($e->getMessage(), '.') . '. Please check Settings → Email Config.';
     }
 
     public function sendReminder(Estimate $estimate)
