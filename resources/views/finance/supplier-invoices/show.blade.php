@@ -194,7 +194,7 @@
             </div>
         </div>
 
-        <div class="card content-card">
+        <div class="card content-card mb-3">
             <div class="card-header bg-transparent py-2"><strong class="small">GL Posting</strong></div>
             <div class="card-body small">
                 @if($inv->journal_id && $inv->journal)
@@ -211,6 +211,13 @@
                 @endif
             </div>
         </div>
+
+        <x-document-manager
+            model-type="App\Models\SupplierInvoice"
+            :model-id="$inv->id"
+            title="Attachments"
+            document-type="document"
+        />
     </div>
 </div>
 

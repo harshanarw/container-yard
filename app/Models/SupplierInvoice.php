@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\HasDocuments;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SupplierInvoice extends Model
 {
+    use HasDocuments;
+
     protected $fillable = [
         'invoice_no', 'supplier_invoice_no', 'supplier_bill_date', 'customer_id', 'invoice_date', 'due_date',
         'currency', 'exchange_rate', 'subtotal', 'tax_amount', 'sscl_amount', 'vat_amount', 'total_amount',

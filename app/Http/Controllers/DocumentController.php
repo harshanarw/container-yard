@@ -33,6 +33,7 @@ class DocumentController extends Controller
             'App\\Models\\Customer',
             'App\\Models\\StorageInvoice',
             'App\\Models\\StorageHandlingInvoice',
+            'App\\Models\\SupplierInvoice',
         ];
 
         abort_unless(in_array($request->documentable_type, $allowedTypes), 422, 'Invalid documentable type.');
@@ -104,6 +105,7 @@ class DocumentController extends Controller
             'App\\Models\\Customer'                 => 'customers',
             'App\\Models\\StorageInvoice'           => 'invoices/storage',
             'App\\Models\\StorageHandlingInvoice'   => 'invoices/storage-handling',
+            'App\\Models\\SupplierInvoice'          => 'invoices/supplier',
         ];
 
         return ($map[$type] ?? 'misc') . '/' . $id;

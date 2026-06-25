@@ -19,6 +19,7 @@
         {{-- ── Upload zone ──────────────────────────────────────────────── --}}
         <div class="dm-drop-zone border border-2 border-dashed rounded-3 p-3 text-center mb-3"
              id="{{ $uid }}_zone"
+             data-document-type="{{ $attributes->get('document-type', 'document') }}"
              style="border-color:#adb5bd!important; cursor:pointer; transition:background .2s;">
             <i class="bi bi-cloud-upload fs-3 text-muted d-block mb-1"></i>
             <div class="d-flex justify-content-center gap-2 flex-wrap mt-2">
@@ -170,7 +171,7 @@
             fd.append('_token',            csrfToken);
             fd.append('documentable_type', modelType);
             fd.append('documentable_id',   modelId);
-            fd.append('document_type',     'photo');
+            fd.append('document_type',     zone.dataset.documentType || 'document');
             if (labelInput) fd.append('label', labelInput.value);
             fd.append('files[]', file);
 
