@@ -561,7 +561,6 @@
                 </button>`;
             attachList.appendChild(chip);
         });
-        syncInput();
     }
 
     attachList.addEventListener('click', e => {
@@ -572,17 +571,62 @@
         renderQueue();
     });
 
-    function syncInput() {
-        const dt = new DataTransfer();
-        queuedFiles.forEach(f => dt.items.add(f));
-        attachInput.files = dt.files;
-    }
-
     function fmtSize(bytes) {
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / 1048576).toFixed(2) + ' MB';
     }
+
+    // ── Form submit — fetch so queued attachments are sent reliably ──────────
+    // DataTransfer.files= assignment is not reliable across all browsers for
+    // actual form submission; build FormData manually instead.
+    document.getElementById('invoiceForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const form      = this;
+        const submitBtn = form.querySelector('[type="submit"]');
+        const origHtml  = submitBtn ? submitBtn.innerHTML : '';
+        const fd        = new FormData(form);
+
+        // Replace whatever the file input holds with the definitive JS queue.
+        fd.delete('attachments[]');
+        queuedFiles.forEach(f => fd.append('attachments[]', f));
+
+        if (submitBtn) {
+            submitBtn.disabled  = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
+        }
+
+        fetch(form.action, {
+            method : 'POST',
+            body   : fd,
+            headers: { 'Accept': 'application/json' },
+        })
+        .then(r => {
+            if (r.status === 422) return r.json().then(d => Promise.reject({ validation: d }));
+            if (!r.ok) throw new Error('Server error ' + r.status);
+            return r.json();
+        })
+        .then(data => {
+            // Flash is already in the session; navigate so the show page displays it.
+            window.location.href = data.redirect;
+        })
+        .catch(err => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origHtml; }
+            if (err && err.validation && err.validation.errors) {
+                const msgs = Object.values(err.validation.errors).flat();
+                // Re-use the existing validation error banner if present, else alert.
+                const banner = document.querySelector('.alert.alert-danger ul');
+                if (banner) {
+                    banner.innerHTML = msgs.map(m => `<li>${m}</li>`).join('');
+                    banner.closest('.alert').classList.remove('d-none');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    alert('Please fix the following:\n\n' + msgs.join('\n'));
+                }
+            }
+        });
+    });
 })();
 </script>
 @endpush

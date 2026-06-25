@@ -174,8 +174,16 @@ class SupplierInvoiceController extends Controller
             Documents::uploadFor($invoice, $file, $folder, ['document_type' => 'document']);
         }
 
+        $message = "Supplier invoice {$invoice->invoice_no} created as draft.";
+
+        if ($request->expectsJson()) {
+            // Fetch-based submit: set flash manually so the subsequent page navigation shows it.
+            session()->flash('success', $message);
+            return response()->json(['redirect' => route('finance.ap.invoices.show', $invoice)]);
+        }
+
         return redirect()->route('finance.ap.invoices.show', $invoice)
-            ->with('success', "Supplier invoice {$invoice->invoice_no} created as draft.");
+            ->with('success', $message);
     }
 
     public function edit(SupplierInvoice $supplierInvoice)
