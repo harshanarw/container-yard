@@ -38,7 +38,7 @@
                 <select name="customer_id" class="form-select form-select-sm">
                     <option value="">All</option>
                     @foreach($suppliers as $sup)
-                    <option value="{{ $sup->id }}" {{ (string) request('customer_id') === (string) $sup->id ? 'selected' : '' }}>{{ $sup->name }}</option>
+                    <option value="{{ $sup->id }}" {{ (string) request('customer_id') === (string) $sup->id ? 'selected' : '' }}>{{ $sup->code }} — {{ $sup->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -69,6 +69,7 @@
                     <th>Invoice No</th>
                     <th>Supplier</th>
                     <th>Bill No</th>
+                    <th>Bill Date</th>
                     <th>Date</th>
                     <th>Due</th>
                     <th class="text-end">Total</th>
@@ -83,6 +84,7 @@
                     <td class="font-monospace small fw-semibold">{{ $inv->invoice_no }}</td>
                     <td class="small">{{ $inv->supplier->name ?? '—' }}</td>
                     <td class="small text-muted">{{ $inv->supplier_invoice_no ?: '—' }}</td>
+                    <td class="small text-muted">{{ $inv->supplier_bill_date?->format('d M Y') ?: '—' }}</td>
                     <td class="small">{{ $inv->invoice_date->format('d M Y') }}</td>
                     <td class="small">{{ $inv->due_date?->format('d M Y') ?: '—' }}</td>
                     <td class="text-end font-monospace small">{{ number_format($inv->total_amount, 2) }} <span class="text-muted">{{ $inv->currency }}</span></td>

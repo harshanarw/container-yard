@@ -173,7 +173,7 @@ class SupplierInvoiceController extends Controller
     {
         $this->authorize('finance.ap.view');
 
-        $supplierInvoice->load(['supplier', 'lines.expenseAccount', 'lines.chargeCode', 'lines.taxCode', 'journal']);
+        $supplierInvoice->load(['supplier', 'lines.expenseAccount', 'lines.chargeCode', 'lines.taxCode', 'journal', 'createdBy', 'approvedBy']);
         $settlements = $this->allocationService->settlementsFor($supplierInvoice->id);
         $outstanding = $this->allocationService->getOutstanding($supplierInvoice);
         $allocated   = $this->allocationService->getAllocatedTotal($supplierInvoice->id);
@@ -259,12 +259,21 @@ class SupplierInvoiceController extends Controller
         }
 
         try {
-            $this->postingService->void($supplierInvoice, auth()->id(), "Invoice {$supplierInvoice->invoice_no} cancelled");
+            DB::transaction(function () use ($supplierInvoice) {
+                // Only void the GL journal if one has actually been posted.
+                // An approved-but-unposted invoice (posting failed) has no journal to reverse.
+                if ($supplierInvoice->isPosted()) {
+                    $this->postingService->void(
+                        $supplierInvoice,
+                        auth()->id(),
+                        "Invoice {$supplierInvoice->invoice_no} cancelled"
+                    );
+                }
+                $supplierInvoice->update(['status' => 'cancelled']);
+            });
         } catch (\Throwable $e) {
-            return back()->with('error', 'Could not reverse the GL posting: ' . $e->getMessage());
+            return back()->with('error', 'Could not cancel invoice: ' . $e->getMessage());
         }
-
-        $supplierInvoice->update(['status' => 'cancelled']);
 
         return back()->with('success', "Supplier invoice {$supplierInvoice->invoice_no} cancelled.");
     }

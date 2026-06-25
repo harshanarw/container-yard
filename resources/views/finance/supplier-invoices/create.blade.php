@@ -61,7 +61,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small">Notes</label>
-                            <input type="text" name="notes" class="form-control form-control-sm" value="{{ old('notes') }}">
+                            <textarea name="notes" class="form-control form-control-sm" rows="2">{{ old('notes') }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -236,13 +236,10 @@
     }
 
     function rowHtml(i, line) {
-        const desc  = (line?.description || '').replace(/"/g, '&quot;');
-        const net   = line?.amount       || '';
-        const t1r   = parseFloat(line?.tax1_rate  ?? 0);
-        const t2r   = parseFloat(line?.tax2_rate  ?? 0);
-        const sscl  = line?.tax1_amount  != null ? parseFloat(line.tax1_amount)  : 0;
-        const vat   = line?.tax2_amount  != null ? parseFloat(line.tax2_amount)  : 0;
-        const gross = line?.gross_amount != null ? parseFloat(line.gross_amount) : 0;
+        const desc = (line?.description || '').replace(/"/g, '&quot;');
+        const net  = line?.amount || '';
+        const t1r  = parseFloat(line?.tax1_rate ?? 0);
+        const t2r  = parseFloat(line?.tax2_rate ?? 0);
 
         return `<tr>
             <td>
@@ -268,9 +265,9 @@
                     class="form-control form-control-sm text-end font-monospace line-net"
                     value="${net}" required>
             </td>
-            <td class="text-end font-monospace small text-muted line-sscl-cell">${sscl  ? sscl.toFixed(2)  : '0.00'}</td>
-            <td class="text-end font-monospace small text-muted line-vat-cell">${vat    ? vat.toFixed(2)   : '0.00'}</td>
-            <td class="text-end font-monospace small fw-semibold line-gross-cell">${gross ? gross.toFixed(2) : '0.00'}</td>
+            <td class="text-end font-monospace small text-muted line-sscl-cell">0.00</td>
+            <td class="text-end font-monospace small text-muted line-vat-cell">0.00</td>
+            <td class="text-end font-monospace small fw-semibold line-gross-cell">0.00</td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-link text-danger p-0 remove-line">
                     <i class="bi bi-x-circle"></i>
@@ -440,8 +437,7 @@
         const sel   = document.getElementById('supplierSelect');
         const opt   = sel.options[sel.selectedIndex];
         const terms = opt?.dataset.paymentTerms || '';
-        const days  = Object.prototype.hasOwnProperty.call(termDays, terms) ? termDays[terms] : null;
-        if (days === null) return;
+        const days  = Object.prototype.hasOwnProperty.call(termDays, terms) ? termDays[terms] : 30;
         const dateVal = document.getElementById('invoiceDateInput').value;
         if (!dateVal) return;
         const d = new Date(dateVal);

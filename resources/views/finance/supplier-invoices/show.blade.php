@@ -39,7 +39,7 @@
         @can('finance.ap.void')
         @if(!$inv->isCancelled() && !$inv->isDraft())
         <form method="POST" action="{{ route('finance.ap.invoices.cancel', $inv) }}" class="d-inline"
-              onsubmit="return confirm('Cancel this invoice and reverse its GL posting?')">
+              onsubmit="return confirm('{{ $inv->isPosted() ? 'Cancel this invoice and reverse its GL posting?' : 'Cancel this invoice?' }}')">
             @csrf
             <button class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Cancel Invoice</button>
         </form>
@@ -122,7 +122,7 @@
                             <td class="text-end font-monospace">{{ number_format($inv->subtotal, 2) }}</td>
                             <td class="text-end font-monospace text-muted">{{ number_format($inv->sscl_amount ?? 0, 2) }}</td>
                             <td class="text-end font-monospace text-muted">{{ number_format($inv->vat_amount ?? 0, 2) }}</td>
-                            <td></td>
+                            <td class="text-end font-monospace">{{ number_format($inv->total_amount, 2) }}</td>
                         </tr>
                         <tr class="table-light fw-bold">
                             <td colspan="7" class="text-end">Total Payable</td>
@@ -180,10 +180,16 @@
                 <dl class="row mb-0">
                     <dt class="col-5 text-muted fw-normal">Supplier</dt><dd class="col-7"><a href="{{ route('customers.show', $inv->customer_id) }}" class="text-decoration-none">{{ $inv->supplier->name ?? '' }}</a></dd>
                     <dt class="col-5 text-muted fw-normal">Bill No</dt><dd class="col-7">{{ $inv->supplier_invoice_no ?: '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Bill Date</dt><dd class="col-7">{{ $inv->supplier_bill_date?->format('d M Y') ?: '—' }}</dd>
                     <dt class="col-5 text-muted fw-normal">Invoice Date</dt><dd class="col-7">{{ $inv->invoice_date->format('d M Y') }}</dd>
                     <dt class="col-5 text-muted fw-normal">Due Date</dt><dd class="col-7">{{ $inv->due_date?->format('d M Y') ?: '—' }}</dd>
                     <dt class="col-5 text-muted fw-normal">Currency</dt><dd class="col-7">{{ $inv->currency }} @ {{ rtrim(rtrim(number_format($inv->exchange_rate, 6, '.', ''), '0'), '.') }}</dd>
                     @if($inv->notes)<dt class="col-5 text-muted fw-normal">Notes</dt><dd class="col-7">{{ $inv->notes }}</dd>@endif
+                    <dt class="col-5 text-muted fw-normal">Created By</dt><dd class="col-7">{{ $inv->createdBy->name ?? '—' }}</dd>
+                    @if($inv->approved_at)
+                    <dt class="col-5 text-muted fw-normal">Approved By</dt><dd class="col-7">{{ $inv->approvedBy->name ?? '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Approved At</dt><dd class="col-7">{{ $inv->approved_at->format('d M Y H:i') }}</dd>
+                    @endif
                 </dl>
             </div>
         </div>

@@ -413,15 +413,15 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Send To</label>
-                        <input type="email" name="send_to_email" class="form-control form-control-sm"
-                               value="{{ old('send_to_email', $estimate->send_to_email) }}"
-                               placeholder="customer@email.com">
+                        <textarea name="send_to_email" class="form-control form-control-sm" rows="2"
+                                  placeholder="customer@email.com">{{ old('send_to_email', $estimate->send_to_email) }}</textarea>
+                        <div class="form-text">Separate multiple addresses with a comma, semicolon, or new line.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">CC</label>
-                        <input type="email" name="send_cc_email" class="form-control form-control-sm"
-                               value="{{ old('send_cc_email', $estimate->send_cc_email) }}"
-                               placeholder="manager@email.com">
+                        <textarea name="send_cc_email" class="form-control form-control-sm" rows="2"
+                                  placeholder="manager@email.com">{{ old('send_cc_email', $estimate->send_cc_email) }}</textarea>
+                        <div class="form-text">Separate multiple addresses with a comma, semicolon, or new line.</div>
                     </div>
                     <div class="mb-2">
                         <label class="form-label fw-semibold small">Email Message</label>
