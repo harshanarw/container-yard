@@ -625,6 +625,8 @@ Route::middleware(['auth'])->group(function () {
             Route::post('invoices',                         [SupplierInvoiceController::class, 'store'])->name('invoices.store');
             Route::get('charge-code/{chargeCode}',          [SupplierInvoiceController::class, 'chargeCodeDetails'])->name('charge-code.details');
             Route::get('invoices/{supplierInvoice}',        [SupplierInvoiceController::class, 'show'])->name('invoices.show');
+            Route::get('invoices/{supplierInvoice}/edit',  [SupplierInvoiceController::class, 'edit'])->name('invoices.edit');
+            Route::put('invoices/{supplierInvoice}',       [SupplierInvoiceController::class, 'update'])->name('invoices.update');
             Route::delete('invoices/{supplierInvoice}',     [SupplierInvoiceController::class, 'destroy'])->name('invoices.destroy');
             Route::post('invoices/{supplierInvoice}/approve',    [SupplierInvoiceController::class, 'approve'])->name('invoices.approve');
             Route::post('invoices/{supplierInvoice}/retry-post', [SupplierInvoiceController::class, 'retryPost'])->name('invoices.retry-post');

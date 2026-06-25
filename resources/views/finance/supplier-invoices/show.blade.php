@@ -48,6 +48,9 @@
 
         @can('finance.ap.create')
         @if($inv->isDraft())
+        <a href="{{ route('finance.ap.invoices.edit', $inv) }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
         <form method="POST" action="{{ route('finance.ap.invoices.destroy', $inv) }}" class="d-inline"
               onsubmit="return confirm('Delete this draft invoice?')">
             @csrf @method('DELETE')

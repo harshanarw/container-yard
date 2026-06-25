@@ -169,6 +169,138 @@ class SupplierInvoiceController extends Controller
             ->with('success', "Supplier invoice {$invoice->invoice_no} created as draft.");
     }
 
+    public function edit(SupplierInvoice $supplierInvoice)
+    {
+        $this->authorize('finance.ap.create');
+
+        if (!$supplierInvoice->isDraft()) {
+            return redirect()->route('finance.ap.invoices.show', $supplierInvoice)
+                ->with('error', 'Only draft invoices can be edited.');
+        }
+
+        $supplierInvoice->load(['supplier', 'lines']);
+
+        $suppliers = Customer::apContacts()->get(['id', 'code', 'name', 'currency', 'ap_payment_terms']);
+
+        $accounts = Account::where('is_posting', true)->where('is_active', true)
+            ->whereIn('classification', ['expense', 'asset'])
+            ->orderBy('code')->get(['id', 'code', 'name']);
+
+        $chargeCodes = ChargeCode::where('is_active', true)
+            ->orderBy('category')->orderBy('sort_order')->orderBy('code')
+            ->get(['id', 'code', 'description', 'category']);
+
+        $taxCodes = TaxCode::where('is_active', true)
+            ->orderBy('code')
+            ->get(['id', 'code', 'description', 'tax1_rate', 'tax2_rate']);
+
+        return view('finance.supplier-invoices.edit', compact(
+            'supplierInvoice', 'suppliers', 'accounts', 'chargeCodes', 'taxCodes'
+        ));
+    }
+
+    public function update(Request $request, SupplierInvoice $supplierInvoice)
+    {
+        $this->authorize('finance.ap.create');
+
+        if (!$supplierInvoice->isDraft()) {
+            return back()->with('error', 'Only draft invoices can be edited.');
+        }
+
+        $validated = $request->validate([
+            'customer_id'                  => ['required', 'exists:customers,id'],
+            'supplier_invoice_no'          => ['nullable', 'string', 'max:50'],
+            'supplier_bill_date'           => ['nullable', 'date'],
+            'invoice_date'                 => ['required', 'date'],
+            'due_date'                     => ['nullable', 'date', 'after_or_equal:invoice_date'],
+            'currency'                     => ['required', 'string', 'max:10'],
+            'exchange_rate'                => ['required', 'numeric', 'min:0.000001'],
+            'notes'                        => ['nullable', 'string', 'max:1000'],
+            'lines'                        => ['required', 'array', 'min:1'],
+            'lines.*.description'          => ['required', 'string', 'max:255'],
+            'lines.*.expense_account_id'   => ['required', 'exists:accounts,id'],
+            'lines.*.amount'               => ['required', 'numeric', 'gt:0'],
+            'lines.*.charge_code_id'       => ['nullable', 'exists:charge_codes,id'],
+            'lines.*.tax_code_id'          => ['nullable', 'exists:tax_codes,id'],
+            'lines.*.tax1_rate'            => ['nullable', 'numeric', 'min:0'],
+            'lines.*.tax2_rate'            => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        DB::transaction(function () use ($validated, $supplierInvoice) {
+            $dueDate = $validated['due_date'] ?? null;
+            if (!$dueDate) {
+                $contact = Customer::find($validated['customer_id']);
+                if ($contact && $contact->ap_payment_terms) {
+                    $dueDate = PaymentTermsHelper::dueDate(
+                        $contact->ap_payment_terms,
+                        \Carbon\Carbon::parse($validated['invoice_date'])
+                    )->toDateString();
+                }
+            }
+
+            $subtotal    = 0.0;
+            $ssclTotal   = 0.0;
+            $vatTotal    = 0.0;
+            $lineRecords = [];
+
+            foreach ($validated['lines'] as $line) {
+                $net   = (float) $line['amount'];
+                $t1    = (float) ($line['tax1_rate'] ?? 0);
+                $t2    = (float) ($line['tax2_rate'] ?? 0);
+                $sscl  = round($net * $t1 / 100, 2);
+                $vat   = round(($net + $sscl) * $t2 / 100, 2);
+                $gross = round($net + $sscl + $vat, 2);
+
+                $subtotal  += $net;
+                $ssclTotal += $sscl;
+                $vatTotal  += $vat;
+
+                $lineRecords[] = [
+                    'description'        => $line['description'],
+                    'charge_code_id'     => ($line['charge_code_id'] ?? null) ?: null,
+                    'tax_code_id'        => ($line['tax_code_id'] ?? null) ?: null,
+                    'expense_account_id' => $line['expense_account_id'],
+                    'amount'             => $net,
+                    'tax1_rate'          => $t1,
+                    'tax2_rate'          => $t2,
+                    'tax1_amount'        => $sscl,
+                    'tax2_amount'        => $vat,
+                    'gross_amount'       => $gross,
+                ];
+            }
+
+            $subtotal  = round($subtotal,  2);
+            $ssclTotal = round($ssclTotal, 2);
+            $vatTotal  = round($vatTotal,  2);
+            $taxAmount = round($ssclTotal + $vatTotal, 2);
+            $total     = round($subtotal + $taxAmount, 2);
+
+            $supplierInvoice->update([
+                'supplier_invoice_no' => $validated['supplier_invoice_no'] ?? null,
+                'supplier_bill_date'  => $validated['supplier_bill_date'] ?? null,
+                'customer_id'         => $validated['customer_id'],
+                'invoice_date'        => $validated['invoice_date'],
+                'due_date'            => $dueDate,
+                'currency'            => $validated['currency'],
+                'exchange_rate'       => $validated['exchange_rate'],
+                'subtotal'            => $subtotal,
+                'sscl_amount'         => $ssclTotal,
+                'vat_amount'          => $vatTotal,
+                'tax_amount'          => $taxAmount,
+                'total_amount'        => $total,
+                'notes'               => $validated['notes'] ?? null,
+            ]);
+
+            $supplierInvoice->lines()->delete();
+            foreach ($lineRecords as $lr) {
+                $supplierInvoice->lines()->create($lr);
+            }
+        });
+
+        return redirect()->route('finance.ap.invoices.show', $supplierInvoice)
+            ->with('success', "Supplier invoice {$supplierInvoice->invoice_no} updated.");
+    }
+
     public function show(SupplierInvoice $supplierInvoice)
     {
         $this->authorize('finance.ap.view');
