@@ -23,10 +23,11 @@
     <div class="d-flex gap-2 flex-wrap">
         @can('finance.ap.post')
         @if($inv->isDraft())
-        <form method="POST" action="{{ route('finance.ap.invoices.approve', $inv) }}" class="d-inline"
-              onsubmit="return confirm('Approve and post this invoice to the GL?')">
+        <form method="POST" action="{{ route('finance.ap.invoices.approve', $inv) }}" class="d-inline" id="approveForm">
             @csrf
-            <button class="btn btn-sm btn-success"><i class="bi bi-check2-circle me-1"></i>Approve &amp; Post</button>
+            <button type="button" class="btn btn-sm btn-success" id="approveBtn">
+                <i class="bi bi-check2-circle me-1"></i>Approve &amp; Post
+            </button>
         </form>
         @elseif($inv->isApproved() && !$inv->isPosted())
         <form method="POST" action="{{ route('finance.ap.invoices.retry-post', $inv) }}" class="d-inline">
@@ -38,10 +39,11 @@
 
         @can('finance.ap.void')
         @if(!$inv->isCancelled() && !$inv->isDraft())
-        <form method="POST" action="{{ route('finance.ap.invoices.cancel', $inv) }}" class="d-inline"
-              onsubmit="return confirm('{{ $inv->isPosted() ? 'Cancel this invoice and reverse its GL posting?' : 'Cancel this invoice?' }}')">
+        <form method="POST" action="{{ route('finance.ap.invoices.cancel', $inv) }}" class="d-inline" id="cancelForm">
             @csrf
-            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Cancel Invoice</button>
+            <button type="button" class="btn btn-sm btn-outline-danger" id="cancelBtn">
+                <i class="bi bi-x-circle me-1"></i>Cancel Invoice
+            </button>
         </form>
         @endif
         @endcan
@@ -51,10 +53,11 @@
         <a href="{{ route('finance.ap.invoices.edit', $inv) }}" class="btn btn-sm btn-outline-primary">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
-        <form method="POST" action="{{ route('finance.ap.invoices.destroy', $inv) }}" class="d-inline"
-              onsubmit="return confirm('Delete this draft invoice?')">
+        <form method="POST" action="{{ route('finance.ap.invoices.destroy', $inv) }}" class="d-inline" id="deleteForm">
             @csrf @method('DELETE')
-            <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-trash"></i></button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="deleteBtn">
+                <i class="bi bi-trash"></i>
+            </button>
         </form>
         @endif
         @endcan
@@ -223,5 +226,49 @@
         />
     </div>
 </div>
+
+@push('scripts')
+<script>
+(function () {
+    function wire(btnId, formId, message, opts) {
+        var btn = document.getElementById(btnId);
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            window.confirmAction(message, function () {
+                document.getElementById(formId).submit();
+            }, opts);
+        });
+    }
+
+    @can('finance.ap.post')
+    @if($inv->isDraft())
+    wire('approveBtn', 'approveForm',
+        'This will approve the invoice and post it to the General Ledger. This action cannot be undone.',
+        { title: 'Approve & Post to GL', confirmClass: 'btn-success', confirmLabel: 'Approve & Post' });
+    @endif
+    @endcan
+
+    @can('finance.ap.void')
+    @if(!$inv->isCancelled() && !$inv->isDraft())
+    wire('cancelBtn', 'cancelForm',
+        @if($inv->isPosted())
+            'This will cancel the invoice and post a reversal entry to the General Ledger.',
+        @else
+            'This invoice will be marked as cancelled.',
+        @endif
+        { title: 'Cancel Invoice', confirmClass: 'btn-danger', confirmLabel: 'Cancel Invoice' });
+    @endif
+    @endcan
+
+    @can('finance.ap.create')
+    @if($inv->isDraft())
+    wire('deleteBtn', 'deleteForm',
+        'This draft invoice will be permanently deleted and cannot be recovered.',
+        { title: 'Delete Draft Invoice', confirmClass: 'btn-danger', confirmLabel: 'Delete' });
+    @endif
+    @endcan
+})();
+</script>
+@endpush
 
 @endsection
