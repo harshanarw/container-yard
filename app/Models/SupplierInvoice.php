@@ -9,15 +9,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class SupplierInvoice extends Model
 {
     protected $fillable = [
-        'invoice_no', 'supplier_invoice_no', 'customer_id', 'invoice_date', 'due_date',
+        'invoice_no', 'supplier_invoice_no', 'supplier_bill_date', 'customer_id', 'invoice_date', 'due_date',
         'currency', 'exchange_rate', 'subtotal', 'tax_amount', 'sscl_amount', 'vat_amount', 'total_amount',
         'status', 'journal_id', 'posting_error', 'notes',
         'approved_by', 'approved_at', 'created_by',
     ];
 
     protected $casts = [
-        'invoice_date'  => 'date',
-        'due_date'      => 'date',
+        'invoice_date'      => 'date',
+        'supplier_bill_date' => 'date',
+        'due_date'          => 'date',
         'approved_at'   => 'datetime',
         'exchange_rate' => 'decimal:6',
         'subtotal'      => 'decimal:2',

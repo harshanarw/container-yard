@@ -50,7 +50,7 @@ class SupplierInvoiceController extends Controller
     {
         $this->authorize('finance.ap.create');
 
-        $suppliers = Customer::apContacts()->get(['id', 'code', 'name', 'currency']);
+        $suppliers = Customer::apContacts()->get(['id', 'code', 'name', 'currency', 'ap_payment_terms']);
 
         $accounts = Account::where('is_posting', true)->where('is_active', true)
             ->whereIn('classification', ['expense', 'asset'])
@@ -74,6 +74,7 @@ class SupplierInvoiceController extends Controller
         $validated = $request->validate([
             'customer_id'                  => ['required', 'exists:customers,id'],
             'supplier_invoice_no'          => ['nullable', 'string', 'max:50'],
+            'supplier_bill_date'           => ['nullable', 'date'],
             'invoice_date'                 => ['required', 'date'],
             'due_date'                     => ['nullable', 'date', 'after_or_equal:invoice_date'],
             'currency'                     => ['required', 'string', 'max:10'],
@@ -141,6 +142,7 @@ class SupplierInvoiceController extends Controller
             $invoice = SupplierInvoice::create([
                 'invoice_no'          => $this->nextInvoiceNo(),
                 'supplier_invoice_no' => $validated['supplier_invoice_no'] ?? null,
+                'supplier_bill_date'  => $validated['supplier_bill_date'] ?? null,
                 'customer_id'         => $validated['customer_id'],
                 'invoice_date'        => $validated['invoice_date'],
                 'due_date'            => $dueDate,

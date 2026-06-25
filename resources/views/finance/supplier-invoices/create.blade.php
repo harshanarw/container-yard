@@ -29,46 +29,78 @@
         <div class="card-header bg-transparent py-2"><strong class="small">Invoice Header</strong></div>
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label small">Supplier / Contact <span class="text-danger">*</span></label>
-                    <select name="customer_id" id="supplierSelect" class="form-select form-select-sm" required>
-                        <option value="">— Select contact —</option>
-                        @foreach($suppliers as $sup)
-                        <option value="{{ $sup->id }}" data-currency="{{ $sup->currency }}"
-                            {{ (string) old('customer_id', request('customer_id')) === (string) $sup->id ? 'selected' : '' }}>
-                            {{ $sup->code }} — {{ $sup->name }}
-                        </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small">Supplier's Bill No</label>
-                    <input type="text" name="supplier_invoice_no" class="form-control form-control-sm" value="{{ old('supplier_invoice_no') }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small">Invoice Date <span class="text-danger">*</span></label>
-                    <input type="date" name="invoice_date" class="form-control form-control-sm" value="{{ old('invoice_date', date('Y-m-d')) }}" required>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small">Due Date</label>
-                    <input type="date" name="due_date" class="form-control form-control-sm" value="{{ old('due_date') }}">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small">Currency <span class="text-danger">*</span></label>
-                    <select name="currency" id="currencySelect" class="form-select form-select-sm" required>
-                        @foreach(['LKR','USD','SGD'] as $c)
-                        <option value="{{ $c }}" {{ old('currency','LKR') === $c ? 'selected' : '' }}>{{ $c }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small">Exchange Rate <span class="text-danger">*</span></label>
-                    <input type="number" step="0.000001" min="0.000001" name="exchange_rate" class="form-control form-control-sm text-end" value="{{ old('exchange_rate', 1) }}" required>
-                </div>
+
+                {{-- LEFT — Supplier & reference --}}
                 <div class="col-md-6">
-                    <label class="form-label small">Notes</label>
-                    <input type="text" name="notes" class="form-control form-control-sm" value="{{ old('notes') }}">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Supplier / Contact <span class="text-danger">*</span></label>
+                            <select name="customer_id" id="supplierSelect" class="form-select form-select-sm" required>
+                                <option value="">— Select contact —</option>
+                                @foreach($suppliers as $sup)
+                                <option value="{{ $sup->id }}"
+                                    data-code="{{ $sup->code }}"
+                                    data-name="{{ $sup->name }}"
+                                    data-currency="{{ $sup->currency }}"
+                                    data-payment-terms="{{ $sup->ap_payment_terms }}"
+                                    {{ (string) old('customer_id', request('customer_id')) === (string) $sup->id ? 'selected' : '' }}>
+                                    {{ $sup->code }} — {{ $sup->name }}
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Supplier's Bill No</label>
+                            <input type="text" name="supplier_invoice_no" class="form-control form-control-sm"
+                                value="{{ old('supplier_invoice_no') }}" placeholder="Ref / Bill number">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Supplier's Bill Date</label>
+                            <input type="date" name="supplier_bill_date" id="supplierBillDate" class="form-control form-control-sm"
+                                value="{{ old('supplier_bill_date') }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Notes</label>
+                            <input type="text" name="notes" class="form-control form-control-sm" value="{{ old('notes') }}">
+                        </div>
+                    </div>
                 </div>
+
+                {{-- RIGHT — Dates & financial --}}
+                <div class="col-md-6">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small">Invoice Date <span class="text-danger">*</span></label>
+                            <input type="date" name="invoice_date" id="invoiceDateInput" class="form-control form-control-sm"
+                                value="{{ old('invoice_date', date('Y-m-d')) }}" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Due Date</label>
+                            <input type="date" name="due_date" id="dueDateInput" class="form-control form-control-sm"
+                                value="{{ old('due_date') }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Credit Terms</label>
+                            <div class="form-control form-control-sm bg-light text-muted" id="creditTermsDisplay"
+                                style="min-height:31px;">—</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Currency <span class="text-danger">*</span></label>
+                            <select name="currency" id="currencySelect" class="form-select form-select-sm" required>
+                                @foreach(['LKR','USD','SGD'] as $c)
+                                <option value="{{ $c }}" {{ old('currency','LKR') === $c ? 'selected' : '' }}>{{ $c }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small" id="exchangeRateLabel">Exchange Rate <span class="text-danger">*</span></label>
+                            <input type="number" step="0.000001" min="0.000001" name="exchange_rate" id="exchangeRateInput"
+                                class="form-control form-control-sm text-end font-monospace"
+                                value="{{ old('exchange_rate', 1) }}" required>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -393,15 +425,85 @@
         }
     });
 
-    const supSel = document.getElementById('supplierSelect');
-    if (supSel) supSel.addEventListener('change', function () {
-        const cur = this.options[this.selectedIndex]?.dataset.currency;
-        if (cur) document.getElementById('currencySelect').value = cur;
-    });
+    // ── Header-level logic (supplier, dates, exchange rate) ─────────────────
 
-    // Defer seeding to DOMContentLoaded so the layout's handler (which defines
-    // window.s2CodeResult / window.s2CodeSelection) runs first.
+    const termDays = { cod: 0, net15: 15, net30: 30, net45: 45, net60: 60 };
+    const termLabel = {
+        cod:   'Cash on Delivery',
+        net15: 'Net 15 Days',
+        net30: 'Net 30 Days',
+        net45: 'Net 45 Days',
+        net60: 'Net 60 Days',
+    };
+
+    function calcDueDate() {
+        const sel   = document.getElementById('supplierSelect');
+        const opt   = sel.options[sel.selectedIndex];
+        const terms = opt?.dataset.paymentTerms || '';
+        const days  = Object.prototype.hasOwnProperty.call(termDays, terms) ? termDays[terms] : null;
+        if (days === null) return;
+        const dateVal = document.getElementById('invoiceDateInput').value;
+        if (!dateVal) return;
+        const d = new Date(dateVal);
+        d.setDate(d.getDate() + days);
+        document.getElementById('dueDateInput').value = d.toISOString().slice(0, 10);
+    }
+
+    function updateCreditTerms(opt) {
+        const terms = opt?.dataset.paymentTerms || '';
+        const el    = document.getElementById('creditTermsDisplay');
+        el.textContent = terms ? (termLabel[terms] || terms) : '—';
+    }
+
+    function updateExchangeRateLabel() {
+        const ccy      = document.getElementById('currencySelect').value;
+        const labelEl  = document.getElementById('exchangeRateLabel');
+        const rateInput = document.getElementById('exchangeRateInput');
+        if (!ccy || ccy === 'LKR') {
+            labelEl.innerHTML = 'Exchange Rate <span class="text-muted small fw-normal">(LKR — base currency)</span>';
+            rateInput.value    = '1';
+            rateInput.readOnly = true;
+            rateInput.classList.add('bg-light', 'text-muted');
+        } else {
+            labelEl.innerHTML = ccy + ' → LKR Rate <span class="text-danger">*</span>';
+            rateInput.readOnly = false;
+            rateInput.classList.remove('bg-light', 'text-muted');
+        }
+    }
+
+    // Defer header Select2 and event wiring to DOMContentLoaded so
+    // window.s2CodeResult / s2CodeSelection are defined by the layout's handler first.
     document.addEventListener('DOMContentLoaded', function () {
+        // Supplier Select2
+        jQuery('#supplierSelect').select2({
+            theme             : 'bootstrap-5',
+            width             : '100%',
+            placeholder       : '— Select contact —',
+            templateResult    : window.s2CodeResult    || null,
+            templateSelection : window.s2CodeSelection || null,
+        });
+
+        jQuery('#supplierSelect').on('change', function () {
+            const opt = this.options[this.selectedIndex];
+            const cur = opt?.dataset.currency;
+            if (cur) {
+                document.getElementById('currencySelect').value = cur;
+                updateExchangeRateLabel();
+            }
+            updateCreditTerms(opt);
+            calcDueDate();
+        });
+
+        document.getElementById('invoiceDateInput').addEventListener('change', calcDueDate);
+        document.getElementById('currencySelect').addEventListener('change', updateExchangeRateLabel);
+
+        // Initialise label and credit terms from any old() values restored after
+        // a failed validation submit (supplier already selected, currency already set).
+        updateExchangeRateLabel();
+        const supSel = document.getElementById('supplierSelect');
+        updateCreditTerms(supSel.options[supSel.selectedIndex]);
+
+        // Seed line rows (must come after DOMContentLoaded for s2CodeResult)
         const seed = @json(array_values($oldLines));
         if (seed.length) seed.forEach(line => addRow(line)); else addRow();
     });
