@@ -37,7 +37,7 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label small">Supplier / Contact <span class="text-danger">*</span></label>
-                            <select name="customer_id" id="supplierSelect" class="form-select form-select-sm" required>
+                            <select name="customer_id" id="supplierSelect" class="form-select form-select-sm" data-s2-sel="name" required>
                                 <option value="">— Select contact —</option>
                                 @foreach($suppliers as $sup)
                                 <option value="{{ $sup->id }}"
