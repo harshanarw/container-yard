@@ -35,6 +35,7 @@
                     data-name="{{ $doc->original_name }}"
                     data-mime="{{ $doc->mime_type }}"
                     data-is-image="{{ $doc->isImage() ? '1' : '0' }}"
+                    data-is-pdf="{{ $doc->isPdf() ? '1' : '0' }}"
                     data-is-office="{{ $doc->isOffice() ? '1' : '0' }}">
                 <i class="bi bi-eye"></i>
             </button>

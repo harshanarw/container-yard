@@ -159,6 +159,15 @@
     </div>
 </form>
 
+<div class="mt-3">
+    <x-document-manager
+        model-type="App\Models\SupplierInvoice"
+        :model-id="$supplierInvoice->id"
+        title="Attachments"
+        document-type="document"
+    />
+</div>
+
 @php
     $accountOptionsHtml = '<option value="">— account —</option>';
     foreach ($accounts as $a) {

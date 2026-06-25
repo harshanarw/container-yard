@@ -151,9 +151,10 @@
         </div>
     </div>
 
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 align-items-center">
         <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Create Draft</button>
         <a href="{{ route('finance.ap.invoices.index') }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+        <span class="text-muted small ms-2"><i class="bi bi-paperclip me-1"></i>You can attach supporting documents (bills, PDFs) after saving.</span>
     </div>
 </form>
 

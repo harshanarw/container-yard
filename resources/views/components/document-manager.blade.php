@@ -264,7 +264,8 @@
                         data-name="${d.original_name}"
                         data-mime="${d.mime_type}"
                         data-is-image="${d.is_image ? '1' : '0'}"
-                        data-is-office="${(d.mime_type.includes('word')||d.mime_type.includes('spreadsheet')) ? '1' : '0'}">
+                        data-is-pdf="${d.is_pdf ? '1' : '0'}"
+                        data-is-office="${(d.mime_type && (d.mime_type.includes('word')||d.mime_type.includes('spreadsheet')||d.mime_type.includes('presentation')||d.mime_type.includes('excel')||d.mime_type.includes('msword')||d.mime_type.includes('ms-excel'))) ? '1' : '0'}">
                   <i class="bi bi-eye"></i>
                </button>`
             : '';
@@ -331,14 +332,28 @@
         modal.show();
 
         const isImage  = btn.dataset.isImage  === '1';
-        const isOffice = btn.dataset.isOffice  === '1';
+        const isPdf    = btn.dataset.isPdf    === '1' || (btn.dataset.mime && btn.dataset.mime.includes('pdf'));
+        const isOffice = btn.dataset.isOffice === '1';
         const mime     = btn.dataset.mime;
         const url      = btn.dataset.url;
 
         if (isImage) {
             body.innerHTML = `<img src="${url}" class="img-fluid" style="max-height:78vh;">`;
-        } else if (mime === 'application/pdf') {
-            body.innerHTML = `<iframe src="${url}" style="width:100%;height:78vh;border:0;"></iframe>`;
+        } else if (isPdf) {
+            body.innerHTML = `
+                <div style="display:flex;flex-direction:column;height:78vh;">
+                    <div class="d-flex justify-content-end align-items-center gap-2 px-3 py-1 bg-light border-bottom small">
+                        <a href="${url}" target="_blank" class="text-decoration-none">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Open in new tab
+                        </a>
+                        <a href="${btn.dataset.download}" download class="text-decoration-none text-secondary">
+                            <i class="bi bi-download me-1"></i>Download
+                        </a>
+                    </div>
+                    <iframe src="${url}" style="flex:1;border:0;" allowfullscreen
+                        onload="this.style.opacity='1'"
+                        style="opacity:0;transition:opacity .3s;flex:1;border:0;"></iframe>
+                </div>`;
         } else if (isOffice) {
             const encoded = encodeURIComponent(window.location.origin + url);
             body.innerHTML = `<iframe src="https://view.officeapps.live.com/op/view.aspx?src=${encoded}"
