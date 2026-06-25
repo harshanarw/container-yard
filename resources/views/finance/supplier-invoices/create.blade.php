@@ -122,7 +122,8 @@
 @php
     $accountOptionsHtml = '<option value="">— account —</option>';
     foreach ($accounts as $a) {
-        $accountOptionsHtml .= '<option value="' . $a->id . '">' . e($a->code . ' — ' . $a->name) . '</option>';
+        $accountOptionsHtml .= '<option value="' . $a->id . '" data-code="' . e($a->code) . '" data-name="' . e($a->name) . '">'
+            . e($a->code . ' — ' . $a->name) . '</option>';
     }
     $chargeCodesData = $chargeCodes->map(fn($c) => [
         'id'          => $c->id,
@@ -182,11 +183,14 @@
     }
 
     // Populate tax code <select> with flat DOM options.
+    // data-code/data-name enable the layout's s2CodeResult/s2CodeSelection chip templates.
     function populateTcOptions(selectEl, selectedId) {
         taxCodes.forEach(tc => {
             const opt        = document.createElement('option');
             opt.value        = tc.id;
             opt.textContent  = tc.code + ' — ' + tc.description;
+            opt.dataset.code = tc.code;
+            opt.dataset.name = tc.description;
             opt.dataset.t1   = tc.tax1_rate;
             opt.dataset.t2   = tc.tax2_rate;
             if (selectedId && String(tc.id) === String(selectedId)) opt.selected = true;
@@ -265,18 +269,22 @@
         populateTcOptions(tcEl, savedTcId);
 
         const $tcSel = jQuery(tcEl).select2({
-            theme      : 'bootstrap-5',
-            width      : '100%',
-            placeholder: '— none —',
-            allowClear : true,
+            theme             : 'bootstrap-5',
+            width             : '100%',
+            placeholder       : '— none —',
+            allowClear        : true,
+            templateResult    : window.s2CodeResult    || null,
+            templateSelection : window.s2CodeSelection || null,
         });
         $tcSel.on('change', function () { handleTaxCodeChange(this); });
 
         // ── Account Select2 ──────────────────────────────────────────────────
         jQuery(row.querySelector('.acct-select')).select2({
-            theme      : 'bootstrap-5',
-            width      : '100%',
-            placeholder: '— account —',
+            theme             : 'bootstrap-5',
+            width             : '100%',
+            placeholder       : '— account —',
+            templateResult    : window.s2CodeResult    || null,
+            templateSelection : window.s2CodeSelection || null,
         });
     }
 
