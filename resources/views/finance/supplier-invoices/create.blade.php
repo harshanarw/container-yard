@@ -22,7 +22,7 @@
 </div>
 @endif
 
-<form method="POST" action="{{ route('finance.ap.invoices.store') }}" id="invoiceForm">
+<form method="POST" action="{{ route('finance.ap.invoices.store') }}" id="invoiceForm" enctype="multipart/form-data">
     @csrf
 
     <div class="card content-card mb-3">
@@ -151,10 +151,31 @@
         </div>
     </div>
 
-    <div class="d-flex gap-2 align-items-center">
+    {{-- ── Attachments ─────────────────────────────────────────────────────── --}}
+    <div class="card content-card mb-3">
+        <div class="card-header bg-transparent py-2">
+            <strong class="small"><i class="bi bi-paperclip me-1 text-primary"></i>Attachments <span class="text-muted fw-normal">(optional)</span></strong>
+        </div>
+        <div class="card-body">
+            <div id="attachZone"
+                 class="border border-2 border-dashed rounded-3 p-3 text-center"
+                 style="border-color:#adb5bd!important; cursor:pointer; transition:background .2s;">
+                <i class="bi bi-cloud-upload fs-3 text-muted d-block mb-1"></i>
+                <span class="text-muted small">Drag &amp; drop bills, PDFs, or images, or</span>
+                <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="attachBrowse">
+                    <i class="bi bi-folder2-open me-1"></i>Browse
+                </button>
+                <div class="text-muted mt-1" style="font-size:11px;">PDF, images, Word, Excel · max 10 files · 20 MB each</div>
+                <input type="file" id="attachInput" name="attachments[]" multiple
+                       accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" class="d-none">
+            </div>
+            <div id="attachList" class="d-flex flex-wrap gap-2 mt-2"></div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Create Draft</button>
         <a href="{{ route('finance.ap.invoices.index') }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
-        <span class="text-muted small ms-2"><i class="bi bi-paperclip me-1"></i>You can attach supporting documents (bills, PDFs) after saving.</span>
     </div>
 </form>
 
@@ -498,6 +519,70 @@
         const seed = @json(array_values($oldLines));
         if (seed.length) seed.forEach(line => addRow(line)); else addRow();
     });
+
+    // ── Attachment queue (files staged locally, submitted with the form) ────
+    const attachZone  = document.getElementById('attachZone');
+    const attachInput = document.getElementById('attachInput');
+    const attachList  = document.getElementById('attachList');
+    let   queuedFiles = [];
+
+    attachZone.addEventListener('click', e => { if (!e.target.closest('button')) attachInput.click(); });
+    document.getElementById('attachBrowse').addEventListener('click', e => { e.stopPropagation(); attachInput.click(); });
+
+    attachZone.addEventListener('dragover',  e => { e.preventDefault(); attachZone.style.background = '#f0f4ff'; });
+    attachZone.addEventListener('dragleave', () => { attachZone.style.background = ''; });
+    attachZone.addEventListener('drop', e => {
+        e.preventDefault(); attachZone.style.background = '';
+        enqueueFiles(Array.from(e.dataTransfer.files));
+    });
+    attachInput.addEventListener('change', function () {
+        enqueueFiles(Array.from(this.files));
+        this.value = '';
+    });
+
+    function enqueueFiles(files) {
+        files.forEach(f => {
+            if (!queuedFiles.some(q => q.name === f.name && q.size === f.size)) queuedFiles.push(f);
+        });
+        renderQueue();
+    }
+
+    function renderQueue() {
+        attachList.innerHTML = '';
+        queuedFiles.forEach((f, i) => {
+            const chip = document.createElement('div');
+            chip.className = 'd-flex align-items-center gap-2 border rounded px-2 py-1 small bg-light';
+            chip.dataset.idx = i;
+            chip.innerHTML = `<i class="bi bi-paperclip text-muted"></i>
+                <span class="text-truncate" style="max-width:200px;" title="${f.name}">${f.name}</span>
+                <span class="text-muted" style="font-size:10px;">${fmtSize(f.size)}</span>
+                <button type="button" class="btn btn-sm btn-link text-danger p-0 lh-1 remove-attach">
+                    <i class="bi bi-x-lg"></i>
+                </button>`;
+            attachList.appendChild(chip);
+        });
+        syncInput();
+    }
+
+    attachList.addEventListener('click', e => {
+        const btn = e.target.closest('.remove-attach');
+        if (!btn) return;
+        const i = parseInt(btn.closest('[data-idx]').dataset.idx);
+        queuedFiles.splice(i, 1);
+        renderQueue();
+    });
+
+    function syncInput() {
+        const dt = new DataTransfer();
+        queuedFiles.forEach(f => dt.items.add(f));
+        attachInput.files = dt.files;
+    }
+
+    function fmtSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(2) + ' MB';
+    }
 })();
 </script>
 @endpush

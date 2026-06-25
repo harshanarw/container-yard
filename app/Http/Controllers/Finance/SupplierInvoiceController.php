@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Finance;
 
+use App\Facades\Documents;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\AccountMapping;
@@ -88,6 +89,8 @@ class SupplierInvoiceController extends Controller
             'lines.*.tax_code_id'          => ['nullable', 'exists:tax_codes,id'],
             'lines.*.tax1_rate'            => ['nullable', 'numeric', 'min:0'],
             'lines.*.tax2_rate'            => ['nullable', 'numeric', 'min:0'],
+            'attachments'                  => ['nullable', 'array', 'max:10'],
+            'attachments.*'               => ['file', 'max:20480', 'mimes:jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx'],
         ]);
 
         $invoice = DB::transaction(function () use ($validated) {
@@ -164,6 +167,12 @@ class SupplierInvoiceController extends Controller
 
             return $invoice;
         });
+
+        // Upload any attachments that were queued on the create form.
+        $folder = 'invoices/supplier/' . $invoice->id;
+        foreach ($request->file('attachments', []) as $file) {
+            Documents::uploadFor($invoice, $file, $folder, ['document_type' => 'document']);
+        }
 
         return redirect()->route('finance.ap.invoices.show', $invoice)
             ->with('success', "Supplier invoice {$invoice->invoice_no} created as draft.");

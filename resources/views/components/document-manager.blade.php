@@ -350,9 +350,7 @@
                             <i class="bi bi-download me-1"></i>Download
                         </a>
                     </div>
-                    <iframe src="${url}" style="flex:1;border:0;" allowfullscreen
-                        onload="this.style.opacity='1'"
-                        style="opacity:0;transition:opacity .3s;flex:1;border:0;"></iframe>
+                    <iframe src="${url}" style="flex:1;border:0;" allowfullscreen></iframe>
                 </div>`;
         } else if (isOffice) {
             const encoded = encodeURIComponent(window.location.origin + url);
