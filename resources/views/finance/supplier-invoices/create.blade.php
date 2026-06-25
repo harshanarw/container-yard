@@ -81,8 +81,14 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Credit Terms</label>
-                            <div class="form-control form-control-sm bg-light text-muted" id="creditTermsDisplay"
-                                style="min-height:31px;">—</div>
+                            <select id="creditTermsSelect" class="form-select form-select-sm">
+                                <option value="">— select —</option>
+                                <option value="cod">Cash on Delivery</option>
+                                <option value="net15">Net 15 Days</option>
+                                <option value="net30">Net 30 Days</option>
+                                <option value="net45">Net 45 Days</option>
+                                <option value="net60">Net 60 Days</option>
+                            </select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Currency <span class="text-danger">*</span></label>
@@ -425,30 +431,16 @@
     // ── Header-level logic (supplier, dates, exchange rate) ─────────────────
 
     const termDays = { cod: 0, net15: 15, net30: 30, net45: 45, net60: 60 };
-    const termLabel = {
-        cod:   'Cash on Delivery',
-        net15: 'Net 15 Days',
-        net30: 'Net 30 Days',
-        net45: 'Net 45 Days',
-        net60: 'Net 60 Days',
-    };
 
     function calcDueDate() {
-        const sel   = document.getElementById('supplierSelect');
-        const opt   = sel.options[sel.selectedIndex];
-        const terms = opt?.dataset.paymentTerms || '';
-        const days  = Object.prototype.hasOwnProperty.call(termDays, terms) ? termDays[terms] : 30;
+        const terms = document.getElementById('creditTermsSelect').value;
+        if (!terms) return;
+        const days    = Object.prototype.hasOwnProperty.call(termDays, terms) ? termDays[terms] : 0;
         const dateVal = document.getElementById('invoiceDateInput').value;
         if (!dateVal) return;
         const d = new Date(dateVal);
         d.setDate(d.getDate() + days);
         document.getElementById('dueDateInput').value = d.toISOString().slice(0, 10);
-    }
-
-    function updateCreditTerms(opt) {
-        const terms = opt?.dataset.paymentTerms || '';
-        const el    = document.getElementById('creditTermsDisplay');
-        el.textContent = terms ? (termLabel[terms] || terms) : '—';
     }
 
     function updateExchangeRateLabel() {
@@ -486,18 +478,20 @@
                 document.getElementById('currencySelect').value = cur;
                 updateExchangeRateLabel();
             }
-            updateCreditTerms(opt);
+            const terms = opt?.dataset.paymentTerms || '';
+            document.getElementById('creditTermsSelect').value = terms;
             calcDueDate();
         });
 
+        document.getElementById('creditTermsSelect').addEventListener('change', calcDueDate);
         document.getElementById('invoiceDateInput').addEventListener('change', calcDueDate);
         document.getElementById('currencySelect').addEventListener('change', updateExchangeRateLabel);
 
-        // Initialise label and credit terms from any old() values restored after
-        // a failed validation submit (supplier already selected, currency already set).
+        // Initialise exchange rate label (and credit terms if supplier restored after failed submit).
         updateExchangeRateLabel();
         const supSel = document.getElementById('supplierSelect');
-        updateCreditTerms(supSel.options[supSel.selectedIndex]);
+        const restoredTerms = supSel.options[supSel.selectedIndex]?.dataset.paymentTerms || '';
+        if (restoredTerms) document.getElementById('creditTermsSelect').value = restoredTerms;
 
         // Seed line rows (must come after DOMContentLoaded for s2CodeResult)
         const seed = @json(array_values($oldLines));
