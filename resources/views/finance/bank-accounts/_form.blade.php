@@ -7,11 +7,13 @@
     </div>
     <div class="col-md-6">
         <label class="form-label fw-semibold small">Bank <span class="text-danger">*</span></label>
-        <select name="bank_id" class="form-select form-select-sm select2 @error('bank_id') is-invalid @enderror" required>
+        <select name="bank_id" class="form-select form-select-sm s2-code @error('bank_id') is-invalid @enderror" data-s2-sel="name" required>
             <option value="">— Select Bank —</option>
             @foreach($banks as $bank)
-            <option value="{{ $bank->id }}" {{ (string) old('bank_id', $bankAccount->bank_id ?? '') === (string) $bank->id ? 'selected' : '' }}>
-                {{ $bank->name }}{{ $bank->short_name ? ' ('.$bank->short_name.')' : '' }}
+            <option value="{{ $bank->id }}"
+                @if($bank->short_name) data-code="{{ $bank->short_name }}" data-name="{{ $bank->name }}" @endif
+                {{ (string) old('bank_id', $bankAccount->bank_id ?? '') === (string) $bank->id ? 'selected' : '' }}>
+                {{ $bank->name }}
             </option>
             @endforeach
         </select>
