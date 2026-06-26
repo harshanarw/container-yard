@@ -401,7 +401,7 @@ class StorageBillingController extends Controller
         });
 
         return redirect()->route('billing.show', $invoice)
-            ->with('success', "Storage invoice {$invoiceNo} saved successfully.");
+            ->with('success', "Storage invoice {$invoice->invoice_no} saved successfully.");
     }
 
     // ── View invoice ──────────────────────────────────────────────────────────
