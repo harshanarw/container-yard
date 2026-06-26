@@ -81,9 +81,9 @@
             <tbody>
                 @foreach($bySupplier as $group)
                 @php $supRowspan = $group['invoices']->count(); @endphp
-                @foreach($group['invoices'] as $i => $inv)
-                <tr class="{{ $i === 0 ? 'border-top border-2' : '' }}">
-                    @if($i === 0)
+                @foreach($group['invoices'] as $inv)
+                <tr class="{{ $loop->first ? 'border-top border-2' : '' }}">
+                    @if($loop->first)
                     <td rowspan="{{ $supRowspan }}" class="fw-semibold align-top">
                         @if($group['supplier'])
                         <a href="{{ route('customers.show', $group['supplier']->id) }}" class="text-decoration-none">{{ $group['supplier']->name }}</a>
