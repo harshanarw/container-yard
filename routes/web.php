@@ -378,6 +378,8 @@ Route::middleware(['auth'])->group(function () {
         // Banks
         Route::prefix('banks')->name('banks.')->group(function () {
             Route::get('/',                [\App\Http\Controllers\BankController::class, 'index'])->name('index');
+            Route::get('export',           [\App\Http\Controllers\BankController::class, 'export'])->name('export');
+            Route::post('import',          [\App\Http\Controllers\BankController::class, 'import'])->name('import');
             Route::post('/',               [\App\Http\Controllers\BankController::class, 'store'])->name('store');
             Route::post('reorder',         [\App\Http\Controllers\BankController::class, 'reorder'])->name('reorder');
             Route::patch('{bank}/toggle',  [\App\Http\Controllers\BankController::class, 'toggleActive'])->name('toggle');

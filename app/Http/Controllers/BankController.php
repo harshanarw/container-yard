@@ -5,14 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Bank;
 use App\Models\CompanySetting;
 use App\Models\Country;
+use App\Support\DeploymentCountry;
 use Illuminate\Http\Request;
 
 class BankController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('can:masters.banks.view')->only(['index']);
-        $this->middleware('can:masters.banks.create')->only(['store']);
+        $this->middleware('can:masters.banks.view')->only(['index', 'export']);
+        $this->middleware('can:masters.banks.create')->only(['store', 'import']);
         $this->middleware('can:masters.banks.edit')->only(['update', 'toggleActive', 'reorder']);
         $this->middleware('can:masters.banks.delete')->only(['destroy']);
     }
@@ -86,12 +87,103 @@ class BankController extends Controller
             'name'       => ['required', 'string', 'max:150', $unique],
             'short_name' => ['nullable', 'string', 'max:50'],
             'swift_code' => ['nullable', 'string', 'max:20'],
-            'bank_code'  => ['nullable', 'string', 'max:20'],
+            'local_code' => ['nullable', 'string', 'max:20'],
             'country_id' => ['nullable', 'integer', 'exists:countries,id'],
         ]);
 
         $data['swift_code'] = $data['swift_code'] ? strtoupper($data['swift_code']) : null;
 
         return $data;
+    }
+
+    /**
+     * Bulk import banks from a CSV. Header row required; recognised columns:
+     * name, short_name, swift_code, local_code, country_iso.
+     * Rows without a country_iso are assigned to the deployment country.
+     */
+    public function import(Request $request)
+    {
+        $request->validate(['file' => ['required', 'file', 'mimes:csv,txt']]);
+
+        $handle = fopen($request->file('file')->getRealPath(), 'r');
+        if ($handle === false) {
+            return back()->with('error', 'Could not read the uploaded file.');
+        }
+
+        $defaultCountryId = DeploymentCountry::id();
+        $header = null;
+        $created = 0; $updated = 0; $skipped = 0; $line = 0;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $line++;
+
+            if ($line === 1) {
+                $header = array_map(fn ($h) => strtolower(trim((string) $h)), $row);
+                continue;
+            }
+
+            if ($header === null || count(array_filter($row, fn ($c) => trim((string) $c) !== '')) === 0) {
+                continue; // blank line
+            }
+
+            $data = array_combine($header, array_pad($row, count($header), null)) ?: [];
+            $name = trim((string) ($data['name'] ?? ''));
+            if ($name === '') { $skipped++; continue; }
+
+            $countryId = $defaultCountryId;
+            if (!empty($data['country_iso'])) {
+                $resolved = Country::where('iso2', strtoupper(trim((string) $data['country_iso'])))->value('id');
+                if ($resolved) { $countryId = $resolved; }
+            }
+
+            $swift = trim((string) ($data['swift_code'] ?? ''));
+
+            $bank = Bank::updateOrCreate(
+                ['name' => $name, 'country_id' => $countryId],
+                [
+                    'short_name' => trim((string) ($data['short_name'] ?? '')) ?: null,
+                    'swift_code' => $swift !== '' ? strtoupper($swift) : null,
+                    'local_code' => trim((string) ($data['local_code'] ?? '')) ?: null,
+                    'is_active'  => true,
+                ]
+            );
+
+            if ($bank->wasRecentlyCreated) {
+                $bank->update(['sort_order' => Bank::max('sort_order') + 1]);
+                $created++;
+            } else {
+                $updated++;
+            }
+        }
+
+        fclose($handle);
+
+        $msg = "Import complete: {$created} added, {$updated} updated"
+            . ($skipped ? ", {$skipped} skipped" : '') . '.';
+
+        return back()->with('success', $msg);
+    }
+
+    /** Export the full bank master as CSV (also serves as the import template). */
+    public function export()
+    {
+        $banks   = Bank::with('countryInfo')->orderBy('sort_order')->orderBy('name')->get();
+        $columns = ['name', 'short_name', 'swift_code', 'local_code', 'country_iso', 'is_active'];
+
+        return response()->streamDownload(function () use ($banks, $columns) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $columns);
+            foreach ($banks as $b) {
+                fputcsv($out, [
+                    $b->name,
+                    $b->short_name,
+                    $b->swift_code,
+                    $b->local_code,
+                    $b->countryInfo?->iso2,
+                    $b->is_active ? 1 : 0,
+                ]);
+            }
+            fclose($out);
+        }, 'banks.csv', ['Content-Type' => 'text/csv']);
     }
 }

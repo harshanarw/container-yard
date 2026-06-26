@@ -8,6 +8,7 @@ use App\Models\Bank;
 use App\Models\BankAccount;
 use App\Models\CompanySetting;
 use App\Models\Currency;
+use App\Support\DeploymentCountry;
 use Illuminate\Http\Request;
 
 class BankAccountController extends Controller
@@ -86,7 +87,16 @@ class BankAccountController extends Controller
             ->orderBy('code')
             ->get();
 
-        $banks = Bank::active()->orderBy('sort_order')->orderBy('name')->get();
+        // Show banks for this deployment's country (plus any without a country set).
+        // For single-country deployments this is simply all banks.
+        $countryId = DeploymentCountry::id();
+        $banks = Bank::active()
+            ->when($countryId, fn ($q) => $q->where(fn ($w) =>
+                $w->where('country_id', $countryId)->orWhereNull('country_id')
+            ))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
 
         $currencies = Currency::where('is_active', true)
             ->orderBy('sort_order')

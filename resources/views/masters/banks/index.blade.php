@@ -15,11 +15,21 @@
         <h4><i class="bi bi-bank me-2 text-primary"></i>Banks</h4>
         <p class="text-muted mb-0 small">Maintain the list of banks used when creating bank accounts. Drag rows to reorder.</p>
     </div>
-    @can('masters.banks.create')
-    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
-        <i class="bi bi-plus-circle me-1"></i>Add Bank
-    </button>
-    @endcan
+    <div class="d-flex gap-2">
+        @can('masters.banks.view')
+        <a href="{{ route('masters.banks.export') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-download me-1"></i>Export CSV
+        </a>
+        @endcan
+        @can('masters.banks.create')
+        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
+            <i class="bi bi-upload me-1"></i>Import CSV
+        </button>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+            <i class="bi bi-plus-circle me-1"></i>Add Bank
+        </button>
+        @endcan
+    </div>
 </div>
 
 @if(session('success'))
@@ -45,7 +55,7 @@
                     <th style="width:110px;">Short</th>
                     <th>Bank Name</th>
                     <th style="width:120px;">SWIFT</th>
-                    <th style="width:100px;">Code</th>
+                    <th style="width:120px;">Local Code</th>
                     <th style="width:180px;">Country</th>
                     <th style="width:90px;" class="text-center">Status</th>
                     <th style="width:120px;" class="text-end pe-3">Actions</th>
@@ -68,7 +78,7 @@
                     </td>
                     <td><span class="fw-semibold">{{ $bank->name }}</span></td>
                     <td class="small font-monospace text-muted">{{ $bank->swift_code ?: '—' }}</td>
-                    <td class="small font-monospace text-muted">{{ $bank->bank_code ?: '—' }}</td>
+                    <td class="small font-monospace text-muted">{{ $bank->local_code ?: '—' }}</td>
                     <td class="small text-muted">
                         @if($bank->countryInfo)
                             {{ $bank->countryInfo->flag_emoji }} {{ $bank->countryInfo->name }}
@@ -100,7 +110,7 @@
                                     data-name="{{ $bank->name }}"
                                     data-short_name="{{ $bank->short_name ?? '' }}"
                                     data-swift_code="{{ $bank->swift_code ?? '' }}"
-                                    data-bank_code="{{ $bank->bank_code ?? '' }}"
+                                    data-local_code="{{ $bank->local_code ?? '' }}"
                                     data-country_id="{{ $bank->country_id ?? '' }}"
                                     title="Edit">
                                 <i class="bi bi-pencil"></i>
@@ -163,9 +173,10 @@
                                    maxlength="20" placeholder="e.g. HBLILKLX">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Bank Code</label>
-                            <input type="text" name="bank_code" class="form-control"
-                                   maxlength="20" placeholder="CBSL / SLIPS">
+                            <label class="form-label fw-semibold">Local Code</label>
+                            <input type="text" name="local_code" class="form-control"
+                                   maxlength="20" placeholder="e.g. CBSL / IFSC / Sort">
+                            <div class="form-text">National clearing / routing code</div>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Country</label>
@@ -219,8 +230,9 @@
                             <input type="text" name="swift_code" id="editSwiftCode" class="form-control text-uppercase" maxlength="20">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Bank Code</label>
-                            <input type="text" name="bank_code" id="editBankCode" class="form-control" maxlength="20">
+                            <label class="form-label fw-semibold">Local Code</label>
+                            <input type="text" name="local_code" id="editLocalCode" class="form-control" maxlength="20">
+                            <div class="form-text">National clearing / routing code</div>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Country</label>
@@ -268,6 +280,39 @@
     </div>
 </div>
 
+{{-- ── Import Modal ── --}}
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('masters.banks.import') }}" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title"><i class="bi bi-upload me-1 text-primary"></i>Import Banks (CSV)</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">CSV File <span class="text-danger">*</span></label>
+                        <input type="file" name="file" class="form-control" accept=".csv,text/csv" required>
+                    </div>
+                    <div class="small text-muted">
+                        <p class="mb-1">First row must be a header. Recognised columns:</p>
+                        <code class="d-block mb-2">name, short_name, swift_code, local_code, country_iso</code>
+                        <p class="mb-1"><strong>name</strong> is required; other columns are optional.
+                        Rows without <strong>country_iso</strong> are assigned to this deployment's country.</p>
+                        <p class="mb-0">Existing banks (same name + country) are updated; new ones are added.
+                        Tip: <a href="{{ route('masters.banks.export') }}">export the current list</a> to use as a template.</p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload me-1"></i>Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -309,7 +354,7 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
         document.getElementById('editName').value      = btn.dataset.name;
         document.getElementById('editShortName').value = btn.dataset.short_name;
         document.getElementById('editSwiftCode').value = btn.dataset.swift_code;
-        document.getElementById('editBankCode').value  = btn.dataset.bank_code;
+        document.getElementById('editLocalCode').value = btn.dataset.local_code;
         document.getElementById('editCountryId').value = btn.dataset.country_id || '';
         document.getElementById('editForm').action     =
             '{{ url("masters/banks") }}/' + btn.dataset.id;

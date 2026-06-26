@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\CompanySetting;
+use App\Models\Country;
 use Illuminate\Database\Seeder;
 
 class SystemSettingsSeeder extends Seeder
@@ -11,7 +12,15 @@ class SystemSettingsSeeder extends Seeder
     {
         $settings = CompanySetting::current();
 
+        // Align the deployment country with APP_COUNTRY on first install, without
+        // overriding a country an admin has already chosen.
+        $country = Country::where('iso2', strtoupper(config('localization.country', 'LK')))->first();
+
         $settings->update([
+
+            'country'    => $settings->country    ?: ($country?->name),
+            'country_id' => $settings->country_id ?: ($country?->id),
+
 
             // ── Operational Defaults ─────────────────────────────────────────
             'yard_capacity'     => 440,   // maximum containers the yard holds

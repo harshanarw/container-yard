@@ -4,71 +4,58 @@ namespace Database\Seeders;
 
 use App\Models\Bank;
 use App\Models\BankAccount;
-use App\Models\Country;
+use App\Support\DeploymentCountry;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
 
 class BankSeeder extends Seeder
 {
     /**
-     * Default bank master: the Licensed Commercial Banks operating in Sri Lanka
-     * (locally-incorporated banks + the foreign banks licensed to operate here).
+     * Seeds the Bank master for the deployment country.
      *
-     * SWIFT/BIC codes are seeded best-effort from public sources; bank (CBSL/SLIPS)
-     * codes are intentionally left blank for the admin to complete authoritatively
-     * via Masters → Banks. The list is fully editable — add/remove as needed.
+     * The country is resolved by App\Support\DeploymentCountry (CompanySetting →
+     * APP_COUNTRY env → LK), and the list is loaded from the matching dataset at
+     * database/data/banks/{ISO2}.php. If no dataset exists, the master is left
+     * empty for the admin to populate (via Masters → Banks, incl. CSV import) —
+     * no wrong-country data is seeded.
+     *
+     * Idempotent: updateOrCreate keyed on (name, country_id) so re-runs are safe
+     * and multiple countries can coexist in one master.
      */
     public function run(): void
     {
-        $lk = Country::where('iso2', 'LK')->orWhere('name', 'Sri Lanka')->value('id');
+        $iso       = DeploymentCountry::iso2();
+        $countryId = DeploymentCountry::id();
 
-        // [name, short_name, swift_code]
-        $banks = [
-            // ── Local licensed commercial banks ──────────────────────────────
-            ['Bank of Ceylon',                                   'BOC',         'BCEYLKLX'],
-            ["People's Bank",                                    "People's",    'PSBKLKLX'],
-            ['Hatton National Bank PLC',                         'HNB',         'HBLILKLX'],
-            ['Commercial Bank of Ceylon PLC',                    'ComBank',     'CCEYLKLX'],
-            ['Sampath Bank PLC',                                 'Sampath',     'BSAMLKLX'],
-            ['Seylan Bank PLC',                                  'Seylan',      'SEYBLKLX'],
-            ['Nations Trust Bank PLC',                           'NTB',         'NTBCLKLX'],
-            ['National Development Bank PLC',                    'NDB',         'NDBSLKLX'],
-            ['DFCC Bank PLC',                                    'DFCC',        'DFCCLKLX'],
-            ['Pan Asia Banking Corporation PLC',                 'Pan Asia',    'PABSLKLX'],
-            ['Union Bank of Colombo PLC',                        'Union Bank',  'UBCLLKLX'],
-            ['Amana Bank PLC',                                   'Amana',       'ABSLLKLX'],
-            ['Cargills Bank PLC',                                'Cargills',    null],
-            ['National Savings Bank',                            'NSB',         'NSBALKLX'],
-            ['Sanasa Development Bank PLC',                      'SDB',         null],
-            ['Housing Development Finance Corporation Bank',     'HDFC',        null],
-            ['Regional Development Bank',                        'RDB',         null],
+        $file = database_path("data/banks/{$iso}.php");
 
-            // ── Foreign banks operating in Sri Lanka ─────────────────────────
-            ['Standard Chartered Bank',                          'StanChart',   'SCBLLKLX'],
-            ['The Hongkong & Shanghai Banking Corporation',      'HSBC',        'HSBCLKLX'],
-            ['Citibank N.A.',                                    'Citi',        'CITILKLX'],
-            ['Deutsche Bank AG',                                 'Deutsche',    'DEUTLKLX'],
-            ['ICICI Bank Ltd',                                   'ICICI',       'ICICLKLX'],
-            ['Indian Bank',                                      'Indian Bank', 'IDIBLKLX'],
-            ['Indian Overseas Bank',                             'IOB',         'IOBALKLX'],
-            ['State Bank of India',                              'SBI',         'SBINLKLX'],
-            ['Public Bank Berhad',                               'Public Bank', 'PBBELKLX'],
-            ['MCB Bank Ltd',                                     'MCB',         null],
-            ['Habib Bank Ltd',                                   'Habib',       'HABBLKLX'],
-        ];
+        if (! is_file($file)) {
+            $this->command?->warn(
+                "BankSeeder: no bank dataset for country [{$iso}] (looked for {$file}). "
+                . "Skipping — add the file or import banks via Masters → Banks."
+            );
+            return;
+        }
 
-        foreach ($banks as $i => [$name, $short, $swift]) {
+        $banks = require $file;
+
+        foreach ($banks as $i => $row) {
+            // row: [name, short_name, swift_code, local_code]
+            [$name, $short, $swift, $local] = array_pad((array) $row, 4, null);
+
             Bank::updateOrCreate(
-                ['name' => $name],
+                ['name' => $name, 'country_id' => $countryId],
                 [
                     'short_name' => $short,
                     'swift_code' => $swift,
-                    'country_id' => $lk,
+                    'local_code' => $local,
                     'is_active'  => true,
                     'sort_order' => $i + 1,
                 ]
             );
         }
+
+        $this->command?->info('BankSeeder: seeded ' . count($banks) . " bank(s) for [{$iso}].");
 
         $this->backfillBankAccounts();
     }

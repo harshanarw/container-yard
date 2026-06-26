@@ -10,7 +10,7 @@ class Bank extends Model
         'name',
         'short_name',
         'swift_code',
-        'bank_code',
+        'local_code',
         'country_id',
         'is_active',
         'sort_order',
