@@ -8,6 +8,7 @@ class BankAccount extends Model
 {
     protected $fillable = [
         'account_name',
+        'bank_id',
         'bank_name',
         'account_number',
         'currency',
@@ -20,6 +21,11 @@ class BankAccount extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function bank()
+    {
+        return $this->belongsTo(Bank::class, 'bank_id');
+    }
 
     public function glAccount()
     {

@@ -375,6 +375,15 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('{currency}',               [CurrencyController::class, 'update'])->name('update');
             Route::delete('{currency}',              [CurrencyController::class, 'destroy'])->name('destroy');
         });
+        // Banks
+        Route::prefix('banks')->name('banks.')->group(function () {
+            Route::get('/',                [\App\Http\Controllers\BankController::class, 'index'])->name('index');
+            Route::post('/',               [\App\Http\Controllers\BankController::class, 'store'])->name('store');
+            Route::post('reorder',         [\App\Http\Controllers\BankController::class, 'reorder'])->name('reorder');
+            Route::patch('{bank}/toggle',  [\App\Http\Controllers\BankController::class, 'toggleActive'])->name('toggle');
+            Route::patch('{bank}',         [\App\Http\Controllers\BankController::class, 'update'])->name('update');
+            Route::delete('{bank}',        [\App\Http\Controllers\BankController::class, 'destroy'])->name('destroy');
+        });
         // Daily Exchange Rates
         Route::prefix('exchange-rates')->name('exchange-rates.')->group(function () {
             Route::get('/',                       [ExchangeRateController::class, 'index'])->name('index');

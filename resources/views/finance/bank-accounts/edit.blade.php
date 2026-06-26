@@ -24,7 +24,7 @@
     <div class="card-body">
         <form method="POST" action="{{ route('finance.bank-accounts.update', $bankAccount) }}">
             @csrf
-            @method('PUT')
+            @method('PATCH')
             @include('finance.bank-accounts._form')
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary btn-sm">

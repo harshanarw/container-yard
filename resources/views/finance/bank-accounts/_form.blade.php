@@ -6,10 +6,17 @@
         @error('account_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-6">
-        <label class="form-label fw-semibold small">Bank Name <span class="text-danger">*</span></label>
-        <input type="text" name="bank_name" class="form-control form-control-sm @error('bank_name') is-invalid @enderror"
-               value="{{ old('bank_name', $bankAccount->bank_name ?? '') }}" required maxlength="100">
-        @error('bank_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        <label class="form-label fw-semibold small">Bank <span class="text-danger">*</span></label>
+        <select name="bank_id" class="form-select form-select-sm select2 @error('bank_id') is-invalid @enderror" required>
+            <option value="">— Select Bank —</option>
+            @foreach($banks as $bank)
+            <option value="{{ $bank->id }}" {{ (string) old('bank_id', $bankAccount->bank_id ?? '') === (string) $bank->id ? 'selected' : '' }}>
+                {{ $bank->name }}{{ $bank->short_name ? ' ('.$bank->short_name.')' : '' }}
+            </option>
+            @endforeach
+        </select>
+        <div class="form-text text-muted small">Manage the list in Masters → Banks.</div>
+        @error('bank_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-6">
         <label class="form-label fw-semibold small">Account Number <span class="text-danger">*</span></label>
@@ -19,8 +26,14 @@
     </div>
     <div class="col-md-3">
         <label class="form-label fw-semibold small">Currency <span class="text-danger">*</span></label>
-        <input type="text" name="currency" class="form-control form-control-sm @error('currency') is-invalid @enderror"
-               value="{{ old('currency', $bankAccount->currency ?? 'USD') }}" required maxlength="10" placeholder="USD">
+        <select name="currency" class="form-select form-select-sm select2 @error('currency') is-invalid @enderror" required>
+            <option value="">— Select —</option>
+            @foreach($currencies as $cur)
+            <option value="{{ $cur->code }}" {{ old('currency', $bankAccount->currency ?? ($defaultCurrency ?? 'LKR')) === $cur->code ? 'selected' : '' }}>
+                {{ $cur->code }} — {{ $cur->name }}
+            </option>
+            @endforeach
+        </select>
         @error('currency')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-3">

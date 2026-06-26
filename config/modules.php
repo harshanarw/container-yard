@@ -165,6 +165,12 @@ return [
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
+    'masters.banks' => [
+        'label'   => 'Banks',
+        'section' => 'Masters — Reference',
+        'actions' => ['view', 'create', 'edit', 'delete'],
+    ],
+
     'masters.exchange-rates' => [
         'label'   => 'Exchange Rates',
         'section' => 'Masters — Reference',

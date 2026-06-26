@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             EquipmentTypeSeeder::class,     // equipment types
             EquipmentTypeVentilationSeeder::class, // backfill ventilation defaults
             CurrencySeeder::class,          // currency master
+            BankSeeder::class,              // bank master (SL licensed banks) — needs countries
             TaxCodeSeeder::class,           // tax codes
             ChargeCodeSeeder::class,        // charge codes
             YardLocationSeeder::class,      // yard bays / locations

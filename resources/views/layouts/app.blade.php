@@ -1307,8 +1307,8 @@
             @endif
 
             {{-- Invoice sub-group --}}
-            @if(Auth::user()->can('masters.charge-codes.view') || Auth::user()->can('masters.tax-codes.view') || Auth::user()->can('masters.currencies.view') || Auth::user()->can('masters.exchange-rates.view'))
-            @php $invoiceActive = request()->routeIs('masters.tax-codes.*') || request()->routeIs('masters.charge-codes.*') || request()->routeIs('masters.currencies.*') || request()->routeIs('masters.exchange-rates.*'); @endphp
+            @if(Auth::user()->can('masters.charge-codes.view') || Auth::user()->can('masters.tax-codes.view') || Auth::user()->can('masters.currencies.view') || Auth::user()->can('masters.banks.view') || Auth::user()->can('masters.exchange-rates.view'))
+            @php $invoiceActive = request()->routeIs('masters.tax-codes.*') || request()->routeIs('masters.charge-codes.*') || request()->routeIs('masters.currencies.*') || request()->routeIs('masters.banks.*') || request()->routeIs('masters.exchange-rates.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-invoice"
                     aria-expanded="{{ $invoiceActive ? 'true' : 'false' }}"
@@ -1340,6 +1340,14 @@
                         <a href="{{ route('masters.currencies.index') }}"
                            class="nav-link {{ request()->routeIs('masters.currencies.*') ? 'active' : '' }}">
                             <i class="bi bi-currency-exchange"></i><span>Currency Types</span>
+                        </a>
+                    </li>
+                    @endcan
+                    @can('masters.banks.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.banks.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.banks.*') ? 'active' : '' }}">
+                            <i class="bi bi-bank"></i><span>Banks</span>
                         </a>
                     </li>
                     @endcan
