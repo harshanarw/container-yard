@@ -60,7 +60,7 @@
         <span class="text-muted small">{{ $bySupplier->count() }} supplier(s) with outstanding balances</span>
     </div>
     <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0 small">
+        <table class="table table-sm align-top mb-0 small">
             <thead class="table-light">
                 <tr>
                     <th>Supplier</th>
@@ -84,7 +84,7 @@
                 @foreach($group['invoices'] as $i => $inv)
                 <tr class="{{ $i === 0 ? 'border-top border-2' : '' }}">
                     @if($i === 0)
-                    <td rowspan="{{ $supRowspan }}" class="fw-semibold align-top pt-2">
+                    <td rowspan="{{ $supRowspan }}" class="fw-semibold align-top">
                         @if($group['supplier'])
                         <a href="{{ route('customers.show', $group['supplier']->id) }}" class="text-decoration-none">{{ $group['supplier']->name }}</a>
                         @else Unknown @endif
