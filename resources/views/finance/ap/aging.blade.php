@@ -65,6 +65,7 @@
                 <tr>
                     <th>Supplier</th>
                     <th>Invoice</th>
+                    <th>Reference</th>
                     <th>Date</th>
                     <th class="text-end">Age</th>
                     <th class="text-end">Total</th>
@@ -105,6 +106,8 @@
                     <td class="font-monospace">
                         <a href="{{ route('finance.ap.invoices.show', $inv['id']) }}" class="text-decoration-none">{{ $inv['invoice_no'] }}</a>
                     </td>
+
+                    <td class="text-muted font-monospace small">{{ $inv['reference'] ?: '—' }}</td>
 
                     <td class="text-muted">{{ $inv['invoice_date']->format('d M Y') }}</td>
 
@@ -152,7 +155,7 @@
 
                 {{-- Supplier subtotal row --}}
                 <tr class="table-light fw-semibold small border-bottom">
-                    <td class="text-end text-muted fst-italic ps-2" colspan="6">
+                    <td class="text-end text-muted fst-italic ps-2" colspan="7">
                         {{ $group['supplier']?->name ?? 'Unknown' }} subtotal
                     </td>
                     <td class="text-end font-monospace text-success">{{ number_format($group['current'], 2) }}</td>
@@ -166,7 +169,7 @@
 
                 {{-- Grand total --}}
                 <tr class="table-dark fw-bold">
-                    <td colspan="6" class="text-end small">Grand Total</td>
+                    <td colspan="7" class="text-end small">Grand Total</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['current'], 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['1-30'], 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['31-60'], 2) }}</td>

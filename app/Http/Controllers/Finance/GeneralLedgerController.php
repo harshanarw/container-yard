@@ -575,6 +575,7 @@ class GeneralLedgerController extends Controller
                     'customer_id'  => $inv->customer_id,
                     'id'           => $inv->id,
                     'invoice_no'   => $inv->invoice_no,
+                    'reference'    => $inv->supplier_invoice_no,
                     'invoice_date' => $invDate,
                     'due_date'     => $ageDate,
                     'total'        => $total,
