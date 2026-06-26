@@ -38,7 +38,7 @@
     <div class="col-md col-6">
         <div class="card content-card text-center py-3">
             <div class="text-muted small">{{ $label }}</div>
-            <div class="fw-bold fs-5 font-monospace text-{{ $color === 'orange' ? 'warning' : $color }}">
+            <div class="fw-bold fs-5 font-monospace {{ $color === 'orange' ? '' : 'text-'.$color }}" @if($color === 'orange') style="color:#c47200" @endif>
                 {{ number_format($grandTotals[$key] ?? 0, 2) }}
             </div>
         </div>
@@ -154,7 +154,7 @@
                 @endforeach
 
                 {{-- Supplier subtotal row --}}
-                <tr class="table-light fw-semibold small border-bottom">
+                <tr class="table-light fw-semibold border-bottom">
                     <td class="text-end text-muted fst-italic ps-2" colspan="7">
                         {{ $group['supplier']?->name ?? 'Unknown' }} subtotal
                     </td>
