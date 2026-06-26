@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bank;
+use App\Models\BankAccount;
 use App\Models\CompanySetting;
 use App\Models\Country;
 use App\Support\DeploymentCountry;
@@ -42,6 +43,9 @@ class BankController extends Controller
     {
         $data = $this->validateData($request, $bank->id);
         $bank->update($data);
+
+        // Keep the denormalised bank_name snapshot on linked accounts in sync.
+        BankAccount::where('bank_id', $bank->id)->update(['bank_name' => $bank->name]);
 
         return back()->with('success', "Bank \"{$bank->name}\" updated.");
     }
@@ -126,7 +130,9 @@ class BankController extends Controller
                 continue; // blank line
             }
 
-            $data = array_combine($header, array_pad($row, count($header), null)) ?: [];
+            // Normalise the row to exactly the header width (truncate extras, pad gaps)
+            $row  = array_pad(array_slice($row, 0, count($header)), count($header), null);
+            $data = array_combine($header, $row) ?: [];
             $name = trim((string) ($data['name'] ?? ''));
             if ($name === '') { $skipped++; continue; }
 

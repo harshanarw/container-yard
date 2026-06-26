@@ -29,7 +29,7 @@ class BankAccountController extends Controller
     {
         $this->authorize('finance.receipts.create');
 
-        return view('finance.bank-accounts.create', $this->formOptions());
+        return view('finance.bank-accounts.create', $this->formOptions(null));
     }
 
     public function store(Request $request)
@@ -56,7 +56,7 @@ class BankAccountController extends Controller
 
         return view('finance.bank-accounts.edit', array_merge(
             ['bankAccount' => $bankAccount],
-            $this->formOptions()
+            $this->formOptions($bankAccount)
         ));
     }
 
@@ -79,21 +79,34 @@ class BankAccountController extends Controller
 
     /**
      * Shared dropdown data for the create/edit form.
+     * On edit, the account's currently-linked bank is always kept selectable,
+     * even if it is inactive or outside the deployment country.
      */
-    private function formOptions(): array
+    private function formOptions(?BankAccount $bankAccount = null): array
     {
         $glAccounts = Account::where('is_cash_bank', true)
             ->where('is_active', true)
             ->orderBy('code')
             ->get();
 
-        // Show banks for this deployment's country (plus any without a country set).
-        // For single-country deployments this is simply all banks.
-        $countryId = DeploymentCountry::id();
-        $banks = Bank::active()
-            ->when($countryId, fn ($q) => $q->where(fn ($w) =>
-                $w->where('country_id', $countryId)->orWhereNull('country_id')
-            ))
+        // Show active banks for this deployment's country (plus any without a
+        // country set) — for single-country deployments this is simply all banks.
+        // Always include the account's current bank so editing never drops it.
+        $countryId     = DeploymentCountry::id();
+        $currentBankId = $bankAccount?->bank_id;
+
+        $banks = Bank::query()
+            ->where(function ($q) use ($countryId, $currentBankId) {
+                $q->where(function ($w) use ($countryId) {
+                    $w->where('is_active', true);
+                    if ($countryId) {
+                        $w->where(fn ($c) => $c->where('country_id', $countryId)->orWhereNull('country_id'));
+                    }
+                });
+                if ($currentBankId) {
+                    $q->orWhere('id', $currentBankId);
+                }
+            })
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
