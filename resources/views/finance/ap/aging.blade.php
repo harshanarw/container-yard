@@ -12,10 +12,15 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h4 class="mb-0"><i class="bi bi-clock-history me-2 text-danger"></i>AP Aging Report</h4>
-        <p class="text-muted small mb-0">Outstanding payables by supplier — as of {{ \Carbon\Carbon::parse($asOf)->format('d M Y') }}</p>
+        <p class="text-muted small mb-0">Outstanding payables by supplier — as of {{ \Carbon\Carbon::parse($asOf)->format('d M Y') }} · aged by {{ $ageBy === 'invoice_date' ? 'invoice date' : 'due date' }}</p>
     </div>
     <form method="GET" action="{{ route('finance.ap.aging') }}" class="d-flex align-items-center gap-2">
-        <label class="form-label small mb-0 text-muted">As Of</label>
+        <label class="form-label small mb-0 text-muted">Age By</label>
+        <select name="age_by" class="form-select form-select-sm" style="width:150px">
+            <option value="due_date" @selected($ageBy === 'due_date')>Due Date</option>
+            <option value="invoice_date" @selected($ageBy === 'invoice_date')>Invoice Date</option>
+        </select>
+        <label class="form-label small mb-0 text-muted ms-1">As Of</label>
         <input type="date" name="as_of" class="form-control form-control-sm" value="{{ $asOf }}" style="width:160px">
         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
     </form>
@@ -25,10 +30,12 @@
 <div class="alert alert-success alert-dismissible fade show py-2 small"><i class="bi bi-check-circle me-1"></i>{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 @endif
 
+@php $currentLabel = $ageBy === 'invoice_date' ? 'Current' : 'Current (not due)'; @endphp
+
 {{-- Grand Total Summary --}}
 <div class="row g-3 mb-3">
     @foreach([
-        ['Current (not due)', 'current', 'success'],
+        [$currentLabel,       'current', 'success'],
         ['1–30 days',         '1-30',   'info'],
         ['31–60 days',        '31-60',  'warning'],
         ['61–90 days',        '61-90',  'orange'],

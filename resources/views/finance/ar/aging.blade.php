@@ -12,10 +12,15 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h4 class="mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>AR Aging Report</h4>
-        <p class="text-muted small mb-0">Outstanding receivables by customer — as of {{ \Carbon\Carbon::parse($asOf)->format('d M Y') }}</p>
+        <p class="text-muted small mb-0">Outstanding receivables by customer — as of {{ \Carbon\Carbon::parse($asOf)->format('d M Y') }} · aged by {{ $ageBy === 'invoice_date' ? 'invoice date' : 'due date' }}</p>
     </div>
     <form method="GET" action="{{ route('finance.ar.aging') }}" class="d-flex align-items-center gap-2">
-        <label class="form-label small mb-0 text-muted">As Of</label>
+        <label class="form-label small mb-0 text-muted">Age By</label>
+        <select name="age_by" class="form-select form-select-sm" style="width:150px">
+            <option value="due_date" @selected($ageBy === 'due_date')>Due Date</option>
+            <option value="invoice_date" @selected($ageBy === 'invoice_date')>Invoice Date</option>
+        </select>
+        <label class="form-label small mb-0 text-muted ms-1">As Of</label>
         <input type="date" name="as_of" class="form-control form-control-sm" value="{{ $asOf }}" style="width:160px">
         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
     </form>
@@ -25,10 +30,12 @@
 <div class="alert alert-success alert-dismissible fade show py-2 small"><i class="bi bi-check-circle me-1"></i>{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 @endif
 
+@php $currentLabel = $ageBy === 'invoice_date' ? 'Current' : 'Not Due'; @endphp
+
 {{-- Grand Total Summary --}}
 <div class="row g-3 mb-3">
     @foreach([
-        ['Not Due',           'current', 'success'],
+        [$currentLabel,       'current', 'success'],
         ['1–30 days',         '1-30',    'info'],
         ['31–60 days',        '31-60',   'warning'],
         ['61–90 days',        '61-90',   'orange'],
@@ -71,7 +78,7 @@
                     <th class="text-end">Past Due</th>
                     <th class="text-end">Total</th>
                     <th class="text-end">Settled</th>
-                    <th class="text-end text-success-emphasis">Not Due</th>
+                    <th class="text-end text-success-emphasis">{{ $currentLabel }}</th>
                     <th class="text-end text-info-emphasis">1–30</th>
                     <th class="text-end text-warning-emphasis">31–60</th>
                     <th class="text-end" style="color:#c47200">61–90</th>

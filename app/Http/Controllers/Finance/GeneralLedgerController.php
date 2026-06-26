@@ -417,6 +417,9 @@ class GeneralLedgerController extends Controller
 
         $asOf = $request->input('as_of', Carbon::today()->toDateString());
         $asOfDate = Carbon::parse($asOf);
+        // Bucketing basis: 'due_date' (days overdue) or 'invoice_date' (days since billed).
+        $ageBy = in_array($request->input('age_by'), ['due_date', 'invoice_date'], true)
+            ? $request->input('age_by') : 'due_date';
 
         // Load all active allocations into a lookup: [type-id => total_allocated]
         $allocations = ReceiptAllocation::whereHas(
@@ -428,7 +431,7 @@ class GeneralLedgerController extends Controller
 
         $rows = collect();
 
-        $addRows = function ($invoices, string $type, string $label) use ($asOfDate, $allocations, &$rows) {
+        $addRows = function ($invoices, string $type, string $label) use ($asOfDate, $ageBy, $allocations, &$rows) {
             foreach ($invoices as $inv) {
                 $total     = (float) ($type === 'repair' ? ($inv->grand_total ?? 0) : ($inv->total_amount ?? 0));
                 $allocated = (float) ($allocations->get("{$type}-{$inv->id}")?->total_allocated ?? 0);
@@ -437,18 +440,24 @@ class GeneralLedgerController extends Controller
                 if ($outstanding <= 0) continue;
 
                 $invDate = Carbon::parse($inv->invoice_date);
-                // Age off the due date (proper debtors ageing = days past due);
+                // Due date drives the "past due" flag and the Past Due column;
                 // fall back to the invoice date for any row still lacking one.
                 $dueDate = !empty($inv->due_date) ? Carbon::parse($inv->due_date) : $invDate;
-                $ageDays = max(0, (int) $dueDate->diffInDays($asOfDate, false));
                 $pastDue = $asOfDate->gt($dueDate);
+                $ageDays = max(0, (int) $dueDate->diffInDays($asOfDate, false)); // days overdue
+
+                // Bucketing basis is user-selectable: by due date (days overdue) or by
+                // invoice date (days since billed). Only the bucket follows $ageBy;
+                // "Past Due" always reflects the actual due date.
+                $basisDate  = $ageBy === 'invoice_date' ? $invDate : $dueDate;
+                $bucketDays = max(0, (int) $basisDate->diffInDays($asOfDate, false));
 
                 $bucket = match (true) {
-                    $ageDays <= 0   => 'current',
-                    $ageDays <= 30  => '1-30',
-                    $ageDays <= 60  => '31-60',
-                    $ageDays <= 90  => '61-90',
-                    default         => '90+',
+                    $bucketDays <= 0   => 'current',
+                    $bucketDays <= 30  => '1-30',
+                    $bucketDays <= 60  => '31-60',
+                    $bucketDays <= 90  => '61-90',
+                    default            => '90+',
                 };
 
                 $customerId   = $type === 'storage-handling'
@@ -526,7 +535,7 @@ class GeneralLedgerController extends Controller
             'total'   => $rows->sum('outstanding'),
         ];
 
-        return view('finance.ar.aging', compact('byCustomer', 'grandTotals', 'asOf'));
+        return view('finance.ar.aging', compact('byCustomer', 'grandTotals', 'asOf', 'ageBy'));
     }
 
     // AP Aging: outstanding payables by supplier and age bucket
@@ -536,6 +545,9 @@ class GeneralLedgerController extends Controller
 
         $asOf     = $request->input('as_of', Carbon::today()->toDateString());
         $asOfDate = Carbon::parse($asOf);
+        // Bucketing basis: 'due_date' (days overdue) or 'invoice_date' (days since billed).
+        $ageBy = in_array($request->input('age_by'), ['due_date', 'invoice_date'], true)
+            ? $request->input('age_by') : 'due_date';
 
         // Allocations from non-voided vouchers: [supplier_invoice_id => total_allocated]
         $allocations = PaymentAllocation::whereHas(
@@ -550,7 +562,7 @@ class GeneralLedgerController extends Controller
         SupplierInvoice::whereIn('status', ['approved', 'partially_paid'])
             ->orderBy('invoice_date')
             ->get()
-            ->each(function ($inv) use ($asOfDate, $allocations, &$rows) {
+            ->each(function ($inv) use ($asOfDate, $ageBy, $allocations, &$rows) {
                 $total       = (float) ($inv->total_amount ?? 0);
                 $allocated   = (float) ($allocations->get($inv->id)?->total_allocated ?? 0);
                 $outstanding = max(0.0, round($total - $allocated, 2));
@@ -558,10 +570,11 @@ class GeneralLedgerController extends Controller
                 if ($outstanding <= 0) return;
 
                 $invDate = Carbon::parse($inv->invoice_date);
-                // Age measured from due_date so the bucket reflects actual overdue days,
-                // not time elapsed since the invoice was raised.
-                $ageDate = !empty($inv->due_date) ? Carbon::parse($inv->due_date) : $invDate;
-                $ageDays = (int) $ageDate->diffInDays($asOfDate, false); // negative = not yet due
+                // Bucketing basis is user-selectable: by due date (days overdue) or by
+                // invoice date (days since billed). The Age column follows the same basis.
+                $ageDate   = !empty($inv->due_date) ? Carbon::parse($inv->due_date) : $invDate;
+                $basisDate = $ageBy === 'invoice_date' ? $invDate : $ageDate;
+                $ageDays   = (int) $basisDate->diffInDays($asOfDate, false); // negative = not yet due
 
                 $bucket = match (true) {
                     $ageDays <= 0  => 'current',
@@ -618,6 +631,6 @@ class GeneralLedgerController extends Controller
             'total'   => $rows->sum('outstanding'),
         ];
 
-        return view('finance.ap.aging', compact('bySupplier', 'grandTotals', 'asOf'));
+        return view('finance.ap.aging', compact('bySupplier', 'grandTotals', 'asOf', 'ageBy'));
     }
 }
