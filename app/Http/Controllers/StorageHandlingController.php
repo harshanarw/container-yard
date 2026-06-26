@@ -517,7 +517,7 @@ class StorageHandlingController extends Controller
 
         return redirect()
             ->route('billing.storage-handling.show', $invoice)
-            ->with('success', "Storage & Handling invoice {$invoiceNo} created successfully.");
+            ->with('success', "Storage & Handling invoice {$invoice->invoice_no} created successfully.");
     }
 
     // ── View invoice ──────────────────────────────────────────────────────────
