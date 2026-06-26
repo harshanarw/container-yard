@@ -28,10 +28,12 @@
     </div>
     <div class="col-md-3">
         <label class="form-label fw-semibold small">Currency <span class="text-danger">*</span></label>
-        <select name="currency" class="form-select form-select-sm select2 @error('currency') is-invalid @enderror" required>
+        <select name="currency" class="form-select form-select-sm s2-code @error('currency') is-invalid @enderror" data-s2-sel="name" required>
             <option value="">— Select —</option>
             @foreach($currencies as $cur)
-            <option value="{{ $cur->code }}" {{ old('currency', $bankAccount->currency ?? ($defaultCurrency ?? 'LKR')) === $cur->code ? 'selected' : '' }}>
+            <option value="{{ $cur->code }}"
+                data-code="{{ $cur->code }}" data-name="{{ $cur->name }}"
+                {{ old('currency', $bankAccount->currency ?? ($defaultCurrency ?? 'LKR')) === $cur->code ? 'selected' : '' }}>
                 {{ $cur->code }} — {{ $cur->name }}
             </option>
             @endforeach
