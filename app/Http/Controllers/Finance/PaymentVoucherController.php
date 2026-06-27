@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PaymentVoucherMail;
 use App\Models\Account;
 use App\Models\BankAccount;
 use App\Models\CompanySetting;
@@ -12,11 +13,16 @@ use App\Models\PaymentAllocation;
 use App\Models\PaymentVoucher;
 use App\Services\Finance\ApAllocationService;
 use App\Services\Finance\ReceiptPostingService;
+use App\Support\HandlesMailErrors;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class PaymentVoucherController extends Controller
 {
+    use HandlesMailErrors;
+
     public function __construct(
         private ReceiptPostingService $postingService,
         private ApAllocationService $allocationService,
@@ -371,6 +377,49 @@ class PaymentVoucherController extends Controller
         }
 
         return back()->with('success', 'Allocation removed.');
+    }
+
+    public function pdf(PaymentVoucher $voucher, Request $request)
+    {
+        $this->authorize('finance.vouchers.pdf');
+
+        $voucher->loadMissing(['supplier', 'bankAccount', 'allocations.invoice', 'createdBy']);
+
+        $size  = $request->query('size') === 'half' ? 'half' : 'a4';
+        $paper = $size === 'half' ? 'a5' : 'a4';
+
+        $pdf = Pdf::loadView('finance.vouchers.pdf', ['voucher' => $voucher, 'size' => $size])
+            ->setPaper($paper, 'portrait')
+            ->set_option('defaultFont', 'sans-serif')
+            ->set_option('isHtml5ParserEnabled', true)
+            ->set_option('isRemoteEnabled', false);
+
+        $filename = 'Voucher-' . $voucher->voucher_no . ($size === 'half' ? '-slip' : '') . '.pdf';
+
+        return $request->boolean('download') ? $pdf->download($filename) : $pdf->stream($filename);
+    }
+
+    public function email(Request $request, PaymentVoucher $voucher)
+    {
+        $this->authorize('finance.vouchers.email');
+
+        $validated = $request->validate([
+            'to_email' => ['required', 'email'],
+            'cc_email' => ['nullable', 'email'],
+            'message'  => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        try {
+            $mail = Mail::to($validated['to_email']);
+            if (!empty($validated['cc_email'])) {
+                $mail->cc($validated['cc_email']);
+            }
+            $mail->send(new PaymentVoucherMail($voucher, $validated['message'] ?? null));
+        } catch (\Throwable $e) {
+            return back()->with('error', $this->friendlyMailError($e));
+        }
+
+        return back()->with('success', "Voucher {$voucher->voucher_no} emailed to {$validated['to_email']}.");
     }
 
     public function confirm(PaymentVoucher $voucher)

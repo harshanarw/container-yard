@@ -43,11 +43,60 @@
         </button>
         @endif
         @endcan
+        @can('finance.vouchers.pdf')
+        <a href="{{ route('finance.vouchers.pdf', $voucher) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-printer me-1"></i>Print A4
+        </a>
+        <a href="{{ route('finance.vouchers.pdf', ['voucher' => $voucher, 'size' => 'half']) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-file-earmark-text me-1"></i>Half Page
+        </a>
+        @endcan
+        @can('finance.vouchers.email')
+        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#emailModal">
+            <i class="bi bi-envelope me-1"></i>Email
+        </button>
+        @endcan
         <a href="{{ route('finance.vouchers.index') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Back
         </a>
     </div>
 </div>
+
+@can('finance.vouchers.email')
+<div class="modal fade" id="emailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('finance.vouchers.email', $voucher) }}">
+                @csrf
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-envelope me-1 text-primary"></i>Email Voucher {{ $voucher->voucher_no }}</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">To <span class="text-danger">*</span></label>
+                        <input type="email" name="to_email" class="form-control form-control-sm" required
+                               value="{{ $voucher->supplier->email ?? '' }}">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">CC</label>
+                        <input type="email" name="cc_email" class="form-control form-control-sm">
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label small fw-semibold">Message</label>
+                        <textarea name="message" rows="3" class="form-control form-control-sm" maxlength="1000" placeholder="Optional note to include in the email"></textarea>
+                    </div>
+                    <div class="form-text small">The voucher PDF (A4) is attached automatically.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-send me-1"></i>Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endcan
 
 @if(session('success'))
 <div class="alert alert-success alert-dismissible fade show"><i class="bi bi-check-circle me-2"></i>{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>

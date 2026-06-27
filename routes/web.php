@@ -667,6 +667,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/receive',                      [ReceiptController::class, 'receive'])->name('receive');
             Route::post('/receive',                     [ReceiptController::class, 'storeReceivePayment'])->name('receive.store');
             Route::get('/{receipt}',                    [ReceiptController::class, 'show'])->name('show');
+            Route::get('/{receipt}/pdf',                [ReceiptController::class, 'pdf'])->name('pdf');
+            Route::post('/{receipt}/email',             [ReceiptController::class, 'email'])->name('email');
             Route::post('/{receipt}/confirm',           [ReceiptController::class, 'confirm'])->name('confirm');
             Route::post('/{receipt}/void',              [ReceiptController::class, 'void'])->name('void');
             Route::post('/{receipt}/allocations',                            [ReceiptController::class, 'storeAllocation'])->name('allocations.store');
@@ -682,6 +684,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/pay',                          [PaymentVoucherController::class, 'payBills'])->name('pay');
             Route::post('/pay',                         [PaymentVoucherController::class, 'storePayBills'])->name('pay.store');
             Route::get('/{voucher}',                    [PaymentVoucherController::class, 'show'])->name('show');
+            Route::get('/{voucher}/pdf',                [PaymentVoucherController::class, 'pdf'])->name('pdf');
+            Route::post('/{voucher}/email',             [PaymentVoucherController::class, 'email'])->name('email');
             Route::post('/{voucher}/confirm',           [PaymentVoucherController::class, 'confirm'])->name('confirm');
             Route::post('/{voucher}/void',              [PaymentVoucherController::class, 'void'])->name('void');
             Route::post('/{voucher}/allocations',                    [PaymentVoucherController::class, 'storeAllocation'])->name('allocations.store');

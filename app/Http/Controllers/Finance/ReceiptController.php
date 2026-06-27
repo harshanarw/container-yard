@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ReceiptMail;
 use App\Models\BankAccount;
 use App\Models\CompanySetting;
 use App\Models\Currency;
@@ -11,11 +12,16 @@ use App\Models\Receipt;
 use App\Models\ReceiptAllocation;
 use App\Services\Finance\ArAllocationService;
 use App\Services\Finance\ReceiptPostingService;
+use App\Support\HandlesMailErrors;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class ReceiptController extends Controller
 {
+    use HandlesMailErrors;
+
     public function __construct(
         private ReceiptPostingService $postingService,
         private ArAllocationService   $allocationService,
@@ -260,6 +266,49 @@ class ReceiptController extends Controller
         return view('finance.receipts.show', compact(
             'receipt', 'pendingInvoices', 'totalAllocated', 'unallocatedAmount'
         ));
+    }
+
+    public function pdf(Receipt $receipt, Request $request)
+    {
+        $this->authorize('finance.receipts.pdf');
+
+        $receipt->loadMissing(['customer', 'bankAccount', 'allocations', 'createdBy']);
+
+        $size  = $request->query('size') === 'half' ? 'half' : 'a4';
+        $paper = $size === 'half' ? 'a5' : 'a4';
+
+        $pdf = Pdf::loadView('finance.receipts.pdf', ['receipt' => $receipt, 'size' => $size])
+            ->setPaper($paper, 'portrait')
+            ->set_option('defaultFont', 'sans-serif')
+            ->set_option('isHtml5ParserEnabled', true)
+            ->set_option('isRemoteEnabled', false);
+
+        $filename = 'Receipt-' . $receipt->receipt_no . ($size === 'half' ? '-slip' : '') . '.pdf';
+
+        return $request->boolean('download') ? $pdf->download($filename) : $pdf->stream($filename);
+    }
+
+    public function email(Request $request, Receipt $receipt)
+    {
+        $this->authorize('finance.receipts.email');
+
+        $validated = $request->validate([
+            'to_email' => ['required', 'email'],
+            'cc_email' => ['nullable', 'email'],
+            'message'  => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        try {
+            $mail = Mail::to($validated['to_email']);
+            if (!empty($validated['cc_email'])) {
+                $mail->cc($validated['cc_email']);
+            }
+            $mail->send(new ReceiptMail($receipt, $validated['message'] ?? null));
+        } catch (\Throwable $e) {
+            return back()->with('error', $this->friendlyMailError($e));
+        }
+
+        return back()->with('success', "Receipt {$receipt->receipt_no} emailed to {$validated['to_email']}.");
     }
 
     public function confirm(Receipt $receipt)
