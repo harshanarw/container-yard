@@ -19,6 +19,22 @@
         default     => 'DRAFT',
     };
     $half = ($size ?? 'a4') === 'half';
+
+    // Embed the company logo as a base64 data URI (dompdf can't fetch URLs with
+    // remote access disabled). Logos are stored on the 'public' disk.
+    $logoSrc = null;
+    if (!empty($company->logo_path)) {
+        try {
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+            if ($disk->exists($company->logo_path)) {
+                $ext     = strtolower(pathinfo($company->logo_path, PATHINFO_EXTENSION));
+                $mime    = $ext === 'jpg' ? 'image/jpeg' : 'image/' . ($ext ?: 'png');
+                $logoSrc = 'data:' . $mime . ';base64,' . base64_encode($disk->get($company->logo_path));
+            }
+        } catch (\Throwable) {
+            $logoSrc = null;
+        }
+    }
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -65,6 +81,9 @@
 
     <table class="hdr"><tr>
         <td>
+            @if($logoSrc)
+            <img src="{{ $logoSrc }}" alt="{{ $company->company_name }}" style="max-height:{{ $half ? '30px' : '50px' }};max-width:{{ $half ? '120px' : '190px' }};margin-bottom:4px;">
+            @endif
             <div class="co-name">{{ $company->company_name }}</div>
             <div class="co-sub">
                 {{ $company->address }}{{ $company->city ? ', '.$company->city : '' }}<br>
