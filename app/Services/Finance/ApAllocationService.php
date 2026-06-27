@@ -98,10 +98,16 @@ class ApAllocationService
                 if ($outstanding <= 0) {
                     return null;
                 }
+                $dueDate = !empty($inv->due_date) ? \Carbon\Carbon::parse($inv->due_date) : null;
+
                 return [
                     'id'           => $inv->id,
                     'invoice_no'   => $inv->invoice_no,
+                    'reference'    => $inv->supplier_invoice_no ?? null,
                     'invoice_date' => $inv->invoice_date,
+                    'due_date'     => $dueDate,
+                    'past_due'     => $dueDate ? \Carbon\Carbon::today()->gt($dueDate) : false,
+                    'currency'     => strtoupper((string) ($inv->currency ?? '')),
                     'total'        => $this->getTotal($inv),
                     'outstanding'  => $outstanding,
                     'label'        => "{$inv->invoice_no} — outstanding: " . number_format($outstanding, 2),

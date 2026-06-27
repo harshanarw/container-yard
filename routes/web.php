@@ -678,6 +678,9 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/',                             [PaymentVoucherController::class, 'index'])->name('index');
             Route::get('/create',                       [PaymentVoucherController::class, 'create'])->name('create');
             Route::post('/',                            [PaymentVoucherController::class, 'store'])->name('store');
+            // Invoice-first cashier flow: pick supplier → select open bills → voucher
+            Route::get('/pay',                          [PaymentVoucherController::class, 'payBills'])->name('pay');
+            Route::post('/pay',                         [PaymentVoucherController::class, 'storePayBills'])->name('pay.store');
             Route::get('/{voucher}',                    [PaymentVoucherController::class, 'show'])->name('show');
             Route::post('/{voucher}/confirm',           [PaymentVoucherController::class, 'confirm'])->name('confirm');
             Route::post('/{voucher}/void',              [PaymentVoucherController::class, 'void'])->name('void');

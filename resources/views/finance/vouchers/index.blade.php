@@ -15,9 +15,14 @@
         <p class="text-muted mb-0 small">Expense payments and GL postings</p>
     </div>
     @can('finance.vouchers.create')
-    <a href="{{ route('finance.vouchers.create') }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i>New Voucher
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('finance.vouchers.pay') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-cash-stack me-1"></i>Pay Bills
+        </a>
+        <a href="{{ route('finance.vouchers.create') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>New Voucher
+        </a>
+    </div>
     @endcan
 </div>
 

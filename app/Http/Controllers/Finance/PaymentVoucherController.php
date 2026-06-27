@@ -101,6 +101,153 @@ class PaymentVoucherController extends Controller
             ->with('success', "Voucher {$voucher->voucher_no} created successfully.");
     }
 
+    /**
+     * Invoice-first "Pay Bills" screen: pick a supplier/contact, see their open
+     * (posted) supplier invoices, tick the ones being paid, then create (and
+     * optionally post) the voucher + allocations in one step.
+     */
+    public function payBills(Request $request)
+    {
+        $this->authorize('finance.vouchers.create');
+
+        $suppliers    = Customer::apContacts()->get(['id', 'code', 'name', 'currency']);
+        $bankAccounts = BankAccount::where('is_active', true)->orderBy('bank_name')->get();
+        $currencies   = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
+        $baseCurrency = CompanySetting::baseCurrency();
+
+        $supplier        = null;
+        $pendingInvoices = collect();
+        if ($request->filled('customer_id')) {
+            $supplier        = Customer::find($request->customer_id);
+            $pendingInvoices = $supplier
+                ? $this->allocationService->pendingForSupplier((int) $supplier->id)
+                : collect();
+        }
+
+        $canPost = auth()->user()->can('finance.vouchers.confirm');
+
+        return view('finance.vouchers.pay', compact(
+            'suppliers', 'bankAccounts', 'currencies', 'baseCurrency',
+            'supplier', 'pendingInvoices', 'canPost'
+        ));
+    }
+
+    public function storePayBills(Request $request)
+    {
+        $this->authorize('finance.vouchers.create');
+
+        $validated = $request->validate([
+            'customer_id'           => ['required', 'exists:customers,id'],
+            'voucher_date'          => ['required', 'date'],
+            'bank_account_id'       => ['nullable', 'exists:bank_accounts,id'],
+            'currency'              => ['required', 'string', 'max:10', 'exists:currencies,code'],
+            'exchange_rate'         => ['required', 'numeric', 'min:0.000001'],
+            'payment_method'        => ['required', 'in:cash,cheque,bank_transfer,online'],
+            'cheque_no'             => ['nullable', 'string', 'max:50'],
+            'reference_no'          => ['nullable', 'string', 'max:100'],
+            'narration'             => ['required', 'string', 'max:255'],
+            'action'                => ['nullable', 'in:draft,post'],
+            'allocations'           => ['required', 'array', 'min:1'],
+            'allocations.*.id'      => ['required', 'integer', 'min:1'],
+            'allocations.*.amount'  => ['nullable', 'numeric', 'min:0'],
+            'allocations.*.selected' => ['nullable'],
+        ]);
+
+        $selected = collect($validated['allocations'])
+            ->filter(fn ($a) => !empty($a['selected']) && (float) ($a['amount'] ?? 0) > 0)
+            ->values();
+
+        if ($selected->isEmpty()) {
+            return back()->withInput()->with('error', 'Select at least one bill and enter an amount to pay.');
+        }
+
+        $supplier = Customer::find($validated['customer_id']);
+        $voucherCurrency = strtoupper($validated['currency']);
+        $base = CompanySetting::baseCurrency();
+        $rate = (float) $validated['exchange_rate'];
+
+        try {
+            $voucher = DB::transaction(function () use ($validated, $selected, $supplier, $voucherCurrency, $base, $rate) {
+                $rows = [];
+                foreach ($selected as $sel) {
+                    $invoice = $this->allocationService->resolveInvoice((int) $sel['id']);
+
+                    if ((int) $invoice->customer_id !== (int) $validated['customer_id']) {
+                        throw new \RuntimeException("Bill {$invoice->invoice_no} does not belong to the selected supplier.");
+                    }
+                    if (!$invoice->isPosted()) {
+                        throw new \RuntimeException("Bill {$invoice->invoice_no} is not posted to the GL yet.");
+                    }
+
+                    $invCurrency = strtoupper((string) $invoice->currency) ?: $base;
+                    if ($invCurrency !== $voucherCurrency) {
+                        throw new \RuntimeException(
+                            "Bill {$invoice->invoice_no} is in {$invCurrency} but the voucher is in {$voucherCurrency}. "
+                            . "Settle bills of one currency per voucher."
+                        );
+                    }
+
+                    $outstanding = $this->allocationService->getOutstanding($invoice);
+                    $amount      = round((float) $sel['amount'], 2);
+                    if ($amount > round($outstanding + 0.005, 2)) {
+                        throw new \RuntimeException(
+                            "Amount for {$invoice->invoice_no} exceeds its outstanding balance of " . number_format($outstanding, 2) . '.'
+                        );
+                    }
+
+                    $rows[] = ['invoice' => $invoice, 'amount' => $amount];
+                }
+
+                $totalAmount = round(collect($rows)->sum('amount'), 2);
+
+                $voucher = PaymentVoucher::create([
+                    'voucher_no'      => $this->nextVoucherNo(),
+                    'voucher_date'    => $validated['voucher_date'],
+                    'customer_id'     => $validated['customer_id'],
+                    'payee_name'      => $supplier?->name ?? 'Supplier',
+                    'bank_account_id' => $validated['bank_account_id'] ?? null,
+                    'amount'          => $totalAmount,
+                    'currency'        => $voucherCurrency,
+                    'exchange_rate'   => $rate,
+                    'base_amount'     => round($totalAmount * $rate, 4),
+                    'payment_method'  => $validated['payment_method'],
+                    'cheque_no'       => $validated['cheque_no'] ?? null,
+                    'reference_no'    => $validated['reference_no'] ?? null,
+                    'narration'       => $validated['narration'],
+                    'created_by'      => auth()->id(),
+                    'status'          => 'draft',
+                ]);
+
+                foreach ($rows as $r) {
+                    $voucher->allocations()->create([
+                        'supplier_invoice_id' => $r['invoice']->id,
+                        'allocated_amount'    => $r['amount'],
+                        'base_amount'         => round($r['amount'] * $rate, 4),
+                    ]);
+                    $this->allocationService->syncInvoiceStatus($r['invoice']);
+                }
+
+                return $voucher;
+            });
+        } catch (\Throwable $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        if (($validated['action'] ?? 'draft') === 'post' && auth()->user()->can('finance.vouchers.confirm')) {
+            try {
+                $this->postingService->confirmVoucher($voucher, auth()->id());
+                return redirect()->route('finance.vouchers.show', $voucher)
+                    ->with('success', "Voucher {$voucher->voucher_no} created and posted to GL.");
+            } catch (\Throwable $e) {
+                return redirect()->route('finance.vouchers.show', $voucher)
+                    ->with('error', 'Voucher saved as draft, but posting failed: ' . $e->getMessage());
+            }
+        }
+
+        return redirect()->route('finance.vouchers.show', $voucher)
+            ->with('success', "Voucher {$voucher->voucher_no} created as draft.");
+    }
+
     public function show(PaymentVoucher $voucher)
     {
         $this->authorize('finance.vouchers.view');
