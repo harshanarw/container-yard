@@ -923,18 +923,34 @@
                     </li>
                     <li class="nav-item sub-item">
                         <a href="{{ route('finance.receipts.index') }}"
-                           class="nav-link {{ request()->routeIs('finance.receipts.*') ? 'active' : '' }}">
+                           class="nav-link {{ request()->routeIs('finance.receipts.*') && !request()->routeIs('finance.receipts.receive') ? 'active' : '' }}">
                             <i class="bi bi-receipt"></i><span>Receipts</span>
                         </a>
                     </li>
+                    @can('finance.receipts.create')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.receipts.receive') }}"
+                           class="nav-link {{ request()->routeIs('finance.receipts.receive') ? 'active' : '' }}">
+                            <i class="bi bi-cash-coin"></i><span>Receive Payment</span>
+                        </a>
+                    </li>
+                    @endcan
                     @endcan
                     @can('finance.vouchers.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('finance.vouchers.index') }}"
-                           class="nav-link {{ request()->routeIs('finance.vouchers.*') ? 'active' : '' }}">
+                           class="nav-link {{ request()->routeIs('finance.vouchers.*') && !request()->routeIs('finance.vouchers.pay') ? 'active' : '' }}">
                             <i class="bi bi-cash-coin"></i><span>Payment Vouchers</span>
                         </a>
                     </li>
+                    @can('finance.vouchers.create')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.vouchers.pay') }}"
+                           class="nav-link {{ request()->routeIs('finance.vouchers.pay') ? 'active' : '' }}">
+                            <i class="bi bi-cash-stack"></i><span>Pay Bills</span>
+                        </a>
+                    </li>
+                    @endcan
                     @endcan
                 </ul>
             </div>
