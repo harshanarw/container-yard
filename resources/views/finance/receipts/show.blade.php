@@ -77,11 +77,18 @@
                         <label class="form-label small fw-semibold">CC</label>
                         <input type="email" name="cc_email" class="form-control form-control-sm">
                     </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Attachment Format</label>
+                        <select name="format" class="form-select form-select-sm">
+                            <option value="a4" selected>Full Page (A4)</option>
+                            <option value="half">Half Page (slip)</option>
+                        </select>
+                    </div>
                     <div class="mb-1">
                         <label class="form-label small fw-semibold">Message</label>
                         <textarea name="message" rows="3" class="form-control form-control-sm" maxlength="1000" placeholder="Optional note to include in the email"></textarea>
                     </div>
-                    <div class="form-text small">The receipt PDF (A4) is attached automatically.</div>
+                    <div class="form-text small">The selected receipt PDF is attached automatically (computer-generated copy — no signature lines).</div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>

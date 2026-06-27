@@ -407,6 +407,7 @@ class PaymentVoucherController extends Controller
             'to_email' => ['required', 'email'],
             'cc_email' => ['nullable', 'email'],
             'message'  => ['nullable', 'string', 'max:1000'],
+            'format'   => ['nullable', 'in:a4,half'],
         ]);
 
         try {
@@ -416,7 +417,7 @@ class PaymentVoucherController extends Controller
             if (!empty($validated['cc_email'])) {
                 $pending->cc($validated['cc_email']);
             }
-            $pending->send(new PaymentVoucherMail($voucher, $validated['message'] ?? null));
+            $pending->send(new PaymentVoucherMail($voucher, $validated['message'] ?? null, $validated['format'] ?? 'a4'));
         } catch (\Throwable $e) {
             return back()->with('error', $this->friendlyMailError($e));
         }

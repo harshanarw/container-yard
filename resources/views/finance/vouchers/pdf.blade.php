@@ -141,6 +141,7 @@
     <div class="narr"><span class="muted">Narration:</span> {{ $voucher->narration }}</div>
     @endif
 
+    @if($showSignature ?? true)
     <table class="sign"><tr>
         <td style="width:45%;">
             <div class="sigline"></div>
@@ -152,6 +153,11 @@
             <div class="siglabel">Authorized Signatory</div>
         </td>
     </tr></table>
+    @else
+    <div style="margin-top:{{ $half ? '12px' : '28px' }};text-align:center;color:#777;font-style:italic;font-size:{{ $half ? '8px' : '10px' }};">
+        This is a computer-generated voucher and does not require a signature.
+    </div>
+    @endif
 
     <table class="ftr"><tr>
         <td style="text-align:left;">Computer-generated voucher · {{ $company->company_name }}</td>

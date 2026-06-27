@@ -21,6 +21,7 @@ class PaymentVoucherMail extends Mailable
     public function __construct(
         public PaymentVoucher $voucher,
         public ?string $customMessage = null,
+        public string $size = 'a4',
     ) {
         $this->company = CompanySetting::current();
         $this->voucher->loadMissing(['supplier', 'bankAccount', 'allocations.invoice', 'createdBy']);
@@ -38,14 +39,23 @@ class PaymentVoucherMail extends Mailable
 
     public function attachments(): array
     {
-        $pdf = Pdf::loadView('finance.vouchers.pdf', ['voucher' => $this->voucher, 'size' => 'a4'])
-            ->setPaper('a4', 'portrait')
+        $size  = $this->size === 'half' ? 'half' : 'a4';
+        $paper = $size === 'half' ? 'a5' : 'a4';
+
+        $pdf = Pdf::loadView('finance.vouchers.pdf', [
+                'voucher'       => $this->voucher,
+                'size'          => $size,
+                'showSignature' => false, // digital copy — no manual signature lines
+            ])
+            ->setPaper($paper, 'portrait')
             ->set_option('defaultFont', 'sans-serif')
             ->set_option('isHtml5ParserEnabled', true)
             ->set_option('isRemoteEnabled', false);
 
+        $filename = 'Voucher-' . $this->voucher->voucher_no . ($size === 'half' ? '-slip' : '') . '.pdf';
+
         return [
-            Attachment::fromData(fn () => $pdf->output(), 'Voucher-' . $this->voucher->voucher_no . '.pdf')
+            Attachment::fromData(fn () => $pdf->output(), $filename)
                 ->withMime('application/pdf'),
         ];
     }
