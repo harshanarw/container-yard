@@ -145,10 +145,10 @@
         @unless($half)<td style="width:8%"></td><td><div class="line" style="margin-left:auto;">Authorized Signatory</div></td>@endunless
     </tr></table>
 
-    <div class="ftr">
-        Computer-generated voucher · {{ $company->company_name }}<br>
-        &copy; {{ date('Y') }} {{ $company->software_provider ?? 'CYM Software' }}
-    </div>
+    <table class="ftr"><tr>
+        <td style="text-align:left;">Computer-generated voucher · {{ $company->company_name }}</td>
+        <td style="text-align:right;">&copy; {{ date('Y') }} {{ $company->software_provider ?? 'CYM Software' }}</td>
+    </tr></table>
 </div>
 </body>
 </html>
