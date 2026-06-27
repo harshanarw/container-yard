@@ -11,13 +11,13 @@ use App\Models\Currency;
 use App\Models\Customer;
 use App\Models\PaymentAllocation;
 use App\Models\PaymentVoucher;
+use App\Services\ConfiguredMailer;
 use App\Services\Finance\ApAllocationService;
 use App\Services\Finance\ReceiptPostingService;
 use App\Support\HandlesMailErrors;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 
 class PaymentVoucherController extends Controller
 {
@@ -410,11 +410,13 @@ class PaymentVoucherController extends Controller
         ]);
 
         try {
-            $mail = Mail::to($validated['to_email']);
+            // Send via the configured mailer (DB Email Config), same as invoices/
+            // estimates — not the raw .env mailer. Falls back to the 'general' config.
+            $pending = ConfiguredMailer::forCategory('voucher')->to($validated['to_email']);
             if (!empty($validated['cc_email'])) {
-                $mail->cc($validated['cc_email']);
+                $pending->cc($validated['cc_email']);
             }
-            $mail->send(new PaymentVoucherMail($voucher, $validated['message'] ?? null));
+            $pending->send(new PaymentVoucherMail($voucher, $validated['message'] ?? null));
         } catch (\Throwable $e) {
             return back()->with('error', $this->friendlyMailError($e));
         }
