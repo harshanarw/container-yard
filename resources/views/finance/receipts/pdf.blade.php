@@ -72,7 +72,7 @@
     .sign { margin-top: {{ $half ? '20px' : '48px' }}; }
     .sign td { vertical-align: bottom; }
     .sigline { border-top: 1px solid #888; }
-    .siglabel { padding-top: 3px; color: #555; font-size: {{ $half ? '8px' : '11px' }}; }
+    .siglabel { padding-top: 3px; color: #555; font-size: {{ $half ? '8px' : '11px' }}; text-align: center; }
     .ftr { margin-top: {{ $half ? '6px' : '16px' }}; color: #999; font-size: {{ $half ? '7px' : '9px' }}; text-align: center; }
     .muted { color: #777; }
 </style>
