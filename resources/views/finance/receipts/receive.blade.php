@@ -123,7 +123,10 @@
         <div class="card content-card">
             <div class="card-header bg-transparent py-2 d-flex justify-content-between align-items-center">
                 <strong class="small">Outstanding Invoices ({{ $pendingInvoices->count() }})</strong>
-                <span class="small">Total to receive: <span class="fw-bold font-monospace" id="totalDisplay">0.00</span> <span id="ccyLabel">{{ $baseCurrency }}</span></span>
+                <span class="small">
+                    Total to receive: <span class="fw-bold font-monospace" id="totalDisplay">0.00</span> <span id="ccyLabel">{{ $baseCurrency }}</span>
+                    <span id="baseEquiv" class="text-muted ms-2" style="display:none;">≈ <span id="baseTotalDisplay" class="font-monospace">0.00</span> {{ $baseCurrency }} @ <span id="rateDisplay" class="font-monospace"></span></span>
+                </span>
             </div>
             <div class="table-responsive">
                 <table class="table table-sm align-middle mb-0 small">
@@ -134,8 +137,8 @@
                             <th>Type</th>
                             <th>Due</th>
                             <th class="text-center">Ccy</th>
-                            <th class="text-end">Outstanding</th>
-                            <th class="text-end" style="width:160px;">Amount to Apply</th>
+                            <th class="text-end">Outstanding <span class="hdr-ccy text-muted fw-normal"></span></th>
+                            <th class="text-end" style="width:160px;">Amount to Apply <span class="hdr-ccy text-muted fw-normal"></span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -202,6 +205,7 @@
     const totalDisplay = document.getElementById('totalDisplay');
 
     function selectedCurrency() { return currencyEl ? currencyEl.value : baseCurrency; }
+    function fmt(n) { return (n || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
 
     function recomputeTotal() {
         let total = 0;
@@ -211,13 +215,28 @@
                 total += parseFloat(amt && amt.value ? amt.value : 0) || 0;
             }
         });
-        if (totalDisplay) totalDisplay.textContent = total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (totalDisplay) totalDisplay.textContent = fmt(total);
+
+        // Live base-currency (LKR) equivalent — shown only for foreign currency.
+        const cur  = selectedCurrency();
+        const rate = parseFloat(rateEl ? rateEl.value : 1) || 1;
+        const baseEquiv = document.getElementById('baseEquiv');
+        if (baseEquiv) {
+            if (cur !== baseCurrency) {
+                document.getElementById('baseTotalDisplay').textContent = fmt(total * rate);
+                document.getElementById('rateDisplay').textContent = Number(rate).toFixed(6);
+                baseEquiv.style.display = '';
+            } else {
+                baseEquiv.style.display = 'none';
+            }
+        }
     }
 
     // Enable/disable rows whose currency doesn't match the receipt currency.
     function applyCurrencyFilter() {
         const cur = selectedCurrency();
         if (ccyLabel) ccyLabel.textContent = cur;
+        document.querySelectorAll('.hdr-ccy').forEach(el => el.textContent = '(' + cur + ')');
         document.querySelectorAll('tr[data-currency]').forEach(tr => {
             const match = (tr.dataset.currency || baseCurrency) === cur;
             const cb  = tr.querySelector('.row-check');
@@ -257,8 +276,10 @@
         rateEl.readOnly = false;
         fetch(rateUrl + '?from=' + encodeURIComponent(cur) + '&date=' + encodeURIComponent(date ? date.value : ''),
               { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(r => r.json()).then(d => { if (d && d.rate) rateEl.value = Number(d.rate).toFixed(6); }).catch(() => {});
+            .then(r => r.json()).then(d => { if (d && d.rate) rateEl.value = Number(d.rate).toFixed(6); recomputeTotal(); }).catch(() => {});
     }
+
+    if (rateEl) rateEl.addEventListener('input', recomputeTotal);
 
     if (currencyEl) {
         $('#currencyField').on('change', function () { applyCurrencyFilter(); refreshFxRate(); });
