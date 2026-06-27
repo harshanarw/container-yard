@@ -28,6 +28,7 @@
                 <td style="padding:10px 14px;text-align:right;font-weight:bold;color:#b02a37;">{{ $cur }} {{ number_format($voucher->amount, 2) }}</td></tr>
         </table>
         <p style="margin:18px 0 0;color:#888;font-size:12px;">This is a computer-generated email from {{ $company->company_name }}.</p>
+        <p style="margin:6px 0 0;color:#adb5bd;font-size:11px;">&copy; {{ date('Y') }} {{ $company->software_provider ?? 'CYM Software' }}</p>
     </td></tr>
 </table>
 </td></tr>
