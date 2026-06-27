@@ -163,7 +163,7 @@
                                        class="form-control form-control-sm text-end font-monospace amount-input"
                                        data-i="{{ $i }}" data-outstanding="{{ $pi['outstanding'] }}"
                                        name="allocations[{{ $i }}][amount]"
-                                       value="{{ number_format($pi['outstanding'], 2, '.', '') }}" disabled>
+                                       value="{{ number_format($pi['outstanding'], 2, '.', '') }}">
                             </td>
                         </tr>
                         @endforeach
@@ -244,21 +244,27 @@
             tr.classList.toggle('text-muted', !match);
             tr.style.opacity = match ? '' : '0.45';
             if (cb) { cb.disabled = !match; if (!match) cb.checked = false; }
-            if (amt && !match) amt.disabled = true;
-            if (amt && match && cb && !cb.checked) amt.disabled = true;
+            // Amount is editable for matching-currency rows; locked only when the
+            // invoice currency differs from the receipt currency.
+            if (amt) amt.disabled = !match;
         });
         recomputeTotal();
     }
 
-    // Row checkbox toggles its amount input.
+    // Ticking a row fills the full outstanding (if blank); editing the amount
+    // auto-ticks the row. Either way you can adjust the amount freely.
     document.querySelectorAll('.row-check').forEach(cb => {
         cb.addEventListener('change', function () {
             const amt = document.querySelector('.amount-input[data-i="' + this.dataset.i + '"]');
-            if (amt) { amt.disabled = !this.checked; if (this.checked && !amt.value) amt.value = amt.dataset.outstanding; }
+            if (amt && this.checked && (!amt.value || parseFloat(amt.value) <= 0)) amt.value = amt.dataset.outstanding;
             recomputeTotal();
         });
     });
-    document.querySelectorAll('.amount-input').forEach(a => a.addEventListener('input', recomputeTotal));
+    document.querySelectorAll('.amount-input').forEach(a => a.addEventListener('input', function () {
+        const cb = document.querySelector('.row-check[data-i="' + this.dataset.i + '"]');
+        if (cb && !cb.disabled) cb.checked = parseFloat(this.value) > 0;
+        recomputeTotal();
+    }));
 
     const checkAll = document.getElementById('checkAll');
     if (checkAll) checkAll.addEventListener('change', function () {
