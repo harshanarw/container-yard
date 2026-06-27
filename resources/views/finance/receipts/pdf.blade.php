@@ -83,15 +83,21 @@
     {{-- Letterhead --}}
     <table class="hdr"><tr>
         <td>
-            @if($logoSrc)
-            <img src="{{ $logoSrc }}" alt="{{ $company->company_name }}" style="max-height:{{ $half ? '30px' : '50px' }};max-width:{{ $half ? '120px' : '190px' }};margin-bottom:4px;">
-            @endif
-            <div class="co-name">{{ $company->company_name }}</div>
-            <div class="co-sub">
-                {{ $company->address }}{{ $company->city ? ', '.$company->city : '' }}<br>
-                @if($company->telephone)Tel: {{ $company->telephone }} @endif @if($company->email) · {{ $company->email }}@endif<br>
-                @if($company->vat_number)VAT: {{ $company->vat_number }}@endif @if($company->tin_number) · TIN: {{ $company->tin_number }}@endif
-            </div>
+            <table><tr>
+                @if($logoSrc)
+                <td style="vertical-align:middle;width:1%;white-space:nowrap;padding-right:{{ $half ? '8px' : '12px' }};">
+                    <img src="{{ $logoSrc }}" alt="{{ $company->company_name }}" style="max-height:{{ $half ? '34px' : '54px' }};max-width:{{ $half ? '110px' : '170px' }};display:block;">
+                </td>
+                @endif
+                <td style="vertical-align:middle;">
+                    <div class="co-name">{{ $company->company_name }}</div>
+                    <div class="co-sub">
+                        {{ $company->address }}{{ $company->city ? ', '.$company->city : '' }}<br>
+                        @if($company->telephone)Tel: {{ $company->telephone }} @endif @if($company->email) · {{ $company->email }}@endif<br>
+                        @if($company->vat_number)VAT: {{ $company->vat_number }}@endif @if($company->tin_number) · TIN: {{ $company->tin_number }}@endif
+                    </div>
+                </td>
+            </tr></table>
         </td>
         <td class="doc-title">
             <h1>RECEIPT</h1>
