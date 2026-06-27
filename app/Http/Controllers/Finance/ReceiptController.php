@@ -308,10 +308,18 @@ class ReceiptController extends Controller
             }
             $pending->send(new ReceiptMail($receipt, $validated['message'] ?? null, $validated['format'] ?? 'a4'));
         } catch (\Throwable $e) {
-            return back()->with('error', $this->friendlyMailError($e));
+            $msg = $this->friendlyMailError($e);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $msg], 422);
+            }
+            return back()->with('error', $msg);
         }
 
-        return back()->with('success', "Receipt {$receipt->receipt_no} emailed to {$validated['to_email']}.");
+        $msg = "Receipt {$receipt->receipt_no} emailed to {$validated['to_email']}.";
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => $msg]);
+        }
+        return back()->with('success', $msg);
     }
 
     public function confirm(Receipt $receipt)

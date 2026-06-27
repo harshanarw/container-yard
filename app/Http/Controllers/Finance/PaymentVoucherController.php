@@ -419,10 +419,18 @@ class PaymentVoucherController extends Controller
             }
             $pending->send(new PaymentVoucherMail($voucher, $validated['message'] ?? null, $validated['format'] ?? 'a4'));
         } catch (\Throwable $e) {
-            return back()->with('error', $this->friendlyMailError($e));
+            $msg = $this->friendlyMailError($e);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $msg], 422);
+            }
+            return back()->with('error', $msg);
         }
 
-        return back()->with('success', "Voucher {$voucher->voucher_no} emailed to {$validated['to_email']}.");
+        $msg = "Voucher {$voucher->voucher_no} emailed to {$validated['to_email']}.";
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => $msg]);
+        }
+        return back()->with('success', $msg);
     }
 
     public function confirm(PaymentVoucher $voucher)

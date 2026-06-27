@@ -66,7 +66,7 @@
 <div class="modal fade" id="emailModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="{{ route('finance.vouchers.email', $voucher) }}">
+            <form method="POST" action="{{ route('finance.vouchers.email', $voucher) }}" id="emailForm">
                 @csrf
                 <div class="modal-header">
                     <h6 class="modal-title"><i class="bi bi-envelope me-1 text-primary"></i>Email Voucher {{ $voucher->voucher_no }}</h6>
@@ -388,5 +388,39 @@
 </div>
 @endif
 @endcan
+
+@push('scripts')
+<script>
+// Email via AJAX so a slow SMTP send still gives instant toast feedback.
+(function () {
+    const form = document.getElementById('emailForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const btn  = form.querySelector('button[type="submit"]');
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending…';
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            body: new FormData(form),
+        })
+        .then(r => r.json().then(d => ({ ok: r.ok, d })))
+        .then(({ ok, d }) => {
+            if (ok && d.success) {
+                bootstrap.Modal.getInstance(document.getElementById('emailModal'))?.hide();
+                window.showToast ? showToast(d.message || 'Email sent.', 'success') : alert(d.message || 'Email sent.');
+            } else {
+                window.showToast ? showToast((d && d.message) || 'Email could not be sent.', 'danger') : alert((d && d.message) || 'Email could not be sent.');
+            }
+        })
+        .catch(() => { window.showToast ? showToast('Email could not be sent.', 'danger') : alert('Email could not be sent.'); })
+        .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
+    });
+})();
+</script>
+@endpush
 
 @endsection
