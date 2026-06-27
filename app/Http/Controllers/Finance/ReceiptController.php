@@ -11,6 +11,7 @@ use App\Models\Customer;
 use App\Models\Receipt;
 use App\Models\ReceiptAllocation;
 use App\Services\ConfiguredMailer;
+use App\Services\NotificationService;
 use App\Services\Finance\ArAllocationService;
 use App\Services\Finance\ReceiptPostingService;
 use App\Support\HandlesMailErrors;
@@ -316,6 +317,15 @@ class ReceiptController extends Controller
         }
 
         $msg = "Receipt {$receipt->receipt_no} emailed to {$validated['to_email']}.";
+
+        NotificationService::notify(
+            auth()->user(),
+            'Receipt emailed',
+            $msg,
+            'success',
+            route('finance.receipts.show', $receipt),
+        );
+
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => $msg]);
         }

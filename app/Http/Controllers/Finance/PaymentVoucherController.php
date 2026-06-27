@@ -12,6 +12,7 @@ use App\Models\Customer;
 use App\Models\PaymentAllocation;
 use App\Models\PaymentVoucher;
 use App\Services\ConfiguredMailer;
+use App\Services\NotificationService;
 use App\Services\Finance\ApAllocationService;
 use App\Services\Finance\ReceiptPostingService;
 use App\Support\HandlesMailErrors;
@@ -427,6 +428,15 @@ class PaymentVoucherController extends Controller
         }
 
         $msg = "Voucher {$voucher->voucher_no} emailed to {$validated['to_email']}.";
+
+        NotificationService::notify(
+            auth()->user(),
+            'Voucher emailed',
+            $msg,
+            'success',
+            route('finance.vouchers.show', $voucher),
+        );
+
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => $msg]);
         }
