@@ -663,6 +663,9 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/',                             [ReceiptController::class, 'index'])->name('index');
             Route::get('/create',                       [ReceiptController::class, 'create'])->name('create');
             Route::post('/',                            [ReceiptController::class, 'store'])->name('store');
+            // Invoice-first cashier flow: pick customer → select open invoices → receipt
+            Route::get('/receive',                      [ReceiptController::class, 'receive'])->name('receive');
+            Route::post('/receive',                     [ReceiptController::class, 'storeReceivePayment'])->name('receive.store');
             Route::get('/{receipt}',                    [ReceiptController::class, 'show'])->name('show');
             Route::post('/{receipt}/confirm',           [ReceiptController::class, 'confirm'])->name('confirm');
             Route::post('/{receipt}/void',              [ReceiptController::class, 'void'])->name('void');

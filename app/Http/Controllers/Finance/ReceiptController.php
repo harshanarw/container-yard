@@ -94,6 +94,154 @@ class ReceiptController extends Controller
             ->with('success', "Receipt {$receipt->receipt_no} created successfully.");
     }
 
+    /**
+     * Invoice-first "Receive Payment" screen: pick a customer, see their open AR
+     * invoices, tick the ones being paid, then create (and optionally post) the
+     * receipt + allocations in one step.
+     */
+    public function receive(Request $request)
+    {
+        $this->authorize('finance.receipts.create');
+
+        $customers    = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name', 'currency']);
+        $bankAccounts = BankAccount::where('is_active', true)->orderBy('bank_name')->get();
+        $currencies   = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
+        $baseCurrency = CompanySetting::baseCurrency();
+
+        $customer        = null;
+        $pendingInvoices = collect();
+        if ($request->filled('customer_id')) {
+            $customer        = Customer::find($request->customer_id);
+            $pendingInvoices = $customer
+                ? $this->allocationService->pendingForCustomer((int) $customer->id)
+                : collect();
+        }
+
+        $canPost = auth()->user()->can('finance.receipts.confirm');
+
+        return view('finance.receipts.receive', compact(
+            'customers', 'bankAccounts', 'currencies', 'baseCurrency',
+            'customer', 'pendingInvoices', 'canPost'
+        ));
+    }
+
+    public function storeReceivePayment(Request $request)
+    {
+        $this->authorize('finance.receipts.create');
+
+        $validated = $request->validate([
+            'customer_id'           => ['required', 'exists:customers,id'],
+            'receipt_date'          => ['required', 'date'],
+            'bank_account_id'       => ['nullable', 'exists:bank_accounts,id'],
+            'currency'              => ['required', 'string', 'max:10', 'exists:currencies,code'],
+            'exchange_rate'         => ['required', 'numeric', 'min:0.000001'],
+            'payment_method'        => ['required', 'in:cash,cheque,bank_transfer,online'],
+            'cheque_no'             => ['nullable', 'string', 'max:50'],
+            'reference_no'          => ['nullable', 'string', 'max:100'],
+            'narration'             => ['required', 'string', 'max:255'],
+            'action'                => ['nullable', 'in:draft,post'],
+            'allocations'           => ['required', 'array', 'min:1'],
+            'allocations.*.type'    => ['required', 'in:storage,storage-handling,reefer,repair'],
+            'allocations.*.id'      => ['required', 'integer', 'min:1'],
+            'allocations.*.amount'  => ['nullable', 'numeric', 'min:0'],
+            'allocations.*.selected' => ['nullable'],
+        ]);
+
+        // Keep only ticked rows with a positive amount.
+        $selected = collect($validated['allocations'])
+            ->filter(fn ($a) => !empty($a['selected']) && (float) ($a['amount'] ?? 0) > 0)
+            ->values();
+
+        if ($selected->isEmpty()) {
+            return back()->withInput()->with('error', 'Select at least one invoice and enter an amount to receive.');
+        }
+
+        $receiptCurrency = strtoupper($validated['currency']);
+        $base            = CompanySetting::baseCurrency();
+        $rate            = (float) $validated['exchange_rate'];
+
+        try {
+            $receipt = DB::transaction(function () use ($validated, $selected, $receiptCurrency, $base, $rate) {
+                // Validate each selected invoice up front (ownership, currency, outstanding).
+                $rows = [];
+                foreach ($selected as $sel) {
+                    $invoice = $this->allocationService->resolveInvoice($sel['type'], (int) $sel['id']);
+
+                    $invCustomerId = $this->allocationService->getCustomerId($invoice, $sel['type']);
+                    if ($invCustomerId && (int) $invCustomerId !== (int) $validated['customer_id']) {
+                        throw new \RuntimeException("Invoice {$invoice->invoice_no} does not belong to the selected customer.");
+                    }
+
+                    $invCurrency = strtoupper((string) ($invoice->invoice_currency ?? $invoice->currency ?? '')) ?: $base;
+                    if ($invCurrency !== $receiptCurrency) {
+                        throw new \RuntimeException(
+                            "Invoice {$invoice->invoice_no} is in {$invCurrency} but the receipt is in {$receiptCurrency}. "
+                            . "Settle invoices of one currency per receipt."
+                        );
+                    }
+
+                    $outstanding = $this->allocationService->getOutstanding($invoice, $sel['type']);
+                    $amount      = round((float) $sel['amount'], 2);
+                    if ($amount > round($outstanding + 0.005, 2)) {
+                        throw new \RuntimeException(
+                            "Amount for {$invoice->invoice_no} exceeds its outstanding balance of " . number_format($outstanding, 2) . '.'
+                        );
+                    }
+
+                    $rows[] = ['invoice' => $invoice, 'type' => $sel['type'], 'amount' => $amount];
+                }
+
+                $totalAmount = round(collect($rows)->sum('amount'), 2);
+
+                $receipt = Receipt::create([
+                    'receipt_no'      => $this->nextReceiptNo(),
+                    'receipt_date'    => $validated['receipt_date'],
+                    'customer_id'     => $validated['customer_id'],
+                    'bank_account_id' => $validated['bank_account_id'] ?? null,
+                    'amount'          => $totalAmount,
+                    'currency'        => $receiptCurrency,
+                    'exchange_rate'   => $rate,
+                    'base_amount'     => round($totalAmount * $rate, 4),
+                    'payment_method'  => $validated['payment_method'],
+                    'cheque_no'       => $validated['cheque_no'] ?? null,
+                    'reference_no'    => $validated['reference_no'] ?? null,
+                    'narration'       => $validated['narration'],
+                    'created_by'      => auth()->id(),
+                    'status'          => 'draft',
+                ]);
+
+                foreach ($rows as $r) {
+                    $receipt->allocations()->create([
+                        'invoice_type'     => $r['type'],
+                        'invoice_id'       => $r['invoice']->id,
+                        'allocated_amount' => $r['amount'],
+                        'base_amount'      => round($r['amount'] * $rate, 4),
+                    ]);
+                    $this->allocationService->syncInvoiceStatus($r['invoice'], $r['type']);
+                }
+
+                return $receipt;
+            });
+        } catch (\Throwable $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        // Optionally post immediately if requested and permitted.
+        if (($validated['action'] ?? 'draft') === 'post' && auth()->user()->can('finance.receipts.confirm')) {
+            try {
+                $this->postingService->confirmReceipt($receipt, auth()->id());
+                return redirect()->route('finance.receipts.show', $receipt)
+                    ->with('success', "Receipt {$receipt->receipt_no} created and posted to GL.");
+            } catch (\Throwable $e) {
+                return redirect()->route('finance.receipts.show', $receipt)
+                    ->with('error', 'Receipt saved as draft, but posting failed: ' . $e->getMessage());
+            }
+        }
+
+        return redirect()->route('finance.receipts.show', $receipt)
+            ->with('success', "Receipt {$receipt->receipt_no} created as draft.");
+    }
+
     public function show(Receipt $receipt)
     {
         $this->authorize('finance.receipts.view');

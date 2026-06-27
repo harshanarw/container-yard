@@ -195,6 +195,7 @@ class ArAllocationService
             'invoice_date' => $inv->invoice_date,
             'due_date'     => $dueDate,
             'past_due'     => $pastDue,
+            'currency'     => strtoupper((string) ($inv->invoice_currency ?? $inv->currency ?? '')),
             'total'        => $this->getTotal($inv, $type),
             'outstanding'  => $outstanding,
             'label'        => "[{$label}] {$inv->invoice_no} — outstanding: " . number_format($outstanding, 2)

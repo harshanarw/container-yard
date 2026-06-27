@@ -15,9 +15,14 @@
         <p class="text-muted mb-0 small">Customer payment receipts and GL postings</p>
     </div>
     @can('finance.receipts.create')
-    <a href="{{ route('finance.receipts.create') }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i>New Receipt
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('finance.receipts.receive') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-cash-coin me-1"></i>Receive Payment
+        </a>
+        <a href="{{ route('finance.receipts.create') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>New Receipt
+        </a>
+    </div>
     @endcan
 </div>
 
