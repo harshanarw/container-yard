@@ -88,14 +88,22 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label fw-semibold small">Currency <span class="text-danger">*</span></label>
-                    <input type="text" name="currency" id="currencyField" class="form-control form-control-sm @error('currency') is-invalid @enderror"
-                           value="{{ old('currency', 'USD') }}" required maxlength="10" placeholder="USD">
+                    <select name="currency" id="currencyField" class="form-select form-select-sm s2-code @error('currency') is-invalid @enderror" data-s2-sel="name" required>
+                        @foreach($currencies as $cur)
+                        <option value="{{ $cur->code }}"
+                            data-code="{{ $cur->code }}" data-name="{{ $cur->name }}"
+                            {{ old('currency', $baseCurrency) === $cur->code ? 'selected' : '' }}>
+                            {{ $cur->code }} — {{ $cur->name }}
+                        </option>
+                        @endforeach
+                    </select>
                     @error('currency')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-4">
                     <label class="form-label fw-semibold small">Exchange Rate <span class="text-danger">*</span></label>
-                    <input type="number" name="exchange_rate" class="form-control form-control-sm @error('exchange_rate') is-invalid @enderror"
+                    <input type="number" name="exchange_rate" id="exchangeRateField" class="form-control form-control-sm @error('exchange_rate') is-invalid @enderror"
                            value="{{ old('exchange_rate', '1.000000') }}" required min="0.000001" step="0.000001">
+                    <div class="form-text text-muted small">Base currency: {{ $baseCurrency }}. Auto-filled from the rate master; editable.</div>
                     @error('exchange_rate')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-12">
@@ -121,10 +129,40 @@
 document.getElementById('paymentMethod').addEventListener('change', function () {
     document.getElementById('chequeNoRow').style.display = this.value === 'cheque' ? '' : 'none';
 });
+
+const baseCurrency = @json($baseCurrency);
+const rateUrl      = @json(route('finance.fx-rate'));
+
+// Auto-fill the exchange rate from the rate master when the currency (or date)
+// changes. Base currency → rate locked at 1; foreign → fetched but editable.
+function refreshFxRate() {
+    const cur  = document.getElementById('currencyField').value;
+    const rate = document.getElementById('exchangeRateField');
+    const date = document.querySelector('[name="receipt_date"]');
+    if (!cur || !rate) return;
+
+    if (cur === baseCurrency) {
+        rate.value = '1.000000';
+        rate.readOnly = true;
+        return;
+    }
+    rate.readOnly = false;
+    fetch(rateUrl + '?from=' + encodeURIComponent(cur) + '&date=' + encodeURIComponent(date ? date.value : ''),
+          { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(d => { if (d && d.rate) rate.value = Number(d.rate).toFixed(6); })
+        .catch(() => {});
+}
+
+// currencyField is a select2 (s2-code) — bind via jQuery so select2 changes fire.
+$('#currencyField').on('change', refreshFxRate);
+$('[name="receipt_date"]').on('change', refreshFxRate);
+refreshFxRate(); // initial state
+
+// Customer change pre-fills their default currency (select2-aware).
 document.getElementById('customerSelect').addEventListener('change', function () {
-    var opt = this.options[this.selectedIndex];
-    var cur = opt.dataset.currency;
-    if (cur) document.getElementById('currencyField').value = cur;
+    var cur = this.options[this.selectedIndex].dataset.currency;
+    if (cur) $('#currencyField').val(cur.toUpperCase()).trigger('change');
 });
 </script>
 @endpush

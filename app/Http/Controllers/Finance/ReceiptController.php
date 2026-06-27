@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
+use App\Models\CompanySetting;
+use App\Models\Currency;
 use App\Models\Customer;
 use App\Models\Receipt;
 use App\Models\ReceiptAllocation;
@@ -55,8 +57,10 @@ class ReceiptController extends Controller
 
         $customers    = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name', 'currency']);
         $bankAccounts = BankAccount::where('is_active', true)->orderBy('bank_name')->get();
+        $currencies   = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
+        $baseCurrency = CompanySetting::baseCurrency();
 
-        return view('finance.receipts.create', compact('customers', 'bankAccounts'));
+        return view('finance.receipts.create', compact('customers', 'bankAccounts', 'currencies', 'baseCurrency'));
     }
 
     public function store(Request $request)
@@ -68,7 +72,7 @@ class ReceiptController extends Controller
             'customer_id'     => ['required', 'exists:customers,id'],
             'bank_account_id' => ['nullable', 'exists:bank_accounts,id'],
             'amount'          => ['required', 'numeric', 'min:0.0001'],
-            'currency'        => ['required', 'string', 'max:10'],
+            'currency'        => ['required', 'string', 'max:10', 'exists:currencies,code'],
             'exchange_rate'   => ['required', 'numeric', 'min:0.000001'],
             'payment_method'  => ['required', 'in:cash,cheque,bank_transfer,online'],
             'cheque_no'       => ['nullable', 'string', 'max:50'],
@@ -76,8 +80,10 @@ class ReceiptController extends Controller
             'narration'       => ['required', 'string', 'max:255'],
         ]);
 
-        $validated['created_by'] = auth()->id();
-        $validated['status']     = 'draft';
+        $validated['created_by']  = auth()->id();
+        $validated['status']      = 'draft';
+        // Snapshot the base/reporting-currency (LKR) value at entry time.
+        $validated['base_amount'] = round((float) $validated['amount'] * (float) $validated['exchange_rate'], 4);
 
         $receipt = DB::transaction(function () use ($validated) {
             $validated['receipt_no'] = $this->nextReceiptNo();
@@ -173,11 +179,16 @@ class ReceiptController extends Controller
             return back()->with('error', 'This invoice does not belong to the receipt\'s customer.');
         }
 
-        $invoiceCurrency = strtoupper((string) ($invoice->invoice_currency ?? $invoice->currency ?? ''));
-        $receiptCurrency = strtoupper((string) ($receipt->currency ?? ''));
-        if ($invoiceCurrency && $receiptCurrency && $invoiceCurrency !== $receiptCurrency) {
+        // A blank currency on either side is treated as the base currency, so a
+        // foreign-currency receipt can never be silently allocated to a base-currency
+        // invoice (the previous skip-when-empty check allowed exactly that).
+        $base            = CompanySetting::baseCurrency();
+        $invoiceCurrency = strtoupper((string) ($invoice->invoice_currency ?? $invoice->currency ?? '')) ?: $base;
+        $receiptCurrency = strtoupper((string) ($receipt->currency ?? '')) ?: $base;
+        if ($invoiceCurrency !== $receiptCurrency) {
             return back()->with('error',
-                "Currency mismatch: the receipt is in {$receipt->currency} but the invoice is in {$invoiceCurrency}."
+                "Currency mismatch: the receipt is in {$receiptCurrency} but the invoice is in {$invoiceCurrency}. "
+                . "Cross-currency settlement isn't supported yet."
             );
         }
 

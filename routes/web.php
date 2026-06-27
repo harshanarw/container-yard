@@ -655,6 +655,9 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/{bankAccount}', [BankAccountController::class, 'destroy'])->name('destroy');
         });
 
+        // Exchange-rate lookup for receipt/voucher entry (returns base-currency rate)
+        Route::get('fx-rate', [\App\Http\Controllers\Finance\FxRateController::class, 'show'])->name('fx-rate');
+
         // Receipts
         Route::prefix('receipts')->name('receipts.')->group(function () {
             Route::get('/',                             [ReceiptController::class, 'index'])->name('index');

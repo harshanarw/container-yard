@@ -75,6 +75,12 @@ class CompanySetting extends Model
         Cache::forget('company_settings');
     }
 
+    /** Base / reporting currency code (the books are kept in this currency). */
+    public static function baseCurrency(): string
+    {
+        return strtoupper(static::current()?->default_currency_code ?: 'LKR');
+    }
+
     public function getLogoUrlAttribute(): ?string
     {
         return $this->logo_path ? Storage::url($this->logo_path) : null;

@@ -14,6 +14,7 @@ class Receipt extends Model
         'amount',
         'currency',
         'exchange_rate',
+        'base_amount',
         'payment_method',
         'cheque_no',
         'reference_no',
@@ -30,6 +31,7 @@ class Receipt extends Model
         'voided_at'    => 'datetime',
         'amount'       => 'decimal:4',
         'exchange_rate' => 'decimal:6',
+        'base_amount'  => 'decimal:4',
     ];
 
     public function customer()

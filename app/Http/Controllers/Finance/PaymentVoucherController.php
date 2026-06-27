@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\BankAccount;
+use App\Models\CompanySetting;
+use App\Models\Currency;
 use App\Models\Customer;
 use App\Models\PaymentAllocation;
 use App\Models\PaymentVoucher;
@@ -60,8 +62,10 @@ class PaymentVoucherController extends Controller
             ->orderBy('code')
             ->get();
         $suppliers = Customer::apContacts()->get(['id', 'code', 'name']);
+        $currencies   = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
+        $baseCurrency = CompanySetting::baseCurrency();
 
-        return view('finance.vouchers.create', compact('bankAccounts', 'expenseAccounts', 'suppliers'));
+        return view('finance.vouchers.create', compact('bankAccounts', 'expenseAccounts', 'suppliers', 'currencies', 'baseCurrency'));
     }
 
     public function store(Request $request)
@@ -74,7 +78,7 @@ class PaymentVoucherController extends Controller
             'payee_name'        => ['required', 'string', 'max:150'],
             'bank_account_id'   => ['nullable', 'exists:bank_accounts,id'],
             'amount'            => ['required', 'numeric', 'min:0.0001'],
-            'currency'          => ['required', 'string', 'max:10'],
+            'currency'          => ['required', 'string', 'max:10', 'exists:currencies,code'],
             'exchange_rate'     => ['required', 'numeric', 'min:0.000001'],
             'payment_method'    => ['required', 'in:cash,cheque,bank_transfer,online'],
             'cheque_no'         => ['nullable', 'string', 'max:50'],
@@ -85,6 +89,8 @@ class PaymentVoucherController extends Controller
 
         $validated['created_by']  = auth()->id();
         $validated['status']      = 'draft';
+        // Snapshot the base/reporting-currency (LKR) value at entry time.
+        $validated['base_amount'] = round((float) $validated['amount'] * (float) $validated['exchange_rate'], 4);
 
         $voucher = DB::transaction(function () use ($validated) {
             $validated['voucher_no'] = $this->nextVoucherNo();
@@ -150,9 +156,15 @@ class PaymentVoucherController extends Controller
                 'That invoice is not yet posted to the GL — post it before allocating a payment.');
         }
 
-        if (strtoupper((string) $invoice->currency) !== strtoupper((string) $voucher->currency)) {
+        // Treat a blank currency on either side as the base currency so the check
+        // is consistent (base-vs-base passes; foreign-vs-base is blocked).
+        $base            = CompanySetting::baseCurrency();
+        $invoiceCurrency = strtoupper((string) $invoice->currency) ?: $base;
+        $voucherCurrency = strtoupper((string) $voucher->currency) ?: $base;
+        if ($invoiceCurrency !== $voucherCurrency) {
             return back()->with('error',
-                "Currency mismatch: the voucher is in {$voucher->currency} but the invoice is in {$invoice->currency}.");
+                "Currency mismatch: the voucher is in {$voucherCurrency} but the invoice is in {$invoiceCurrency}. "
+                . "Cross-currency settlement isn't supported yet.");
         }
 
         try {

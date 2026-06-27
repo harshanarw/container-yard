@@ -96,6 +96,10 @@
                         <td class="font-monospace">{{ $voucher->exchange_rate }}</td>
                     </tr>
                     <tr>
+                        <td class="text-muted">Value ({{ \App\Models\CompanySetting::baseCurrency() }})</td>
+                        <td class="fw-semibold font-monospace">{{ number_format($voucher->base_amount ?? ($voucher->amount * $voucher->exchange_rate), 2) }}</td>
+                    </tr>
+                    <tr>
                         <td class="text-muted">Payment Method</td>
                         <td>{{ $methods[$voucher->payment_method] ?? $voucher->payment_method }}</td>
                     </tr>

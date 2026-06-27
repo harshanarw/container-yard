@@ -111,16 +111,24 @@
                            value="{{ old('amount') }}" required min="0.0001" step="0.0001">
                     @error('amount')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label fw-semibold small">Currency <span class="text-danger">*</span></label>
-                    <input type="text" name="currency" class="form-control form-control-sm @error('currency') is-invalid @enderror"
-                           value="{{ old('currency', 'USD') }}" required maxlength="10" placeholder="USD">
+                    <select name="currency" id="currencyField" class="form-select form-select-sm s2-code @error('currency') is-invalid @enderror" data-s2-sel="name" required>
+                        @foreach($currencies as $cur)
+                        <option value="{{ $cur->code }}"
+                            data-code="{{ $cur->code }}" data-name="{{ $cur->name }}"
+                            {{ old('currency', $baseCurrency) === $cur->code ? 'selected' : '' }}>
+                            {{ $cur->code }} — {{ $cur->name }}
+                        </option>
+                        @endforeach
+                    </select>
                     @error('currency')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label fw-semibold small">Exchange Rate <span class="text-danger">*</span></label>
-                    <input type="number" name="exchange_rate" class="form-control form-control-sm @error('exchange_rate') is-invalid @enderror"
+                    <input type="number" name="exchange_rate" id="exchangeRateField" class="form-control form-control-sm @error('exchange_rate') is-invalid @enderror"
                            value="{{ old('exchange_rate', '1.000000') }}" required min="0.000001" step="0.000001">
+                    <div class="form-text text-muted small">Base currency: {{ $baseCurrency }}. Auto-filled from the rate master; editable.</div>
                     @error('exchange_rate')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-12">
@@ -153,6 +161,34 @@ document.getElementById('supplierSelect')?.addEventListener('change', function (
     const payee = document.getElementById('payeeName');
     if (name && !payee.value.trim()) payee.value = name;
 });
+
+const baseCurrency = @json($baseCurrency);
+const rateUrl      = @json(route('finance.fx-rate'));
+
+// Auto-fill the exchange rate from the rate master when the currency (or date)
+// changes. Base currency → rate locked at 1; foreign → fetched but editable.
+function refreshFxRate() {
+    const cur  = document.getElementById('currencyField').value;
+    const rate = document.getElementById('exchangeRateField');
+    const date = document.querySelector('[name="voucher_date"]');
+    if (!cur || !rate) return;
+
+    if (cur === baseCurrency) {
+        rate.value = '1.000000';
+        rate.readOnly = true;
+        return;
+    }
+    rate.readOnly = false;
+    fetch(rateUrl + '?from=' + encodeURIComponent(cur) + '&date=' + encodeURIComponent(date ? date.value : ''),
+          { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(d => { if (d && d.rate) rate.value = Number(d.rate).toFixed(6); })
+        .catch(() => {});
+}
+
+$('#currencyField').on('change', refreshFxRate);
+$('[name="voucher_date"]').on('change', refreshFxRate);
+refreshFxRate(); // initial state
 </script>
 @endpush
 

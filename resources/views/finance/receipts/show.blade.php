@@ -81,6 +81,10 @@
                         <td class="font-monospace">{{ $receipt->exchange_rate }}</td>
                     </tr>
                     <tr>
+                        <td class="text-muted">Value ({{ \App\Models\CompanySetting::baseCurrency() }})</td>
+                        <td class="fw-semibold font-monospace">{{ number_format($receipt->base_amount ?? ($receipt->amount * $receipt->exchange_rate), 2) }}</td>
+                    </tr>
+                    <tr>
                         <td class="text-muted">Payment Method</td>
                         <td>{{ \App\Models\Receipt::paymentMethodLabel($receipt->payment_method) }}</td>
                     </tr>
