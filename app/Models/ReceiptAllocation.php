@@ -11,11 +11,13 @@ class ReceiptAllocation extends Model
         'invoice_type',
         'invoice_id',
         'allocated_amount',
+        'base_amount',
         'notes',
     ];
 
     protected $casts = [
         'allocated_amount' => 'decimal:4',
+        'base_amount'      => 'decimal:4',
     ];
 
     public function receipt()

@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PaymentAllocation extends Model
 {
     protected $fillable = [
-        'payment_voucher_id', 'supplier_invoice_id', 'allocated_amount', 'notes',
+        'payment_voucher_id', 'supplier_invoice_id', 'allocated_amount', 'base_amount', 'notes',
     ];
 
     protected $casts = [
         'allocated_amount' => 'decimal:4',
+        'base_amount'      => 'decimal:4',
     ];
 
     public function voucher(): BelongsTo

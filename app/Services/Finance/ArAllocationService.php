@@ -47,6 +47,15 @@ class ArAllocationService
     }
 
     /**
+     * The rate the invoice was booked at (base-currency units per 1 invoice-currency
+     * unit). All four AR invoice types now carry an exchange_rate; defaults to 1.
+     */
+    public function getExchangeRate(Model $invoice, string $type): float
+    {
+        return (float) ($invoice->exchange_rate ?? 1) ?: 1.0;
+    }
+
+    /**
      * Sum of allocations from non-voided receipts for this invoice.
      */
     public function getAllocatedTotal(string $type, int $id): float

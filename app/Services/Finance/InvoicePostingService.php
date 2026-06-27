@@ -149,40 +149,50 @@ class InvoicePostingService
             );
         }
 
-        $lines = [];
+        // The GL is kept in base/reporting currency. Convert every leg by the
+        // invoice's exchange rate (1.0 for base-currency invoices → no-op), and
+        // sum the AR debit from the credits last to avoid rounding gaps. This
+        // matches the AP side (SupplierInvoicePostingService) and lets receipts
+        // relieve AR at the booked rate with a clean FX gain/loss on settlement.
+        $rate = (float) ($invoice->exchange_rate ?? 1) ?: 1.0;
 
-        // Debit AR (full invoice amount)
-        $lines[] = [
-            'account_id' => $arAccount->id,
-            'debit'      => $total,
-            'credit'     => 0,
-            'narration'  => 'Trade debtors',
-        ];
+        $creditLines = [];
 
         // Credit revenue — one line per distinct account
         foreach ($revenueCredits as $rc) {
-            $lines[] = [
+            $creditLines[] = [
                 'account_id' => $rc['account_id'],
                 'debit'      => 0,
-                'credit'     => $rc['amount'],
+                'credit'     => round((float) $rc['amount'] * $rate, 2),
                 'narration'  => $rc['narration'],
             ];
         }
 
         // Credit VAT only (SSCL is embedded in the revenue lines)
         if ($taxAmount > 0 && $taxAccount) {
-            $lines[] = [
+            $creditLines[] = [
                 'account_id' => $taxAccount->id,
                 'debit'      => 0,
-                'credit'     => $taxAmount,
+                'credit'     => round($taxAmount * $rate, 2),
                 'narration'  => 'Output VAT',
             ];
-        } elseif ($taxAmount > 0 && !$taxAccount) {
+        } elseif ($taxAmount > 0 && !$taxAccount && !empty($creditLines)) {
             // No tax account mapped — absorb into the last revenue credit line
-            $lines[count($lines) - 1]['credit'] += $taxAmount;
+            $last = count($creditLines) - 1;
+            $creditLines[$last]['credit'] = round($creditLines[$last]['credit'] + $taxAmount * $rate, 2);
         }
 
-        return $lines;
+        $arDebit = round(array_sum(array_column($creditLines, 'credit')), 2);
+
+        // Debit AR (full invoice value, base currency)
+        $lines = [[
+            'account_id' => $arAccount->id,
+            'debit'      => $arDebit,
+            'credit'     => 0,
+            'narration'  => 'Trade debtors',
+        ]];
+
+        return array_merge($lines, $creditLines);
     }
 
     /**

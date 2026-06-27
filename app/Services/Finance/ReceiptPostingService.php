@@ -12,7 +12,11 @@ use Illuminate\Support\Facades\DB;
 
 class ReceiptPostingService
 {
-    public function __construct(private PostingEngine $engine) {}
+    public function __construct(
+        private PostingEngine $engine,
+        private ArAllocationService $arAllocation,
+        private ApAllocationService $apAllocation,
+    ) {}
 
     /**
      * Confirm a receipt: create and post a GL journal.
@@ -52,12 +56,38 @@ class ReceiptPostingService
             }
 
             $customerName = $receipt->customer?->name ?? 'Unknown';
+            $receipt->loadMissing('allocations');
 
-            // GL is maintained in the base/reporting currency. Convert the
-            // receipt's foreign-currency amount before posting (both legs use
-            // the same converted value, so the journal stays balanced).
-            $baseAmount = $this->toBaseAmount($receipt->amount, $receipt->exchange_rate);
-            $fxNote     = $this->fxNote($receipt->amount, $receipt->currency, $receipt->exchange_rate);
+            // The GL is kept in base currency. Cash actually received = receipt's
+            // base value. AR is relieved per allocation at the rate each invoice was
+            // booked at, so the difference vs the receipt rate is a realized FX
+            // gain/loss. The unallocated remainder (on-account) uses the receipt rate.
+            $receiptRate = (float) ($receipt->exchange_rate ?: 1);
+            $cashBase    = round((float) ($receipt->base_amount ?? ($receipt->amount * $receiptRate)), 2);
+
+            $arRelievedBase = 0.0;
+            $allocatedAmt   = 0.0;
+            foreach ($receipt->allocations as $alloc) {
+                $invoice = $this->arAllocation->resolveInvoice($alloc->invoice_type, (int) $alloc->invoice_id);
+                $invRate = $this->arAllocation->getExchangeRate($invoice, $alloc->invoice_type);
+                $arRelievedBase += round((float) $alloc->allocated_amount * $invRate, 2);
+                $allocatedAmt   += (float) $alloc->allocated_amount;
+            }
+            $unallocBase = round(max(0.0, (float) $receipt->amount - $allocatedAmt) * $receiptRate, 2);
+            $crArTotal   = round($arRelievedBase + $unallocBase, 2);
+
+            $fxNote = $this->fxNote($receipt->amount, $receipt->currency, $receipt->exchange_rate);
+
+            $lines = [
+                ['account_id' => $bankAccount->id, 'debit' => $cashBase, 'credit' => 0, 'narration' => "Receipt from {$customerName}{$fxNote}"],
+                ['account_id' => $arAccount->id,   'debit' => 0, 'credit' => $crArTotal, 'narration' => 'Customer payment'],
+            ];
+
+            // AR: cash received minus AR relieved → positive = exchange gain.
+            $fx = round($cashBase - $crArTotal, 2);
+            if (abs($fx) >= 0.01) {
+                $lines[] = $this->fxLine($fx > 0, abs($fx));
+            }
 
             $journal = $this->engine->createJournal([
                 'journal_date'   => $receipt->receipt_date->toDateString(),
@@ -65,20 +95,7 @@ class ReceiptPostingService
                 'reference_type' => Receipt::class,
                 'reference_id'   => $receipt->id,
                 'narration'      => "Receipt {$receipt->receipt_no} — {$customerName}",
-            ], [
-                [
-                    'account_id' => $bankAccount->id,
-                    'debit'      => $baseAmount,
-                    'credit'     => 0,
-                    'narration'  => "Receipt from {$customerName}{$fxNote}",
-                ],
-                [
-                    'account_id' => $arAccount->id,
-                    'debit'      => 0,
-                    'credit'     => $baseAmount,
-                    'narration'  => "Customer payment",
-                ],
-            ]);
+            ], $lines);
 
             $this->engine->postJournal($journal, $userId);
 
@@ -166,10 +183,41 @@ class ReceiptPostingService
                 );
             }
 
-            // Convert the voucher's foreign-currency amount into base currency
-            // for the GL (both legs use the same value → balanced journal).
-            $baseAmount = $this->toBaseAmount($voucher->amount, $voucher->exchange_rate);
-            $fxNote     = $this->fxNote($voucher->amount, $voucher->currency, $voucher->exchange_rate);
+            $voucher->loadMissing('allocations');
+            $voucherRate = (float) ($voucher->exchange_rate ?: 1);
+            $cashBase    = round((float) ($voucher->base_amount ?? ($voucher->amount * $voucherRate)), 2);
+            $fxNote      = $this->fxNote($voucher->amount, $voucher->currency, $voucher->exchange_rate);
+
+            $lines = [];
+
+            if ($voucher->customer_id) {
+                // AP settlement: relieve AP per bill at its booked rate; the rate
+                // difference vs the voucher rate is a realized FX gain/loss. The
+                // unallocated remainder (on-account) uses the voucher rate.
+                $apRelievedBase = 0.0;
+                $allocatedAmt   = 0.0;
+                foreach ($voucher->allocations as $alloc) {
+                    $invoice = $this->apAllocation->resolveInvoice((int) $alloc->supplier_invoice_id);
+                    $invRate = $this->apAllocation->getExchangeRate($invoice);
+                    $apRelievedBase += round((float) $alloc->allocated_amount * $invRate, 2);
+                    $allocatedAmt   += (float) $alloc->allocated_amount;
+                }
+                $unallocBase = round(max(0.0, (float) $voucher->amount - $allocatedAmt) * $voucherRate, 2);
+                $drApTotal   = round($apRelievedBase + $unallocBase, 2);
+
+                $lines[] = ['account_id' => $expenseAccount->id, 'debit' => $drApTotal, 'credit' => 0, 'narration' => "Payment to {$voucher->payee_name}{$fxNote}"];
+                $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => $cashBase, 'narration' => 'Bank payment'];
+
+                // AP: cash paid minus AP relieved → positive = exchange loss.
+                $fx = round($cashBase - $drApTotal, 2);
+                if (abs($fx) >= 0.01) {
+                    $lines[] = $this->fxLine($fx < 0, abs($fx));
+                }
+            } else {
+                // Direct expense voucher — no AP relief, no FX gain/loss.
+                $lines[] = ['account_id' => $expenseAccount->id, 'debit' => $cashBase, 'credit' => 0, 'narration' => "Payment to {$voucher->payee_name}{$fxNote}"];
+                $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => $cashBase, 'narration' => 'Bank payment'];
+            }
 
             $journal = $this->engine->createJournal([
                 'journal_date'   => $voucher->voucher_date->toDateString(),
@@ -177,20 +225,7 @@ class ReceiptPostingService
                 'reference_type' => PaymentVoucher::class,
                 'reference_id'   => $voucher->id,
                 'narration'      => "Voucher {$voucher->voucher_no} — {$voucher->payee_name}",
-            ], [
-                [
-                    'account_id' => $expenseAccount->id,
-                    'debit'      => $baseAmount,
-                    'credit'     => 0,
-                    'narration'  => "Payment to {$voucher->payee_name}{$fxNote}",
-                ],
-                [
-                    'account_id' => $bankAccount->id,
-                    'debit'      => 0,
-                    'credit'     => $baseAmount,
-                    'narration'  => "Bank payment",
-                ],
-            ]);
+            ], $lines);
 
             $this->engine->postJournal($journal, $userId);
 
@@ -225,18 +260,6 @@ class ReceiptPostingService
     }
 
     /**
-     * Convert a transaction amount into base/reporting currency for the GL.
-     * exchange_rate is "base units per 1 transaction-currency unit"
-     * (defaults to 1.0 for same-currency transactions).
-     */
-    private function toBaseAmount($amount, $exchangeRate): float
-    {
-        $rate = (float) ($exchangeRate ?: 1);
-
-        return round((float) $amount * $rate, 2);
-    }
-
-    /**
      * Short traceability suffix shown on the GL line when the transaction was
      * in a foreign currency. Empty for base-currency (rate 1) transactions.
      */
@@ -248,6 +271,41 @@ class ReceiptPostingService
         }
 
         return ' (' . number_format((float) $amount, 2) . ' ' . ($currency ?? '') . ' @ ' . rtrim(rtrim(number_format($rate, 6, '.', ''), '0'), '.') . ')';
+    }
+
+    /**
+     * Build the FX gain/loss journal line for the rounding/rate difference.
+     * Gain → credit FX Gain (4102); Loss → debit FX Loss (7002).
+     */
+    private function fxLine(bool $isGain, float $magnitude): array
+    {
+        [$gain, $loss] = $this->resolveFxAccounts();
+
+        if ($isGain) {
+            if (!$gain) {
+                throw new \RuntimeException('No Foreign Exchange Gain account found (expected code 4102). Add it to the Chart of Accounts.');
+            }
+            return ['account_id' => $gain->id, 'debit' => 0, 'credit' => $magnitude, 'narration' => 'Exchange gain on settlement'];
+        }
+
+        if (!$loss) {
+            throw new \RuntimeException('No Foreign Exchange Loss account found (expected code 7002). Add it to the Chart of Accounts.');
+        }
+        return ['account_id' => $loss->id, 'debit' => $magnitude, 'credit' => 0, 'narration' => 'Exchange loss on settlement'];
+    }
+
+    /** Resolve [gainAccount, lossAccount] — mapping override, else by code. */
+    private function resolveFxAccounts(): array
+    {
+        $gain = AccountMapping::where('mapping_type', 'forex_gain')
+                ->whereNull('source_type')->whereNull('source_id')->where('is_active', true)->first()?->account
+            ?? Account::where('code', '4102')->where('is_active', true)->first();
+
+        $loss = AccountMapping::where('mapping_type', 'forex_loss')
+                ->whereNull('source_type')->whereNull('source_id')->where('is_active', true)->first()?->account
+            ?? Account::where('code', '7002')->where('is_active', true)->first();
+
+        return [$gain, $loss];
     }
 
     private function resolveArAccount(): ?Account

@@ -129,6 +129,14 @@ class RepairInvoiceController extends Controller
         $invoice = DB::transaction(function () use ($estimate, $lineRecords, $subtotal, $ssclTotal, $vatTotal, $taxAmount, $grandTotal, $taxPct, $validated) {
             $invNo = app(\App\Services\NumberSequenceService::class)->generate('repair_invoice');
 
+            // Snapshot the exchange rate at invoice time so the AR can later be
+            // relieved at the rate it was booked (FX gain/loss on settlement).
+            $currency = $estimate->customer?->currency ?? \App\Models\CompanySetting::baseCurrency();
+            $base     = \App\Models\CompanySetting::baseCurrency();
+            $rate     = strtoupper($currency) === $base
+                ? 1.0
+                : (\App\Models\ExchangeRate::getRate($currency, $base, now()->toDateString()) ?? 1.0);
+
             $invoice = \App\Models\RepairInvoice::create([
                 'invoice_no'     => $invNo,
                 'estimate_id'    => $estimate->id,
@@ -139,7 +147,8 @@ class RepairInvoiceController extends Controller
                 'due_date'       => \App\Services\Finance\PaymentTermsHelper::dueDate(
                                         $estimate->customer?->payment_terms ?? 'net30', now()
                                     )->toDateString(),
-                'currency'       => $estimate->customer?->currency ?? 'USD',
+                'currency'       => $currency,
+                'exchange_rate'  => $rate,
                 'status'         => 'draft',
                 'subtotal'       => $subtotal,
                 'sscl_total'     => $ssclTotal,

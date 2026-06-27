@@ -186,6 +186,11 @@ class PaymentVoucherController extends Controller
                     );
                 }
 
+                // Base-currency value applied from this voucher (allocated × voucher rate).
+                $validated['base_amount'] = round(
+                    (float) $validated['allocated_amount'] * (float) ($locked->exchange_rate ?: 1), 4
+                );
+
                 $locked->allocations()->create($validated);
                 $this->allocationService->syncInvoiceStatus($invoice);
             });

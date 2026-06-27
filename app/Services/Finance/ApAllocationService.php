@@ -28,6 +28,15 @@ class ApAllocationService
     }
 
     /**
+     * The rate the bill was booked at (base-currency units per 1 invoice-currency
+     * unit), used to relieve AP at its original value. Defaults to 1.
+     */
+    public function getExchangeRate(SupplierInvoice $invoice): float
+    {
+        return (float) ($invoice->exchange_rate ?? 1) ?: 1.0;
+    }
+
+    /**
      * Sum of allocations from non-voided vouchers for this invoice.
      */
     public function getAllocatedTotal(int $invoiceId): float
