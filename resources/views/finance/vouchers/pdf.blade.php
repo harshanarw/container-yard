@@ -68,9 +68,10 @@
     .alloc td { padding: {{ $half ? '2px 5px' : '5px 8px' }}; border-bottom: 1px solid #eee; font-size: {{ $half ? '8px' : '11px' }}; }
     .alloc td.r, .alloc th.r { text-align: right; }
     .narr { margin-top: {{ $half ? '4px' : '8px' }}; font-size: {{ $half ? '8px' : '11px' }}; }
-    .sign { margin-top: {{ $half ? '14px' : '40px' }}; }
-    .sign td { font-size: {{ $half ? '8px' : '11px' }}; padding-top: {{ $half ? '12px' : '28px' }}; }
-    .sign .line { border-top: 1px solid #888; padding-top: 3px; color: #555; width: 70%; }
+    .sign { margin-top: {{ $half ? '20px' : '48px' }}; }
+    .sign td { vertical-align: bottom; }
+    .sigline { border-top: 1px solid #888; }
+    .siglabel { padding-top: 3px; color: #555; font-size: {{ $half ? '8px' : '11px' }}; }
     .ftr { margin-top: {{ $half ? '6px' : '16px' }}; color: #999; font-size: {{ $half ? '7px' : '9px' }}; text-align: center; }
     .muted { color: #777; }
 </style>
@@ -141,8 +142,15 @@
     @endif
 
     <table class="sign"><tr>
-        <td><div class="line">Prepared by{{ $voucher->createdBy ? ' — '.$voucher->createdBy->name : '' }}</div></td>
-        @unless($half)<td style="width:8%"></td><td><div class="line" style="margin-left:auto;">Authorized Signatory</div></td>@endunless
+        <td style="width:45%;">
+            <div class="sigline"></div>
+            <div class="siglabel">Prepared by{{ $voucher->createdBy ? ' — '.$voucher->createdBy->name : '' }}</div>
+        </td>
+        <td style="width:10%;">&nbsp;</td>
+        <td style="width:45%;">
+            <div class="sigline"></div>
+            <div class="siglabel">Authorized Signatory</div>
+        </td>
     </tr></table>
 
     <table class="ftr"><tr>
