@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ReeferElectricityInvoice extends Model
 {
     protected $fillable = [
-        'invoice_no', 'customer_id', 'invoice_date', 'due_date',
+        'invoice_no', 'customer_id', 'service_type', 'invoice_date', 'due_date',
         'billing_period_from', 'billing_period_to',
         'invoice_currency', 'exchange_rate',
         'subtotal', 'sscl_percentage', 'sscl_amount',

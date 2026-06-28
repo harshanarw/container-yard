@@ -6,9 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 
 class ReeferElectricityTariff extends Model
 {
+    /** Service types: PTI = short-term hourly; long_term = daily electricity. */
+    const SERVICE_TYPES = [
+        'pti'       => 'Short-Term PTI',
+        'long_term' => 'Long-Term Electricity',
+    ];
+
+    /** Conventional billing basis per service type (UI default, still editable). */
+    const DEFAULT_BILLING_MODE = [
+        'pti'       => 'hourly',
+        'long_term' => 'daily',
+    ];
+
     protected $fillable = [
-        'customer_id', 'tariff_name', 'billing_mode', 'currency',
-        'hourly_rate', 'daily_rate', 'free_hours', 'free_days',
+        'customer_id', 'tariff_name', 'service_type', 'billing_mode', 'currency',
+        'charge_code_id', 'hourly_rate', 'daily_rate', 'free_hours', 'free_days',
         'minimum_charge', 'valid_from', 'valid_to', 'is_active',
         'notes', 'created_by', 'updated_by',
     ];
@@ -29,6 +41,11 @@ class ReeferElectricityTariff extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function chargeCode()
+    {
+        return $this->belongsTo(ChargeCode::class, 'charge_code_id');
     }
 
     public function createdBy()
@@ -80,6 +97,44 @@ class ReeferElectricityTariff extends Model
             ->whereNull('customer_id')
             ->latest('valid_from')
             ->first();
+    }
+
+    /**
+     * Resolve the active reefer tariff for a customer + service type on a date.
+     * Customer-specific row wins; falls back to the default (customer_id IS NULL)
+     * row for that same service type. Eager-loads the charge code + tax code so
+     * billing can map the correct charge/tax per bill type.
+     */
+    public static function resolveForType(int $customerId, string $serviceType, ?string $date = null): ?static
+    {
+        $date = $date ?? today()->toDateString();
+
+        $base = static::with('chargeCode.taxCode')
+            ->where('is_active', true)
+            ->where('service_type', $serviceType)
+            ->where('valid_from', '<=', $date)
+            ->where(function ($q) use ($date) {
+                $q->whereNull('valid_to')->orWhere('valid_to', '>=', $date);
+            });
+
+        $tariff = (clone $base)
+            ->where('customer_id', $customerId)
+            ->latest('valid_from')
+            ->first();
+
+        if ($tariff) {
+            return $tariff;
+        }
+
+        return (clone $base)
+            ->whereNull('customer_id')
+            ->latest('valid_from')
+            ->first();
+    }
+
+    public function getServiceTypeLabelAttribute(): string
+    {
+        return self::SERVICE_TYPES[$this->service_type] ?? ucfirst((string) $this->service_type);
     }
 
     public function getValidityLabelAttribute(): string
