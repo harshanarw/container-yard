@@ -398,9 +398,7 @@ let previewLines = [];
 function fmtEqt(l) {
     if (!l.eqt_code) return l.equipment_type || '—';
     const isReefer = l.type_code && ['RF','RH'].includes(l.type_code);
-    const chip = isReefer
-        ? '<span class="badge badge-reefer" style="font-size:.72rem;">' + l.eqt_code + '</span>'
-        : '<span class="fw-semibold">' + l.eqt_code + '</span>';
+    const chip = '<span class="badge ' + (isReefer ? 'badge-reefer' : 'bg-dark') + '" style="font-size:.72rem;">' + l.eqt_code + '</span>';
     return chip + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '');
 }
 
