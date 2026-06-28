@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\EquipmentType;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class EquipmentTypeSeeder extends Seeder
 {
@@ -18,6 +19,10 @@ class EquipmentTypeSeeder extends Seeder
      *
      * G1 / R1 are used on the vast majority of modern container doors (passive vents
      * for G, corner castings for U).  G0 / R0 appear on older stock.
+     *
+     * Reefers are split by height:
+     *   RF = standard-height reefer   (20RF, 40RF)
+     *   RH = high-cube reefer         (20RH, 40RH)  — 40RH carries ISO 45R1.
      */
     public function run(): void
     {
@@ -59,7 +64,7 @@ class EquipmentTypeSeeder extends Seeder
                 'description' => "45' High Cube Container",
                 'sort_order'  => 4,
             ],
-            // ── Reefer ──────────────────────────────────────────────────────
+            // ── Reefer (standard height: RF / high cube: RH) ─────────────────
             [
                 'eqt_code'    => '20RF',
                 'iso_code'    => '22R1',
@@ -79,13 +84,22 @@ class EquipmentTypeSeeder extends Seeder
                 'sort_order'  => 6,
             ],
             [
-                'eqt_code'    => '40RFHC',
+                'eqt_code'    => '20RH',
+                'iso_code'    => '25R1',
+                'size'        => '20',
+                'type_code'   => 'RH',
+                'height'      => 'High Cube',
+                'description' => "20' High Cube Reefer Container",
+                'sort_order'  => 7,
+            ],
+            [
+                'eqt_code'    => '40RH',
                 'iso_code'    => '45R1',
                 'size'        => '40',
-                'type_code'   => 'RF',
+                'type_code'   => 'RH',
                 'height'      => 'High Cube',
                 'description' => "40' High Cube Reefer Container",
-                'sort_order'  => 7,
+                'sort_order'  => 8,
             ],
             // ── Open Top ────────────────────────────────────────────────────
             [
@@ -95,7 +109,7 @@ class EquipmentTypeSeeder extends Seeder
                 'type_code'   => 'OT',
                 'height'      => 'Standard',
                 'description' => "20' Open Top Container",
-                'sort_order'  => 8,
+                'sort_order'  => 9,
             ],
             [
                 'eqt_code'    => '40OT',
@@ -104,7 +118,7 @@ class EquipmentTypeSeeder extends Seeder
                 'type_code'   => 'OT',
                 'height'      => 'Standard',
                 'description' => "40' Open Top Container",
-                'sort_order'  => 9,
+                'sort_order'  => 10,
             ],
             [
                 'eqt_code'    => '40OTHC',
@@ -113,7 +127,7 @@ class EquipmentTypeSeeder extends Seeder
                 'type_code'   => 'OT',
                 'height'      => 'High Cube',
                 'description' => "40' High Cube Open Top Container",
-                'sort_order'  => 10,
+                'sort_order'  => 11,
             ],
             // ── Flat Rack ───────────────────────────────────────────────────
             [
@@ -123,7 +137,7 @@ class EquipmentTypeSeeder extends Seeder
                 'type_code'   => 'FR',
                 'height'      => 'Standard',
                 'description' => "20' Flat Rack Container",
-                'sort_order'  => 11,
+                'sort_order'  => 12,
             ],
             [
                 'eqt_code'    => '40FR',
@@ -132,7 +146,7 @@ class EquipmentTypeSeeder extends Seeder
                 'type_code'   => 'FR',
                 'height'      => 'Standard',
                 'description' => "40' Flat Rack Container",
-                'sort_order'  => 12,
+                'sort_order'  => 13,
             ],
             // ── Tank ────────────────────────────────────────────────────────
             [
@@ -142,7 +156,7 @@ class EquipmentTypeSeeder extends Seeder
                 'type_code'   => 'TK',
                 'height'      => 'Standard',
                 'description' => "20' Tank Container",
-                'sort_order'  => 13,
+                'sort_order'  => 14,
             ],
             [
                 'eqt_code'    => '40TK',
@@ -151,29 +165,7 @@ class EquipmentTypeSeeder extends Seeder
                 'type_code'   => 'TK',
                 'height'      => 'Standard',
                 'description' => "40' Tank Container",
-                'sort_order'  => 14,
-            ],
-            // ── Reefer High Cube (RH) ────────────────────────────────────────
-            // 20RH: ISO 25R1 (20' reefer high cube — rare but exists)
-            // 40RH: shares the 40' high cube reefer footprint with 40RFHC; no
-            //       separate ISO 6346 code exists, so iso_code is left null.
-            [
-                'eqt_code'    => '20RH',
-                'iso_code'    => '25R1',
-                'size'        => '20',
-                'type_code'   => 'RH',
-                'height'      => 'High Cube',
-                'description' => "20' Reefer High Cube Container",
                 'sort_order'  => 15,
-            ],
-            [
-                'eqt_code'    => '40RH',
-                'iso_code'    => null,
-                'size'        => '40',
-                'type_code'   => 'RH',
-                'height'      => 'High Cube',
-                'description' => "40' Reefer High Cube Container",
-                'sort_order'  => 16,
             ],
         ];
 
@@ -194,5 +186,54 @@ class EquipmentTypeSeeder extends Seeder
                 $item
             );
         }
+
+        // Retire the legacy duplicate 40' high cube reefer (40RFHC). It is
+        // superseded by 40RH, which (seeded above) now carries its ISO 6346 code
+        // (45R1). Move any existing references onto 40RH before deleting so foreign
+        // keys stay valid. Runs after the loop so 40RH exists and 40RFHC's ISO has
+        // already been cleared by the conflict guard above.
+        $this->retireLegacyType('40RFHC', '40RH');
+    }
+
+    /**
+     * Re-point every reference from a retired equipment type onto its replacement,
+     * then delete the retired row. No-op if either code is absent.
+     */
+    private function retireLegacyType(string $oldCode, string $newCode): void
+    {
+        $old = EquipmentType::where('eqt_code', $oldCode)->first();
+        if (!$old) {
+            return;
+        }
+
+        // Ensure the replacement exists before moving references onto it.
+        $newId = EquipmentType::where('eqt_code', $newCode)->value('id')
+            ?? EquipmentType::create([
+                'eqt_code'    => $newCode,
+                'iso_code'    => '45R1',
+                'size'        => '40',
+                'type_code'   => 'RH',
+                'height'      => 'High Cube',
+                'description' => "40' High Cube Reefer Container",
+                'sort_order'  => 8,
+            ])->id;
+
+        // Tables that carry an equipment_type_id foreign key.
+        $referencingTables = [
+            'containers',
+            'inquiries',
+            'estimates',
+            'storage_master_details',
+            'storage_invoice_details',
+            'storage_handling_invoice_lines',
+        ];
+
+        foreach ($referencingTables as $table) {
+            DB::table($table)
+                ->where('equipment_type_id', $old->id)
+                ->update(['equipment_type_id' => $newId]);
+        }
+
+        $old->delete();
     }
 }
