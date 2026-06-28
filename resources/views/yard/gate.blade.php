@@ -2226,6 +2226,19 @@ function initPhotoUploader(cfg) {
                 // If the server redirected back to the form (validation error), navigate
                 // the main window there so the user sees the error message.
                 if (finalUrl.indexOf('gate-pass') !== -1) {
+                    // The gate-in/out notification broadcast is missed while this
+                    // window reloads below, so queue the popup to show on the
+                    // reloaded gate page (deduped against the real DB notification).
+                    if (typeof window.queueSideNotification === 'function') {
+                        var _dir = cfg.direction || '';
+                        var _cno = (fd.get('container_no') || '').toString().toUpperCase();
+                        window.queueSideNotification(
+                            ('Gate ' + _dir).trim() + (_cno ? ' — ' + _cno : ''),
+                            'Gate pass generated.',
+                            'info',
+                            finalUrl
+                        );
+                    }
                     window.open(finalUrl, 'gate_pass_popup', 'width=940,height=1120,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,status=no');
                     window.location.href = cfg.redirectUrl || window.location.pathname;
                 } else {
@@ -2236,8 +2249,8 @@ function initPhotoUploader(cfg) {
     });
 }
 
-initPhotoUploader({ fileInput: document.getElementById('inPhotoInput'), cameraInput: document.getElementById('inCameraInput'), browseBtn: document.getElementById('inBrowseBtn'), cameraBtn: document.getElementById('inCameraBtn'), dropZone: document.getElementById('inDropZone'), errorEl: document.getElementById('inPhotoError'), previewGrid: document.getElementById('inPhotoPreview'), counterEl: document.getElementById('inPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=in', max: 5 });
-initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraInput: document.getElementById('outCameraInput'), browseBtn: document.getElementById('outBrowseBtn'), cameraBtn: document.getElementById('outCameraBtn'), dropZone: document.getElementById('outDropZone'), errorEl: document.getElementById('outPhotoError'), previewGrid: document.getElementById('outPhotoPreview'), counterEl: document.getElementById('outPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=out', max: 5 });
+initPhotoUploader({ fileInput: document.getElementById('inPhotoInput'), cameraInput: document.getElementById('inCameraInput'), browseBtn: document.getElementById('inBrowseBtn'), cameraBtn: document.getElementById('inCameraBtn'), dropZone: document.getElementById('inDropZone'), errorEl: document.getElementById('inPhotoError'), previewGrid: document.getElementById('inPhotoPreview'), counterEl: document.getElementById('inPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=in', direction: 'IN', max: 5 });
+initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraInput: document.getElementById('outCameraInput'), browseBtn: document.getElementById('outBrowseBtn'), cameraBtn: document.getElementById('outCameraBtn'), dropZone: document.getElementById('outDropZone'), errorEl: document.getElementById('outPhotoError'), previewGrid: document.getElementById('outPhotoPreview'), counterEl: document.getElementById('outPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=out', direction: 'OUT', max: 5 });
 
 // ── Gate Out container Select2 autocomplete + AJAX lookup + submit confirmation ──
 (function () {

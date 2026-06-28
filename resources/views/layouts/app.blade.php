@@ -2193,6 +2193,20 @@
         }
     };
 
+    // Queue a side-notification to be shown on the NEXT full page load. Used by
+    // AJAX actions that immediately reload/navigate the window (e.g. gate-in/out,
+    // which open the gate pass in a popup and reload the gate page): their
+    // real-time broadcast fires while the page is navigating, so the live
+    // listener misses it. Queueing surfaces the popup deterministically after the
+    // reload instead of relying on the (delayed, backgrounded) polling fallback.
+    window.queueSideNotification = function (title, body, type, url, actor) {
+        try {
+            var q = JSON.parse(sessionStorage.getItem('_npQueue') || '[]');
+            q.push({ title: title, body: body, type: type, url: url, actor: actor });
+            sessionStorage.setItem('_npQueue', JSON.stringify(q));
+        } catch (e) { /* storage unavailable — ignore */ }
+    };
+
     function _npDismiss(el) {
         el.classList.replace('np-show', 'np-hide');
         setTimeout(function () { el && el.parentNode && el.parentNode.removeChild(el); }, 320);
@@ -2233,6 +2247,12 @@
         }
 
         var POLL_INTERVAL = 5000;      // 5 s fallback; overridden to 60 s when Reverb WS is active
+
+        // When a queued cross-navigation popup is shown on load, suppress polling
+        // (and the live channel) from re-toasting the matching DB notification for
+        // a short window. The badge still updates; we just absorb the id silently
+        // so the user sees exactly one popup, not a duplicate.
+        var suppressToastsUntil = 0;
 
         var npIcons = {
             info:    'bi-info-circle-fill text-primary',
@@ -2301,11 +2321,14 @@
                     items.forEach(function (n) { seenIds.add(n.id); });
                     seenInitialized = true;
                 } else {
+                    var _suppress = Date.now() < suppressToastsUntil;
                     items
                         .filter(function (n) { return !seenIds.has(n.id); })
                         .reverse()
                         .forEach(function (n) {
-                            showSideNotification(n.title, n.body, n.type, n.url, undefined, n.actor);
+                            if (!_suppress) {
+                                showSideNotification(n.title, n.body, n.type, n.url, undefined, n.actor);
+                            }
                             seenIds.add(n.id);
                         });
                 }
@@ -2394,7 +2417,9 @@
             var _chan = _pusher.subscribe('private-App.Models.User.' + _bcastCfg.userId);
             _chan.bind('notification.new', function (data) {
                 if (data.id) { seenIds.add(data.id); persistSeen(); }
-                showSideNotification(data.title, data.body, data.type, data.url, undefined, data.actor);
+                if (Date.now() >= suppressToastsUntil) {
+                    showSideNotification(data.title, data.body, data.type, data.url, undefined, data.actor);
+                }
                 fetchUnread(); // sync badge + dropdown
             });
 
@@ -2408,6 +2433,21 @@
             });
         }
         @endif
+
+        // Drain any popups queued by an AJAX action right before it reloaded this
+        // page. Show them immediately and open a short suppression window so the
+        // matching DB notification (picked up by the poll below or the live
+        // channel) is absorbed silently instead of toasted a second time.
+        try {
+            var _queued = JSON.parse(sessionStorage.getItem('_npQueue') || '[]');
+            if (_queued.length) {
+                sessionStorage.removeItem('_npQueue');
+                suppressToastsUntil = Date.now() + 8000;
+                _queued.forEach(function (n) {
+                    showSideNotification(n.title, n.body, n.type, n.url, undefined, n.actor);
+                });
+            }
+        } catch (e) { /* ignore */ }
 
         fetchUnread();
         setInterval(fetchUnread, POLL_INTERVAL);
