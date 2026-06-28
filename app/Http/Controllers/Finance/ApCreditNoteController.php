@@ -1,0 +1,257 @@
+<?php
+
+namespace App\Http\Controllers\Finance;
+
+use App\Http\Controllers\Controller;
+use App\Models\Account;
+use App\Models\ApCreditNote;
+use App\Models\ChargeCode;
+use App\Models\CompanySetting;
+use App\Models\Currency;
+use App\Models\Customer;
+use App\Services\Finance\ApAllocationService;
+use App\Services\Finance\ApCreditNotePostingService;
+use App\Services\NumberSequenceService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class ApCreditNoteController extends Controller
+{
+    public function __construct(
+        private ApCreditNotePostingService $postingService,
+        private ApAllocationService $allocationService,
+    ) {}
+
+    public function index(Request $request)
+    {
+        $this->authorize('finance.ap-credit-notes.view');
+
+        $query = ApCreditNote::with(['supplier', 'journal', 'applications'])
+            ->orderByDesc('credit_date')->orderByDesc('id');
+
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->customer_id);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $creditNotes = $query->paginate(25)->withQueryString();
+        $suppliers   = Customer::apContacts()->get(['id', 'name']);
+
+        return view('finance.ap-credit-notes.index', compact('creditNotes', 'suppliers'));
+    }
+
+    public function create()
+    {
+        $this->authorize('finance.ap-credit-notes.create');
+
+        return view('finance.ap-credit-notes.create', $this->formOptions());
+    }
+
+    public function store(Request $request)
+    {
+        $this->authorize('finance.ap-credit-notes.create');
+
+        $validated = $this->validateData($request);
+
+        $cn = DB::transaction(function () use ($validated) {
+            $subtotal = collect($validated['lines'])->sum(fn ($l) => round((float) $l['amount'], 2));
+            $tax      = round((float) ($validated['tax_amount'] ?? 0), 2);
+            $total    = round($subtotal + $tax, 2);
+            $rate     = (float) $validated['exchange_rate'];
+
+            $cn = ApCreditNote::create([
+                'credit_note_no'                => app(NumberSequenceService::class)->generate('ap_credit_note'),
+                'supplier_credit_no'            => $validated['supplier_credit_no'] ?? null,
+                'customer_id'                   => $validated['customer_id'],
+                'credit_date'                   => $validated['credit_date'],
+                'currency'                      => strtoupper($validated['currency']),
+                'exchange_rate'                 => $rate,
+                'reference_supplier_invoice_id' => $validated['reference_supplier_invoice_id'] ?? null,
+                'subtotal'                      => $subtotal,
+                'tax_amount'                    => $tax,
+                'total_amount'                  => $total,
+                'base_amount'                   => round($total * $rate, 4),
+                'reason'                        => $validated['reason'] ?? null,
+                'notes'                         => $validated['notes'] ?? null,
+                'status'                        => 'draft',
+                'created_by'                    => auth()->id(),
+            ]);
+
+            foreach ($validated['lines'] as $l) {
+                $cn->lines()->create([
+                    'description'        => $l['description'],
+                    'expense_account_id' => $l['expense_account_id'] ?? null,
+                    'charge_code_id'     => $l['charge_code_id'] ?? null,
+                    'amount'             => round((float) $l['amount'], 2),
+                ]);
+            }
+
+            return $cn;
+        });
+
+        return redirect()->route('finance.ap-credit-notes.show', $cn)
+            ->with('success', "Credit note {$cn->credit_note_no} created as draft.");
+    }
+
+    public function show(ApCreditNote $apCreditNote)
+    {
+        $this->authorize('finance.ap-credit-notes.view');
+
+        $apCreditNote->load(['supplier', 'lines.expenseAccount', 'applications.invoice', 'journal', 'createdBy', 'approvedBy']);
+
+        $pendingInvoices = $apCreditNote->isApproved() && $apCreditNote->unapplied > 0
+            ? $this->allocationService->pendingForSupplier((int) $apCreditNote->customer_id)
+            : collect();
+
+        return view('finance.ap-credit-notes.show', compact('apCreditNote', 'pendingInvoices'));
+    }
+
+    public function approve(ApCreditNote $apCreditNote)
+    {
+        $this->authorize('finance.ap-credit-notes.approve');
+
+        try {
+            $this->postingService->approve($apCreditNote, auth()->id());
+            return back()->with('success', "Credit note {$apCreditNote->credit_note_no} approved and posted to GL.");
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function cancel(Request $request, ApCreditNote $apCreditNote)
+    {
+        $this->authorize('finance.ap-credit-notes.approve');
+
+        $affected = $apCreditNote->applications()->get(['supplier_invoice_id'])
+            ->pluck('supplier_invoice_id')->unique();
+
+        try {
+            DB::transaction(function () use ($apCreditNote, $request, $affected) {
+                $this->postingService->cancel($apCreditNote, auth()->id(), $request->input('reason', ''));
+                foreach ($affected as $invoiceId) {
+                    $invoice = $this->allocationService->resolveInvoice((int) $invoiceId);
+                    $this->allocationService->syncInvoiceStatus($invoice);
+                }
+            });
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', "Credit note {$apCreditNote->credit_note_no} cancelled.");
+    }
+
+    public function storeApplication(Request $request, ApCreditNote $apCreditNote)
+    {
+        $this->authorize('finance.ap-credit-notes.edit');
+
+        if (!$apCreditNote->isApproved()) {
+            return back()->with('error', 'Only approved credit notes can be applied to bills.');
+        }
+
+        $validated = $request->validate([
+            'supplier_invoice_id' => ['required', 'integer', 'min:1'],
+            'applied_amount'      => ['required', 'numeric', 'min:0.01'],
+        ]);
+
+        try {
+            $invoice = $this->allocationService->resolveInvoice((int) $validated['supplier_invoice_id']);
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        if ((int) $invoice->customer_id !== (int) $apCreditNote->customer_id) {
+            return back()->with('error', 'That bill belongs to a different supplier.');
+        }
+
+        $base   = CompanySetting::baseCurrency();
+        $invCcy = strtoupper((string) $invoice->currency) ?: $base;
+        $cnCcy  = strtoupper((string) $apCreditNote->currency) ?: $base;
+        if ($invCcy !== $cnCcy) {
+            return back()->with('error', "Currency mismatch: credit note is {$cnCcy} but the bill is {$invCcy}.");
+        }
+
+        try {
+            DB::transaction(function () use ($apCreditNote, $invoice, $validated) {
+                $locked = ApCreditNote::lockForUpdate()->find($apCreditNote->id);
+                $amount = round((float) $validated['applied_amount'], 2);
+
+                $outstanding = $this->allocationService->getOutstanding($invoice);
+                if ($amount > round($outstanding + 0.005, 2)) {
+                    throw new \RuntimeException('Applied amount exceeds the bill outstanding of ' . number_format($outstanding, 2) . '.');
+                }
+
+                $remaining = (float) $locked->total_amount - (float) $locked->applications()->sum('applied_amount');
+                if ($amount > round($remaining + 0.005, 2)) {
+                    throw new \RuntimeException('Applied amount exceeds the credit note unapplied balance of ' . number_format($remaining, 2) . '.');
+                }
+
+                $locked->applications()->create([
+                    'supplier_invoice_id' => $invoice->id,
+                    'applied_amount'      => $amount,
+                    'base_amount'         => round($amount * (float) ($locked->exchange_rate ?: 1), 4),
+                ]);
+
+                $this->allocationService->syncInvoiceStatus($invoice);
+            });
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Credit note applied to bill.');
+    }
+
+    public function deleteApplication(ApCreditNote $apCreditNote, \App\Models\ApCreditNoteApplication $application)
+    {
+        $this->authorize('finance.ap-credit-notes.edit');
+
+        if ($application->ap_credit_note_id !== $apCreditNote->id) {
+            abort(404);
+        }
+
+        $invoiceId = $application->supplier_invoice_id;
+        $application->delete();
+
+        try {
+            $invoice = $this->allocationService->resolveInvoice((int) $invoiceId);
+            $this->allocationService->syncInvoiceStatus($invoice);
+        } catch (\Throwable) {
+            // best-effort
+        }
+
+        return back()->with('success', 'Application removed.');
+    }
+
+    private function formOptions(): array
+    {
+        $suppliers       = Customer::apContacts()->get(['id', 'name', 'currency']);
+        $expenseAccounts = Account::where('classification', 'expense')->where('is_posting', true)
+            ->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']);
+        $chargeCodes     = ChargeCode::where('is_active', true)->orderBy('code')->get(['id', 'code', 'description']);
+        $currencies      = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
+        $baseCurrency    = CompanySetting::baseCurrency();
+
+        return compact('suppliers', 'expenseAccounts', 'chargeCodes', 'currencies', 'baseCurrency');
+    }
+
+    private function validateData(Request $request): array
+    {
+        return $request->validate([
+            'customer_id'                   => ['required', 'exists:customers,id'],
+            'supplier_credit_no'            => ['nullable', 'string', 'max:50'],
+            'credit_date'                   => ['required', 'date'],
+            'currency'                      => ['required', 'string', 'max:10', 'exists:currencies,code'],
+            'exchange_rate'                 => ['required', 'numeric', 'min:0.000001'],
+            'reference_supplier_invoice_id' => ['nullable', 'integer'],
+            'tax_amount'                    => ['nullable', 'numeric', 'min:0'],
+            'reason'                        => ['nullable', 'string', 'max:255'],
+            'notes'                         => ['nullable', 'string', 'max:1000'],
+            'lines'                         => ['required', 'array', 'min:1'],
+            'lines.*.description'           => ['required', 'string', 'max:255'],
+            'lines.*.expense_account_id'    => ['nullable', 'exists:accounts,id'],
+            'lines.*.charge_code_id'        => ['nullable', 'exists:charge_codes,id'],
+            'lines.*.amount'                => ['required', 'numeric', 'min:0.01'],
+        ]);
+    }
+}

@@ -687,6 +687,18 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/{arCreditNote}/applications/{application}',  [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'deleteApplication'])->name('applications.destroy');
         });
 
+        // AP Credit Notes (received from vendors)
+        Route::prefix('ap-credit-notes')->name('ap-credit-notes.')->group(function () {
+            Route::get('/',                  [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'index'])->name('index');
+            Route::get('/create',            [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'create'])->name('create');
+            Route::post('/',                 [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'store'])->name('store');
+            Route::get('/{apCreditNote}',    [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'show'])->name('show');
+            Route::post('/{apCreditNote}/approve', [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'approve'])->name('approve');
+            Route::post('/{apCreditNote}/cancel',  [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'cancel'])->name('cancel');
+            Route::post('/{apCreditNote}/applications',                  [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'storeApplication'])->name('applications.store');
+            Route::delete('/{apCreditNote}/applications/{application}',  [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'deleteApplication'])->name('applications.destroy');
+        });
+
         // Payment Vouchers
         Route::prefix('vouchers')->name('vouchers.')->group(function () {
             Route::get('/',                             [PaymentVoucherController::class, 'index'])->name('index');

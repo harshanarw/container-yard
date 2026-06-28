@@ -288,6 +288,12 @@ return [
         'actions' => ['view', 'create', 'edit', 'approve', 'delete', 'pdf', 'email'],
     ],
 
+    'finance.ap-credit-notes' => [
+        'label'   => 'AP Credit Notes',
+        'section' => 'Finance',
+        'actions' => ['view', 'create', 'edit', 'approve', 'delete', 'pdf', 'email'],
+    ],
+
     'finance.ap' => [
         'label'   => 'AP / Supplier Invoices',
         'section' => 'Finance',

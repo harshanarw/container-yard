@@ -26,7 +26,7 @@ class ArCreditNoteController extends Controller
     {
         $this->authorize('finance.ar-credit-notes.view');
 
-        $query = ArCreditNote::with(['customer', 'journal'])
+        $query = ArCreditNote::with(['customer', 'journal', 'applications'])
             ->orderByDesc('credit_date')->orderByDesc('id');
 
         if ($request->filled('customer_id')) {

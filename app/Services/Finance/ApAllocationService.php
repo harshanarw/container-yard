@@ -41,9 +41,16 @@ class ApAllocationService
      */
     public function getAllocatedTotal(int $invoiceId): float
     {
-        return (float) PaymentAllocation::where('supplier_invoice_id', $invoiceId)
+        $vouchers = (float) PaymentAllocation::where('supplier_invoice_id', $invoiceId)
             ->whereHas('voucher', fn ($q) => $q->where('status', 'confirmed'))
             ->sum('allocated_amount');
+
+        // Approved AP credit notes applied to this bill also settle it (non-cash).
+        $creditNotes = (float) \App\Models\ApCreditNoteApplication::where('supplier_invoice_id', $invoiceId)
+            ->whereHas('creditNote', fn ($q) => $q->where('status', 'approved'))
+            ->sum('applied_amount');
+
+        return $vouchers + $creditNotes;
     }
 
     public function getOutstanding(SupplierInvoice $invoice): float
