@@ -11,6 +11,7 @@ use App\Models\StorageMasterHeader;
 use App\Services\CurrencyService;
 use App\Services\IrdInvoiceNumberService;
 use App\Services\NotificationService;
+use App\Services\Tariff\TariffRateGuard;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\YardStorage;
 use Illuminate\Http\Request;
@@ -141,6 +142,11 @@ class StorageBillingController extends Controller
             ->first();
 
         $lines = [];
+        $guard = new TariffRateGuard();
+        $tariffFixUrl   = $tariffHeader
+            ? route('masters.storage-tariff.show', $tariffHeader->id)
+            : route('masters.storage-tariff.index');
+        $tariffFixLabel = $tariffHeader ? 'Edit storage tariff' : 'Set up storage tariff';
 
         foreach ($storageRecords as $storage) {
             $container = $storage->container;
@@ -181,6 +187,7 @@ class StorageBillingController extends Controller
             $taxCodeId     = null;
             $tax1Rate      = $taxExempt ? 0.0 : $ssclPct;  // fallback
             $tax2Rate      = $taxExempt ? 0.0 : $vatPct;   // fallback
+            $detail        = null;
 
             if ($tariffHeader) {
                 $detail = $tariffHeader->details
@@ -227,6 +234,18 @@ class StorageBillingController extends Controller
             $eqtLabel = $eqt
                 ? $eqt->eqt_code . ' — ' . $eqt->description
                 : ($container->size . "' " . $container->type_code);
+
+            // Flag a missing/zero tariff rate only when it affects a chargeable
+            // line (free-day-only containers bill zero legitimately).
+            $reason = TariffRateGuard::storageReason(
+                $chargeableDays > 0,
+                $dailyRate,
+                (bool) $tariffHeader,
+                (bool) $detail
+            );
+            if ($reason) {
+                $guard->flag('storage', $eqtCode, $cargoStatus, $reason, $container->container_no, $tariffFixUrl, $tariffFixLabel);
+            }
 
             $lines[] = [
                 'container_id'       => $container->id,
@@ -285,6 +304,7 @@ class StorageBillingController extends Controller
             'total_display'    => $totalDisplay,
             'tariff_found'     => (bool) $tariffHeader,
             'no_containers'    => false,
+            'missing_rates'    => $guard->toArray(),
         ]);
     }
 
@@ -327,6 +347,14 @@ class StorageBillingController extends Controller
             'lines.*.line_total'       => ['required', 'numeric', 'min:0'],
             'lines.*.line_value'       => ['nullable', 'numeric', 'min:0'],
         ]);
+
+        // ── Authoritative tariff guard ─────────────────────────────────────────
+        // Re-resolve rates from the tariff (the posted line values are not trusted)
+        // and block the save if any chargeable line has no usable rate.
+        $guardError = $this->guardStorageRates($validated);
+        if ($guardError) {
+            return $guardError;
+        }
 
         $invoiceCurrency = strtoupper($validated['invoice_currency'] ?? 'LKR');
         $exchangeRate    = (float) ($validated['exchange_rate'] ?? 1.0);
@@ -402,6 +430,58 @@ class StorageBillingController extends Controller
 
         return redirect()->route('billing.show', $invoice)
             ->with('success', "Storage invoice {$invoice->invoice_no} saved successfully.");
+    }
+
+    /**
+     * Re-resolve storage rates from the active tariff (posted line values are not
+     * trusted) and return a redirect-back response if any chargeable line has no
+     * usable rate, or null when everything resolves.
+     */
+    private function guardStorageRates(array $validated)
+    {
+        $header = StorageMasterHeader::with('details')
+            ->where('customer_id', $validated['customer_id'])
+            ->where('is_active', true)
+            ->where('valid_from', '<=', $validated['period_to'])
+            ->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>=', $validated['period_from']))
+            ->latest('valid_from')
+            ->first();
+
+        $guard    = new TariffRateGuard();
+        $fixUrl   = $header ? route('masters.storage-tariff.show', $header->id) : route('masters.storage-tariff.index');
+        $fixLabel = $header ? 'Edit storage tariff' : 'Set up storage tariff';
+
+        foreach ($validated['lines'] as $line) {
+            if ((int) ($line['chargeable_days'] ?? 0) <= 0) {
+                continue;
+            }
+
+            $eqtId  = ($line['equipment_type_id'] ?? null) ?: null;
+            $cargo  = $line['cargo_status'] ?? null;
+            $detail = $header
+                ? $header->details->where('equipment_type_id', $eqtId)->where('cargo_status', $cargo)->first()
+                : null;
+
+            // Authoritative rate: from the tariff detail when a tariff exists; the
+            // stored gate-in fallback (posted daily_rate) only applies with no tariff.
+            $resolvedRate = $header
+                ? (float) ($detail->storage_rate ?? 0)
+                : (float) ($line['daily_rate'] ?? 0);
+
+            $reason = TariffRateGuard::storageReason(true, $resolvedRate, (bool) $header, (bool) $detail);
+            if ($reason) {
+                $guard->flag('storage', $line['equipment_type'] ?? null, $cargo, $reason, $line['container_no'] ?? null, $fixUrl, $fixLabel);
+            }
+        }
+
+        if ($guard->isEmpty()) {
+            return null;
+        }
+
+        return redirect()->back()->withInput()
+            ->with('tariff_block', $guard->toArray())
+            ->with('error', 'Invoice not saved — missing tariff rates for: ' . $guard->summary()
+                . '. Please update the tariff and preview again.');
     }
 
     // ── View invoice ──────────────────────────────────────────────────────────

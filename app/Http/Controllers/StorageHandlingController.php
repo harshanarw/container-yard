@@ -10,6 +10,7 @@ use App\Models\StorageHandlingInvoice;
 use App\Services\CurrencyService;
 use App\Services\IrdInvoiceNumberService;
 use App\Services\NotificationService;
+use App\Services\Tariff\TariffRateGuard;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\StorageHandlingInvoiceLine;
 use App\Models\StorageMasterHeader;
@@ -167,6 +168,15 @@ class StorageHandlingController extends Controller
             ->first();
 
         $lines = [];
+        $guard = new TariffRateGuard();
+        $storageFixUrl    = $storageTariff
+            ? route('masters.storage-tariff.show', $storageTariff->id)
+            : route('masters.storage-tariff.index');
+        $storageFixLabel  = $storageTariff ? 'Edit storage tariff' : 'Set up storage tariff';
+        $handlingFixUrl   = $handlingTariff
+            ? route('masters.handling-tariff.show', $handlingTariff->id)
+            : route('masters.handling-tariff.index');
+        $handlingFixLabel = $handlingTariff ? 'Edit handling tariff' : 'Set up handling tariff';
 
         foreach ($storageRecords as $storage) {
             $container = $storage->container;
@@ -202,6 +212,7 @@ class StorageHandlingController extends Controller
             $handlingTax1Rate     = $taxExempt ? 0.0 : $ssclPct;  // handling fallback
             $handlingTax2Rate     = $taxExempt ? 0.0 : $vatPct;   // handling fallback
 
+            $detail = null;
             if ($storageTariff) {
                 $detail = $storageTariff->details
                     ->where('equipment_type_id', $eqtId)
@@ -243,6 +254,7 @@ class StorageHandlingController extends Controller
             $liftOnRateUsd  = 0.0;
             $handlingCur    = 'USD';
 
+            $hRate = null;
             if ($handlingTariff && $containerSize) {
                 $hRate = $handlingTariff->rates
                     ->where('container_size', $containerSize)
@@ -291,6 +303,21 @@ class StorageHandlingController extends Controller
             $eqtLabel = $eqt
                 ? $eqt->eqt_code . ' — ' . $eqt->description
                 : ($container->size . "' " . $container->type_code);
+
+            // Flag missing/zero tariff rates only where they affect a billable
+            // amount: storage with chargeable days, or an actual lift event.
+            $storageReason = TariffRateGuard::storageReason($chargeableDays > 0, $storageRate, (bool) $storageTariff, (bool) $detail);
+            if ($storageReason) {
+                $guard->flag('storage', $eqtCode, $cargoStatus, $storageReason, $container->container_no, $storageFixUrl, $storageFixLabel);
+            }
+            $liftOffReason = TariffRateGuard::handlingReason($hasLiftOff, $liftOffRateUsd, (bool) $handlingTariff, (bool) $hRate, 'off');
+            if ($liftOffReason) {
+                $guard->flag('lift-off', $containerSize ? $containerSize . "'" : null, $cargoStatus, $liftOffReason, $container->container_no, $handlingFixUrl, $handlingFixLabel);
+            }
+            $liftOnReason = TariffRateGuard::handlingReason($hasLiftOn, $liftOnRateUsd, (bool) $handlingTariff, (bool) $hRate, 'on');
+            if ($liftOnReason) {
+                $guard->flag('lift-on', $containerSize ? $containerSize . "'" : null, $cargoStatus, $liftOnReason, $container->container_no, $handlingFixUrl, $handlingFixLabel);
+            }
 
             $lines[] = [
                 'container_id'             => $container->id,
@@ -371,6 +398,7 @@ class StorageHandlingController extends Controller
             'storage_tariff_found'   => (bool) $storageTariff,
             'handling_tariff_found'  => (bool) $handlingTariff,
             'no_data'                => false,
+            'missing_rates'          => $guard->toArray(),
         ]);
     }
 
@@ -425,6 +453,14 @@ class StorageHandlingController extends Controller
             'lines.*.line_grand_total'            => 'required|numeric|min:0',
             'lines.*.line_value'                  => 'nullable|numeric|min:0',
         ]);
+
+        // ── Authoritative tariff guard ─────────────────────────────────────────
+        // Re-resolve rates from the tariffs (posted line values are not trusted)
+        // and block the save if any chargeable line / lift event has no usable rate.
+        $guardError = $this->guardHandlingRates($v);
+        if ($guardError) {
+            return $guardError;
+        }
 
         $invoiceCurrency  = strtoupper($v['invoice_currency'] ?? 'LKR');
         $exchangeRate     = (float) ($v['exchange_rate'] ?? 1.0);
@@ -518,6 +554,86 @@ class StorageHandlingController extends Controller
         return redirect()
             ->route('billing.storage-handling.show', $invoice)
             ->with('success', "Storage & Handling invoice {$invoice->invoice_no} created successfully.");
+    }
+
+    /**
+     * Re-resolve storage & handling rates from the active tariffs (posted line
+     * values are not trusted) and return a redirect-back response if any
+     * chargeable storage line or lift event has no usable rate; null otherwise.
+     */
+    private function guardHandlingRates(array $v)
+    {
+        $storageTariff = StorageMasterHeader::with('details')
+            ->where('customer_id', $v['shipping_line_id'])
+            ->where('is_active', true)
+            ->where('valid_from', '<=', $v['period_to'])
+            ->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>=', $v['period_from']))
+            ->latest('valid_from')
+            ->first();
+
+        $handlingTariff = HandlingTariff::with('rates')
+            ->where('shipping_line_id', $v['shipping_line_id'])
+            ->where('is_active', true)
+            ->where('valid_from', '<=', $v['period_to'])
+            ->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>=', $v['period_from']))
+            ->latest('valid_from')
+            ->first();
+
+        $guard = new TariffRateGuard();
+        $storageFixUrl    = $storageTariff ? route('masters.storage-tariff.show', $storageTariff->id) : route('masters.storage-tariff.index');
+        $storageFixLabel  = $storageTariff ? 'Edit storage tariff' : 'Set up storage tariff';
+        $handlingFixUrl   = $handlingTariff ? route('masters.handling-tariff.show', $handlingTariff->id) : route('masters.handling-tariff.index');
+        $handlingFixLabel = $handlingTariff ? 'Edit handling tariff' : 'Set up handling tariff';
+
+        foreach ($v['lines'] as $line) {
+            $cargo       = $line['cargo_status'] ?? null;
+            $containerNo = $line['container_no'] ?? null;
+            $size        = $line['container_size'] ?? null;
+
+            // Storage portion
+            if ((int) ($line['storage_chargeable_days'] ?? 0) > 0) {
+                $eqtId  = ($line['equipment_type_id'] ?? null) ?: null;
+                $detail = $storageTariff
+                    ? $storageTariff->details->where('equipment_type_id', $eqtId)->where('cargo_status', $cargo)->first()
+                    : null;
+                $rate = $storageTariff
+                    ? (float) ($detail->storage_rate ?? 0)
+                    : (float) ($line['storage_daily_rate'] ?? 0);
+                $reason = TariffRateGuard::storageReason(true, $rate, (bool) $storageTariff, (bool) $detail);
+                if ($reason) {
+                    $guard->flag('storage', $line['equipment_type'] ?? null, $cargo, $reason, $containerNo, $storageFixUrl, $storageFixLabel);
+                }
+            }
+
+            // Handling portion — only the lift directions that actually occurred
+            $hRate = ($handlingTariff && $size)
+                ? $handlingTariff->rates->where('container_size', $size)->where('cargo_status', $cargo)->first()
+                : null;
+
+            if (! empty($line['has_lift_off'])) {
+                $rate   = (float) ($hRate->lift_off_rate ?? 0);
+                $reason = TariffRateGuard::handlingReason(true, $rate, (bool) $handlingTariff, (bool) $hRate, 'off');
+                if ($reason) {
+                    $guard->flag('lift-off', $size ? $size . "'" : null, $cargo, $reason, $containerNo, $handlingFixUrl, $handlingFixLabel);
+                }
+            }
+            if (! empty($line['has_lift_on'])) {
+                $rate   = (float) ($hRate->lift_on_rate ?? 0);
+                $reason = TariffRateGuard::handlingReason(true, $rate, (bool) $handlingTariff, (bool) $hRate, 'on');
+                if ($reason) {
+                    $guard->flag('lift-on', $size ? $size . "'" : null, $cargo, $reason, $containerNo, $handlingFixUrl, $handlingFixLabel);
+                }
+            }
+        }
+
+        if ($guard->isEmpty()) {
+            return null;
+        }
+
+        return redirect()->back()->withInput()
+            ->with('tariff_block', $guard->toArray())
+            ->with('error', 'Invoice not saved — missing tariff rates for: ' . $guard->summary()
+                . '. Please update the tariff and preview again.');
     }
 
     // ── View invoice ──────────────────────────────────────────────────────────

@@ -191,6 +191,7 @@
 
         {{-- Tariff alert box --}}
         <div id="tariffAlert" class="d-none"></div>
+        <div id="missingRatesPanel" class="d-none"></div>
 
         {{-- Charge type legend --}}
         <div class="card content-card">
@@ -394,6 +395,7 @@ const previewUrl  = '{{ route("billing.storage-handling.preview") }}';
 const exchRateUrl = '/billing/exchange-rate';
 
 let previewLines = [];
+let previewMissing = [];
 
 function fmtEqt(l) {
     if (!l.eqt_code) return l.equipment_type || '—';
@@ -527,6 +529,15 @@ async function runPreview() {
 
 function renderPreview(data) {
     previewLines = data.lines || [];
+    previewMissing = data.missing_rates || [];
+
+    // Missing tariff rates → render the detail panel and block saving
+    const hasMissing = window.renderTariffMissing(document.getElementById('missingRatesPanel'), previewMissing);
+    const saveBtn = document.getElementById('saveBtn');
+    if (saveBtn) {
+        saveBtn.disabled = hasMissing;
+        saveBtn.title = hasMissing ? 'Resolve the missing tariff rates before saving' : '';
+    }
 
     // Tax exempt alert
     document.getElementById('taxExemptAlert').classList.toggle('d-none', !data.tax_exempt);
@@ -741,6 +752,12 @@ $(document).ready(function () {
         if (previewLines.length === 0) {
             e.preventDefault();
             showToast('Please run a preview first.', 'warning');
+            return;
+        }
+
+        if (previewMissing.length > 0) {
+            e.preventDefault();
+            showToast('Cannot save — missing tariff rates. Update the tariff and preview again.', 'danger');
             return;
         }
 

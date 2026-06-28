@@ -2207,6 +2207,45 @@
         } catch (e) { /* storage unavailable — ignore */ }
     };
 
+    // Render a "missing tariff rates" block into panelEl from a billing preview's
+    // missing_rates array. Returns true when there are blocking misses so callers
+    // can disable the save button. Shared by the billing preview screens.
+    window.renderTariffMissing = function (panelEl, missing) {
+        if (!panelEl) return false;
+        missing = missing || [];
+        if (!missing.length) { panelEl.className = 'd-none'; panelEl.innerHTML = ''; return false; }
+
+        var opLabel = { 'storage': 'Storage', 'lift-off': 'Lift-Off', 'lift-on': 'Lift-On' };
+        var rows = missing.map(function (m) {
+            var combo = ((m.equipment || '') + ' ' + (m.cargo_status ? String(m.cargo_status).toUpperCase() : '')).trim();
+            var conts = m.containers || [];
+            var contStr = conts.length
+                ? conts.slice(0, 6).join(', ') + (conts.length > 6 ? ' +' + (conts.length - 6) + ' more' : '')
+                : '';
+            var fix = m.fix_url
+                ? '<a href="' + m.fix_url + '" target="_blank" class="btn btn-sm btn-outline-danger py-0">' + _npEsc(m.fix_label || 'Fix tariff') + ' &rarr;</a>'
+                : '';
+            return '<tr>' +
+                '<td class="fw-semibold">' + _npEsc(opLabel[m.operation] || m.operation || '') + '</td>' +
+                '<td>' + _npEsc(combo || '—') + '</td>' +
+                '<td class="text-danger">' + _npEsc(m.reason || '') + '</td>' +
+                '<td class="small text-muted">' + _npEsc(contStr) + '</td>' +
+                '<td class="text-end">' + fix + '</td>' +
+                '</tr>';
+        }).join('');
+
+        panelEl.className = 'alert alert-danger mb-3';
+        panelEl.innerHTML =
+            '<div class="d-flex align-items-start gap-2 mb-2">' +
+            '<i class="bi bi-exclamation-octagon-fill mt-1"></i>' +
+            '<div><strong>Cannot generate invoice &mdash; missing tariff rates.</strong> ' +
+            'Add the rate line(s) below to the tariff, then preview again.</div></div>' +
+            '<div class="table-responsive"><table class="table table-sm mb-0 align-middle small">' +
+            '<thead><tr><th>Charge</th><th>Combination</th><th>Issue</th><th>Containers</th><th></th></tr></thead>' +
+            '<tbody>' + rows + '</tbody></table></div>';
+        return true;
+    };
+
     function _npDismiss(el) {
         el.classList.replace('np-show', 'np-hide');
         setTimeout(function () { el && el.parentNode && el.parentNode.removeChild(el); }, 320);
