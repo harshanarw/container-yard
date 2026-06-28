@@ -411,7 +411,8 @@
         .then(({ ok, d }) => {
             if (ok && d.success) {
                 bootstrap.Modal.getInstance(document.getElementById('emailModal'))?.hide();
-                window.showToast ? showToast(d.message || 'Email sent.', 'success') : alert(d.message || 'Email sent.');
+                // Success feedback comes from the standard system notification
+                // (bell badge + real-time popup) — no extra toast needed here.
             } else {
                 window.showToast ? showToast((d && d.message) || 'Email could not be sent.', 'danger') : alert((d && d.message) || 'Email could not be sent.');
             }
