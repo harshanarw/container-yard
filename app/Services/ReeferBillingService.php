@@ -8,6 +8,7 @@ use App\Models\ReeferElectricityInvoice;
 use App\Models\ReeferElectricityInvoiceLine;
 use App\Models\ReeferElectricityTariff;
 use App\Models\ReeferPlugSession;
+use App\Services\Tariff\TariffRateGuard;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -159,14 +160,25 @@ class ReeferBillingService
         $grandSscl     = 0;
         $grandVat      = 0;
 
+        $guard        = new TariffRateGuard();
+        $tariffFixUrl = route('masters.reefer-tariff.index');
+
         foreach ($sessions as $session) {
+            $containerNo = $session->container->container_no ?? null;
+
             $tariff = ReeferElectricityTariff::resolveFor($customerId, $session->plug_in_at?->toDateString());
             if (!$tariff) {
+                // A completed session with consumption but no applicable tariff would
+                // otherwise be silently dropped from the bill — flag it instead.
+                $guard->flag('reefer', null, null, 'No active reefer electricity tariff covering this session.', $containerNo, $tariffFixUrl, 'Set up reefer tariff');
                 continue;
             }
 
             $calc = static::calculateSession($session, $tariff);
             if (!$calc) {
+                // Missing plug-in/out timestamps — cannot be billed; surface rather
+                // than silently skip so the data can be corrected.
+                $guard->flag('reefer', null, null, 'Session has no plug-in/out time and cannot be billed.', $containerNo, null, null);
                 continue;
             }
 
@@ -218,6 +230,7 @@ class ReeferBillingService
             'exchange_rate'    => $exchangeRate,
             'charge_code_id'   => $chargeCode?->id,
             'skipped'          => $sessions->count() - count($lines),
+            'missing_rates'    => $guard->toArray(),
         ];
     }
 

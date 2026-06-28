@@ -77,6 +77,7 @@ class RepairInvoiceController extends Controller
         $ssclTotal   = 0;
         $vatTotal    = 0;
         $lineRecords = [];
+        $zeroLines   = [];
 
         foreach ($estimate->lineItems as $line) {
             $lineAmount = ($line->labor_amount ?? 0) + ($line->material_amount ?? 0) + ($line->ancillary_amount ?? 0);
@@ -84,6 +85,13 @@ class RepairInvoiceController extends Controller
                 $lineAmount = ($line->unit_price ?? 0) * ($line->qty ?? 1);
             }
             $lineAmount = round((float) $lineAmount, 2);
+
+            // Non-blocking: note any zero-amount line so the user can be warned.
+            // Repair pricing comes from an approved estimate (already reviewed and
+            // editable), so this never blocks the invoice — it only informs.
+            if ($lineAmount <= 0) {
+                $zeroLines[] = $line->cedex_code ?: ($line->component ?? 'item');
+            }
 
             // Per-line SSCL/VAT cascade: Tax1 on net; Tax2 on (net + Tax1)
             $tc      = $line->taxCode;
@@ -170,7 +178,17 @@ class RepairInvoiceController extends Controller
             return $invoice;
         });
 
-        return redirect()->route('repair-invoices.show', $invoice)->with('success', "Repair invoice {$invoice->invoice_no} created.");
+        $redirect = redirect()->route('repair-invoices.show', $invoice)
+            ->with('success', "Repair invoice {$invoice->invoice_no} created.");
+
+        if (! empty($zeroLines)) {
+            $sample = implode(', ', array_slice($zeroLines, 0, 5))
+                . (count($zeroLines) > 5 ? ' +' . (count($zeroLines) - 5) . ' more' : '');
+            $redirect->with('warning', count($zeroLines) . ' repair line(s) have a zero amount ('
+                . $sample . '). Review the estimate pricing / MR tariff if this is unexpected.');
+        }
+
+        return $redirect;
     }
 
     public function show(RepairInvoice $invoice)

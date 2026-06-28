@@ -63,12 +63,31 @@ class TariffRateCalculator
         $laborAmount = round($laborHours * $laborRate, 2);
         $total = round($laborAmount + $materialCost, 2);
 
+        // Non-blocking signal for the estimate UI: the MR tariff produced no usable
+        // amount for this item/qty. Repair pricing is reviewed and editable at the
+        // estimate stage, so this is a warning (set the price or fix the tariff),
+        // never a hard block.
+        $rateMissing = false;
+        $rateMissingReason = null;
+        if ($total <= 0) {
+            $rateMissing = true;
+            if (!$baseSlab) {
+                $rateMissingReason = 'No tariff slab matches this quantity.';
+            } elseif ($laborHours > 0 && $laborRate <= 0) {
+                $rateMissingReason = 'No labour rate set for this customer (or default).';
+            } else {
+                $rateMissingReason = 'Tariff produced a zero amount.';
+            }
+        }
+
         return [
             'labor_hours'   => round($laborHours, 3),
             'material_cost' => round($materialCost, 2),
             'labor_rate'    => $laborRate,
             'labor_amount'  => $laborAmount,
             'total'         => $total,
+            'rate_missing'        => $rateMissing,
+            'rate_missing_reason' => $rateMissingReason,
             'item'          => [
                 'id'             => $item->id,
                 'tariff_code'    => $item->tariff_code,

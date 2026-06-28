@@ -116,6 +116,8 @@
                 No completed reefer sessions found for the selected customer and period.
             </div>
 
+            <div id="missingRatesPanel" class="d-none mt-3"></div>
+
             <div class="mt-3 text-end" id="createBtnWrap" style="display:none">
                 <button type="submit" class="btn btn-primary px-4">
                     <i class="bi bi-plus-lg me-1"></i>Create Invoice
@@ -134,6 +136,7 @@
     const previewEmpty = document.getElementById('previewEmpty');
     const createWrap   = document.getElementById('createBtnWrap');
     const previewBody  = document.getElementById('previewBody');
+    let previewMissing = [];
 
     function fmt(n) { return parseFloat(n).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
 
@@ -169,16 +172,21 @@
             previewBtn.disabled = false;
             previewBtn.innerHTML = '<i class="bi bi-search me-1"></i>Preview Charges';
 
+            // Missing tariff rates → detail panel; block creating the invoice.
+            previewMissing = data.missing_rates || [];
+            const hasMissing = window.renderTariffMissing(document.getElementById('missingRatesPanel'), previewMissing);
+
             if (!data.lines || data.lines.length === 0) {
                 previewCard.style.display = 'none';
-                previewEmpty.style.display = '';
+                // The panel explains the missing-rate reason; otherwise show the empty notice.
+                previewEmpty.style.display = hasMissing ? 'none' : '';
                 createWrap.style.display = 'none';
                 return;
             }
 
             previewEmpty.style.display = 'none';
             previewCard.style.display = '';
-            createWrap.style.display = '';
+            createWrap.style.display = hasMissing ? 'none' : '';
 
             const skipped = document.getElementById('previewSkipped');
             if (data.skipped > 0) {

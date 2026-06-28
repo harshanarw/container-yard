@@ -121,6 +121,15 @@ class ReeferBillingController extends Controller
             (float) ($validated['vat_pct'] ?? 0)
         );
 
+        // Authoritative tariff guard: block if any session has no usable rate.
+        if (!empty($preview['missing_rates'])) {
+            return back()
+                ->withInput()
+                ->with('tariff_block', $preview['missing_rates'])
+                ->with('error', 'Invoice not saved — ' . count($preview['missing_rates'])
+                    . ' reefer session group(s) have no usable tariff rate. Please set up the reefer tariff and preview again.');
+        }
+
         if (empty($preview['lines'])) {
             return back()
                 ->withInput()

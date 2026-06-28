@@ -463,6 +463,12 @@
                         </div>
                     </div>
                     <div id="grFxNote" class="d-none mt-2" style="font-size:.72rem;color:#6c757d;"></div>
+                    <div id="grRateWarning" class="d-none alert alert-warning py-2 px-2 mt-2 mb-0 small">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        <span id="grRateWarningText"></span>
+                        You can still enter the price manually, or
+                        <a href="{{ route('masters.mr-tariff.index') }}" target="_blank">update the MR tariff &rarr;</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1287,6 +1293,17 @@
                             document.getElementById('grMaterialAmt').textContent = (result.material_cost * fx).toFixed(2);
                             document.getElementById('grTotal').textContent       = (result.total         * fx).toFixed(2);
                             grUpdateCurrencyUI();
+
+                            // Non-blocking warning when the MR tariff yields no usable rate
+                            const warnBox = document.getElementById('grRateWarning');
+                            if (result.rate_missing) {
+                                document.getElementById('grRateWarningText').textContent =
+                                    (result.rate_missing_reason || 'No tariff rate found for this item.') + ' ';
+                                warnBox.classList.remove('d-none');
+                            } else {
+                                warnBox.classList.add('d-none');
+                            }
+
                             rateResult.classList.remove('d-none');
                         })
                         .catch(() => alert('Rate lookup failed.'));

@@ -2215,7 +2215,7 @@
         missing = missing || [];
         if (!missing.length) { panelEl.className = 'd-none'; panelEl.innerHTML = ''; return false; }
 
-        var opLabel = { 'storage': 'Storage', 'lift-off': 'Lift-Off', 'lift-on': 'Lift-On' };
+        var opLabel = { 'storage': 'Storage', 'lift-off': 'Lift-Off', 'lift-on': 'Lift-On', 'reefer': 'Reefer', 'repair': 'Repair' };
         var rows = missing.map(function (m) {
             var combo = ((m.equipment || '') + ' ' + (m.cargo_status ? String(m.cargo_status).toUpperCase() : '')).trim();
             var conts = m.containers || [];
