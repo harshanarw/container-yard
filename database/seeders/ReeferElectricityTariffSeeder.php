@@ -60,9 +60,12 @@ class ReeferElectricityTariffSeeder extends Seeder
         ];
 
         foreach ($tariffs as $data) {
-            // One default per service type — keyed by (customer_id, service_type)
-            // so re-runs never duplicate and never clobber an admin's edited rates.
-            ReeferElectricityTariff::firstOrCreate(
+            // One canonical system default per service type — keyed by
+            // (customer_id, service_type). updateOrCreate (not firstOrCreate) so an
+            // upgraded DB whose pre-split default was backfilled to e.g. PTI but
+            // left LKR/inactive is corrected to the intended USD/active PTI default.
+            // Per-customer tariffs are unaffected; admins override via those.
+            ReeferElectricityTariff::updateOrCreate(
                 ['customer_id' => null, 'service_type' => $data['service_type']],
                 $data
             );

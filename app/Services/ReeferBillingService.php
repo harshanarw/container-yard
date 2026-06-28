@@ -141,8 +141,8 @@ class ReeferBillingService
         $sessions = $sessionsQuery->orderBy('plug_in_at')->get();
 
         $defaultCurrency = CurrencyService::defaultCurrency();
-        $tariffMultiplier = CurrencyService::tariffMultiplier($invoiceCurrency, $exchangeRate);
-        $displayFactor    = CurrencyService::invoiceDisplayFactor($invoiceCurrency, $exchangeRate);
+        // base (LKR) → invoice-currency display factor
+        $displayFactor   = CurrencyService::invoiceDisplayFactor($invoiceCurrency, $exchangeRate);
 
         // Charge code + tax come from the service-type tariff (charge code lives on
         // the tariff). Fall back to the reefer category charge code when unset.
@@ -158,10 +158,11 @@ class ReeferBillingService
         $resolvedSscl = $tax1Rate > 0 ? $tax1Rate : $ssclPct;
         $resolvedVat  = $tax2Rate > 0 ? $tax2Rate : $vatPct;
 
-        $lines        = [];
-        $grandSubtotal = 0;
+        $lines         = [];
+        $grandSubtotal = 0;   // invoice-currency (display)
         $grandSscl     = 0;
         $grandVat      = 0;
+        $grandValue    = 0;   // base currency (LKR)
 
         $guard        = new TariffRateGuard();
         $tariffFixUrl = route('masters.reefer-tariff.index');
@@ -186,15 +187,22 @@ class ReeferBillingService
                 continue;
             }
 
-            // Convert subtotal to invoice currency if needed
-            $subtotal = $calc['subtotal'] * $displayFactor;
+            // Convert the tariff-currency subtotal to base (LKR) first, then derive
+            // the invoice-currency display amounts. This mirrors the storage/handling
+            // pattern so USD (PTI) and LKR (Long-Term) tariffs both bill correctly,
+            // regardless of which currency the invoice is issued in.
+            $lineMult    = CurrencyService::tariffMultiplier($calc['currency'], $exchangeRate);
+            $subtotalLkr = round($calc['subtotal'] * $lineMult, 2);
 
-            $lineSscl  = $customer->tax_exempt ? 0 : round($subtotal * $resolvedSscl / 100, 2);
-            $lineVat   = $customer->tax_exempt ? 0 : round($subtotal * $resolvedVat  / 100, 2);
-            $lineTotal = round($subtotal + $lineSscl + $lineVat, 2);
+            $ssclLkr  = $customer->tax_exempt ? 0 : round($subtotalLkr * $resolvedSscl / 100, 2);
+            $vatLkr   = $customer->tax_exempt ? 0 : round($subtotalLkr * $resolvedVat  / 100, 2);
+            $totalLkr = round($subtotalLkr + $ssclLkr + $vatLkr, 2);   // line_value (LKR)
 
-            // line_value always in default currency for accounting
-            $lineValue = round($lineTotal * $tariffMultiplier, 2);
+            // Invoice-currency (display) amounts
+            $subtotalDisp = round($subtotalLkr * $displayFactor, 2);
+            $ssclDisp     = round($ssclLkr     * $displayFactor, 2);
+            $vatDisp      = round($vatLkr      * $displayFactor, 2);
+            $totalDisp    = round($totalLkr    * $displayFactor, 2);
 
             $lines[] = array_merge($calc, [
                 'session_id'       => $session->id,
@@ -204,21 +212,21 @@ class ReeferBillingService
                 'tax_code_id'      => $taxCodeId ?? null,
                 'tax1_rate'        => $resolvedSscl,
                 'tax2_rate'        => $resolvedVat,
-                'subtotal_display' => $subtotal,
-                'line_sscl'        => $lineSscl,
-                'line_vat'         => $lineVat,
-                'line_total'       => $lineTotal,
-                'line_value'       => $lineValue,
+                'subtotal_display' => $subtotalDisp,
+                'line_sscl'        => $ssclDisp,
+                'line_vat'         => $vatDisp,
+                'line_total'       => $totalDisp,
+                'line_value'       => $totalLkr,
             ]);
 
-            $grandSubtotal += $subtotal;
-            $grandSscl     += $lineSscl;
-            $grandVat      += $lineVat;
+            $grandSubtotal += $subtotalDisp;
+            $grandSscl     += $ssclDisp;
+            $grandVat      += $vatDisp;
+            $grandValue    += $totalLkr;
         }
 
         $grandTotal = round($grandSubtotal + $grandSscl + $grandVat, 2);
-        // total_value in default currency
-        $totalValue = round($grandTotal * $tariffMultiplier, 2);
+        $totalValue = round($grandValue, 2);   // base-currency (LKR) total
 
         return [
             'customer'         => $customer,

@@ -382,9 +382,13 @@
         }
     });
 
-    // Initial sync once Select2 is ready
+    // Initial sync — deferred so it runs AFTER the layout's DOMContentLoaded
+    // Select2 initialisation (jQuery's ready fires before that handler), otherwise
+    // the billing-party auto-fill would set a value the Select2 widget hasn't yet
+    // rendered.
     function initSync() { onServiceTypeChange(); onCustomerChange(); }
-    if (window.jQuery) { jQuery(initSync); } else { document.addEventListener('DOMContentLoaded', initSync); }
+    if (window.jQuery) { jQuery(function () { setTimeout(initSync, 0); }); }
+    else { window.addEventListener('load', initSync); }
 })();
 </script>
 @endpush

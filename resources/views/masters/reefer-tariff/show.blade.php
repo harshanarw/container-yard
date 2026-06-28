@@ -38,7 +38,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-medium">Service Type <span class="text-danger">*</span></label>
-                            <select name="service_type" class="form-select" required>
+                            <select name="service_type" id="editServiceType" class="form-select" required>
                                 @foreach(\App\Models\ReeferElectricityTariff::SERVICE_TYPES as $val => $label)
                                     <option value="{{ $val }}" {{ old('service_type', $reeferTariff->service_type) === $val ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
@@ -66,7 +66,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-medium">Currency</label>
-                            <input type="text" name="currency" class="form-control font-monospace" value="{{ old('currency', $reeferTariff->currency) }}" maxlength="3" required>
+                            <input type="text" name="currency" id="editCurrency" class="form-control font-monospace" value="{{ old('currency', $reeferTariff->currency) }}" maxlength="3" required>
                         </div>
                         <div class="col-md-4" id="editHourlyRateWrap">
                             <label class="form-label">Hourly Rate</label>
@@ -156,6 +156,21 @@
 
     modeSelect?.addEventListener('change', toggleMode);
     toggleMode();
+
+    // Service type defaults the basis + currency (still editable), matching the
+    // create form: PTI → hourly/USD, Long-Term → daily/LKR.
+    const svcSelect = document.getElementById('editServiceType');
+    const currency  = document.getElementById('editCurrency');
+    svcSelect?.addEventListener('change', function () {
+        if (svcSelect.value === 'pti') {
+            modeSelect.value = 'hourly';
+            if (currency) currency.value = 'USD';
+        } else {
+            modeSelect.value = 'daily';
+            if (currency) currency.value = 'LKR';
+        }
+        toggleMode();
+    });
 })();
 </script>
 @endpush
