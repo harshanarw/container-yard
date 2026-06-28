@@ -41,6 +41,14 @@ $statusColors = [
             <i class="bi bi-file-earmark-text me-1"></i>IRD Tax Invoice
         </a>
         @endcan
+        @can('finance.ar-credit-notes.create')
+        @if(in_array($invoice->status, ['issued', 'partially_paid', 'overdue']))
+        <a href="{{ route('finance.ar-credit-notes.create', ['invoice_type' => 'repair', 'invoice_id' => $invoice->id]) }}"
+           class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Credit Note
+        </a>
+        @endif
+        @endcan
         @can('billing.repair.edit')
         @if($canEdit)
         <a href="{{ route('repair-invoices.edit', $invoice) }}" class="btn btn-primary btn-sm">

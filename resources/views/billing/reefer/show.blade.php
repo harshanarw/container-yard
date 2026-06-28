@@ -32,6 +32,14 @@
             <i class="bi bi-file-earmark-text me-1"></i>IRD Tax Invoice
         </a>
         @endcan
+        @can('finance.ar-credit-notes.create')
+        @if($reeferInvoice->status === 'issued')
+        <a href="{{ route('finance.ar-credit-notes.create', ['invoice_type' => 'reefer', 'invoice_id' => $reeferInvoice->id]) }}"
+           class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Credit Note
+        </a>
+        @endif
+        @endcan
         @can('billing.reefer.approve')
         @if($reeferInvoice->isDraft())
             <form action="{{ route('billing.reefer.issue', $reeferInvoice) }}" method="POST" class="d-inline">

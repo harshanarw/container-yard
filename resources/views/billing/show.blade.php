@@ -56,6 +56,14 @@
             <i class="bi bi-file-earmark-text me-1"></i>IRD Tax Invoice
         </a>
         @endcan
+        @can('finance.ar-credit-notes.create')
+        @if($invoice->status === 'issued')
+        <a href="{{ route('finance.ar-credit-notes.create', ['invoice_type' => 'storage', 'invoice_id' => $invoice->id]) }}"
+           class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Credit Note
+        </a>
+        @endif
+        @endcan
 
         @can('billing.storage.approve')
         @if($invoice->isDraft())

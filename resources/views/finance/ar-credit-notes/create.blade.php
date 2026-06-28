@@ -20,6 +20,11 @@
 
 <form method="POST" action="{{ route('finance.ar-credit-notes.store') }}">
     @csrf
+    @if($prefill ?? null)
+    <input type="hidden" name="reference_invoice_type" value="{{ $prefill['invoice_type'] }}">
+    <input type="hidden" name="reference_invoice_id" value="{{ $prefill['invoice_id'] }}">
+    <div class="alert alert-info py-2 small"><i class="bi bi-link-45deg me-1"></i>Raising a credit note against invoice <strong>{{ $prefill['invoice_no'] }}</strong>. It will be applied to that invoice automatically on approval.</div>
+    @endif
     <div class="card content-card mb-3">
         <div class="card-header bg-transparent py-2"><strong class="small">Credit Note Details</strong></div>
         <div class="card-body">
@@ -29,7 +34,7 @@
                     <select name="customer_id" id="customerSelect" class="form-select form-select-sm s2-code" data-s2-sel="name" required>
                         <option value="">— Select customer —</option>
                         @foreach($customers as $c)
-                        <option value="{{ $c->id }}" data-code="{{ $c->currency }}" data-name="{{ $c->name }}" {{ old('customer_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                        <option value="{{ $c->id }}" data-code="{{ $c->currency }}" data-name="{{ $c->name }}" {{ old('customer_id', $prefill['customer_id'] ?? '') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -41,18 +46,18 @@
                     <label class="form-label fw-semibold small">Currency <span class="text-danger">*</span></label>
                     <select name="currency" id="currencyField" class="form-select form-select-sm s2-code" data-s2-sel="name" required>
                         @foreach($currencies as $cur)
-                        <option value="{{ $cur->code }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}" {{ old('currency', $baseCurrency) === $cur->code ? 'selected' : '' }}>{{ $cur->code }} — {{ $cur->name }}</option>
+                        <option value="{{ $cur->code }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}" {{ old('currency', $prefill['currency'] ?? $baseCurrency) === $cur->code ? 'selected' : '' }}>{{ $cur->code }} — {{ $cur->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold small">Exchange Rate <span class="text-danger">*</span></label>
-                    <input type="number" name="exchange_rate" id="exchangeRateField" class="form-control form-control-sm" value="{{ old('exchange_rate','1.000000') }}" required min="0.000001" step="0.000001">
+                    <input type="number" name="exchange_rate" id="exchangeRateField" class="form-control form-control-sm" value="{{ old('exchange_rate', $prefill['exchange_rate'] ?? '1.000000') }}" required min="0.000001" step="0.000001">
                     <div class="form-text small">Base: {{ $baseCurrency }}</div>
                 </div>
                 <div class="col-12">
                     <label class="form-label fw-semibold small">Reason</label>
-                    <input type="text" name="reason" class="form-control form-control-sm" value="{{ old('reason') }}" maxlength="255" placeholder="e.g. Overcharge correction / goods returned">
+                    <input type="text" name="reason" class="form-control form-control-sm" value="{{ old('reason', isset($prefill) && $prefill ? 'Credit note for invoice '.$prefill['invoice_no'] : '') }}" maxlength="255" placeholder="e.g. Overcharge correction / goods returned">
                 </div>
             </div>
         </div>
@@ -68,14 +73,30 @@
                 <thead class="table-light">
                     <tr><th>Description</th><th style="width:30%">Revenue Account</th><th class="text-end" style="width:160px">Amount</th><th style="width:36px"></th></tr>
                 </thead>
-                <tbody id="linesBody"></tbody>
+                <tbody id="linesBody">
+                @if($prefill ?? null)
+                    <tr>
+                        <td><input type="text" name="lines[0][description]" class="form-control form-control-sm" required maxlength="255" value="Reversal of invoice {{ $prefill['invoice_no'] }}"></td>
+                        <td>
+                            <select name="lines[0][revenue_account_id]" class="form-select form-select-sm">
+                                <option value="">— Default revenue —</option>
+                                @foreach($revenueAccounts as $a)
+                                <option value="{{ $a->id }}" {{ ($prefill['revenue_account_id'] ?? null) == $a->id ? 'selected' : '' }}>{{ $a->code }} — {{ $a->name }}</option>
+                                @endforeach
+                            </select>
+                        </td>
+                        <td><input type="number" name="lines[0][amount]" class="form-control form-control-sm text-end font-monospace line-amt" min="0.01" step="0.01" required value="{{ number_format($prefill['net'], 2, '.', '') }}"></td>
+                        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger rm-line"><i class="bi bi-x"></i></button></td>
+                    </tr>
+                @endif
+                </tbody>
             </table>
         </div>
         <div class="card-footer bg-transparent">
             <div class="row g-2 justify-content-end">
                 <div class="col-md-3">
                     <label class="form-label small mb-1">Output VAT to reverse</label>
-                    <input type="number" name="tax_amount" id="taxAmount" class="form-control form-control-sm text-end font-monospace" value="{{ old('tax_amount', '0.00') }}" min="0" step="0.01">
+                    <input type="number" name="tax_amount" id="taxAmount" class="form-control form-control-sm text-end font-monospace" value="{{ old('tax_amount', isset($prefill) && $prefill ? number_format($prefill['vat'], 2, '.', '') : '0.00') }}" min="0" step="0.01">
                 </div>
                 <div class="col-md-3 text-end">
                     <div class="small text-muted mt-4">Subtotal: <span class="fw-semibold font-monospace" id="subtotalDisp">0.00</span></div>
@@ -112,7 +133,8 @@
 (function () {
     const body = document.getElementById('linesBody');
     const tpl  = document.getElementById('lineTpl').innerHTML;
-    let idx = 0;
+    const prefilled = {{ ($prefill ?? null) ? 'true' : 'false' }};
+    let idx = prefilled ? 1 : 0;
     function addLine() { body.insertAdjacentHTML('beforeend', tpl.replace(/IDX/g, idx++)); recompute(); }
     function recompute() {
         let sub = 0;
@@ -143,7 +165,14 @@
         const cur = this.options[this.selectedIndex]?.dataset.code;
         if (cur) $('#currencyField').val(cur.toUpperCase()).trigger('change');
     });
-    addLine(); refreshRate();
+    if (prefilled) {
+        // Keep the invoice's currency + rate; just sync the label and totals.
+        document.getElementById('ccyDisp').textContent = document.getElementById('currencyField').value;
+        recompute();
+    } else {
+        addLine();
+        refreshRate();
+    }
 })();
 </script>
 @endpush

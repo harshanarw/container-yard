@@ -49,11 +49,80 @@ class ArCreditNoteController extends Controller
         return view('finance.ar-credit-notes.index', compact('creditNotes', 'customers'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $this->authorize('finance.ar-credit-notes.create');
 
-        return view('finance.ar-credit-notes.create', $this->formOptions());
+        $options = $this->formOptions();
+        $prefill = null;
+
+        // "Credit note against invoice X" — pre-fill from an existing AR invoice.
+        if ($request->filled('invoice_type') && $request->filled('invoice_id')
+            && in_array($request->invoice_type, ['storage', 'storage-handling', 'reefer', 'repair'], true)) {
+            try {
+                $type    = $request->invoice_type;
+                $invoice = $this->allocationService->resolveInvoice($type, (int) $request->invoice_id);
+                $total   = $this->allocationService->getTotal($invoice, $type);
+                $vat     = (float) ($type === 'repair' ? ($invoice->vat_total ?? 0) : ($invoice->vat_amount ?? 0));
+
+                $codeMap = ['storage' => '4001', 'storage-handling' => '4002', 'reefer' => '4004', 'repair' => '4003'];
+                $revAcc  = Account::where('code', $codeMap[$type] ?? '4001')->where('is_active', true)->first();
+
+                $prefill = [
+                    'invoice_type' => $type,
+                    'invoice_id'   => $invoice->id,
+                    'invoice_no'   => $invoice->invoice_no,
+                    'customer_id'  => $this->allocationService->getCustomerId($invoice, $type),
+                    'currency'     => strtoupper((string) ($invoice->invoice_currency ?? $invoice->currency ?? $options['baseCurrency'])),
+                    'exchange_rate'=> $this->allocationService->getExchangeRate($invoice, $type),
+                    'net'          => round($total - $vat, 2),
+                    'vat'          => round($vat, 2),
+                    'revenue_account_id' => $revAcc?->id,
+                ];
+            } catch (\Throwable) {
+                $prefill = null;
+            }
+        }
+
+        return view('finance.ar-credit-notes.create', array_merge($options, ['prefill' => $prefill]));
+    }
+
+    /**
+     * After approval, if the credit note was raised against a specific invoice,
+     * apply it automatically (capped at that invoice's outstanding). Best-effort.
+     */
+    private function autoApplyToReference(ArCreditNote $cn): void
+    {
+        if (!$cn->reference_invoice_type || !$cn->reference_invoice_id || $cn->applications()->exists()) {
+            return;
+        }
+
+        try {
+            $invoice = $this->allocationService->resolveInvoice($cn->reference_invoice_type, (int) $cn->reference_invoice_id);
+
+            $base   = CompanySetting::baseCurrency();
+            $invCcy = strtoupper((string) ($invoice->invoice_currency ?? $invoice->currency ?? '')) ?: $base;
+            $cnCcy  = strtoupper((string) $cn->currency) ?: $base;
+            if ($invCcy !== $cnCcy) {
+                return;
+            }
+
+            $outstanding = $this->allocationService->getOutstanding($invoice, $cn->reference_invoice_type);
+            $amount      = round(min((float) $cn->total_amount, $outstanding), 2);
+            if ($amount <= 0) {
+                return;
+            }
+
+            $cn->applications()->create([
+                'invoice_type'   => $cn->reference_invoice_type,
+                'invoice_id'     => $invoice->id,
+                'applied_amount' => $amount,
+                'base_amount'    => round($amount * (float) ($cn->exchange_rate ?: 1), 4),
+            ]);
+            $this->allocationService->syncInvoiceStatus($invoice, $cn->reference_invoice_type);
+        } catch (\Throwable) {
+            // leave for manual application
+        }
     }
 
     public function store(Request $request)
@@ -122,6 +191,7 @@ class ArCreditNoteController extends Controller
 
         try {
             $this->postingService->approve($arCreditNote, auth()->id());
+            $this->autoApplyToReference($arCreditNote->fresh());
             return back()->with('success', "Credit note {$arCreditNote->credit_note_no} approved and posted to GL.");
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
