@@ -1,14 +1,15 @@
 {{--
-    Shared invoice/document PDF letterhead: company logo + details, a coloured
-    rule, and a centred document-title band. Self-contained (inline styles) so it
+    Shared invoice/document PDF letterhead: company logo + details, followed by a
+    bordered, centred document-title box. Self-contained (inline styles) so it
     works inside any PDF template regardless of its own CSS.
 
+    The document number and status are NOT rendered here — each template shows
+    them as label/value pairs in its right-side meta section.
+
     Params:
-      title       (required) e.g. 'STORAGE INVOICE'
-      docNo       (optional) document number shown under the title
-      statusLabel (optional) e.g. 'DRAFT' — rendered as a badge
-      accent      (optional) theme colour, default blue #1a56db
-      company     (optional) CompanySetting instance; defaults to current()
+      title    (required) e.g. 'STORAGE INVOICE'
+      accent   (optional) theme colour, default blue #1a56db
+      company  (optional) CompanySetting instance; defaults to current()
 --}}
 @php
     $__co     = $company ?? ($companySetting ?? \App\Models\CompanySetting::current());
@@ -27,22 +28,6 @@
             $__logo = null;
         }
     }
-
-    $__statusMap = [
-        'draft'          => ['#f1f5f9', '#64748b'],
-        'issued'         => ['#e0f2fe', '#0284c7'],
-        'sent'           => ['#e0f2fe', '#0284c7'],
-        'paid'           => ['#dcfce7', '#16a34a'],
-        'approved'       => ['#dcfce7', '#16a34a'],
-        'completed'      => ['#e2e8f0', '#334155'],
-        'partially_paid' => ['#fef9c3', '#a16207'],
-        'overdue'        => ['#fee2e2', '#dc2626'],
-        'cancelled'      => ['#fee2e2', '#dc2626'],
-        'rejected'       => ['#fee2e2', '#dc2626'],
-        'voided'         => ['#fee2e2', '#dc2626'],
-    ];
-    $__sk = strtolower(str_replace(' ', '_', $statusLabel ?? ''));
-    [$__sbg, $__scol] = $__statusMap[$__sk] ?? ['#f1f5f9', '#64748b'];
 @endphp
 <table style="width:100%; border-collapse:collapse;"><tr>
     @if($__logo)
@@ -59,13 +44,8 @@
         </div>
     </td>
 </tr></table>
-<div style="border-bottom:2px solid {{ $__accent }}; margin:10px 0;"></div>
-<div style="text-align:center; margin:4px 0 12px;">
-    <div style="color:{{ $__accent }}; font-size:22px; font-weight:bold; letter-spacing:1px;">{{ $title }}</div>
-    @if(!empty($docNo))
-        <div style="font-weight:bold; font-size:13px; color:#1a1a2e; margin-top:2px; font-family:'DejaVu Sans Mono','Courier New',monospace;">{{ $docNo }}</div>
-    @endif
-    @if(!empty($statusLabel))
-        <span style="display:inline-block; padding:2px 12px; border-radius:4px; font-size:9px; font-weight:bold; text-transform:uppercase; margin-top:4px; background:{{ $__sbg }}; color:{{ $__scol }};">{{ strtoupper($statusLabel) }}</span>
-    @endif
+
+{{-- Bordered, centred document title --}}
+<div style="border:2px solid {{ $__accent }}; border-radius:6px; padding:8px 12px; text-align:center; margin:14px 0 12px;">
+    <span style="color:{{ $__accent }}; font-size:20px; font-weight:bold; letter-spacing:1px;">{{ $title }}</span>
 </div>

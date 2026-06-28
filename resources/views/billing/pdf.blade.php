@@ -89,22 +89,64 @@
 @endphp
 
 {{-- ── Header ── --}}
-@include('partials.pdf-letterhead', [
-    'title'       => 'STORAGE INVOICE',
-    'docNo'       => $invoice->invoice_no,
-    'statusLabel' => $invoice->status,
-])
+@include('partials.pdf-letterhead', ['title' => 'STORAGE INVOICE'])
 
 {{-- ── Info Grid ── --}}
 <table style="width:100%; margin-bottom:16px;">
     <tr>
         <td style="width:50%; vertical-align:top; padding-right:8px;">
             <div class="info-box">
+                <h3>Bill To</h3>
+                @php $cust = $invoice->customer; @endphp
+                <table style="width:100%;">
+                    <tr>
+                        <td class="info-label">Customer</td>
+                        <td class="info-value">{{ $cust->name ?? '—' }}</td>
+                    </tr>
+                    @if($cust?->registration_no)
+                    <tr>
+                        <td class="info-label">Reg. No.</td>
+                        <td class="info-value">{{ $cust->registration_no }}</td>
+                    </tr>
+                    @endif
+                    @if($cust?->contact_person)
+                    <tr>
+                        <td class="info-label">Attn.</td>
+                        <td class="info-value">{{ $cust->contact_person }}</td>
+                    </tr>
+                    @endif
+                    @if($cust?->address)
+                    <tr>
+                        <td class="info-label">Address</td>
+                        <td class="info-value">{{ $cust->address }}</td>
+                    </tr>
+                    @endif
+                    @if($cust?->email)
+                    <tr>
+                        <td class="info-label">Email</td>
+                        <td class="info-value">{{ $cust->email }}</td>
+                    </tr>
+                    @endif
+                    @if($cust?->phone_office)
+                    <tr>
+                        <td class="info-label">Tel.</td>
+                        <td class="info-value">{{ $cust->phone_office }}</td>
+                    </tr>
+                    @endif
+                </table>
+            </div>
+        </td>
+        <td style="width:50%; vertical-align:top; padding-left:8px;">
+            <div class="info-box">
                 <h3>Invoice Information</h3>
                 <table style="width:100%;">
                     <tr>
                         <td class="info-label">Invoice No.</td>
                         <td class="info-value">{{ $invoice->invoice_no }}</td>
+                    </tr>
+                    <tr>
+                        <td class="info-label">Status</td>
+                        <td class="info-value">{{ ucfirst($invoice->status) }}</td>
                     </tr>
                     <tr>
                         <td class="info-label">Invoice Date</td>
@@ -146,48 +188,6 @@
                         <td class="info-label">Prepared By</td>
                         <td class="info-value">{{ $invoice->createdBy->name ?? '—' }}</td>
                     </tr>
-                </table>
-            </div>
-        </td>
-        <td style="width:50%; vertical-align:top; padding-left:8px;">
-            <div class="info-box">
-                <h3>Bill To</h3>
-                @php $cust = $invoice->customer; @endphp
-                <table style="width:100%;">
-                    <tr>
-                        <td class="info-label">Customer</td>
-                        <td class="info-value">{{ $cust->name ?? '—' }}</td>
-                    </tr>
-                    @if($cust?->registration_no)
-                    <tr>
-                        <td class="info-label">Reg. No.</td>
-                        <td class="info-value">{{ $cust->registration_no }}</td>
-                    </tr>
-                    @endif
-                    @if($cust?->contact_person)
-                    <tr>
-                        <td class="info-label">Attn.</td>
-                        <td class="info-value">{{ $cust->contact_person }}</td>
-                    </tr>
-                    @endif
-                    @if($cust?->address)
-                    <tr>
-                        <td class="info-label">Address</td>
-                        <td class="info-value">{{ $cust->address }}</td>
-                    </tr>
-                    @endif
-                    @if($cust?->email)
-                    <tr>
-                        <td class="info-label">Email</td>
-                        <td class="info-value">{{ $cust->email }}</td>
-                    </tr>
-                    @endif
-                    @if($cust?->phone_office)
-                    <tr>
-                        <td class="info-label">Tel.</td>
-                        <td class="info-value">{{ $cust->phone_office }}</td>
-                    </tr>
-                    @endif
                 </table>
             </div>
         </td>

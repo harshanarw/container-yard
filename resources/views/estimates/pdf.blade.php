@@ -78,19 +78,47 @@
 <div class="page">
 
     <!-- Header -->
-    @include('partials.pdf-letterhead', [
-        'title'       => 'REPAIR ESTIMATE',
-        'docNo'       => $estimate->estimate_no,
-        'statusLabel' => $estimate->status,
-    ])
+    @include('partials.pdf-letterhead', ['title' => 'REPAIR ESTIMATE'])
 
     <!-- Info Grid -->
     <div class="info-grid">
+        <div class="info-box">
+            <h3>Container & Customer</h3>
+            <div class="info-row">
+                <span class="info-label">Container No.</span>
+                <span class="info-value" style="font-family:monospace">{{ $estimate->container_no }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Size / Type</span>
+                <span class="info-value">{{ $estimate->size }}' {{ $estimate->type_code }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Customer</span>
+                <span class="info-value">{{ $estimate->customer->name ?? '—' }}</span>
+            </div>
+            @if($estimate->customer?->contact_person)
+            <div class="info-row">
+                <span class="info-label">Contact</span>
+                <span class="info-value">{{ $estimate->customer->contact_person }}</span>
+            </div>
+            @endif
+            @if($estimate->customer?->email)
+            <div class="info-row">
+                <span class="info-label">Email</span>
+                <span class="info-value">{{ $estimate->customer->email }}</span>
+            </div>
+            @endif
+        </div>
+
         <div class="info-box">
             <h3>Estimate Info</h3>
             <div class="info-row">
                 <span class="info-label">Estimate No.</span>
                 <span class="info-value">{{ $estimate->estimate_no }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Status</span>
+                <span class="info-value">{{ ucfirst($estimate->status) }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Issue Date</span>
@@ -116,34 +144,6 @@
             <div class="info-row">
                 <span class="info-label">Survey Ref.</span>
                 <span class="info-value">{{ $estimate->inquiry->inquiry_no }}</span>
-            </div>
-            @endif
-        </div>
-
-        <div class="info-box">
-            <h3>Container & Customer</h3>
-            <div class="info-row">
-                <span class="info-label">Container No.</span>
-                <span class="info-value" style="font-family:monospace">{{ $estimate->container_no }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Size / Type</span>
-                <span class="info-value">{{ $estimate->size }}' {{ $estimate->type_code }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Customer</span>
-                <span class="info-value">{{ $estimate->customer->name ?? '—' }}</span>
-            </div>
-            @if($estimate->customer?->contact_person)
-            <div class="info-row">
-                <span class="info-label">Contact</span>
-                <span class="info-value">{{ $estimate->customer->contact_person }}</span>
-            </div>
-            @endif
-            @if($estimate->customer?->email)
-            <div class="info-row">
-                <span class="info-label">Email</span>
-                <span class="info-value">{{ $estimate->customer->email }}</span>
             </div>
             @endif
         </div>

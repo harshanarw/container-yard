@@ -106,13 +106,9 @@
             </div>
         </td>
     </tr></table>
-    <div class="rule"></div>
-
-    {{-- Centered title band --}}
-    <div class="title-band">
-        <h1>REEFER ELECTRICITY INVOICE</h1>
-        <div class="doc-no mono">{{ $reeferInvoice->invoice_no }}</div>
-        <span class="status-badge {{ $statusClass }}">{{ strtoupper($reeferInvoice->status) }}</span>
+    {{-- Bordered, centred document title --}}
+    <div style="border:2px solid #1a56db; border-radius:6px; padding:8px 12px; text-align:center; margin:14px 0 12px;">
+        <span style="color:#1a56db; font-size:20px; font-weight:bold; letter-spacing:1px;">REEFER ELECTRICITY INVOICE</span>
     </div>
 
     {{-- Billed-To + meta (two real columns — no floats) --}}
@@ -129,6 +125,8 @@
         </td>
         <td style="width:48%; vertical-align:top;">
             <table class="meta">
+                <tr><td class="lbl">Invoice No</td><td class="val mono">{{ $reeferInvoice->invoice_no }}</td></tr>
+                <tr><td class="lbl">Status</td><td class="val">{{ ucfirst($reeferInvoice->status) }}</td></tr>
                 <tr><td class="lbl">Invoice Type</td><td class="val">{{ ucwords(str_replace('_', ' ', $reeferInvoice->invoice_type ?? 'invoice')) }}</td></tr>
                 <tr><td class="lbl">Bill Type</td><td class="val">{{ $reeferInvoice->service_type === 'pti' ? 'Short-Term PTI' : 'Long-Term Electricity' }}</td></tr>
                 <tr><td class="lbl">Invoice Date</td><td class="val">{{ $reeferInvoice->invoice_date?->format('d M Y') }}</td></tr>

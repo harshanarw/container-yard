@@ -89,10 +89,8 @@
 
 {{-- ── Header ── --}}
 @include('partials.pdf-letterhead', [
-    'title'       => 'STORAGE & HANDLING INVOICE',
-    'docNo'       => $invoice->invoice_no,
-    'statusLabel' => $invoice->status,
-    'accent'      => '#0d6efd',
+    'title'  => 'STORAGE & HANDLING INVOICE',
+    'accent' => '#0d6efd',
 ])
 
 {{-- Invoice meta --}}
@@ -100,6 +98,14 @@
     <td style="width:55%; vertical-align:top;">&nbsp;</td>
     <td style="width:45%; vertical-align:top;">
         <table style="width:100%;">
+            <tr>
+                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Invoice No</td>
+                <td style="font-weight:bold; font-size:11px; font-family:monospace;">{{ $invoice->invoice_no }}</td>
+            </tr>
+            <tr>
+                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Status</td>
+                <td style="font-weight:bold;">{{ ucfirst($invoice->status) }}</td>
+            </tr>
             <tr>
                 <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Invoice Date</td>
                 <td style="font-weight:bold; font-size:11px;">{{ $invoice->invoice_date->format('d M Y') }}</td>
