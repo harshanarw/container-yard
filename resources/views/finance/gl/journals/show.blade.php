@@ -47,7 +47,7 @@
                         <div class="text-muted small fw-semibold mb-1">Type</div>
                         <div>
                             <span class="badge bg-{{ \App\Models\GlJournal::typeBadge($journal->journal_type) }}-subtle text-{{ \App\Models\GlJournal::typeBadge($journal->journal_type) }}" style="font-size:.75rem;">
-                                {{ ucfirst($journal->journal_type) }}
+                                {{ ucwords(str_replace("_"," ",$journal->journal_type)) }}
                             </span>
                         </div>
                     </div>

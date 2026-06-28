@@ -85,6 +85,7 @@ class GlJournal extends Model
             'adjustment' => 'info',
             'opening'    => 'info',
             'closing'    => 'dark',
+            'credit_note'=> 'success',
             default      => 'secondary',
         };
     }

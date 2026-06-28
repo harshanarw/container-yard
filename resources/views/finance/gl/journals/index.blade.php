@@ -93,7 +93,7 @@
                         <td class="small">{{ $journal->journal_date->format('d M Y') }}</td>
                         <td>
                             <span class="badge bg-{{ \App\Models\GlJournal::typeBadge($journal->journal_type) }}-subtle text-{{ \App\Models\GlJournal::typeBadge($journal->journal_type) }}" style="font-size:.7rem;">
-                                {{ ucfirst($journal->journal_type) }}
+                                {{ ucwords(str_replace("_"," ",$journal->journal_type)) }}
                             </span>
                         </td>
                         <td class="small">{{ Str::limit($journal->narration, 60) }}</td>
