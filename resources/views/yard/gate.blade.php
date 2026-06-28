@@ -727,6 +727,26 @@
                         A reefer plug session will be created automatically after gate-in.
                     </div>
 
+                    {{-- Reefer service type — required when a reefer plug session will be
+                         created (laden + reefer equipment). The operator must choose the
+                         billing category up front; it is never silently defaulted. --}}
+                    <div id="reeferServiceBlock" class="mt-3 d-none">
+                        <label class="form-label fw-semibold">
+                            Reefer Service Type <span class="text-danger">*</span>
+                        </label>
+                        <select name="reefer_service_type" id="reeferServiceType" class="form-select @error('reefer_service_type') is-invalid @enderror">
+                            <option value="">— Select Service Type —</option>
+                            <option value="pti" @selected(old('reefer_service_type') === 'pti')>Short-Term PTI (hourly)</option>
+                            <option value="long_term" @selected(old('reefer_service_type') === 'long_term')>Long-Term Electricity (daily)</option>
+                        </select>
+                        <div class="form-text">
+                            Short-Term PTI is billed hourly (usually USD); Long-Term electricity is billed daily (usually LKR).
+                        </div>
+                        @error('reefer_service_type')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     {{-- Cargo Transfer notice --}}
                     <div id="cargoTransferNotice" class="alert alert-warning small py-2 mt-3 d-none">
                         <i class="bi bi-arrow-left-right me-1"></i>
@@ -1984,6 +2004,19 @@ window.ventilationFields = {
     const sel = document.getElementById('gateEqtSelect');
     const sizeHid = document.getElementById('gateEqtSize'), typeHid = document.getElementById('gateEqtTypeCode');
     const sizeBadge = document.getElementById('gateEqtSizeBadge'), typeBadge = document.getElementById('gateEqtTypeBadge');
+
+    // Show the reefer service-type selector exactly when a reefer plug session
+    // will be created at gate-in: reefer equipment (RF/RH) + laden cargo.
+    function toggleReeferService() {
+        const block = document.getElementById('reeferServiceBlock');
+        if (!block) return;
+        const isReefer = ['RF', 'RH'].includes((typeHid.value || '').toUpperCase());
+        const cargoEl  = document.getElementById('cargoStatusIn');
+        const isLaden  = cargoEl && cargoEl.value === 'laden';
+        block.classList.toggle('d-none', !(isReefer && isLaden));
+    }
+    window.toggleReeferService = toggleReeferService;
+
     function applyEqt(opt) {
         const vtEl = document.getElementById('gateVentType');
         const vcEl = document.getElementById('gateVentCount');
@@ -1994,6 +2027,7 @@ window.ventilationFields = {
             if (vtEl) vtEl.value = '';
             if (vcEl) vcEl.value = '';
             if (vsEl) vsEl.textContent = '';
+            toggleReeferService();
             return;
         }
         const isReefer = ['RF', 'RH'].includes(opt.dataset.type);
@@ -2007,6 +2041,7 @@ window.ventilationFields = {
             if (vcEl) vcEl.value = opt.dataset.ventType ? (opt.dataset.ventCount || '') : '';
             if (vsEl) vsEl.textContent = opt.dataset.ventType ? 'From EQT' : '';
         }
+        toggleReeferService();
     }
     // Select2 fires change via jQuery trigger — must use jQuery .on() not addEventListener
     if (typeof $ !== 'undefined') {
@@ -2014,7 +2049,11 @@ window.ventilationFields = {
     } else {
         sel.addEventListener('change', () => applyEqt(sel.selectedOptions[0]));
     }
+    // Cargo status also gates the reefer service selector (reefer + laden only)
+    const cargoEl = document.getElementById('cargoStatusIn');
+    if (cargoEl) cargoEl.addEventListener('change', toggleReeferService);
     if (sel.value) applyEqt(sel.selectedOptions[0]);
+    toggleReeferService();
 })();
 
 // ── Storage Location Slot Picker ─────────────────────────────────────────────

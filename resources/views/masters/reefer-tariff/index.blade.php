@@ -40,7 +40,17 @@
                             <span class="badge bg-secondary-subtle text-secondary border">Default</span>
                         @endif
                     </td>
-                    <td>{{ $tariff->tariff_name }}</td>
+                    <td>
+                        {{ $tariff->tariff_name }}
+                        @if($tariff->service_type === 'pti')
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1"><i class="bi bi-lightning-charge me-1"></i>PTI</span>
+                        @else
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1"><i class="bi bi-snow me-1"></i>Long-Term</span>
+                        @endif
+                        @if($tariff->chargeCode)
+                            <div class="text-muted small mt-1"><i class="bi bi-tag me-1"></i>{{ $tariff->chargeCode->code }}@if($tariff->chargeCode->taxCode) · {{ $tariff->chargeCode->taxCode->code }}@endif</div>
+                        @endif
+                    </td>
                     <td>
                         @if($tariff->billing_mode === 'hourly')
                             <span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-clock me-1"></i>Hourly</span>
@@ -126,6 +136,13 @@
                             <input type="text" name="tariff_name" class="form-control" required placeholder="e.g. Standard Reefer Electricity">
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label fw-medium">Service Type <span class="text-danger">*</span></label>
+                            <select name="service_type" class="form-select" id="addServiceType" required>
+                                <option value="long_term">Long-Term Electricity (daily)</option>
+                                <option value="pti">Short-Term PTI (hourly)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label fw-medium">Billing Mode <span class="text-danger">*</span></label>
                             <select name="billing_mode" class="form-select" id="addBillingMode">
                                 <option value="daily">Daily (calendar days)</option>
@@ -134,7 +151,19 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-medium">Currency <span class="text-danger">*</span></label>
-                            <input type="text" name="currency" class="form-control font-monospace" value="LKR" maxlength="3" required>
+                            <input type="text" name="currency" id="addCurrency" class="form-control font-monospace" value="LKR" maxlength="3" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Charge Code</label>
+                            <select name="charge_code_id" class="form-select s2-code">
+                                <option value="">— Use default reefer charge code —</option>
+                                @foreach($chargeCodes as $cc)
+                                    <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}">
+                                        {{ $cc->code }} — {{ $cc->description }}@if($cc->taxCode) ({{ $cc->taxCode->code }})@endif
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">Determines the charge code and the tax code applied to this bill type.</div>
                         </div>
                         <div class="col-md-4" id="addHourlyRateWrap" style="display:none">
                             <label class="form-label">Hourly Rate</label>
@@ -207,6 +236,21 @@
 
     modeSelect?.addEventListener('change', toggleMode);
     toggleMode();
+
+    // Selecting a service type defaults the conventional basis + currency
+    // (still editable): PTI → hourly/USD, Long-Term → daily/LKR.
+    const svcSelect = document.getElementById('addServiceType');
+    const currency  = document.getElementById('addCurrency');
+    svcSelect?.addEventListener('change', function () {
+        if (svcSelect.value === 'pti') {
+            modeSelect.value = 'hourly';
+            if (currency) currency.value = 'USD';
+        } else {
+            modeSelect.value = 'daily';
+            if (currency) currency.value = 'LKR';
+        }
+        toggleMode();
+    });
 })();
 </script>
 @endpush

@@ -37,11 +37,32 @@
                             <input type="text" name="tariff_name" class="form-control" required value="{{ old('tariff_name', $reeferTariff->tariff_name) }}">
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label fw-medium">Service Type <span class="text-danger">*</span></label>
+                            <select name="service_type" class="form-select" required>
+                                @foreach(\App\Models\ReeferElectricityTariff::SERVICE_TYPES as $val => $label)
+                                    <option value="{{ $val }}" {{ old('service_type', $reeferTariff->service_type) === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label fw-medium">Billing Mode</label>
                             <select name="billing_mode" class="form-select" id="editBillingMode">
                                 <option value="daily"  {{ $reeferTariff->billing_mode === 'daily'  ? 'selected' : '' }}>Daily</option>
                                 <option value="hourly" {{ $reeferTariff->billing_mode === 'hourly' ? 'selected' : '' }}>Hourly</option>
                             </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Charge Code</label>
+                            <select name="charge_code_id" class="form-select s2-code">
+                                <option value="">— Use default reefer charge code —</option>
+                                @foreach($chargeCodes as $cc)
+                                    <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}"
+                                        {{ (string) old('charge_code_id', $reeferTariff->charge_code_id) === (string) $cc->id ? 'selected' : '' }}>
+                                        {{ $cc->code }} — {{ $cc->description }}@if($cc->taxCode) ({{ $cc->taxCode->code }})@endif
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">Determines the charge code and the tax code applied to this bill type.</div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-medium">Currency</label>

@@ -190,6 +190,7 @@ class YardController extends Controller
             'condition'         => ['required', 'in:sound,damaged,require_repair'],
             'grade_id'          => ['nullable', 'exists:container_grades,id'],
             'cargo_status'      => ['required', 'in:empty,laden'],
+            'reefer_service_type' => ['nullable', 'in:pti,long_term'],
             'location_zone'     => ['nullable', 'string', 'max:10', 'exists:storage_zones,code'],
             'location_row'      => ['nullable', 'string', 'max:5'],
             'location_bay'      => ['nullable', 'integer', 'min:1', 'max:99'],
@@ -292,6 +293,16 @@ class YardController extends Controller
         // ── End duplicate guard ──────────────────────────────────────────────
 
         $eqt = EquipmentType::findOrFail($validated['equipment_type_id']);
+
+        // A reefer plug session is created below for laden reefer containers. The
+        // operator must choose its billing service type up front — never defaulted.
+        $willPlugReefer = $validated['cargo_status'] === 'laden' && $eqt->isReefer();
+        if ($willPlugReefer && empty($validated['reefer_service_type'])) {
+            return redirect()->back()
+                ->withErrors(['reefer_service_type' =>
+                    'Please choose the reefer service type (Short-Term PTI or Long-Term Electricity) for this reefer container.'])
+                ->withInput();
+        }
 
         // Resolve actual gate-in datetime (admin can override; everyone else uses now())
         $gateInTime = (auth()->user()->can('yard.backdate') && !empty($validated['gate_in_time']))
@@ -464,6 +475,7 @@ class YardController extends Controller
                     'container_id'    => $container->id,
                     'gate_movement_id'=> $movement->id,
                     'customer_id'     => $validated['customer_id'],
+                    'service_type'    => $validated['reefer_service_type'],
                     'status'          => 'pending',
                     'created_by'      => auth()->id(),
                     'updated_by'      => auth()->id(),

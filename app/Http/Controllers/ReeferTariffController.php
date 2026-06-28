@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChargeCode;
 use App\Models\Customer;
 use App\Models\ReeferElectricityTariff;
 use Illuminate\Http\Request;
@@ -19,12 +20,24 @@ class ReeferTariffController extends Controller
 
     public function index()
     {
-        $tariffs   = ReeferElectricityTariff::with(['customer', 'createdBy', 'updatedBy'])
+        $tariffs   = ReeferElectricityTariff::with(['customer', 'chargeCode', 'createdBy', 'updatedBy'])
             ->orderByDesc('id')
             ->get();
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $chargeCodes = $this->reeferChargeCodes();
 
-        return view('masters.reefer-tariff.index', compact('tariffs', 'customers'));
+        return view('masters.reefer-tariff.index', compact('tariffs', 'customers', 'chargeCodes'));
+    }
+
+    /** Reefer-category charge codes for the tariff charge-code dropdown. */
+    private function reeferChargeCodes()
+    {
+        return ChargeCode::with('taxCode')
+            ->where('category', 'reefer')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('code')
+            ->get();
     }
 
     public function store(Request $request)
@@ -32,8 +45,10 @@ class ReeferTariffController extends Controller
         $data = $request->validate([
             'customer_id'     => 'nullable|exists:customers,id',
             'tariff_name'     => 'required|string|max:150',
+            'service_type'    => 'required|in:pti,long_term',
             'billing_mode'    => 'required|in:hourly,daily',
             'currency'        => 'required|string|size:3',
+            'charge_code_id'  => 'nullable|exists:charge_codes,id',
             'hourly_rate'     => 'nullable|numeric|min:0|max:9999999',
             'daily_rate'      => 'nullable|numeric|min:0|max:9999999',
             'free_hours'      => 'required|integer|min:0|max:168',
@@ -57,10 +72,11 @@ class ReeferTariffController extends Controller
 
     public function show(ReeferElectricityTariff $reeferTariff)
     {
-        $reeferTariff->load(['customer', 'createdBy', 'updatedBy']);
+        $reeferTariff->load(['customer', 'chargeCode', 'createdBy', 'updatedBy']);
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $chargeCodes = $this->reeferChargeCodes();
 
-        return view('masters.reefer-tariff.show', compact('reeferTariff', 'customers'));
+        return view('masters.reefer-tariff.show', compact('reeferTariff', 'customers', 'chargeCodes'));
     }
 
     public function update(Request $request, ReeferElectricityTariff $reeferTariff)
@@ -68,8 +84,10 @@ class ReeferTariffController extends Controller
         $data = $request->validate([
             'customer_id'    => 'nullable|exists:customers,id',
             'tariff_name'    => 'required|string|max:150',
+            'service_type'   => 'required|in:pti,long_term',
             'billing_mode'   => 'required|in:hourly,daily',
             'currency'       => 'required|string|size:3',
+            'charge_code_id' => 'nullable|exists:charge_codes,id',
             'hourly_rate'    => 'nullable|numeric|min:0|max:9999999',
             'daily_rate'     => 'nullable|numeric|min:0|max:9999999',
             'free_hours'     => 'required|integer|min:0|max:168',

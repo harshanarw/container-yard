@@ -65,12 +65,14 @@ class ReeferController extends Controller
 
         $data = $request->validate([
             'plug_in_at'      => 'required|date',
+            'service_type'    => 'required|in:pti,long_term',
             'set_temperature' => 'nullable|numeric|min:-50|max:40',
             'notes'           => 'nullable|string',
         ]);
 
         $plugSession->update([
             'plug_in_at'      => $data['plug_in_at'],
+            'service_type'    => $data['service_type'],
             'set_temperature' => $data['set_temperature'] ?? null,
             'notes'           => $data['notes'] ?? null,
             'status'          => 'active',

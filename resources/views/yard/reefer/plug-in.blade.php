@@ -53,6 +53,19 @@
                         @enderror
                     </div>
                     <div class="mb-3">
+                        <label class="form-label fw-medium">Reefer Service Type <span class="text-danger">*</span></label>
+                        <select name="service_type" class="form-select @error('service_type') is-invalid @enderror" required>
+                            <option value="">— Select Service Type —</option>
+                            @foreach(\App\Models\ReeferElectricityTariff::SERVICE_TYPES as $val => $label)
+                                <option value="{{ $val }}" @selected(old('service_type', $session->service_type) === $val)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Short-Term PTI is billed hourly (usually USD); Long-Term electricity is billed daily (usually LKR).</div>
+                        @error('service_type')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Set Temperature (°C)</label>
                         <input type="number" name="set_temperature" class="form-control @error('set_temperature') is-invalid @enderror"
                                step="0.1" min="-50" max="40" placeholder="e.g. -18"
