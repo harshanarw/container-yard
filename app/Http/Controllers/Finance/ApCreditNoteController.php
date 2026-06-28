@@ -229,6 +229,7 @@ class ApCreditNoteController extends Controller
                 'taxLabel'      => 'Input VAT',
                 'size'          => $size,
                 'showSignature' => true,
+                'verifyUrl'     => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'ap-credit-note', 'id' => $apCreditNote->id]),
             ])
             ->setPaper($paper, 'portrait')
             ->set_option('isHtml5ParserEnabled', true)

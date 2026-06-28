@@ -36,6 +36,9 @@
             $logoSrc = null;
         }
     }
+
+    $verifyUrl = \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'receipt', 'id' => $receipt->id]);
+    $qr = \App\Support\Qr::svgDataUri($verifyUrl, $half ? 70 : 100);
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -104,6 +107,12 @@
             <h1>RECEIPT</h1>
             <div class="doc-no">{{ $receipt->receipt_no }}</div>
             <div class="muted">{{ \Carbon\Carbon::parse($receipt->receipt_date)->format('d M Y') }}</div>
+            @if($qr)
+            <div style="margin-top:{{ $half ? '3px' : '5px' }};">
+                <img src="{{ $qr }}" alt="Verify" style="width:{{ $half ? '46px' : '62px' }}; height:{{ $half ? '46px' : '62px' }}; display:inline-block;">
+                <div class="muted" style="font-size:{{ $half ? '6px' : '7px' }};">Scan to verify</div>
+            </div>
+            @endif
         </td>
     </tr></table>
     <div class="rule"></div>

@@ -237,6 +237,7 @@ class ArCreditNoteController extends Controller
                 'taxLabel'      => 'Output VAT',
                 'size'          => $size,
                 'showSignature' => true,
+                'verifyUrl'     => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'ar-credit-note', 'id' => $arCreditNote->id]),
             ])
             ->setPaper($paper, 'portrait')
             ->set_option('isHtml5ParserEnabled', true)

@@ -29,6 +29,8 @@
             }
         } catch (\Throwable) { $logoSrc = null; }
     }
+
+    $qr = \App\Support\Qr::svgDataUri($verifyUrl ?? null, ($half ?? false) ? 70 : 100);
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -89,6 +91,12 @@
             <h1>{{ $title }}</h1>
             <div class="doc-no">{{ $cn->credit_note_no }}</div>
             <div class="muted">{{ \Carbon\Carbon::parse($cn->credit_date)->format('d M Y') }}</div>
+            @if($qr)
+            <div style="margin-top:{{ ($half ?? false) ? '3px' : '5px' }};">
+                <img src="{{ $qr }}" alt="Verify" style="width:{{ ($half ?? false) ? '46px' : '62px' }}; height:{{ ($half ?? false) ? '46px' : '62px' }}; display:inline-block;">
+                <div class="muted" style="font-size:{{ ($half ?? false) ? '6px' : '7px' }};">Scan to verify</div>
+            </div>
+            @endif
         </td>
     </tr></table>
     <div class="rule"></div>

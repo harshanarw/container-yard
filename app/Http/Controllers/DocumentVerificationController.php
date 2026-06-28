@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApCreditNote;
+use App\Models\ArCreditNote;
 use App\Models\CompanySetting;
 use App\Models\Estimate;
+use App\Models\PaymentVoucher;
+use App\Models\Receipt;
 use App\Models\ReeferElectricityInvoice;
 use App\Models\RepairInvoice;
 use App\Models\StorageHandlingInvoice;
@@ -94,6 +98,42 @@ class DocumentVerificationController extends Controller
                 'status'   => $i->status,
             ] : null,
 
+            'receipt' => ($i = Receipt::with('customer')->find($id)) ? [
+                'number'   => $i->receipt_no,
+                'date'     => $i->receipt_date?->format('d M Y'),
+                'party'    => $i->customer?->name,
+                'amount'   => (float) $i->amount,
+                'currency' => $i->currency,
+                'status'   => $i->status,
+            ] : null,
+
+            'voucher' => ($i = PaymentVoucher::with('supplier')->find($id)) ? [
+                'number'   => $i->voucher_no,
+                'date'     => $i->voucher_date?->format('d M Y'),
+                'party'    => $i->supplier?->name ?: $i->payee_name,
+                'amount'   => (float) $i->amount,
+                'currency' => $i->currency,
+                'status'   => $i->status,
+            ] : null,
+
+            'ar-credit-note' => ($i = ArCreditNote::with('customer')->find($id)) ? [
+                'number'   => $i->credit_note_no,
+                'date'     => $i->credit_date?->format('d M Y'),
+                'party'    => $i->customer?->name,
+                'amount'   => (float) $i->total_amount,
+                'currency' => $i->currency,
+                'status'   => $i->status,
+            ] : null,
+
+            'ap-credit-note' => ($i = ApCreditNote::with('supplier')->find($id)) ? [
+                'number'   => $i->credit_note_no,
+                'date'     => $i->credit_date?->format('d M Y'),
+                'party'    => $i->supplier?->name,
+                'amount'   => (float) $i->total_amount,
+                'currency' => $i->currency,
+                'status'   => $i->status,
+            ] : null,
+
             default => null,
         };
     }
@@ -106,6 +146,10 @@ class DocumentVerificationController extends Controller
             'reefer'           => 'Reefer Electricity Invoice',
             'repair'           => 'Repair Invoice',
             'estimate'         => 'Repair Estimate',
+            'receipt'          => 'Receipt',
+            'voucher'          => 'Payment Voucher',
+            'ar-credit-note'   => 'Credit Note',
+            'ap-credit-note'   => 'Debit Note',
         ][$type] ?? 'Document';
     }
 }
