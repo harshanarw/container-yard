@@ -144,6 +144,20 @@ class ArCreditNoteController extends Controller
         return back()->with('success', "Credit note {$arCreditNote->credit_note_no} cancelled.");
     }
 
+    public function destroy(ArCreditNote $arCreditNote)
+    {
+        $this->authorize('finance.ar-credit-notes.delete');
+
+        if (!$arCreditNote->isDraft()) {
+            return back()->with('error', 'Only draft credit notes can be deleted.');
+        }
+
+        $arCreditNote->delete(); // lines cascade via FK
+
+        return redirect()->route('finance.ar-credit-notes.index')
+            ->with('success', "Credit note {$arCreditNote->credit_note_no} deleted.");
+    }
+
     public function storeApplication(Request $request, ArCreditNote $arCreditNote)
     {
         $this->authorize('finance.ar-credit-notes.edit');

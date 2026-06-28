@@ -29,6 +29,13 @@
         </form>
         @endif
         @endcan
+        @can('finance.ap-credit-notes.delete')
+        @if($apCreditNote->isDraft())
+        <form method="POST" action="{{ route('finance.ap-credit-notes.destroy', $apCreditNote) }}" onsubmit="return confirm('Delete this draft credit note?')">
+            @csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete</button>
+        </form>
+        @endif
+        @endcan
         <a href="{{ route('finance.ap-credit-notes.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
     </div>
 </div>

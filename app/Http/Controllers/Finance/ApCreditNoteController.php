@@ -142,6 +142,20 @@ class ApCreditNoteController extends Controller
         return back()->with('success', "Credit note {$apCreditNote->credit_note_no} cancelled.");
     }
 
+    public function destroy(ApCreditNote $apCreditNote)
+    {
+        $this->authorize('finance.ap-credit-notes.delete');
+
+        if (!$apCreditNote->isDraft()) {
+            return back()->with('error', 'Only draft credit notes can be deleted.');
+        }
+
+        $apCreditNote->delete();
+
+        return redirect()->route('finance.ap-credit-notes.index')
+            ->with('success', "Credit note {$apCreditNote->credit_note_no} deleted.");
+    }
+
     public function storeApplication(Request $request, ApCreditNote $apCreditNote)
     {
         $this->authorize('finance.ap-credit-notes.edit');

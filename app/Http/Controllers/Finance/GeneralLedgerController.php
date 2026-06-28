@@ -429,12 +429,21 @@ class GeneralLedgerController extends Controller
          ->get()
          ->keyBy(fn ($r) => $r->invoice_type . '-' . $r->invoice_id);
 
+        // Approved AR credit notes applied to invoices also settle them (non-cash).
+        $cnApplied = \App\Models\ArCreditNoteApplication::whereHas(
+            'creditNote', fn ($q) => $q->where('status', 'approved')
+        )->select('invoice_type', 'invoice_id', DB::raw('SUM(applied_amount) as total_applied'))
+         ->groupBy('invoice_type', 'invoice_id')
+         ->get()
+         ->keyBy(fn ($r) => $r->invoice_type . '-' . $r->invoice_id);
+
         $rows = collect();
 
-        $addRows = function ($invoices, string $type, string $label) use ($asOfDate, $ageBy, $allocations, &$rows) {
+        $addRows = function ($invoices, string $type, string $label) use ($asOfDate, $ageBy, $allocations, $cnApplied, &$rows) {
             foreach ($invoices as $inv) {
                 $total     = (float) ($type === 'repair' ? ($inv->grand_total ?? 0) : ($inv->total_amount ?? 0));
-                $allocated = (float) ($allocations->get("{$type}-{$inv->id}")?->total_allocated ?? 0);
+                $allocated = (float) ($allocations->get("{$type}-{$inv->id}")?->total_allocated ?? 0)
+                           + (float) ($cnApplied->get("{$type}-{$inv->id}")?->total_applied ?? 0);
                 $outstanding = max(0.0, round($total - $allocated, 2));
 
                 if ($outstanding <= 0) continue;
@@ -557,14 +566,23 @@ class GeneralLedgerController extends Controller
          ->get()
          ->keyBy('supplier_invoice_id');
 
+        // Approved AP credit notes applied to bills also settle them (non-cash).
+        $cnApplied = \App\Models\ApCreditNoteApplication::whereHas(
+            'creditNote', fn ($q) => $q->where('status', 'approved')
+        )->select('supplier_invoice_id', DB::raw('SUM(applied_amount) as total_applied'))
+         ->groupBy('supplier_invoice_id')
+         ->get()
+         ->keyBy('supplier_invoice_id');
+
         $rows = collect();
 
         SupplierInvoice::whereIn('status', ['approved', 'partially_paid'])
             ->orderBy('invoice_date')
             ->get()
-            ->each(function ($inv) use ($asOfDate, $ageBy, $allocations, &$rows) {
+            ->each(function ($inv) use ($asOfDate, $ageBy, $allocations, $cnApplied, &$rows) {
                 $total       = (float) ($inv->total_amount ?? 0);
-                $allocated   = (float) ($allocations->get($inv->id)?->total_allocated ?? 0);
+                $allocated   = (float) ($allocations->get($inv->id)?->total_allocated ?? 0)
+                             + (float) ($cnApplied->get($inv->id)?->total_applied ?? 0);
                 $outstanding = max(0.0, round($total - $allocated, 2));
 
                 if ($outstanding <= 0) return;
