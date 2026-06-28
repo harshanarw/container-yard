@@ -297,7 +297,7 @@
                                 <option value="{{ $eqt->id }}"
                                     data-code="{{ $eqt->eqt_code }}"
                                     data-name="{{ $eqt->description }}"
-                                    {{ $eqt->isReefer() ? 'data-chip-class="s2-code-chip s2-chip-reefer"' : '' }}>
+                                    @if($eqt->isReefer()) data-chip-class="s2-code-chip s2-chip-reefer" @endif>
                                     {{ $eqt->eqt_code }} — {{ $eqt->description }}
                                 </option>
                             @endforeach
