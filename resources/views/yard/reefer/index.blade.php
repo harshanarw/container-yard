@@ -71,6 +71,7 @@
                 <tr>
                     <th>Container</th>
                     <th>Customer</th>
+                    <th>Gate In</th>
                     <th>Plug-In</th>
                     <th>Plug-Out</th>
                     <th>Duration</th>
@@ -86,6 +87,13 @@
                         <div class="text-muted small">{{ $session->container?->equipmentType?->dropdown_label ?? '—' }}</div>
                     </td>
                     <td>{{ $session->customer?->name }}</td>
+                    <td>
+                        @if($session->gateMovement?->gate_in_time)
+                            {{ $session->gateMovement->gate_in_time->format('d M Y H:i') }}
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
                     <td>
                         @if($session->plug_in_at)
                             {{ $session->plug_in_at->format('d M Y H:i') }}
@@ -136,7 +144,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-4">
+                    <td colspan="8" class="text-center text-muted py-4">
                         <i class="bi bi-plug fs-2 d-block mb-2 opacity-25"></i>
                         No reefer plug sessions found.
                     </td>

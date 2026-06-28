@@ -23,7 +23,7 @@ class ReeferController extends Controller
 
     public function index(Request $request)
     {
-        $sessions = ReeferPlugSession::with(['container.equipmentType', 'customer', 'createdBy'])
+        $sessions = ReeferPlugSession::with(['container.equipmentType', 'customer', 'gateMovement', 'createdBy'])
             ->when($request->status, fn ($q, $v) => $q->where('status', $v))
             ->when($request->customer_id, fn ($q, $v) => $q->where('customer_id', $v))
             ->when($request->search, function ($q, $s) {
