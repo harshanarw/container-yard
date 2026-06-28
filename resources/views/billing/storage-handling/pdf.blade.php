@@ -6,7 +6,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #222; background: #fff; }
-        .page { padding: 20px 26px; }
+        .page { padding: 20px 26px 52px; }
 
         /* ── Header ── */
         .badge-status {
@@ -380,15 +380,7 @@
 </div>
 @endif
 
-@php $softwareCopyright = '© ' . date('Y') . ' ' . (\App\Models\CompanySetting::current()->software_provider ?? 'CYM Software'); @endphp
-<div class="doc-footer">
-    <table style="width:100%;">
-        <tr>
-            <td>{{ $softwareCopyright }} &nbsp;&middot;&nbsp; Generated {{ now()->format('d M Y, H:i') }}</td>
-            <td class="r">{{ $invoice->shippingLine->name ?? '' }}</td>
-        </tr>
-    </table>
-</div>
+@include('partials.pdf-footer')
 
 </div>
 </body>

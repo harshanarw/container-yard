@@ -6,7 +6,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #333; background: #fff; }
-        .page { padding: 24px 30px; }
+        .page { padding: 24px 30px 52px; }
 
         /* ── Header ── */
         .company-name { font-size: 16px; font-weight: bold; color: #1a56db; }
@@ -278,15 +278,7 @@
 </div>
 @endif
 
-@php $softwareCopyright = '© ' . date('Y') . ' ' . (\App\Models\CompanySetting::current()->software_provider ?? 'CYM Software'); @endphp
-<div class="doc-footer">
-    <table style="width:100%;">
-        <tr>
-            <td>{{ $softwareCopyright }} &nbsp;&middot;&nbsp; Generated {{ now()->format('d M Y H:i') }}</td>
-            <td class="r">This is a computer-generated invoice.</td>
-        </tr>
-    </table>
-</div>
+@include('partials.pdf-footer')
 
 </div>
 </body>

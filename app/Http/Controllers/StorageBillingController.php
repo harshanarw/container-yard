@@ -665,7 +665,7 @@ class StorageBillingController extends Controller
         $invoice->load(['customer', 'details', 'createdBy']);
 
         $pdf = Pdf::loadView('billing.pdf', compact('invoice'))
-            ->setPaper('a4', 'landscape')
+            ->setPaper('a4', 'portrait')
             ->set_option('defaultFont', 'sans-serif')
             ->set_option('isHtml5ParserEnabled', true)
             ->set_option('isRemoteEnabled', false);

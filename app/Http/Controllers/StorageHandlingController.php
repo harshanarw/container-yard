@@ -833,7 +833,7 @@ class StorageHandlingController extends Controller
         $storageHandlingInvoice->load(['shippingLine', 'lines', 'createdBy']);
 
         $pdf = Pdf::loadView('billing.storage-handling.pdf', ['invoice' => $storageHandlingInvoice])
-            ->setPaper('a4', 'landscape')
+            ->setPaper('a4', 'portrait')
             ->set_option('defaultFont', 'sans-serif')
             ->set_option('isHtml5ParserEnabled', true)
             ->set_option('isRemoteEnabled', false);
