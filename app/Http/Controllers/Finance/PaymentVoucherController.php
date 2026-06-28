@@ -411,16 +411,18 @@ class PaymentVoucherController extends Controller
             'format'   => ['nullable', 'in:a4,half'],
         ]);
 
-        try {
-            // Send via the configured mailer (DB Email Config), same as invoices/
-            // estimates — not the raw .env mailer. Falls back to the 'general' config.
+        // Send via the configured mailer (DB Email Config) — not the raw .env
+        // mailer — rebuilt fresh each attempt; retry once on a transient DNS error.
+        $error = $this->sendMailWithRetry(function () use ($validated, $voucher) {
             $pending = ConfiguredMailer::forCategory('voucher')->to($validated['to_email']);
             if (!empty($validated['cc_email'])) {
                 $pending->cc($validated['cc_email']);
             }
             $pending->send(new PaymentVoucherMail($voucher, $validated['message'] ?? null, $validated['format'] ?? 'a4'));
-        } catch (\Throwable $e) {
-            $msg = $this->friendlyMailError($e);
+        });
+
+        if ($error) {
+            $msg = $this->friendlyMailError($error);
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => $msg], 422);
             }

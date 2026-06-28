@@ -29,4 +29,50 @@ trait HandlesMailErrors
 
         return 'Email could not be sent: ' . $e->getMessage();
     }
+
+    /**
+     * True for transient transport failures (DNS / connection) that are worth a
+     * quick automatic retry — a cold DNS lookup often fails once then succeeds.
+     */
+    protected function isTransientMailError(\Throwable $e): bool
+    {
+        $msg = strtolower($e->getMessage() . ' ' . ($e->getPrevious()?->getMessage() ?? ''));
+
+        foreach ([
+            'getaddrinfo', 'no such host', 'name or service not known',
+            'temporary failure in name resolution', 'nodename nor servname',
+            'could not be resolved', 'connection timed out', 'connection refused',
+            'network is unreachable', 'connection reset',
+        ] as $needle) {
+            if (str_contains($msg, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Run a mail send, retrying once on a transient DNS/connection error.
+     * $send must throw on failure; returns the last exception or null on success.
+     */
+    protected function sendMailWithRetry(callable $send, int $tries = 2): ?\Throwable
+    {
+        $last = null;
+        for ($attempt = 1; $attempt <= $tries; $attempt++) {
+            try {
+                $send();
+                return null;
+            } catch (\Throwable $e) {
+                $last = $e;
+                if ($attempt < $tries && $this->isTransientMailError($e)) {
+                    usleep(500000); // 0.5s before retrying
+                    continue;
+                }
+                break;
+            }
+        }
+
+        return $last;
+    }
 }

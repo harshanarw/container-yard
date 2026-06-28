@@ -21,6 +21,10 @@ class ConfiguredMailer
         $config = EmailConfig::forCategory($category, $scope);
 
         if ($config && self::configureFromEmailConfig($config)) {
+            // Drop any cached mailer so 'dynamic' is rebuilt from the config just
+            // set — otherwise a persistent worker (or a prior failed attempt) can
+            // hand back a stale/half-built transport.
+            Mail::forgetMailers();
             return Mail::mailer('dynamic');
         }
 
@@ -36,6 +40,7 @@ class ConfiguredMailer
             'transport' => 'smtp-no-verify',
         ])]);
 
+        Mail::forgetMailers();
         return Mail::mailer('dynamic');
     }
 
