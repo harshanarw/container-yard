@@ -69,6 +69,7 @@ class ReeferBillingController extends Controller
     {
         $validated = $request->validate([
             'customer_id'      => 'required|exists:customers,id',
+            'service_type'     => 'nullable|in:pti,long_term',
             'period_from'      => 'required|date',
             'period_to'        => 'required|date|after_or_equal:period_from',
             'invoice_currency' => 'nullable|string|size:3',
@@ -84,6 +85,7 @@ class ReeferBillingController extends Controller
 
         $preview = ReeferBillingService::preview(
             (int) $validated['customer_id'],
+            $validated['service_type'] ?? 'long_term',
             $validated['period_from'],
             $validated['period_to'],
             $invoiceCurrency,
@@ -101,6 +103,9 @@ class ReeferBillingController extends Controller
     {
         $validated = $request->validate([
             'customer_id'      => 'required|exists:customers,id',
+            'billing_party_id' => 'nullable|exists:customers,id',
+            'invoice_type'     => 'nullable|in:tax_invoice,invoice,debit_note',
+            'service_type'     => 'nullable|in:pti,long_term',
             'invoice_date'     => 'required|date',
             'period_from'      => 'required|date',
             'period_to'        => 'required|date|after_or_equal:period_from',
@@ -113,6 +118,7 @@ class ReeferBillingController extends Controller
 
         $preview = ReeferBillingService::preview(
             (int) $validated['customer_id'],
+            $validated['service_type'] ?? 'long_term',
             $validated['period_from'],
             $validated['period_to'],
             $validated['invoice_currency'],
@@ -141,7 +147,9 @@ class ReeferBillingController extends Controller
             $validated['invoice_date'],
             $validated['period_from'],
             $validated['period_to'],
-            $validated['notes'] ?? null
+            $validated['notes'] ?? null,
+            ($validated['billing_party_id'] ?? null) ?: null,
+            $validated['invoice_type'] ?? 'invoice'
         );
 
         return redirect()->route('billing.reefer.show', $invoice)

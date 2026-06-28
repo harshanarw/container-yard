@@ -115,6 +115,7 @@ class ReeferBillingService
      */
     public static function preview(
         int $customerId,
+        string $serviceType,
         ?string $periodFrom,
         ?string $periodTo,
         string $invoiceCurrency,
@@ -124,8 +125,10 @@ class ReeferBillingService
     ): array {
         $customer = Customer::findOrFail($customerId);
 
+        // Only sessions of the requested bill type (PTI vs Long-Term).
         $sessionsQuery = ReeferPlugSession::with(['container.equipmentType'])
             ->where('customer_id', $customerId)
+            ->where('service_type', $serviceType)
             ->where('status', 'completed');
 
         if ($periodFrom) {
@@ -141,11 +144,11 @@ class ReeferBillingService
         $tariffMultiplier = CurrencyService::tariffMultiplier($invoiceCurrency, $exchangeRate);
         $displayFactor    = CurrencyService::invoiceDisplayFactor($invoiceCurrency, $exchangeRate);
 
-        // Resolve reefer charge code once
-        $chargeCode = ChargeCode::where('category', 'reefer')
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->first();
+        // Charge code + tax come from the service-type tariff (charge code lives on
+        // the tariff). Fall back to the reefer category charge code when unset.
+        $refTariff  = ReeferElectricityTariff::resolveForType($customerId, $serviceType, $periodTo ?? today()->toDateString());
+        $chargeCode = $refTariff?->chargeCode
+            ?? ChargeCode::where('category', 'reefer')->where('is_active', true)->orderBy('sort_order')->first();
 
         $tax1Rate  = $chargeCode?->taxCode?->tax1_rate ?? 0;
         $tax2Rate  = $chargeCode?->taxCode?->tax2_rate ?? 0;
@@ -162,15 +165,16 @@ class ReeferBillingService
 
         $guard        = new TariffRateGuard();
         $tariffFixUrl = route('masters.reefer-tariff.index');
+        $typeLabel    = ReeferElectricityTariff::SERVICE_TYPES[$serviceType] ?? ucfirst($serviceType);
 
         foreach ($sessions as $session) {
             $containerNo = $session->container->container_no ?? null;
 
-            $tariff = ReeferElectricityTariff::resolveFor($customerId, $session->plug_in_at?->toDateString());
+            $tariff = ReeferElectricityTariff::resolveForType($customerId, $serviceType, $session->plug_in_at?->toDateString());
             if (!$tariff) {
                 // A completed session with consumption but no applicable tariff would
                 // otherwise be silently dropped from the bill — flag it instead.
-                $guard->flag('reefer', null, null, 'No active reefer electricity tariff covering this session.', $containerNo, $tariffFixUrl, 'Set up reefer tariff');
+                $guard->flag('reefer', null, null, "No active {$typeLabel} reefer tariff covering this session.", $containerNo, $tariffFixUrl, "Set up {$typeLabel} tariff");
                 continue;
             }
 
@@ -228,6 +232,7 @@ class ReeferBillingService
             'total_value'      => $totalValue,
             'invoice_currency' => $invoiceCurrency,
             'exchange_rate'    => $exchangeRate,
+            'service_type'     => $serviceType,
             'charge_code_id'   => $chargeCode?->id,
             'skipped'          => $sessions->count() - count($lines),
             'missing_rates'    => $guard->toArray(),
@@ -242,9 +247,11 @@ class ReeferBillingService
         string $invoiceDate,
         string $periodFrom,
         string $periodTo,
-        ?string $notes
+        ?string $notes,
+        ?int $billingPartyId = null,
+        string $invoiceType = 'invoice'
     ): ReeferElectricityInvoice {
-        return DB::transaction(function () use ($preview, $invoiceDate, $periodFrom, $periodTo, $notes) {
+        return DB::transaction(function () use ($preview, $invoiceDate, $periodFrom, $periodTo, $notes, $billingPartyId, $invoiceType) {
             // Due date follows the debtor's AR payment terms (Net 30 default).
             $dueDate = \App\Services\Finance\PaymentTermsHelper::dueDate(
                 $preview['customer']->payment_terms ?? 'net30',
@@ -254,6 +261,9 @@ class ReeferBillingService
             $invoice = ReeferElectricityInvoice::create([
                 'invoice_no'          => ReeferElectricityInvoice::nextInvoiceNo(),
                 'customer_id'         => $preview['customer']->id,
+                'billing_party_id'    => $billingPartyId ?: $preview['customer']->id,
+                'invoice_type'        => $invoiceType,
+                'service_type'        => $preview['service_type'] ?? 'long_term',
                 'invoice_date'        => $invoiceDate,
                 'due_date'            => $dueDate,
                 'billing_period_from' => $periodFrom,
