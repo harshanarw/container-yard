@@ -56,11 +56,13 @@ class ReeferBillingController extends Controller
 
     public function create()
     {
-        $customers       = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers       = Customer::with('billingParty')
+            ->where('status', 'active')->orderBy('name')->get();
+        $allCustomers    = Customer::where('status', 'active')->orderBy('name')->get();
         $defaultCurrency = CurrencyService::defaultCurrency();
         $exchangeRate    = CurrencyService::usdToDefault() ?? 1.0;
 
-        return view('billing.reefer.create', compact('customers', 'defaultCurrency', 'exchangeRate'));
+        return view('billing.reefer.create', compact('customers', 'allCustomers', 'defaultCurrency', 'exchangeRate'));
     }
 
     // ── AJAX preview ─────────────────────────────────────────────────────────
@@ -69,7 +71,7 @@ class ReeferBillingController extends Controller
     {
         $validated = $request->validate([
             'customer_id'      => 'required|exists:customers,id',
-            'service_type'     => 'nullable|in:pti,long_term',
+            'service_type'     => 'required|in:pti,long_term',
             'period_from'      => 'required|date',
             'period_to'        => 'required|date|after_or_equal:period_from',
             'invoice_currency' => 'nullable|string|size:3',
@@ -105,7 +107,7 @@ class ReeferBillingController extends Controller
             'customer_id'      => 'required|exists:customers,id',
             'billing_party_id' => 'nullable|exists:customers,id',
             'invoice_type'     => 'nullable|in:tax_invoice,invoice,debit_note',
-            'service_type'     => 'nullable|in:pti,long_term',
+            'service_type'     => 'required|in:pti,long_term',
             'invoice_date'     => 'required|date',
             'period_from'      => 'required|date',
             'period_to'        => 'required|date|after_or_equal:period_from',
@@ -160,7 +162,7 @@ class ReeferBillingController extends Controller
 
     public function show(ReeferElectricityInvoice $reeferInvoice)
     {
-        $reeferInvoice->load(['customer', 'lines.plugSession', 'lines.chargeCode.taxCode', 'createdBy']);
+        $reeferInvoice->load(['customer', 'billingParty', 'lines.plugSession', 'lines.chargeCode.taxCode', 'createdBy']);
         return view('billing.reefer.show', compact('reeferInvoice'));
     }
 
@@ -326,9 +328,23 @@ class ReeferBillingController extends Controller
 
     // ── AJAX exchange rate ────────────────────────────────────────────────────
 
-    public function exchangeRateLookup()
+    public function exchangeRateLookup(Request $request)
     {
-        $rate = CurrencyService::usdToDefault();
-        return response()->json(['rate' => $rate]);
+        $currency = strtoupper($request->get('currency', 'USD'));
+        $date     = $request->get('date', today()->toDateString());
+        $default  = CurrencyService::defaultCurrency();
+
+        if ($currency === $default) {
+            return response()->json(['rate' => 1.0, 'found' => true, 'currency' => $currency, 'default' => $default]);
+        }
+
+        $rate = \App\Models\ExchangeRate::getRate($currency, $default, $date);
+
+        return response()->json([
+            'rate'     => $rate,
+            'found'    => $rate !== null,
+            'currency' => $currency,
+            'default'  => $default,
+        ]);
     }
 }

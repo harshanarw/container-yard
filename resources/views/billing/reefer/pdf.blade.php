@@ -72,6 +72,8 @@
                 <tr><td class="right" style="border:none; padding:2px 0; color:#555">Payment Due:</td>
                     <td class="right mono" style="border:none; padding:2px 0 2px 12px; font-weight:bold">{{ $reeferInvoice->due_date?->format('d M Y') }}</td></tr>
                 @endif
+                <tr><td class="right" style="border:none; padding:2px 0; color:#555">Bill Type:</td>
+                    <td class="right mono" style="border:none; padding:2px 0 2px 12px">{{ $reeferInvoice->service_type === 'pti' ? 'Short-Term PTI' : 'Long-Term Electricity' }}</td></tr>
                 <tr><td class="right" style="border:none; padding:2px 0; color:#555">Billing Period:</td>
                     <td class="right mono" style="border:none; padding:2px 0 2px 12px">
                         {{ $reeferInvoice->billing_period_from?->format('d M Y') }} – {{ $reeferInvoice->billing_period_to?->format('d M Y') }}

@@ -83,6 +83,20 @@
                     <dd class="col-sm-7 font-monospace">{{ $reeferInvoice->invoice_no }}</dd>
                     <dt class="col-sm-5 text-muted">Customer</dt>
                     <dd class="col-sm-7">{{ $reeferInvoice->customer?->name }}</dd>
+                    @if($reeferInvoice->billingParty && $reeferInvoice->billing_party_id !== $reeferInvoice->customer_id)
+                    <dt class="col-sm-5 text-muted">Billing Party</dt>
+                    <dd class="col-sm-7">{{ $reeferInvoice->billingParty?->name }}</dd>
+                    @endif
+                    <dt class="col-sm-5 text-muted">Bill Type</dt>
+                    <dd class="col-sm-7">
+                        @if($reeferInvoice->service_type === 'pti')
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-lightning-charge me-1"></i>Short-Term PTI</span>
+                        @else
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-snow me-1"></i>Long-Term Electricity</span>
+                        @endif
+                    </dd>
+                    <dt class="col-sm-5 text-muted">Invoice Type</dt>
+                    <dd class="col-sm-7">{{ ucwords(str_replace('_', ' ', $reeferInvoice->invoice_type ?? 'invoice')) }}</dd>
                     <dt class="col-sm-5 text-muted">Invoice Date</dt>
                     <dd class="col-sm-7">{{ $reeferInvoice->invoice_date?->format('d M Y') }}</dd>
                     <dt class="col-sm-5 text-muted">Due Date</dt>
@@ -139,6 +153,12 @@
                         <td>Total</td>
                         <td class="text-end font-monospace">{{ $reeferInvoice->invoice_currency }} {{ number_format($reeferInvoice->total_amount, 2) }}</td>
                     </tr>
+                    @if($reeferInvoice->invoice_currency !== 'LKR')
+                    <tr class="text-muted small">
+                        <td>Total Value (LKR)</td>
+                        <td class="text-end font-monospace">LKR {{ number_format($reeferInvoice->total_value, 2) }}</td>
+                    </tr>
+                    @endif
                 </table>
             </div>
         </div>
