@@ -3,20 +3,27 @@
 namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ArCreditNoteMail;
 use App\Models\Account;
 use App\Models\ArCreditNote;
 use App\Models\ChargeCode;
 use App\Models\CompanySetting;
 use App\Models\Currency;
 use App\Models\Customer;
+use App\Services\ConfiguredMailer;
 use App\Services\Finance\ArAllocationService;
 use App\Services\Finance\ArCreditNotePostingService;
+use App\Services\NotificationService;
 use App\Services\NumberSequenceService;
+use App\Support\HandlesMailErrors;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ArCreditNoteController extends Controller
 {
+    use HandlesMailErrors;
+
     public function __construct(
         private ArCreditNotePostingService $postingService,
         private ArAllocationService $allocationService,
@@ -142,6 +149,66 @@ class ArCreditNoteController extends Controller
         }
 
         return back()->with('success', "Credit note {$arCreditNote->credit_note_no} cancelled.");
+    }
+
+    public function pdf(ArCreditNote $arCreditNote, Request $request)
+    {
+        $this->authorize('finance.ar-credit-notes.pdf');
+
+        $arCreditNote->loadMissing(['customer', 'lines', 'createdBy']);
+        $size  = $request->query('size') === 'half' ? 'half' : 'a4';
+        $paper = $size === 'half' ? 'a5' : 'a4';
+
+        $pdf = Pdf::loadView('finance.credit-notes.pdf', [
+                'cn'            => $arCreditNote,
+                'title'         => 'CREDIT NOTE',
+                'partyLabel'    => 'Issued To',
+                'partyName'     => $arCreditNote->customer->name ?? '—',
+                'taxLabel'      => 'Output VAT',
+                'size'          => $size,
+                'showSignature' => true,
+            ])
+            ->setPaper($paper, 'portrait')
+            ->set_option('isHtml5ParserEnabled', true)
+            ->set_option('isRemoteEnabled', false);
+
+        $filename = 'CreditNote-' . $arCreditNote->credit_note_no . ($size === 'half' ? '-slip' : '') . '.pdf';
+
+        return $request->boolean('download') ? $pdf->download($filename) : $pdf->stream($filename);
+    }
+
+    public function email(Request $request, ArCreditNote $arCreditNote)
+    {
+        $this->authorize('finance.ar-credit-notes.email');
+
+        $validated = $request->validate([
+            'to_email' => ['required', 'email'],
+            'cc_email' => ['nullable', 'email'],
+            'message'  => ['nullable', 'string', 'max:1000'],
+            'format'   => ['nullable', 'in:a4,half'],
+        ]);
+
+        $error = $this->sendMailWithRetry(function () use ($validated, $arCreditNote) {
+            $pending = ConfiguredMailer::forCategory('credit_note')->to($validated['to_email']);
+            if (!empty($validated['cc_email'])) {
+                $pending->cc($validated['cc_email']);
+            }
+            $pending->send(new ArCreditNoteMail($arCreditNote, $validated['message'] ?? null, $validated['format'] ?? 'a4'));
+        });
+
+        if ($error) {
+            $msg = $this->friendlyMailError($error);
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $msg], 422)
+                : back()->with('error', $msg);
+        }
+
+        $msg = "Credit note {$arCreditNote->credit_note_no} emailed to {$validated['to_email']}.";
+        NotificationService::notify(auth()->user(), 'Credit note emailed', $msg, 'success', route('finance.ar-credit-notes.show', $arCreditNote));
+
+        return $request->expectsJson()
+            ? response()->json(['success' => true, 'message' => $msg])
+            : back()->with('success', $msg);
     }
 
     public function destroy(ArCreditNote $arCreditNote)

@@ -681,6 +681,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/create',            [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'create'])->name('create');
             Route::post('/',                 [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'store'])->name('store');
             Route::get('/{arCreditNote}',    [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'show'])->name('show');
+            Route::get('/{arCreditNote}/pdf',      [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'pdf'])->name('pdf');
+            Route::post('/{arCreditNote}/email',   [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'email'])->name('email');
             Route::post('/{arCreditNote}/approve', [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'approve'])->name('approve');
             Route::post('/{arCreditNote}/cancel',  [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'cancel'])->name('cancel');
             Route::post('/{arCreditNote}/applications',                  [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'storeApplication'])->name('applications.store');
@@ -694,6 +696,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/create',            [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'create'])->name('create');
             Route::post('/',                 [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'store'])->name('store');
             Route::get('/{apCreditNote}',    [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'show'])->name('show');
+            Route::get('/{apCreditNote}/pdf',      [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'pdf'])->name('pdf');
+            Route::post('/{apCreditNote}/email',   [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'email'])->name('email');
             Route::post('/{apCreditNote}/approve', [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'approve'])->name('approve');
             Route::post('/{apCreditNote}/cancel',  [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'cancel'])->name('cancel');
             Route::post('/{apCreditNote}/applications',                  [\App\Http\Controllers\Finance\ApCreditNoteController::class, 'storeApplication'])->name('applications.store');

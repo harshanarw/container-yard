@@ -36,9 +36,34 @@
         </form>
         @endif
         @endcan
+        @can('finance.ar-credit-notes.pdf')
+        <a href="{{ route('finance.ar-credit-notes.pdf', $arCreditNote) }}" target="_blank" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer me-1"></i>Print A4</a>
+        <a href="{{ route('finance.ar-credit-notes.pdf', ['arCreditNote' => $arCreditNote, 'size' => 'half']) }}" target="_blank" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-text me-1"></i>Half Page</a>
+        @endcan
+        @can('finance.ar-credit-notes.email')
+        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#emailModal"><i class="bi bi-envelope me-1"></i>Email</button>
+        @endcan
         <a href="{{ route('finance.ar-credit-notes.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
     </div>
 </div>
+
+@can('finance.ar-credit-notes.email')
+<div class="modal fade" id="emailModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <form method="POST" action="{{ route('finance.ar-credit-notes.email', $arCreditNote) }}" id="emailForm">
+        @csrf
+        <div class="modal-header"><h6 class="modal-title"><i class="bi bi-envelope me-1 text-primary"></i>Email Credit Note {{ $arCreditNote->credit_note_no }}</h6><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="mb-2"><label class="form-label small fw-semibold">To <span class="text-danger">*</span></label>
+                <input type="email" name="to_email" class="form-control form-control-sm" required value="{{ $arCreditNote->customer->email ?? '' }}"></div>
+            <div class="mb-2"><label class="form-label small fw-semibold">CC</label><input type="email" name="cc_email" class="form-control form-control-sm"></div>
+            <div class="mb-2"><label class="form-label small fw-semibold">Attachment Format</label>
+                <select name="format" class="form-select form-select-sm"><option value="a4" selected>Full Page (A4)</option><option value="half">Half Page (slip)</option></select></div>
+            <div class="mb-1"><label class="form-label small fw-semibold">Message</label><textarea name="message" rows="3" class="form-control form-control-sm" maxlength="1000"></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-send me-1"></i>Send</button></div>
+    </form>
+</div></div></div>
+@endcan
 
 @if(session('success'))<div class="alert alert-success alert-dismissible fade show py-2 small">{{ session('success') }}<button class="btn-close" data-bs-dismiss="alert"></button></div>@endif
 @if(session('error'))<div class="alert alert-danger alert-dismissible fade show py-2 small">{{ session('error') }}<button class="btn-close" data-bs-dismiss="alert"></button></div>@endif
@@ -155,6 +180,28 @@
         const out = parseFloat(o.dataset.out || 0);
         const unapplied = {{ $arCreditNote->unapplied }};
         if (out > 0) document.getElementById('applyAmt').value = Math.min(out, unapplied).toFixed(2);
+    });
+})();
+</script>
+@endpush
+
+@push('scripts')
+<script>
+(function () {
+    const form = document.getElementById('emailForm');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const btn = form.querySelector('button[type="submit"]'); const orig = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending…';
+        fetch(form.action, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }, body: new FormData(form) })
+            .then(r => r.json().then(d => ({ ok: r.ok, d })))
+            .then(({ ok, d }) => {
+                if (ok && d.success) { bootstrap.Modal.getInstance(document.getElementById('emailModal'))?.hide(); }
+                else { window.showToast ? showToast((d && d.message) || 'Email could not be sent.', 'danger') : alert((d && d.message) || 'Email could not be sent.'); }
+            })
+            .catch(() => { window.showToast ? showToast('Email could not be sent.', 'danger') : alert('Email could not be sent.'); })
+            .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
     });
 })();
 </script>
