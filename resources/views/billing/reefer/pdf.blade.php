@@ -90,6 +90,10 @@
 @if($watermark)<div class="watermark">{{ $watermark }}</div>@endif
 <div class="wrap">
 
+    @php
+        $verifyUrl = \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'reefer', 'id' => $reeferInvoice->id]);
+        $qr = \App\Support\Qr::svgDataUri($verifyUrl, 100);
+    @endphp
     {{-- Letterhead: logo + company details --}}
     <table class="hdr"><tr>
         @if($logoSrc)
@@ -105,6 +109,12 @@
                 @if($company->vat_number)VAT: {{ $company->vat_number }}@endif @if($company->tin_number) · TIN: {{ $company->tin_number }}@endif
             </div>
         </td>
+        @if($qr)
+        <td style="width:1%; white-space:nowrap; vertical-align:middle; text-align:right; padding-left:12px;">
+            <img src="{{ $qr }}" alt="Verify" style="width:64px; height:64px; display:block; margin-left:auto;">
+            <div style="font-size:7px; color:#888; text-align:center; margin-top:1px;">Scan to verify</div>
+        </td>
+        @endif
     </tr></table>
     {{-- Bordered, centred document title --}}
     <div style="border:2px solid #1a56db; border-radius:6px; padding:8px 12px; text-align:center; margin:14px 0 12px;">

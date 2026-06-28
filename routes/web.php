@@ -79,6 +79,12 @@ require __DIR__.'/portal.php';
 */
 Route::get('/gp/verify/{movement}', [YardController::class, 'verifyGatePass'])->name('gp.verify');
 
+// Public document verification (QR target on invoice/estimate PDFs). Signed URL
+// so the link is tamper-proof and cannot be forged or guessed.
+Route::get('/verify/{type}/{id}', [\App\Http\Controllers\DocumentVerificationController::class, 'show'])
+    ->name('documents.verify')
+    ->middleware('signed');
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated Routes

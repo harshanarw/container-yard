@@ -89,8 +89,9 @@
 
 {{-- ── Header ── --}}
 @include('partials.pdf-letterhead', [
-    'title'  => 'STORAGE & HANDLING INVOICE',
-    'accent' => '#0d6efd',
+    'title'     => 'STORAGE & HANDLING INVOICE',
+    'accent'    => '#0d6efd',
+    'verifyUrl' => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage-handling', 'id' => $invoice->id]),
 ])
 
 {{-- Invoice meta --}}

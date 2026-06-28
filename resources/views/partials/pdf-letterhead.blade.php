@@ -7,9 +7,12 @@
     them as label/value pairs in its right-side meta section.
 
     Params:
-      title    (required) e.g. 'STORAGE INVOICE'
-      accent   (optional) theme colour, default blue #1a56db
-      company  (optional) CompanySetting instance; defaults to current()
+      title      (required) e.g. 'STORAGE INVOICE'
+      accent     (optional) theme colour, default blue #1a56db
+      company    (optional) CompanySetting instance; defaults to current()
+      verifyUrl  (optional) signed public URL — rendered as a "Scan to verify"
+                 QR on the right (needs simplesoftwareio/simple-qrcode; if the
+                 package is absent the QR is simply omitted)
 --}}
 @php
     $__co     = $company ?? ($companySetting ?? \App\Models\CompanySetting::current());
@@ -28,6 +31,8 @@
             $__logo = null;
         }
     }
+
+    $__qr = \App\Support\Qr::svgDataUri($verifyUrl ?? null, 100);
 @endphp
 <table style="width:100%; border-collapse:collapse;"><tr>
     @if($__logo)
@@ -43,6 +48,12 @@
             @if($__co->vat_number)VAT: {{ $__co->vat_number }}@endif @if($__co->tin_number) · TIN: {{ $__co->tin_number }}@endif
         </div>
     </td>
+    @if($__qr)
+    <td style="width:1%; white-space:nowrap; vertical-align:middle; text-align:right; padding-left:12px; border:none;">
+        <img src="{{ $__qr }}" alt="Verify" style="width:64px; height:64px; display:block; margin-left:auto;">
+        <div style="font-size:7px; color:#888; text-align:center; margin-top:1px;">Scan to verify</div>
+    </td>
+    @endif
 </tr></table>
 
 {{-- Bordered, centred document title --}}

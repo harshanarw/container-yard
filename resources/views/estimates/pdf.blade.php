@@ -78,7 +78,10 @@
 <div class="page">
 
     <!-- Header -->
-    @include('partials.pdf-letterhead', ['title' => 'REPAIR ESTIMATE'])
+    @include('partials.pdf-letterhead', [
+        'title'     => 'REPAIR ESTIMATE',
+        'verifyUrl' => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'estimate', 'id' => $estimate->id]),
+    ])
 
     <!-- Info Grid -->
     <div class="info-grid">

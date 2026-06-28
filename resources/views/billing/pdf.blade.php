@@ -89,7 +89,10 @@
 @endphp
 
 {{-- ── Header ── --}}
-@include('partials.pdf-letterhead', ['title' => 'STORAGE INVOICE'])
+@include('partials.pdf-letterhead', [
+    'title'     => 'STORAGE INVOICE',
+    'verifyUrl' => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage', 'id' => $invoice->id]),
+])
 
 {{-- ── Info Grid ── --}}
 <table style="width:100%; margin-bottom:16px;">
