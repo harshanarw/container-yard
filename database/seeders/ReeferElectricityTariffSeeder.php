@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\ChargeCode;
 use App\Models\ReeferElectricityTariff;
 use Illuminate\Database\Seeder;
 
@@ -9,15 +10,21 @@ class ReeferElectricityTariffSeeder extends Seeder
 {
     public function run(): void
     {
+        // Reefer billing has two service types, each mapped to its own charge code
+        // (and therefore its own tax code): PTI → 'PTI', Long-Term → 'ELC'.
+        $ptiChargeCodeId = ChargeCode::where('code', 'PTI')->value('id');
+        $elcChargeCodeId = ChargeCode::where('code', 'ELC')->value('id');
+
         $tariffs = [
-            // ── Default daily tariff ─────────────────────────────────────────
-            // Applies to all customers without a customer-specific daily tariff.
-            // Billing: calendar days inclusive (plug-in day counts, even partial days).
+            // ── Long-Term Electricity (Daily) ────────────────────────────────
+            // Default for stored reefers billed per calendar day, in local currency.
             [
                 'customer_id'    => null,
-                'tariff_name'    => 'Standard Reefer Electricity (Daily)',
+                'tariff_name'    => 'Standard Reefer Electricity (Long-Term, Daily)',
+                'service_type'   => 'long_term',
                 'billing_mode'   => 'daily',
                 'currency'       => 'LKR',
+                'charge_code_id' => $elcChargeCodeId,
                 'hourly_rate'    => null,
                 'daily_rate'     => 1500.00,
                 'free_hours'     => 0,
@@ -26,37 +33,53 @@ class ReeferElectricityTariffSeeder extends Seeder
                 'valid_from'     => '2024-01-01',
                 'valid_to'       => null,
                 'is_active'      => true,
-                'notes'          => 'Default daily tariff. Each calendar day (including the day of plug-in) is charged at the full day rate. Override per customer as required.',
+                'notes'          => 'Default long-term daily tariff. Each calendar day (including the day of plug-in) is charged at the full day rate. Override per customer as required. Sample rate — adjust to your pricing.',
             ],
 
-            // ── Default hourly tariff ────────────────────────────────────────
-            // Applies to all customers without a customer-specific hourly tariff.
-            // Billing: total minutes ceiled to the next full hour, minus free hours.
-            // A minimum charge of LKR 500 applies so that very short sessions are
-            // still billed at a reasonable floor rate.
+            // ── Short-Term PTI (Hourly) ──────────────────────────────────────
+            // Pre-Trip Inspection power, billed per hour, typically quoted in USD.
+            // Duration is ceiled to the next full hour; a minimum charge applies so
+            // very short inspections still bill at a sensible floor.
             [
                 'customer_id'    => null,
-                'tariff_name'    => 'Standard Reefer Electricity (Hourly)',
+                'tariff_name'    => 'Standard Reefer PTI (Short-Term, Hourly)',
+                'service_type'   => 'pti',
                 'billing_mode'   => 'hourly',
-                'currency'       => 'LKR',
-                'hourly_rate'    => 100.00,
+                'currency'       => 'USD',
+                'charge_code_id' => $ptiChargeCodeId,
+                'hourly_rate'    => 5.00,
                 'daily_rate'     => null,
                 'free_hours'     => 0,
                 'free_days'      => 0,
-                'minimum_charge' => 500.00,
+                'minimum_charge' => 20.00,
                 'valid_from'     => '2024-01-01',
                 'valid_to'       => null,
-                'is_active'      => false,  // Inactive by default — activate when switching to hourly billing
-                'notes'          => 'Default hourly tariff. Duration is ceiled to the next full hour. Minimum charge LKR 500 applies. Activate and deactivate the daily tariff when switching billing mode.',
+                'is_active'      => true,
+                'notes'          => 'Default short-term PTI tariff. Duration is ceiled to the next full hour; minimum charge USD 20 applies. Sample rate — adjust to your pricing.',
             ],
         ];
 
         foreach ($tariffs as $data) {
-            // Upsert by tariff_name (safe to re-run without creating duplicates)
+            // One default per service type — keyed by (customer_id, service_type)
+            // so re-runs never duplicate and never clobber an admin's edited rates.
             ReeferElectricityTariff::firstOrCreate(
-                ['tariff_name' => $data['tariff_name'], 'customer_id' => null],
+                ['customer_id' => null, 'service_type' => $data['service_type']],
                 $data
             );
+        }
+
+        // Idempotently wire charge codes onto any reefer tariff still missing one
+        // (e.g. rows created before charge_code_id existed). Never overwrites a code
+        // that is already set.
+        if ($ptiChargeCodeId) {
+            ReeferElectricityTariff::whereNull('charge_code_id')
+                ->where('service_type', 'pti')
+                ->update(['charge_code_id' => $ptiChargeCodeId]);
+        }
+        if ($elcChargeCodeId) {
+            ReeferElectricityTariff::whereNull('charge_code_id')
+                ->where('service_type', 'long_term')
+                ->update(['charge_code_id' => $elcChargeCodeId]);
         }
     }
 }
