@@ -89,19 +89,11 @@
 @endphp
 
 {{-- ── Header ── --}}
-<table style="width:100%; border-bottom:3px solid #1a56db; padding-bottom:12px; margin-bottom:16px;">
-    <tr>
-        <td style="vertical-align:top;">
-            <div class="company-name">Container Yard Management</div>
-            <div class="company-sub">Storage Services</div>
-        </td>
-        <td style="vertical-align:top; text-align:right;">
-            <div class="inv-title">STORAGE INVOICE</div>
-            <div class="inv-no">{{ $invoice->invoice_no }}</div>
-            <span class="badge {{ $badgeClass }}">{{ strtoupper($invoice->status) }}</span>
-        </td>
-    </tr>
-</table>
+@include('partials.pdf-letterhead', [
+    'title'       => 'STORAGE INVOICE',
+    'docNo'       => $invoice->invoice_no,
+    'statusLabel' => $invoice->status,
+])
 
 {{-- ── Info Grid ── --}}
 <table style="width:100%; margin-bottom:16px;">

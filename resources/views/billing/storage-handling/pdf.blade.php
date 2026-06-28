@@ -88,56 +88,50 @@
 @endphp
 
 {{-- ── Header ── --}}
-<table style="width:100%; border-bottom:3px solid #0d6efd; padding-bottom:10px; margin-bottom:14px;">
-    <tr>
-        <td style="vertical-align:top;">
-            <div style="font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:3px;">
-                Container Yard Management
-            </div>
-            <div style="font-size:18px;font-weight:bold;">Storage &amp; Handling Invoice</div>
-            <div style="margin-top:5px;">
-                <span style="font-size:14px;font-weight:bold;font-family:monospace;letter-spacing:.03em;">
-                    {{ $invoice->invoice_no }}
-                </span>
-                &nbsp;
-                <span class="badge-status">{{ strtoupper($invoice->status) }}</span>
-            </div>
-        </td>
-        <td style="vertical-align:top; text-align:right;">
-            <table style="margin-left:auto;">
-                <tr>
-                    <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Invoice Date</td>
-                    <td style="font-weight:bold; font-size:11px;">{{ $invoice->invoice_date->format('d M Y') }}</td>
-                </tr>
-                @if($invoice->due_date)
-                <tr>
-                    <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Payment Due</td>
-                    <td style="font-weight:bold;">{{ $invoice->due_date->format('d M Y') }}</td>
-                </tr>
-                @endif
-                <tr>
-                    <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Billing Period</td>
-                    <td style="font-weight:bold;">
-                        {{ $invoice->billing_period_from->format('d M Y') }}
-                        &ndash;
-                        {{ $invoice->billing_period_to->format('d M Y') }}
-                    </td>
-                </tr>
-                <tr>
-                    <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Invoice Currency</td>
-                    <td style="font-weight:bold; color:#0d6efd;">
-                        {{ $dispCur }}
-                        <span style="font-size:8px; font-weight:normal; color:#888;">(Base: LKR)</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">USD &rarr; LKR Rate</td>
-                    <td style="font-size:9px;">1 USD = {{ number_format($invoice->exchange_rate, 4) }} LKR</td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-</table>
+@include('partials.pdf-letterhead', [
+    'title'       => 'STORAGE & HANDLING INVOICE',
+    'docNo'       => $invoice->invoice_no,
+    'statusLabel' => $invoice->status,
+    'accent'      => '#0d6efd',
+])
+
+{{-- Invoice meta --}}
+<table style="width:100%; margin-bottom:14px;"><tr>
+    <td style="width:55%; vertical-align:top;">&nbsp;</td>
+    <td style="width:45%; vertical-align:top;">
+        <table style="width:100%;">
+            <tr>
+                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Invoice Date</td>
+                <td style="font-weight:bold; font-size:11px;">{{ $invoice->invoice_date->format('d M Y') }}</td>
+            </tr>
+            @if($invoice->due_date)
+            <tr>
+                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Payment Due</td>
+                <td style="font-weight:bold;">{{ $invoice->due_date->format('d M Y') }}</td>
+            </tr>
+            @endif
+            <tr>
+                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Billing Period</td>
+                <td style="font-weight:bold;">
+                    {{ $invoice->billing_period_from->format('d M Y') }}
+                    &ndash;
+                    {{ $invoice->billing_period_to->format('d M Y') }}
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Invoice Currency</td>
+                <td style="font-weight:bold; color:#0d6efd;">
+                    {{ $dispCur }}
+                    <span style="font-size:8px; font-weight:normal; color:#888;">(Base: LKR)</span>
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">USD &rarr; LKR Rate</td>
+                <td style="font-size:9px;">1 USD = {{ number_format($invoice->exchange_rate, 4) }} LKR</td>
+            </tr>
+        </table>
+    </td>
+</tr></table>
 
 {{-- ── Info Grid ── --}}
 <table style="width:100%; margin-bottom:14px;">

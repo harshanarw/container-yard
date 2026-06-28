@@ -78,24 +78,11 @@
 <div class="page">
 
     <!-- Header -->
-    <div class="header">
-        <div>
-            <div class="company-name">Container Yard Management</div>
-            <div class="company-sub">Repair Estimate</div>
-        </div>
-        <div class="estimate-title">
-            <h1>REPAIR ESTIMATE</h1>
-            <div class="est-no">{{ $estimate->estimate_no }}</div>
-            <div style="margin-top:4px">
-                @php
-                    $badgeMap = ['draft'=>'secondary','sent'=>'info','approved'=>'success','rejected'=>'danger','completed'=>'dark'];
-                @endphp
-                <span class="badge badge-{{ $badgeMap[$estimate->status] ?? 'secondary' }}">
-                    {{ strtoupper($estimate->status) }}
-                </span>
-            </div>
-        </div>
-    </div>
+    @include('partials.pdf-letterhead', [
+        'title'       => 'REPAIR ESTIMATE',
+        'docNo'       => $estimate->estimate_no,
+        'statusLabel' => $estimate->status,
+    ])
 
     <!-- Info Grid -->
     <div class="info-grid">
