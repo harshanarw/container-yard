@@ -282,6 +282,12 @@ return [
         'actions' => ['view', 'create', 'edit', 'confirm', 'void', 'pdf', 'email'],
     ],
 
+    'finance.ar-credit-notes' => [
+        'label'   => 'AR Credit Notes',
+        'section' => 'Finance',
+        'actions' => ['view', 'create', 'edit', 'approve', 'delete', 'pdf', 'email'],
+    ],
+
     'finance.ap' => [
         'label'   => 'AP / Supplier Invoices',
         'section' => 'Finance',

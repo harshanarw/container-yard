@@ -60,10 +60,18 @@ class ArAllocationService
      */
     public function getAllocatedTotal(string $type, int $id): float
     {
-        return (float) ReceiptAllocation::where('invoice_type', $type)
+        $receipts = (float) ReceiptAllocation::where('invoice_type', $type)
             ->where('invoice_id', $id)
             ->whereHas('receipt', fn ($q) => $q->where('status', 'confirmed'))
             ->sum('allocated_amount');
+
+        // Approved AR credit notes applied to this invoice also settle it (non-cash).
+        $creditNotes = (float) \App\Models\ArCreditNoteApplication::where('invoice_type', $type)
+            ->where('invoice_id', $id)
+            ->whereHas('creditNote', fn ($q) => $q->where('status', 'approved'))
+            ->sum('applied_amount');
+
+        return $receipts + $creditNotes;
     }
 
     public function getOutstanding(Model $invoice, string $type): float

@@ -902,8 +902,8 @@
             @endcan
 
             {{-- ── Cash & Bank ───────────────────────────────────────────────── --}}
-            @if(Auth::user()->can('finance.receipts.view') || Auth::user()->can('finance.vouchers.view'))
-            @php $finCashActive = request()->routeIs('finance.bank-accounts.*') || request()->routeIs('finance.receipts.*') || request()->routeIs('finance.vouchers.*'); @endphp
+            @if(Auth::user()->can('finance.receipts.view') || Auth::user()->can('finance.vouchers.view') || Auth::user()->can('finance.ar-credit-notes.view'))
+            @php $finCashActive = request()->routeIs('finance.bank-accounts.*') || request()->routeIs('finance.receipts.*') || request()->routeIs('finance.vouchers.*') || request()->routeIs('finance.ar-credit-notes.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-fin-cash"
                     aria-expanded="{{ $finCashActive ? 'true' : 'false' }}"
@@ -951,6 +951,14 @@
                         </a>
                     </li>
                     @endcan
+                    @endcan
+                    @can('finance.ar-credit-notes.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.ar-credit-notes.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.ar-credit-notes.*') ? 'active' : '' }}">
+                            <i class="bi bi-arrow-counterclockwise"></i><span>AR Credit Notes</span>
+                        </a>
+                    </li>
                     @endcan
                 </ul>
             </div>

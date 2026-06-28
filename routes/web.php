@@ -675,6 +675,18 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/{receipt}/allocations/{allocation}',             [ReceiptController::class, 'deleteAllocation'])->name('allocations.destroy');
         });
 
+        // AR Credit Notes (issued to customers)
+        Route::prefix('ar-credit-notes')->name('ar-credit-notes.')->group(function () {
+            Route::get('/',                  [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'index'])->name('index');
+            Route::get('/create',            [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'create'])->name('create');
+            Route::post('/',                 [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'store'])->name('store');
+            Route::get('/{arCreditNote}',    [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'show'])->name('show');
+            Route::post('/{arCreditNote}/approve', [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'approve'])->name('approve');
+            Route::post('/{arCreditNote}/cancel',  [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'cancel'])->name('cancel');
+            Route::post('/{arCreditNote}/applications',                  [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'storeApplication'])->name('applications.store');
+            Route::delete('/{arCreditNote}/applications/{application}',  [\App\Http\Controllers\Finance\ArCreditNoteController::class, 'deleteApplication'])->name('applications.destroy');
+        });
+
         // Payment Vouchers
         Route::prefix('vouchers')->name('vouchers.')->group(function () {
             Route::get('/',                             [PaymentVoucherController::class, 'index'])->name('index');
