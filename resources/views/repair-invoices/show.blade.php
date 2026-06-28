@@ -173,7 +173,7 @@ $statusColors = [
                     <dd class="col-6 text-end h6 fw-bold text-primary">{{ $invoice->currency }} {{ number_format($invoice->grand_total, 2) }}</dd>
 
                     <dt class="col-6 fw-bold">Amount Paid</dt>
-                    <dd class="col-6 text-end h6 fw-bold">{{ $invoice->currency }} {{ number_format($invoice->amount_paid, 2) }}</dd>
+                    <dd class="col-6 text-end h6 fw-bold">{{ $invoice->currency }} {{ number_format($invoice->grand_total - $invoice->balance_due, 2) }}</dd>
 
                     <dt class="col-6 fw-bold">Balance Due</dt>
                     <dd class="col-6 text-end h6 fw-bold {{ $invoice->balance_due > 0 ? 'text-danger' : 'text-success' }}">

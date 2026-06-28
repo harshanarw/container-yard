@@ -97,12 +97,33 @@ class ArAllocationService
             return;
         }
 
+        // Repair invoices also carry their own amount_paid (Record Payment) and a
+        // balance_due column. Combine both settlement sources (manual payments +
+        // AR allocations from receipts/credit notes) so the repair invoice's own
+        // page balance and status stay correct.
+        if ($type === 'repair') {
+            $settled = round((float) $invoice->amount_paid + $allocated, 2);
+
+            if ($settled >= round($total - 0.005, 2)) {
+                $newStatus = 'paid';
+            } elseif ($settled > 0) {
+                $newStatus = 'partially_paid';
+            } else {
+                $newStatus = in_array($current, ['paid', 'partially_paid']) ? 'issued' : $current;
+            }
+
+            $invoice->update([
+                'balance_due' => round(max(0, $total - $settled), 2),
+                'status'      => $newStatus,
+            ]);
+            return;
+        }
+
+        // Other AR types have no partial-paid status; outstanding is derived from
+        // allocations, so only the status needs syncing.
         if ($allocated >= $total) {
             $newStatus = 'paid';
-        } elseif ($allocated > 0 && $type === 'repair') {
-            $newStatus = 'partially_paid';
         } else {
-            // For types without partially_paid, any partial payment keeps status as issued
             $newStatus = in_array($current, ['paid', 'partially_paid']) ? 'issued' : $current;
         }
 

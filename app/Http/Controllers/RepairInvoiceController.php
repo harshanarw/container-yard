@@ -270,18 +270,20 @@ class RepairInvoiceController extends Controller
         ]);
 
         $newAmountPaid = $invoice->amount_paid + $validated['amount'];
-        $balanceDue = $invoice->grand_total - $newAmountPaid;
 
-        // Determine new status
-        if ($newAmountPaid >= $invoice->grand_total) {
-            $newStatus = 'paid';
-        } else {
-            $newStatus = 'partially_paid';
-        }
+        // Include AR allocations (receipts / credit notes applied to this invoice)
+        // so the balance and status reflect every settlement source, not just
+        // manual payments.
+        $allocated = app(\App\Services\Finance\ArAllocationService::class)
+            ->getAllocatedTotal('repair', $invoice->id);
+        $settled    = $newAmountPaid + $allocated;
+        $balanceDue = max(0, $invoice->grand_total - $settled);
+
+        $newStatus = $settled >= round($invoice->grand_total - 0.005, 2) ? 'paid' : 'partially_paid';
 
         $invoice->update([
             'amount_paid'  => $newAmountPaid,
-            'balance_due'  => max(0, $balanceDue),
+            'balance_due'  => $balanceDue,
             'status'       => $newStatus,
         ]);
 
