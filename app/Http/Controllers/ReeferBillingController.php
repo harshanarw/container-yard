@@ -250,7 +250,7 @@ class ReeferBillingController extends Controller
 
     public function pdf(ReeferElectricityInvoice $reeferInvoice)
     {
-        $reeferInvoice->load(['customer', 'lines.plugSession', 'lines.chargeCode', 'createdBy']);
+        $reeferInvoice->load(['customer', 'billingParty', 'lines.plugSession', 'lines.chargeCode', 'createdBy']);
 
         $companySetting = CompanySetting::current();
 
