@@ -49,11 +49,74 @@ class ApCreditNoteController extends Controller
         return view('finance.ap-credit-notes.index', compact('creditNotes', 'suppliers'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $this->authorize('finance.ap-credit-notes.create');
 
-        return view('finance.ap-credit-notes.create', $this->formOptions());
+        $options = $this->formOptions();
+        $prefill = null;
+
+        // "Credit note against bill X" — pre-fill from an existing supplier invoice.
+        if ($request->filled('supplier_invoice_id')) {
+            try {
+                $invoice = $this->allocationService->resolveInvoice((int) $request->supplier_invoice_id);
+                $invoice->loadMissing('lines');
+                $total = $this->allocationService->getTotal($invoice);
+                $vat   = (float) ($invoice->tax_amount ?? 0);
+
+                $prefill = [
+                    'supplier_invoice_id' => $invoice->id,
+                    'invoice_no'          => $invoice->invoice_no,
+                    'customer_id'         => $invoice->customer_id,
+                    'currency'            => strtoupper((string) ($invoice->currency ?? $options['baseCurrency'])),
+                    'exchange_rate'       => $this->allocationService->getExchangeRate($invoice),
+                    'net'                 => round($total - $vat, 2),
+                    'vat'                 => round($vat, 2),
+                    'expense_account_id'  => $invoice->lines->first()?->expense_account_id,
+                ];
+            } catch (\Throwable) {
+                $prefill = null;
+            }
+        }
+
+        return view('finance.ap-credit-notes.create', array_merge($options, ['prefill' => $prefill]));
+    }
+
+    /**
+     * After approval, if raised against a specific bill, apply it automatically
+     * (capped at that bill's outstanding). Best-effort.
+     */
+    private function autoApplyToReference(ApCreditNote $cn): void
+    {
+        if (!$cn->reference_supplier_invoice_id || $cn->applications()->exists()) {
+            return;
+        }
+
+        try {
+            $invoice = $this->allocationService->resolveInvoice((int) $cn->reference_supplier_invoice_id);
+
+            $base   = CompanySetting::baseCurrency();
+            $invCcy = strtoupper((string) $invoice->currency) ?: $base;
+            $cnCcy  = strtoupper((string) $cn->currency) ?: $base;
+            if ($invCcy !== $cnCcy) {
+                return;
+            }
+
+            $outstanding = $this->allocationService->getOutstanding($invoice);
+            $amount      = round(min((float) $cn->total_amount, $outstanding), 2);
+            if ($amount <= 0) {
+                return;
+            }
+
+            $cn->applications()->create([
+                'supplier_invoice_id' => $invoice->id,
+                'applied_amount'      => $amount,
+                'base_amount'         => round($amount * (float) ($cn->exchange_rate ?: 1), 4),
+            ]);
+            $this->allocationService->syncInvoiceStatus($invoice);
+        } catch (\Throwable) {
+            // leave for manual application
+        }
     }
 
     public function store(Request $request)
@@ -121,6 +184,7 @@ class ApCreditNoteController extends Controller
 
         try {
             $this->postingService->approve($apCreditNote, auth()->id());
+            $this->autoApplyToReference($apCreditNote->fresh());
             return back()->with('success', "Credit note {$apCreditNote->credit_note_no} approved and posted to GL.");
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());

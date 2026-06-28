@@ -510,6 +510,32 @@ class GeneralLedgerController extends Controller
             'repair', 'Repair'
         );
 
+        // Unapplied approved credit notes appear as negative balances (customer credit),
+        // so the customer total and grand total reconcile to the AR control account.
+        \App\Models\ArCreditNote::where('status', 'approved')
+            ->withSum('applications as applied_sum', 'applied_amount')
+            ->get()
+            ->each(function ($cn) use (&$rows) {
+                $unapplied = round((float) $cn->total_amount - (float) ($cn->applied_sum ?? 0), 2);
+                if ($unapplied <= 0) return;
+                $d = \Carbon\Carbon::parse($cn->credit_date);
+                $rows->push([
+                    'customer_id'  => $cn->customer_id,
+                    'type'         => 'credit-note',
+                    'type_label'   => 'Credit Note',
+                    'id'           => $cn->id,
+                    'invoice_no'   => $cn->credit_note_no,
+                    'invoice_date' => $d,
+                    'due_date'     => $d,
+                    'past_due'     => false,
+                    'total'        => -$unapplied,
+                    'allocated'    => 0,
+                    'outstanding'  => -$unapplied,
+                    'age_days'     => 0,
+                    'bucket'       => 'current',
+                ]);
+            });
+
         // Load customer names for display
         $customerIds = $rows->pluck('customer_id')->filter()->unique();
         $customers   = Customer::whereIn('id', $customerIds)->get()->keyBy('id');
@@ -614,6 +640,29 @@ class GeneralLedgerController extends Controller
                     'outstanding'  => $outstanding,
                     'age_days'     => $ageDays,
                     'bucket'       => $bucket,
+                ]);
+            });
+
+        // Unapplied approved AP credit notes = vendor credit (negative payable).
+        \App\Models\ApCreditNote::where('status', 'approved')
+            ->withSum('applications as applied_sum', 'applied_amount')
+            ->get()
+            ->each(function ($cn) use (&$rows) {
+                $unapplied = round((float) $cn->total_amount - (float) ($cn->applied_sum ?? 0), 2);
+                if ($unapplied <= 0) return;
+                $rows->push([
+                    'customer_id'  => $cn->customer_id,
+                    'id'           => $cn->id,
+                    'type'         => 'credit-note',
+                    'invoice_no'   => $cn->credit_note_no,
+                    'reference'    => $cn->supplier_credit_no,
+                    'invoice_date' => \Carbon\Carbon::parse($cn->credit_date),
+                    'due_date'     => \Carbon\Carbon::parse($cn->credit_date),
+                    'total'        => -$unapplied,
+                    'allocated'    => 0,
+                    'outstanding'  => -$unapplied,
+                    'age_days'     => 0,
+                    'bucket'       => 'current',
                 ]);
             });
 

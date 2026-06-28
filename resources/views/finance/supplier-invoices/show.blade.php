@@ -61,6 +61,13 @@
         </form>
         @endif
         @endcan
+        @can('finance.ap-credit-notes.create')
+        @if($inv->isPosted() && in_array($inv->status, ['approved', 'partially_paid']))
+        <a href="{{ route('finance.ap-credit-notes.create', ['supplier_invoice_id' => $inv->id]) }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-arrow-clockwise me-1"></i>Credit Note
+        </a>
+        @endif
+        @endcan
     </div>
 </div>
 

@@ -111,7 +111,11 @@
                     @endif
 
                     <td class="font-monospace">
-                        <a href="{{ route('finance.ap.invoices.show', $inv['id']) }}" class="text-decoration-none">{{ $inv['invoice_no'] }}</a>
+                        @if(($inv['type'] ?? null) === 'credit-note')
+                            {{ $inv['invoice_no'] }} <span class="badge bg-success-subtle text-success">CN</span>
+                        @else
+                            <a href="{{ route('finance.ap.invoices.show', $inv['id']) }}" class="text-decoration-none">{{ $inv['invoice_no'] }}</a>
+                        @endif
                     </td>
 
                     <td class="text-muted font-monospace small">{{ $inv['reference'] ?: '—' }}</td>
