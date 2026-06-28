@@ -475,7 +475,7 @@ class YardController extends Controller
                     'container_id'    => $container->id,
                     'gate_movement_id'=> $movement->id,
                     'customer_id'     => $validated['customer_id'],
-                    'service_type'    => $validated['reefer_service_type'],
+                    'service_type'    => $validated['reefer_service_type'] ?? 'long_term',
                     'status'          => 'pending',
                     'created_by'      => auth()->id(),
                     'updated_by'      => auth()->id(),
