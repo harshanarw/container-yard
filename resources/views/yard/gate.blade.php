@@ -2258,9 +2258,25 @@ function initPhotoUploader(cfg) {
         submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
         const fd = new FormData(form);
         files.forEach(file => fd.append('photos[]', file));
-        fetch(form.action, { method: 'POST', body: fd, redirect: 'follow' })
+        fetch(form.action, { method: 'POST', body: fd, redirect: 'follow', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (response) {
                 var finalUrl = response.url || '';
+                // A successful gate-in/out always redirects away from the POST endpoint
+                // (to a gate pass), and a validation failure redirects back to the form
+                // (a GET page). If the response is an error, or we are still sitting on
+                // the POST-only /gate/in|out URL, NEVER navigate there with the browser
+                // (it would issue a GET and surface a misleading 405) — show the real
+                // failure instead.
+                var stillOnPost = /\/gate\/(in|out)(\?|$)/.test(finalUrl);
+                if (!response.ok || stillOnPost || !finalUrl) {
+                    submitBtn.disabled = false; submitBtn.innerHTML = origHtml;
+                    var msg = 'Gate ' + (cfg.direction || '') + ' could not be completed'
+                            + (response.status ? ' (server error ' + response.status + ')' : '')
+                            + '. Please check the server log'
+                            + (response.status === 419 ? ' — your session may have expired; reload the page.' : '.');
+                    if (window.showToast) { showToast(msg, 'danger'); } else { alert(msg); }
+                    return;
+                }
                 // Only open the popup if we actually landed on a gate-pass page.
                 // If the server redirected back to the form (validation error), navigate
                 // the main window there so the user sees the error message.
