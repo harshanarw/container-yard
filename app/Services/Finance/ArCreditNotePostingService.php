@@ -8,6 +8,7 @@ use App\Models\ArCreditNote;
 use App\Models\ArCreditNoteApplication;
 use App\Models\ChargeCode;
 use App\Models\GlJournal;
+use App\Services\CurrencyService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -42,6 +43,12 @@ class ArCreditNotePostingService
 
             $rate       = (float) ($cn->exchange_rate ?: 1);
             $defaultRev = Account::where('code', '4001')->where('is_active', true)->first();
+
+            // Document (transaction) currency for the per-line multi-currency amounts.
+            $base    = CurrencyService::defaultCurrency();
+            $docCcy  = strtoupper((string) ($cn->currency ?? $base));
+            $docRate = $docCcy === $base ? 1.0 : ($rate ?: 1.0);
+            $toTxn   = fn (float $baseAmt) => $docRate > 0 ? round($baseAmt / $docRate, 2) : $baseAmt;
 
             // Debit revenue per line (reverse the income), in base currency.
             $debits = [];
@@ -88,6 +95,14 @@ class ArCreditNotePostingService
                 'credit'     => $crAr,
                 'narration'  => 'Trade debtors — credit note',
             ];
+
+            // Attach transaction-currency metadata to every line (base stays primary).
+            $lines = array_map(fn ($l) => $l + [
+                'currency'      => $docCcy,
+                'exchange_rate' => $docRate,
+                'txn_debit'     => $toTxn((float) ($l['debit'] ?? 0)),
+                'txn_credit'    => $toTxn((float) ($l['credit'] ?? 0)),
+            ], $lines);
 
             $journal = $this->engine->createJournal([
                 'journal_date'   => $cn->credit_date->toDateString(),

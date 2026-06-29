@@ -7,6 +7,7 @@ use App\Models\AccountMapping;
 use App\Models\ChargeCode;
 use App\Models\SupplierInvoice;
 use App\Models\TaxCode;
+use App\Services\CurrencyService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -45,6 +46,14 @@ class SupplierInvoicePostingService
             $rate   = (float) ($invoice->exchange_rate ?: 1);
             $fxNote = $this->fxNote($invoice->currency, $rate);
             $lines  = [];
+
+            // Document (transaction) currency for the per-line multi-currency amounts.
+            // Supplier invoices store document amounts; base = document × rate, so the
+            // transaction amount of any base figure is base ÷ docRate.
+            $base    = CurrencyService::defaultCurrency();
+            $docCcy  = strtoupper((string) ($invoice->currency ?? $base));
+            $docRate = $docCcy === $base ? 1.0 : ($rate ?: 1.0);
+            $toTxn   = fn (float $baseAmt) => $docRate > 0 ? round($baseAmt / $docRate, 2) : $baseAmt;
 
             // DR expense lines — one per line item; amount = (net + SSCL) in base currency.
             // SSCL (tax1) is an irrecoverable levy embedded in the cost of the service.
@@ -114,6 +123,14 @@ class SupplierInvoicePostingService
                 'credit'     => $totalDr,
                 'narration'  => 'Trade creditors — ' . ($invoice->supplier->name ?? 'Supplier'),
             ];
+
+            // Attach transaction-currency metadata to every line (base stays primary).
+            $lines = array_map(fn ($l) => $l + [
+                'currency'      => $docCcy,
+                'exchange_rate' => $docRate,
+                'txn_debit'     => $toTxn((float) ($l['debit'] ?? 0)),
+                'txn_credit'    => $toTxn((float) ($l['credit'] ?? 0)),
+            ], $lines);
 
             $journal = $this->engine->createJournal([
                 'journal_date'   => $invoice->invoice_date->toDateString(),

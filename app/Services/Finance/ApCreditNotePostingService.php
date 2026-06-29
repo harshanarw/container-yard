@@ -8,6 +8,7 @@ use App\Models\ApCreditNote;
 use App\Models\ApCreditNoteApplication;
 use App\Models\ChargeCode;
 use App\Models\GlJournal;
+use App\Services\CurrencyService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -43,6 +44,12 @@ class ApCreditNotePostingService
             $rate           = (float) ($cn->exchange_rate ?: 1);
             $defaultExpense = Account::where('classification', 'expense')->where('is_posting', true)
                 ->where('is_active', true)->orderBy('code')->first();
+
+            // Document (transaction) currency for the per-line multi-currency amounts.
+            $base    = CurrencyService::defaultCurrency();
+            $docCcy  = strtoupper((string) ($cn->currency ?? $base));
+            $docRate = $docCcy === $base ? 1.0 : ($rate ?: 1.0);
+            $toTxn   = fn (float $baseAmt) => $docRate > 0 ? round($baseAmt / $docRate, 2) : $baseAmt;
 
             // Credit expense per line (reverse the cost), in base currency.
             $credits = [];
@@ -89,6 +96,14 @@ class ApCreditNotePostingService
                 'narration'  => 'Trade creditors — credit note',
             ]];
             $lines = array_merge($lines, $credits);
+
+            // Attach transaction-currency metadata to every line (base stays primary).
+            $lines = array_map(fn ($l) => $l + [
+                'currency'      => $docCcy,
+                'exchange_rate' => $docRate,
+                'txn_debit'     => $toTxn((float) ($l['debit'] ?? 0)),
+                'txn_credit'    => $toTxn((float) ($l['credit'] ?? 0)),
+            ], $lines);
 
             $journal = $this->engine->createJournal([
                 'journal_date'   => $cn->credit_date->toDateString(),

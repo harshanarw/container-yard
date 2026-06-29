@@ -8,6 +8,7 @@ use App\Models\BankAccount;
 use App\Models\GlJournal;
 use App\Models\Receipt;
 use App\Models\PaymentVoucher;
+use App\Services\CurrencyService;
 use Illuminate\Support\Facades\DB;
 
 class ReceiptPostingService
@@ -78,9 +79,16 @@ class ReceiptPostingService
 
             $fxNote = $this->fxNote($receipt->amount, $receipt->currency, $receipt->exchange_rate);
 
+            // Bank and AR legs are in the receipt's transaction currency; the FX leg
+            // (below) is in base currency and uses the engine's base defaults.
+            $rcCcy = strtoupper((string) ($receipt->currency ?? CurrencyService::defaultCurrency()));
+            $rcAmt = (float) $receipt->amount;
+
             $lines = [
-                ['account_id' => $bankAccount->id, 'debit' => $cashBase, 'credit' => 0, 'narration' => "Receipt from {$customerName}{$fxNote}"],
-                ['account_id' => $arAccount->id,   'debit' => 0, 'credit' => $crArTotal, 'narration' => 'Customer payment'],
+                ['account_id' => $bankAccount->id, 'debit' => $cashBase, 'credit' => 0, 'narration' => "Receipt from {$customerName}{$fxNote}",
+                 'currency' => $rcCcy, 'exchange_rate' => $receiptRate, 'txn_debit' => $rcAmt, 'txn_credit' => 0],
+                ['account_id' => $arAccount->id,   'debit' => 0, 'credit' => $crArTotal, 'narration' => 'Customer payment',
+                 'currency' => $rcCcy, 'exchange_rate' => $receiptRate, 'txn_debit' => 0, 'txn_credit' => $rcAmt],
             ];
 
             // AR: cash received minus AR relieved → positive = exchange gain.
@@ -188,6 +196,11 @@ class ReceiptPostingService
             $cashBase    = round((float) ($voucher->base_amount ?? ($voucher->amount * $voucherRate)), 2);
             $fxNote      = $this->fxNote($voucher->amount, $voucher->currency, $voucher->exchange_rate);
 
+            // Bank and AP/expense legs are in the voucher's transaction currency; any
+            // FX leg is base currency (engine base defaults).
+            $vrCcy = strtoupper((string) ($voucher->currency ?? CurrencyService::defaultCurrency()));
+            $vrAmt = (float) $voucher->amount;
+
             $lines = [];
 
             if ($voucher->customer_id) {
@@ -205,8 +218,10 @@ class ReceiptPostingService
                 $unallocBase = round(max(0.0, (float) $voucher->amount - $allocatedAmt) * $voucherRate, 2);
                 $drApTotal   = round($apRelievedBase + $unallocBase, 2);
 
-                $lines[] = ['account_id' => $expenseAccount->id, 'debit' => $drApTotal, 'credit' => 0, 'narration' => "Payment to {$voucher->payee_name}{$fxNote}"];
-                $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => $cashBase, 'narration' => 'Bank payment'];
+                $lines[] = ['account_id' => $expenseAccount->id, 'debit' => $drApTotal, 'credit' => 0, 'narration' => "Payment to {$voucher->payee_name}{$fxNote}",
+                            'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => $vrAmt, 'txn_credit' => 0];
+                $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => $cashBase, 'narration' => 'Bank payment',
+                            'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => 0, 'txn_credit' => $vrAmt];
 
                 // AP: cash paid minus AP relieved → positive = exchange loss.
                 $fx = round($cashBase - $drApTotal, 2);
@@ -215,8 +230,10 @@ class ReceiptPostingService
                 }
             } else {
                 // Direct expense voucher — no AP relief, no FX gain/loss.
-                $lines[] = ['account_id' => $expenseAccount->id, 'debit' => $cashBase, 'credit' => 0, 'narration' => "Payment to {$voucher->payee_name}{$fxNote}"];
-                $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => $cashBase, 'narration' => 'Bank payment'];
+                $lines[] = ['account_id' => $expenseAccount->id, 'debit' => $cashBase, 'credit' => 0, 'narration' => "Payment to {$voucher->payee_name}{$fxNote}",
+                            'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => $vrAmt, 'txn_credit' => 0];
+                $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => $cashBase, 'narration' => 'Bank payment',
+                            'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => 0, 'txn_credit' => $vrAmt];
             }
 
             $journal = $this->engine->createJournal([

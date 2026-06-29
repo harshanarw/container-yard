@@ -177,6 +177,14 @@ class InvoicePostingService
             ? 1.0
             : ((float) ($invoice->exchange_rate ?? 1) ?: 1.0);
 
+        // Document (transaction) currency + rate for the per-line multi-currency
+        // amounts. The base debit/credit are computed above; the transaction-
+        // currency amount of any base figure is base ÷ docRate. This is uniform
+        // across types: storage base/300 → USD, reefer base(=doc×300)/300 → doc.
+        $docCcy  = strtoupper((string) ($invoice->invoice_currency ?? $invoice->currency ?? $default));
+        $docRate = $docCcy === $default ? 1.0 : ((float) ($invoice->exchange_rate ?: 1) ?: 1.0);
+        $toTxn   = fn (float $baseAmt) => $docRate > 0 ? round($baseAmt / $docRate, 2) : $baseAmt;
+
         $creditLines = [];
 
         // Credit revenue — one line per distinct account
@@ -213,7 +221,13 @@ class InvoicePostingService
             'narration'  => 'Trade debtors',
         ]];
 
-        return array_merge($lines, $creditLines);
+        // Attach transaction-currency metadata to every line (base stays primary).
+        return array_map(fn ($l) => $l + [
+            'currency'      => $docCcy,
+            'exchange_rate' => $docRate,
+            'txn_debit'     => $toTxn((float) ($l['debit'] ?? 0)),
+            'txn_credit'    => $toTxn((float) ($l['credit'] ?? 0)),
+        ], array_merge($lines, $creditLines));
     }
 
     /**
