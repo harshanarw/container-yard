@@ -13,11 +13,24 @@ class GlEntry extends Model
         'debit',
         'credit',
         'narration',
+        // Multi-currency (base debit/credit stay authoritative; these are additive)
+        'currency',
+        'exchange_rate',
+        'txn_debit',
+        'txn_credit',
+        'group_currency',
+        'group_debit',
+        'group_credit',
     ];
 
     protected $casts = [
-        'debit'  => 'decimal:4',
-        'credit' => 'decimal:4',
+        'debit'         => 'decimal:4',
+        'credit'        => 'decimal:4',
+        'exchange_rate' => 'decimal:6',
+        'txn_debit'     => 'decimal:4',
+        'txn_credit'    => 'decimal:4',
+        'group_debit'   => 'decimal:4',
+        'group_credit'  => 'decimal:4',
     ];
 
     public function journal(): BelongsTo

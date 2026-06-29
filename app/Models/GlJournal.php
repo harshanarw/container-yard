@@ -14,6 +14,7 @@ class GlJournal extends Model
         'financial_year_id',
         'period_id',
         'journal_type',
+        'currency',
         'reference_type',
         'reference_id',
         'narration',

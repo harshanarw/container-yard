@@ -6,6 +6,7 @@ use App\Models\AccountingPeriod;
 use App\Models\FinancialYear;
 use App\Models\GlEntry;
 use App\Models\GlJournal;
+use App\Services\CurrencyService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -34,6 +35,9 @@ class PostingEngine
         return DB::transaction(function () use ($header, $lines, $totalDebit, $totalCredit) {
             $date   = Carbon::parse($header['journal_date']);
             $period = $this->resolvePeriod($date);
+            $base   = CurrencyService::defaultCurrency();
+
+            $entries = array_map(fn ($line) => $this->normalizeLine($line, $base), $lines);
 
             $journal = GlJournal::create([
                 'journal_no'        => $this->nextJournalNo(),
@@ -41,6 +45,7 @@ class PostingEngine
                 'financial_year_id' => $period->financial_year_id,
                 'period_id'         => $period->id,
                 'journal_type'      => $header['journal_type'] ?? 'journal',
+                'currency'          => $header['currency'] ?? $this->journalCurrency($entries, $base),
                 'reference_type'    => $header['reference_type'] ?? null,
                 'reference_id'      => $header['reference_id'] ?? null,
                 'narration'         => $header['narration'],
@@ -50,17 +55,50 @@ class PostingEngine
                 'created_by'        => auth()->id(),
             ]);
 
-            foreach ($lines as $line) {
-                $journal->entries()->create([
-                    'account_id' => $line['account_id'],
-                    'debit'      => $line['debit'] ?? 0,
-                    'credit'     => $line['credit'] ?? 0,
-                    'narration'  => $line['narration'] ?? null,
-                ]);
+            foreach ($entries as $entry) {
+                $journal->entries()->create($entry);
             }
 
             return $journal;
         });
+    }
+
+    /**
+     * Normalise a posting line into a full GL entry attribute set. The base
+     * debit/credit remain authoritative; the transaction currency/rate and
+     * transaction-currency amounts are additive. Callers that only supply base
+     * amounts get currency = base, rate = 1 and txn = base automatically, so
+     * existing single-currency postings are unchanged.
+     */
+    private function normalizeLine(array $line, string $base): array
+    {
+        $debit  = (float) ($line['debit'] ?? 0);
+        $credit = (float) ($line['credit'] ?? 0);
+
+        return [
+            'account_id'     => $line['account_id'],
+            'debit'          => $debit,
+            'credit'         => $credit,
+            'narration'      => $line['narration'] ?? null,
+            'currency'       => strtoupper((string) ($line['currency'] ?? $base)) ?: $base,
+            'exchange_rate'  => (float) ($line['exchange_rate'] ?? 1) ?: 1.0,
+            'txn_debit'      => array_key_exists('txn_debit', $line)  ? (float) $line['txn_debit']  : $debit,
+            'txn_credit'     => array_key_exists('txn_credit', $line) ? (float) $line['txn_credit'] : $credit,
+            'group_currency' => $line['group_currency'] ?? null,
+            'group_debit'    => $line['group_debit'] ?? null,
+            'group_credit'   => $line['group_credit'] ?? null,
+        ];
+    }
+
+    /**
+     * Document currency for the journal header: the single currency shared by all
+     * lines, or the base currency for a mixed-currency journal (e.g. a foreign
+     * receipt whose FX gain/loss line is in base currency).
+     */
+    private function journalCurrency(array $entries, string $base): string
+    {
+        $currencies = array_values(array_unique(array_map(fn ($e) => $e['currency'], $entries)));
+        return count($currencies) === 1 ? $currencies[0] : $base;
     }
 
     /**
@@ -98,13 +136,21 @@ class PostingEngine
             // Reversal posts to today (current open period), not the original closed period
             $reversalDate = Carbon::today();
 
-            // Build reversal lines (debits and credits swapped)
+            // Build reversal lines (debits and credits swapped, in both base and
+            // transaction currency, carrying the original currency/rate).
             $reversalLines = $journal->entries->map(function ($entry) {
                 return [
-                    'account_id' => $entry->account_id,
-                    'debit'      => $entry->credit,
-                    'credit'     => $entry->debit,
-                    'narration'  => $entry->narration,
+                    'account_id'     => $entry->account_id,
+                    'debit'          => $entry->credit,
+                    'credit'         => $entry->debit,
+                    'narration'      => $entry->narration,
+                    'currency'       => $entry->currency,
+                    'exchange_rate'  => $entry->exchange_rate,
+                    'txn_debit'      => $entry->txn_credit,
+                    'txn_credit'     => $entry->txn_debit,
+                    'group_currency' => $entry->group_currency,
+                    'group_debit'    => $entry->group_credit,
+                    'group_credit'   => $entry->group_debit,
                 ];
             })->toArray();
 
@@ -149,12 +195,16 @@ class PostingEngine
         }
 
         return DB::transaction(function () use ($header, $lines, $period, $userId, $totalDebit, $totalCredit) {
+            $base    = CurrencyService::defaultCurrency();
+            $entries = array_map(fn ($line) => $this->normalizeLine($line, $base), $lines);
+
             $journal = GlJournal::create([
                 'journal_no'        => $this->nextJournalNo(),
                 'journal_date'      => Carbon::parse($header['journal_date'])->toDateString(),
                 'financial_year_id' => $period->financial_year_id,
                 'period_id'         => $period->id,
                 'journal_type'      => 'closing',
+                'currency'          => $header['currency'] ?? $this->journalCurrency($entries, $base),
                 'reference_type'    => $header['reference_type'] ?? null,
                 'reference_id'      => $header['reference_id'] ?? null,
                 'narration'         => $header['narration'],
@@ -166,13 +216,8 @@ class PostingEngine
                 'posted_at'         => now(),
             ]);
 
-            foreach ($lines as $line) {
-                $journal->entries()->create([
-                    'account_id' => $line['account_id'],
-                    'debit'      => $line['debit'] ?? 0,
-                    'credit'     => $line['credit'] ?? 0,
-                    'narration'  => $line['narration'] ?? null,
-                ]);
+            foreach ($entries as $entry) {
+                $journal->entries()->create($entry);
             }
 
             return $journal;
