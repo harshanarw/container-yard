@@ -76,7 +76,18 @@ class ArAllocationService
 
     public function getOutstanding(Model $invoice, string $type): float
     {
-        return max(0.0, round($this->getTotal($invoice, $type) - $this->getAllocatedTotal($type, $invoice->id), 4));
+        $settled = $this->getAllocatedTotal($type, $invoice->id);
+
+        // Repair invoices also carry their own manual payments (amount_paid, via
+        // "Record Payment") which syncInvoiceStatus() counts as settlement. Net
+        // them out here too so the outstanding shown to allocation dropdowns /
+        // over-allocation checks matches the invoice's real balance and a
+        // partly-paid repair invoice cannot be over-allocated.
+        if ($type === 'repair') {
+            $settled += (float) ($invoice->amount_paid ?? 0);
+        }
+
+        return max(0.0, round($this->getTotal($invoice, $type) - $settled, 4));
     }
 
     /**

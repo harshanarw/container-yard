@@ -333,13 +333,30 @@ class RepairInvoiceController extends Controller
         $invoice->load(['customer', 'lines', 'container', 'estimate', 'workOrder', 'createdBy', 'issuedBy']);
         $company = CompanySetting::current();
 
+        // IRD tax invoices are issued in the local currency (LKR) as standard.
+        // Repair invoices store their amounts in the invoice/customer currency
+        // (USD for USD customers). Convert every figure to LKR via the stored
+        // exchange rate before passing it to the LKR-only IRD template, otherwise
+        // the figures show as USD while labelled "Rs." (mirrors the reefer fix).
+        $default = \App\Services\CurrencyService::defaultCurrency();
+        $invCur  = strtoupper($invoice->currency ?: $default);
+        $rate    = (float) ($invoice->exchange_rate ?: 1);
+        $toLkr   = $invCur === $default ? 1.0 : $rate;   // invoice currency → LKR
+
         $lines = $invoice->lines->map(fn ($l) => [
             'reference'       => $l->cedex_code,
             'description'     => $l->description ?? 'Repair Work',
             'quantity'        => $l->qty ?? 1,
-            'unit_price'      => $l->unit_price ?? $l->line_amount ?? 0,
-            'amount_excl_vat' => $l->line_amount ?? 0,
+            'unit_price'      => round((float) ($l->unit_price ?? $l->line_amount ?? 0) * $toLkr, 2),
+            'amount_excl_vat' => round((float) ($l->line_amount ?? 0) * $toLkr, 2),
         ]);
+
+        // Invoice-level totals converted to LKR (kept internally consistent so the
+        // shown subtotal + SSCL + VAT add up to the grand total).
+        $subtotalLkr = round((float) $invoice->subtotal * $toLkr, 2);
+        $ssclLkr     = round((float) ($invoice->sscl_total ?? 0) * $toLkr, 2);
+        $vatLkr      = round((float) ($invoice->vat_total ?? 0) * $toLkr, 2);
+        $totalLkr    = round($subtotalLkr + $ssclLkr + $vatLkr, 2);
 
         $ssclRates = $invoice->lines->map(fn ($l) => ($l->tax1_rate ?? 0) > 0 ? round((float) $l->tax1_rate, 4) : null)
             ->filter()->unique()->sort()->values();
@@ -360,16 +377,16 @@ class RepairInvoiceController extends Controller
             'verifyUrl'             => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'repair', 'id' => $invoice->id]),
             'customer'              => $invoice->customer,
             'lines'                 => $lines,
-            'subtotal'              => $invoice->subtotal,
-            'sscl_amount'           => $invoice->sscl_total ?? 0,
+            'subtotal'              => $subtotalLkr,
+            'sscl_amount'           => $ssclLkr,
             'sscl_percentage'       => (float) ($ssclRates->first() ?? 0),
             'sscl_percentage_label' => $ssclLabel,
-            'vat_amount'            => $invoice->vat_total ?? 0,
+            'vat_amount'            => $vatLkr,
             'vat_percentage'        => (float) ($vatRates->first() ?? $invoice->tax_percentage ?? 0),
             'vat_percentage_label'  => $vatLabel,
-            'total_incl_vat'        => $invoice->grand_total,
+            'total_incl_vat'        => $totalLkr,
             'invoice_currency'      => $invoice->currency,
-            'exchange_rate'         => null,
+            'exchange_rate'         => $invoice->exchange_rate,
             'invoice_no'            => $invoice->invoice_no,
             'category_info'         => array_filter([
                 'Category'      => 'Container Repair',
