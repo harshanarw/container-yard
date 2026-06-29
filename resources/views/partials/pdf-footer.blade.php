@@ -9,7 +9,7 @@
 --}}
 @php $__co = $company ?? ($companySetting ?? \App\Models\CompanySetting::current()); @endphp
 <div class="pdf-running-footer"
-     style="position:fixed; bottom:0; left:0; right:0; height:30px; padding:5px 32px 0;
+     style="position:fixed; bottom:-54px; left:0; right:0; height:40px; padding:6px 32px 0;
             border-top:1px solid #e0e0e0; background:#fff; color:#999; font-size:8px;">
     <table style="width:100%; border-collapse:collapse;"><tr>
         <td style="border:none; padding:0; text-align:left; color:#999;">

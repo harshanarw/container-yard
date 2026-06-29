@@ -7,8 +7,8 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #222; background: #fff; }
         /* Reserve space for the running header/footer on every page. */
-        @page { margin: 150px 26px 52px 26px; }
-        .pdf-running-header { position: fixed; top: 0; left: 0; right: 0; padding: 16px 26px 0; background: #fff; }
+        @page { margin: 170px 26px 54px 26px; }
+        .pdf-running-header { position: fixed; top: -170px; left: 0; right: 0; height: 160px; padding: 16px 26px 0; background: #fff; }
         .page { padding: 0; }
 
         /* ── Header ── */
@@ -208,7 +208,7 @@
 </table>
 
 {{-- ── Section 1: Storage Charges ── --}}
-<div class="sec-storage">&#9632; Storage Charges</div>
+<div class="sec-storage">Storage Charges</div>
 <table class="t">
     <thead>
         <tr>
@@ -257,10 +257,10 @@
 </table>
 
 {{-- ── Section 2: Handling Charges ── --}}
-<div class="sec-handling">&#9632; Handling Charges</div>
+<div class="sec-handling">Handling Charges</div>
 
 {{-- Lift Off --}}
-<div class="sec-lift-off">&#9660; Lift Off &mdash; Gate In events during billing period</div>
+<div class="sec-lift-off">Lift Off &mdash; Gate In events during billing period</div>
 @if($liftOffLines->isEmpty())
 <div style="padding:5px 7px; color:#888; font-style:italic; border:1px solid #dee2e6; border-top:none;">
     No lift-off events during this period.
@@ -301,7 +301,7 @@
 @endif
 
 {{-- Lift On --}}
-<div class="sec-lift-on" style="margin-top:8px;">&#9650; Lift On &mdash; Gate Out events during billing period</div>
+<div class="sec-lift-on" style="margin-top:8px;">Lift On &mdash; Gate Out events during billing period</div>
 @if($liftOnLines->isEmpty())
 <div style="padding:5px 7px; color:#888; font-style:italic; border:1px solid #dee2e6; border-top:none;">
     No lift-on events during this period.

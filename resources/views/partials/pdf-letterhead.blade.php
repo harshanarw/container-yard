@@ -32,7 +32,7 @@
         }
     }
 
-    $__qr = \App\Support\Qr::svgDataUri($verifyUrl ?? null, 100);
+    $__qr = \App\Support\Qr::svgDataUri($verifyUrl ?? null, 120);
 @endphp
 <table style="width:100%; border-collapse:collapse;"><tr>
     @if($__logo)
@@ -50,13 +50,13 @@
     </td>
     @if($__qr)
     <td style="width:1%; white-space:nowrap; vertical-align:middle; text-align:right; padding-left:12px; border:none;">
-        <img src="{{ $__qr }}" alt="Verify" style="width:64px; height:64px; display:block; margin-left:auto;">
+        <img src="{{ $__qr }}" alt="Verify" style="width:78px; height:78px; display:block; margin-left:auto;">
         <div style="font-size:7px; color:#888; text-align:center; margin-top:1px;">Scan to verify</div>
     </td>
     @endif
 </tr></table>
 
 {{-- Bordered, centred document title --}}
-<div style="border:2px solid {{ $__accent }}; border-radius:6px; padding:8px 12px; text-align:center; margin:14px 0 12px;">
-    <span style="color:{{ $__accent }}; font-size:20px; font-weight:bold; letter-spacing:1px;">{{ $title }}</span>
+<div style="border:2px solid {{ $__accent }}; border-radius:5px; padding:5px 14px; text-align:center; margin:10px 0;">
+    <span style="color:{{ $__accent }}; font-size:15px; font-weight:bold; letter-spacing:1px;">{{ $title }}</span>
 </div>

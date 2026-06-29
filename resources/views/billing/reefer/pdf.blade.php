@@ -43,8 +43,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: DejaVu Sans, Arial, sans-serif; color: #222; font-size: 11px; }
     /* Reserve space for the running header/footer on every page. */
-    @page { margin: 150px 22px 52px 22px; }
-    .pdf-running-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 22px 0; background: #fff; }
+    @page { margin: 170px 22px 54px 22px; }
+    .pdf-running-header { position: fixed; top: -170px; left: 0; right: 0; height: 160px; padding: 16px 22px 0; background: #fff; }
     .wrap { padding: 0; position: relative; }
     .watermark { position: fixed; top: 42%; left: 0; right: 0; text-align: center;
         font-size: 110px; color: rgba(33,150,243,0.08); font-weight: bold;
@@ -93,7 +93,7 @@
 @if($watermark)<div class="watermark">{{ $watermark }}</div>@endif
 @php
     $verifyUrl = \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'reefer', 'id' => $reeferInvoice->id]);
-    $qr = \App\Support\Qr::svgDataUri($verifyUrl, 100);
+    $qr = \App\Support\Qr::svgDataUri($verifyUrl, 120);
 @endphp
 
 {{-- Running header (repeats on every page) --}}
@@ -115,14 +115,14 @@
         </td>
         @if($qr)
         <td style="width:1%; white-space:nowrap; vertical-align:middle; text-align:right; padding-left:12px;">
-            <img src="{{ $qr }}" alt="Verify" style="width:64px; height:64px; display:block; margin-left:auto;">
+            <img src="{{ $qr }}" alt="Verify" style="width:78px; height:78px; display:block; margin-left:auto;">
             <div style="font-size:7px; color:#888; text-align:center; margin-top:1px;">Scan to verify</div>
         </td>
         @endif
     </tr></table>
     {{-- Bordered, centred document title --}}
-    <div style="border:2px solid #1a56db; border-radius:6px; padding:8px 12px; text-align:center; margin:14px 0 12px;">
-        <span style="color:#1a56db; font-size:20px; font-weight:bold; letter-spacing:1px;">REEFER ELECTRICITY INVOICE</span>
+    <div style="border:2px solid #1a56db; border-radius:5px; padding:5px 14px; text-align:center; margin:10px 0;">
+        <span style="color:#1a56db; font-size:15px; font-weight:bold; letter-spacing:1px;">REEFER ELECTRICITY INVOICE</span>
     </div>
 </div>
 
