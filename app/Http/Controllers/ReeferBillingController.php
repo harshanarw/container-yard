@@ -268,13 +268,36 @@ class ReeferBillingController extends Controller
         $reeferInvoice->load(['customer', 'lines.plugSession', 'lines.chargeCode', 'createdBy']);
         $company = CompanySetting::current();
 
-        $lines = $reeferInvoice->lines->map(fn ($l) => [
-            'reference'       => optional($l->plugSession)->container_no,
-            'description'     => 'Reefer Electricity — ' . (optional($l->chargeCode)->name ?? 'Electricity Charge'),
-            'quantity'        => $l->hours ?? $l->quantity ?? 1,
-            'unit_price'      => $l->rate ?? 0,
-            'amount_excl_vat' => $l->subtotal ?? $l->line_amount ?? 0,
-        ]);
+        // IRD tax invoices are issued in the local currency (LKR) as standard.
+        // Reefer invoices store their monetary amounts in the *invoice / display*
+        // currency (USD for PTI billing); only `total_value` holds the LKR figure.
+        // Convert every amount back to LKR before passing it to the LKR-only IRD
+        // template, otherwise the figures show as USD while labelled "Rs.".
+        $default = \App\Services\CurrencyService::defaultCurrency();
+        $rate    = (float) ($reeferInvoice->exchange_rate ?: 1);
+        $invCur  = strtoupper($reeferInvoice->invoice_currency ?: $default);
+        $toLkr   = $invCur === $default ? 1.0 : $rate;   // display currency → LKR
+
+        $lines = $reeferInvoice->lines->map(function ($l) use ($rate, $default, $toLkr) {
+            // The line rate is stored in the tariff currency; the line subtotal in
+            // the invoice currency. Convert each on its own currency basis.
+            $lineCur   = strtoupper($l->currency ?: $default);
+            $rateToLkr = $lineCur === $default ? 1.0 : $rate;
+            return [
+                'reference'       => optional($l->plugSession)->container_no,
+                'description'     => 'Reefer Electricity — ' . (optional($l->chargeCode)->name ?? 'Electricity Charge'),
+                'quantity'        => $l->hours ?? $l->quantity ?? 1,
+                'unit_price'      => round((float) ($l->rate ?? 0) * $rateToLkr, 2),
+                'amount_excl_vat' => round((float) ($l->subtotal ?? $l->line_amount ?? 0) * $toLkr, 2),
+            ];
+        });
+
+        // Invoice-level totals converted to LKR (kept internally consistent so the
+        // shown subtotal + SSCL + VAT add up to the grand total).
+        $subtotalLkr = round((float) $reeferInvoice->subtotal * $toLkr, 2);
+        $ssclLkr     = round((float) ($reeferInvoice->sscl_amount ?? 0) * $toLkr, 2);
+        $vatLkr      = round((float) ($reeferInvoice->vat_amount ?? 0) * $toLkr, 2);
+        $totalLkr    = round($subtotalLkr + $ssclLkr + $vatLkr, 2);
 
         $from = $reeferInvoice->billing_period_from?->format('d M Y');
         $to   = $reeferInvoice->billing_period_to?->format('d M Y');
@@ -298,14 +321,14 @@ class ReeferBillingController extends Controller
             'verifyUrl'             => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'reefer', 'id' => $reeferInvoice->id]),
             'customer'              => $reeferInvoice->customer,
             'lines'                 => $lines,
-            'subtotal'              => $reeferInvoice->subtotal,
-            'sscl_amount'           => $reeferInvoice->sscl_amount ?? 0,
+            'subtotal'              => $subtotalLkr,
+            'sscl_amount'           => $ssclLkr,
             'sscl_percentage'       => (float) ($ssclRates->first() ?? $reeferInvoice->sscl_percentage ?? 0),
             'sscl_percentage_label' => $ssclLabel,
-            'vat_amount'            => $reeferInvoice->vat_amount ?? 0,
+            'vat_amount'            => $vatLkr,
             'vat_percentage'        => (float) ($vatRates->first() ?? $reeferInvoice->vat_percentage ?? 0),
             'vat_percentage_label'  => $vatLabel,
-            'total_incl_vat'        => $reeferInvoice->total_amount,
+            'total_incl_vat'        => $totalLkr,
             'invoice_currency'      => $reeferInvoice->invoice_currency,
             'exchange_rate'         => $reeferInvoice->exchange_rate,
             'invoice_no'            => $reeferInvoice->invoice_no,
