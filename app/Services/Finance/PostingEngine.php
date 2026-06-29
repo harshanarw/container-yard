@@ -91,14 +91,24 @@ class PostingEngine
     }
 
     /**
-     * Document currency for the journal header: the single currency shared by all
-     * lines, or the base currency for a mixed-currency journal (e.g. a foreign
-     * receipt whose FX gain/loss line is in base currency).
+     * Document currency for the journal header. A foreign transaction typically has
+     * its foreign legs plus a base-currency FX gain/loss leg, so the header is the
+     * single non-base currency when there's exactly one (ignoring base-currency
+     * lines like FX); a pure base journal is base; a genuinely multi-foreign
+     * journal falls back to base.
      */
     private function journalCurrency(array $entries, string $base): string
     {
-        $currencies = array_values(array_unique(array_map(fn ($e) => $e['currency'], $entries)));
-        return count($currencies) === 1 ? $currencies[0] : $base;
+        $foreign = array_values(array_unique(array_filter(
+            array_map(fn ($e) => $e['currency'], $entries),
+            fn ($c) => $c !== $base
+        )));
+
+        if (count($foreign) === 1) {
+            return $foreign[0];
+        }
+
+        return $base;
     }
 
     /**

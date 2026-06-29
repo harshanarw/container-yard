@@ -84,11 +84,15 @@ class ReceiptPostingService
             $rcCcy = strtoupper((string) ($receipt->currency ?? CurrencyService::defaultCurrency()));
             $rcAmt = (float) $receipt->amount;
 
+            // AR is relieved at the invoices' booked rates (cashBase uses the receipt
+            // rate); the difference is the FX leg. So the AR line's effective rate is
+            // crArTotal / amount, keeping base = txn × rate consistent on every line.
+            $arRate = $rcAmt > 0 ? round($crArTotal / $rcAmt, 6) : $receiptRate;
             $lines = [
                 ['account_id' => $bankAccount->id, 'debit' => $cashBase, 'credit' => 0, 'narration' => "Receipt from {$customerName}{$fxNote}",
                  'currency' => $rcCcy, 'exchange_rate' => $receiptRate, 'txn_debit' => $rcAmt, 'txn_credit' => 0],
                 ['account_id' => $arAccount->id,   'debit' => 0, 'credit' => $crArTotal, 'narration' => 'Customer payment',
-                 'currency' => $rcCcy, 'exchange_rate' => $receiptRate, 'txn_debit' => 0, 'txn_credit' => $rcAmt],
+                 'currency' => $rcCcy, 'exchange_rate' => $arRate, 'txn_debit' => 0, 'txn_credit' => $rcAmt],
             ];
 
             // AR: cash received minus AR relieved → positive = exchange gain.
@@ -218,8 +222,12 @@ class ReceiptPostingService
                 $unallocBase = round(max(0.0, (float) $voucher->amount - $allocatedAmt) * $voucherRate, 2);
                 $drApTotal   = round($apRelievedBase + $unallocBase, 2);
 
+                // AP is relieved at the bills' booked rates; the bank pays at the
+                // voucher rate; the FX leg is the difference. Use the effective rate on
+                // the AP line so base = txn × rate holds.
+                $apRate = $vrAmt > 0 ? round($drApTotal / $vrAmt, 6) : $voucherRate;
                 $lines[] = ['account_id' => $expenseAccount->id, 'debit' => $drApTotal, 'credit' => 0, 'narration' => "Payment to {$voucher->payee_name}{$fxNote}",
-                            'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => $vrAmt, 'txn_credit' => 0];
+                            'currency' => $vrCcy, 'exchange_rate' => $apRate, 'txn_debit' => $vrAmt, 'txn_credit' => 0];
                 $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => $cashBase, 'narration' => 'Bank payment',
                             'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => 0, 'txn_credit' => $vrAmt];
 
