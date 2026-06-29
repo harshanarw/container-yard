@@ -43,14 +43,21 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: DejaVu Sans, Arial, sans-serif; color: #222; font-size: 11px; }
     /* Reserve space for the running header/footer on every page. */
-    /* Running header/footer via table thead/tfoot (reliable); @page only for
-       small page-edge margins. */
-    @page { margin: 24px 20px; }
+    /* Header/footer drawn with position:fixed (repeat every page); empty
+       thead/tfoot spacers reserve their height. @page ignored by this build. */
+    @page { margin: 0; }
+    .pdf-fixed-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 24px 0; background: #fff; }
     .doc-layout { width: 100%; border-collapse: collapse; }
-    .doc-head-cell, .doc-foot-cell, .doc-body-cell { padding: 0; border: none; vertical-align: top; }
-    .doc-head-cell { padding-bottom: 10px; }
-    .doc-foot-cell { height: 46px; }
+    .doc-body-cell { padding: 0 24px; border: none; vertical-align: top; }
+    .doc-spacer-head { height: 150px; }
+    .doc-spacer-foot { height: 44px; }
     .wrap { padding: 0; position: relative; }
+    /* Sub-header info boxes — match the storage / handling invoices */
+    .info-box { border: 1px solid #dee2e6; border-radius: 5px; padding: 8px 10px; }
+    .info-box h3 { font-size: 8px; text-transform: uppercase; letter-spacing: .04em; color: #888;
+        margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+    .lbl { color: #666; width: 42%; vertical-align: top; padding: 1px 4px 1px 0; font-size: 10px; }
+    .val { font-weight: bold; text-align: right; vertical-align: top; padding: 1px 0; font-size: 10px; }
     .watermark { position: fixed; top: 42%; left: 0; right: 0; text-align: center;
         font-size: 110px; color: rgba(33,150,243,0.08); font-weight: bold;
         transform: rotate(-22deg); letter-spacing: 6px; z-index: 0; }
@@ -101,10 +108,8 @@
     $qr = \App\Support\Qr::svgDataUri($verifyUrl, 120);
 @endphp
 
-{{-- Document layout: thead repeats the letterhead on every page, tfoot reserves
-     the bottom band for the fixed footer; tbody holds the flowing content. --}}
-<table class="doc-layout">
-<thead><tr><td class="doc-head-cell">
+{{-- Fixed header (drawn on every page) --}}
+<div class="pdf-fixed-header">
     {{-- Letterhead: logo + company details --}}
     <table class="hdr"><tr>
         @if($logoSrc)
@@ -131,37 +136,47 @@
     <div style="border:2px solid #1a56db; border-radius:5px; padding:5px 14px; text-align:center; margin:10px 0;">
         <span style="color:#1a56db; font-size:15px; font-weight:bold; letter-spacing:1px;">REEFER ELECTRICITY INVOICE</span>
     </div>
-</td></tr></thead>
-<tfoot><tr><td class="doc-foot-cell">&nbsp;</td></tr></tfoot>
+</div>
+@include('partials.pdf-footer', ['company' => $company])
+
+{{-- Empty thead/tfoot spacers reserve the header/footer band on every page. --}}
+<table class="doc-layout">
+<thead><tr><td class="doc-spacer-head"></td></tr></thead>
+<tfoot><tr><td class="doc-spacer-foot"></td></tr></tfoot>
 <tbody><tr><td class="doc-body-cell">
 
 <div class="wrap">
 
-    {{-- Billed-To + meta (two real columns — no floats) --}}
-    <table style="margin-bottom:14px;"><tr>
-        <td style="width:52%; vertical-align:top;" class="billed">
-            <strong>Billed To</strong><br>
-            {{ $reeferInvoice->customer?->name ?? '—' }}<br>
-            @if($reeferInvoice->billingParty && $reeferInvoice->billing_party_id !== $reeferInvoice->customer_id)
-                <span class="muted">Billing party:</span> {{ $reeferInvoice->billingParty->name }}<br>
-            @endif
-            @if($reeferInvoice->customer?->address){{ $reeferInvoice->customer->address }}{{ $reeferInvoice->customer->city ? ', '.$reeferInvoice->customer->city : '' }}<br>@endif
-            @if($reeferInvoice->customer?->registration_no)Reg No: {{ $reeferInvoice->customer->registration_no }}<br>@endif
-            @if($reeferInvoice->customer?->tin_number)TIN: {{ $reeferInvoice->customer->tin_number }}@endif
-        </td>
-        <td style="width:48%; vertical-align:top;">
-            <table class="meta">
-                <tr><td class="lbl">Invoice No</td><td class="val mono">{{ $reeferInvoice->invoice_no }}</td></tr>
-                <tr><td class="lbl">Status</td><td class="val">{{ ucfirst($reeferInvoice->status) }}</td></tr>
-                <tr><td class="lbl">Invoice Type</td><td class="val">{{ ucwords(str_replace('_', ' ', $reeferInvoice->invoice_type ?? 'invoice')) }}</td></tr>
-                <tr><td class="lbl">Bill Type</td><td class="val">{{ $reeferInvoice->service_type === 'pti' ? 'Short-Term PTI' : 'Long-Term Electricity' }}</td></tr>
-                <tr><td class="lbl">Invoice Date</td><td class="val">{{ $reeferInvoice->invoice_date?->format('d M Y') }}</td></tr>
-                @if($reeferInvoice->due_date)
-                <tr><td class="lbl">Payment Due</td><td class="val">{{ $reeferInvoice->due_date?->format('d M Y') }}</td></tr>
+    {{-- Bill To (left) + Invoice details (right) — matches the other invoices --}}
+    <table style="width:100%; margin-bottom:14px;"><tr>
+        <td style="width:50%; vertical-align:top; padding-right:8px;">
+            <div class="info-box">
+                <h3>Bill To</h3>
+                <div style="font-weight:bold; font-size:11px; margin-bottom:4px;">{{ $reeferInvoice->customer?->name ?? '—' }}</div>
+                @if($reeferInvoice->billingParty && $reeferInvoice->billing_party_id !== $reeferInvoice->customer_id)
+                <div style="color:#555;">Billing party: {{ $reeferInvoice->billingParty->name }}</div>
                 @endif
-                <tr><td class="lbl">Billing Period</td><td class="val">{{ $reeferInvoice->billing_period_from?->format('d M Y') }} – {{ $reeferInvoice->billing_period_to?->format('d M Y') }}</td></tr>
-                <tr><td class="lbl">Currency</td><td class="val">{{ $cur }}@if($isForeign) <span class="muted" style="font-weight:normal;">(1 {{ $cur }} = {{ rtrim(rtrim(number_format($rate, 4, '.', ''), '0'), '.') }} {{ $base }})</span>@endif</td></tr>
-            </table>
+                @if($reeferInvoice->customer?->address)<div style="color:#555; margin-top:2px;">{{ $reeferInvoice->customer->address }}{{ $reeferInvoice->customer->city ? ', '.$reeferInvoice->customer->city : '' }}</div>@endif
+                @if($reeferInvoice->customer?->registration_no)<div style="color:#555;">Reg No: {{ $reeferInvoice->customer->registration_no }}</div>@endif
+                @if($reeferInvoice->customer?->tin_number)<div style="color:#555;">TIN: {{ $reeferInvoice->customer->tin_number }}</div>@endif
+            </div>
+        </td>
+        <td style="width:50%; vertical-align:top; padding-left:8px;">
+            <div class="info-box">
+                <h3>Invoice Details</h3>
+                <table style="width:100%;">
+                    <tr><td class="lbl">Invoice No</td><td class="val" style="font-family:monospace;">{{ $reeferInvoice->invoice_no }}</td></tr>
+                    <tr><td class="lbl">Status</td><td class="val">{{ ucfirst($reeferInvoice->status) }}</td></tr>
+                    <tr><td class="lbl">Invoice Type</td><td class="val">{{ ucwords(str_replace('_', ' ', $reeferInvoice->invoice_type ?? 'invoice')) }}</td></tr>
+                    <tr><td class="lbl">Bill Type</td><td class="val">{{ $reeferInvoice->service_type === 'pti' ? 'Short-Term PTI' : 'Long-Term Electricity' }}</td></tr>
+                    <tr><td class="lbl">Invoice Date</td><td class="val">{{ $reeferInvoice->invoice_date?->format('d M Y') }}</td></tr>
+                    @if($reeferInvoice->due_date)
+                    <tr><td class="lbl">Payment Due</td><td class="val">{{ $reeferInvoice->due_date?->format('d M Y') }}</td></tr>
+                    @endif
+                    <tr><td class="lbl">Billing Period</td><td class="val">{{ $reeferInvoice->billing_period_from?->format('d M Y') }} – {{ $reeferInvoice->billing_period_to?->format('d M Y') }}</td></tr>
+                    <tr><td class="lbl">Currency</td><td class="val">{{ $cur }}@if($isForeign) <span class="muted" style="font-weight:normal;">(1 {{ $cur }} = {{ rtrim(rtrim(number_format($rate, 4, '.', ''), '0'), '.') }} {{ $base }})</span>@endif</td></tr>
+                </table>
+            </div>
         </td>
     </tr></table>
 
@@ -228,6 +243,5 @@
 </div>
 </td></tr></tbody>
 </table>
-@include('partials.pdf-footer', ['company' => $company])
 </body>
 </html>

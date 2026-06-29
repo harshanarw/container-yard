@@ -8,14 +8,15 @@
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #333; background: #fff; }
         /* Reserve top space for the running header and bottom space for the footer
            on every page; content flows in between and paginates automatically. */
-        /* Small page edge margins only; the running header/footer are handled by
-           the table thead/tfoot below (reliable across dompdf builds), not @page
-           top/bottom margins (which this build does not reserve). */
-        @page { margin: 26px 28px; }
+        /* This dompdf build ignores @page margins, so: the header/footer are drawn
+           with position:fixed (repeat on every page) and empty thead/tfoot spacers
+           reserve their height in the flow. All padding is on elements. */
+        @page { margin: 0; }
+        .pdf-fixed-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px 0; background: #fff; }
         .doc-layout { width: 100%; border-collapse: collapse; }
-        .doc-head-cell, .doc-foot-cell, .doc-body-cell { padding: 0; border: none; vertical-align: top; }
-        .doc-head-cell { padding-bottom: 10px; }
-        .doc-foot-cell { height: 46px; }   /* reserves the bottom band for the fixed footer */
+        .doc-body-cell { padding: 0 28px; border: none; vertical-align: top; }
+        .doc-spacer-head { height: 150px; }   /* ≈ header height — tune to taste */
+        .doc-spacer-foot { height: 44px; }    /* ≈ footer height */
         .page { padding: 0; }
 
         /* ── Header ── */
@@ -89,16 +90,19 @@
     $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
 @endphp
 
-{{-- Document layout: thead repeats the letterhead at the top of every page,
-     tfoot reserves the bottom band so content never hits the fixed footer. --}}
-<table class="doc-layout">
-<thead><tr><td class="doc-head-cell">
+{{-- Fixed header + footer (drawn on every page) --}}
+<div class="pdf-fixed-header">
     @include('partials.pdf-letterhead', [
         'title'     => 'STORAGE INVOICE',
         'verifyUrl' => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage', 'id' => $invoice->id]),
     ])
-</td></tr></thead>
-<tfoot><tr><td class="doc-foot-cell">&nbsp;</td></tr></tfoot>
+</div>
+@include('partials.pdf-footer')
+
+{{-- Empty thead/tfoot spacers reserve the header/footer band on every page. --}}
+<table class="doc-layout">
+<thead><tr><td class="doc-spacer-head"></td></tr></thead>
+<tfoot><tr><td class="doc-spacer-foot"></td></tr></tfoot>
 <tbody><tr><td class="doc-body-cell">
 
 <div class="page">
@@ -290,6 +294,5 @@
 </div>
 </td></tr></tbody>
 </table>
-@include('partials.pdf-footer')
 </body>
 </html>
