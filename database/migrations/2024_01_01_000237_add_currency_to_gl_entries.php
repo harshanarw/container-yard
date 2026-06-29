@@ -44,12 +44,19 @@ return new class extends Migration
         });
 
         // Backfill existing rows: every historical entry is base currency at rate 1,
-        // and its transaction amounts equal its base amounts.
-        DB::table('gl_entries')->update([
-            'currency'      => $base,
-            'exchange_rate' => 1,
-        ]);
-        DB::statement('UPDATE gl_entries SET txn_debit = debit, txn_credit = credit');
+        // and its transaction amounts equal its base amounts. Done in id-ranged
+        // chunks so a large ledger isn't rewritten in one lock-heavy statement.
+        DB::table('gl_entries')->orderBy('id')->chunkById(5000, function ($rows) use ($base) {
+            DB::table('gl_entries')
+                ->whereIn('id', $rows->pluck('id'))
+                ->update([
+                    'currency'      => $base,
+                    'exchange_rate' => 1,
+                    'txn_debit'     => DB::raw('debit'),
+                    'txn_credit'    => DB::raw('credit'),
+                ]);
+        });
+
         DB::table('gl_journals')->whereNull('currency')->update(['currency' => $base]);
     }
 
