@@ -47,6 +47,15 @@
                        value="{{ request('to', \Carbon\Carbon::now()->toDateString()) }}">
             </div>
             <div class="col-sm-auto">
+                <label class="form-label form-label-sm fw-semibold mb-1">Currency</label>
+                <select name="currency" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    @foreach($currencies as $c)
+                    <option value="{{ $c }}" @selected($currencyFilter === $c)>{{ $c }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-sm-auto">
                 <button type="submit" class="btn btn-sm btn-primary">
                     <i class="bi bi-search me-1"></i>View Ledger
                 </button>
@@ -88,18 +97,22 @@
                         <th>Date</th>
                         <th>Journal No</th>
                         <th>Narration</th>
-                        <th class="text-end">Debit</th>
-                        <th class="text-end">Credit</th>
-                        <th class="text-end">Balance</th>
+                        <th class="text-end">Debit ({{ $base }})</th>
+                        <th class="text-end">Credit ({{ $base }})</th>
+                        <th class="text-end">Balance ({{ $base }})</th>
+                        <th>Cur</th>
+                        <th class="text-end">Txn Amount</th>
                     </tr>
                 </thead>
                 <tbody>
                     {{-- Opening balance row --}}
                     <tr class="table-secondary">
-                        <td colspan="3" class="fw-semibold small text-muted">Opening Balance (before {{ request('from', \Carbon\Carbon::now()->startOfMonth()->toDateString()) }})</td>
+                        <td colspan="3" class="fw-semibold small text-muted">Opening Balance (before {{ request('from', \Carbon\Carbon::now()->startOfMonth()->toDateString()) }})@if($currencyFilter) · {{ $currencyFilter }} only@endif</td>
                         <td class="text-end font-monospace small text-muted">—</td>
                         <td class="text-end font-monospace small text-muted">—</td>
                         <td class="text-end font-monospace fw-semibold small">{{ number_format($openingBalance, 2) }}</td>
+                        <td></td>
+                        <td></td>
                     </tr>
 
                     @php $balance = $openingBalance; @endphp
@@ -126,10 +139,18 @@
                         <td class="text-end font-monospace small {{ $balance < 0 ? 'text-danger' : '' }}">
                             {{ number_format($balance, 2) }}
                         </td>
+                        <td class="small {{ $entry->currency === $base ? 'text-muted' : '' }}">{{ $entry->currency }}</td>
+                        <td class="text-end font-monospace small {{ $entry->currency === $base ? 'text-muted' : '' }}">
+                            @php $txn = ((float) $entry->txn_debit) ?: ((float) $entry->txn_credit); @endphp
+                            {{ number_format($txn, 2) }}
+                            @if($entry->currency !== $base)
+                            <span class="text-muted" style="font-size:.7rem;">@ {{ rtrim(rtrim(number_format((float) $entry->exchange_rate, 4, '.', ''), '0'), '.') }}</span>
+                            @endif
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-3 small">No transactions in this period.</td>
+                        <td colspan="8" class="text-center text-muted py-3 small">No transactions in this period@if($currencyFilter) in {{ $currencyFilter }}@endif.</td>
                     </tr>
                     @endforelse
 
@@ -139,6 +160,8 @@
                         <td class="text-end font-monospace">{{ number_format($entries->sum('debit'), 2) }}</td>
                         <td class="text-end font-monospace">{{ number_format($entries->sum('credit'), 2) }}</td>
                         <td class="text-end font-monospace {{ $balance < 0 ? 'text-danger' : '' }}">{{ number_format($balance, 2) }}</td>
+                        <td></td>
+                        <td></td>
                     </tr>
                 </tbody>
             </table>

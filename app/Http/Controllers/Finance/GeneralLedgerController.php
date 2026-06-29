@@ -151,6 +151,16 @@ class GeneralLedgerController extends Controller
         $runningBalance = 0;
         $openingBalance = 0;
 
+        // Optional transaction-currency filter (GL is multi-currency at line level).
+        $base           = \App\Services\CurrencyService::defaultCurrency();
+        $currencyFilter = strtoupper(trim((string) $request->input('currency', '')));
+        if ($currencyFilter === '' || $currencyFilter === 'ALL') {
+            $currencyFilter = null;
+        }
+        $currencies = \App\Models\Currency::where('is_active', true)
+            ->orderBy('sort_order')->orderBy('code')
+            ->pluck('code')->map(fn ($c) => strtoupper($c))->unique()->values()->all();
+
         if ($request->filled('account_id')) {
             $account = Account::findOrFail($request->input('account_id'));
             $from    = $request->input('from', Carbon::now()->startOfMonth()->toDateString());
@@ -160,6 +170,7 @@ class GeneralLedgerController extends Controller
             $opening = GlEntry::whereHas('journal', fn ($q) => $q->where('status', 'posted')
                     ->whereDate('journal_date', '<', $from))
                 ->where('account_id', $account->id)
+                ->when($currencyFilter, fn ($q) => $q->where('currency', $currencyFilter))
                 ->selectRaw('SUM(debit) as total_debit, SUM(credit) as total_credit')
                 ->first();
 
@@ -173,6 +184,7 @@ class GeneralLedgerController extends Controller
                 ->whereHas('journal', fn ($q) => $q->where('status', 'posted')
                     ->whereBetween('journal_date', [$from, $to]))
                 ->where('account_id', $account->id)
+                ->when($currencyFilter, fn ($q) => $q->where('currency', $currencyFilter))
                 ->orderByRaw('(SELECT journal_date FROM gl_journals WHERE gl_journals.id = gl_entries.journal_id)')
                 ->orderBy('journal_id')
                 ->get();
@@ -181,7 +193,8 @@ class GeneralLedgerController extends Controller
         }
 
         return view('finance.gl.account-ledger', compact(
-            'accounts', 'account', 'entries', 'runningBalance', 'openingBalance'
+            'accounts', 'account', 'entries', 'runningBalance', 'openingBalance',
+            'base', 'currencies', 'currencyFilter'
         ));
     }
 

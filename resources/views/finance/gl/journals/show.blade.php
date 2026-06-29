@@ -100,14 +100,18 @@
                 </div>
 
                 {{-- Entries Table --}}
+                @php $base = \App\Services\CurrencyService::defaultCurrency(); @endphp
                 <div class="table-responsive">
                     <table class="table table-sm table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th>Account Code</th>
                                 <th>Account Name</th>
-                                <th class="text-end">Debit</th>
-                                <th class="text-end">Credit</th>
+                                <th class="text-end">Debit ({{ $base }})</th>
+                                <th class="text-end">Credit ({{ $base }})</th>
+                                <th>Cur</th>
+                                <th class="text-end">Txn Debit</th>
+                                <th class="text-end">Txn Credit</th>
                                 <th>Narration</th>
                             </tr>
                         </thead>
@@ -122,16 +126,28 @@
                                 <td class="text-end font-monospace small">
                                     {{ $entry->credit > 0 ? number_format($entry->credit, 2) : '—' }}
                                 </td>
+                                <td class="small {{ $entry->currency === $base ? 'text-muted' : '' }}">
+                                    {{ $entry->currency }}
+                                    @if($entry->currency !== $base)
+                                    <span class="text-muted" style="font-size:.7rem;">@ {{ rtrim(rtrim(number_format((float) $entry->exchange_rate, 4, '.', ''), '0'), '.') }}</span>
+                                    @endif
+                                </td>
+                                <td class="text-end font-monospace small {{ $entry->currency === $base ? 'text-muted' : '' }}">
+                                    {{ $entry->txn_debit > 0 ? number_format($entry->txn_debit, 2) : '—' }}
+                                </td>
+                                <td class="text-end font-monospace small {{ $entry->currency === $base ? 'text-muted' : '' }}">
+                                    {{ $entry->txn_credit > 0 ? number_format($entry->txn_credit, 2) : '—' }}
+                                </td>
                                 <td class="small text-muted">{{ $entry->narration }}</td>
                             </tr>
                             @endforeach
                         </tbody>
                         <tfoot class="table-light fw-semibold">
                             <tr>
-                                <td colspan="2" class="text-end">Totals</td>
+                                <td colspan="2" class="text-end">Totals ({{ $base }})</td>
                                 <td class="text-end font-monospace">{{ number_format($journal->total_debit, 2) }}</td>
                                 <td class="text-end font-monospace">{{ number_format($journal->total_credit, 2) }}</td>
-                                <td></td>
+                                <td colspan="4"></td>
                             </tr>
                         </tfoot>
                     </table>
