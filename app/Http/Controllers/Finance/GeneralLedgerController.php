@@ -421,6 +421,12 @@ class GeneralLedgerController extends Controller
         $ageBy = in_array($request->input('age_by'), ['due_date', 'invoice_date'], true)
             ? $request->input('age_by') : 'due_date';
 
+        // The aging report reconciles to the AR control account, which is in base
+        // currency (LKR). Each invoice's outstanding is held in its own document
+        // currency, so every row is normalised to LKR before bucketing — otherwise
+        // a USD repair/reefer balance would be summed as if it were LKR.
+        $base = \App\Services\CurrencyService::defaultCurrency();
+
         // Load all active allocations into a lookup: [type-id => total_allocated]
         $allocations = ReceiptAllocation::whereHas(
             'receipt', fn ($q) => $q->whereIn('status', ['draft', 'confirmed'])
@@ -439,7 +445,7 @@ class GeneralLedgerController extends Controller
 
         $rows = collect();
 
-        $addRows = function ($invoices, string $type, string $label) use ($asOfDate, $ageBy, $allocations, $cnApplied, &$rows) {
+        $addRows = function ($invoices, string $type, string $label) use ($asOfDate, $ageBy, $allocations, $cnApplied, $base, &$rows) {
             foreach ($invoices as $inv) {
                 $total     = (float) ($type === 'repair' ? ($inv->grand_total ?? 0) : ($inv->total_amount ?? 0));
                 $allocated = (float) ($allocations->get("{$type}-{$inv->id}")?->total_allocated ?? 0)
@@ -447,6 +453,18 @@ class GeneralLedgerController extends Controller
                 $outstanding = max(0.0, round($total - $allocated, 2));
 
                 if ($outstanding <= 0) continue;
+
+                // Normalise to base currency (LKR): storage/handling already store
+                // base amounts; reefer/repair store their invoice currency, so apply
+                // the booked exchange_rate when that currency is not the base.
+                $toBase = in_array($type, ['storage', 'storage-handling'], true)
+                    ? 1.0
+                    : (strtoupper((string) ($inv->invoice_currency ?? $inv->currency ?? $base)) === $base
+                        ? 1.0
+                        : (float) ($inv->exchange_rate ?: 1));
+                $total       = round($total * $toBase, 2);
+                $allocated   = round($allocated * $toBase, 2);
+                $outstanding = round($outstanding * $toBase, 2);
 
                 $invDate = Carbon::parse($inv->invoice_date);
                 // Due date drives the "past due" flag and the Past Due column;
@@ -515,9 +533,14 @@ class GeneralLedgerController extends Controller
         \App\Models\ArCreditNote::where('status', 'approved')
             ->withSum('applications as applied_sum', 'applied_amount')
             ->get()
-            ->each(function ($cn) use (&$rows) {
+            ->each(function ($cn) use ($base, &$rows) {
                 $unapplied = round((float) $cn->total_amount - (float) ($cn->applied_sum ?? 0), 2);
                 if ($unapplied <= 0) return;
+                // Normalise the customer-credit balance to base currency (LKR).
+                $cnToBase = strtoupper((string) ($cn->currency ?? $base)) === $base
+                    ? 1.0
+                    : (float) ($cn->exchange_rate ?: 1);
+                $unapplied = round($unapplied * $cnToBase, 2);
                 $d = \Carbon\Carbon::parse($cn->credit_date);
                 $rows->push([
                     'customer_id'  => $cn->customer_id,
@@ -584,6 +607,11 @@ class GeneralLedgerController extends Controller
         $ageBy = in_array($request->input('age_by'), ['due_date', 'invoice_date'], true)
             ? $request->input('age_by') : 'due_date';
 
+        // Normalise every payable to base currency (LKR) before bucketing so the
+        // aging totals reconcile to the AP control account (supplier invoices and
+        // AP credit notes are stored in their own document currency).
+        $base = \App\Services\CurrencyService::defaultCurrency();
+
         // Allocations from non-voided vouchers: [supplier_invoice_id => total_allocated]
         $allocations = PaymentAllocation::whereHas(
             'voucher', fn ($q) => $q->whereIn('status', ['draft', 'confirmed'])
@@ -605,13 +633,21 @@ class GeneralLedgerController extends Controller
         SupplierInvoice::whereIn('status', ['approved', 'partially_paid'])
             ->orderBy('invoice_date')
             ->get()
-            ->each(function ($inv) use ($asOfDate, $ageBy, $allocations, $cnApplied, &$rows) {
+            ->each(function ($inv) use ($asOfDate, $ageBy, $allocations, $cnApplied, $base, &$rows) {
                 $total       = (float) ($inv->total_amount ?? 0);
                 $allocated   = (float) ($allocations->get($inv->id)?->total_allocated ?? 0)
                              + (float) ($cnApplied->get($inv->id)?->total_applied ?? 0);
                 $outstanding = max(0.0, round($total - $allocated, 2));
 
                 if ($outstanding <= 0) return;
+
+                // Convert document currency → base (LKR) at the booked rate.
+                $toBase = strtoupper((string) ($inv->currency ?? $base)) === $base
+                    ? 1.0
+                    : (float) ($inv->exchange_rate ?: 1);
+                $total       = round($total * $toBase, 2);
+                $allocated   = round($allocated * $toBase, 2);
+                $outstanding = round($outstanding * $toBase, 2);
 
                 $invDate = Carbon::parse($inv->invoice_date);
                 // Bucketing basis is user-selectable: by due date (days overdue) or by
@@ -647,9 +683,13 @@ class GeneralLedgerController extends Controller
         \App\Models\ApCreditNote::where('status', 'approved')
             ->withSum('applications as applied_sum', 'applied_amount')
             ->get()
-            ->each(function ($cn) use (&$rows) {
+            ->each(function ($cn) use ($base, &$rows) {
                 $unapplied = round((float) $cn->total_amount - (float) ($cn->applied_sum ?? 0), 2);
                 if ($unapplied <= 0) return;
+                $cnToBase = strtoupper((string) ($cn->currency ?? $base)) === $base
+                    ? 1.0
+                    : (float) ($cn->exchange_rate ?: 1);
+                $unapplied = round($unapplied * $cnToBase, 2);
                 $rows->push([
                     'customer_id'  => $cn->customer_id,
                     'id'           => $cn->id,
