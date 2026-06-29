@@ -55,7 +55,37 @@ class ApAllocationService
 
     public function getOutstanding(SupplierInvoice $invoice): float
     {
-        return max(0.0, round($this->getTotal($invoice) - $this->getAllocatedTotal($invoice->id), 4));
+        return $this->currencyBreakdown($invoice)['doc_outstanding'];
+    }
+
+    /**
+     * Normalised currency breakdown for a supplier invoice. Supplier invoices store
+     * their amounts in document currency, so this is simpler than the AR side, but
+     * the shape matches ArAllocationService::currencyBreakdown() for shared use.
+     *
+     * @return array{currency:string, rate:float, doc_total:float, doc_allocated:float,
+     *   doc_outstanding:float, base_total:float, base_allocated:float, base_outstanding:float}
+     */
+    public function currencyBreakdown(SupplierInvoice $invoice): array
+    {
+        $base     = \App\Models\CompanySetting::baseCurrency();
+        $currency = strtoupper((string) ($invoice->currency ?? $base));
+        $rate     = $currency === $base ? 1.0 : $this->getExchangeRate($invoice);
+
+        $docTotal       = (float) ($invoice->total_amount ?? 0);
+        $docAllocated   = $this->getAllocatedTotal($invoice->id);
+        $docOutstanding = max(0.0, round($docTotal - $docAllocated, 2));
+
+        return [
+            'currency'         => $currency,
+            'rate'             => $rate,
+            'doc_total'        => $docTotal,
+            'doc_allocated'    => round($docAllocated, 2),
+            'doc_outstanding'  => $docOutstanding,
+            'base_total'       => round($docTotal * $rate, 2),
+            'base_allocated'   => round($docAllocated * $rate, 2),
+            'base_outstanding' => round($docOutstanding * $rate, 2),
+        ];
     }
 
     /**

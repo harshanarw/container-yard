@@ -12,13 +12,20 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h4 class="mb-0"><i class="bi bi-clock-history me-2 text-danger"></i>AP Aging Report</h4>
-        <p class="text-muted small mb-0">Outstanding payables by supplier — as of {{ \Carbon\Carbon::parse($asOf)->format('d M Y') }} · aged by {{ $ageBy === 'invoice_date' ? 'invoice date' : 'due date' }}</p>
+        <p class="text-muted small mb-0">Outstanding payables by supplier — as of {{ \Carbon\Carbon::parse($asOf)->format('d M Y') }} · aged by {{ $ageBy === 'invoice_date' ? 'invoice date' : 'due date' }} · buckets in {{ $base }}@if($currencyFilter) · currency: {{ $currencyFilter }}@endif</p>
     </div>
     <form method="GET" action="{{ route('finance.ap.aging') }}" class="d-flex align-items-center gap-2">
         <label class="form-label small mb-0 text-muted">Age By</label>
         <select name="age_by" class="form-select form-select-sm" style="width:150px">
             <option value="due_date" @selected($ageBy === 'due_date')>Due Date</option>
             <option value="invoice_date" @selected($ageBy === 'invoice_date')>Invoice Date</option>
+        </select>
+        <label class="form-label small mb-0 text-muted ms-1">Currency</label>
+        <select name="currency" class="form-select form-select-sm" style="width:110px">
+            <option value="">All</option>
+            @foreach($currencies as $c)
+            <option value="{{ $c }}" @selected($currencyFilter === $c)>{{ $c }}</option>
+            @endforeach
         </select>
         <label class="form-label small mb-0 text-muted ms-1">As Of</label>
         <input type="date" name="as_of" class="form-control form-control-sm" value="{{ $asOf }}" style="width:160px">
@@ -53,11 +60,57 @@
     @endforeach
 </div>
 
+@php $hasForeign = $currencySummary->contains(fn ($c) => $c['currency'] !== $base); @endphp
+@if($currencySummary->isNotEmpty() && $hasForeign)
+{{-- Outstanding broken out by document currency (original value + rate + base equivalent) --}}
+<div class="card content-card mb-3">
+    <div class="card-header bg-transparent py-2"><strong class="small"><i class="bi bi-currency-exchange me-1"></i>Outstanding by Currency</strong></div>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th>Currency</th>
+                    <th class="text-end">Bills</th>
+                    <th class="text-end">Original Outstanding</th>
+                    <th class="text-end">Exchange Rate</th>
+                    <th class="text-end">{{ $base }} Equivalent</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($currencySummary as $cs)
+                <tr>
+                    <td class="fw-semibold">{{ $cs['currency'] }}</td>
+                    <td class="text-end text-muted">{{ $cs['count'] }}</td>
+                    <td class="text-end font-monospace">{{ $cs['currency'] }} {{ number_format($cs['doc_outstanding'], 2) }}</td>
+                    <td class="text-end font-monospace text-muted">
+                        @if($cs['currency'] === $base)
+                            —
+                        @elseif($cs['rate_min'] == $cs['rate_max'])
+                            {{ rtrim(rtrim(number_format($cs['rate_min'], 4, '.', ''), '0'), '.') }}
+                        @else
+                            {{ rtrim(rtrim(number_format($cs['rate_min'], 4, '.', ''), '0'), '.') }}–{{ rtrim(rtrim(number_format($cs['rate_max'], 4, '.', ''), '0'), '.') }}
+                        @endif
+                    </td>
+                    <td class="text-end font-monospace">{{ $base }} {{ number_format($cs['base_outstanding'], 2) }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr class="table-light fw-bold">
+                    <td colspan="4" class="text-end">Total ({{ $base }})</td>
+                    <td class="text-end font-monospace">{{ $base }} {{ number_format($currencySummary->sum('base_outstanding'), 2) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+@endif
+
 @if($bySupplier->isEmpty())
 <div class="card content-card">
     <div class="card-body text-center text-muted py-5">
         <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2 opacity-50"></i>
-        No outstanding payables as of {{ \Carbon\Carbon::parse($asOf)->format('d M Y') }}.
+        No outstanding payables as of {{ \Carbon\Carbon::parse($asOf)->format('d M Y') }}@if($currencyFilter) in {{ $currencyFilter }}@endif.
     </div>
 </div>
 @else
@@ -82,7 +135,8 @@
                     <th class="text-end text-warning-emphasis">31–60</th>
                     <th class="text-end" style="color:#c47200">61–90</th>
                     <th class="text-end text-danger-emphasis">90+</th>
-                    <th class="text-end fw-semibold">Outstanding</th>
+                    <th class="text-end fw-semibold">Outstanding ({{ $base }})</th>
+                    <th class="text-end">Original O/S</th>
                 </tr>
             </thead>
             <tbody>
@@ -161,6 +215,12 @@
                     <td class="text-end font-monospace fw-semibold {{ $inv['outstanding'] > 0 ? 'text-danger' : 'text-success' }}">
                         {{ number_format($inv['outstanding'], 2) }}
                     </td>
+                    <td class="text-end font-monospace {{ $inv['currency'] === $base ? 'text-muted' : '' }}">
+                        {{ $inv['currency'] }} {{ number_format($inv['doc_outstanding'], 2) }}
+                        @if($inv['currency'] !== $base)
+                        <div class="text-muted" style="font-size:.7rem;">@ {{ rtrim(rtrim(number_format($inv['rate'], 4, '.', ''), '0'), '.') }}</div>
+                        @endif
+                    </td>
                 </tr>
                 @endforeach
 
@@ -175,6 +235,7 @@
                     <td class="text-end font-monospace" style="color:#c47200">{{ number_format($group['61-90'], 2) }}</td>
                     <td class="text-end font-monospace text-danger">{{ number_format($group['90+'], 2) }}</td>
                     <td class="text-end font-monospace text-primary">{{ number_format($group['total'], 2) }}</td>
+                    <td></td>
                 </tr>
                 @endforeach
 
@@ -187,6 +248,7 @@
                     <td class="text-end font-monospace">{{ number_format($grandTotals['61-90'], 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['90+'], 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($grandTotals['total'], 2) }}</td>
+                    <td></td>
                 </tr>
             </tbody>
         </table>

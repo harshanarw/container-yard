@@ -76,18 +76,58 @@ class ArAllocationService
 
     public function getOutstanding(Model $invoice, string $type): float
     {
-        $settled = $this->getAllocatedTotal($type, $invoice->id);
+        // Outstanding is expressed in the invoice's own (document) currency, which
+        // is the basis allocation amounts are entered in. currencyBreakdown() does
+        // the math in document currency throughout — see its note for why that
+        // matters for foreign storage invoices.
+        return $this->currencyBreakdown($invoice, $type)['doc_outstanding'];
+    }
 
-        // Repair invoices also carry their own manual payments (amount_paid, via
-        // "Record Payment") which syncInvoiceStatus() counts as settlement. Net
-        // them out here too so the outstanding shown to allocation dropdowns /
-        // over-allocation checks matches the invoice's real balance and a
-        // partly-paid repair invoice cannot be over-allocated.
+    /**
+     * Normalised currency breakdown for an AR invoice, so every consumer sees a
+     * uniform shape regardless of how each type stores its amounts:
+     *   - storage / storage-handling persist BASE (LKR) amounts
+     *   - reefer / repair persist DOCUMENT-currency amounts
+     *
+     * All math is done in DOCUMENT currency first, then converted to base. This is
+     * important because a foreign storage/handling invoice stores its total in base
+     * (LKR) while its receipt allocations are in document currency — subtracting
+     * one from the other directly (as the old getOutstanding did) mixed currencies.
+     *
+     * @return array{currency:string, rate:float, doc_total:float, doc_allocated:float,
+     *   doc_outstanding:float, base_total:float, base_allocated:float, base_outstanding:float}
+     */
+    public function currencyBreakdown(Model $invoice, string $type): array
+    {
+        $base     = \App\Models\CompanySetting::baseCurrency();
+        $currency = strtoupper((string) ($invoice->invoice_currency ?? $invoice->currency ?? $base));
+        $rate     = $currency === $base ? 1.0 : $this->getExchangeRate($invoice, $type);
+
+        $rawTotal = (float) ($type === 'repair' ? ($invoice->grand_total ?? 0) : ($invoice->total_amount ?? 0));
+        // storage/handling store base amounts → divide to get the document amount.
+        $docTotal = in_array($type, ['storage', 'storage-handling'], true)
+            ? ($rate > 0 ? round($rawTotal / $rate, 2) : $rawTotal)
+            : $rawTotal;
+
+        $docAllocated = $this->getAllocatedTotal($type, (int) $invoice->id);
         if ($type === 'repair') {
-            $settled += (float) ($invoice->amount_paid ?? 0);
+            // Repair invoices also carry manual payments (amount_paid) counted as
+            // settlement by syncInvoiceStatus(); net them out too.
+            $docAllocated += (float) ($invoice->amount_paid ?? 0);
         }
 
-        return max(0.0, round($this->getTotal($invoice, $type) - $settled, 4));
+        $docOutstanding = max(0.0, round($docTotal - $docAllocated, 2));
+
+        return [
+            'currency'         => $currency,
+            'rate'             => $rate,
+            'doc_total'        => $docTotal,
+            'doc_allocated'    => round($docAllocated, 2),
+            'doc_outstanding'  => $docOutstanding,
+            'base_total'       => round($docTotal * $rate, 2),
+            'base_allocated'   => round($docAllocated * $rate, 2),
+            'base_outstanding' => round($docOutstanding * $rate, 2),
+        ];
     }
 
     /**

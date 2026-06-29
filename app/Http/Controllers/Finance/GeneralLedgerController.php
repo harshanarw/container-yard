@@ -423,9 +423,19 @@ class GeneralLedgerController extends Controller
 
         // The aging report reconciles to the AR control account, which is in base
         // currency (LKR). Each invoice's outstanding is held in its own document
-        // currency, so every row is normalised to LKR before bucketing — otherwise
-        // a USD repair/reefer balance would be summed as if it were LKR.
+        // currency, so the buckets/totals are normalised to LKR; the original
+        // document currency, rate and amount are also carried on each row so the
+        // report can show foreign (e.g. USD) balances distinctly.
         $base = \App\Services\CurrencyService::defaultCurrency();
+
+        // Optional currency filter (e.g. only USD invoices). Empty = all currencies.
+        $currencyFilter = strtoupper(trim((string) $request->input('currency', '')));
+        if ($currencyFilter === '' || $currencyFilter === 'ALL') {
+            $currencyFilter = null;
+        }
+        $currencies = \App\Models\Currency::where('is_active', true)
+            ->orderBy('sort_order')->orderBy('code')
+            ->pluck('code')->map(fn ($c) => strtoupper($c))->unique()->values()->all();
 
         // Load all active allocations into a lookup: [type-id => total_allocated]
         $allocations = ReceiptAllocation::whereHas(
@@ -445,26 +455,37 @@ class GeneralLedgerController extends Controller
 
         $rows = collect();
 
-        $addRows = function ($invoices, string $type, string $label) use ($asOfDate, $ageBy, $allocations, $cnApplied, $base, &$rows) {
+        $addRows = function ($invoices, string $type, string $label) use ($asOfDate, $ageBy, $allocations, $cnApplied, $base, $currencyFilter, &$rows) {
             foreach ($invoices as $inv) {
-                $total     = (float) ($type === 'repair' ? ($inv->grand_total ?? 0) : ($inv->total_amount ?? 0));
-                $allocated = (float) ($allocations->get("{$type}-{$inv->id}")?->total_allocated ?? 0)
-                           + (float) ($cnApplied->get("{$type}-{$inv->id}")?->total_applied ?? 0);
-                $outstanding = max(0.0, round($total - $allocated, 2));
+                $currency = strtoupper((string) ($inv->invoice_currency ?? $inv->currency ?? $base));
+                if ($currencyFilter && $currency !== $currencyFilter) {
+                    continue;
+                }
 
-                if ($outstanding <= 0) continue;
+                $rate = $currency === $base ? 1.0 : ((float) ($inv->exchange_rate ?: 1) ?: 1.0);
 
-                // Normalise to base currency (LKR): storage/handling already store
-                // base amounts; reefer/repair store their invoice currency, so apply
-                // the booked exchange_rate when that currency is not the base.
-                $toBase = in_array($type, ['storage', 'storage-handling'], true)
-                    ? 1.0
-                    : (strtoupper((string) ($inv->invoice_currency ?? $inv->currency ?? $base)) === $base
-                        ? 1.0
-                        : (float) ($inv->exchange_rate ?: 1));
-                $total       = round($total * $toBase, 2);
-                $allocated   = round($allocated * $toBase, 2);
-                $outstanding = round($outstanding * $toBase, 2);
+                // Work in document currency first, then convert to base. storage/
+                // handling store base amounts (divide to recover the document amount);
+                // reefer/repair store document amounts directly. Allocations are
+                // always in document currency.
+                $rawTotal = (float) ($type === 'repair' ? ($inv->grand_total ?? 0) : ($inv->total_amount ?? 0));
+                $docTotal = in_array($type, ['storage', 'storage-handling'], true)
+                    ? ($rate > 0 ? round($rawTotal / $rate, 2) : $rawTotal)
+                    : $rawTotal;
+
+                $docAllocated = (float) ($allocations->get("{$type}-{$inv->id}")?->total_allocated ?? 0)
+                              + (float) ($cnApplied->get("{$type}-{$inv->id}")?->total_applied ?? 0);
+                if ($type === 'repair') {
+                    $docAllocated += (float) ($inv->amount_paid ?? 0);
+                }
+
+                $docOutstanding = max(0.0, round($docTotal - $docAllocated, 2));
+                if ($docOutstanding <= 0) continue;
+
+                // Base-currency (LKR) figures used for bucketing and grand totals.
+                $total       = round($docTotal * $rate, 2);
+                $allocated   = round($docAllocated * $rate, 2);
+                $outstanding = round($docOutstanding * $rate, 2);
 
                 $invDate = Carbon::parse($inv->invoice_date);
                 // Due date drives the "past due" flag and the Past Due column;
@@ -492,19 +513,22 @@ class GeneralLedgerController extends Controller
                     : $inv->customer_id;
 
                 $rows->push([
-                    'customer_id'  => $customerId,
-                    'type'         => $type,
-                    'type_label'   => $label,
-                    'id'           => $inv->id,
-                    'invoice_no'   => $inv->invoice_no,
-                    'invoice_date' => $invDate,
-                    'due_date'     => $dueDate,
-                    'past_due'     => $pastDue,
-                    'total'        => $total,
-                    'allocated'    => $allocated,
-                    'outstanding'  => $outstanding,
-                    'age_days'     => $ageDays,
-                    'bucket'       => $bucket,
+                    'customer_id'      => $customerId,
+                    'type'             => $type,
+                    'type_label'       => $label,
+                    'id'               => $inv->id,
+                    'invoice_no'       => $inv->invoice_no,
+                    'invoice_date'     => $invDate,
+                    'due_date'         => $dueDate,
+                    'past_due'         => $pastDue,
+                    'currency'         => $currency,
+                    'rate'             => $rate,
+                    'doc_outstanding'  => $docOutstanding,
+                    'total'            => $total,
+                    'allocated'        => $allocated,
+                    'outstanding'      => $outstanding,
+                    'age_days'         => $ageDays,
+                    'bucket'           => $bucket,
                 ]);
             }
         };
@@ -533,29 +557,33 @@ class GeneralLedgerController extends Controller
         \App\Models\ArCreditNote::where('status', 'approved')
             ->withSum('applications as applied_sum', 'applied_amount')
             ->get()
-            ->each(function ($cn) use ($base, &$rows) {
-                $unapplied = round((float) $cn->total_amount - (float) ($cn->applied_sum ?? 0), 2);
-                if ($unapplied <= 0) return;
-                // Normalise the customer-credit balance to base currency (LKR).
-                $cnToBase = strtoupper((string) ($cn->currency ?? $base)) === $base
-                    ? 1.0
-                    : (float) ($cn->exchange_rate ?: 1);
-                $unapplied = round($unapplied * $cnToBase, 2);
+            ->each(function ($cn) use ($base, $currencyFilter, &$rows) {
+                $currency = strtoupper((string) ($cn->currency ?? $base));
+                if ($currencyFilter && $currency !== $currencyFilter) {
+                    return;
+                }
+                $docUnapplied = round((float) $cn->total_amount - (float) ($cn->applied_sum ?? 0), 2);
+                if ($docUnapplied <= 0) return;
+                $rate = $currency === $base ? 1.0 : ((float) ($cn->exchange_rate ?: 1) ?: 1.0);
+                $baseUnapplied = round($docUnapplied * $rate, 2);
                 $d = \Carbon\Carbon::parse($cn->credit_date);
                 $rows->push([
-                    'customer_id'  => $cn->customer_id,
-                    'type'         => 'credit-note',
-                    'type_label'   => 'Credit Note',
-                    'id'           => $cn->id,
-                    'invoice_no'   => $cn->credit_note_no,
-                    'invoice_date' => $d,
-                    'due_date'     => $d,
-                    'past_due'     => false,
-                    'total'        => -$unapplied,
-                    'allocated'    => 0,
-                    'outstanding'  => -$unapplied,
-                    'age_days'     => 0,
-                    'bucket'       => 'current',
+                    'customer_id'      => $cn->customer_id,
+                    'type'             => 'credit-note',
+                    'type_label'       => 'Credit Note',
+                    'id'               => $cn->id,
+                    'invoice_no'       => $cn->credit_note_no,
+                    'invoice_date'     => $d,
+                    'due_date'         => $d,
+                    'past_due'         => false,
+                    'currency'         => $currency,
+                    'rate'             => $rate,
+                    'doc_outstanding'  => -$docUnapplied,
+                    'total'            => -$baseUnapplied,
+                    'allocated'        => 0,
+                    'outstanding'      => -$baseUnapplied,
+                    'age_days'         => 0,
+                    'bucket'           => 'current',
                 ]);
             });
 
@@ -593,7 +621,21 @@ class GeneralLedgerController extends Controller
             'total'   => $rows->sum('outstanding'),
         ];
 
-        return view('finance.ar.aging', compact('byCustomer', 'grandTotals', 'asOf', 'ageBy'));
+        // Per-currency summary: original (document) outstanding by currency with its
+        // base-currency equivalent, so foreign balances (e.g. USD) are shown
+        // distinctly alongside the consolidated LKR totals.
+        $currencySummary = $rows->groupBy('currency')->map(fn ($r, $cur) => [
+            'currency'         => $cur,
+            'count'            => $r->count(),
+            'doc_outstanding'  => round($r->sum('doc_outstanding'), 2),
+            'base_outstanding' => round($r->sum('outstanding'), 2),
+            'rate_min'         => (float) $r->min('rate'),
+            'rate_max'         => (float) $r->max('rate'),
+        ])->sortKeys()->values();
+
+        return view('finance.ar.aging', compact(
+            'byCustomer', 'grandTotals', 'asOf', 'ageBy', 'base', 'currencies', 'currencyFilter', 'currencySummary'
+        ));
     }
 
     // AP Aging: outstanding payables by supplier and age bucket
@@ -607,10 +649,19 @@ class GeneralLedgerController extends Controller
         $ageBy = in_array($request->input('age_by'), ['due_date', 'invoice_date'], true)
             ? $request->input('age_by') : 'due_date';
 
-        // Normalise every payable to base currency (LKR) before bucketing so the
-        // aging totals reconcile to the AP control account (supplier invoices and
-        // AP credit notes are stored in their own document currency).
+        // Buckets/totals are normalised to base currency (LKR) so they reconcile to
+        // the AP control account; each row also carries its document currency, rate
+        // and original outstanding so foreign payables are shown distinctly.
         $base = \App\Services\CurrencyService::defaultCurrency();
+
+        // Optional currency filter (e.g. only USD bills). Empty = all currencies.
+        $currencyFilter = strtoupper(trim((string) $request->input('currency', '')));
+        if ($currencyFilter === '' || $currencyFilter === 'ALL') {
+            $currencyFilter = null;
+        }
+        $currencies = \App\Models\Currency::where('is_active', true)
+            ->orderBy('sort_order')->orderBy('code')
+            ->pluck('code')->map(fn ($c) => strtoupper($c))->unique()->values()->all();
 
         // Allocations from non-voided vouchers: [supplier_invoice_id => total_allocated]
         $allocations = PaymentAllocation::whereHas(
@@ -633,21 +684,26 @@ class GeneralLedgerController extends Controller
         SupplierInvoice::whereIn('status', ['approved', 'partially_paid'])
             ->orderBy('invoice_date')
             ->get()
-            ->each(function ($inv) use ($asOfDate, $ageBy, $allocations, $cnApplied, $base, &$rows) {
-                $total       = (float) ($inv->total_amount ?? 0);
-                $allocated   = (float) ($allocations->get($inv->id)?->total_allocated ?? 0)
-                             + (float) ($cnApplied->get($inv->id)?->total_applied ?? 0);
-                $outstanding = max(0.0, round($total - $allocated, 2));
+            ->each(function ($inv) use ($asOfDate, $ageBy, $allocations, $cnApplied, $base, $currencyFilter, &$rows) {
+                $currency = strtoupper((string) ($inv->currency ?? $base));
+                if ($currencyFilter && $currency !== $currencyFilter) {
+                    return;
+                }
 
-                if ($outstanding <= 0) return;
+                $rate = $currency === $base ? 1.0 : ((float) ($inv->exchange_rate ?: 1) ?: 1.0);
 
-                // Convert document currency → base (LKR) at the booked rate.
-                $toBase = strtoupper((string) ($inv->currency ?? $base)) === $base
-                    ? 1.0
-                    : (float) ($inv->exchange_rate ?: 1);
-                $total       = round($total * $toBase, 2);
-                $allocated   = round($allocated * $toBase, 2);
-                $outstanding = round($outstanding * $toBase, 2);
+                // Supplier invoices and their allocations are both in document currency.
+                $docTotal       = (float) ($inv->total_amount ?? 0);
+                $docAllocated   = (float) ($allocations->get($inv->id)?->total_allocated ?? 0)
+                                + (float) ($cnApplied->get($inv->id)?->total_applied ?? 0);
+                $docOutstanding = max(0.0, round($docTotal - $docAllocated, 2));
+
+                if ($docOutstanding <= 0) return;
+
+                // Base-currency (LKR) figures used for bucketing and grand totals.
+                $total       = round($docTotal * $rate, 2);
+                $allocated   = round($docAllocated * $rate, 2);
+                $outstanding = round($docOutstanding * $rate, 2);
 
                 $invDate = Carbon::parse($inv->invoice_date);
                 // Bucketing basis is user-selectable: by due date (days overdue) or by
@@ -665,17 +721,20 @@ class GeneralLedgerController extends Controller
                 };
 
                 $rows->push([
-                    'customer_id'  => $inv->customer_id,
-                    'id'           => $inv->id,
-                    'invoice_no'   => $inv->invoice_no,
-                    'reference'    => $inv->supplier_invoice_no,
-                    'invoice_date' => $invDate,
-                    'due_date'     => $ageDate,
-                    'total'        => $total,
-                    'allocated'    => $allocated,
-                    'outstanding'  => $outstanding,
-                    'age_days'     => $ageDays,
-                    'bucket'       => $bucket,
+                    'customer_id'      => $inv->customer_id,
+                    'id'               => $inv->id,
+                    'invoice_no'       => $inv->invoice_no,
+                    'reference'        => $inv->supplier_invoice_no,
+                    'invoice_date'     => $invDate,
+                    'due_date'         => $ageDate,
+                    'currency'         => $currency,
+                    'rate'             => $rate,
+                    'doc_outstanding'  => $docOutstanding,
+                    'total'            => $total,
+                    'allocated'        => $allocated,
+                    'outstanding'      => $outstanding,
+                    'age_days'         => $ageDays,
+                    'bucket'           => $bucket,
                 ]);
             });
 
@@ -683,26 +742,31 @@ class GeneralLedgerController extends Controller
         \App\Models\ApCreditNote::where('status', 'approved')
             ->withSum('applications as applied_sum', 'applied_amount')
             ->get()
-            ->each(function ($cn) use ($base, &$rows) {
-                $unapplied = round((float) $cn->total_amount - (float) ($cn->applied_sum ?? 0), 2);
-                if ($unapplied <= 0) return;
-                $cnToBase = strtoupper((string) ($cn->currency ?? $base)) === $base
-                    ? 1.0
-                    : (float) ($cn->exchange_rate ?: 1);
-                $unapplied = round($unapplied * $cnToBase, 2);
+            ->each(function ($cn) use ($base, $currencyFilter, &$rows) {
+                $currency = strtoupper((string) ($cn->currency ?? $base));
+                if ($currencyFilter && $currency !== $currencyFilter) {
+                    return;
+                }
+                $docUnapplied = round((float) $cn->total_amount - (float) ($cn->applied_sum ?? 0), 2);
+                if ($docUnapplied <= 0) return;
+                $rate = $currency === $base ? 1.0 : ((float) ($cn->exchange_rate ?: 1) ?: 1.0);
+                $baseUnapplied = round($docUnapplied * $rate, 2);
                 $rows->push([
-                    'customer_id'  => $cn->customer_id,
-                    'id'           => $cn->id,
-                    'type'         => 'credit-note',
-                    'invoice_no'   => $cn->credit_note_no,
-                    'reference'    => $cn->supplier_credit_no,
-                    'invoice_date' => \Carbon\Carbon::parse($cn->credit_date),
-                    'due_date'     => \Carbon\Carbon::parse($cn->credit_date),
-                    'total'        => -$unapplied,
-                    'allocated'    => 0,
-                    'outstanding'  => -$unapplied,
-                    'age_days'     => 0,
-                    'bucket'       => 'current',
+                    'customer_id'      => $cn->customer_id,
+                    'id'               => $cn->id,
+                    'type'             => 'credit-note',
+                    'invoice_no'       => $cn->credit_note_no,
+                    'reference'        => $cn->supplier_credit_no,
+                    'invoice_date'     => \Carbon\Carbon::parse($cn->credit_date),
+                    'due_date'         => \Carbon\Carbon::parse($cn->credit_date),
+                    'currency'         => $currency,
+                    'rate'             => $rate,
+                    'doc_outstanding'  => -$docUnapplied,
+                    'total'            => -$baseUnapplied,
+                    'allocated'        => 0,
+                    'outstanding'      => -$baseUnapplied,
+                    'age_days'         => 0,
+                    'bucket'           => 'current',
                 ]);
             });
 
@@ -738,6 +802,18 @@ class GeneralLedgerController extends Controller
             'total'   => $rows->sum('outstanding'),
         ];
 
-        return view('finance.ap.aging', compact('bySupplier', 'grandTotals', 'asOf', 'ageBy'));
+        // Per-currency summary (original outstanding + base equivalent + rate range).
+        $currencySummary = $rows->groupBy('currency')->map(fn ($r, $cur) => [
+            'currency'         => $cur,
+            'count'            => $r->count(),
+            'doc_outstanding'  => round($r->sum('doc_outstanding'), 2),
+            'base_outstanding' => round($r->sum('outstanding'), 2),
+            'rate_min'         => (float) $r->min('rate'),
+            'rate_max'         => (float) $r->max('rate'),
+        ])->sortKeys()->values();
+
+        return view('finance.ap.aging', compact(
+            'bySupplier', 'grandTotals', 'asOf', 'ageBy', 'base', 'currencies', 'currencyFilter', 'currencySummary'
+        ));
     }
 }
