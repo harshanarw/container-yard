@@ -7,8 +7,13 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #222; background: #fff; }
         /* Reserve space for the running header/footer on every page. */
-        @page { margin: 178px 26px 56px 26px; }
-        .pdf-running-header { position: fixed; top: 0; left: 0; right: 0; padding: 16px 26px 0; background: #fff; }
+        /* Running header/footer via table thead/tfoot (reliable); @page only for
+           small page-edge margins. */
+        @page { margin: 26px 24px; }
+        .doc-layout { width: 100%; border-collapse: collapse; }
+        .doc-head-cell, .doc-foot-cell, .doc-body-cell { padding: 0; border: none; vertical-align: top; }
+        .doc-head-cell { padding-bottom: 10px; }
+        .doc-foot-cell { height: 46px; }
         .page { padding: 0; }
 
         /* ── Header ── */
@@ -89,17 +94,18 @@
     $liftOnLines  = $invoice->lines->where('has_lift_on', true)->values();
 @endphp
 
-{{-- ── Running header (repeats on every page) ── --}}
-<div class="pdf-running-header">
+{{-- Document layout: thead repeats the letterhead on every page, tfoot reserves
+     the bottom band for the fixed footer; tbody holds the flowing content. --}}
+<table class="doc-layout">
+<thead><tr><td class="doc-head-cell">
     @include('partials.pdf-letterhead', [
         'title'     => 'STORAGE & HANDLING INVOICE',
         'accent'    => '#0d6efd',
         'verifyUrl' => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage-handling', 'id' => $invoice->id]),
     ])
-</div>
-
-{{-- ── Running footer (repeats on every page) ── --}}
-@include('partials.pdf-footer')
+</td></tr></thead>
+<tfoot><tr><td class="doc-foot-cell">&nbsp;</td></tr></tfoot>
+<tbody><tr><td class="doc-body-cell">
 
 <div class="page">
 
@@ -327,5 +333,8 @@
 @endif
 
 </div>
+</td></tr></tbody>
+</table>
+@include('partials.pdf-footer')
 </body>
 </html>

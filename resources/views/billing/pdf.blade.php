@@ -8,8 +8,14 @@
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #333; background: #fff; }
         /* Reserve top space for the running header and bottom space for the footer
            on every page; content flows in between and paginates automatically. */
-        @page { margin: 178px 30px 56px 30px; }
-        .pdf-running-header { position: fixed; top: 0; left: 0; right: 0; padding: 16px 30px 0; background: #fff; }
+        /* Small page edge margins only; the running header/footer are handled by
+           the table thead/tfoot below (reliable across dompdf builds), not @page
+           top/bottom margins (which this build does not reserve). */
+        @page { margin: 26px 28px; }
+        .doc-layout { width: 100%; border-collapse: collapse; }
+        .doc-head-cell, .doc-foot-cell, .doc-body-cell { padding: 0; border: none; vertical-align: top; }
+        .doc-head-cell { padding-bottom: 10px; }
+        .doc-foot-cell { height: 46px; }   /* reserves the bottom band for the fixed footer */
         .page { padding: 0; }
 
         /* ── Header ── */
@@ -83,16 +89,17 @@
     $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
 @endphp
 
-{{-- ── Running header (repeats on every page) ── --}}
-<div class="pdf-running-header">
+{{-- Document layout: thead repeats the letterhead at the top of every page,
+     tfoot reserves the bottom band so content never hits the fixed footer. --}}
+<table class="doc-layout">
+<thead><tr><td class="doc-head-cell">
     @include('partials.pdf-letterhead', [
         'title'     => 'STORAGE INVOICE',
         'verifyUrl' => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage', 'id' => $invoice->id]),
     ])
-</div>
-
-{{-- ── Running footer (repeats on every page) ── --}}
-@include('partials.pdf-footer')
+</td></tr></thead>
+<tfoot><tr><td class="doc-foot-cell">&nbsp;</td></tr></tfoot>
+<tbody><tr><td class="doc-body-cell">
 
 <div class="page">
 
@@ -281,5 +288,8 @@
 @endif
 
 </div>
+</td></tr></tbody>
+</table>
+@include('partials.pdf-footer')
 </body>
 </html>

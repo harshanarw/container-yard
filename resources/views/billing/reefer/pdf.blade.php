@@ -43,8 +43,13 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: DejaVu Sans, Arial, sans-serif; color: #222; font-size: 11px; }
     /* Reserve space for the running header/footer on every page. */
-    @page { margin: 178px 22px 56px 22px; }
-    .pdf-running-header { position: fixed; top: 0; left: 0; right: 0; padding: 16px 22px 0; background: #fff; }
+    /* Running header/footer via table thead/tfoot (reliable); @page only for
+       small page-edge margins. */
+    @page { margin: 24px 20px; }
+    .doc-layout { width: 100%; border-collapse: collapse; }
+    .doc-head-cell, .doc-foot-cell, .doc-body-cell { padding: 0; border: none; vertical-align: top; }
+    .doc-head-cell { padding-bottom: 10px; }
+    .doc-foot-cell { height: 46px; }
     .wrap { padding: 0; position: relative; }
     .watermark { position: fixed; top: 42%; left: 0; right: 0; text-align: center;
         font-size: 110px; color: rgba(33,150,243,0.08); font-weight: bold;
@@ -96,8 +101,10 @@
     $qr = \App\Support\Qr::svgDataUri($verifyUrl, 120);
 @endphp
 
-{{-- Running header (repeats on every page) --}}
-<div class="pdf-running-header">
+{{-- Document layout: thead repeats the letterhead on every page, tfoot reserves
+     the bottom band for the fixed footer; tbody holds the flowing content. --}}
+<table class="doc-layout">
+<thead><tr><td class="doc-head-cell">
     {{-- Letterhead: logo + company details --}}
     <table class="hdr"><tr>
         @if($logoSrc)
@@ -124,10 +131,9 @@
     <div style="border:2px solid #1a56db; border-radius:5px; padding:5px 14px; text-align:center; margin:10px 0;">
         <span style="color:#1a56db; font-size:15px; font-weight:bold; letter-spacing:1px;">REEFER ELECTRICITY INVOICE</span>
     </div>
-</div>
-
-{{-- Running footer (repeats on every page) --}}
-@include('partials.pdf-footer', ['company' => $company])
+</td></tr></thead>
+<tfoot><tr><td class="doc-foot-cell">&nbsp;</td></tr></tfoot>
+<tbody><tr><td class="doc-body-cell">
 
 <div class="wrap">
 
@@ -220,5 +226,8 @@
     @endif
 
 </div>
+</td></tr></tbody>
+</table>
+@include('partials.pdf-footer', ['company' => $company])
 </body>
 </html>
