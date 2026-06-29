@@ -8,6 +8,7 @@ use App\Models\ChargeCode;
 use App\Models\Customer;
 use App\Models\GlJournal;
 use App\Models\InvoicePosting;
+use App\Services\CurrencyService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -154,19 +155,25 @@ class InvoicePostingService
         //   • storage / storage-handling → amounts are ALREADY in base LKR
         //     (StorageBillingController / StorageHandlingController convert the
         //     tariff rate to LKR via CurrencyService::tariffMultiplier before
-        //     persisting; `total_value` == `total_amount`). They must NOT be
-        //     re-multiplied by the exchange rate.
-        //   • reefer / repair → amounts are stored in the invoice (display)
-        //     currency, so convert to base via × exchange_rate.
-        // Applying the rate uniformly double-converted non-LKR storage invoices
-        // (e.g. a USD-issued storage invoice was posted at exchange_rate × its
-        // already-LKR total, overstating AR/revenue ~rate×).
+        //     persisting; `total_value` == `total_amount`).
+        //   • reefer / repair → amounts are stored in the invoice currency.
+        //
+        // So the conversion multiplier is decided by the STORED currency, not the
+        // invoice type alone: multiply by exchange_rate only when the stored
+        // amounts are in a non-base currency. Applying exchange_rate uniformly
+        // double-converted any invoice whose amounts were already LKR while a
+        // non-unity rate was on the record (e.g. a USD-issued storage invoice, or
+        // an LKR reefer invoice that still carried the USD→LKR rate) — overstating
+        // AR/revenue ~rate×.
         //
         // The AR debit is summed from the credits last to avoid rounding gaps;
         // this lets receipts relieve AR at the booked rate with a clean FX
         // gain/loss on settlement.
-        $storesBaseCurrency = in_array($invoiceType, ['storage', 'storage-handling'], true);
-        $rate = $storesBaseCurrency
+        $default        = CurrencyService::defaultCurrency();
+        $storedCurrency = in_array($invoiceType, ['storage', 'storage-handling'], true)
+            ? $default
+            : strtoupper((string) ($invoice->invoice_currency ?? $invoice->currency ?? $default));
+        $rate = $storedCurrency === $default
             ? 1.0
             : ((float) ($invoice->exchange_rate ?? 1) ?: 1.0);
 
