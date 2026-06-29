@@ -48,7 +48,7 @@
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, Helvetica, sans-serif; color: #222; font-size: {{ $half ? '9px' : '12px' }}; }
-    .wrap { padding: {{ $half ? '6px 4px' : '10px 6px' }}; position: relative; }
+    .wrap { padding: {{ $half ? '6px 4px 42px' : '10px 6px 46px' }}; position: relative; }
     .watermark { position: fixed; top: 42%; left: 0; right: 0; text-align: center;
         font-size: {{ $half ? '56px' : '110px' }}; color: rgba(220,53,69,0.10); font-weight: bold;
         transform: rotate(-22deg); letter-spacing: 6px; z-index: 0; }
@@ -174,10 +174,7 @@
     </div>
     @endif
 
-    <table class="ftr"><tr>
-        <td style="text-align:left;">Computer-generated receipt · {{ $company->company_name }}</td>
-        <td style="text-align:right;">&copy; {{ date('Y') }} {{ $company->software_provider ?? 'CYM Software' }}</td>
-    </tr></table>
 </div>
+@include('partials.pdf-footer', ['company' => $company])
 </body>
 </html>
