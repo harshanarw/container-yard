@@ -149,12 +149,26 @@ class InvoicePostingService
             );
         }
 
-        // The GL is kept in base/reporting currency. Convert every leg by the
-        // invoice's exchange rate (1.0 for base-currency invoices → no-op), and
-        // sum the AR debit from the credits last to avoid rounding gaps. This
-        // matches the AP side (SupplierInvoicePostingService) and lets receipts
-        // relieve AR at the booked rate with a clean FX gain/loss on settlement.
-        $rate = (float) ($invoice->exchange_rate ?? 1) ?: 1.0;
+        // The GL is kept in base/reporting currency (LKR). Source documents are
+        // NOT uniform about which currency their stored amounts are in:
+        //   • storage / storage-handling → amounts are ALREADY in base LKR
+        //     (StorageBillingController / StorageHandlingController convert the
+        //     tariff rate to LKR via CurrencyService::tariffMultiplier before
+        //     persisting; `total_value` == `total_amount`). They must NOT be
+        //     re-multiplied by the exchange rate.
+        //   • reefer / repair → amounts are stored in the invoice (display)
+        //     currency, so convert to base via × exchange_rate.
+        // Applying the rate uniformly double-converted non-LKR storage invoices
+        // (e.g. a USD-issued storage invoice was posted at exchange_rate × its
+        // already-LKR total, overstating AR/revenue ~rate×).
+        //
+        // The AR debit is summed from the credits last to avoid rounding gaps;
+        // this lets receipts relieve AR at the booked rate with a clean FX
+        // gain/loss on settlement.
+        $storesBaseCurrency = in_array($invoiceType, ['storage', 'storage-handling'], true);
+        $rate = $storesBaseCurrency
+            ? 1.0
+            : ((float) ($invoice->exchange_rate ?? 1) ?: 1.0);
 
         $creditLines = [];
 
