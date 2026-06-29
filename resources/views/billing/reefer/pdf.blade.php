@@ -43,8 +43,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: DejaVu Sans, Arial, sans-serif; color: #222; font-size: 11px; }
     /* Reserve space for the running header/footer on every page. */
-    @page { margin: 170px 22px 54px 22px; }
-    .pdf-running-header { position: fixed; top: -170px; left: 0; right: 0; height: 160px; padding: 16px 22px 0; background: #fff; }
+    @page { margin: 178px 22px 56px 22px; }
+    .pdf-running-header { position: fixed; top: 0; left: 0; right: 0; padding: 16px 22px 0; background: #fff; }
     .wrap { padding: 0; position: relative; }
     .watermark { position: fixed; top: 42%; left: 0; right: 0; text-align: center;
         font-size: 110px; color: rgba(33,150,243,0.08); font-weight: bold;

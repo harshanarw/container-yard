@@ -8,8 +8,8 @@
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #333; background: #fff; }
         /* Reserve top space for the running header and bottom space for the footer
            on every page; content flows in between and paginates automatically. */
-        @page { margin: 170px 30px 54px 30px; }
-        .pdf-running-header { position: fixed; top: -170px; left: 0; right: 0; height: 160px; padding: 16px 30px 0; background: #fff; }
+        @page { margin: 178px 30px 56px 30px; }
+        .pdf-running-header { position: fixed; top: 0; left: 0; right: 0; padding: 16px 30px 0; background: #fff; }
         .page { padding: 0; }
 
         /* ── Header ── */

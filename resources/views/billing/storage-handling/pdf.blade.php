@@ -7,8 +7,8 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #222; background: #fff; }
         /* Reserve space for the running header/footer on every page. */
-        @page { margin: 170px 26px 54px 26px; }
-        .pdf-running-header { position: fixed; top: -170px; left: 0; right: 0; height: 160px; padding: 16px 26px 0; background: #fff; }
+        @page { margin: 178px 26px 56px 26px; }
+        .pdf-running-header { position: fixed; top: 0; left: 0; right: 0; padding: 16px 26px 0; background: #fff; }
         .page { padding: 0; }
 
         /* ── Header ── */
@@ -103,53 +103,7 @@
 
 <div class="page">
 
-{{-- Invoice meta --}}
-<table style="width:100%; margin-bottom:14px;"><tr>
-    <td style="width:55%; vertical-align:top;">&nbsp;</td>
-    <td style="width:45%; vertical-align:top;">
-        <table style="width:100%;">
-            <tr>
-                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Invoice No</td>
-                <td style="font-weight:bold; font-size:11px; font-family:monospace;">{{ $invoice->invoice_no }}</td>
-            </tr>
-            <tr>
-                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Status</td>
-                <td style="font-weight:bold;">{{ ucfirst($invoice->status) }}</td>
-            </tr>
-            <tr>
-                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Invoice Date</td>
-                <td style="font-weight:bold; font-size:11px;">{{ $invoice->invoice_date->format('d M Y') }}</td>
-            </tr>
-            @if($invoice->due_date)
-            <tr>
-                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Payment Due</td>
-                <td style="font-weight:bold;">{{ $invoice->due_date->format('d M Y') }}</td>
-            </tr>
-            @endif
-            <tr>
-                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Billing Period</td>
-                <td style="font-weight:bold;">
-                    {{ $invoice->billing_period_from->format('d M Y') }}
-                    &ndash;
-                    {{ $invoice->billing_period_to->format('d M Y') }}
-                </td>
-            </tr>
-            <tr>
-                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">Invoice Currency</td>
-                <td style="font-weight:bold; color:#0d6efd;">
-                    {{ $dispCur }}
-                    <span style="font-size:8px; font-weight:normal; color:#888;">(Base: LKR)</span>
-                </td>
-            </tr>
-            <tr>
-                <td style="text-align:right; color:#888; font-size:8px; padding-right:6px;">USD &rarr; LKR Rate</td>
-                <td style="font-size:9px;">1 USD = {{ number_format($invoice->exchange_rate, 4) }} LKR</td>
-            </tr>
-        </table>
-    </td>
-</tr></table>
-
-{{-- ── Info Grid ── --}}
+{{-- ── Bill To (left) + Invoice details (right) ── --}}
 <table style="width:100%; margin-bottom:14px;">
     <tr>
         <td style="width:50%; vertical-align:top; padding-right:8px;">
@@ -173,34 +127,17 @@
         </td>
         <td style="width:50%; vertical-align:top; padding-left:8px;">
             <div class="info-box">
-                <h3>Invoice Summary</h3>
+                <h3>Invoice Details</h3>
                 <table style="width:100%;">
-                    <tr>
-                        <td class="lbl">Storage Subtotal</td>
-                        <td class="val">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
-                    </tr>
-                    <tr>
-                        <td class="lbl">Handling Subtotal</td>
-                        <td class="val">{{ $fmtDisp($invoice->handling_subtotal) }}</td>
-                    </tr>
-                    @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
-                    <tr>
-                        <td class="lbl">SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</td>
-                        <td class="val">{{ $fmtDisp($invoice->sscl_amount) }}</td>
-                    </tr>
+                    <tr><td class="lbl">Invoice No</td><td class="val" style="font-family:monospace;">{{ $invoice->invoice_no }}</td></tr>
+                    <tr><td class="lbl">Status</td><td class="val">{{ ucfirst($invoice->status) }}</td></tr>
+                    <tr><td class="lbl">Invoice Date</td><td class="val">{{ $invoice->invoice_date->format('d M Y') }}</td></tr>
+                    @if($invoice->due_date)
+                    <tr><td class="lbl">Payment Due</td><td class="val">{{ $invoice->due_date->format('d M Y') }}</td></tr>
                     @endif
-                    @if($invoice->vat_amount > 0 || $invoice->vat_percentage > 0)
-                    <tr>
-                        <td class="lbl">VAT ({{ number_format($invoice->vat_percentage, 2) }}%)</td>
-                        <td class="val">{{ $fmtDisp($invoice->vat_amount) }}</td>
-                    </tr>
-                    @endif
-                    <tr>
-                        <td class="lbl" style="font-weight:bold;padding-top:4px;border-top:1px solid #dee2e6;">Total Amount</td>
-                        <td class="val" style="font-size:12px;color:#0d6efd;padding-top:4px;border-top:1px solid #dee2e6;">
-                            {{ $fmtDisp($invoice->total_amount) }}
-                        </td>
-                    </tr>
+                    <tr><td class="lbl">Billing Period</td><td class="val">{{ $invoice->billing_period_from->format('d M Y') }} &ndash; {{ $invoice->billing_period_to->format('d M Y') }}</td></tr>
+                    <tr><td class="lbl">Invoice Currency</td><td class="val" style="color:#0d6efd;">{{ $dispCur }} <span style="font-size:8px; font-weight:normal; color:#888;">(Base: LKR)</span></td></tr>
+                    <tr><td class="lbl">USD &rarr; LKR Rate</td><td class="val" style="font-weight:normal; font-size:9px;">1 USD = {{ number_format($invoice->exchange_rate, 4) }} LKR</td></tr>
                 </table>
             </div>
         </td>
