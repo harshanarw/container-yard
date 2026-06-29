@@ -113,13 +113,16 @@ class ArCreditNoteController extends Controller
                 return;
             }
 
-            $cn->applications()->create([
+            $application = $cn->applications()->create([
                 'invoice_type'   => $cn->reference_invoice_type,
                 'invoice_id'     => $invoice->id,
                 'applied_amount' => $amount,
                 'base_amount'    => round($amount * (float) ($cn->exchange_rate ?: 1), 4),
             ]);
             $this->allocationService->syncInvoiceStatus($invoice, $cn->reference_invoice_type);
+            // Recognise FX if the invoice was booked at a different rate (no-op here
+            // since the CN inherits the invoice rate, but kept for correctness).
+            $this->postingService->postApplicationFx($cn, $application, auth()->id());
         } catch (\Throwable) {
             // leave for manual application
         }
@@ -343,7 +346,7 @@ class ArCreditNoteController extends Controller
                     throw new \RuntimeException('Applied amount exceeds the credit note unapplied balance of ' . number_format($remaining, 2) . '.');
                 }
 
-                $locked->applications()->create([
+                $application = $locked->applications()->create([
                     'invoice_type'   => $validated['invoice_type'],
                     'invoice_id'     => $invoice->id,
                     'applied_amount' => $amount,
@@ -351,6 +354,9 @@ class ArCreditNoteController extends Controller
                 ]);
 
                 $this->allocationService->syncInvoiceStatus($invoice, $validated['invoice_type']);
+                // Recognise realized FX when the credit note's rate differs from the
+                // invoice's booked rate (clears the AR-control residue to gain/loss).
+                $this->postingService->postApplicationFx($locked, $application, auth()->id());
             });
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
@@ -369,7 +375,16 @@ class ArCreditNoteController extends Controller
 
         $type = $application->invoice_type;
         $id   = $application->invoice_id;
-        $application->delete();
+
+        try {
+            DB::transaction(function () use ($application) {
+                // Reverse the application's FX adjustment (if any) before removing it.
+                $this->postingService->voidApplicationFx($application, auth()->id(), 'Application removed');
+                $application->delete();
+            });
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         try {
             $invoice = $this->allocationService->resolveInvoice($type, (int) $id);

@@ -5,7 +5,9 @@ namespace App\Services\Finance;
 use App\Models\Account;
 use App\Models\AccountMapping;
 use App\Models\ArCreditNote;
+use App\Models\ArCreditNoteApplication;
 use App\Models\ChargeCode;
+use App\Models\GlJournal;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -15,7 +17,10 @@ use Illuminate\Support\Facades\DB;
  */
 class ArCreditNotePostingService
 {
-    public function __construct(private PostingEngine $engine) {}
+    public function __construct(
+        private PostingEngine $engine,
+        private ArAllocationService $arAllocation,
+    ) {}
 
     public function approve(ArCreditNote $cn, int $userId): ArCreditNote
     {
@@ -113,12 +118,106 @@ class ArCreditNotePostingService
             throw new \RuntimeException('Only approved credit notes can be cancelled.');
         }
 
+        $cn->loadMissing('applications');
+
         DB::transaction(function () use ($cn, $userId, $reason) {
+            // Reverse any per-application FX adjustments before the main reversal.
+            foreach ($cn->applications as $application) {
+                $this->voidApplicationFx($application, $userId, $reason);
+            }
             if ($cn->journal) {
                 $this->engine->voidJournal($cn->journal->load('entries'), $userId, $reason);
             }
             $cn->update(['status' => 'cancelled']);
         });
+    }
+
+    /**
+     * Post a per-application FX adjustment when an approved credit note settles an
+     * invoice booked at a different exchange rate than the credit note itself.
+     *
+     * The credit note relieves AR at its OWN rate when approved, so matching it to
+     * an invoice booked at another rate leaves a residue in AR control of
+     * applied × (invoiceRate − cnRate). This clears that residue to the FX
+     * gain/loss accounts — the same realized FX that receipts recognise on
+     * settlement. No-op when the rates match (the common case, e.g. a credit note
+     * raised from the invoice), and a safe no-op until the credit note is posted.
+     */
+    public function postApplicationFx(ArCreditNote $cn, ArCreditNoteApplication $application, int $userId): void
+    {
+        if (!$cn->isApproved()) {
+            return; // the AR relief this corrects only exists once the CN is posted
+        }
+
+        $invoice = $this->arAllocation->resolveInvoice($application->invoice_type, (int) $application->invoice_id);
+        $invRate = $this->arAllocation->getExchangeRate($invoice, $application->invoice_type);
+        $cnRate  = (float) ($cn->exchange_rate ?: 1);
+
+        $residue = round((float) $application->applied_amount * ($invRate - $cnRate), 2);
+        if (abs($residue) < 0.01) {
+            return;
+        }
+
+        $arAccount = $this->resolveArAccount();
+        if (!$arAccount) {
+            throw new \RuntimeException('No AR control account mapped. Configure Account Mappings → AR/AP Controls.');
+        }
+        [$gain, $loss] = $this->resolveFxAccounts();
+
+        if ($residue > 0) {
+            // AR under-relieved (leftover debit) → clear it, recognise an FX loss.
+            if (!$loss) {
+                throw new \RuntimeException('No Foreign Exchange Loss account found (expected code 7002). Add it to the Chart of Accounts.');
+            }
+            $lines = [
+                ['account_id' => $arAccount->id, 'debit' => 0, 'credit' => $residue, 'narration' => 'AR FX adjustment — credit note application'],
+                ['account_id' => $loss->id, 'debit' => $residue, 'credit' => 0, 'narration' => 'Exchange loss on credit note application'],
+            ];
+        } else {
+            // AR over-relieved (leftover credit) → clear it, recognise an FX gain.
+            $mag = -$residue;
+            if (!$gain) {
+                throw new \RuntimeException('No Foreign Exchange Gain account found (expected code 4102). Add it to the Chart of Accounts.');
+            }
+            $lines = [
+                ['account_id' => $arAccount->id, 'debit' => $mag, 'credit' => 0, 'narration' => 'AR FX adjustment — credit note application'],
+                ['account_id' => $gain->id, 'debit' => 0, 'credit' => $mag, 'narration' => 'Exchange gain on credit note application'],
+            ];
+        }
+
+        $journal = $this->engine->createJournal([
+            'journal_date'   => now()->toDateString(),
+            'journal_type'   => 'credit_note',
+            'reference_type' => ArCreditNoteApplication::class,
+            'reference_id'   => $application->id,
+            'narration'      => "FX on credit note {$cn->credit_note_no} applied to {$application->invoice_type}#{$application->invoice_id}",
+        ], $lines);
+
+        $this->engine->postJournal($journal, $userId);
+    }
+
+    /** Void the FX adjustment journal (if any) for a removed/cancelled application. */
+    public function voidApplicationFx(ArCreditNoteApplication $application, int $userId, string $reason = ''): void
+    {
+        GlJournal::where('reference_type', ArCreditNoteApplication::class)
+            ->where('reference_id', $application->id)
+            ->where('status', 'posted')
+            ->get()
+            ->each(fn ($j) => $this->engine->voidJournal($j->load('entries'), $userId, $reason));
+    }
+
+    /** Resolve [gainAccount, lossAccount] — mapping override, else by code. */
+    private function resolveFxAccounts(): array
+    {
+        $gain = AccountMapping::where('mapping_type', 'forex_gain')
+                ->whereNull('source_type')->whereNull('source_id')->where('is_active', true)->first()?->account
+            ?? Account::where('code', '4102')->where('is_active', true)->first();
+
+        $loss = AccountMapping::where('mapping_type', 'forex_loss')
+                ->whereNull('source_type')->whereNull('source_id')->where('is_active', true)->first()?->account
+            ?? Account::where('code', '7002')->where('is_active', true)->first();
+
+        return [$gain, $loss];
     }
 
     private function resolveArAccount(): ?Account
