@@ -134,16 +134,19 @@ class RepairInvoiceController extends Controller
         $grandTotal = round($subtotal + $taxAmount, 2);
         $taxPct     = $subtotal > 0 ? round($taxAmount / $subtotal * 100, 4) : 0;
 
-        $invoice = DB::transaction(function () use ($estimate, $lineRecords, $subtotal, $ssclTotal, $vatTotal, $taxAmount, $grandTotal, $taxPct, $validated) {
-            $invNo = app(\App\Services\NumberSequenceService::class)->generate('repair_invoice');
+        // Snapshot the exchange rate at invoice time so the AR can later be relieved
+        // at the booked rate (FX gain/loss on settlement). A foreign-currency
+        // customer with no configured rate is rejected rather than silently booked
+        // at 1.0, which would understate the base-currency ledger.
+        $currency = $estimate->customer?->currency ?? \App\Models\CompanySetting::baseCurrency();
+        try {
+            $rate = \App\Services\CurrencyService::resolveRateOrFail($currency, now()->toDateString());
+        } catch (\InvalidArgumentException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
 
-            // Snapshot the exchange rate at invoice time so the AR can later be
-            // relieved at the rate it was booked (FX gain/loss on settlement).
-            $currency = $estimate->customer?->currency ?? \App\Models\CompanySetting::baseCurrency();
-            $base     = \App\Models\CompanySetting::baseCurrency();
-            $rate     = strtoupper($currency) === $base
-                ? 1.0
-                : (\App\Models\ExchangeRate::getRate($currency, $base, now()->toDateString()) ?? 1.0);
+        $invoice = DB::transaction(function () use ($estimate, $lineRecords, $subtotal, $ssclTotal, $vatTotal, $taxAmount, $grandTotal, $taxPct, $validated, $currency, $rate) {
+            $invNo = app(\App\Services\NumberSequenceService::class)->generate('repair_invoice');
 
             $invoice = \App\Models\RepairInvoice::create([
                 'invoice_no'     => $invNo,

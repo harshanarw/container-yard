@@ -462,7 +462,13 @@ class StorageHandlingController extends Controller
             return $guardError;
         }
 
-        $invoiceCurrency  = strtoupper($v['invoice_currency'] ?? 'LKR');
+        $invoiceCurrency  = strtoupper($v['invoice_currency'] ?? CurrencyService::defaultCurrency());
+        // A foreign-currency invoice must carry a positive rate — never persist with
+        // a silent 1.0 fallback, which would understate the base-currency ledger.
+        if ($invoiceCurrency !== CurrencyService::defaultCurrency() && (float) ($v['exchange_rate'] ?? 0) <= 0) {
+            return back()->withInput()->with('error',
+                "A valid {$invoiceCurrency} → " . CurrencyService::defaultCurrency() . ' exchange rate is required for a foreign-currency invoice.');
+        }
         $exchangeRate     = (float) ($v['exchange_rate'] ?? 1.0);
         $ssclPct          = (float) ($v['sscl_percentage'] ?? 0);
         $vatPct           = (float) ($v['vat_percentage'] ?? 0);

@@ -57,4 +57,57 @@ class CurrencyService
         }
         return $exchangeRate > 0 ? 1.0 / $exchangeRate : 1.0;
     }
+
+    /**
+     * Validate a user-supplied exchange rate for a document in $currency.
+     *
+     * Base currency always returns 1.0. A foreign currency requires a positive
+     * rate — throws InvalidArgumentException otherwise, so a document is never
+     * persisted in a foreign currency with the rate silently defaulting to 1.0
+     * (which would understate the base-currency ledger by the true rate).
+     */
+    public static function requireRate(?string $currency, $providedRate): float
+    {
+        $base = static::defaultCurrency();
+        $cur  = strtoupper((string) ($currency ?: $base));
+
+        if ($cur === $base) {
+            return 1.0;
+        }
+
+        $rate = (float) ($providedRate ?? 0);
+        if ($rate <= 0) {
+            throw new \InvalidArgumentException(
+                "A valid exchange rate is required for a {$cur} document (base currency is {$base}). "
+                . "Enter the {$cur} → {$base} rate before saving."
+            );
+        }
+
+        return $rate;
+    }
+
+    /**
+     * Look up the rate for $currency on $date, failing if none is configured.
+     * Used where the rate is auto-resolved (e.g. repair invoices) so a missing
+     * rate surfaces as an error instead of silently falling back to 1.0.
+     */
+    public static function resolveRateOrFail(?string $currency, ?string $date = null): float
+    {
+        $base = static::defaultCurrency();
+        $cur  = strtoupper((string) ($currency ?: $base));
+
+        if ($cur === $base) {
+            return 1.0;
+        }
+
+        $rate = ExchangeRate::getRate($cur, $base, $date ?? today()->toDateString());
+        if (!$rate || $rate <= 0) {
+            throw new \InvalidArgumentException(
+                "No exchange rate is configured for {$cur} → {$base}. "
+                . "Add one under Finance → Exchange Rates before issuing this document."
+            );
+        }
+
+        return (float) $rate;
+    }
 }
