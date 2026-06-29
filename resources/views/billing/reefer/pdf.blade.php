@@ -42,7 +42,10 @@
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: DejaVu Sans, Arial, sans-serif; color: #222; font-size: 11px; }
-    .wrap { padding: 10px 6px 52px; position: relative; }
+    /* Reserve space for the running header/footer on every page. */
+    @page { margin: 150px 22px 52px 22px; }
+    .pdf-running-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 22px 0; background: #fff; }
+    .wrap { padding: 0; position: relative; }
     .watermark { position: fixed; top: 42%; left: 0; right: 0; text-align: center;
         font-size: 110px; color: rgba(33,150,243,0.08); font-weight: bold;
         transform: rotate(-22deg); letter-spacing: 6px; z-index: 0; }
@@ -88,12 +91,13 @@
 </head>
 <body>
 @if($watermark)<div class="watermark">{{ $watermark }}</div>@endif
-<div class="wrap">
+@php
+    $verifyUrl = \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'reefer', 'id' => $reeferInvoice->id]);
+    $qr = \App\Support\Qr::svgDataUri($verifyUrl, 100);
+@endphp
 
-    @php
-        $verifyUrl = \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'reefer', 'id' => $reeferInvoice->id]);
-        $qr = \App\Support\Qr::svgDataUri($verifyUrl, 100);
-    @endphp
+{{-- Running header (repeats on every page) --}}
+<div class="pdf-running-header">
     {{-- Letterhead: logo + company details --}}
     <table class="hdr"><tr>
         @if($logoSrc)
@@ -120,6 +124,12 @@
     <div style="border:2px solid #1a56db; border-radius:6px; padding:8px 12px; text-align:center; margin:14px 0 12px;">
         <span style="color:#1a56db; font-size:20px; font-weight:bold; letter-spacing:1px;">REEFER ELECTRICITY INVOICE</span>
     </div>
+</div>
+
+{{-- Running footer (repeats on every page) --}}
+@include('partials.pdf-footer', ['company' => $company])
+
+<div class="wrap">
 
     {{-- Billed-To + meta (two real columns — no floats) --}}
     <table style="margin-bottom:14px;"><tr>
@@ -209,8 +219,6 @@
     <div style="clear:both; margin-top:14px; font-size:10px;"><span class="muted">Notes:</span> {{ $reeferInvoice->notes }}</div>
     @endif
 
-    {{-- Footer --}}
-    @include('partials.pdf-footer', ['company' => $company])
 </div>
 </body>
 </html>

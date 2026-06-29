@@ -6,7 +6,10 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #222; background: #fff; }
-        .page { padding: 20px 26px 52px; }
+        /* Reserve space for the running header/footer on every page. */
+        @page { margin: 150px 26px 52px 26px; }
+        .pdf-running-header { position: fixed; top: 0; left: 0; right: 0; padding: 16px 26px 0; background: #fff; }
+        .page { padding: 0; }
 
         /* ── Header ── */
         .badge-status {
@@ -75,7 +78,6 @@
     </style>
 </head>
 <body>
-<div class="page">
 
 @php
     $dispCur  = $invoice->invoice_currency ?? 'LKR';
@@ -87,12 +89,19 @@
     $liftOnLines  = $invoice->lines->where('has_lift_on', true)->values();
 @endphp
 
-{{-- ── Header ── --}}
-@include('partials.pdf-letterhead', [
-    'title'     => 'STORAGE & HANDLING INVOICE',
-    'accent'    => '#0d6efd',
-    'verifyUrl' => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage-handling', 'id' => $invoice->id]),
-])
+{{-- ── Running header (repeats on every page) ── --}}
+<div class="pdf-running-header">
+    @include('partials.pdf-letterhead', [
+        'title'     => 'STORAGE & HANDLING INVOICE',
+        'accent'    => '#0d6efd',
+        'verifyUrl' => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage-handling', 'id' => $invoice->id]),
+    ])
+</div>
+
+{{-- ── Running footer (repeats on every page) ── --}}
+@include('partials.pdf-footer')
+
+<div class="page">
 
 {{-- Invoice meta --}}
 <table style="width:100%; margin-bottom:14px;"><tr>
@@ -379,8 +388,6 @@
     <strong>Notes:</strong> {{ $invoice->notes }}
 </div>
 @endif
-
-@include('partials.pdf-footer')
 
 </div>
 </body>

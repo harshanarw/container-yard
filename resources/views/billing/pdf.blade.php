@@ -6,7 +6,11 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #333; background: #fff; }
-        .page { padding: 24px 30px 52px; }
+        /* Reserve top space for the running header and bottom space for the footer
+           on every page; content flows in between and paginates automatically. */
+        @page { margin: 150px 30px 52px 30px; }
+        .pdf-running-header { position: fixed; top: 0; left: 0; right: 0; padding: 16px 30px 0; background: #fff; }
+        .page { padding: 0; }
 
         /* ── Header ── */
         .company-name { font-size: 16px; font-weight: bold; color: #1a56db; }
@@ -71,28 +75,26 @@
     </style>
 </head>
 <body>
-<div class="page">
 
 @php
     $dispCur  = $invoice->invoice_currency ?? 'LKR';
     $dispRate = (float) ($invoice->exchange_rate ?? 1.0);
     $disp     = fn($lkr) => $dispCur === 'LKR' ? $lkr : round($lkr / $dispRate, 2);
     $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
-
-    $badgeClass = match($invoice->status) {
-        'draft'     => 'badge-draft',
-        'issued'    => 'badge-issued',
-        'paid'      => 'badge-paid',
-        'cancelled' => 'badge-cancelled',
-        default     => 'badge-draft',
-    };
 @endphp
 
-{{-- ── Header ── --}}
-@include('partials.pdf-letterhead', [
-    'title'     => 'STORAGE INVOICE',
-    'verifyUrl' => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage', 'id' => $invoice->id]),
-])
+{{-- ── Running header (repeats on every page) ── --}}
+<div class="pdf-running-header">
+    @include('partials.pdf-letterhead', [
+        'title'     => 'STORAGE INVOICE',
+        'verifyUrl' => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage', 'id' => $invoice->id]),
+    ])
+</div>
+
+{{-- ── Running footer (repeats on every page) ── --}}
+@include('partials.pdf-footer')
+
+<div class="page">
 
 {{-- ── Info Grid ── --}}
 <table style="width:100%; margin-bottom:16px;">
@@ -277,8 +279,6 @@
     <strong>Notes:</strong> {{ $invoice->notes }}
 </div>
 @endif
-
-@include('partials.pdf-footer')
 
 </div>
 </body>

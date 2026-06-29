@@ -7,7 +7,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #333; background: #fff; }
-        .page { max-width: 860px; margin: 0 auto; padding: 30px 30px 56px; }
+        .page { max-width: 860px; margin: 0 auto; padding: 30px; }
 
         /* Header */
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; border-bottom: 2px solid #1a56db; padding-bottom: 16px; }
@@ -362,7 +362,11 @@
     @endif
 
     <!-- Footer -->
-    @include('partials.pdf-footer')
+    @php $__co = \App\Models\CompanySetting::current(); @endphp
+    <div class="footer">
+        <div>&copy; {{ date('Y') }} {{ $__co->software_provider ?? 'CYM Software' }} &nbsp;&middot;&nbsp; Generated {{ now()->format('d M Y H:i') }}</div>
+        <div>Prepared by: {{ $estimate->createdBy->name ?? '—' }}</div>
+    </div>
 
 </div>
 
