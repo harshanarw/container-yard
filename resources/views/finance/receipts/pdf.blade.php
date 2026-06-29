@@ -47,20 +47,20 @@
 <title>Receipt {{ $receipt->receipt_no }}</title>
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, Helvetica, sans-serif; color: #222; font-size: {{ $half ? '9px' : '12px' }}; }
+    body { font-family: 'Courier New', Courier, monospace; color: #222; font-size: {{ $half ? '9px' : '12px' }}; }
     .wrap { padding: {{ $half ? '6px 4px 42px' : '10px 6px 46px' }}; position: relative; }
     .watermark { position: fixed; top: 42%; left: 0; right: 0; text-align: center;
         font-size: {{ $half ? '56px' : '110px' }}; color: rgba(220,53,69,0.10); font-weight: bold;
         transform: rotate(-22deg); letter-spacing: 6px; z-index: 0; }
     table { width: 100%; border-collapse: collapse; }
-    .hdr td { vertical-align: top; }
+    .hdr td { vertical-align: top; text-transform: uppercase; }
     .co-name { font-size: {{ $half ? '13px' : '18px' }}; font-weight: bold; color: #1a56db; }
     .co-sub { color: #666; font-size: {{ $half ? '8px' : '10px' }}; line-height: 1.5; margin-top: 2px; }
     .doc-title { text-align: right; }
     .doc-title h1 { color: #1a56db; font-size: {{ $half ? '16px' : '24px' }}; letter-spacing: 1px; }
     .doc-no { font-weight: bold; font-size: {{ $half ? '10px' : '13px' }}; }
     .rule { border-bottom: 2px solid #1a56db; margin: {{ $half ? '5px 0' : '10px 0' }}; }
-    .meta td { padding: {{ $half ? '1px 4px' : '3px 6px' }}; font-size: {{ $half ? '8.5px' : '11px' }}; }
+    .meta td { padding: {{ $half ? '1px 4px' : '3px 6px' }}; font-size: {{ $half ? '8.5px' : '11px' }}; text-transform: uppercase; }
     .meta .lbl { color: #666; width: 18%; }
     .meta .val { font-weight: bold; width: 32%; }
     .amount-box { border: 1px solid #cdd6e4; background: #f3f7ff; border-radius: 5px;

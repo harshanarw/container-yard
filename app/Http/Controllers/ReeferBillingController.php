@@ -295,6 +295,7 @@ class ReeferBillingController extends Controller
             'ird_invoice_no'        => $reeferInvoice->ird_invoice_no ?? '—',
             'invoice_date'          => $reeferInvoice->invoice_date,
             'company'               => $company,
+            'verifyUrl'             => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'reefer', 'id' => $reeferInvoice->id]),
             'customer'              => $reeferInvoice->customer,
             'lines'                 => $lines,
             'subtotal'              => $reeferInvoice->subtotal,

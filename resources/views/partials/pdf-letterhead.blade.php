@@ -34,7 +34,7 @@
 
     $__qr = \App\Support\Qr::svgDataUri($verifyUrl ?? null, 120);
 @endphp
-<table style="width:100%; border-collapse:collapse;"><tr>
+<table style="width:100%; border-collapse:collapse; text-transform:uppercase;"><tr>
     @if($__logo)
     <td style="width:1%; white-space:nowrap; padding-right:12px; vertical-align:middle; border:none;">
         <img src="{{ $__logo }}" alt="{{ $__co->company_name }}" style="max-height:54px; max-width:170px; display:block;">
@@ -57,6 +57,6 @@
 </tr></table>
 
 {{-- Bordered, centred document title --}}
-<div style="border:2px solid {{ $__accent }}; border-radius:5px; padding:5px 14px; text-align:center; margin:10px 0;">
+<div style="border:2px solid {{ $__accent }}; border-radius:5px; padding:5px 14px; text-align:center; margin:10px 0; text-transform:uppercase;">
     <span style="color:{{ $__accent }}; font-size:15px; font-weight:bold; letter-spacing:1px;">{{ $title }}</span>
 </div>

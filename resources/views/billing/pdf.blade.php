@@ -5,7 +5,7 @@
     <title>Invoice {{ $invoice->invoice_no }}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #333; background: #fff; }
+        body { font-family: 'Courier New', Courier, monospace; font-size: 10px; color: #333; background: #fff; }
         /* Reserve top space for the running header and bottom space for the footer
            on every page; content flows in between and paginates automatically. */
         /* This dompdf build ignores @page margins, so: the header/footer are drawn
@@ -34,7 +34,7 @@
         .badge-cancelled { background: #f8d7da; color: #58151c; }
 
         /* ── Info boxes ── */
-        .info-box { border: 1px solid #dee2e6; border-radius: 5px; padding: 8px 10px; }
+        .info-box { border: 1px solid #dee2e6; border-radius: 5px; padding: 8px 10px; text-transform: uppercase; }
         .info-box h3 {
             font-size: 8px; text-transform: uppercase; letter-spacing: .5px;
             color: #666; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 3px;

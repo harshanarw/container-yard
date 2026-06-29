@@ -11,7 +11,7 @@
         @page { margin: 0; size: A4 portrait; }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: 'Courier New', Courier, monospace;
             font-size: 10px;
             color: #111;
             text-transform: uppercase;
@@ -39,12 +39,10 @@
         .lh-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
         .lh-logo  { width: 76px; vertical-align: middle; }
         .lh-info  { vertical-align: middle; padding-left: 10px; }
-        .lh-tin   { vertical-align: middle; text-align: right; white-space: nowrap; }
+        .lh-tin   { width: 80px; vertical-align: middle; text-align: right; white-space: nowrap; }
         .co-name  { font-size: 15px; font-weight: bold; }
         .co-meta  { font-size: 9px; line-height: 1.6; margin-top: 3px; }
-        .tin-box  { border: 1px solid #888; padding: 5px 10px; display: inline-block; text-align: center; }
-        .tin-lbl  { font-size: 7.5px; letter-spacing: 0.3px; }
-        .tin-val  { font-weight: bold; font-size: 12px; letter-spacing: 1px; }
+        .qr-cap   { font-size: 7px; color: #555; text-align: center; margin-top: 1px; text-transform: none; }
 
         /* ── Title ── */
         .title-wrap { text-align: center; margin-bottom: 8px; }
@@ -125,6 +123,9 @@
             $logoB64 = "data:{$mime};base64," . base64_encode(file_get_contents($lp));
         }
     }
+
+    // Verification QR (right of the letterhead) — same scheme as the other documents.
+    $qrB64 = \App\Support\Qr::svgDataUri($verifyUrl ?? null, 110);
 @endphp
 <table class="lh-table">
     <tr>
@@ -145,12 +146,10 @@
                 @if($company->website){{ $company->website }}@endif
             </div>
         </td>
-        @if($company->tin_number)
+        @if($qrB64)
         <td class="lh-tin">
-            <div class="tin-box">
-                <div class="tin-lbl">VAT Registration / TIN</div>
-                <div class="tin-val">{{ $company->tin_number }}</div>
-            </div>
+            <img src="{{ $qrB64 }}" alt="Verify" style="width:72px;height:72px;display:block;margin-left:auto">
+            <div class="qr-cap">Scan to verify</div>
         </td>
         @endif
     </tr>

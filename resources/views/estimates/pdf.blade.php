@@ -6,7 +6,7 @@
     <title>Estimate {{ $estimate->estimate_no }}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #333; background: #fff; }
+        body { font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #333; background: #fff; }
         .page { max-width: 860px; margin: 0 auto; padding: 30px; }
 
         /* Header */
@@ -25,7 +25,7 @@
 
         /* Info Grid */
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-        .info-box { border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; }
+        .info-box { border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; text-transform: uppercase; }
         .info-box h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #666; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
         .info-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
         .info-label { color: #666; }

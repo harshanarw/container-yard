@@ -788,6 +788,7 @@ class StorageHandlingController extends Controller
             'ird_invoice_no'        => $storageHandlingInvoice->ird_invoice_no ?? '—',
             'invoice_date'          => $storageHandlingInvoice->invoice_date,
             'company'               => $company,
+            'verifyUrl'             => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage-handling', 'id' => $storageHandlingInvoice->id]),
             'customer'              => $shippingLine,
             'lines'                 => $lines,
             'subtotal'              => $storageHandlingInvoice->subtotal,

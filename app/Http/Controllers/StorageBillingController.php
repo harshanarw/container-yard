@@ -627,6 +627,7 @@ class StorageBillingController extends Controller
             'ird_invoice_no'        => $invoice->ird_invoice_no ?? '—',
             'invoice_date'          => $invoice->invoice_date,
             'company'               => $company,
+            'verifyUrl'             => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage', 'id' => $invoice->id]),
             'customer'              => $invoice->customer,
             'lines'                 => $lines,
             'subtotal'              => $invoice->subtotal,

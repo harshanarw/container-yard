@@ -5,7 +5,7 @@
     <title>Invoice {{ $invoice->invoice_no }}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #222; background: #fff; }
+        body { font-family: 'Courier New', Courier, monospace; font-size: 10px; color: #222; background: #fff; }
         /* Reserve space for the running header/footer on every page. */
         /* Header/footer drawn with position:fixed (repeat every page); empty
            thead/tfoot spacers reserve their height. @page ignored by this build. */
@@ -25,7 +25,7 @@
         }
 
         /* ── Info boxes ── */
-        .info-box  { border: 1px solid #dee2e6; border-radius: 5px; padding: 8px 10px; }
+        .info-box  { border: 1px solid #dee2e6; border-radius: 5px; padding: 8px 10px; text-transform: uppercase; }
         .info-box h3 {
             font-size: 8px; text-transform: uppercase; letter-spacing: .04em;
             color: #888; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 3px;

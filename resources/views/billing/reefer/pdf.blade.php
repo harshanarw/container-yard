@@ -41,19 +41,19 @@
 <title>Reefer Electricity Invoice {{ $reeferInvoice->invoice_no }}</title>
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, Helvetica, sans-serif; color: #222; font-size: 10px; }
+    body { font-family: 'Courier New', Courier, monospace; color: #222; font-size: 10px; }
     /* Reserve space for the running header/footer on every page. */
     /* Header/footer drawn with position:fixed (repeat every page); empty
        thead/tfoot spacers reserve their height. @page ignored by this build. */
     @page { margin: 0; }
-    .pdf-fixed-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 24px 0; background: #fff; }
+    .pdf-fixed-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 24px 0; background: #fff; text-transform: uppercase; }
     .doc-layout { width: 100%; border-collapse: collapse; }
     .doc-body-cell { padding: 0 24px; border: none; vertical-align: top; }
     .doc-spacer-head { height: 120px; }
     .doc-spacer-foot { height: 44px; }
     .wrap { padding: 0; position: relative; }
     /* Sub-header info boxes — match the storage / handling invoices */
-    .info-box { border: 1px solid #dee2e6; border-radius: 5px; padding: 8px 10px; }
+    .info-box { border: 1px solid #dee2e6; border-radius: 5px; padding: 8px 10px; text-transform: uppercase; }
     .info-box h3 { font-size: 8px; text-transform: uppercase; letter-spacing: .04em; color: #888;
         margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 3px; }
     .lbl { color: #666; width: 42%; vertical-align: top; padding: 1px 4px 1px 0; font-size: 10px; }
