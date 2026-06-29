@@ -151,17 +151,18 @@
             <div class="card-header bg-transparent py-2 d-flex justify-content-between align-items-center">
                 <strong class="small">Payments Applied</strong>
                 <span class="small">
-                    <span class="text-muted">Paid:</span> <span class="font-monospace">{{ number_format($allocated, 2) }}</span>
-                    · <span class="text-muted">Outstanding:</span> <span class="font-monospace fw-semibold {{ $outstanding > 0 ? 'text-danger' : 'text-success' }}">{{ number_format($outstanding, 2) }}</span>
+                    <span class="text-muted">Paid:</span> <span class="font-monospace">{{ number_format($allocated, 2) }} {{ $inv->currency }}</span>
+                    · <span class="text-muted">Outstanding:</span> <span class="font-monospace fw-semibold {{ $outstanding > 0 ? 'text-danger' : 'text-success' }}">{{ number_format($outstanding, 2) }} {{ $inv->currency }}</span>
                 </span>
             </div>
             <div class="table-responsive">
                 <table class="table table-sm align-middle mb-0 small">
                     <thead class="table-light">
-                        <tr><th>Voucher</th><th>Date</th><th>Status</th><th class="text-end">Allocated</th><th>Notes</th></tr>
+                        <tr><th>Document</th><th>Date</th><th>Status</th><th class="text-end">Allocated ({{ $inv->currency }})</th><th>Notes</th></tr>
                     </thead>
                     <tbody>
-                        @forelse($settlements as $alloc)
+                        @php $hasSettlements = $settlements->isNotEmpty() || $creditApplications->isNotEmpty(); @endphp
+                        @foreach($settlements as $alloc)
                         <tr>
                             <td class="font-monospace">
                                 @if($alloc->voucher)
@@ -177,9 +178,23 @@
                             <td class="text-end font-monospace">{{ number_format($alloc->allocated_amount, 2) }}</td>
                             <td class="text-muted">{{ $alloc->notes ?: '—' }}</td>
                         </tr>
-                        @empty
-                        <tr><td colspan="5" class="text-center text-muted py-3">No payments applied yet. Allocate from a draft payment voucher linked to this supplier.</td></tr>
-                        @endforelse
+                        @endforeach
+                        @foreach($creditApplications as $app)
+                        <tr>
+                            <td class="font-monospace">
+                                @if($app->creditNote)
+                                <a href="{{ route('finance.ap-credit-notes.show', $app->creditNote) }}" class="text-decoration-none">{{ $app->creditNote->credit_note_no }}</a>
+                                @else — @endif
+                            </td>
+                            <td class="text-muted">{{ $app->creditNote?->credit_date?->format('d M Y') ?: '—' }}</td>
+                            <td><span class="badge bg-info-subtle text-info">Credit Note</span></td>
+                            <td class="text-end font-monospace">{{ number_format($app->applied_amount, 2) }}</td>
+                            <td class="text-muted">Applied as credit</td>
+                        </tr>
+                        @endforeach
+                        @unless($hasSettlements)
+                        <tr><td colspan="5" class="text-center text-muted py-3">No payments applied yet. Allocate from a draft payment voucher linked to this supplier, or apply an AP credit note.</td></tr>
+                        @endunless
                     </tbody>
                 </table>
             </div>

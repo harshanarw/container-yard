@@ -84,9 +84,10 @@
 <body>
 
 @php
-    $dispCur  = $invoice->invoice_currency ?? 'LKR';
+    $baseCur  = \App\Services\CurrencyService::defaultCurrency();
+    $dispCur  = $invoice->invoice_currency ?? $baseCur;
     $dispRate = (float) ($invoice->exchange_rate ?? 1.0);
-    $disp     = fn($lkr) => $dispCur === 'LKR' ? $lkr : round($lkr / $dispRate, 2);
+    $disp     = fn($lkr) => $dispCur === $baseCur ? $lkr : round($lkr / $dispRate, 2);
     $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
 @endphp
 
@@ -188,11 +189,11 @@
                     </tr>
                     <tr>
                         <td class="info-label">Invoice Currency</td>
-                        <td class="info-value">{{ $dispCur }} <span class="muted" style="font-size:8px;">(Base: LKR)</span></td>
+                        <td class="info-value">{{ $dispCur }} <span class="muted" style="font-size:8px;">(Base: {{ $baseCur }})</span></td>
                     </tr>
                     <tr>
-                        <td class="info-label">USD &rarr; LKR Rate</td>
-                        <td class="info-value">1 USD = {{ number_format($invoice->exchange_rate, 4) }} LKR</td>
+                        <td class="info-label">{{ $dispCur }} &rarr; {{ $baseCur }} Rate</td>
+                        <td class="info-value">1 {{ $dispCur }} = {{ number_format($invoice->exchange_rate, 4) }} {{ $baseCur }}</td>
                     </tr>
                     @if($invoice->sent_at)
                     <tr>

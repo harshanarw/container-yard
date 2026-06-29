@@ -86,9 +86,10 @@
 <body>
 
 @php
-    $dispCur  = $invoice->invoice_currency ?? 'LKR';
+    $baseCur  = \App\Services\CurrencyService::defaultCurrency();
+    $dispCur  = $invoice->invoice_currency ?? $baseCur;
     $dispRate = (float) ($invoice->exchange_rate ?? 1.0);
-    $disp     = fn($lkr) => $dispCur === 'LKR' ? $lkr : round($lkr / $dispRate, 2);
+    $disp     = fn($lkr) => $dispCur === $baseCur ? $lkr : round($lkr / $dispRate, 2);
     $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
 
     $liftOffLines = $invoice->lines->where('has_lift_off', true)->values();
@@ -146,8 +147,8 @@
                     <tr><td class="lbl">Payment Due</td><td class="val">{{ $invoice->due_date->format('d M Y') }}</td></tr>
                     @endif
                     <tr><td class="lbl">Billing Period</td><td class="val">{{ $invoice->billing_period_from->format('d M Y') }} &ndash; {{ $invoice->billing_period_to->format('d M Y') }}</td></tr>
-                    <tr><td class="lbl">Invoice Currency</td><td class="val" style="color:#0d6efd;">{{ $dispCur }} <span style="font-size:8px; font-weight:normal; color:#888;">(Base: LKR)</span></td></tr>
-                    <tr><td class="lbl">USD &rarr; LKR Rate</td><td class="val" style="font-weight:normal; font-size:9px;">1 USD = {{ number_format($invoice->exchange_rate, 4) }} LKR</td></tr>
+                    <tr><td class="lbl">Invoice Currency</td><td class="val" style="color:#0d6efd;">{{ $dispCur }} <span style="font-size:8px; font-weight:normal; color:#888;">(Base: {{ $baseCur }})</span></td></tr>
+                    <tr><td class="lbl">{{ $dispCur }} &rarr; {{ $baseCur }} Rate</td><td class="val" style="font-weight:normal; font-size:9px;">1 {{ $dispCur }} = {{ number_format($invoice->exchange_rate, 4) }} {{ $baseCur }}</td></tr>
                 </table>
             </div>
         </td>

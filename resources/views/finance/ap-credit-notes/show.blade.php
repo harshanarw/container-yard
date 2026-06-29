@@ -116,7 +116,7 @@
             <div class="card-header bg-transparent py-2"><strong class="small">Applied to Bills</strong></div>
             <div class="table-responsive">
                 <table class="table table-sm align-middle mb-0 small">
-                    <thead class="table-light"><tr><th>Bill</th><th class="text-end">Applied</th>@if($apCreditNote->isApproved())<th></th>@endif</tr></thead>
+                    <thead class="table-light"><tr><th>Bill</th><th class="text-end">Applied ({{ $apCreditNote->currency }})</th>@if($apCreditNote->isApproved())<th></th>@endif</tr></thead>
                     <tbody>
                         @forelse($apCreditNote->applications as $app)
                         <tr>

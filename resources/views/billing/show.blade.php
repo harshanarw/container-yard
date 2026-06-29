@@ -11,11 +11,12 @@
     // Stored amounts are in default currency (LKR).
     // Amount (invoice_currency) = stored / exchange_rate when invoice ≠ LKR.
     // Value (LKR) = stored amount directly.
-    $dispCur  = $invoice->invoice_currency ?? 'LKR';
+    $baseCur  = \App\Services\CurrencyService::defaultCurrency();
+    $dispCur  = $invoice->invoice_currency ?? $baseCur;
     $dispRate = (float) ($invoice->exchange_rate ?? 1.0);
-    $disp     = fn($lkr) => $dispCur === 'LKR' ? $lkr : round($lkr / $dispRate, 2);
+    $disp     = fn($lkr) => $dispCur === $baseCur ? $lkr : round($lkr / $dispRate, 2);
     $fmtDisp  = fn($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
-    $fmtValue = fn($v)   => 'LKR ' . number_format($v ?? 0, 2);
+    $fmtValue = fn($v)   => $baseCur . ' ' . number_format($v ?? 0, 2);
 
     $ssclRates = $invoice->details->map(fn ($d) => ($d->tax1_rate ?? 0) > 0 ? round((float) $d->tax1_rate, 2) : null)
         ->filter()->unique()->sort()->values();
@@ -180,9 +181,9 @@
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="text-muted small">USD → LKR Rate</div>
+                        <div class="text-muted small">{{ $dispCur }} → {{ $baseCur }} Rate</div>
                         <div class="fw-semibold small">
-                            1 USD = {{ number_format($invoice->exchange_rate, 4) }} LKR
+                            1 {{ $dispCur }} = {{ number_format($invoice->exchange_rate, 4) }} {{ $baseCur }}
                         </div>
                     </div>
                 </div>

@@ -327,8 +327,17 @@ class SupplierInvoiceController extends Controller
         $outstanding = $this->allocationService->getOutstanding($supplierInvoice);
         $allocated   = $this->allocationService->getAllocatedTotal($supplierInvoice->id);
 
+        // Approved AP credit notes applied to this bill also settle it (non-cash);
+        // include them so "Payments Applied" reconciles to the Outstanding figure,
+        // which already nets them out via getAllocatedTotal().
+        $creditApplications = \App\Models\ApCreditNoteApplication::where('supplier_invoice_id', $supplierInvoice->id)
+            ->whereHas('creditNote', fn ($q) => $q->where('status', 'approved'))
+            ->with('creditNote')
+            ->orderBy('id')
+            ->get();
+
         return view('finance.supplier-invoices.show', compact(
-            'supplierInvoice', 'settlements', 'outstanding', 'allocated'
+            'supplierInvoice', 'settlements', 'outstanding', 'allocated', 'creditApplications'
         ));
     }
 

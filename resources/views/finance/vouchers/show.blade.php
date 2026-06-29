@@ -285,7 +285,7 @@
                         <a href="{{ route('finance.ap.invoices.show', $alloc->invoice) }}" class="text-decoration-none">{{ $alloc->invoice->invoice_no }}</a>
                         @else <span class="text-muted">#{{ $alloc->supplier_invoice_id }}</span> @endif
                     </td>
-                    <td class="text-end font-monospace">{{ $alloc->invoice ? number_format($alloc->invoice->total_amount, 2) : '—' }}</td>
+                    <td class="text-end font-monospace">{{ $alloc->invoice ? $alloc->invoice->currency . ' ' . number_format($alloc->invoice->total_amount, 2) : '—' }}</td>
                     <td class="text-end font-monospace fw-semibold">{{ number_format($alloc->allocated_amount, 2) }}</td>
                     <td class="text-muted">{{ $alloc->notes ?: '—' }}</td>
                     <td class="text-end">

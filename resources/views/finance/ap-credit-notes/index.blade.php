@@ -46,7 +46,7 @@
                     <td class="text-muted">{{ $cn->credit_date->format('d M Y') }}</td>
                     <td>{{ $cn->supplier->name ?? '—' }}</td>
                     <td class="text-end font-monospace">{{ $cn->currency }} {{ number_format($cn->total_amount, 2) }}</td>
-                    <td class="text-end font-monospace text-muted">{{ number_format($cn->applied_total, 2) }}</td>
+                    <td class="text-end font-monospace text-muted">{{ $cn->currency }} {{ number_format($cn->applied_total, 2) }}</td>
                     <td class="text-center">
                         @php $b = \App\Models\ApCreditNote::statusBadge($cn->status); @endphp
                         <span class="badge bg-{{ $b }}-subtle text-{{ $b }} text-capitalize">{{ $cn->status }}</span>

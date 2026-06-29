@@ -13,7 +13,8 @@
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h4><i class="bi bi-journal-plus me-2 text-primary"></i>New Manual Journal</h4>
-        <p class="text-muted mb-0 small">Create a double-entry journal. Debit total must equal credit total.</p>
+        @php $__baseCcy = \App\Services\CurrencyService::defaultCurrency(); @endphp
+        <p class="text-muted mb-0 small">Create a double-entry journal. Debit total must equal credit total. All amounts are in the base currency ({{ $__baseCcy }}).</p>
     </div>
     <a href="{{ route('finance.gl.journals.index') }}" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left me-1"></i>Back
@@ -104,8 +105,8 @@
                     <thead class="table-light">
                         <tr>
                             <th style="width:40%;">Account</th>
-                            <th style="width:15%;">Debit</th>
-                            <th style="width:15%;">Credit</th>
+                            <th style="width:15%;">Debit ({{ $__baseCcy }})</th>
+                            <th style="width:15%;">Credit ({{ $__baseCcy }})</th>
                             <th>Narration</th>
                             <th style="width:50px;"></th>
                         </tr>
