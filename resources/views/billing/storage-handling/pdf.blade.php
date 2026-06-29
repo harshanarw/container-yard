@@ -13,7 +13,7 @@
         .pdf-fixed-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 24px 0; background: #fff; }
         .doc-layout { width: 100%; border-collapse: collapse; }
         .doc-body-cell { padding: 0 24px; border: none; vertical-align: top; }
-        .doc-spacer-head { height: 150px; }
+        .doc-spacer-head { height: 120px; }
         .doc-spacer-foot { height: 44px; }
         .page { padding: 0; }
 

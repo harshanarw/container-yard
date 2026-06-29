@@ -15,7 +15,7 @@
         .pdf-fixed-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px 0; background: #fff; }
         .doc-layout { width: 100%; border-collapse: collapse; }
         .doc-body-cell { padding: 0 28px; border: none; vertical-align: top; }
-        .doc-spacer-head { height: 150px; }   /* ≈ header height — tune to taste */
+        .doc-spacer-head { height: 120px; }   /* ≈ header height — tune to taste */
         .doc-spacer-foot { height: 44px; }    /* ≈ footer height */
         .page { padding: 0; }
 

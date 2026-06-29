@@ -41,7 +41,7 @@
 <title>Reefer Electricity Invoice {{ $reeferInvoice->invoice_no }}</title>
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: DejaVu Sans, Arial, sans-serif; color: #222; font-size: 11px; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #222; font-size: 10px; }
     /* Reserve space for the running header/footer on every page. */
     /* Header/footer drawn with position:fixed (repeat every page); empty
        thead/tfoot spacers reserve their height. @page ignored by this build. */
@@ -49,7 +49,7 @@
     .pdf-fixed-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 24px 0; background: #fff; }
     .doc-layout { width: 100%; border-collapse: collapse; }
     .doc-body-cell { padding: 0 24px; border: none; vertical-align: top; }
-    .doc-spacer-head { height: 150px; }
+    .doc-spacer-head { height: 120px; }
     .doc-spacer-foot { height: 44px; }
     .wrap { padding: 0; position: relative; }
     /* Sub-header info boxes — match the storage / handling invoices */
@@ -87,7 +87,7 @@
         text-transform: uppercase; letter-spacing: .3px; border-bottom: 1px solid #d8dfe7; }
     .items td { padding: 5px 6px; border-bottom: 1px solid #eef1f4; font-size: 9.5px; vertical-align: top; }
     .items td.r, .items th.r { text-align: right; }
-    .mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; }
+    .mono { font-family: 'Courier New', monospace; }
     .badge-hourly { background:#e0f2fe; color:#0284c7; padding:1px 5px; border-radius:3px; font-size:8.5px; }
     .badge-daily  { background:#ede9fe; color:#7c3aed; padding:1px 5px; border-radius:3px; font-size:8.5px; }
 

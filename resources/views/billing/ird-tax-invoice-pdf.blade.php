@@ -11,7 +11,7 @@
         @page { margin: 0; size: A4 portrait; }
 
         body {
-            font-family: 'Courier New', Courier, monospace;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 10px;
             color: #111;
             text-transform: uppercase;
