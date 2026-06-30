@@ -1003,6 +1003,12 @@
                             <i class="bi bi-bar-chart-line"></i><span>Balance Sheet</span>
                         </a>
                     </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.reports.fx-gain-loss') }}"
+                           class="nav-link {{ request()->routeIs('finance.reports.fx-gain-loss') ? 'active' : '' }}">
+                            <i class="bi bi-currency-exchange"></i><span>FX Gain/Loss</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
             @endcan

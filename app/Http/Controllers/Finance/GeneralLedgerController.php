@@ -423,6 +423,80 @@ class GeneralLedgerController extends Controller
         ));
     }
 
+    /**
+     * Realized FX Gain/Loss — activity on the forex gain (4102) and loss (7002)
+     * accounts within a period, with a per-source summary. These are posted by
+     * receipts, vouchers and credit-note applications when a settlement rate
+     * differs from the booked rate.
+     */
+    public function fxGainLoss(Request $request)
+    {
+        $this->authorize('finance.gl.view');
+
+        $from = $request->input('from', Carbon::now()->startOfYear()->toDateString());
+        $to   = $request->input('to', Carbon::now()->toDateString());
+        $base = \App\Services\CurrencyService::defaultCurrency();
+
+        $gainAcc = \App\Models\AccountMapping::where('mapping_type', 'forex_gain')
+                ->whereNull('source_type')->whereNull('source_id')->where('is_active', true)->first()?->account
+            ?? Account::where('code', '4102')->where('is_active', true)->first();
+        $lossAcc = \App\Models\AccountMapping::where('mapping_type', 'forex_loss')
+                ->whereNull('source_type')->whereNull('source_id')->where('is_active', true)->first()?->account
+            ?? Account::where('code', '7002')->where('is_active', true)->first();
+
+        $accountIds = collect([$gainAcc?->id, $lossAcc?->id])->filter()->values()->all();
+
+        $sourceLabels = [
+            'receipt'     => 'Receipt',
+            'payment'     => 'Payment Voucher',
+            'credit_note' => 'Credit Note',
+            'invoice'     => 'Invoice',
+            'journal'     => 'Manual Journal',
+            'adjustment'  => 'Adjustment',
+        ];
+
+        $rows = collect();
+        if (!empty($accountIds)) {
+            $rows = GlEntry::with('journal')
+                ->whereIn('account_id', $accountIds)
+                ->whereHas('journal', fn ($q) => $q->where('status', 'posted')
+                    ->whereBetween('journal_date', [$from, $to]))
+                ->get()
+                ->map(function ($e) use ($gainAcc, $sourceLabels) {
+                    $isGain = $gainAcc && (int) $e->account_id === (int) $gainAcc->id;
+                    $gain   = $isGain ? (float) $e->credit - (float) $e->debit : 0.0;
+                    $loss   = $isGain ? 0.0 : (float) $e->debit - (float) $e->credit;
+                    $type   = $e->journal->journal_type ?? 'journal';
+                    return [
+                        'date'       => $e->journal->journal_date,
+                        'journal_no' => $e->journal->journal_no,
+                        'journal_id' => $e->journal_id,
+                        'source'     => $sourceLabels[$type] ?? ucfirst($type),
+                        'narration'  => $e->narration ?: $e->journal->narration,
+                        'gain'       => round($gain, 2),
+                        'loss'       => round($loss, 2),
+                    ];
+                })
+                ->sortBy('date')->values();
+        }
+
+        $totalGain = round($rows->sum('gain'), 2);
+        $totalLoss = round($rows->sum('loss'), 2);
+        $net       = round($totalGain - $totalLoss, 2);
+
+        $bySource = $rows->groupBy('source')->map(fn ($r, $s) => [
+            'source' => $s,
+            'gain'   => round($r->sum('gain'), 2),
+            'loss'   => round($r->sum('loss'), 2),
+            'net'    => round($r->sum('gain') - $r->sum('loss'), 2),
+        ])->sortByDesc(fn ($r) => abs($r['net']))->values();
+
+        return view('finance.reports.fx-gain-loss', compact(
+            'from', 'to', 'base', 'rows', 'bySource',
+            'totalGain', 'totalLoss', 'net', 'gainAcc', 'lossAcc'
+        ));
+    }
+
     // AR Aging: outstanding receivables by customer and age bucket
     public function arAging(Request $request)
     {

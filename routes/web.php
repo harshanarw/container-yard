@@ -624,6 +624,7 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('income-statement', [GeneralLedgerController::class, 'incomeStatement'])->name('income-statement');
             Route::get('balance-sheet',    [GeneralLedgerController::class, 'balanceSheet'])->name('balance-sheet');
+            Route::get('fx-gain-loss',     [GeneralLedgerController::class, 'fxGainLoss'])->name('fx-gain-loss');
         });
 
         // AR / Invoice Postings
