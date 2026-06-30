@@ -5,24 +5,47 @@ namespace Tests\Unit\Finance;
 use App\Models\CompanySetting;
 use App\Models\ExchangeRate;
 use App\Services\CurrencyService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /**
  * Currency conversion math + the foreign-rate validation guards.
  *
- * Base currency is forced to LKR via CompanySetting; the convention under test
- * is exchange_rate = foreign → base (1 USD = 300 LKR).
+ * This project's migrations contain MySQL-only DDL, so they can't run on the
+ * SQLite test DB. The two small tables these tests need are provisioned directly
+ * here instead of using RefreshDatabase — keeping the unit tests fast and
+ * database-engine independent. (Full feature tests that need the whole schema
+ * should run against a MySQL test database.)
+ *
+ * Convention under test: exchange_rate = foreign → base (1 USD = 300 LKR).
  */
 class CurrencyServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
     protected function setUp(): void
     {
         parent::setUp();
-        CompanySetting::query()->delete();
+
+        Schema::dropIfExists('company_settings');
+        Schema::create('company_settings', function (Blueprint $t) {
+            $t->id();
+            $t->string('company_name')->nullable();
+            $t->string('default_currency_code', 10)->nullable();
+            $t->timestamps();
+        });
+
+        Schema::dropIfExists('exchange_rates');
+        Schema::create('exchange_rates', function (Blueprint $t) {
+            $t->id();
+            $t->date('rate_date');
+            $t->string('from_currency_code', 10);
+            $t->string('to_currency_code', 10);
+            $t->decimal('rate', 18, 6);
+            $t->string('notes')->nullable();
+            $t->timestamps();
+        });
+
         CompanySetting::create(['company_name' => 'Test Co', 'default_currency_code' => 'LKR']);
         Cache::forget('company_settings');
     }
@@ -31,8 +54,7 @@ class CurrencyServiceTest extends TestCase
     {
         $this->assertSame(1.0, CurrencyService::tariffMultiplier('LKR', 300));
         $this->assertSame(300.0, CurrencyService::tariffMultiplier('USD', 300));
-        // case-insensitive
-        $this->assertSame(300.0, CurrencyService::tariffMultiplier('usd', 300));
+        $this->assertSame(300.0, CurrencyService::tariffMultiplier('usd', 300)); // case-insensitive
     }
 
     public function test_invoice_display_factor_is_one_for_base_and_inverse_for_foreign(): void

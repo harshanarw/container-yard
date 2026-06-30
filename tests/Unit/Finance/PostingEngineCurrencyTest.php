@@ -2,31 +2,17 @@
 
 namespace Tests\Unit\Finance;
 
-use App\Models\CompanySetting;
 use App\Services\Finance\PostingEngine;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /**
  * Phase B: PostingEngine per-line currency normalisation and journal-currency
  * derivation. normalizeLine()/journalCurrency() take the base currency as an
- * argument, so these exercise the exact logic without the full createJournal
- * fixtures (financial year / period / number sequence). Private methods are
- * reached via reflection.
+ * argument and touch no database, so these are pure logic tests — no migrations
+ * or fixtures required. Private methods are reached via reflection.
  */
 class PostingEngineCurrencyTest extends TestCase
 {
-    use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        CompanySetting::query()->delete();
-        CompanySetting::create(['company_name' => 'Test Co', 'default_currency_code' => 'LKR']);
-        Cache::forget('company_settings');
-    }
-
     private function normalize(array $line): array
     {
         $engine = app(PostingEngine::class);
