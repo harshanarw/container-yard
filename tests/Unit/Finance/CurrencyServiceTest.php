@@ -93,8 +93,12 @@ class CurrencyServiceTest extends TestCase
 
     public function test_resolve_rate_or_fail_returns_configured_rate(): void
     {
+        // Effective before today. (On SQLite the model's `date` cast stores a
+        // datetime, so a same-day rate_date sorts after a plain 'Y-m-d' bound and
+        // getRate's "<= date" filter would miss it — a real DATE column on MySQL
+        // does not have this issue. An earlier effective date is also realistic.)
         ExchangeRate::create([
-            'rate_date'          => now()->toDateString(),
+            'rate_date'          => now()->subDay()->toDateString(),
             'from_currency_code' => 'USD',
             'to_currency_code'   => 'LKR',
             'rate'               => 305.5,
