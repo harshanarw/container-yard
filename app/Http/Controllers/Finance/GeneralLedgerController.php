@@ -497,6 +497,20 @@ class GeneralLedgerController extends Controller
         ));
     }
 
+    /**
+     * Period-end FX revaluation — PREVIEW (read-only). Shows the unrealized
+     * gain/loss from re-pricing open foreign AR/AP balances at the as-of-date
+     * rate. Posting the (reversing) revaluation journal is a separate step.
+     */
+    public function fxRevaluation(Request $request, \App\Services\Finance\FxRevaluationService $service)
+    {
+        $this->authorize('finance.gl.view');
+
+        $asOf = $request->input('as_of', Carbon::now()->endOfMonth()->toDateString());
+
+        return view('finance.reports.fx-revaluation', $service->preview($asOf));
+    }
+
     // AR Aging: outstanding receivables by customer and age bucket
     public function arAging(Request $request)
     {

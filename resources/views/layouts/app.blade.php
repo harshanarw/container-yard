@@ -1009,6 +1009,12 @@
                             <i class="bi bi-currency-exchange"></i><span>FX Gain/Loss</span>
                         </a>
                     </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.reports.fx-revaluation') }}"
+                           class="nav-link {{ request()->routeIs('finance.reports.fx-revaluation') ? 'active' : '' }}">
+                            <i class="bi bi-arrow-repeat"></i><span>FX Revaluation</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
             @endcan
