@@ -170,28 +170,28 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Component Code</label>
-                            <select name="component_code_id" class="form-select">
+                            <select name="component_code_id" class="form-select select2-modal s2-code" data-s2-sel="name">
                                 <option value="">— Any —</option>
                                 @foreach($componentCodes as $c)
-                                    <option value="{{ $c->id }}">{{ $c->code }} — {{ $c->name }}</option>
+                                    <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} — {{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Repair Code</label>
-                            <select name="repair_code_id" class="form-select">
+                            <select name="repair_code_id" class="form-select select2-modal s2-code" data-s2-sel="name">
                                 <option value="">— Any —</option>
                                 @foreach($repairCodes as $r)
-                                    <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
+                                    <option value="{{ $r->id }}" data-code="{{ $r->code }}" data-name="{{ $r->name }}">{{ $r->code }} — {{ $r->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">→ Charge Code <span class="text-danger">*</span></label>
-                            <select name="charge_code_id" class="form-select" required>
+                            <select name="charge_code_id" class="form-select select2-modal s2-code" data-s2-sel="name" required>
                                 <option value="">— Select Charge Code —</option>
                                 @foreach($chargeCodes as $cc)
-                                    <option value="{{ $cc->id }}">
+                                    <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}">
                                         {{ $cc->code }} — {{ $cc->description }}
                                         @if($cc->taxCode) ({{ $cc->taxCode->code }} {{ number_format($cc->taxCode->total_rate,2) }}%) @endif
                                     </option>
@@ -236,28 +236,28 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Component Code</label>
-                            <select name="component_code_id" id="editComponent" class="form-select">
+                            <select name="component_code_id" id="editComponent" class="form-select select2-modal s2-code" data-s2-sel="name">
                                 <option value="">— Any —</option>
                                 @foreach($componentCodes as $c)
-                                    <option value="{{ $c->id }}">{{ $c->code }} — {{ $c->name }}</option>
+                                    <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} — {{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Repair Code</label>
-                            <select name="repair_code_id" id="editRepair" class="form-select">
+                            <select name="repair_code_id" id="editRepair" class="form-select select2-modal s2-code" data-s2-sel="name">
                                 <option value="">— Any —</option>
                                 @foreach($repairCodes as $r)
-                                    <option value="{{ $r->id }}">{{ $r->code }} — {{ $r->name }}</option>
+                                    <option value="{{ $r->id }}" data-code="{{ $r->code }}" data-name="{{ $r->name }}">{{ $r->code }} — {{ $r->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">→ Charge Code <span class="text-danger">*</span></label>
-                            <select name="charge_code_id" id="editCharge" class="form-select" required>
+                            <select name="charge_code_id" id="editCharge" class="form-select select2-modal s2-code" data-s2-sel="name" required>
                                 <option value="">— Select Charge Code —</option>
                                 @foreach($chargeCodes as $cc)
-                                    <option value="{{ $cc->id }}">
+                                    <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}">
                                         {{ $cc->code }} — {{ $cc->description }}
                                         @if($cc->taxCode) ({{ $cc->taxCode->code }} {{ number_format($cc->taxCode->total_rate,2) }}%) @endif
                                     </option>
@@ -315,6 +315,11 @@
 
 @push('scripts')
 <script>
+// Code-chip Select2 inside the add/edit modals (init once each modal opens).
+$('#addModal, #editModal').on('shown.bs.modal', function () {
+    $(this).find('.select2-modal').each(function () { window.initS2Code($(this), { width: '100%' }); });
+});
+
 document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
         document.getElementById('editComponent').value = btn.dataset.component || '';

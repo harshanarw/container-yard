@@ -55,24 +55,24 @@
                 </div>
                 <div class="col-12 col-md-2">
                     <label class="form-label form-label-sm mb-1 fw-semibold">From Currency</label>
-                    <select name="from_currency" class="form-select form-select-sm">
+                    <select name="from_currency" class="form-select form-select-sm select2">
                         <option value="">All</option>
                         @foreach($currencies as $cur)
                             <option value="{{ $cur->code }}"
                                     {{ request('from_currency') === $cur->code ? 'selected' : '' }}>
-                                {{ $cur->code }} — {{ $cur->name }}
+                                {{ $cur->code }}
                             </option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-12 col-md-2">
                     <label class="form-label form-label-sm mb-1 fw-semibold">To Currency</label>
-                    <select name="to_currency" class="form-select form-select-sm">
+                    <select name="to_currency" class="form-select form-select-sm select2">
                         <option value="">All</option>
                         @foreach($currencies as $cur)
                             <option value="{{ $cur->code }}"
                                     {{ request('to_currency') === $cur->code ? 'selected' : '' }}>
-                                {{ $cur->code }} — {{ $cur->name }}
+                                {{ $cur->code }}
                             </option>
                         @endforeach
                     </select>

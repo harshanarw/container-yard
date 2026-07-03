@@ -216,10 +216,10 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Applicable Tax Code</label>
-                            <select name="tax_code_id" class="form-select">
+                            <select name="tax_code_id" class="form-select select2-modal s2-code" data-s2-sel="name">
                                 <option value="">— No Tax / Exempt —</option>
                                 @foreach($taxCodes as $tc)
-                                    <option value="{{ $tc->id }}">{{ $tc->code }} — {{ $tc->description }}</option>
+                                    <option value="{{ $tc->id }}" data-code="{{ $tc->code }}" data-name="{{ $tc->description }}">{{ $tc->code }} — {{ $tc->description }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -284,10 +284,10 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Applicable Tax Code</label>
-                            <select name="tax_code_id" id="editTaxCodeId" class="form-select">
+                            <select name="tax_code_id" id="editTaxCodeId" class="form-select select2-modal s2-code" data-s2-sel="name">
                                 <option value="">— No Tax / Exempt —</option>
                                 @foreach($taxCodes as $tc)
-                                    <option value="{{ $tc->id }}">{{ $tc->code }} — {{ $tc->description }}</option>
+                                    <option value="{{ $tc->id }}" data-code="{{ $tc->code }}" data-name="{{ $tc->description }}">{{ $tc->code }} — {{ $tc->description }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -356,6 +356,11 @@ if (tbody) {
         },
     });
 }
+
+// ── Code-chip Select2 inside modals (init once each modal fully opens) ────────
+$('#addModal, #editModal').on('shown.bs.modal', function () {
+    $(this).find('.select2-modal').each(function () { window.initS2Code($(this), { width: '100%' }); });
+});
 
 // ── Edit modal ───────────────────────────────────────────────────────────────
 const isSystemAdmin = @json(auth()->user()->isSystemAdmin());
