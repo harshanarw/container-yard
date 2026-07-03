@@ -508,7 +508,34 @@ class GeneralLedgerController extends Controller
 
         $asOf = $request->input('as_of', Carbon::now()->endOfMonth()->toDateString());
 
-        return view('finance.reports.fx-revaluation', $service->preview($asOf));
+        $data = $service->preview($asOf);
+        $data['alreadyPosted'] = $service->isPosted($asOf);
+        $data['canPost']       = auth()->user()->can('finance.gl.create');
+
+        return view('finance.reports.fx-revaluation', $data);
+    }
+
+    /**
+     * Post the period-end FX revaluation (as-of journal + next-day reversal).
+     */
+    public function postFxRevaluation(Request $request, \App\Services\Finance\FxRevaluationService $service)
+    {
+        $this->authorize('finance.gl.create');
+
+        $asOf = $request->input('as_of', Carbon::now()->endOfMonth()->toDateString());
+
+        try {
+            $result = $service->post($asOf, auth()->id());
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        if (!($result['posted'] ?? false)) {
+            return back()->with('error', $result['message'] ?? 'Nothing to revalue.');
+        }
+
+        return redirect()->route('finance.reports.fx-revaluation', ['as_of' => $asOf])
+            ->with('success', "FX revaluation posted — journal {$result['journal']}, reversal {$result['reversal']}.");
     }
 
     // AR Aging: outstanding receivables by customer and age bucket

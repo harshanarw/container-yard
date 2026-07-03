@@ -10,31 +10,58 @@
 
 @section('content')
 
-@php $items = collect($items); $missing = collect($missing); @endphp
+@php $items = collect($items); $missing = collect($missing); $canRevalue = $items->isNotEmpty() && abs($summary['net_gain']) >= 0.01; @endphp
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
-        <h4 class="mb-0"><i class="bi bi-arrow-repeat me-2 text-primary"></i>FX Revaluation <span class="badge bg-secondary-subtle text-secondary align-middle">Preview</span></h4>
+        <h4 class="mb-0"><i class="bi bi-arrow-repeat me-2 text-primary"></i>FX Revaluation
+            @if($alreadyPosted)<span class="badge bg-success-subtle text-success align-middle">Posted</span>@else<span class="badge bg-secondary-subtle text-secondary align-middle">Preview</span>@endif
+        </h4>
         <p class="text-muted small mb-0">
             Unrealized gain/loss from re-pricing open foreign AR/AP balances as of {{ \Carbon\Carbon::parse($as_of)->format('d M Y') }} · in {{ $base }}
         </p>
     </div>
-    <form method="GET" action="{{ route('finance.reports.fx-revaluation') }}" class="d-flex align-items-end gap-2">
-        <div>
-            <label class="form-label small mb-0 text-muted">As Of</label>
-            <input type="date" name="as_of" class="form-control form-control-sm" value="{{ $as_of }}" style="width:160px">
-        </div>
-        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
-    </form>
+    <div class="d-flex align-items-end gap-2 flex-wrap">
+        <form method="GET" action="{{ route('finance.reports.fx-revaluation') }}" class="d-flex align-items-end gap-2">
+            <div>
+                <label class="form-label small mb-0 text-muted">As Of</label>
+                <input type="date" name="as_of" class="form-control form-control-sm" value="{{ $as_of }}" style="width:160px">
+            </div>
+            <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
+        </form>
+        @if($canPost && $canRevalue && !$alreadyPosted)
+        <form method="POST" action="{{ route('finance.reports.fx-revaluation.post') }}"
+              onsubmit="return confirm('Post the FX revaluation for {{ \Carbon\Carbon::parse($as_of)->format('d M Y') }}? It books an adjustment journal on this date and an automatic reversal the next day.');">
+            @csrf
+            <input type="hidden" name="as_of" value="{{ $as_of }}">
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-journal-check me-1"></i>Post Revaluation</button>
+        </form>
+        @endif
+    </div>
 </div>
 
+@if(session('success'))
+<div class="alert alert-success alert-dismissible fade show py-2 small"><i class="bi bi-check-circle me-1"></i>{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+@endif
+@if(session('error'))
+<div class="alert alert-danger alert-dismissible fade show py-2 small"><i class="bi bi-exclamation-triangle me-1"></i>{{ session('error') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+@endif
+
+@if($alreadyPosted)
+<div class="alert alert-success small d-flex align-items-start gap-2">
+    <i class="bi bi-check-circle mt-1"></i>
+    <div>An FX revaluation has already been posted for {{ \Carbon\Carbon::parse($as_of)->format('d M Y') }} (with its next-day reversal). To re-run, void those journals first.</div>
+</div>
+@else
 <div class="alert alert-info small d-flex align-items-start gap-2">
     <i class="bi bi-info-circle mt-1"></i>
     <div>
-        This is a <strong>preview only — no journal is posted.</strong> Revaluation gain/loss is <em>unrealized</em>: it would be booked as a
-        reversing journal at period-end (reversed next period) and only becomes realized FX on settlement. Posting is a separate, approval-gated step.
+        Revaluation gain/loss is <em>unrealized</em>. Posting books a balanced adjustment journal on the as-of date and an
+        <strong>automatic reversing journal the next day</strong> — it only becomes realized FX on settlement. AR/AP control accounts are
+        revalued against the unrealized FX gain (4102) / loss (7002) accounts (or their <code>forex_*_unrealized</code> mapping overrides).
     </div>
 </div>
+@endif
 
 {{-- Summary --}}
 <div class="row g-3 mb-3">
