@@ -105,6 +105,7 @@
                             <input type="number" step="0.000001" min="0.000001" name="exchange_rate" id="exchangeRateInput"
                                 class="form-control form-control-sm text-end font-monospace"
                                 value="{{ old('exchange_rate', $supplierInvoice->exchange_rate) }}" required>
+                            <div class="form-text small" id="supRateNote">Change the currency or date to re-load the rate from the master; otherwise the stored rate is kept.</div>
                         </div>
                     </div>
                 </div>
@@ -211,6 +212,7 @@
     const chargeCodes = @json($chargeCodesData);
     const taxCodes    = @json($taxCodesData);
     const ajaxBase    = @json(route('finance.ap.charge-code.details', ['chargeCode' => '__ID__']));
+    const fxRateUrl   = @json(route('finance.fx-rate'));
     let idx = 0;
 
     const ccGroups = (() => {
@@ -469,6 +471,30 @@
         }
     }
 
+    // Re-load the rate from the daily master for the selected currency on the
+    // invoice date. Only invoked on a user change (never on load) so the stored
+    // rate is preserved unless the currency/date is actually changed.
+    function refreshSupplierRate() {
+        const ccy = document.getElementById('currencySelect').value;
+        if (!ccy || ccy === 'LKR') { return; }
+        const dateEl = document.getElementById('invoiceDateInput');
+        const noteEl = document.getElementById('supRateNote');
+        fetch(fxRateUrl + '?from=' + encodeURIComponent(ccy) + '&date=' + encodeURIComponent(dateEl ? dateEl.value : ''),
+              { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                const rateInput = document.getElementById('exchangeRateInput');
+                if (res && res.rate != null) {
+                    rateInput.value = parseFloat(res.rate).toFixed(6);
+                    if (noteEl) { noteEl.className = 'form-text small text-success'; noteEl.textContent = 'Re-loaded: 1 ' + ccy + ' = ' + parseFloat(res.rate).toFixed(4) + ' LKR (editable).'; }
+                } else if (noteEl) {
+                    noteEl.className = 'form-text small text-warning';
+                    noteEl.textContent = 'No rate on record for ' + ccy + ' on this date — enter it manually.';
+                }
+            })
+            .catch(function () {});
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         // Supplier Select2
         jQuery('#supplierSelect').select2({
@@ -485,6 +511,7 @@
             if (cur) {
                 document.getElementById('currencySelect').value = cur;
                 updateExchangeRateLabel();
+                refreshSupplierRate();
             }
             const terms = opt?.dataset.paymentTerms || '';
             document.getElementById('creditTermsSelect').value = terms;
@@ -493,7 +520,11 @@
 
         document.getElementById('creditTermsSelect').addEventListener('change', calcDueDate);
         document.getElementById('invoiceDateInput').addEventListener('change', calcDueDate);
-        document.getElementById('currencySelect').addEventListener('change', updateExchangeRateLabel);
+        document.getElementById('invoiceDateInput').addEventListener('change', refreshSupplierRate);
+        document.getElementById('currencySelect').addEventListener('change', function () {
+            updateExchangeRateLabel();
+            refreshSupplierRate();
+        });
 
         // Initialise exchange rate label from the stored currency.
         updateExchangeRateLabel();

@@ -109,12 +109,8 @@
                         <select id="invoiceCurrency" class="form-select">
                             <option value="LKR" selected>LKR — Sri Lankan Rupee</option>
                             <option value="USD">USD — US Dollar</option>
-                            <option value="EUR">EUR — Euro</option>
-                            <option value="GBP">GBP — British Pound</option>
-                            <option value="SGD">SGD — Singapore Dollar</option>
-                            <option value="AUD">AUD — Australian Dollar</option>
                         </select>
-                        <div class="form-text">Values always stored in LKR</div>
+                        <div class="form-text">Stored in LKR; display uses the USD→LKR rate above. (Tariffs are USD/LKR, so only these are supported.)</div>
                     </div>
                     <div class="col-7">
                         <label class="form-label fw-semibold">

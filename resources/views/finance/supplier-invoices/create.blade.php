@@ -103,6 +103,7 @@
                             <input type="number" step="0.000001" min="0.000001" name="exchange_rate" id="exchangeRateInput"
                                 class="form-control form-control-sm text-end font-monospace"
                                 value="{{ old('exchange_rate', 1) }}" required>
+                            <div class="form-text small" id="supRateNote">Auto-filled from the daily rate master; editable.</div>
                         </div>
                     </div>
                 </div>
@@ -210,6 +211,7 @@
     const chargeCodes = @json($chargeCodesData);
     const taxCodes    = @json($taxCodesData);
     const ajaxBase    = @json(route('finance.ap.charge-code.details', ['chargeCode' => '__ID__']));
+    const fxRateUrl   = @json(route('finance.fx-rate'));
     let idx = 0;
 
     // Build grouped structure once — keeps code + name separate for chip styling.
@@ -469,16 +471,42 @@
         const ccy      = document.getElementById('currencySelect').value;
         const labelEl  = document.getElementById('exchangeRateLabel');
         const rateInput = document.getElementById('exchangeRateInput');
+        const noteEl   = document.getElementById('supRateNote');
         if (!ccy || ccy === 'LKR') {
             labelEl.innerHTML = 'Exchange Rate <span class="text-muted small fw-normal">(LKR — base currency)</span>';
             rateInput.value    = '1';
             rateInput.readOnly = true;
             rateInput.classList.add('bg-light', 'text-muted');
+            if (noteEl) { noteEl.className = 'form-text small text-muted'; noteEl.textContent = 'LKR is the base currency.'; }
         } else {
             labelEl.innerHTML = ccy + ' → LKR Rate <span class="text-danger">*</span>';
             rateInput.readOnly = false;
             rateInput.classList.remove('bg-light', 'text-muted');
+            fetchSupplierRate(ccy);
         }
+    }
+
+    // Auto-fill the rate from the daily exchange-rate master for the selected
+    // currency on the invoice date (editable; leaves the field if none on record).
+    function fetchSupplierRate(ccy) {
+        const dateEl = document.getElementById('invoiceDateInput');
+        const noteEl = document.getElementById('supRateNote');
+        fetch(fxRateUrl + '?from=' + encodeURIComponent(ccy) + '&date=' + encodeURIComponent(dateEl ? dateEl.value : ''),
+              { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                const rateInput = document.getElementById('exchangeRateInput');
+                if (res && res.rate != null) {
+                    rateInput.value = parseFloat(res.rate).toFixed(6);
+                    if (noteEl) { noteEl.className = 'form-text small text-success'; noteEl.textContent = 'Auto-loaded: 1 ' + ccy + ' = ' + parseFloat(res.rate).toFixed(4) + ' LKR (editable).'; }
+                } else if (noteEl) {
+                    noteEl.className = 'form-text small text-warning';
+                    noteEl.textContent = 'No rate on record for ' + ccy + ' on this date — enter it manually.';
+                }
+            })
+            .catch(function () {
+                if (noteEl) { noteEl.className = 'form-text small text-muted'; noteEl.textContent = 'Auto-filled from the daily rate master; editable.'; }
+            });
     }
 
     // Defer header Select2 and event wiring to DOMContentLoaded so
@@ -507,6 +535,10 @@
 
         document.getElementById('creditTermsSelect').addEventListener('change', calcDueDate);
         document.getElementById('invoiceDateInput').addEventListener('change', calcDueDate);
+        document.getElementById('invoiceDateInput').addEventListener('change', function () {
+            const ccy = document.getElementById('currencySelect').value;
+            if (ccy && ccy !== 'LKR') { fetchSupplierRate(ccy); }
+        });
         document.getElementById('currencySelect').addEventListener('change', updateExchangeRateLabel);
 
         // Initialise exchange rate label (and credit terms if supplier restored after failed submit).
