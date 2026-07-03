@@ -86,10 +86,10 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Parent Account</label>
-                            <select name="parent_id" class="form-select form-select-sm">
+                            <select name="parent_id" class="form-select form-select-sm select2-modal s2-code" data-s2-sel="name">
                                 <option value="">(No parent — top level)</option>
                                 @foreach($allAccounts as $acc)
-                                <option value="{{ $acc->id }}">{{ $acc->code }} — {{ $acc->name }}</option>
+                                <option value="{{ $acc->id }}" data-code="{{ $acc->code }}" data-name="{{ $acc->name }}">{{ $acc->code }} — {{ $acc->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -254,6 +254,12 @@
 
 @push('scripts')
 <script>
+// Init the code-chip Select2 inside the Add modal once it opens (initialising
+// while the modal is hidden would mis-size / mis-parent the dropdown).
+$('#addAccountModal').on('shown.bs.modal', function () {
+    $(this).find('.select2-modal').each(function () { window.initS2Code($(this), { width: '100%' }); });
+});
+
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[data-edit-account]').forEach(function (btn) {
         btn.addEventListener('click', function () {

@@ -39,7 +39,7 @@
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label small mb-1">Customer</label>
-                <select name="customer_id" class="form-select form-select-sm">
+                <select name="customer_id" class="form-select form-select-sm select2">
                     <option value="">All Customers</option>
                     @foreach($customers as $c)
                     <option value="{{ $c->id }}" {{ request('customer_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>

@@ -78,10 +78,10 @@
                     <tr>
                         <td><input type="text" name="lines[0][description]" class="form-control form-control-sm" required maxlength="255" value="Reversal of invoice {{ $prefill['invoice_no'] }}"></td>
                         <td>
-                            <select name="lines[0][revenue_account_id]" class="form-select form-select-sm">
+                            <select name="lines[0][revenue_account_id]" class="form-select form-select-sm s2-code" data-s2-sel="name">
                                 <option value="">— Default revenue —</option>
                                 @foreach($revenueAccounts as $a)
-                                <option value="{{ $a->id }}" {{ ($prefill['revenue_account_id'] ?? null) == $a->id ? 'selected' : '' }}>{{ $a->code }} — {{ $a->name }}</option>
+                                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}" {{ ($prefill['revenue_account_id'] ?? null) == $a->id ? 'selected' : '' }}>{{ $a->code }} — {{ $a->name }}</option>
                                 @endforeach
                             </select>
                         </td>
@@ -115,10 +115,10 @@
     <tr>
         <td><input type="text" name="lines[IDX][description]" class="form-control form-control-sm" required maxlength="255"></td>
         <td>
-            <select name="lines[IDX][revenue_account_id]" class="form-select form-select-sm">
+            <select name="lines[IDX][revenue_account_id]" class="form-select form-select-sm s2-code" data-s2-sel="name">
                 <option value="">— Default revenue —</option>
                 @foreach($revenueAccounts as $a)
-                <option value="{{ $a->id }}">{{ $a->code }} — {{ $a->name }}</option>
+                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}">{{ $a->code }} — {{ $a->name }}</option>
                 @endforeach
             </select>
         </td>
@@ -135,7 +135,13 @@
     const tpl  = document.getElementById('lineTpl').innerHTML;
     const prefilled = {{ ($prefill ?? null) ? 'true' : 'false' }};
     let idx = prefilled ? 1 : 0;
-    function addLine() { body.insertAdjacentHTML('beforeend', tpl.replace(/IDX/g, idx++)); recompute(); }
+    function addLine() {
+        body.insertAdjacentHTML('beforeend', tpl.replace(/IDX/g, idx++));
+        // The new row's account select is a select2 (s2-code) added after page
+        // load, so the global auto-init missed it — initialise it here.
+        window.initS2Code($(body.lastElementChild).find('select.s2-code'), { width: '100%' });
+        recompute();
+    }
     function recompute() {
         let sub = 0;
         document.querySelectorAll('.line-amt').forEach(i => sub += parseFloat(i.value || 0) || 0);

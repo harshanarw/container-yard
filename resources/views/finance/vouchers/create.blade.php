@@ -27,10 +27,10 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Supplier / Contact</label>
-                    <select name="customer_id" id="supplierSelect" class="form-select form-select-sm @error('customer_id') is-invalid @enderror">
+                    <select name="customer_id" id="supplierSelect" class="form-select form-select-sm s2-code @error('customer_id') is-invalid @enderror" data-s2-sel="name">
                         <option value="">— None / one-off payee —</option>
                         @foreach($suppliers as $sup)
-                        <option value="{{ $sup->id }}" data-name="{{ $sup->name }}" {{ old('customer_id') == $sup->id ? 'selected' : '' }}>
+                        <option value="{{ $sup->id }}" data-code="{{ $sup->code }}" data-name="{{ $sup->name }}" {{ old('customer_id') == $sup->id ? 'selected' : '' }}>
                             {{ $sup->code }} — {{ $sup->name }}
                         </option>
                         @endforeach
@@ -52,7 +52,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Bank Account</label>
-                    <select name="bank_account_id" class="form-select form-select-sm @error('bank_account_id') is-invalid @enderror">
+                    <select name="bank_account_id" class="form-select form-select-sm select2 @error('bank_account_id') is-invalid @enderror">
                         <option value="">— None / Cash —</option>
                         @foreach($bankAccounts as $ba)
                         <option value="{{ $ba->id }}" {{ old('bank_account_id') == $ba->id ? 'selected' : '' }}>
@@ -155,8 +155,9 @@ document.getElementById('paymentMethod').addEventListener('change', function () 
     document.getElementById('chequeNoRow').style.display = this.value === 'cheque' ? '' : 'none';
 });
 
+// supplierSelect is a select2 (s2-code) — bind via jQuery so select2 changes fire.
 // Auto-fill payee name from the selected supplier (only if payee is empty).
-document.getElementById('supplierSelect')?.addEventListener('change', function () {
+$('#supplierSelect').on('change', function () {
     const name = this.options[this.selectedIndex]?.dataset.name || '';
     const payee = document.getElementById('payeeName');
     if (name && !payee.value.trim()) payee.value = name;

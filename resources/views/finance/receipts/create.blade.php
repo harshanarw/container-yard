@@ -27,10 +27,11 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Customer <span class="text-danger">*</span></label>
-                    <select name="customer_id" id="customerSelect" class="form-select form-select-sm @error('customer_id') is-invalid @enderror" required>
+                    <select name="customer_id" id="customerSelect" class="form-select form-select-sm s2-code @error('customer_id') is-invalid @enderror" data-s2-sel="name" required>
                         <option value="">— Select Customer —</option>
                         @foreach($customers as $c)
                         <option value="{{ $c->id }}"
+                                data-code="{{ $c->code }}" data-name="{{ $c->name }}"
                                 data-currency="{{ $c->currency }}"
                                 {{ old('customer_id') == $c->id ? 'selected' : '' }}>
                             {{ $c->name }}
@@ -47,7 +48,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Bank Account</label>
-                    <select name="bank_account_id" class="form-select form-select-sm @error('bank_account_id') is-invalid @enderror">
+                    <select name="bank_account_id" class="form-select form-select-sm select2 @error('bank_account_id') is-invalid @enderror">
                         <option value="">— None / Cash —</option>
                         @foreach($bankAccounts as $ba)
                         <option value="{{ $ba->id }}" {{ old('bank_account_id') == $ba->id ? 'selected' : '' }}>
@@ -159,9 +160,10 @@ $('#currencyField').on('change', refreshFxRate);
 $('[name="receipt_date"]').on('change', refreshFxRate);
 refreshFxRate(); // initial state
 
-// Customer change pre-fills their default currency (select2-aware).
-document.getElementById('customerSelect').addEventListener('change', function () {
-    var cur = this.options[this.selectedIndex].dataset.currency;
+// customerSelect is a select2 (s2-code) — bind via jQuery so select2 changes fire.
+// Customer change pre-fills their default currency.
+$('#customerSelect').on('change', function () {
+    var cur = this.options[this.selectedIndex]?.dataset.currency;
     if (cur) $('#currencyField').val(cur.toUpperCase()).trigger('change');
 });
 </script>

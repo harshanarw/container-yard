@@ -35,7 +35,7 @@
             </div>
             <div class="col-sm-auto">
                 <label class="form-label form-label-sm fw-semibold mb-1">Supplier / Contact</label>
-                <select name="customer_id" class="form-select form-select-sm">
+                <select name="customer_id" class="form-select form-select-sm select2" style="width:240px">
                     <option value="">All</option>
                     @foreach($suppliers as $sup)
                     <option value="{{ $sup->id }}" {{ (string) request('customer_id') === (string) $sup->id ? 'selected' : '' }}>{{ $sup->code }} — {{ $sup->name }}</option>
