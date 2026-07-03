@@ -70,7 +70,21 @@ class GeneralLedgerController extends Controller
         if (!in_array($baseCurrency, $currencies, true)) {
             array_unshift($currencies, $baseCurrency);
         }
-        return view('finance.gl.journals.create', compact('accounts', 'currencies', 'baseCurrency'));
+
+        // FX gain/loss accounts for the "Add FX balancing line" helper (mapping
+        // override, else by code). Null if not configured — the button hides.
+        $fxMap = fn (string $type, string $code) =>
+            \App\Models\AccountMapping::where('mapping_type', $type)
+                ->whereNull('source_type')->whereNull('source_id')->where('is_active', true)->first()?->account
+            ?? Account::where('code', $code)->where('is_active', true)->first();
+        $gainAcc = $fxMap('forex_gain', '4102');
+        $lossAcc = $fxMap('forex_loss', '7002');
+        $fxAccounts = [
+            'gain' => $gainAcc ? ['id' => $gainAcc->id, 'code' => $gainAcc->code] : null,
+            'loss' => $lossAcc ? ['id' => $lossAcc->id, 'code' => $lossAcc->code] : null,
+        ];
+
+        return view('finance.gl.journals.create', compact('accounts', 'currencies', 'baseCurrency', 'fxAccounts'));
     }
 
     // Store manual journal

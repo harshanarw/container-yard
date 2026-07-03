@@ -112,9 +112,15 @@
     <div class="card content-card mb-3">
         <div class="card-header fw-semibold small d-flex justify-content-between align-items-center">
             <span><i class="bi bi-table me-2 text-secondary"></i>Journal Lines</span>
-            <button type="button" class="btn btn-sm btn-outline-primary" id="addRowBtn">
-                <i class="bi bi-plus-lg me-1"></i>Add Row
-            </button>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-warning" id="fxBalanceBtn" disabled
+                        title="Add a base-currency line to the FX gain/loss account that clears the remaining imbalance">
+                    <i class="bi bi-currency-exchange me-1"></i>Add FX Line
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="addRowBtn">
+                    <i class="bi bi-plus-lg me-1"></i>Add Row
+                </button>
+            </div>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -157,6 +163,7 @@ window._journalAccounts   = @json($accountsByClass);
 window._journalClassOrder  = @json($classOrder);
 window._journalCurrencies  = @json($currencies);
 window._journalBaseCcy     = @json($baseCurrency);
+window._fxAccounts         = @json($fxAccounts);
 </script>
 
 @push('scripts')
@@ -166,7 +173,9 @@ $(function () {
     var classOrder      = window._journalClassOrder;
     var currencies      = window._journalCurrencies;
     var baseCcy         = window._journalBaseCcy;
+    var fxAccounts      = window._fxAccounts || {};
     var lineCount = 0;
+    var lastBaseDiff = 0; // signed base debit - credit, for the FX helper
 
     function headerCcy()  { return document.getElementById('headerCurrency').value || baseCcy; }
     function headerRate() { return parseFloat(document.getElementById('headerRate').value) || 1; }
@@ -314,6 +323,13 @@ $(function () {
             statusEl.textContent = 'Not balanced in ' + baseCcy;
         }
 
+        // FX balancing helper: available when a foreign currency is present, the
+        // base is out of balance, and the matching FX account is configured.
+        lastBaseDiff = round2(totalBaseDebit - totalBaseCredit);
+        var fxBtn = document.getElementById('fxBalanceBtn');
+        var needAcc = lastBaseDiff > 0 ? fxAccounts.gain : fxAccounts.loss;
+        fxBtn.disabled = !(showPer && Math.abs(lastBaseDiff) >= 0.005 && needAcc);
+
         document.getElementById('submitBtn').disabled = !balanced;
     }
 
@@ -361,6 +377,20 @@ $(function () {
     }
 
     document.getElementById('addRowBtn').addEventListener('click', function () { addRow(); });
+
+    // Add a base-currency line to the FX gain/loss account that clears the
+    // remaining base imbalance (for genuine cross-currency journals).
+    document.getElementById('fxBalanceBtn').addEventListener('click', function () {
+        var diff = round2(lastBaseDiff);
+        if (Math.abs(diff) < 0.005) return;
+        if (diff > 0 && fxAccounts.gain) {
+            // debits exceed credits → add a credit to FX gain
+            addRow({ account_id: fxAccounts.gain.id, currency: baseCcy, rate: 1, credit: diff.toFixed(2), narration: 'Exchange gain on journal' });
+        } else if (diff < 0 && fxAccounts.loss) {
+            // credits exceed debits → add a debit to FX loss
+            addRow({ account_id: fxAccounts.loss.id, currency: baseCcy, rate: 1, debit: Math.abs(diff).toFixed(2), narration: 'Exchange loss on journal' });
+        }
+    });
 
     syncHeaderRateEnabled();
 
