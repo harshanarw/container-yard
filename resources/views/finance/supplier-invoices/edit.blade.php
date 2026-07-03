@@ -94,9 +94,10 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Currency <span class="text-danger">*</span></label>
-                            <select name="currency" id="currencySelect" class="form-select form-select-sm" required>
+                            @php $curNames = ['LKR' => 'Sri Lankan Rupee', 'USD' => 'US Dollar', 'SGD' => 'Singapore Dollar']; @endphp
+                            <select name="currency" id="currencySelect" class="form-select form-select-sm s2-code" data-s2-sel="name" required>
                                 @foreach(['LKR','USD','SGD'] as $c)
-                                <option value="{{ $c }}" {{ old('currency', $supplierInvoice->currency) === $c ? 'selected' : '' }}>{{ $c }}</option>
+                                <option value="{{ $c }}" data-code="{{ $c }}" data-name="{{ $curNames[$c] ?? $c }}" {{ old('currency', $supplierInvoice->currency) === $c ? 'selected' : '' }}>{{ $c }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -508,11 +509,9 @@
         jQuery('#supplierSelect').on('change', function () {
             const opt = this.options[this.selectedIndex];
             const cur = opt?.dataset.currency;
-            if (cur) {
-                document.getElementById('currencySelect').value = cur;
-                updateExchangeRateLabel();
-                refreshSupplierRate();
-            }
+            // currencySelect is a select2 (s2-code) — set via jQuery so the widget
+            // updates and its change handler (label + rate refresh) fires.
+            if (cur) jQuery('#currencySelect').val(cur).trigger('change');
             const terms = opt?.dataset.paymentTerms || '';
             document.getElementById('creditTermsSelect').value = terms;
             calcDueDate();
@@ -521,7 +520,8 @@
         document.getElementById('creditTermsSelect').addEventListener('change', calcDueDate);
         document.getElementById('invoiceDateInput').addEventListener('change', calcDueDate);
         document.getElementById('invoiceDateInput').addEventListener('change', refreshSupplierRate);
-        document.getElementById('currencySelect').addEventListener('change', function () {
+        // currencySelect is a select2 (s2-code) — bind via jQuery so select2 changes fire.
+        jQuery('#currencySelect').on('change', function () {
             updateExchangeRateLabel();
             refreshSupplierRate();
         });

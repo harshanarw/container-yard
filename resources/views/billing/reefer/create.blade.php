@@ -87,13 +87,13 @@
                     <div class="row g-2 mb-3">
                         <div class="col-5">
                             <label class="form-label fw-semibold">Invoice Currency <span class="text-danger">*</span></label>
-                            <select name="invoice_currency" id="invoiceCurrency" class="form-select">
-                                <option value="LKR">LKR — Sri Lankan Rupee</option>
-                                <option value="USD">USD — US Dollar</option>
-                                <option value="EUR">EUR — Euro</option>
-                                <option value="GBP">GBP — British Pound</option>
-                                <option value="SGD">SGD — Singapore Dollar</option>
-                                <option value="AUD">AUD — Australian Dollar</option>
+                            <select name="invoice_currency" id="invoiceCurrency" class="form-select s2-code" data-s2-sel="name">
+                                <option value="LKR" data-code="LKR" data-name="Sri Lankan Rupee">LKR — Sri Lankan Rupee</option>
+                                <option value="USD" data-code="USD" data-name="US Dollar">USD — US Dollar</option>
+                                <option value="EUR" data-code="EUR" data-name="Euro">EUR — Euro</option>
+                                <option value="GBP" data-code="GBP" data-name="British Pound">GBP — British Pound</option>
+                                <option value="SGD" data-code="SGD" data-name="Singapore Dollar">SGD — Singapore Dollar</option>
+                                <option value="AUD" data-code="AUD" data-name="Australian Dollar">AUD — Australian Dollar</option>
                             </select>
                             <div class="form-text">Values always stored in LKR</div>
                         </div>
@@ -279,7 +279,9 @@
 
     // ── Bill type → default currency, then refresh the rate ───────────────────
     function onServiceTypeChange() {
-        currencySel.value = serviceSel.value === 'pti' ? 'USD' : 'LKR';
+        // invoiceCurrency is a select2 (s2-code) — update the widget display via
+        // change.select2 (no change event), then refresh the rate explicitly.
+        jQuery(currencySel).val(serviceSel.value === 'pti' ? 'USD' : 'LKR').trigger('change.select2');
         loadRate();
     }
 
@@ -291,7 +293,8 @@
         billingSel.addEventListener('change', showBillingParty);
     }
     serviceSel.addEventListener('change', onServiceTypeChange);
-    currencySel.addEventListener('change', loadRate);
+    // invoiceCurrency is a select2 (s2-code) — bind via jQuery so select2 changes fire.
+    jQuery(currencySel).on('change', loadRate);
     invoiceDate.addEventListener('change', loadRate);
 
     // ── Preview ───────────────────────────────────────────────────────────────

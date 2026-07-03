@@ -121,9 +121,9 @@
                 <div class="row g-2 mb-3">
                     <div class="col-5">
                         <label class="form-label fw-semibold">Invoice Currency <span class="text-danger">*</span></label>
-                        <select id="invoiceCurrency" class="form-select">
-                            <option value="LKR" selected>LKR — Sri Lankan Rupee</option>
-                            <option value="USD">USD — US Dollar</option>
+                        <select id="invoiceCurrency" class="form-select s2-code" data-s2-sel="name">
+                            <option value="LKR" data-code="LKR" data-name="Sri Lankan Rupee" selected>LKR — Sri Lankan Rupee</option>
+                            <option value="USD" data-code="USD" data-name="US Dollar">USD — US Dollar</option>
                         </select>
                         <div class="form-text">Stored in LKR; display uses the USD→LKR rate above. (Tariffs are USD/LKR, so only these are supported.)</div>
                     </div>

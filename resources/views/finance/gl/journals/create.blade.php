@@ -57,9 +57,9 @@
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label fw-semibold small">Currency</label>
-                            <select name="currency" id="headerCurrency" class="form-select form-select-sm">
+                            <select name="currency" id="headerCurrency" class="form-select form-select-sm s2-code" data-s2-sel="name">
                                 @foreach($currencies as $c)
-                                <option value="{{ $c }}" {{ old('currency', $baseCurrency) === $c ? 'selected' : '' }}>{{ $c }}</option>
+                                <option value="{{ $c }}" data-code="{{ $c }}" data-name="{{ $currencyNames[$c] ?? $c }}" {{ old('currency', $baseCurrency) === $c ? 'selected' : '' }}>{{ $c }}</option>
                                 @endforeach
                             </select>
                             <div class="form-text small">Default for all lines</div>
@@ -366,7 +366,8 @@ $(function () {
     }
 
     // Header currency change → auto-fetch its rate, then propagate to lines.
-    document.getElementById('headerCurrency').addEventListener('change', function () {
+    // headerCurrency is a select2 (s2-code) — bind via jQuery so select2 changes fire.
+    $('#headerCurrency').on('change', function () {
         var hc = this.value;
         syncHeaderRateEnabled();
         if (hc === baseCcy) {

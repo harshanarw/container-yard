@@ -161,7 +161,8 @@
             .then(r => r.json()).then(d => { if (d && d.rate) rateEl.value = Number(d.rate).toFixed(6); }).catch(() => {});
     }
     $('#currencyField').on('change', refreshRate);
-    document.getElementById('customerSelect').addEventListener('change', function () {
+    // customerSelect is a select2 (s2-code) — bind via jQuery so select2 changes fire.
+    $('#customerSelect').on('change', function () {
         const cur = this.options[this.selectedIndex]?.dataset.code;
         if (cur) $('#currencyField').val(cur.toUpperCase()).trigger('change');
     });

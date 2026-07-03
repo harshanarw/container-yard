@@ -70,6 +70,7 @@ class GeneralLedgerController extends Controller
         if (!in_array($baseCurrency, $currencies, true)) {
             array_unshift($currencies, $baseCurrency);
         }
+        $currencyNames = \App\Services\CurrencyService::activeCurrencyNames();
 
         // FX gain/loss accounts for the "Add FX balancing line" helper (mapping
         // override, else by code). Null if not configured — the button hides.
@@ -84,7 +85,7 @@ class GeneralLedgerController extends Controller
             'loss' => $lossAcc ? ['id' => $lossAcc->id, 'code' => $lossAcc->code] : null,
         ];
 
-        return view('finance.gl.journals.create', compact('accounts', 'currencies', 'baseCurrency', 'fxAccounts'));
+        return view('finance.gl.journals.create', compact('accounts', 'currencies', 'currencyNames', 'baseCurrency', 'fxAccounts'));
     }
 
     // Store manual journal

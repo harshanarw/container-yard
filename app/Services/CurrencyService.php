@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CompanySetting;
+use App\Models\Currency;
 use App\Models\ExchangeRate;
 
 class CurrencyService
@@ -13,6 +14,20 @@ class CurrencyService
     public static function defaultCurrency(): string
     {
         return strtoupper(CompanySetting::current()->default_currency_code ?? 'LKR');
+    }
+
+    /**
+     * Map of active currency code (upper-case) → display name, e.g.
+     * ['LKR' => 'Sri Lankan Rupee', 'USD' => 'US Dollar'].
+     * Used to render the code-chip Select2 (s2-code) currency dropdowns.
+     */
+    public static function activeCurrencyNames(): array
+    {
+        return Currency::where('is_active', true)
+            ->orderBy('sort_order')->orderBy('code')
+            ->pluck('name', 'code')
+            ->mapWithKeys(fn ($name, $code) => [strtoupper($code) => $name])
+            ->all();
     }
 
     /**

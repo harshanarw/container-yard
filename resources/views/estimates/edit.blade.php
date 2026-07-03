@@ -1180,7 +1180,7 @@
             tbody.insertAdjacentHTML('beforeend', `<tr class="estimate-line">
                 <td class="ps-2 text-center"><span class="badge bg-light text-muted border"><i class="bi bi-pencil"></i></span></td>
                 <td class="ps-1">
-                    <select name="line_items[${i}][component_code_id]" class="form-select form-select-sm code-sel"></select>
+                    ${buildCompSelect(`line_items[${i}][component_code_id]`)}
                     <input type="hidden" name="line_items[${i}][damage_id]" value="">
                     <input type="hidden" name="line_items[${i}][mr_tariff_rule_id]" value="">
                     <input type="hidden" name="line_items[${i}][location_code_id]" value="">
@@ -1200,7 +1200,7 @@
                     <input type="hidden" name="line_items[${i}][dim_width]"      value="${selectedItem.dimW ?? ''}">
                     <input type="hidden" name="line_items[${i}][dim_uom]"        value="${selectedItem.dimUom ?? ''}">
                 </td>
-                <td><select name="line_items[${i}][charge_code_id]" class="form-select form-select-sm charge-code-sel"></select></td>
+                <td>${buildChargeCodeSelect(`line_items[${i}][charge_code_id]`)}</td>
                 <td><input type="text" name="line_items[${i}][component]" class="form-control form-control-sm comp-desc" value="${selectedItem.desc}"></td>
                 <td><select name="line_items[${i}][repair_type]" class="form-select form-select-sm">
                     <option value="repair" selected>Repair</option>
@@ -1212,7 +1212,7 @@
                 </select></td>
                 <td><input type="number" name="line_items[${i}][qty]" class="form-control form-control-sm qty" value="${selectedItem.qty}" min="0.01" step="0.01"></td>
                 <td><input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="${(selectedRate.total * fx).toFixed(4)}" min="0" step="0.01"></td>
-                <td><select name="line_items[${i}][tax_code_id]" class="form-select form-select-sm tax-code-sel"></select></td>
+                <td>${buildTaxCodeSelect(`line_items[${i}][tax_code_id]`)}</td>
                 <td class="text-end pe-2 small">
                     <div class="fw-semibold line-net">${currency} 0.00</div>
                     <div style="font-size:.68rem; line-height:1.4; color:#6c757d;">
