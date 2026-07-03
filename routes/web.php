@@ -474,7 +474,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/',                [StorageBillingController::class, 'index'])->name('index');
         Route::get('/create',          [StorageBillingController::class, 'create'])->name('create');
         Route::post('/preview',        [StorageBillingController::class, 'preview'])->name('preview');
-        Route::get('/exchange-rate',   [StorageBillingController::class, 'exchangeRateLookup'])->name('exchange-rate');
         Route::post('/',               [StorageBillingController::class, 'store'])->name('store');
 
         // Reefer Electricity Billing — must come BEFORE the /{invoice} wildcard
@@ -482,7 +481,6 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/',                              [ReeferBillingController::class, 'index'])->name('index');
             Route::get('/create',                        [ReeferBillingController::class, 'create'])->name('create');
             Route::post('/preview',                      [ReeferBillingController::class, 'preview'])->name('preview');
-            Route::get('/exchange-rate',                 [ReeferBillingController::class, 'exchangeRateLookup'])->name('exchange-rate');
             Route::post('/',                             [ReeferBillingController::class, 'store'])->name('store');
             Route::get('/{reeferInvoice}',               [ReeferBillingController::class, 'show'])->name('show');
             Route::delete('/{reeferInvoice}',            [ReeferBillingController::class, 'destroy'])->name('destroy');
@@ -613,7 +611,6 @@ Route::middleware(['auth'])->group(function () {
             Route::get('journals',                    [GeneralLedgerController::class, 'journals'])->name('journals.index');
             Route::get('journals/create',             [GeneralLedgerController::class, 'createJournal'])->name('journals.create');
             Route::post('journals',                   [GeneralLedgerController::class, 'storeJournal'])->name('journals.store');
-            Route::get('exchange-rate',               [GeneralLedgerController::class, 'exchangeRateLookup'])->name('exchange-rate');
             Route::get('journals/{journal}',          [GeneralLedgerController::class, 'showJournal'])->name('journals.show');
             Route::post('journals/{journal}/post',    [GeneralLedgerController::class, 'postJournal'])->name('journals.post');
             Route::post('journals/{journal}/void',    [GeneralLedgerController::class, 'voidJournal'])->name('journals.void');

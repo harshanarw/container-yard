@@ -272,7 +272,7 @@
 <script>
 const csrfToken      = '{{ csrf_token() }}';
 const previewUrl     = '{{ route("billing.preview") }}';
-const exchRateUrl = '/billing/exchange-rate';
+const exchRateUrl = @json(route('finance.fx-rate'));
 
 let previewLines = [];
 let previewMissing = [];

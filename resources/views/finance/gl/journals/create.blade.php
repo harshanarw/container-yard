@@ -164,7 +164,7 @@ window._journalClassOrder  = @json($classOrder);
 window._journalCurrencies  = @json($currencies);
 window._journalBaseCcy     = @json($baseCurrency);
 window._fxAccounts         = @json($fxAccounts);
-window._rateUrl            = @json(route('finance.gl.exchange-rate'));
+window._rateUrl            = @json(route('finance.fx-rate'));
 </script>
 
 @push('scripts')

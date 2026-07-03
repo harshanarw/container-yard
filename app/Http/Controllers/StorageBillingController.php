@@ -21,7 +21,7 @@ class StorageBillingController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('can:billing.storage.view')->only(['index', 'show', 'exchangeRateLookup']);
+        $this->middleware('can:billing.storage.view')->only(['index', 'show']);
         $this->middleware('can:billing.storage.create')->only(['create', 'preview', 'store']);
         $this->middleware('can:billing.storage.delete')->only(['destroy', 'cancel']);
         $this->middleware('can:billing.storage.approve')->only(['markIssued', 'markPaid']);
@@ -570,28 +570,6 @@ class StorageBillingController extends Controller
         $invoice->update(['status' => 'cancelled']);
 
         return back()->with('success', "Invoice {$invoice->invoice_no} cancelled.");
-    }
-
-    // ── Exchange rate lookup (AJAX) ───────────────────────────────────────────
-
-    public function exchangeRateLookup(Request $request)
-    {
-        $currency = strtoupper($request->get('currency', 'USD'));
-        $date     = $request->get('date', today()->toDateString());
-        $default  = CurrencyService::defaultCurrency();
-
-        if ($currency === $default) {
-            return response()->json(['rate' => 1.0, 'found' => true, 'currency' => $currency, 'default' => $default]);
-        }
-
-        $rate = \App\Models\ExchangeRate::getRate($currency, $default, $date);
-
-        return response()->json([
-            'rate'     => $rate,
-            'found'    => $rate !== null,
-            'currency' => $currency,
-            'default'  => $default,
-        ]);
     }
 
     // ── IRD Tax Invoice print ─────────────────────────────────────────────────

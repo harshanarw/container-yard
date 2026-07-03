@@ -17,7 +17,7 @@ class ReeferBillingController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('can:billing.reefer.view')->only(['index', 'show', 'exchangeRateLookup', 'preview']);
+        $this->middleware('can:billing.reefer.view')->only(['index', 'show', 'preview']);
         $this->middleware('can:billing.reefer.create')->only(['create', 'store']);
         $this->middleware('can:billing.reefer.delete')->only(['destroy', 'cancel']);
         $this->middleware('can:billing.reefer.approve')->only(['markIssued', 'markPaid']);
@@ -348,27 +348,5 @@ class ReeferBillingController extends Controller
             ->set_option('isHtml5ParserEnabled', true)
             ->set_option('isRemoteEnabled', false)
             ->stream($filename);
-    }
-
-    // ── AJAX exchange rate ────────────────────────────────────────────────────
-
-    public function exchangeRateLookup(Request $request)
-    {
-        $currency = strtoupper($request->get('currency', 'USD'));
-        $date     = $request->get('date', today()->toDateString());
-        $default  = CurrencyService::defaultCurrency();
-
-        if ($currency === $default) {
-            return response()->json(['rate' => 1.0, 'found' => true, 'currency' => $currency, 'default' => $default]);
-        }
-
-        $rate = \App\Models\ExchangeRate::getRate($currency, $default, $date);
-
-        return response()->json([
-            'rate'     => $rate,
-            'found'    => $rate !== null,
-            'currency' => $currency,
-            'default'  => $default,
-        ]);
     }
 }

@@ -110,4 +110,31 @@ class CurrencyService
 
         return (float) $rate;
     }
+
+    /**
+     * Canonical foreign→base rate lookup for the entry-form AJAX endpoints.
+     * Base currency (or blank) returns 1.0; a currency with no configured rate
+     * returns rate=null / found=false so the UI can prompt for manual entry.
+     *
+     * @return array{currency:string, base:string, rate:float|null, found:bool, source:string}
+     */
+    public static function rateFor(?string $currency, ?string $date = null): array
+    {
+        $base = static::defaultCurrency();
+        $cur  = strtoupper(trim((string) $currency));
+
+        if ($cur === '' || $cur === $base) {
+            return ['currency' => $cur ?: $base, 'base' => $base, 'rate' => 1.0, 'found' => true, 'source' => 'base'];
+        }
+
+        $rate = ExchangeRate::getRate($cur, $base, $date ?: today()->toDateString());
+
+        return [
+            'currency' => $cur,
+            'base'     => $base,
+            'rate'     => $rate !== null ? (float) $rate : null,
+            'found'    => $rate !== null,
+            'source'   => $rate !== null ? 'master' : 'none',
+        ];
+    }
 }

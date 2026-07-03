@@ -262,7 +262,7 @@
         const spinner = document.getElementById('rateSpinner');
         spinner.classList.remove('d-none');
         try {
-            const url = '{{ route("billing.reefer.exchange-rate") }}?currency=' + encodeURIComponent(currency)
+            const url = '{{ route("finance.fx-rate") }}?currency=' + encodeURIComponent(currency)
                       + '&date=' + encodeURIComponent(invoiceDate.value || '');
             const d = await (await fetch(url)).json();
             if (d.rate) {
