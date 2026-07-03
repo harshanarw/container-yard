@@ -613,6 +613,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('journals',                    [GeneralLedgerController::class, 'journals'])->name('journals.index');
             Route::get('journals/create',             [GeneralLedgerController::class, 'createJournal'])->name('journals.create');
             Route::post('journals',                   [GeneralLedgerController::class, 'storeJournal'])->name('journals.store');
+            Route::get('exchange-rate',               [GeneralLedgerController::class, 'exchangeRateLookup'])->name('exchange-rate');
             Route::get('journals/{journal}',          [GeneralLedgerController::class, 'showJournal'])->name('journals.show');
             Route::post('journals/{journal}/post',    [GeneralLedgerController::class, 'postJournal'])->name('journals.post');
             Route::post('journals/{journal}/void',    [GeneralLedgerController::class, 'voidJournal'])->name('journals.void');

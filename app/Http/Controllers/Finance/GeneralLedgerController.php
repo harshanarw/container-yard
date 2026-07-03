@@ -162,6 +162,33 @@ class GeneralLedgerController extends Controller
         }
     }
 
+    /**
+     * AJAX: look up the foreign→base exchange rate for the manual-journal form.
+     * Base currency returns 1; a currency with no configured rate returns
+     * found=false so the form leaves the field for manual entry.
+     */
+    public function exchangeRateLookup(Request $request)
+    {
+        $this->authorize('finance.gl.create');
+
+        $base     = \App\Services\CurrencyService::defaultCurrency();
+        $currency = strtoupper((string) $request->query('currency', ''));
+        $date     = $request->query('date') ?: now()->toDateString();
+
+        if ($currency === '' || $currency === $base) {
+            return response()->json(['rate' => 1.0, 'found' => true, 'currency' => $currency ?: $base, 'base' => $base]);
+        }
+
+        $rate = \App\Models\ExchangeRate::getRate($currency, $base, $date);
+
+        return response()->json([
+            'rate'     => $rate !== null ? (float) $rate : null,
+            'found'    => $rate !== null,
+            'currency' => $currency,
+            'base'     => $base,
+        ]);
+    }
+
     // Post a draft journal
     public function postJournal(GlJournal $journal)
     {

@@ -164,6 +164,7 @@ window._journalClassOrder  = @json($classOrder);
 window._journalCurrencies  = @json($currencies);
 window._journalBaseCcy     = @json($baseCurrency);
 window._fxAccounts         = @json($fxAccounts);
+window._rateUrl            = @json(route('finance.gl.exchange-rate'));
 </script>
 
 @push('scripts')
@@ -174,8 +175,19 @@ $(function () {
     var currencies      = window._journalCurrencies;
     var baseCcy         = window._journalBaseCcy;
     var fxAccounts      = window._fxAccounts || {};
+    var rateUrl         = window._rateUrl;
     var lineCount = 0;
     var lastBaseDiff = 0; // signed base debit - credit, for the FX helper
+
+    // Look up the foreign→base rate for a currency (as of the journal date).
+    // Calls cb(rate) on a configured rate, or cb(null) if none / on error.
+    function fetchRate(currency, cb) {
+        if (!rateUrl || !currency || currency === baseCcy) { cb(null); return; }
+        var dateEl = document.querySelector('input[name="journal_date"]');
+        $.getJSON(rateUrl, { currency: currency, date: dateEl ? dateEl.value : '' })
+            .done(function (res) { cb(res && res.found ? res.rate : null); })
+            .fail(function () { cb(null); });
+    }
 
     function headerCcy()  { return document.getElementById('headerCurrency').value || baseCcy; }
     function headerRate() { return parseFloat(document.getElementById('headerRate').value) || 1; }
@@ -249,7 +261,11 @@ $(function () {
             ccySel.setAttribute('data-overridden', '1');
             rateInp.setAttribute('data-overridden', '1');
             syncRate(tr);
-            recalculate();
+            if (ccySel.value !== baseCcy) {
+                fetchRate(ccySel.value, function (r) { if (r) { rateInp.value = r; } recalculate(); });
+            } else {
+                recalculate();
+            }
         });
         rateInp.addEventListener('input', function () {
             rateInp.setAttribute('data-overridden', '1');
@@ -333,10 +349,8 @@ $(function () {
         document.getElementById('submitBtn').disabled = !balanced;
     }
 
-    // Header currency change → push to lines that haven't been overridden.
-    document.getElementById('headerCurrency').addEventListener('change', function () {
-        var hc = this.value, hr = headerRate();
-        syncHeaderRateEnabled();
+    // Push the header currency/rate to every line that hasn't been overridden.
+    function applyHeaderToLines(hc, hr) {
         document.querySelectorAll('#linesBody tr').forEach(function (row) {
             var ccySel  = row.querySelector('.currency-input');
             var rateInp = row.querySelector('.rate-input');
@@ -349,6 +363,22 @@ $(function () {
             }
         });
         recalculate();
+    }
+
+    // Header currency change → auto-fetch its rate, then propagate to lines.
+    document.getElementById('headerCurrency').addEventListener('change', function () {
+        var hc = this.value;
+        syncHeaderRateEnabled();
+        if (hc === baseCcy) {
+            document.getElementById('headerRate').value = 1;
+            applyHeaderToLines(hc, 1);
+        } else {
+            fetchRate(hc, function (r) {
+                var hr = r || headerRate();
+                document.getElementById('headerRate').value = hr;
+                applyHeaderToLines(hc, hr);
+            });
+        }
     });
 
     // Header rate change → push to non-overridden lines on the header currency.
