@@ -21,7 +21,7 @@
             <option value="invoice_date" @selected($ageBy === 'invoice_date')>Invoice Date</option>
         </select>
         <label class="form-label small mb-0 text-muted ms-1">Currency</label>
-        <select name="currency" class="form-select form-select-sm" style="width:110px">
+        <select name="currency" class="form-select form-select-sm select2" style="width:110px">
             <option value="">All</option>
             @foreach($currencies as $c)
             <option value="{{ $c }}" @selected($currencyFilter === $c)>{{ $c }}</option>

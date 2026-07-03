@@ -48,7 +48,7 @@
             </div>
             <div class="col-sm-auto">
                 <label class="form-label form-label-sm fw-semibold mb-1">Currency</label>
-                <select name="currency" class="form-select form-select-sm">
+                <select name="currency" class="form-select form-select-sm select2" style="width:120px">
                     <option value="">All</option>
                     @foreach($currencies as $c)
                     <option value="{{ $c }}" @selected($currencyFilter === $c)>{{ $c }}</option>
