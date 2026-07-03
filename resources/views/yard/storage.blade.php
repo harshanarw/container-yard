@@ -55,10 +55,10 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Customer</label>
-                    <select id="calcCustomer" class="form-select">
+                    <select id="calcCustomer" class="form-select s2-code" data-s2-sel="name">
                         <option value="">— Select Customer —</option>
                         @foreach($customers as $cust)
-                            <option value="{{ $cust->id }}">{{ $cust->name }}</option>
+                            <option value="{{ $cust->id }}" data-code="{{ $cust->code }}" data-name="{{ $cust->name }}">{{ $cust->name }}</option>
                         @endforeach
                     </select>
                     <div id="tariffStatus" class="form-text"></div>
@@ -380,7 +380,8 @@
     }
 
     // ── Event listeners ────────────────────────────────────────────────────────
-    document.getElementById('calcCustomer').addEventListener('change', function () {
+    // calcCustomer is a select2 (s2-code) — bind via jQuery so select2 changes fire.
+    $('#calcCustomer').on('change', function () {
         fetchTariff(this.value);
     });
 
@@ -401,14 +402,10 @@
                     return;
                 }
 
-                // Fill customer
-                const custSel = document.getElementById('calcCustomer');
-                for (let i = 0; i < custSel.options.length; i++) {
-                    if (parseInt(custSel.options[i].value) === data.customer_id) {
-                        custSel.selectedIndex = i;
-                        break;
-                    }
-                }
+                // Fill customer — calcCustomer is a select2, so set via jQuery to
+                // update the widget display (change.select2 avoids a double fetch;
+                // fetchTariff is called explicitly below).
+                $('#calcCustomer').val(String(data.customer_id)).trigger('change.select2');
                 fetchTariff(data.customer_id);
 
                 // Fill equipment type

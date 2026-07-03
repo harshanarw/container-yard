@@ -433,26 +433,26 @@
                             <input type="text" id="ruleSearchQ" class="form-control form-control-sm" placeholder="Search rule name…">
                         </div>
                         <div class="col-md-2">
-                            <select id="ruleFilterLoc" class="form-select form-select-sm">
+                            <select id="ruleFilterLoc" class="form-select form-select-sm select2-modal s2-code" data-s2-sel="name">
                                 <option value="">All Locations</option>
                                 @foreach($mrLocationCodes as $c)
-                                <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <select id="ruleFilterCmp" class="form-select form-select-sm">
+                            <select id="ruleFilterCmp" class="form-select form-select-sm select2-modal s2-code" data-s2-sel="name">
                                 <option value="">All Components</option>
                                 @foreach($mrComponentCodes as $c)
-                                <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <select id="ruleFilterDmg" class="form-select form-select-sm">
+                            <select id="ruleFilterDmg" class="form-select form-select-sm select2-modal s2-code" data-s2-sel="name">
                                 <option value="">All Damage Types</option>
                                 @foreach($mrDamageCodes as $c)
-                                <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
+                                <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -694,6 +694,16 @@
             fetchRules();
         });
 
+        // Init the code-chip Select2 filters once the modal is fully shown
+        // (initialising while hidden mis-sizes; guard avoids re-init on reopen).
+        $('#pullFromRulesModal').on('shown.bs.modal', function () {
+            $(this).find('.select2-modal').each(function () {
+                if (!$(this).hasClass('select2-hidden-accessible')) {
+                    window.initS2Code($(this), { width: '100%' });
+                }
+            });
+        });
+
         function fetchRules() {
             const params = new URLSearchParams({
                 q:                  document.getElementById('ruleSearchQ').value,
@@ -745,16 +755,16 @@
                 debounceT = setTimeout(fetchRules, 280);
             });
         });
+        // Rule filters are select2 — bind via jQuery so select2 changes fire.
         ['ruleFilterLoc', 'ruleFilterCmp', 'ruleFilterDmg'].forEach(id => {
-            document.getElementById(id).addEventListener('change', fetchRules);
+            $('#' + id).on('change', fetchRules);
         });
 
-        // Clear filters
+        // Clear filters (clear the select2 widgets via change.select2 so the
+        // display resets without each firing its own fetch; fetchRules runs once).
         document.getElementById('clearRuleFilters').addEventListener('click', function () {
             document.getElementById('ruleSearchQ').value = '';
-            document.getElementById('ruleFilterLoc').value = '';
-            document.getElementById('ruleFilterCmp').value = '';
-            document.getElementById('ruleFilterDmg').value = '';
+            $('#ruleFilterLoc, #ruleFilterCmp, #ruleFilterDmg').val('').trigger('change.select2');
             fetchRules();
         });
 

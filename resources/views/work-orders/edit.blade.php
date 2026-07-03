@@ -64,7 +64,7 @@
                 <div class="row mb-3">
                     <label for="assigned_to" class="col-sm-3 col-form-label">Assigned To</label>
                     <div class="col-sm-9">
-                        <select class="form-select @error('assigned_to') is-invalid @enderror" name="assigned_to" id="assigned_to">
+                        <select class="form-select select2 @error('assigned_to') is-invalid @enderror" name="assigned_to" id="assigned_to">
                             <option value="">— Select supervisor —</option>
                             @foreach($supervisors as $sup)
                             <option value="{{ $sup->id }}" {{ old('assigned_to', $workOrder->assigned_to) == $sup->id ? 'selected' : '' }}>

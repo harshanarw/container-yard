@@ -47,7 +47,7 @@
                        placeholder="Search rule name…" value="{{ request('search') }}">
             </div>
             <div class="col-md-2">
-                <select name="location_code_id" class="form-select form-select-sm">
+                <select name="location_code_id" class="form-select form-select-sm select2">
                     <option value="">All Locations</option>
                     @foreach($locations as $c)
                     <option value="{{ $c->id }}" {{ request('location_code_id') == $c->id ? 'selected' : '' }}>
@@ -57,7 +57,7 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <select name="component_code_id" class="form-select form-select-sm">
+                <select name="component_code_id" class="form-select form-select-sm select2">
                     <option value="">All Components</option>
                     @foreach($components as $c)
                     <option value="{{ $c->id }}" {{ request('component_code_id') == $c->id ? 'selected' : '' }}>
@@ -67,7 +67,7 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <select name="damage_code_id" class="form-select form-select-sm">
+                <select name="damage_code_id" class="form-select form-select-sm select2">
                     <option value="">All Damage Types</option>
                     @foreach($damages as $c)
                     <option value="{{ $c->id }}" {{ request('damage_code_id') == $c->id ? 'selected' : '' }}>

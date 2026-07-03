@@ -109,10 +109,13 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Container Grade</label>
-                            <select name="grade_id" class="form-select @error('grade_id') is-invalid @enderror">
+                            <select name="grade_id" class="form-select s2-grade @error('grade_id') is-invalid @enderror">
                                 <option value="">— Not Set —</option>
                                 @foreach($grades as $grade)
                                     <option value="{{ $grade->id }}"
+                                            data-code="{{ $grade->code }}"
+                                            data-name="{{ $grade->name }}"
+                                            data-color="{{ $grade->color ?? 'secondary' }}"
                                             {{ old('grade_id', $container?->grade_id) == $grade->id ? 'selected' : '' }}>
                                         {{ $grade->code }} — {{ $grade->name }}
                                     </option>
