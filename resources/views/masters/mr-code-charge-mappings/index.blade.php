@@ -322,9 +322,10 @@ $('#addModal, #editModal').on('shown.bs.modal', function () {
 
 document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.getElementById('editComponent').value = btn.dataset.component || '';
-        document.getElementById('editRepair').value    = btn.dataset.repair    || '';
-        document.getElementById('editCharge').value    = btn.dataset.charge;
+        // editComponent / editRepair / editCharge are select2 — set via jQuery so the widget updates.
+        $('#editComponent').val(btn.dataset.component || '').trigger('change.select2');
+        $('#editRepair').val(btn.dataset.repair || '').trigger('change.select2');
+        $('#editCharge').val(btn.dataset.charge).trigger('change.select2');
         document.getElementById('editPriority').value  = btn.dataset.priority;
         document.getElementById('editNotes').value     = btn.dataset.notes     || '';
         document.getElementById('editForm').action     = '{{ url("masters/mr-charge-mappings") }}/' + btn.dataset.id;

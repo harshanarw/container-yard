@@ -374,7 +374,8 @@ document.querySelectorAll('.btn-edit').forEach(btn => {
         document.getElementById('editDescription').value = btn.dataset.description;
         document.getElementById('editCategory').value    = btn.dataset.category || '';
         document.getElementById('editRateType').value    = btn.dataset.rate_type || '';
-        document.getElementById('editTaxCodeId').value   = btn.dataset.tax_code_id || '';
+        // editTaxCodeId is a select2 — set via jQuery so the widget updates immediately.
+        $('#editTaxCodeId').val(btn.dataset.tax_code_id || '').trigger('change.select2');
         document.getElementById('editForm').action =
             '{{ url("masters/charge-codes") }}/' + btn.dataset.id;
 

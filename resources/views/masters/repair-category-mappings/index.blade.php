@@ -300,8 +300,9 @@ $('#addModal, #editModal').on('shown.bs.modal', function () {
 
 document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.getElementById('editCategory').value    = btn.dataset.category;
-        document.getElementById('editComponent').value  = btn.dataset.component ?? '';
+        // editCategory / editComponent are select2 — set via jQuery so the widget updates.
+        $('#editCategory').val(btn.dataset.category).trigger('change.select2');
+        $('#editComponent').val(btn.dataset.component ?? '').trigger('change.select2');
         document.getElementById('editRepairType').value = btn.dataset.repairType ?? '';
         document.getElementById('editPriority').value   = btn.dataset.priority;
         document.getElementById('editForm').action      = '/masters/repair-category-mappings/' + btn.dataset.id;
