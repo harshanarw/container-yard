@@ -76,7 +76,7 @@
                 </div>
             </div>
             <div class="col-6 col-md-2">
-                <select name="type_id" class="form-select form-select-sm">
+                <select name="type_id" class="form-select form-select-sm select2">
                     <option value="">All Types</option>
                     @foreach($customerTypes as $ct)
                         <option value="{{ $ct->id }}" {{ request('type_id') == $ct->id ? 'selected' : '' }}>

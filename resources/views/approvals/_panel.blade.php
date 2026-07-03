@@ -177,7 +177,7 @@
                             {{ $step->step_label }}
                             <span class="text-muted fw-normal">({{ ucwords(str_replace('_', ' ', $step->required_role)) }})</span>
                         </label>
-                        <select name="assignees[{{ $step->step_key }}]" class="form-select form-select-sm">
+                        <select name="assignees[{{ $step->step_key }}]" class="form-select form-select-sm select2-modal">
                             <option value="">— Any eligible approver —</option>
                             @foreach($eligibleUsers as $u)
                             <option value="{{ $u->id }}">{{ $u->name }}</option>
@@ -285,4 +285,20 @@
         </div>
     </div>
 </div>
+
+@once
+@push('scripts')
+<script>
+// Assignee dropdowns live in the Submit-for-Approval modal; init Select2 once
+// it is shown so the dropdown is modal-parented and sized correctly.
+$('#submitApprovalModal').on('shown.bs.modal', function () {
+    $(this).find('.select2-modal').each(function () {
+        if (!$(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2({ theme: 'bootstrap-5', width: '100%', dropdownParent: $('#submitApprovalModal') });
+        }
+    });
+});
+</script>
+@endpush
+@endonce
 @endif

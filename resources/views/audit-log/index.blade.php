@@ -61,7 +61,7 @@
                 {{-- User --}}
                 <div class="col-6 col-md-2">
                     <label class="form-label fw-semibold small mb-1">User</label>
-                    <select name="causer_id" class="form-select form-select-sm">
+                    <select name="causer_id" class="form-select form-select-sm select2">
                         <option value="">All Users</option>
                         @foreach($users as $u)
                         <option value="{{ $u->id }}" {{ request('causer_id') == $u->id ? 'selected' : '' }}>
