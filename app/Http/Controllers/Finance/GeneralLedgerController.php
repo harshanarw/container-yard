@@ -63,7 +63,14 @@ class GeneralLedgerController extends Controller
     {
         $this->authorize('finance.gl.create');
         $accounts = Account::where('is_posting', true)->where('is_active', true)->orderBy('code')->get();
-        return view('finance.gl.journals.create', compact('accounts'));
+        $baseCurrency = \App\Services\CurrencyService::defaultCurrency();
+        $currencies = \App\Models\Currency::where('is_active', true)
+            ->orderBy('sort_order')->orderBy('code')
+            ->pluck('code')->map(fn ($c) => strtoupper($c))->unique()->values()->all();
+        if (!in_array($baseCurrency, $currencies, true)) {
+            array_unshift($currencies, $baseCurrency);
+        }
+        return view('finance.gl.journals.create', compact('accounts', 'currencies', 'baseCurrency'));
     }
 
     // Store manual journal
@@ -74,28 +81,59 @@ class GeneralLedgerController extends Controller
         $validated = $request->validate([
             'journal_date'           => ['required', 'date'],
             'narration'              => ['required', 'string', 'max:255'],
+            'currency'               => ['nullable', 'string', 'max:10'],
+            'exchange_rate'          => ['nullable', 'numeric', 'min:0.000001'],
             'lines'                  => ['required', 'array', 'min:2'],
             'lines.*.account_id'     => ['required', 'exists:accounts,id'],
+            'lines.*.currency'       => ['nullable', 'string', 'max:10'],
+            'lines.*.exchange_rate'  => ['nullable', 'numeric', 'min:0.000001'],
             'lines.*.debit'          => ['nullable', 'numeric', 'min:0'],
             'lines.*.credit'         => ['nullable', 'numeric', 'min:0'],
             'lines.*.narration'      => ['nullable', 'string', 'max:255'],
         ]);
 
-        $lines = collect($validated['lines'])->map(fn ($l) => [
-            'account_id' => $l['account_id'],
-            'debit'      => (float) ($l['debit'] ?? 0),
-            'credit'     => (float) ($l['credit'] ?? 0),
-            'narration'  => $l['narration'] ?? null,
-        ])->filter(fn ($l) => $l['debit'] > 0 || $l['credit'] > 0)->values()->toArray();
-
-        if (count($lines) < 2) {
-            return back()->withInput()->with('error', 'At least two non-zero journal lines are required.');
-        }
+        $base       = \App\Services\CurrencyService::defaultCurrency();
+        $headerCcy  = strtoupper($validated['currency'] ?? $base);
+        $headerRate = (float) ($validated['exchange_rate'] ?? 1);
 
         try {
+            // Each line's debit/credit are TRANSACTION-currency amounts; the base
+            // (functional) amounts are txn × rate. A line inherits the header
+            // currency/rate unless it overrides them. The ledger balances in base.
+            $lines = [];
+            foreach ($validated['lines'] as $l) {
+                $txnDebit  = (float) ($l['debit'] ?? 0);
+                $txnCredit = (float) ($l['credit'] ?? 0);
+                if ($txnDebit <= 0 && $txnCredit <= 0) {
+                    continue;
+                }
+
+                $ccy  = strtoupper($l['currency'] ?? $headerCcy);
+                $rate = \App\Services\CurrencyService::requireRate(
+                    $ccy,
+                    $l['exchange_rate'] ?? ($ccy === $headerCcy ? $headerRate : null)
+                );
+
+                $lines[] = [
+                    'account_id'    => $l['account_id'],
+                    'currency'      => $ccy,
+                    'exchange_rate' => $rate,
+                    'txn_debit'     => $txnDebit,
+                    'txn_credit'    => $txnCredit,
+                    'debit'         => round($txnDebit * $rate, 2),
+                    'credit'        => round($txnCredit * $rate, 2),
+                    'narration'     => $l['narration'] ?? null,
+                ];
+            }
+
+            if (count($lines) < 2) {
+                return back()->withInput()->with('error', 'At least two non-zero journal lines are required.');
+            }
+
             $journal = $this->engine->createJournal([
                 'journal_date' => $validated['journal_date'],
                 'journal_type' => 'journal',
+                'currency'     => $headerCcy,
                 'narration'    => $validated['narration'],
             ], $lines);
 
@@ -105,7 +143,7 @@ class GeneralLedgerController extends Controller
 
             return redirect()->route('finance.gl.journals.show', $journal)
                 ->with('success', "Journal {$journal->journal_no} created.");
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
     }
