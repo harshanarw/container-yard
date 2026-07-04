@@ -11,6 +11,7 @@ class IrdInvoiceNumberService
 {
     const CATEGORY_CODES = [
         'storage'          => 'STG',
+        'handling'         => 'HDL',
         'storage_handling' => 'HND',
         'repair'           => 'REP',
         'reefer'           => 'REF',

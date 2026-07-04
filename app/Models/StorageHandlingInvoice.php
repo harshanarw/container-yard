@@ -6,8 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class StorageHandlingInvoice extends Model
 {
+    // Bill type — one screen generates all three kinds of invoice.
+    public const BILL_STORAGE_HANDLING = 'storage_handling';
+    public const BILL_STORAGE_ONLY     = 'storage_only';
+    public const BILL_HANDLING_ONLY    = 'handling_only';
+
     protected $fillable = [
-        'invoice_no', 'invoice_type', 'shipping_line_id', 'billing_party_id', 'invoice_date', 'due_date',
+        'invoice_no', 'invoice_type', 'bill_type', 'shipping_line_id', 'billing_party_id', 'invoice_date', 'due_date',
         'invoice_currency', 'exchange_rate',
         'billing_period_from', 'billing_period_to',
         'storage_subtotal', 'handling_subtotal', 'subtotal',
@@ -83,5 +88,31 @@ class StorageHandlingInvoice extends Model
     public function isDraft(): bool
     {
         return $this->status === 'draft';
+    }
+
+    // ── Bill type ───────────────────────────────────────────────────────────────
+
+    public function hasStorage(): bool
+    {
+        return $this->bill_type !== self::BILL_HANDLING_ONLY;
+    }
+
+    public function hasHandling(): bool
+    {
+        return $this->bill_type !== self::BILL_STORAGE_ONLY;
+    }
+
+    public function getBillTypeLabelAttribute(): string
+    {
+        return match ($this->bill_type) {
+            self::BILL_STORAGE_ONLY  => 'Storage Only',
+            self::BILL_HANDLING_ONLY => 'Handling Only',
+            default                  => 'Storage & Handling',
+        };
+    }
+
+    public function scopeBillType($query, string $type)
+    {
+        return $query->where('bill_type', $type);
     }
 }
