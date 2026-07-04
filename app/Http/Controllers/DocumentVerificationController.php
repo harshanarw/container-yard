@@ -41,7 +41,9 @@ class DocumentVerificationController extends Controller
         return view('documents.verify', array_merge([
             'company'  => $company,
             'found'    => true,
-            'docLabel' => $this->label($type),
+            // A resolved document may carry a per-record label (e.g. the storage &
+            // handling bill type); otherwise fall back to the static type label.
+            'docLabel' => $doc['doc_label'] ?? $this->label($type),
         ], $doc));
     }
 
@@ -63,12 +65,14 @@ class DocumentVerificationController extends Controller
             ] : null,
 
             'storage-handling' => ($i = StorageHandlingInvoice::with('shippingLine')->find($id)) ? [
-                'number'   => $i->invoice_no,
-                'date'     => $i->invoice_date?->format('d M Y'),
-                'party'    => $i->shippingLine?->name,
-                'amount'   => (float) $i->total_amount,
-                'currency' => $i->invoice_currency,
-                'status'   => $i->status,
+                'number'    => $i->invoice_no,
+                'date'      => $i->invoice_date?->format('d M Y'),
+                'party'     => $i->shippingLine?->name,
+                'amount'    => (float) $i->total_amount,
+                'currency'  => $i->invoice_currency,
+                'status'    => $i->status,
+                // Per-record label so the verifier sees the exact bill type.
+                'doc_label' => $i->bill_type_label . ' Invoice',
             ] : null,
 
             'reefer' => ($i = ReeferElectricityInvoice::with('customer')->find($id)) ? [
