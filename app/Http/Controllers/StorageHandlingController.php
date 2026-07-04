@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CompanySetting;
+use App\Models\Container;
 use App\Models\Customer;
 use App\Models\GateMovement;
 use App\Models\HandlingTariff;
@@ -36,6 +37,7 @@ class StorageHandlingController extends Controller
         $invoices = StorageHandlingInvoice::with('shippingLine')
             ->withCount('lines')
             ->when($request->shipping_line_id, fn ($q, $v) => $q->where('shipping_line_id', $v))
+            ->when($request->bill_type,        fn ($q, $v) => $q->where('bill_type', $v))
             ->when($request->status,           fn ($q, $v) => $q->where('status', $v))
             ->when($request->search, fn ($q, $s) =>
                 $q->where(fn ($sub) =>
@@ -61,7 +63,7 @@ class StorageHandlingController extends Controller
 
     // ── Generate form ─────────────────────────────────────────────────────────
 
-    public function create()
+    public function create(Request $request)
     {
         $shippingLines = Customer::with('billingParty')
             ->where('status', 'active')
@@ -70,7 +72,13 @@ class StorageHandlingController extends Controller
 
         $allCustomers = Customer::where('status', 'active')->orderBy('name')->get();
 
-        return view('billing.storage-handling.create', compact('shippingLines', 'allCustomers'));
+        $billType = in_array($request->query('bill_type'), [
+            StorageHandlingInvoice::BILL_STORAGE_HANDLING,
+            StorageHandlingInvoice::BILL_STORAGE_ONLY,
+            StorageHandlingInvoice::BILL_HANDLING_ONLY,
+        ], true) ? $request->query('bill_type') : StorageHandlingInvoice::BILL_STORAGE_HANDLING;
+
+        return view('billing.storage-handling.create', compact('shippingLines', 'allCustomers', 'billType'));
     }
 
     // ── AJAX preview ──────────────────────────────────────────────────────────
@@ -78,6 +86,7 @@ class StorageHandlingController extends Controller
     public function preview(Request $request)
     {
         $v = $request->validate([
+            'bill_type'        => 'nullable|in:storage_handling,storage_only,handling_only',
             'shipping_line_id' => 'required|exists:customers,id',
             'period_from'      => 'required|date',
             'period_to'        => 'required|date|after_or_equal:period_from',
@@ -86,6 +95,11 @@ class StorageHandlingController extends Controller
             'sscl_pct'         => 'nullable|numeric|min:0|max:100',
             'vat_pct'          => 'nullable|numeric|min:0|max:100',
         ]);
+
+        // Bill type gates what is computed: storage records, handling (lift) events, or both.
+        $billType      = $v['bill_type'] ?? StorageHandlingInvoice::BILL_STORAGE_HANDLING;
+        $wantsStorage  = $billType !== StorageHandlingInvoice::BILL_HANDLING_ONLY;
+        $wantsHandling = $billType !== StorageHandlingInvoice::BILL_STORAGE_ONLY;
 
         $shippingLine    = Customer::findOrFail($v['shipping_line_id']);
         $taxExempt       = (bool) $shippingLine->tax_exempt;
@@ -98,28 +112,33 @@ class StorageHandlingController extends Controller
         $ssclPct         = (float) ($v['sscl_pct'] ?? 0);  // fallback rate
         $vatPct          = (float) ($v['vat_pct'] ?? 0);   // fallback rate
 
-        // ── Storage records active during period ─────────────────────────────
-        $storageRecords = YardStorage::with(['container.equipmentType'])
-            ->where('customer_id', $shippingLine->id)
-            ->where('gate_in_date', '<=', $periodTo)
-            ->where(fn ($q) => $q->whereNull('gate_out_date')
-                                  ->orWhere('gate_out_date', '>=', $periodFrom))
-            ->orderBy('gate_in_date')
-            ->get();
+        // ── Storage records active during period (only when storage is billed) ──
+        $storageRecords = $wantsStorage
+            ? YardStorage::with(['container.equipmentType'])
+                ->where('customer_id', $shippingLine->id)
+                ->where('gate_in_date', '<=', $periodTo)
+                ->where(fn ($q) => $q->whereNull('gate_out_date')
+                                      ->orWhere('gate_out_date', '>=', $periodFrom))
+                ->orderBy('gate_in_date')
+                ->get()
+            : collect();
 
-        // ── Gate-in movements during period  → Lift Off ──────────────────────
-        $liftOffByContainer = GateMovement::where('customer_id', $shippingLine->id)
-            ->where('movement_type', 'in')
-            ->whereBetween('gate_in_time', [$periodFrom, $periodToEod])
-            ->get()
-            ->keyBy('container_id');
+        // ── Gate movements → Lift Off / Lift On (only when handling is billed) ──
+        $liftOffByContainer = $wantsHandling
+            ? GateMovement::where('customer_id', $shippingLine->id)
+                ->where('movement_type', 'in')
+                ->whereBetween('gate_in_time', [$periodFrom, $periodToEod])
+                ->get()
+                ->keyBy('container_id')
+            : collect();
 
-        // ── Gate-out movements during period → Lift On ───────────────────────
-        $liftOnByContainer = GateMovement::where('customer_id', $shippingLine->id)
-            ->where('movement_type', 'out')
-            ->whereBetween('gate_out_time', [$periodFrom, $periodToEod])
-            ->get()
-            ->keyBy('container_id');
+        $liftOnByContainer = $wantsHandling
+            ? GateMovement::where('customer_id', $shippingLine->id)
+                ->where('movement_type', 'out')
+                ->whereBetween('gate_out_time', [$periodFrom, $periodToEod])
+                ->get()
+                ->keyBy('container_id')
+            : collect();
 
         // ── Cargo status per container from most recent gate-in movement ──────
         $cargoStatusByContainer = GateMovement::where('customer_id', $shippingLine->id)
@@ -132,6 +151,7 @@ class StorageHandlingController extends Controller
         if ($storageRecords->isEmpty() && $liftOffByContainer->isEmpty() && $liftOnByContainer->isEmpty()) {
             return response()->json([
                 'lines'                  => [],
+                'bill_type'              => $billType,
                 'tax_exempt'             => $taxExempt,
                 'invoice_currency'       => $invoiceCurrency,
                 'exchange_rate'          => $exchangeRate,
@@ -149,23 +169,27 @@ class StorageHandlingController extends Controller
             ]);
         }
 
-        // ── Active storage tariff ─────────────────────────────────────────────
-        $storageTariff = StorageMasterHeader::with('details.equipmentType', 'details.chargeCode.taxCode')
-            ->where('customer_id', $shippingLine->id)
-            ->where('is_active', true)
-            ->where('valid_from', '<=', $periodTo)
-            ->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>=', $periodFrom))
-            ->latest('valid_from')
-            ->first();
+        // ── Active storage tariff (only when storage is billed) ───────────────
+        $storageTariff = $wantsStorage
+            ? StorageMasterHeader::with('details.equipmentType', 'details.chargeCode.taxCode')
+                ->where('customer_id', $shippingLine->id)
+                ->where('is_active', true)
+                ->where('valid_from', '<=', $periodTo)
+                ->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>=', $periodFrom))
+                ->latest('valid_from')
+                ->first()
+            : null;
 
-        // ── Active handling tariff ────────────────────────────────────────────
-        $handlingTariff = HandlingTariff::with('rates.chargeCode.taxCode')
-            ->where('shipping_line_id', $shippingLine->id)
-            ->where('is_active', true)
-            ->where('valid_from', '<=', $periodTo)
-            ->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>=', $periodFrom))
-            ->latest('valid_from')
-            ->first();
+        // ── Active handling tariff (only when handling is billed) ─────────────
+        $handlingTariff = $wantsHandling
+            ? HandlingTariff::with('rates.chargeCode.taxCode')
+                ->where('shipping_line_id', $shippingLine->id)
+                ->where('is_active', true)
+                ->where('valid_from', '<=', $periodTo)
+                ->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>=', $periodFrom))
+                ->latest('valid_from')
+                ->first()
+            : null;
 
         $lines = [];
         $guard = new TariffRateGuard();
@@ -178,70 +202,107 @@ class StorageHandlingController extends Controller
             : route('masters.handling-tariff.index');
         $handlingFixLabel = $handlingTariff ? 'Edit handling tariff' : 'Set up handling tariff';
 
-        foreach ($storageRecords as $storage) {
-            $container = $storage->container;
-            if (! $container) continue;
+        // Billing spine: storage/both are driven by storage records; handling-only
+        // is driven by the containers that had a lift event in the period (which may
+        // have no active storage record). Each unit is [container, storage(nullable)].
+        if ($billType === StorageHandlingInvoice::BILL_HANDLING_ONLY) {
+            $ids        = $liftOffByContainer->keys()->merge($liftOnByContainer->keys())->unique()->values();
+            $containers = Container::with('equipmentType')->whereIn('id', $ids)->get()->keyBy('id');
+            $spine      = $ids->map(fn ($id) => ['container' => $containers->get($id), 'storage' => null])
+                              ->filter(fn ($u) => $u['container']);
+        } else {
+            $spine = $storageRecords->map(fn ($s) => ['container' => $s->container, 'storage' => $s])
+                                    ->filter(fn ($u) => $u['container']);
+        }
 
-            // ── Storage calculation ───────────────────────────────────────────
-            // billing_gate_in_date is the free-day anchor (original physical gate-in).
-            // fromDate uses gate_in_date so resumed records aren't billed before they exist.
-            // toDate is capped at gate_out_date for records closed mid-period.
-            $gateIn   = $storage->billing_gate_in_date;
-            $fromDate = $storage->gate_in_date->gt($periodFrom)
-                ? $storage->gate_in_date->copy()
-                : $periodFrom->copy();
-            $toDate   = $periodTo->copy();
-            if ($storage->gate_out_date && $storage->gate_out_date->lt($toDate)) {
-                $toDate = $storage->gate_out_date->copy();
-            }
+        foreach ($spine as $unit) {
+            $container = $unit['container'];
+            $storage   = $unit['storage'];
 
-            $totalDays        = max(1, (int) $fromDate->diffInDays($toDate) + 1);
-            $daysBeforePeriod = max(0, (int) $gateIn->diffInDays($fromDate));
+            $eqtId       = $container->equipment_type_id;
+            $cargoStatus = $cargoStatusByContainer[$container->id] ?? 'empty';
 
-            $eqtId        = $container->equipment_type_id;
-            $cargoStatus  = $cargoStatusByContainer[$container->id] ?? 'empty';
-            $freeDays     = $storageTariff?->default_free_days ?? $storage->free_days ?? 0;
-            $storageRate  = 0.0;
-            $storageCur   = 'USD';
-            $chargeCodeId         = null;
-            $taxCodeId            = null;
-            $tax1Rate             = $taxExempt ? 0.0 : $ssclPct;  // storage fallback
-            $tax2Rate             = $taxExempt ? 0.0 : $vatPct;   // storage fallback
+            // Handling tax defaults (overridden by the handling charge code below).
             $handlingChargeCodeId = null;
             $handlingTaxCodeId    = null;
             $handlingTax1Rate     = $taxExempt ? 0.0 : $ssclPct;  // handling fallback
             $handlingTax2Rate     = $taxExempt ? 0.0 : $vatPct;   // handling fallback
 
+            // Storage totals default to zero (handling-only leaves them zero); the
+            // NOT-NULL date columns get period placeholders when there is no storage.
+            $totalDays = 0; $freeDaysInPeriod = 0; $chargeableDays = 0;
+            $storageRate = 0.0; $storageCur = $defaultCurrency; $storageDailyConverted = 0.0; $storageSubtotal = 0.0;
+            $chargeCodeId = null; $taxCodeId = null; $tax1Rate = 0.0; $tax2Rate = 0.0;
             $detail = null;
-            if ($storageTariff) {
-                $detail = $storageTariff->details
-                    ->where('equipment_type_id', $eqtId)
-                    ->where('cargo_status', $cargoStatus)
-                    ->first();
-                if ($detail) {
-                    $storageRate  = (float) $detail->storage_rate;
-                    $storageCur   = $detail->currency;
-                    $chargeCodeId = $detail->charge_code_id;
-                    $taxCodeId    = $detail->chargeCode?->tax_code_id;
+            $fromStr    = $periodFrom->toDateString();
+            $toStr      = $periodTo->toDateString();
+            $gateInStr  = $periodFrom->toDateString();
+            $gateOutStr = '';
 
-                    if (! $taxExempt && $detail->chargeCode?->taxCode) {
-                        $tax1Rate = (float) $detail->chargeCode->taxCode->tax1_rate;
-                        $tax2Rate = (float) $detail->chargeCode->taxCode->tax2_rate;
-                    }
+            // ── Storage calculation (only when this bill includes storage) ────
+            // billing_gate_in_date is the free-day anchor (original physical gate-in).
+            // fromDate uses gate_in_date so resumed records aren't billed before they exist.
+            // toDate is capped at gate_out_date for records closed mid-period.
+            if ($wantsStorage && $storage) {
+                $gateIn   = $storage->billing_gate_in_date;
+                $fromDate = $storage->gate_in_date->gt($periodFrom)
+                    ? $storage->gate_in_date->copy()
+                    : $periodFrom->copy();
+                $toDate   = $periodTo->copy();
+                if ($storage->gate_out_date && $storage->gate_out_date->lt($toDate)) {
+                    $toDate = $storage->gate_out_date->copy();
                 }
-            } else {
-                $storageRate = (float) $storage->daily_rate;
-                $freeDays    = (int)   ($storage->free_days ?? 0);
+
+                $totalDays        = max(1, (int) $fromDate->diffInDays($toDate) + 1);
+                $daysBeforePeriod = max(0, (int) $gateIn->diffInDays($fromDate));
+
+                $freeDays   = $storageTariff?->default_free_days ?? $storage->free_days ?? 0;
+                $storageCur = 'USD';
+                $tax1Rate   = $taxExempt ? 0.0 : $ssclPct;  // storage fallback
+                $tax2Rate   = $taxExempt ? 0.0 : $vatPct;   // storage fallback
+
+                if ($storageTariff) {
+                    $detail = $storageTariff->details
+                        ->where('equipment_type_id', $eqtId)
+                        ->where('cargo_status', $cargoStatus)
+                        ->first();
+                    if ($detail) {
+                        $storageRate  = (float) $detail->storage_rate;
+                        $storageCur   = $detail->currency;
+                        $chargeCodeId = $detail->charge_code_id;
+                        $taxCodeId    = $detail->chargeCode?->tax_code_id;
+
+                        if (! $taxExempt && $detail->chargeCode?->taxCode) {
+                            $tax1Rate = (float) $detail->chargeCode->taxCode->tax1_rate;
+                            $tax2Rate = (float) $detail->chargeCode->taxCode->tax2_rate;
+                        }
+                    }
+                } else {
+                    $storageRate = (float) $storage->daily_rate;
+                    $freeDays    = (int)   ($storage->free_days ?? 0);
+                }
+
+                $freeDaysRemaining = max(0, $freeDays - $daysBeforePeriod);
+                $freeDaysInPeriod  = min($totalDays, $freeDaysRemaining);
+                $chargeableDays    = max(0, $totalDays - $freeDaysInPeriod);
+
+                // Convert tariff rate to default currency: only multiply by exchangeRate when tariff is USD
+                $storageMult           = CurrencyService::tariffMultiplier($storageCur, $exchangeRate);
+                $storageDailyConverted = round($storageRate * $storageMult, 2);
+                $storageSubtotal       = round($chargeableDays * $storageDailyConverted, 2);
+
+                $fromStr    = $fromDate->toDateString();
+                $toStr      = $toDate->toDateString();
+                $gateInStr  = $gateIn->toDateString();
+                $gateOutStr = $storage->gate_out_date?->toDateString() ?? '';
+            } elseif ($wantsHandling) {
+                // Handling-only: derive a display gate-in date from the lift movement.
+                $gm = $liftOffByContainer->get($container->id) ?? $liftOnByContainer->get($container->id);
+                $gateInStr  = $gm?->gate_in_time?->toDateString()
+                           ?? $gm?->gate_out_time?->toDateString()
+                           ?? $periodFrom->toDateString();
+                $gateOutStr = $liftOnByContainer->get($container->id)?->gate_out_time?->toDateString() ?? '';
             }
-
-            $freeDaysRemaining = max(0, $freeDays - $daysBeforePeriod);
-            $freeDaysInPeriod  = min($totalDays, $freeDaysRemaining);
-            $chargeableDays    = max(0, $totalDays - $freeDaysInPeriod);
-
-            // Convert tariff rate to default currency: only multiply by exchangeRate when tariff is USD
-            $storageMult           = CurrencyService::tariffMultiplier($storageCur, $exchangeRate);
-            $storageDailyConverted = round($storageRate * $storageMult, 2);
-            $storageSubtotal       = round($chargeableDays * $storageDailyConverted, 2);
 
             // ── Handling calculation ──────────────────────────────────────────
             $containerSize = $this->normalizeSize($container->size ?? '');
@@ -329,10 +390,10 @@ class StorageHandlingController extends Controller
                 'iso_code'                 => $isoCode,
                 'type_code'                => $eqt ? $eqt->type_code : $container->type_code,
                 'cargo_status'             => $cargoStatus,
-                'gate_in_date'             => $gateIn->toDateString(),
-                'gate_out_date'            => $storage->gate_out_date?->toDateString() ?? '',
-                'storage_from'             => $fromDate->toDateString(),
-                'storage_to'               => $toDate->toDateString(),
+                'gate_in_date'             => $gateInStr,
+                'gate_out_date'            => $gateOutStr,
+                'storage_from'             => $fromStr,
+                'storage_to'               => $toStr,
                 'storage_total_days'       => $totalDays,
                 'storage_free_days'        => $freeDaysInPeriod,
                 'storage_chargeable_days'  => $chargeableDays,
@@ -380,6 +441,7 @@ class StorageHandlingController extends Controller
 
         return response()->json([
             'shipping_line'          => $shippingLine->name,
+            'bill_type'              => $billType,
             'tax_exempt'             => $taxExempt,
             'lines'                  => $lines,
             'invoice_currency'       => $invoiceCurrency,
@@ -407,6 +469,7 @@ class StorageHandlingController extends Controller
     public function store(Request $request)
     {
         $v = $request->validate([
+            'bill_type'                          => 'nullable|in:storage_handling,storage_only,handling_only',
             'shipping_line_id'                   => 'required|exists:customers,id',
             'billing_party_id'                   => 'nullable|exists:customers,id',
             'invoice_type'                        => 'nullable|string|in:tax_invoice,invoice,debit_note',
@@ -482,8 +545,17 @@ class StorageHandlingController extends Controller
 
         $invoice = null;
 
-        DB::transaction(function () use ($v, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $ssclAmount, $vatAmount, $totalAmount, $totalValue, &$invoice) {
-            $invoiceNo = app(\App\Services\NumberSequenceService::class)->generate('storage_handling_invoice');
+        // Each bill type has its own invoice-number series (continuity for storage,
+        // a dedicated series for handling).
+        $billType = $v['bill_type'] ?? StorageHandlingInvoice::BILL_STORAGE_HANDLING;
+        $seqKey   = match ($billType) {
+            StorageHandlingInvoice::BILL_STORAGE_ONLY  => 'storage_invoice',
+            StorageHandlingInvoice::BILL_HANDLING_ONLY => 'handling_invoice',
+            default                                    => 'storage_handling_invoice',
+        };
+
+        DB::transaction(function () use ($v, $billType, $seqKey, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $ssclAmount, $vatAmount, $totalAmount, $totalValue, &$invoice) {
+            $invoiceNo = app(\App\Services\NumberSequenceService::class)->generate($seqKey);
             // Due date follows the debtor's (shipping line's) AR payment terms.
             $debtorTerms = \App\Models\Customer::where('id', $v['shipping_line_id'])->value('payment_terms') ?? 'net30';
             $dueDate     = \App\Services\Finance\PaymentTermsHelper::dueDate(
@@ -493,6 +565,7 @@ class StorageHandlingController extends Controller
             $invoice = StorageHandlingInvoice::create([
                 'invoice_no'          => $invoiceNo,
                 'invoice_type'        => $v['invoice_type'] ?? 'invoice',
+                'bill_type'           => $billType,
                 'shipping_line_id'    => $v['shipping_line_id'],
                 'billing_party_id'    => $v['billing_party_id'] ?? $v['shipping_line_id'],
                 'invoice_date'        => $v['invoice_date'],
@@ -676,8 +749,14 @@ class StorageHandlingController extends Controller
             return back()->with('error', 'Only draft invoices can be issued.');
         }
 
+        // IRD middle tag identifies the bill type (STG / HDL / HND) on a shared counter.
+        $irdType = match ($storageHandlingInvoice->bill_type) {
+            StorageHandlingInvoice::BILL_STORAGE_ONLY  => 'storage',
+            StorageHandlingInvoice::BILL_HANDLING_ONLY => 'handling',
+            default                                    => 'storage_handling',
+        };
         $irdNo = $storageHandlingInvoice->ird_invoice_no
-            ?? app(IrdInvoiceNumberService::class)->generate('storage_handling', $storageHandlingInvoice->invoice_date);
+            ?? app(IrdInvoiceNumberService::class)->generate($irdType, $storageHandlingInvoice->invoice_date);
 
         $storageHandlingInvoice->update(['status' => 'issued', 'sent_at' => now(), 'ird_invoice_no' => $irdNo]);
 
@@ -813,7 +892,7 @@ class StorageHandlingController extends Controller
             'exchange_rate'         => $storageHandlingInvoice->exchange_rate,
             'invoice_no'            => $storageHandlingInvoice->invoice_no,
             'category_info'         => array_filter([
-                'Category'          => 'Storage & Handling',
+                'Category'          => $storageHandlingInvoice->bill_type_label,
                 'Payment Due'       => $storageHandlingInvoice->due_date?->format('d M Y'),
                 'Billing Period'    => $from && $to ? "{$from} to {$to}" : null,
                 'Shipping Line'     => $shippingLine?->name,
