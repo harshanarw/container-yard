@@ -61,11 +61,12 @@ class StorageBillingController extends Controller
 
     public function create()
     {
-        $customers = Customer::with('billingParty')
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get();
-        return view('billing.create', compact('customers'));
+        // The standalone Storage module is retained read-only for history; new
+        // storage bills are now generated from the unified Storage & Handling
+        // module with Bill Type = Storage Only.
+        return redirect()
+            ->route('billing.storage-handling.create', ['bill_type' => 'storage_only'])
+            ->with('warning', 'Storage invoices are now generated from the Storage & Handling screen — Bill Type is preset to Storage Only.');
     }
 
     // ── AJAX: preview charges for a customer + period ────────────────────────
@@ -315,6 +316,13 @@ class StorageBillingController extends Controller
 
     public function store(Request $request)
     {
+        // Read-only module: creation moved to the unified Storage & Handling
+        // screen. Guard against a direct/stale POST so no new storage_invoices
+        // rows are written here.
+        return redirect()
+            ->route('billing.storage-handling.create', ['bill_type' => 'storage_only'])
+            ->with('warning', 'The standalone Storage screen is read-only. Please generate storage invoices from the Storage & Handling screen.');
+
         $validated = $request->validate([
             'customer_id'              => ['required', 'exists:customers,id'],
             'billing_party_id'         => ['nullable', 'exists:customers,id'],

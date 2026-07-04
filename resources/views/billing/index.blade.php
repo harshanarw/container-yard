@@ -11,12 +11,12 @@
 
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
-        <h4><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Storage Invoices</h4>
-        <p class="text-muted mb-0 small">Generate, manage and track container storage billing</p>
+        <h4><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Storage Invoices <span class="badge bg-secondary-subtle text-secondary border align-middle" style="font-size:.6rem;">ARCHIVE</span></h4>
+        <p class="text-muted mb-0 small">Historical storage invoices. New storage bills are now generated from the Storage &amp; Handling screen.</p>
     </div>
-    @can('billing.storage.create')
-    <a href="{{ route('billing.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Generate Invoice
+    @can('billing.storage-handling.create')
+    <a href="{{ route('billing.storage-handling.create', ['bill_type' => 'storage_only']) }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>New Storage Invoice
     </a>
     @endcan
 </div>
@@ -92,8 +92,8 @@
         @if($invoices->isEmpty())
             <div class="text-center py-5 text-muted">
                 <i class="bi bi-receipt fs-2 d-block mb-2"></i>
-                No invoices found.
-                <a href="{{ route('billing.create') }}" class="d-block mt-2">Generate your first invoice</a>
+                No storage invoices found.
+                <a href="{{ route('billing.storage-handling.create', ['bill_type' => 'storage_only']) }}" class="d-block mt-2">Generate a storage invoice</a>
             </div>
         @else
         <div class="table-responsive">

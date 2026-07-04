@@ -1035,7 +1035,7 @@
                 <li class="nav-item">
                     <a href="{{ route('billing.index') }}"
                        class="nav-link {{ request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*') && !request()->routeIs('billing.reefer.*') ? 'active' : '' }}">
-                        <i class="bi bi-file-earmark-text"></i><span>Storage Invoices</span>
+                        <i class="bi bi-file-earmark-text"></i><span>Storage Invoices (Archive)</span>
                     </a>
                 </li>
                 @endcan
