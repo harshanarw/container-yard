@@ -155,6 +155,7 @@
     </tr>
 </table>
 
+@if($invoice->hasStorage())
 {{-- ── Section 1: Storage Charges ── --}}
 <div class="sec-storage">Storage Charges</div>
 <table class="t">
@@ -203,7 +204,9 @@
         </tr>
     </tfoot>
 </table>
+@endif
 
+@if($invoice->hasHandling())
 {{-- ── Section 2: Handling Charges ── --}}
 <div class="sec-handling">Handling Charges</div>
 
@@ -292,21 +295,28 @@
 <div class="subtotal-bar">
     Handling Subtotal: {{ $fmtDisp($invoice->handling_subtotal) }}
 </div>
+@endif
 
 {{-- ── Grand Total ── --}}
 <table class="totals">
+    @if($invoice->hasStorage())
     <tr class="sub-row">
         <td>Storage Subtotal</td>
         <td class="r">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
     </tr>
+    @endif
+    @if($invoice->hasHandling())
     <tr class="sub-row">
         <td>Handling Subtotal</td>
         <td class="r">{{ $fmtDisp($invoice->handling_subtotal) }}</td>
     </tr>
+    @endif
+    @if($invoice->hasStorage() && $invoice->hasHandling())
     <tr class="combined">
         <td>Combined Subtotal</td>
         <td class="r">{{ $fmtDisp($invoice->subtotal) }}</td>
     </tr>
+    @endif
     @if($invoice->sscl_amount > 0 || $invoice->sscl_percentage > 0)
     <tr class="sub-row">
         <td>SSCL ({{ number_format($invoice->sscl_percentage, 2) }}%)</td>

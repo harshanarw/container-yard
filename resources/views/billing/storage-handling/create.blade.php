@@ -54,6 +54,19 @@
             <div class="card-body">
 
                 <div class="mb-3">
+                    <label class="form-label fw-semibold">Bill Type <span class="text-danger">*</span></label>
+                    <div class="btn-group w-100" role="group" id="billTypeGroup">
+                        <input type="radio" class="btn-check" name="bill_type" id="btStorageHandling" value="storage_handling" autocomplete="off" {{ ($billType ?? 'storage_handling') === 'storage_handling' ? 'checked' : '' }}>
+                        <label class="btn btn-outline-primary btn-sm" for="btStorageHandling">Storage &amp; Handling</label>
+                        <input type="radio" class="btn-check" name="bill_type" id="btStorageOnly" value="storage_only" autocomplete="off" {{ ($billType ?? '') === 'storage_only' ? 'checked' : '' }}>
+                        <label class="btn btn-outline-primary btn-sm" for="btStorageOnly">Storage Only</label>
+                        <input type="radio" class="btn-check" name="bill_type" id="btHandlingOnly" value="handling_only" autocomplete="off" {{ ($billType ?? '') === 'handling_only' ? 'checked' : '' }}>
+                        <label class="btn btn-outline-primary btn-sm" for="btHandlingOnly">Handling Only</label>
+                    </div>
+                    <div class="form-text">Storage &amp; Handling bills both sections; the others skip the part that doesn't apply.</div>
+                </div>
+
+                <div class="mb-3">
                     <label class="form-label fw-semibold">
                         Shipping Line / Operator <span class="text-danger">*</span>
                     </label>
@@ -222,11 +235,11 @@
                         <div class="label">Containers</div>
                         <div class="fs-3 fw-bold" id="sumContainers">0</div>
                     </div>
-                    <div class="col-3">
+                    <div class="col-3" id="storageTile">
                         <div class="label">Storage</div>
                         <div class="fs-5 fw-bold" id="sumStorage">0.00</div>
                     </div>
-                    <div class="col-3">
+                    <div class="col-3" id="handlingTile">
                         <div class="label">Handling</div>
                         <div class="fs-5 fw-bold" id="sumHandling">0.00</div>
                     </div>
@@ -254,7 +267,7 @@
             </div>
 
             {{-- Section 1: Storage Charges --}}
-            <div class="card content-card mb-3">
+            <div class="card content-card mb-3" id="storageCard">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>
                         <i class="bi bi-building me-2 text-warning"></i>
@@ -475,12 +488,16 @@ function onBillingPartyChange() {
         infoEl.classList.add('d-none');
     }
 }
+function selectedBillType() {
+    return document.querySelector('input[name="bill_type"]:checked')?.value || 'storage_handling';
+}
 async function runPreview() {
     const shippingLineId  = document.getElementById('shippingLineId').value;
     const periodFrom      = document.getElementById('periodFrom').value;
     const periodTo        = document.getElementById('periodTo').value;
     const invoiceCurrency = document.getElementById('invoiceCurrency').value;
     const exchangeRate    = parseFloat(document.getElementById('exchangeRate').value || 1);
+    const billType        = selectedBillType();
 
     if (!shippingLineId) { showToast('Please select a shipping line / operator.', 'warning'); return; }
     if (!periodFrom || !periodTo) { showToast('Please enter the billing period dates.', 'warning'); return; }
@@ -498,6 +515,7 @@ async function runPreview() {
                 'Accept': 'application/json',
             },
             body: JSON.stringify({
+                bill_type:        billType,
                 shipping_line_id: shippingLineId,
                 period_from:      periodFrom,
                 period_to:        periodTo,
@@ -526,6 +544,15 @@ async function runPreview() {
 function renderPreview(data) {
     previewLines = data.lines || [];
     previewMissing = data.missing_rates || [];
+
+    // Show only the sections relevant to the chosen bill type.
+    const billType     = data.bill_type || 'storage_handling';
+    const showStorage  = billType !== 'handling_only';
+    const showHandling = billType !== 'storage_only';
+    document.getElementById('storageTile').classList.toggle('d-none', !showStorage);
+    document.getElementById('handlingTile').classList.toggle('d-none', !showHandling);
+    document.getElementById('storageCard').classList.toggle('d-none', !showStorage);
+    document.getElementById('handlingCard').classList.toggle('d-none', !showHandling);
 
     // Missing tariff rates → render the detail panel and block saving
     const hasMissing = window.renderTariffMissing(document.getElementById('missingRatesPanel'), previewMissing);
@@ -692,23 +719,16 @@ function renderPreview(data) {
         ? `<tr><td class="ps-3 text-muted">SSCL</td><td class="text-end">${fmtAmt(data.sscl_amount)}</td><td class="text-end pe-3 small text-muted">${fmtVal(data.sscl_amount)}</td></tr>` : '';
     const vatRow  = parseFloat(data.vat_amount) > 0
         ? `<tr><td class="ps-3 text-muted">VAT</td><td class="text-end">${fmtAmt(data.vat_amount)}</td><td class="text-end pe-3 small text-muted">${fmtVal(data.vat_amount)}</td></tr>` : '';
+    const storageRow = showStorage
+        ? `<tr><td class="ps-3 text-muted"><i class="bi bi-building text-warning me-1"></i>Storage Subtotal</td><td class="text-end fw-semibold">${fmtAmt(data.storage_subtotal)}</td><td class="text-end pe-3 small text-muted">${fmtVal(data.storage_subtotal)}</td></tr>` : '';
+    const handlingRow = showHandling
+        ? `<tr><td class="ps-3 text-muted"><i class="bi bi-truck text-info me-1"></i>Handling Subtotal</td><td class="text-end fw-semibold">${fmtAmt(data.handling_subtotal)}</td><td class="text-end pe-3 small text-muted">${fmtVal(data.handling_subtotal)}</td></tr>` : '';
+    // Combined line only adds value when both sections are present.
+    const combinedRow = (showStorage && showHandling)
+        ? `<tr class="table-light"><td class="ps-3 fw-semibold">Combined Subtotal</td><td class="text-end fw-semibold">${fmtAmt(data.subtotal)}</td><td class="text-end pe-3 small text-muted">${fmtVal(data.subtotal)}</td></tr>` : '';
     document.getElementById('totalTable').innerHTML = `
         <tbody>
-            <tr>
-                <td class="ps-3 text-muted"><i class="bi bi-building text-warning me-1"></i>Storage Subtotal</td>
-                <td class="text-end fw-semibold">${fmtAmt(data.storage_subtotal)}</td>
-                <td class="text-end pe-3 small text-muted">${fmtVal(data.storage_subtotal)}</td>
-            </tr>
-            <tr>
-                <td class="ps-3 text-muted"><i class="bi bi-truck text-info me-1"></i>Handling Subtotal</td>
-                <td class="text-end fw-semibold">${fmtAmt(data.handling_subtotal)}</td>
-                <td class="text-end pe-3 small text-muted">${fmtVal(data.handling_subtotal)}</td>
-            </tr>
-            <tr class="table-light">
-                <td class="ps-3 fw-semibold">Combined Subtotal</td>
-                <td class="text-end fw-semibold">${fmtAmt(data.subtotal)}</td>
-                <td class="text-end pe-3 small text-muted">${fmtVal(data.subtotal)}</td>
-            </tr>
+            ${storageRow}${handlingRow}${combinedRow}
             ${ssclRow}${vatRow}
             <tr class="table-success fw-bold">
                 <td class="ps-3 fs-6">GRAND TOTAL (${invCur})</td>
@@ -742,6 +762,15 @@ $(document).ready(function () {
 
     $('#shippingLineId').on('change select2:select', onShippingLineChange);
     $('#billingPartyId').on('change select2:select', onBillingPartyChange);
+
+    // Changing the bill type invalidates the current preview — force a fresh one.
+    document.querySelectorAll('input[name="bill_type"]').forEach(el =>
+        el.addEventListener('change', () => {
+            previewLines = [];
+            document.getElementById('summarySection').classList.add('d-none');
+            document.getElementById('previewPlaceholder').classList.remove('d-none');
+        })
+    );
 
     // Inject hidden inputs from preview before save
     document.getElementById('billingForm').addEventListener('submit', function (e) {

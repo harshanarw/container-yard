@@ -90,6 +90,14 @@
                     <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                 </select>
             </div>
+            <div class="col-md-2">
+                <select name="bill_type" class="form-select form-select-sm">
+                    <option value="">All Bill Types</option>
+                    <option value="storage_handling" {{ request('bill_type') == 'storage_handling' ? 'selected' : '' }}>Storage &amp; Handling</option>
+                    <option value="storage_only"     {{ request('bill_type') == 'storage_only'     ? 'selected' : '' }}>Storage Only</option>
+                    <option value="handling_only"    {{ request('bill_type') == 'handling_only'    ? 'selected' : '' }}>Handling Only</option>
+                </select>
+            </div>
             <div class="col-auto">
                 <button type="submit" class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-search me-1"></i>Filter
@@ -132,7 +140,12 @@
                 <tbody>
                 @forelse($invoices as $inv)
                     <tr>
-                        <td class="ps-3 font-monospace fw-semibold small">{{ $inv->invoice_no }}</td>
+                        <td class="ps-3 small">
+                            <div class="font-monospace fw-semibold">{{ $inv->invoice_no }}</div>
+                            @if($inv->bill_type !== 'storage_handling')
+                                <span class="badge bg-primary-subtle text-primary border" style="font-size:.62rem;">{{ $inv->bill_type_label }}</span>
+                            @endif
+                        </td>
                         <td>
                             <div class="small fw-semibold">{{ $inv->shippingLine->name ?? '—' }}</div>
                             <div class="text-muted" style="font-size:.7rem;">{{ $inv->shippingLine->code ?? '' }}</div>

@@ -277,17 +277,25 @@
             </div>
             <div class="card-body small">
                 <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Bill Type</span>
+                    <span class="badge bg-primary-subtle text-primary border">{{ $invoice->bill_type_label }}</span>
+                </div>
+                @if($invoice->hasStorage())
+                <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">
                         <i class="bi bi-building text-warning me-1"></i>Storage
                     </span>
                     <span class="fw-semibold">{{ $fmtDisp($invoice->storage_subtotal) }}</span>
                 </div>
+                @endif
+                @if($invoice->hasHandling())
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">
                         <i class="bi bi-truck text-info me-1"></i>Handling
                     </span>
                     <span class="fw-semibold">{{ $fmtDisp($invoice->handling_subtotal) }}</span>
                 </div>
+                @endif
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Subtotal</span>
                     <span class="fw-semibold">{{ $fmtDisp($invoice->subtotal) }}</span>
@@ -323,6 +331,7 @@
     {{-- ── Right: Charge lines ── --}}
     <div class="col-lg-8">
 
+        @if($invoice->hasStorage())
         {{-- ── 1. Storage Charges ── --}}
         <div class="card content-card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -420,7 +429,9 @@
                 </div>
             </div>
         </div>
+        @endif
 
+        @if($invoice->hasHandling())
         {{-- ── 2. Handling Charges ── --}}
         @php
             $liftOffLines = $invoice->lines->where('has_lift_off', true)->values();
@@ -602,6 +613,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         {{-- ── 3. Per-Container Tax Summary ── --}}
         <div class="card content-card mb-3">
