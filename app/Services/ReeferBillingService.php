@@ -153,6 +153,7 @@ class ReeferBillingService
         $tax1Rate  = $chargeCode?->taxCode?->tax1_rate ?? 0;
         $tax2Rate  = $chargeCode?->taxCode?->tax2_rate ?? 0;
         $taxCodeId = $chargeCode?->tax_code_id;
+        $taxCode   = $chargeCode?->taxCode?->code;   // display label for the preview column
 
         // Prefer charge-code-derived rates; fall back to caller-supplied
         $resolvedSscl = $tax1Rate > 0 ? $tax1Rate : $ssclPct;
@@ -210,6 +211,7 @@ class ReeferBillingService
                 'container_no'     => $session->container->container_no ?? '',
                 'charge_code_id'   => $chargeCode?->id,
                 'tax_code_id'      => $taxCodeId ?? null,
+                'tax_code'         => $taxCode,
                 'tax1_rate'        => $resolvedSscl,
                 'tax2_rate'        => $resolvedVat,
                 'subtotal_display' => $subtotalDisp,
@@ -242,6 +244,7 @@ class ReeferBillingService
             'exchange_rate'    => $exchangeRate,
             'service_type'     => $serviceType,
             'charge_code_id'   => $chargeCode?->id,
+            'tax_code'         => $taxCode,
             'skipped'          => $sessions->count() - count($lines),
             'missing_rates'    => $guard->toArray(),
         ];

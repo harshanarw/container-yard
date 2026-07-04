@@ -124,17 +124,9 @@
                         </div>
                     </div>
 
-                    {{-- SSCL/VAT fallback — normally auto-derived from the bill type's charge code --}}
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label">SSCL % <small class="text-muted">(fallback)</small></label>
-                            <input type="number" name="sscl_pct" id="ssclPct" class="form-control" value="{{ old('sscl_pct', 0) }}" step="0.01" min="0" max="100">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">VAT % <small class="text-muted">(fallback)</small></label>
-                            <input type="number" name="vat_pct" id="vatPct" class="form-control" value="{{ old('vat_pct', 0) }}" step="0.01" min="0" max="100">
-                        </div>
-                    </div>
+                    {{-- SSCL/VAT are derived per line from the bill type's charge-code
+                         mapped tax code (shown in the preview), so no header input is
+                         needed — mirrors the Storage & Handling invoice. --}}
 
                     <div class="mb-3">
                         <label class="form-label">Notes</label>
@@ -166,6 +158,9 @@
                                 <th>Chargeable</th>
                                 <th class="text-end">Rate</th>
                                 <th class="text-end">Subtotal</th>
+                                <th class="text-center">Tax Code</th>
+                                <th class="text-end">SSCL %</th>
+                                <th class="text-end">VAT %</th>
                                 <th class="text-end">Total</th>
                                 <th class="text-end text-muted">Value (LKR)</th>
                             </tr>
@@ -227,8 +222,11 @@
         const opt = customerSel.selectedOptions[0];
         if (!opt) return;
         document.getElementById('taxExemptAlert').classList.toggle('d-none', opt.dataset.taxExempt !== '1');
-        const bpId = opt.dataset.billingPartyId;
-        if (bpId && window.jQuery) { jQuery(billingSel).val(bpId).trigger('change.select2'); }
+        // Always (re)set the billing party on customer change (matches Storage &
+        // Handling): use the customer's configured billing party, else default to
+        // the customer itself; clear it when no customer is selected.
+        const bpId = customerSel.value ? (opt.dataset.billingPartyId || customerSel.value) : '';
+        jQuery(billingSel).val(bpId).trigger('change.select2');
         showBillingParty();
     }
     function showBillingParty() {
@@ -317,8 +315,6 @@
                 period_from: from, period_to: to,
                 invoice_currency: currencySel.value,
                 exchange_rate: rateInput.value,
-                sscl_pct: document.getElementById('ssclPct').value,
-                vat_pct: document.getElementById('vatPct').value,
             }),
         })
         .then(r => r.json())
@@ -358,6 +354,9 @@
                     <td class="small">${chargeable}</td>
                     <td class="text-end small font-monospace">${rateLabel}</td>
                     <td class="text-end small font-monospace">${cur} ${fmt(line.subtotal_display)}</td>
+                    <td class="text-center small">${line.tax_code ? '<span class="badge bg-light border text-secondary">' + line.tax_code + '</span>' : '<span class="text-muted">—</span>'}</td>
+                    <td class="text-end small text-muted font-monospace">${fmt(line.tax1_rate)}%</td>
+                    <td class="text-end small text-muted font-monospace">${fmt(line.tax2_rate)}%</td>
                     <td class="text-end small font-monospace">${cur} ${fmt(line.line_total)}</td>
                     <td class="text-end small font-monospace text-muted">LKR ${fmt(line.line_value)}</td>
                 `;
