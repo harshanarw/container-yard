@@ -137,9 +137,13 @@
     let idx = prefilled ? 1 : 0;
     function addLine() {
         body.insertAdjacentHTML('beforeend', tpl.replace(/IDX/g, idx++));
-        // The new row's account select is a select2 (s2-code) added after page
-        // load, so the global auto-init missed it — initialise it here.
-        window.initS2Code($(body.lastElementChild).find('select.s2-code'), { width: '100%' });
+        // Rows added after page load need Select2 initialised here (the global
+        // s2-code auto-init only runs once, on DOMContentLoaded). The very first
+        // addLine() runs during page parse — before initS2Code is defined — so
+        // guard it; that initial row is covered by the global auto-init instead.
+        if (typeof window.initS2Code === 'function') {
+            window.initS2Code($(body.lastElementChild).find('select.s2-code'), { width: '100%' });
+        }
         recompute();
     }
     function recompute() {

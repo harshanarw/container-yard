@@ -385,7 +385,8 @@
         fetchTariff(this.value);
     });
 
-    document.getElementById('calcEquipmentType').addEventListener('change', function () {
+    // calcEquipmentType is a select2 (s2-code) — bind via jQuery so select2 changes fire.
+    $('#calcEquipmentType').on('change', function () {
         applyRateForSelectedEquipment();
     });
 
@@ -408,14 +409,10 @@
                 $('#calcCustomer').val(String(data.customer_id)).trigger('change.select2');
                 fetchTariff(data.customer_id);
 
-                // Fill equipment type
-                const eqtSel = document.getElementById('calcEquipmentType');
-                for (let i = 0; i < eqtSel.options.length; i++) {
-                    if (parseInt(eqtSel.options[i].value) === data.equipment_type_id) {
-                        eqtSel.selectedIndex = i;
-                        break;
-                    }
-                }
+                // Fill equipment type — calcEquipmentType is a select2; set via
+                // jQuery so the widget display updates. The rate is applied by the
+                // fetchTariff() call above once the tariff resolves.
+                $('#calcEquipmentType').val(String(data.equipment_type_id)).trigger('change.select2');
 
                 // Fill gate-in date
                 if (data.gate_in_date) {

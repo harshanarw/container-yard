@@ -411,7 +411,8 @@
             typeBadge.classList.remove('d-none');
         }
 
-        sel.addEventListener('change', () => applyEqt(sel.selectedOptions[0]));
+        // eqtSelect is a select2 (s2-code) — bind via jQuery so select2 changes fire.
+        $(sel).on('change', () => applyEqt(sel.selectedOptions[0]));
         // Apply on page load if old() value is set
         if (sel.value) applyEqt(sel.selectedOptions[0]);
     })();

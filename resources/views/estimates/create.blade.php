@@ -617,7 +617,8 @@
         typeBadge.classList.remove('d-none');
     }
 
-    eqtSel.addEventListener('change', () => applyEqt(eqtSel.selectedOptions[0]));
+    // eqtSelect is a select2 (s2-code) — bind via jQuery so select2 changes fire.
+    $(eqtSel).on('change', () => applyEqt(eqtSel.selectedOptions[0]));
     if (eqtSel.value) applyEqt(eqtSel.selectedOptions[0]);
 
     // ── Line counter ───────────────────────────────────────────────────────

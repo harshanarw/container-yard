@@ -517,7 +517,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    eqtSel.addEventListener('change', function () {
+    // equipmentTypeSelect is a select2 (s2-code) — bind via jQuery so select2 changes fire.
+    $(eqtSel).on('change', function () {
         applyFromEqt(this.selectedOptions[0]);
     });
 
