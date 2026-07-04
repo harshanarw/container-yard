@@ -484,7 +484,7 @@ class StorageHandlingController extends Controller
             'lines'                               => 'required|array|min:1',
             'lines.*.container_id'                => 'required|integer',
             'lines.*.container_no'                => 'required|string',
-            'lines.*.container_size'              => 'required|string',
+            'lines.*.container_size'              => 'nullable|string',
             'lines.*.equipment_type_id'           => 'nullable|integer',
             'lines.*.equipment_type'              => 'required|string',
             'lines.*.cargo_status'                => 'nullable|in:laden,empty',

@@ -719,6 +719,7 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @if($invoice->hasStorage())
                         <tr>
                             <td class="ps-3 text-muted">
                                 <i class="bi bi-building text-warning me-1"></i>Storage Subtotal
@@ -726,6 +727,8 @@
                             <td class="text-end fw-semibold">{{ $fmtDisp($invoice->storage_subtotal) }}</td>
                             <td class="text-end pe-3 text-muted small">{{ $fmtValue($invoice->storage_subtotal) }}</td>
                         </tr>
+                        @endif
+                        @if($invoice->hasHandling())
                         <tr>
                             <td class="ps-3 text-muted">
                                 <i class="bi bi-truck text-info me-1"></i>Handling Subtotal
@@ -733,11 +736,14 @@
                             <td class="text-end fw-semibold">{{ $fmtDisp($invoice->handling_subtotal) }}</td>
                             <td class="text-end pe-3 text-muted small">{{ $fmtValue($invoice->handling_subtotal) }}</td>
                         </tr>
+                        @endif
+                        @if($invoice->hasStorage() && $invoice->hasHandling())
                         <tr class="table-light">
                             <td class="ps-3 fw-semibold">Combined Subtotal</td>
                             <td class="text-end fw-semibold">{{ $fmtDisp($invoice->subtotal) }}</td>
                             <td class="text-end pe-3 text-muted small">{{ $fmtValue($invoice->subtotal) }}</td>
                         </tr>
+                        @endif
                         @if($invoice->sscl_amount > 0 || $ssclRates->isNotEmpty())
                         <tr>
                             <td class="ps-3 text-muted">SSCL ({{ $ssclLabel }})</td>

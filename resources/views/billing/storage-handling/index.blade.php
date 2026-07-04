@@ -102,7 +102,7 @@
                 <button type="submit" class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-search me-1"></i>Filter
                 </button>
-                @if(request()->hasAny(['search', 'shipping_line_id', 'status']))
+                @if(request()->hasAny(['search', 'shipping_line_id', 'status', 'bill_type']))
                     <a href="{{ route('billing.storage-handling.index') }}"
                        class="btn btn-sm btn-outline-secondary ms-1">
                         <i class="bi bi-x-circle me-1"></i>Clear
