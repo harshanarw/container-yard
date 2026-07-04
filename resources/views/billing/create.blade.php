@@ -232,9 +232,7 @@
                                         Daily Rate Breakdown
                                     </th>
                                     <th class="text-end" rowspan="2" style="vertical-align:middle;">Subtotal</th>
-                                    <th class="text-end" rowspan="2" style="vertical-align:middle;">Tax1%</th>
                                     <th class="text-end" rowspan="2" style="vertical-align:middle;">SSCL</th>
-                                    <th class="text-end" rowspan="2" style="vertical-align:middle;">Tax2%</th>
                                     <th class="text-end" rowspan="2" style="vertical-align:middle;">VAT</th>
                                     <th class="text-end" rowspan="2" style="vertical-align:middle;" id="amountHeader">Amount</th>
                                     <th class="text-end pe-2 text-muted" rowspan="2" style="vertical-align:middle;font-size:.7rem;white-space:nowrap;">Value<br>(LKR)</th>
@@ -508,10 +506,8 @@ function renderPreview(data) {
             <td class="text-end bg-warning-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
             <td class="text-end bg-warning-subtle fw-semibold small">${fmt(l.daily_rate)}</td>
             <td class="text-end fw-semibold ${l.subtotal == 0 ? 'text-success' : ''}">${fmtAmt(l.subtotal)}</td>
-            <td class="text-end small text-muted">${parseFloat(l.tax1_rate||0).toFixed(2)}%</td>
-            <td class="text-end small text-secondary">${fmtAmt(l.line_sscl)}</td>
-            <td class="text-end small text-muted">${parseFloat(l.tax2_rate||0).toFixed(2)}%</td>
-            <td class="text-end small text-secondary">${fmtAmt(l.line_vat)}</td>
+            <td class="text-end small text-secondary">${fmtAmt(l.line_sscl)}<div class="text-muted" style="font-size:.7rem;">${parseFloat(l.tax1_rate||0).toFixed(2)}%</div></td>
+            <td class="text-end small text-secondary">${fmtAmt(l.line_vat)}<div class="text-muted" style="font-size:.7rem;">${parseFloat(l.tax2_rate||0).toFixed(2)}%</div></td>
             <td class="text-end fw-bold">${fmtAmt(l.line_total)}</td>
             <td class="text-end pe-2 text-muted small">${fmtVal(l.line_value ?? l.line_total)}</td>
         </tr>
@@ -523,9 +519,7 @@ function renderPreview(data) {
         <tr>
             <td colspan="15" class="text-end">Totals</td>
             <td class="text-end">${fmtAmt(data.subtotal)}</td>
-            <td></td>
             <td class="text-end text-secondary">${fmtAmt(data.sscl_amount)}</td>
-            <td></td>
             <td class="text-end text-secondary">${fmtAmt(data.vat_amount)}</td>
             <td class="text-end fw-bold">${fmtAmt(data.total_amount)}</td>
             <td class="text-end pe-2 text-muted small">${fmtVal(data.total_value ?? data.total_amount)}</td>
