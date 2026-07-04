@@ -179,21 +179,25 @@
         <div id="summarySection" class="d-none">
             <div class="summary-card p-4 mb-3">
                 <div class="row g-2 text-center">
-                    <div class="col-3">
+                    <div class="col-6">
                         <div class="label">Containers</div>
                         <div class="fs-3 fw-bold" id="sumContainers">0</div>
                     </div>
-                    <div class="col-3">
+                    <div class="col-6">
                         <div class="label">Subtotal</div>
-                        <div class="fs-4 fw-bold" id="sumSubtotal">0.00</div>
+                        <div class="fs-3 fw-bold" id="sumSubtotal">0.00</div>
                     </div>
-                    <div class="col-3">
-                        <div class="label">SSCL</div>
-                        <div class="fs-4 fw-bold" id="sumSscl">0.00</div>
-                    </div>
-                    <div class="col-3">
-                        <div class="label">VAT</div>
-                        <div class="fs-4 fw-bold" id="sumVat">0.00</div>
+                    <div class="col-12 border-top border-white border-opacity-25 pt-2 mt-1">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="label">SSCL</div>
+                                <div class="fs-5 fw-bold" id="sumSscl">0.00</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="label">VAT</div>
+                                <div class="fs-5 fw-bold" id="sumVat">0.00</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-12 border-top border-white border-opacity-25 pt-2">
                         <div class="label">Total Invoice Amount</div>
@@ -205,37 +209,57 @@
             <!-- Container charge lines table -->
             <div class="card content-card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-table me-2 text-primary"></i>Container Charge Lines</span>
-                    <span id="lineCount" class="badge bg-secondary-subtle text-secondary"></span>
+                    <span><i class="bi bi-building me-2 text-warning"></i><strong>Storage Charges</strong></span>
+                    <span id="lineCount" class="badge bg-warning-subtle text-warning border border-warning-subtle"></span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-sm table-hover mb-0" id="previewTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-3">#</th>
-                                    <th>Container No.</th>
-                                    <th>Equipment</th>
-                                    <th class="text-center">Status</th>
-                                    <th>Gate-In</th>
-                                    <th class="text-center">Period</th>
-                                    <th class="text-center">Days</th>
-                                    <th class="text-center">Free</th>
-                                    <th class="text-center">Chgbl</th>
-                                    <th class="text-end">Rate/Day</th>
-                                    <th class="text-end">Subtotal</th>
-                                    <th class="text-end">Tax1%</th>
-                                    <th class="text-end">SSCL</th>
-                                    <th class="text-end">Tax2%</th>
-                                    <th class="text-end">VAT</th>
-                                    <th class="text-end" id="amountHeader">Amount</th>
-                                    <th class="text-end pe-3 text-muted" style="font-size:.75rem;">Value (LKR)</th>
+                                    <th class="ps-2" rowspan="2" style="vertical-align:middle;">#</th>
+                                    <th rowspan="2" style="vertical-align:middle;">Container</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">Size</th>
+                                    <th rowspan="2" style="vertical-align:middle;">Equipment</th>
+                                    <th rowspan="2" style="vertical-align:middle;">Status</th>
+                                    <th rowspan="2" style="vertical-align:middle;">Gate In</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">From</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">To</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">Days</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">Free</th>
+                                    <th class="text-center" rowspan="2" style="vertical-align:middle;">Chgbl</th>
+                                    <th colspan="4" class="text-center bg-warning-subtle" style="border-bottom:1px solid #dee2e6;font-size:.7rem;letter-spacing:.04em;">
+                                        Daily Rate Breakdown
+                                    </th>
+                                    <th class="text-end" rowspan="2" style="vertical-align:middle;">Subtotal</th>
+                                    <th class="text-end" rowspan="2" style="vertical-align:middle;">Tax1%</th>
+                                    <th class="text-end" rowspan="2" style="vertical-align:middle;">SSCL</th>
+                                    <th class="text-end" rowspan="2" style="vertical-align:middle;">Tax2%</th>
+                                    <th class="text-end" rowspan="2" style="vertical-align:middle;">VAT</th>
+                                    <th class="text-end" rowspan="2" style="vertical-align:middle;" id="amountHeader">Amount</th>
+                                    <th class="text-end pe-2 text-muted" rowspan="2" style="vertical-align:middle;font-size:.7rem;white-space:nowrap;">Value<br>(LKR)</th>
+                                </tr>
+                                <tr>
+                                    <th class="text-end bg-warning-subtle" style="font-size:.7rem;">Tariff Rate</th>
+                                    <th class="text-center bg-warning-subtle" style="font-size:.7rem;">Cur</th>
+                                    <th class="text-end bg-warning-subtle" style="font-size:.7rem;">× Exch. Rate</th>
+                                    <th class="text-end bg-warning-subtle" style="font-size:.7rem;">Rate / Day</th>
                                 </tr>
                             </thead>
                             <tbody id="previewBody"></tbody>
                             <tfoot id="previewFoot" class="table-light fw-semibold"></tfoot>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <!-- Invoice Total -->
+            <div class="card content-card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-receipt me-2 text-primary"></i><strong>Invoice Total</strong>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0" id="totalTable"></table>
                 </div>
             </div>
 
@@ -467,51 +491,66 @@ function renderPreview(data) {
     // Lines table
     const tbody = document.getElementById('previewBody');
     tbody.innerHTML = previewLines.map((l, i) => `
-        <tr class="${l.chargeable_days === 0 ? 'text-muted' : ''}">
-            <td class="ps-3">${i + 1}</td>
-            <td class="font-monospace">${l.container_no}</td>
+        <tr class="${l.chargeable_days == 0 ? 'text-muted' : ''}">
+            <td class="ps-2 text-muted">${i + 1}</td>
+            <td class="font-monospace fw-semibold">${l.container_no}</td>
+            <td class="text-center"><span class="badge bg-dark" style="font-size:.72rem;">${l.container_size || '—'}'</span></td>
             <td class="small">${fmtEqt(l)}</td>
             <td class="text-center">${l.cargo_status === 'laden' ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.7rem;">Laden</span>' : '<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.7rem;">Empty</span>'}</td>
             <td class="small">${formatDate(l.gate_in_date)}</td>
-            <td class="text-center small">${formatDate(l.from_date)} – ${formatDate(l.to_date)}</td>
+            <td class="text-center small">${formatDate(l.from_date)}</td>
+            <td class="text-center small">${formatDate(l.to_date)}</td>
             <td class="text-center"><span class="badge bg-light border text-dark">${l.total_days}d</span></td>
             <td class="text-center text-success small">${l.free_days}d</td>
             <td class="text-center ${l.chargeable_days > 0 ? 'text-danger fw-semibold' : 'text-success'}">${l.chargeable_days}d</td>
-            <td class="text-end small">${fmtAmt(l.daily_rate)}</td>
+            <td class="text-end bg-warning-subtle small">${fmt(l.daily_rate_usd ?? 0)}</td>
+            <td class="text-center bg-warning-subtle small text-muted">${l.tariff_currency || 'USD'}</td>
+            <td class="text-end bg-warning-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
+            <td class="text-end bg-warning-subtle fw-semibold small">${fmt(l.daily_rate)}</td>
             <td class="text-end fw-semibold ${l.subtotal == 0 ? 'text-success' : ''}">${fmtAmt(l.subtotal)}</td>
             <td class="text-end small text-muted">${parseFloat(l.tax1_rate||0).toFixed(2)}%</td>
             <td class="text-end small text-secondary">${fmtAmt(l.line_sscl)}</td>
             <td class="text-end small text-muted">${parseFloat(l.tax2_rate||0).toFixed(2)}%</td>
             <td class="text-end small text-secondary">${fmtAmt(l.line_vat)}</td>
             <td class="text-end fw-bold">${fmtAmt(l.line_amount ?? l.line_total)}</td>
-            <td class="text-end pe-3 text-muted small">${fmtVal(l.line_value ?? l.line_total)}</td>
+            <td class="text-end pe-2 text-muted small">${fmtVal(l.line_value ?? l.line_total)}</td>
         </tr>
     `).join('');
 
-    // Footer
+    // Footer — column-aligned grand totals (Subtotal / SSCL / VAT / Total under their columns)
     const tfoot = document.getElementById('previewFoot');
     tfoot.innerHTML = `
         <tr>
-            <td class="ps-3" colspan="15" style="text-align:right">Subtotal</td>
+            <td colspan="15" class="text-end">Totals</td>
             <td class="text-end">${fmtAmt(data.subtotal)}</td>
-            <td class="text-end pe-3 text-muted small">${fmtVal(data.subtotal)}</td>
-        </tr>
-        <tr class="text-muted" style="font-weight:400">
-            <td class="ps-3" colspan="15" style="text-align:right">SSCL</td>
-            <td class="text-end">${fmtAmt(data.sscl_amount)}</td>
-            <td class="text-end pe-3 small">${fmtVal(data.sscl_amount)}</td>
-        </tr>
-        <tr class="text-muted" style="font-weight:400">
-            <td class="ps-3" colspan="15" style="text-align:right">VAT</td>
-            <td class="text-end">${fmtAmt(data.vat_amount)}</td>
-            <td class="text-end pe-3 small">${fmtVal(data.vat_amount)}</td>
-        </tr>
-        <tr class="table-primary">
-            <td class="ps-3" colspan="15" style="text-align:right">TOTAL</td>
-            <td class="text-end">${fmtAmt(data.total_display ?? data.total_amount)}</td>
-            <td class="text-end pe-3 small">${fmtVal(data.total_value ?? data.total_amount)}</td>
+            <td></td>
+            <td class="text-end text-secondary">${fmtAmt(data.sscl_amount)}</td>
+            <td></td>
+            <td class="text-end text-secondary">${fmtAmt(data.vat_amount)}</td>
+            <td class="text-end fw-bold">${fmtAmt(data.total_display ?? data.total_amount)}</td>
+            <td class="text-end pe-2 text-muted small">${fmtVal(data.total_value ?? data.total_amount)}</td>
         </tr>
     `;
+
+    // ── Invoice Total card (mirrors Storage & Handling, minus the handling rows) ──
+    const ssclRow = parseFloat(data.sscl_amount) > 0
+        ? `<tr><td class="ps-3 text-muted">SSCL</td><td class="text-end">${fmtAmt(data.sscl_amount)}</td><td class="text-end pe-3 small text-muted">${fmtVal(data.sscl_amount)}</td></tr>` : '';
+    const vatRow  = parseFloat(data.vat_amount) > 0
+        ? `<tr><td class="ps-3 text-muted">VAT</td><td class="text-end">${fmtAmt(data.vat_amount)}</td><td class="text-end pe-3 small text-muted">${fmtVal(data.vat_amount)}</td></tr>` : '';
+    document.getElementById('totalTable').innerHTML = `
+        <tbody>
+            <tr class="table-light">
+                <td class="ps-3 fw-semibold"><i class="bi bi-building text-warning me-1"></i>Storage Subtotal</td>
+                <td class="text-end fw-semibold">${fmtAmt(data.subtotal)}</td>
+                <td class="text-end pe-3 small text-muted">${fmtVal(data.subtotal)}</td>
+            </tr>
+            ${ssclRow}${vatRow}
+            <tr class="table-primary fw-bold">
+                <td class="ps-3 fs-6">GRAND TOTAL (${invCur})</td>
+                <td class="text-end fs-5">${fmtAmt(data.total_display ?? data.total_amount)}</td>
+                <td class="text-end pe-3 small">${fmtVal(data.total_value ?? data.total_amount)}</td>
+            </tr>
+        </tbody>`;
 }
 
 function formatDate(d) {

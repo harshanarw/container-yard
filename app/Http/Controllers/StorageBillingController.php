@@ -255,6 +255,7 @@ class StorageBillingController extends Controller
                 'eqt_code'           => $eqtCode,
                 'iso_code'           => $isoCode,
                 'type_code'          => $eqt ? $eqt->type_code : $container->type_code,
+                'container_size'  => $container->size,
                 'cargo_status'    => $cargoStatus,
                 'gate_in_date'    => $gateIn->toDateString(),
                 'from_date'       => $fromDate->toDateString(),
@@ -263,6 +264,8 @@ class StorageBillingController extends Controller
                 'free_days'       => $freeDaysInPeriod,
                 'chargeable_days' => $chargeableDays,
                 'daily_rate'      => $dailyRateConverted,
+                'daily_rate_usd'  => $dailyRate,   // raw tariff-currency rate (before conversion)
+                'exchange_rate'   => $tariffMult,  // × factor applied to reach daily_rate (1 for LKR tariffs)
                 'currency'        => $defaultCurrency,
                 'subtotal'        => $lineSubtotal,
                 'charge_code_id'  => $chargeCodeId,
