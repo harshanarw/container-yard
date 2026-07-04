@@ -485,7 +485,7 @@ function renderPreview(data) {
     document.getElementById('sumSubtotal').textContent   = fmtAmt(data.subtotal);
     document.getElementById('sumSscl').textContent       = fmtAmt(data.sscl_amount);
     document.getElementById('sumVat').textContent        = fmtAmt(data.vat_amount);
-    document.getElementById('sumTotal').textContent      = fmtAmt(data.total_display ?? data.total_amount);
+    document.getElementById('sumTotal').textContent      = fmtAmt(data.total_amount);
     document.getElementById('lineCount').textContent     = previewLines.length + ' containers';
 
     // Lines table
@@ -512,7 +512,7 @@ function renderPreview(data) {
             <td class="text-end small text-secondary">${fmtAmt(l.line_sscl)}</td>
             <td class="text-end small text-muted">${parseFloat(l.tax2_rate||0).toFixed(2)}%</td>
             <td class="text-end small text-secondary">${fmtAmt(l.line_vat)}</td>
-            <td class="text-end fw-bold">${fmtAmt(l.line_amount ?? l.line_total)}</td>
+            <td class="text-end fw-bold">${fmtAmt(l.line_total)}</td>
             <td class="text-end pe-2 text-muted small">${fmtVal(l.line_value ?? l.line_total)}</td>
         </tr>
     `).join('');
@@ -527,7 +527,7 @@ function renderPreview(data) {
             <td class="text-end text-secondary">${fmtAmt(data.sscl_amount)}</td>
             <td></td>
             <td class="text-end text-secondary">${fmtAmt(data.vat_amount)}</td>
-            <td class="text-end fw-bold">${fmtAmt(data.total_display ?? data.total_amount)}</td>
+            <td class="text-end fw-bold">${fmtAmt(data.total_amount)}</td>
             <td class="text-end pe-2 text-muted small">${fmtVal(data.total_value ?? data.total_amount)}</td>
         </tr>
     `;
@@ -547,7 +547,7 @@ function renderPreview(data) {
             ${ssclRow}${vatRow}
             <tr class="table-primary fw-bold">
                 <td class="ps-3 fs-6">GRAND TOTAL (${invCur})</td>
-                <td class="text-end fs-5">${fmtAmt(data.total_display ?? data.total_amount)}</td>
+                <td class="text-end fs-5">${fmtAmt(data.total_amount)}</td>
                 <td class="text-end pe-3 small">${fmtVal(data.total_value ?? data.total_amount)}</td>
             </tr>
         </tbody>`;

@@ -588,7 +588,7 @@ function renderPreview(data) {
     document.getElementById('sumSubtotal').textContent   = fmtAmt(data.subtotal);
     document.getElementById('sumSscl').textContent       = fmtAmt(data.sscl_amount);
     document.getElementById('sumVat').textContent        = fmtAmt(data.vat_amount);
-    document.getElementById('sumTotal').textContent      = fmtAmt(data.total_display ?? data.total_amount);
+    document.getElementById('sumTotal').textContent      = fmtAmt(data.total_amount);
     document.getElementById('lineCount').textContent     = previewLines.length + ' containers';
 
     // ── Storage table ──────────────────────────────────────────────────────
@@ -712,7 +712,7 @@ function renderPreview(data) {
             ${ssclRow}${vatRow}
             <tr class="table-success fw-bold">
                 <td class="ps-3 fs-6">GRAND TOTAL (${invCur})</td>
-                <td class="text-end fs-5">${fmtAmt(data.total_display ?? data.total_amount)}</td>
+                <td class="text-end fs-5">${fmtAmt(data.total_amount)}</td>
                 <td class="text-end pe-3 small">${fmtVal(data.total_value ?? data.total_amount)}</td>
             </tr>
         </tbody>`;
