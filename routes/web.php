@@ -625,6 +625,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('fx-gain-loss',      [GeneralLedgerController::class, 'fxGainLoss'])->name('fx-gain-loss');
             Route::get('fx-revaluation',    [GeneralLedgerController::class, 'fxRevaluation'])->name('fx-revaluation');
             Route::post('fx-revaluation',   [GeneralLedgerController::class, 'postFxRevaluation'])->name('fx-revaluation.post');
+            Route::get('customer-statement', [\App\Http\Controllers\Finance\StatementController::class, 'customer'])->name('customer-statement');
+            Route::get('supplier-statement', [\App\Http\Controllers\Finance\StatementController::class, 'supplier'])->name('supplier-statement');
         });
 
         // AR / Invoice Postings

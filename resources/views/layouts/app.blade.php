@@ -1015,6 +1015,22 @@
                             <i class="bi bi-arrow-repeat"></i><span>FX Revaluation</span>
                         </a>
                     </li>
+                    @can('finance.ar.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.reports.customer-statement') }}"
+                           class="nav-link {{ request()->routeIs('finance.reports.customer-statement') ? 'active' : '' }}">
+                            <i class="bi bi-person-lines-fill"></i><span>Customer Statement</span>
+                        </a>
+                    </li>
+                    @endcan
+                    @can('finance.ap.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.reports.supplier-statement') }}"
+                           class="nav-link {{ request()->routeIs('finance.reports.supplier-statement') ? 'active' : '' }}">
+                            <i class="bi bi-truck"></i><span>Supplier Statement</span>
+                        </a>
+                    </li>
+                    @endcan
                 </ul>
             </div>
             @endcan
