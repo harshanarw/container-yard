@@ -278,8 +278,17 @@ class ClosingService
         ], $lines, $finalPeriod, $userId);
     }
 
+    /** reference_type given to a closing reversal so it is never mistaken for an original close. */
+    public const CLOSING_REVERSAL = 'closing-reversal';
+
     private function voidClosingJournal(GlJournal $journal, AccountingPeriod $period, int $userId): void
     {
+        // Already reversed — nothing to do (defensive; the reverse queries already
+        // filter status='posted').
+        if ($journal->status !== 'posted') {
+            return;
+        }
+
         $reversal = $journal->entries->map(fn ($e) => [
             'account_id' => $e->account_id,
             'debit'      => $e->credit,
@@ -287,10 +296,15 @@ class ClosingService
             'narration'  => $e->narration,
         ])->toArray();
 
+        // The reversal is itself a 'closing' journal posted into the locked period,
+        // but it must NOT carry the original's reference (AccountingPeriod /
+        // FinancialYear) — otherwise a later reverse cycle's queries would re-pick it
+        // and reverse the reversal, re-applying the close and corrupting the ledger.
+        // Tag it as a closing-reversal keyed to the journal it undoes instead.
         $this->engine->createAndPostClosing([
             'journal_date'   => $period->end_date->toDateString(),
-            'reference_type' => $journal->reference_type,
-            'reference_id'   => $journal->reference_id,
+            'reference_type' => self::CLOSING_REVERSAL,
+            'reference_id'   => $journal->id,
             'narration'      => "REVERSE: {$journal->journal_no}",
         ], $reversal, $period, $userId);
 
