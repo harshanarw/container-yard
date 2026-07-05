@@ -205,10 +205,13 @@ class InvoicePostingService
                 'credit'     => round($taxAmount * $rate, 2),
                 'narration'  => 'Output VAT',
             ];
-        } elseif ($taxAmount > 0 && !$taxAccount && !empty($creditLines)) {
-            // No tax account mapped — absorb into the last revenue credit line
-            $last = count($creditLines) - 1;
-            $creditLines[$last]['credit'] = round($creditLines[$last]['credit'] + $taxAmount * $rate, 2);
+        } elseif ($taxAmount > 0 && !$taxAccount) {
+            // Never silently fold VAT into revenue — that overstates income and
+            // understates the VAT liability owed to the tax authority. Fail fast.
+            throw new \RuntimeException(
+                'Output VAT could not be posted: no tax account mapped. '
+                . 'Configure Account Mappings → Tax Output or activate account 2101.'
+            );
         }
 
         $arDebit = round(array_sum(array_column($creditLines, 'credit')), 2);
@@ -278,12 +281,10 @@ class InvoicePostingService
                     $handlingAmt = round($netAmount - $storageAmt, 2); // remainder avoids rounding gap
 
                     if ($storageAmt > 0) {
-                        $acc = $this->resolveDefaultRevenueAccount('storage');
-                        if ($acc) $add($acc->id, $storageAmt, 'Storage income');
+                        $add($this->requireDefaultRevenueAccount('storage')->id, $storageAmt, 'Storage income');
                     }
                     if ($handlingAmt > 0) {
-                        $acc = $this->resolveDefaultRevenueAccount('storage-handling');
-                        if ($acc) $add($acc->id, $handlingAmt, 'Handling income');
+                        $add($this->requireDefaultRevenueAccount('storage-handling')->id, $handlingAmt, 'Handling income');
                     }
                 }
                 break;
@@ -294,8 +295,8 @@ class InvoicePostingService
                 foreach ($invoice->details as $detail) {
                     $amt = round((float) ($detail->subtotal ?? 0) + (float) ($detail->line_sscl ?? 0), 2);
                     if ($amt <= 0) continue;
-                    $acc = $this->resolveChargeRevenueAccount($detail->charge_code_id, '4001');
-                    if ($acc) $add($acc->id, $amt, 'Storage income');
+                    $acc = $this->requireChargeRevenueAccount($detail->charge_code_id, '4001', 'a storage invoice line');
+                    $add($acc->id, $amt, 'Storage income');
                 }
                 break;
 
@@ -305,8 +306,8 @@ class InvoicePostingService
                 foreach ($invoice->lines as $line) {
                     $amt = round((float) ($line->subtotal ?? 0) + (float) ($line->line_sscl ?? 0), 2);
                     if ($amt <= 0) continue;
-                    $acc = $this->resolveChargeRevenueAccount($line->charge_code_id, '4004');
-                    if ($acc) $add($acc->id, $amt, 'Reefer electricity income');
+                    $acc = $this->requireChargeRevenueAccount($line->charge_code_id, '4004', 'a reefer invoice line');
+                    $add($acc->id, $amt, 'Reefer electricity income');
                 }
                 break;
 
@@ -316,18 +317,15 @@ class InvoicePostingService
                 foreach ($invoice->lines as $line) {
                     $amt = round((float) ($line->line_amount ?? 0) + (float) ($line->tax1_amount ?? 0), 2);
                     if ($amt <= 0) continue;
-                    $acc = $this->resolveChargeRevenueAccount($line->charge_code_id, '4003');
-                    if ($acc) $add($acc->id, $amt, 'Repair income');
+                    $acc = $this->requireChargeRevenueAccount($line->charge_code_id, '4003', 'a repair invoice line');
+                    $add($acc->id, $amt, 'Repair income');
                 }
                 break;
         }
 
         // Fallback: if no per-line amounts resolved, post the full net to the type default
-        if (empty($accumulator)) {
-            $acc = $this->resolveDefaultRevenueAccount($invoiceType);
-            if ($acc) {
-                $add($acc->id, $netAmount, 'Revenue');
-            }
+        if (empty($accumulator) && $netAmount > 0) {
+            $add($this->requireDefaultRevenueAccount($invoiceType)->id, $netAmount, 'Revenue');
         }
 
         $credits = [];
@@ -343,6 +341,38 @@ class InvoicePostingService
     }
 
     // ─── Account resolution helpers ──────────────────────────────────────────
+
+    /**
+     * Like resolveChargeRevenueAccount() but throws instead of returning null, so a
+     * revenue line whose account cannot be resolved aborts the posting rather than
+     * being silently dropped (which understates AR vs the invoice total).
+     */
+    private function requireChargeRevenueAccount(?int $chargeCodeId, string $fallbackCode, string $context): Account
+    {
+        $acc = $this->resolveChargeRevenueAccount($chargeCodeId, $fallbackCode);
+        if (!$acc) {
+            throw new \RuntimeException(
+                "No revenue account resolved for {$context} (fallback account {$fallbackCode} is missing or inactive). "
+                . "Map the charge code under Account Mappings → Charge Revenue, or activate account {$fallbackCode}."
+            );
+        }
+
+        return $acc;
+    }
+
+    /** Throwing variant of resolveDefaultRevenueAccount(). */
+    private function requireDefaultRevenueAccount(string $invoiceType): Account
+    {
+        $acc = $this->resolveDefaultRevenueAccount($invoiceType);
+        if (!$acc) {
+            throw new \RuntimeException(
+                "No default revenue account resolved for invoice type '{$invoiceType}'. "
+                . 'Activate the type\'s revenue account in the Chart of Accounts.'
+            );
+        }
+
+        return $acc;
+    }
 
     /**
      * Resolve revenue account for a charge code via charge_revenue AccountMapping.

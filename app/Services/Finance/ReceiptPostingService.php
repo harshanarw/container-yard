@@ -39,9 +39,11 @@ class ReceiptPostingService
             $arAccount   = $this->resolveArAccount();
             $bankAccount = $receipt->bankAccount?->glAccount;
 
-            // Cash receipts: look up cash/petty cash account (is_cash_bank=true, code starts with 1011)
+            // Cash receipts: use the petty-cash account (1011), else any active
+            // cash/bank account as a best-effort fallback.
             if (!$bankAccount && $receipt->payment_method === 'cash') {
-                $bankAccount = Account::where('code', '1011')->where('is_active', true)->first();
+                $bankAccount = Account::where('code', '1011')->where('is_active', true)->first()
+                    ?? Account::where('is_cash_bank', true)->where('is_active', true)->orderBy('code')->first();
             }
 
             if (!$bankAccount) {
@@ -206,7 +208,8 @@ class ReceiptPostingService
             }
 
             if (!$bankAccount && $voucher->payment_method === 'cash') {
-                $bankAccount = Account::where('code', '1011')->where('is_active', true)->first();
+                $bankAccount = Account::where('code', '1011')->where('is_active', true)->first()
+                    ?? Account::where('is_cash_bank', true)->where('is_active', true)->orderBy('code')->first();
             }
 
             if (!$bankAccount) {
