@@ -10,6 +10,7 @@ use App\Models\ChargeCode;
 use App\Models\CompanySetting;
 use App\Models\Currency;
 use App\Models\Customer;
+use App\Models\TaxCode;
 use App\Services\ConfiguredMailer;
 use App\Services\Finance\ApAllocationService;
 use App\Services\Finance\ApCreditNotePostingService;
@@ -56,13 +57,23 @@ class ApCreditNoteController extends Controller
         $options = $this->formOptions();
         $prefill = null;
 
-        // "Credit note against bill X" — pre-fill from an existing supplier invoice.
+        // "Credit note against bill X" — pre-fill from an existing supplier invoice,
+        // mirroring each bill line (net + SSCL/VAT tax code) so the reversal matches
+        // exactly what the bill booked.
         if ($request->filled('supplier_invoice_id')) {
             try {
                 $invoice = $this->allocationService->resolveInvoice((int) $request->supplier_invoice_id);
                 $invoice->loadMissing('lines');
-                $total = $this->allocationService->getTotal($invoice);
-                $vat   = (float) ($invoice->tax_amount ?? 0);
+
+                $lines = $invoice->lines->map(fn ($l) => [
+                    'description'        => 'Reversal — ' . $l->description,
+                    'expense_account_id' => $l->expense_account_id,
+                    'charge_code_id'     => $l->charge_code_id,
+                    'tax_code_id'        => $l->tax_code_id,
+                    'tax1_rate'          => (float) $l->tax1_rate,
+                    'tax2_rate'          => (float) $l->tax2_rate,
+                    'amount'             => round((float) $l->amount, 2),
+                ])->values()->all();
 
                 $prefill = [
                     'supplier_invoice_id' => $invoice->id,
@@ -70,9 +81,7 @@ class ApCreditNoteController extends Controller
                     'customer_id'         => $invoice->customer_id,
                     'currency'            => strtoupper((string) ($invoice->currency ?? $options['baseCurrency'])),
                     'exchange_rate'       => $this->allocationService->getExchangeRate($invoice),
-                    'net'                 => round($total - $vat, 2),
-                    'vat'                 => round($vat, 2),
-                    'expense_account_id'  => $invoice->lines->first()?->expense_account_id,
+                    'lines'               => $lines,
                 ];
             } catch (\Throwable) {
                 $prefill = null;
@@ -129,10 +138,43 @@ class ApCreditNoteController extends Controller
         $validated = $this->validateData($request);
 
         $cn = DB::transaction(function () use ($validated) {
-            $subtotal = collect($validated['lines'])->sum(fn ($l) => round((float) $l['amount'], 2));
-            $tax      = round((float) ($validated['tax_amount'] ?? 0), 2);
-            $total    = round($subtotal + $tax, 2);
-            $rate     = (float) $validated['exchange_rate'];
+            $rate = (float) $validated['exchange_rate'];
+
+            // Compute per-line SSCL/VAT the same way the supplier invoice does:
+            // SSCL on net, VAT on (net + SSCL).
+            $rows       = [];
+            $subtotal   = 0.0;
+            $ssclTotal  = 0.0;
+            $vatTotal   = 0.0;
+            foreach ($validated['lines'] as $l) {
+                $net  = round((float) $l['amount'], 2);
+                $t1   = (float) ($l['tax1_rate'] ?? 0);
+                $t2   = (float) ($l['tax2_rate'] ?? 0);
+                $sscl = round($net * $t1 / 100, 2);
+                $vat  = round(($net + $sscl) * $t2 / 100, 2);
+
+                $subtotal  += $net;
+                $ssclTotal += $sscl;
+                $vatTotal  += $vat;
+
+                $rows[] = [
+                    'description'        => $l['description'],
+                    'expense_account_id' => $l['expense_account_id'] ?? null,
+                    'charge_code_id'     => $l['charge_code_id'] ?? null,
+                    'tax_code_id'        => $l['tax_code_id'] ?? null,
+                    'amount'             => $net,
+                    'tax1_rate'          => $t1,
+                    'tax2_rate'          => $t2,
+                    'tax1_amount'        => $sscl,
+                    'tax2_amount'        => $vat,
+                    'gross_amount'       => round($net + $sscl + $vat, 2),
+                ];
+            }
+
+            $subtotal  = round($subtotal, 2);
+            $ssclTotal = round($ssclTotal, 2);
+            $vatTotal  = round($vatTotal, 2);
+            $total     = round($subtotal + $ssclTotal + $vatTotal, 2);
 
             $cn = ApCreditNote::create([
                 'credit_note_no'                => app(NumberSequenceService::class)->generate('ap_credit_note'),
@@ -143,7 +185,8 @@ class ApCreditNoteController extends Controller
                 'exchange_rate'                 => $rate,
                 'reference_supplier_invoice_id' => $validated['reference_supplier_invoice_id'] ?? null,
                 'subtotal'                      => $subtotal,
-                'tax_amount'                    => $tax,
+                'sscl_amount'                   => $ssclTotal,
+                'tax_amount'                    => $vatTotal, // VAT only — keeps the "Input VAT" meaning
                 'total_amount'                  => $total,
                 'base_amount'                   => round($total * $rate, 4),
                 'reason'                        => $validated['reason'] ?? null,
@@ -152,13 +195,8 @@ class ApCreditNoteController extends Controller
                 'created_by'                    => auth()->id(),
             ]);
 
-            foreach ($validated['lines'] as $l) {
-                $cn->lines()->create([
-                    'description'        => $l['description'],
-                    'expense_account_id' => $l['expense_account_id'] ?? null,
-                    'charge_code_id'     => $l['charge_code_id'] ?? null,
-                    'amount'             => round((float) $l['amount'], 2),
-                ]);
+            foreach ($rows as $r) {
+                $cn->lines()->create($r);
             }
 
             return $cn;
@@ -390,10 +428,12 @@ class ApCreditNoteController extends Controller
         $expenseAccounts = Account::where('classification', 'expense')->where('is_posting', true)
             ->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']);
         $chargeCodes     = ChargeCode::where('is_active', true)->orderBy('code')->get(['id', 'code', 'description']);
+        $taxCodes        = TaxCode::where('is_active', true)->orderBy('sort_order')->orderBy('code')
+            ->get(['id', 'code', 'description', 'tax1_rate', 'tax2_rate']);
         $currencies      = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
         $baseCurrency    = CompanySetting::baseCurrency();
 
-        return compact('suppliers', 'expenseAccounts', 'chargeCodes', 'currencies', 'baseCurrency');
+        return compact('suppliers', 'expenseAccounts', 'chargeCodes', 'taxCodes', 'currencies', 'baseCurrency');
     }
 
     private function validateData(Request $request): array
@@ -405,13 +445,15 @@ class ApCreditNoteController extends Controller
             'currency'                      => ['required', 'string', 'max:10', 'exists:currencies,code'],
             'exchange_rate'                 => ['required', 'numeric', 'min:0.000001'],
             'reference_supplier_invoice_id' => ['nullable', 'integer'],
-            'tax_amount'                    => ['nullable', 'numeric', 'min:0'],
             'reason'                        => ['nullable', 'string', 'max:255'],
             'notes'                         => ['nullable', 'string', 'max:1000'],
             'lines'                         => ['required', 'array', 'min:1'],
             'lines.*.description'           => ['required', 'string', 'max:255'],
             'lines.*.expense_account_id'    => ['nullable', 'exists:accounts,id'],
             'lines.*.charge_code_id'        => ['nullable', 'exists:charge_codes,id'],
+            'lines.*.tax_code_id'           => ['nullable', 'exists:tax_codes,id'],
+            'lines.*.tax1_rate'             => ['nullable', 'numeric', 'min:0'],
+            'lines.*.tax2_rate'             => ['nullable', 'numeric', 'min:0'],
             'lines.*.amount'                => ['required', 'numeric', 'min:0.01'],
         ]);
     }

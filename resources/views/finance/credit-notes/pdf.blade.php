@@ -118,6 +118,9 @@
         <td style="width:40%">
             <table style="width:100%">
                 <tr><td class="muted">Subtotal</td><td class="r" style="text-align:right">{{ number_format($cn->subtotal, 2) }}</td></tr>
+                @if((float) ($cn->sscl_amount ?? 0) > 0)
+                <tr><td class="muted">SSCL</td><td class="r" style="text-align:right">{{ number_format($cn->sscl_amount, 2) }}</td></tr>
+                @endif
                 <tr><td class="muted">{{ $taxLabel }}</td><td class="r" style="text-align:right">{{ number_format($cn->tax_amount, 2) }}</td></tr>
                 <tr class="g"><td>Total ({{ $cur }})</td><td style="text-align:right">{{ number_format($cn->total_amount, 2) }}</td></tr>
             </table>

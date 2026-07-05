@@ -74,42 +74,69 @@
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0 small">
                 <thead class="table-light">
-                    <tr><th>Description</th><th style="width:30%">Expense Account</th><th class="text-end" style="width:160px">Amount</th><th style="width:36px"></th></tr>
+                    <tr>
+                        <th>Description</th>
+                        <th style="width:22%">Expense Account</th>
+                        <th style="min-width:120px">Tax Code</th>
+                        <th class="text-end" style="width:130px">Net Amount</th>
+                        <th class="text-end" style="width:90px">SSCL</th>
+                        <th class="text-end" style="width:90px">VAT</th>
+                        <th style="width:36px"></th>
+                    </tr>
                 </thead>
                 <tbody id="linesBody">
                 @if($prefill ?? null)
+                    @foreach($prefill['lines'] as $li => $pl)
                     <tr>
-                        <td><input type="text" name="lines[0][description]" class="form-control form-control-sm" required maxlength="255" value="Reversal of bill {{ $prefill['invoice_no'] }}"></td>
                         <td>
-                            <select name="lines[0][expense_account_id]" class="form-select form-select-sm s2-code" data-s2-sel="name">
+                            <input type="hidden" name="lines[{{ $li }}][charge_code_id]" value="{{ $pl['charge_code_id'] }}">
+                            <input type="text" name="lines[{{ $li }}][description]" class="form-control form-control-sm" required maxlength="255" value="{{ $pl['description'] }}">
+                        </td>
+                        <td>
+                            <select name="lines[{{ $li }}][expense_account_id]" class="form-select form-select-sm s2-code" data-s2-sel="name">
                                 <option value="">— Default expense —</option>
                                 @foreach($expenseAccounts as $a)
-                                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}" {{ ($prefill['expense_account_id'] ?? null) == $a->id ? 'selected' : '' }}>{{ $a->code }} — {{ $a->name }}</option>
+                                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}" {{ ($pl['expense_account_id'] ?? null) == $a->id ? 'selected' : '' }}>{{ $a->code }} — {{ $a->name }}</option>
                                 @endforeach
                             </select>
                         </td>
-                        <td><input type="number" name="lines[0][amount]" class="form-control form-control-sm text-end font-monospace line-amt" min="0.01" step="0.01" required value="{{ number_format($prefill['net'], 2, '.', '') }}"></td>
+                        <td>
+                            <select name="lines[{{ $li }}][tax_code_id]" class="form-select form-select-sm tc-select">
+                                <option value="" data-t1="0" data-t2="0">— No tax —</option>
+                                @foreach($taxCodes as $tc)
+                                <option value="{{ $tc->id }}" data-t1="{{ $tc->tax1_rate }}" data-t2="{{ $tc->tax2_rate }}" {{ ($pl['tax_code_id'] ?? null) == $tc->id ? 'selected' : '' }}>{{ $tc->code }}</option>
+                                @endforeach
+                            </select>
+                            <input type="hidden" name="lines[{{ $li }}][tax1_rate]" class="tax1-rate" value="{{ $pl['tax1_rate'] }}">
+                            <input type="hidden" name="lines[{{ $li }}][tax2_rate]" class="tax2-rate" value="{{ $pl['tax2_rate'] }}">
+                        </td>
+                        <td><input type="number" name="lines[{{ $li }}][amount]" class="form-control form-control-sm text-end font-monospace line-amt" min="0.01" step="0.01" required value="{{ number_format($pl['amount'], 2, '.', '') }}"></td>
+                        <td class="text-end font-monospace text-muted line-sscl">0.00</td>
+                        <td class="text-end font-monospace text-muted line-vat">0.00</td>
                         <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger rm-line"><i class="bi bi-x"></i></button></td>
                     </tr>
+                    @endforeach
                 @endif
                 </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="3" class="text-end small text-muted">Subtotal (net)</td>
+                        <td class="text-end font-monospace fw-semibold" id="subtotalDisp">0.00</td>
+                        <td class="text-end font-monospace text-muted" id="ssclDisp">0.00</td>
+                        <td class="text-end font-monospace text-muted" id="vatDisp">0.00</td>
+                        <td></td>
+                    </tr>
+                    <tr class="fw-bold">
+                        <td colspan="5" class="text-end">Total credited</td>
+                        <td class="text-end font-monospace" id="totalDisp">0.00</td>
+                        <td><span id="ccyDisp" class="small text-muted fw-normal">{{ $baseCurrency }}</span></td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
-        <div class="card-footer bg-transparent">
-            <div class="row g-2 justify-content-end">
-                <div class="col-md-3">
-                    <label class="form-label small mb-1">Input VAT to reverse</label>
-                    <input type="number" name="tax_amount" id="taxAmount" class="form-control form-control-sm text-end font-monospace" value="{{ old('tax_amount', isset($prefill) && $prefill ? number_format($prefill['vat'], 2, '.', '') : '0.00') }}" min="0" step="0.01">
-                </div>
-                <div class="col-md-3 text-end">
-                    <div class="small text-muted mt-4">Subtotal: <span class="fw-semibold font-monospace" id="subtotalDisp">0.00</span></div>
-                    <div class="fw-bold">Total: <span class="font-monospace" id="totalDisp">0.00</span> <span id="ccyDisp">{{ $baseCurrency }}</span></div>
-                </div>
-            </div>
-            <div class="mt-3 text-end">
-                <a href="{{ route('finance.ap-credit-notes.index') }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
-                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Save Draft</button>
-            </div>
+        <div class="card-footer bg-transparent text-end">
+            <a href="{{ route('finance.ap-credit-notes.index') }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Save Draft</button>
         </div>
     </div>
 </form>
@@ -125,7 +152,19 @@
                 @endforeach
             </select>
         </td>
+        <td>
+            <select name="lines[IDX][tax_code_id]" class="form-select form-select-sm tc-select">
+                <option value="" data-t1="0" data-t2="0">— No tax —</option>
+                @foreach($taxCodes as $tc)
+                <option value="{{ $tc->id }}" data-t1="{{ $tc->tax1_rate }}" data-t2="{{ $tc->tax2_rate }}">{{ $tc->code }}</option>
+                @endforeach
+            </select>
+            <input type="hidden" name="lines[IDX][tax1_rate]" class="tax1-rate" value="0">
+            <input type="hidden" name="lines[IDX][tax2_rate]" class="tax2-rate" value="0">
+        </td>
         <td><input type="number" name="lines[IDX][amount]" class="form-control form-control-sm text-end font-monospace line-amt" min="0.01" step="0.01" required></td>
+        <td class="text-end font-monospace text-muted line-sscl">0.00</td>
+        <td class="text-end font-monospace text-muted line-vat">0.00</td>
         <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger rm-line"><i class="bi bi-x"></i></button></td>
     </tr>
 </template>
@@ -137,7 +176,27 @@
     const body = document.getElementById('linesBody');
     const tpl  = document.getElementById('lineTpl').innerHTML;
     const prefilled = {{ ($prefill ?? null) ? 'true' : 'false' }};
-    let idx = prefilled ? 1 : 0;
+    let idx = {{ ($prefill ?? null) ? count($prefill['lines']) : 0 }};
+
+    // SSCL on net, VAT on (net + SSCL) — identical to the supplier invoice.
+    function recomputeRow(row) {
+        const net  = parseFloat(row.querySelector('.line-amt')?.value || 0) || 0;
+        const t1   = parseFloat(row.querySelector('.tax1-rate')?.value || 0) || 0;
+        const t2   = parseFloat(row.querySelector('.tax2-rate')?.value || 0) || 0;
+        const sscl = Math.round(net * t1) / 100;
+        const vat  = Math.round((net + sscl) * t2) / 100;
+        const sc = row.querySelector('.line-sscl'); if (sc) sc.textContent = sscl.toFixed(2);
+        const vc = row.querySelector('.line-vat');  if (vc) vc.textContent = vat.toFixed(2);
+        return { net, sscl, vat };
+    }
+    function recompute() {
+        let sN = 0, sS = 0, sV = 0;
+        body.querySelectorAll('tr').forEach(row => { const r = recomputeRow(row); sN += r.net; sS += r.sscl; sV += r.vat; });
+        document.getElementById('subtotalDisp').textContent = sN.toFixed(2);
+        document.getElementById('ssclDisp').textContent = sS.toFixed(2);
+        document.getElementById('vatDisp').textContent = sV.toFixed(2);
+        document.getElementById('totalDisp').textContent = (sN + sS + sV).toFixed(2);
+    }
     function addLine() {
         body.insertAdjacentHTML('beforeend', tpl.replace(/IDX/g, idx++));
         // Rows added after page load need Select2 initialised here (the global
@@ -149,16 +208,18 @@
         }
         recompute();
     }
-    function recompute() {
-        let sub = 0;
-        document.querySelectorAll('.line-amt').forEach(i => sub += parseFloat(i.value || 0) || 0);
-        const tax = parseFloat(document.getElementById('taxAmount').value || 0) || 0;
-        document.getElementById('subtotalDisp').textContent = sub.toFixed(2);
-        document.getElementById('totalDisp').textContent = (sub + tax).toFixed(2);
-    }
     document.getElementById('addLine').addEventListener('click', addLine);
-    document.getElementById('taxAmount').addEventListener('input', recompute);
     body.addEventListener('input', e => { if (e.target.classList.contains('line-amt')) recompute(); });
+    // Tax-code change → copy its SSCL/VAT rates onto the row, then recompute.
+    body.addEventListener('change', e => {
+        if (e.target.classList.contains('tc-select')) {
+            const opt = e.target.options[e.target.selectedIndex];
+            const row = e.target.closest('tr');
+            row.querySelector('.tax1-rate').value = opt ? (opt.dataset.t1 || 0) : 0;
+            row.querySelector('.tax2-rate').value = opt ? (opt.dataset.t2 || 0) : 0;
+            recompute();
+        }
+    });
     body.addEventListener('click', e => { if (e.target.closest('.rm-line')) { e.target.closest('tr').remove(); recompute(); } });
 
     const baseCurrency = @json($baseCurrency);

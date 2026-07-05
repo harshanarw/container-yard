@@ -8,6 +8,7 @@ use App\Models\ApCreditNote;
 use App\Models\ApCreditNoteApplication;
 use App\Models\ChargeCode;
 use App\Models\GlJournal;
+use App\Models\TaxCode;
 use App\Services\CurrencyService;
 use Illuminate\Support\Facades\DB;
 
@@ -41,23 +42,36 @@ class ApCreditNotePostingService
                 throw new \RuntimeException('No AP control account mapped. Configure Account Mappings → AR/AP Controls.');
             }
 
-            $rate           = (float) ($cn->exchange_rate ?: 1);
-            $defaultExpense = Account::where('classification', 'expense')->where('is_posting', true)
-                ->where('is_active', true)->orderBy('code')->first();
-
             // Document (transaction) currency for the per-line multi-currency amounts.
             $base    = CurrencyService::defaultCurrency();
             $docCcy  = strtoupper((string) ($cn->currency ?? $base));
-            $docRate = $docCcy === $base ? 1.0 : ($rate ?: 1.0);
+            // A base-currency credit note must convert at 1:1 even if a stray
+            // non-unity rate was stored (mirrors InvoicePostingService).
+            $rate    = $docCcy === $base ? 1.0 : ((float) ($cn->exchange_rate ?: 1) ?: 1.0);
+            $docRate = $rate;
             $toTxn   = fn (float $baseAmt) => $docRate > 0 ? round($baseAmt / $docRate, 2) : $baseAmt;
 
-            // Credit expense per line (reverse the cost), in base currency.
+            $defaultExpense = Account::where('classification', 'expense')->where('is_posting', true)
+                ->where('is_active', true)->orderBy('code')->first();
+
+            // CR expense per line = (net + SSCL) × rate. SSCL (tax1) is an irrecoverable
+            // levy embedded in the cost — exactly how the bill booked it — so the credit
+            // note takes it back out of expense too.
             $credits = [];
             foreach ($cn->lines as $line) {
-                $acc = $line->expenseAccount
-                    ?? ($line->charge_code_id
+                $expenseBase = round(((float) $line->amount + (float) $line->tax1_amount) * $rate, 2);
+                if ($expenseBase == 0.0) {
+                    continue;
+                }
+
+                // Same precedence as the bill (SupplierInvoicePostingService::
+                // resolveExpenseAccount): the charge_expense mapping wins over the
+                // line's expense_account_id, so a full reversal credits the exact
+                // account the bill debited.
+                $acc = ($line->charge_code_id
                         ? $this->resolveAccount('charge_expense', ChargeCode::class, $line->charge_code_id)
                         : null)
+                    ?? $line->expenseAccount
                     ?? $defaultExpense;
 
                 if (!$acc) {
@@ -67,23 +81,32 @@ class ApCreditNotePostingService
                 $credits[] = [
                     'account_id' => $acc->id,
                     'debit'      => 0,
-                    'credit'     => round((float) $line->amount * $rate, 2),
+                    'credit'     => $expenseBase,
                     'narration'  => $line->description,
                 ];
             }
 
-            // Reverse input VAT, if any.
-            $tax = (float) $cn->tax_amount;
-            if ($tax > 0) {
-                $vatAcc = $this->resolveAccount('tax_input', null, null)
-                    ?? Account::where('code', '1301')->where('is_active', true)->first();
-                $vatBase = round($tax * $rate, 2);
-                if ($vatAcc) {
-                    $credits[] = ['account_id' => $vatAcc->id, 'debit' => 0, 'credit' => $vatBase, 'narration' => 'Input VAT reversal'];
-                } else {
-                    $last = count($credits) - 1;
-                    $credits[$last]['credit'] = round($credits[$last]['credit'] + $vatBase, 2);
+            // CR input VAT (recoverable) per line = VAT (tax2) × rate, resolved per line
+            // by tax code so mixed-rate credit notes reverse each VAT portion to the same
+            // input-tax account the bill debited.
+            $vatByAccount = [];
+            foreach ($cn->lines as $line) {
+                $vatBase = round((float) $line->tax2_amount * $rate, 2);
+                if ($vatBase <= 0) {
+                    continue;
                 }
+
+                $vatAccount = $this->resolveInputVatAccount($line->tax_code_id);
+                if (!$vatAccount) {
+                    throw new \RuntimeException(
+                        'No input VAT account mapped. Configure Account Mappings → Tax Input or create an account with code 1301.'
+                    );
+                }
+                $vatByAccount[$vatAccount->id] = round(($vatByAccount[$vatAccount->id] ?? 0) + $vatBase, 2);
+            }
+
+            foreach ($vatByAccount as $acctId => $vatAmt) {
+                $credits[] = ['account_id' => $acctId, 'debit' => 0, 'credit' => $vatAmt, 'narration' => 'Input VAT reversal'];
             }
 
             // Debit AP = sum of credits (keeps the journal balanced to the cent).
@@ -240,6 +263,29 @@ class ApCreditNotePostingService
     {
         return $this->resolveAccount('supplier_ap', null, null)
             ?? Account::where('code', '2011')->where('is_active', true)->first();
+    }
+
+    /**
+     * Resolve the input VAT account for a credit-note line: per-TaxCode tax_input
+     * mapping → global tax_input → default 1301. Mirrors SupplierInvoicePostingService
+     * so a credit note reverses VAT to the same account the bill debited.
+     */
+    private function resolveInputVatAccount(?int $taxCodeId): ?Account
+    {
+        if ($taxCodeId !== null) {
+            $mapped = AccountMapping::where('mapping_type', 'tax_input')
+                ->where('source_type', TaxCode::class)
+                ->where('source_id', $taxCodeId)
+                ->where('is_active', true)
+                ->first()?->account;
+
+            if ($mapped) {
+                return $mapped;
+            }
+        }
+
+        return $this->resolveAccount('tax_input', null, null)
+            ?? Account::where('code', '1301')->where('is_active', true)->first();
     }
 
     private function resolveAccount(string $mappingType, ?string $sourceType, ?int $sourceId): ?Account

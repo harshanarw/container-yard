@@ -79,6 +79,9 @@
                     <tr><td class="text-muted">Vendor CN No</td><td class="font-monospace">{{ $apCreditNote->supplier_credit_no ?: '—' }}</td></tr>
                     <tr><td class="text-muted">Currency / Rate</td><td class="font-monospace">{{ $apCreditNote->currency }} @ {{ rtrim(rtrim(number_format($apCreditNote->exchange_rate,6,'.',''),'0'),'.') }}</td></tr>
                     <tr><td class="text-muted">Subtotal</td><td class="text-end font-monospace">{{ number_format($apCreditNote->subtotal,2) }}</td></tr>
+                    @if((float) $apCreditNote->sscl_amount > 0)
+                    <tr><td class="text-muted">SSCL</td><td class="text-end font-monospace">{{ number_format($apCreditNote->sscl_amount,2) }}</td></tr>
+                    @endif
                     <tr><td class="text-muted">Input VAT</td><td class="text-end font-monospace">{{ number_format($apCreditNote->tax_amount,2) }}</td></tr>
                     <tr><td class="text-muted fw-semibold">Total</td><td class="text-end fw-bold font-monospace">{{ $apCreditNote->currency }} {{ number_format($apCreditNote->total_amount,2) }}</td></tr>
                     <tr><td class="text-muted">Value ({{ \App\Models\CompanySetting::baseCurrency() }})</td><td class="text-end font-monospace">{{ number_format($apCreditNote->base_amount,2) }}</td></tr>

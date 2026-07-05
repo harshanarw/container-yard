@@ -9,7 +9,7 @@ class ApCreditNote extends Model
     protected $fillable = [
         'credit_note_no', 'supplier_credit_no', 'customer_id', 'credit_date', 'currency', 'exchange_rate',
         'reference_supplier_invoice_id',
-        'subtotal', 'tax_amount', 'total_amount', 'base_amount',
+        'subtotal', 'sscl_amount', 'tax_amount', 'total_amount', 'base_amount',
         'reason', 'status', 'journal_id', 'posting_error', 'notes',
         'approved_by', 'approved_at', 'created_by',
     ];
@@ -19,6 +19,7 @@ class ApCreditNote extends Model
         'approved_at'   => 'datetime',
         'exchange_rate' => 'decimal:6',
         'subtotal'      => 'decimal:2',
+        'sscl_amount'   => 'decimal:2',
         'tax_amount'    => 'decimal:2',
         'total_amount'  => 'decimal:2',
         'base_amount'   => 'decimal:4',

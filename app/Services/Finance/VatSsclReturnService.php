@@ -122,24 +122,32 @@ class VatSsclReturnService
     }
 
     /**
-     * Credit notes reverse VAT only (the GL books the whole tax_amount as VAT).
-     * Returned as negative amounts so they net against the gross totals.
+     * Credit notes reverse tax. AR credit notes carry VAT only (tax_amount).
+     * AP credit notes now also carry an SSCL reversal (sscl_amount), so both are
+     * netted. Returned as negative amounts so they reduce the gross totals.
      */
     private function creditNoteRow(string $label, string $class, string $from, string $to): array
     {
+        $hasSscl = $class === ApCreditNote::class;
+        $cols    = ['subtotal', 'tax_amount', 'base_amount', 'total_amount', 'exchange_rate'];
+        if ($hasSscl) {
+            $cols[] = 'sscl_amount';
+        }
+
         $rows = $class::where('status', 'approved')
             ->whereBetween('credit_date', [$from, $to])
-            ->get(['subtotal', 'tax_amount', 'base_amount', 'total_amount', 'exchange_rate']);
+            ->get($cols);
 
-        $taxable = $vat = 0.0;
+        $taxable = $sscl = $vat = 0.0;
         foreach ($rows as $r) {
             $rate = $this->rate($r->exchange_rate);
             $taxable += (float) $r->subtotal * $rate;
             $vat     += (float) $r->tax_amount * $rate;
+            $sscl    += $hasSscl ? (float) $r->sscl_amount * $rate : 0.0;
         }
 
         // Negative: a credit note reduces the corresponding output/input tax.
-        return $this->row($label, $rows->count(), -$taxable, 0.0, -$vat);
+        return $this->row($label, $rows->count(), -$taxable, -$sscl, -$vat);
     }
 
     private function row(string $label, int $count, float $taxable, float $sscl, float $vat): array
