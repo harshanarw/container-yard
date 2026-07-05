@@ -229,7 +229,7 @@ class GeneralLedgerController extends Controller
             $to      = $request->input('to', Carbon::now()->toDateString());
 
             // Opening balance from posted journals BEFORE from date
-            $opening = GlEntry::whereHas('journal', fn ($q) => $q->where('status', 'posted')
+            $opening = GlEntry::whereHas('journal', fn ($q) => $q->whereIn('status', GlJournal::COUNTED_STATUSES)
                     ->whereDate('journal_date', '<', $from))
                 ->where('account_id', $account->id)
                 ->when($currencyFilter, fn ($q) => $q->where('currency', $currencyFilter))
@@ -243,7 +243,7 @@ class GeneralLedgerController extends Controller
                 : $creditBefore - $debitBefore;
 
             $entries = GlEntry::with('journal')
-                ->whereHas('journal', fn ($q) => $q->where('status', 'posted')
+                ->whereHas('journal', fn ($q) => $q->whereIn('status', GlJournal::COUNTED_STATUSES)
                     ->whereBetween('journal_date', [$from, $to]))
                 ->where('account_id', $account->id)
                 ->when($currencyFilter, fn ($q) => $q->where('currency', $currencyFilter))
@@ -272,10 +272,10 @@ class GeneralLedgerController extends Controller
             ->where('is_active', true)
             ->with(['parent'])
             ->withSum(['entries as total_debit' => fn ($q) => $q->whereHas('journal',
-                fn ($j) => $j->where('status', 'posted')->whereBetween('journal_date', [$from, $to])
+                fn ($j) => $j->whereIn('status', GlJournal::COUNTED_STATUSES)->whereBetween('journal_date', [$from, $to])
             )], 'debit')
             ->withSum(['entries as total_credit' => fn ($q) => $q->whereHas('journal',
-                fn ($j) => $j->where('status', 'posted')->whereBetween('journal_date', [$from, $to])
+                fn ($j) => $j->whereIn('status', GlJournal::COUNTED_STATUSES)->whereBetween('journal_date', [$from, $to])
             )], 'credit')
             ->orderBy('code')
             ->get()
@@ -314,12 +314,12 @@ class GeneralLedgerController extends Controller
             ->where('is_posting', true)
             ->whereIn('classification', ['income', 'expense'])
             ->withSum(['entries as period_debit' => fn ($q) => $q->whereHas('journal',
-                fn ($j) => $j->where('status', 'posted')
+                fn ($j) => $j->whereIn('status', GlJournal::COUNTED_STATUSES)
                              ->whereBetween('journal_date', [$from, $to])
                              ->where('journal_type', '!=', 'closing')
             )], 'debit')
             ->withSum(['entries as period_credit' => fn ($q) => $q->whereHas('journal',
-                fn ($j) => $j->where('status', 'posted')
+                fn ($j) => $j->whereIn('status', GlJournal::COUNTED_STATUSES)
                              ->whereBetween('journal_date', [$from, $to])
                              ->where('journal_type', '!=', 'closing')
             )], 'credit')
@@ -398,10 +398,10 @@ class GeneralLedgerController extends Controller
                 ->whereIn('classification', $classifications)
                 ->with('parent')
                 ->withSum(['entries as cum_debit' => fn ($q) => $q->whereHas('journal',
-                    fn ($j) => $j->where('status', 'posted')->where('journal_date', '<=', $asOf)
+                    fn ($j) => $j->whereIn('status', GlJournal::COUNTED_STATUSES)->where('journal_date', '<=', $asOf)
                 )], 'debit')
                 ->withSum(['entries as cum_credit' => fn ($q) => $q->whereHas('journal',
-                    fn ($j) => $j->where('status', 'posted')->where('journal_date', '<=', $asOf)
+                    fn ($j) => $j->whereIn('status', GlJournal::COUNTED_STATUSES)->where('journal_date', '<=', $asOf)
                 )], 'credit')
                 ->orderBy('code')
                 ->get()
@@ -521,7 +521,7 @@ class GeneralLedgerController extends Controller
         if (!empty($accountIds)) {
             $rows = GlEntry::with('journal')
                 ->whereIn('account_id', $accountIds)
-                ->whereHas('journal', fn ($q) => $q->where('status', 'posted')
+                ->whereHas('journal', fn ($q) => $q->whereIn('status', GlJournal::COUNTED_STATUSES)
                     ->whereBetween('journal_date', [$from, $to]))
                 ->get()
                 ->map(function ($e) use ($gainAcc, $sourceLabels) {

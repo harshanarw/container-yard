@@ -5,6 +5,7 @@ namespace App\Services\Finance;
 use App\Models\BankReconciliation;
 use App\Models\BankStatementLine;
 use App\Models\GlEntry;
+use App\Models\GlJournal;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -40,7 +41,7 @@ class BankReconciliationService
         return GlEntry::query()
             ->join('gl_journals', 'gl_journals.id', '=', 'gl_entries.journal_id')
             ->where('gl_entries.account_id', $accountId)
-            ->where('gl_journals.status', 'posted')
+            ->whereIn('gl_journals.status', GlJournal::COUNTED_STATUSES)
             // Exclude period-end FX revaluation adjustments, their next-day reversals
             // and any void-reversals (all share the 'fx-revaluation' prefix): they
             // re-price the bank balance for the balance sheet but never appear on the
@@ -119,7 +120,7 @@ class BankReconciliationService
         $row = GlEntry::query()
             ->join('gl_journals', 'gl_journals.id', '=', 'gl_entries.journal_id')
             ->where('gl_entries.account_id', $accountId)
-            ->where('gl_journals.status', 'posted')
+            ->whereIn('gl_journals.status', GlJournal::COUNTED_STATUSES)
             // Consistent with availableEntries(): unrealized FX revaluation of the
             // bank account (and its reversals/void-reversals) is not part of the
             // reconcilable book balance.

@@ -182,7 +182,7 @@ class ClosingService
 
         foreach ($accounts as $acc) {
             $sums = GlEntry::where('account_id', $acc->id)
-                ->whereHas('journal', fn ($j) => $j->where('status', 'posted')
+                ->whereHas('journal', fn ($j) => $j->whereIn('status', GlJournal::COUNTED_STATUSES)
                     ->where('period_id', $period->id)
                     ->where('journal_type', '!=', 'closing'))
                 ->selectRaw('COALESCE(SUM(debit),0) as d, COALESCE(SUM(credit),0) as c')
@@ -243,7 +243,7 @@ class ClosingService
 
         // Cumulative 3003 balance up to the fiscal-year end (all journal types).
         $sums = GlEntry::where('account_id', $pl->id)
-            ->whereHas('journal', fn ($j) => $j->where('status', 'posted')
+            ->whereHas('journal', fn ($j) => $j->whereIn('status', GlJournal::COUNTED_STATUSES)
                 ->where('journal_date', '<=', $finalPeriod->end_date->toDateString()))
             ->selectRaw('COALESCE(SUM(debit),0) as d, COALESCE(SUM(credit),0) as c')
             ->first();

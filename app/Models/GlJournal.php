@@ -91,6 +91,19 @@ class GlJournal extends Model
         };
     }
 
+    /**
+     * Statuses whose entries are part of the ledger's real balance.
+     *
+     * A voided journal is NOT removed from the ledger: voidJournal() posts a
+     * balanced reversal that offsets it and flags the original 'voided' for
+     * audit. Balance/aggregate reads must therefore count BOTH the voided
+     * original and its reversal — they net to zero. Counting only 'posted'
+     * drops the original while keeping the reversal, double-removing the entry
+     * by the reversal amount. Existence checks ("is there a live journal to act
+     * on?") use 'posted' alone, not this.
+     */
+    public const COUNTED_STATUSES = ['posted', 'voided'];
+
     public function isPosted(): bool
     {
         return $this->status === 'posted';

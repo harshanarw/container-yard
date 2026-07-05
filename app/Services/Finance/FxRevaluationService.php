@@ -339,7 +339,7 @@ class FxRevaluationService
             ->join('accounts', 'accounts.id', '=', 'gl_entries.account_id')
             ->join('gl_journals', 'gl_journals.id', '=', 'gl_entries.journal_id')
             ->where('accounts.is_cash_bank', true)
-            ->where('gl_journals.status', 'posted')
+            ->whereIn('gl_journals.status', GlJournal::COUNTED_STATUSES)
             ->whereRaw('UPPER(COALESCE(gl_entries.currency, ?)) <> ?', [$base, strtoupper($base)])
             ->groupBy('gl_entries.account_id', 'gl_entries.currency', 'accounts.code', 'accounts.name')
             ->selectRaw(
