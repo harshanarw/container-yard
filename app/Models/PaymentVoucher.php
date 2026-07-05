@@ -16,6 +16,10 @@ class PaymentVoucher extends Model
         'currency',
         'exchange_rate',
         'base_amount',
+        'wht_type',
+        'wht_rate',
+        'wht_amount',
+        'wht_account_id',
         'payment_method',
         'cheque_no',
         'reference_no',
@@ -34,7 +38,15 @@ class PaymentVoucher extends Model
         'amount'        => 'decimal:4',
         'exchange_rate' => 'decimal:6',
         'base_amount'   => 'decimal:4',
+        'wht_rate'      => 'decimal:4',
+        'wht_amount'    => 'decimal:4',
     ];
+
+    /** Net cash actually paid through the bank = gross settlement − WHT withheld. */
+    public function getNetPaidAttribute(): float
+    {
+        return round((float) $this->amount - (float) $this->wht_amount, 2);
+    }
 
     /**
      * The Contact/Party being paid (unified customers master). Named supplier()

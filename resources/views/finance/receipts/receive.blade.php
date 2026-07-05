@@ -170,6 +170,35 @@
                     </tbody>
                 </table>
             </div>
+            <div class="border-top px-3 py-2 bg-light-subtle">
+                <div class="row g-2 align-items-end justify-content-end">
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small mb-1 fw-semibold">WHT Nature (withheld by customer)</label>
+                        <select name="wht_type" id="whtType" class="form-select form-select-sm">
+                            <option value="">— No WHT —</option>
+                            @foreach(collect(config('wht.types', []))->where('applies', '!=', 'ap') as $t)
+                                <option value="{{ $t['code'] }}" data-rate="{{ $t['rate'] }}" {{ old('wht_type') === $t['code'] ? 'selected' : '' }}>
+                                    {{ $t['label'] }}@if($t['rate'] > 0) ({{ rtrim(rtrim(number_format($t['rate'], 2), '0'), '.') }}%)@endif
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <label class="form-label small mb-1 fw-semibold">WHT %</label>
+                        <input type="number" step="0.01" min="0" max="100" name="wht_rate" id="whtRate"
+                               class="form-control form-control-sm text-end font-monospace" value="{{ old('wht_rate', '0') }}">
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small mb-1 fw-semibold">WHT Amount <span class="hdr-ccy text-muted fw-normal"></span></label>
+                        <input type="number" step="0.01" min="0" name="wht_amount" id="whtAmount"
+                               class="form-control form-control-sm text-end font-monospace" value="{{ old('wht_amount', '0') }}">
+                    </div>
+                    <div class="col-md-4 col-12 text-md-end">
+                        <div class="small text-muted">Net cash received</div>
+                        <div class="fw-bold font-monospace fs-6"><span id="netPay">0.00</span> <span id="netCcy">{{ $baseCurrency }}</span></div>
+                    </div>
+                </div>
+            </div>
             <div class="card-footer bg-transparent d-flex justify-content-end gap-2">
                 <a href="{{ route('finance.receipts.index') }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
                 <button type="submit" name="action" value="draft" class="btn btn-outline-primary btn-sm">
@@ -203,9 +232,25 @@
     const rateEl       = document.getElementById('exchangeRateField');
     const ccyLabel     = document.getElementById('ccyLabel');
     const totalDisplay = document.getElementById('totalDisplay');
+    const whtTypeEl    = document.getElementById('whtType');
+    const whtRateEl    = document.getElementById('whtRate');
+    const whtAmountEl  = document.getElementById('whtAmount');
+    const netPayEl     = document.getElementById('netPay');
+    const netCcyEl     = document.getElementById('netCcy');
+    let   whtManual    = false; // user typed an amount directly → stop auto-deriving from %
 
     function selectedCurrency() { return currencyEl ? currencyEl.value : baseCurrency; }
     function fmt(n) { return (n || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+
+    function recomputeWht(total) {
+        const rate = parseFloat(whtRateEl ? whtRateEl.value : 0) || 0;
+        if (!whtManual && whtAmountEl && rate > 0) {
+            whtAmountEl.value = (Math.round(total * rate) / 100).toFixed(2);
+        }
+        const wht = parseFloat(whtAmountEl ? whtAmountEl.value : 0) || 0;
+        if (netPayEl) netPayEl.textContent = fmt(Math.max(0, total - wht));
+        if (netCcyEl) netCcyEl.textContent = selectedCurrency();
+    }
 
     function recomputeTotal() {
         let total = 0;
@@ -216,6 +261,7 @@
             }
         });
         if (totalDisplay) totalDisplay.textContent = fmt(total);
+        recomputeWht(total);
 
         // Live base-currency (LKR) equivalent — shown only for foreign currency.
         const cur  = selectedCurrency();
@@ -286,6 +332,15 @@
     }
 
     if (rateEl) rateEl.addEventListener('input', recomputeTotal);
+
+    if (whtTypeEl) whtTypeEl.addEventListener('change', function () {
+        const opt = this.options[this.selectedIndex];
+        if (whtRateEl) whtRateEl.value = opt ? (opt.dataset.rate || '0') : '0';
+        whtManual = false;
+        recomputeTotal();
+    });
+    if (whtRateEl) whtRateEl.addEventListener('input', function () { whtManual = false; recomputeTotal(); });
+    if (whtAmountEl) whtAmountEl.addEventListener('input', function () { whtManual = true; recomputeTotal(); });
 
     if (currencyEl) {
         $('#currencyField').on('change', function () { applyCurrencyFilter(); refreshFxRate(); });

@@ -1047,6 +1047,12 @@
                             <i class="bi bi-percent"></i><span>VAT / SSCL Return</span>
                         </a>
                     </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.reports.wht-report') }}"
+                           class="nav-link {{ request()->routeIs('finance.reports.wht-report') ? 'active' : '' }}">
+                            <i class="bi bi-cash-stack"></i><span>Withholding Tax</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
             @endcan

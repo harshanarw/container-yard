@@ -59,6 +59,7 @@ class DefaultCoaSeeder extends Seeder
             ['code' => '1100', 'name' => 'Accounts Receivable',         'classification' => 'asset', 'normal_balance' => 'debit',  'parent' => '1000', 'sort_order' => 20],
             ['code' => '1101', 'name' => 'Trade Debtors (Control)',     'classification' => 'asset', 'normal_balance' => 'debit',  'parent' => '1100', 'is_posting' => true, 'is_control' => true, 'is_receivable' => true, 'is_system' => true, 'sort_order' => 21],
             ['code' => '1102', 'name' => 'Other Debtors',               'classification' => 'asset', 'normal_balance' => 'debit',  'parent' => '1100', 'is_posting' => true, 'sort_order' => 22],
+            ['code' => '1103', 'name' => 'WHT Receivable (Income Tax)', 'classification' => 'asset', 'normal_balance' => 'debit',  'parent' => '1100', 'is_posting' => true, 'sort_order' => 23],
             ['code' => '1200', 'name' => 'Advance Payments Made',       'classification' => 'asset', 'normal_balance' => 'debit',  'parent' => '1000', 'sort_order' => 30],
             ['code' => '1201', 'name' => 'Advance Payments to Suppliers', 'classification' => 'asset', 'normal_balance' => 'debit', 'parent' => '1200', 'is_posting' => true, 'is_system' => true, 'sort_order' => 31],
             ['code' => '1300', 'name' => 'Tax Receivable',              'classification' => 'asset', 'normal_balance' => 'debit',  'parent' => '1000', 'sort_order' => 40],

@@ -628,6 +628,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('customer-statement', [\App\Http\Controllers\Finance\StatementController::class, 'customer'])->name('customer-statement');
             Route::get('supplier-statement', [\App\Http\Controllers\Finance\StatementController::class, 'supplier'])->name('supplier-statement');
             Route::get('vat-sscl-return',    [\App\Http\Controllers\Finance\TaxReturnController::class, 'vatSscl'])->name('vat-sscl-return');
+            Route::get('wht-report',         [\App\Http\Controllers\Finance\TaxReturnController::class, 'wht'])->name('wht-report');
         });
 
         // AR / Invoice Postings

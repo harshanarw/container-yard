@@ -129,9 +129,19 @@
                         <td class="fw-semibold">{{ $receipt->customer->name ?? '—' }}</td>
                     </tr>
                     <tr>
-                        <td class="text-muted">Amount</td>
+                        <td class="text-muted">Amount (gross)</td>
                         <td class="fw-semibold">{{ number_format($receipt->amount, 2) }} {{ $receipt->currency }}</td>
                     </tr>
+                    @if((float) $receipt->wht_amount > 0)
+                    <tr>
+                        <td class="text-muted">WHT Withheld{{ $receipt->wht_rate > 0 ? ' ('.rtrim(rtrim(number_format($receipt->wht_rate, 2), '0'), '.').'%)' : '' }}</td>
+                        <td class="text-warning fw-semibold">− {{ number_format($receipt->wht_amount, 2) }} {{ $receipt->currency }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Net Received</td>
+                        <td class="fw-semibold font-monospace">{{ number_format($receipt->net_received, 2) }} {{ $receipt->currency }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <td class="text-muted">Exchange Rate</td>
                         <td class="font-monospace">{{ $receipt->exchange_rate }}</td>

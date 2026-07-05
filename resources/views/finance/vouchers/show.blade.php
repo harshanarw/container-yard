@@ -144,9 +144,19 @@
                         <td class="fw-semibold">{{ $voucher->payee_name }}</td>
                     </tr>
                     <tr>
-                        <td class="text-muted">Amount</td>
+                        <td class="text-muted">Amount (gross)</td>
                         <td class="fw-semibold">{{ number_format($voucher->amount, 2) }} {{ $voucher->currency }}</td>
                     </tr>
+                    @if((float) $voucher->wht_amount > 0)
+                    <tr>
+                        <td class="text-muted">WHT Withheld{{ $voucher->wht_rate > 0 ? ' ('.rtrim(rtrim(number_format($voucher->wht_rate, 2), '0'), '.').'%)' : '' }}</td>
+                        <td class="text-warning fw-semibold">− {{ number_format($voucher->wht_amount, 2) }} {{ $voucher->currency }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Net Paid</td>
+                        <td class="fw-semibold font-monospace">{{ number_format($voucher->net_paid, 2) }} {{ $voucher->currency }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <td class="text-muted">Exchange Rate</td>
                         <td class="font-monospace">{{ $voucher->exchange_rate }}</td>

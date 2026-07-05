@@ -15,6 +15,10 @@ class Receipt extends Model
         'currency',
         'exchange_rate',
         'base_amount',
+        'wht_type',
+        'wht_rate',
+        'wht_amount',
+        'wht_account_id',
         'payment_method',
         'cheque_no',
         'reference_no',
@@ -32,7 +36,15 @@ class Receipt extends Model
         'amount'       => 'decimal:4',
         'exchange_rate' => 'decimal:6',
         'base_amount'  => 'decimal:4',
+        'wht_rate'     => 'decimal:4',
+        'wht_amount'   => 'decimal:4',
     ];
+
+    /** Net cash actually received through the bank = gross settlement − WHT withheld by the customer. */
+    public function getNetReceivedAttribute(): float
+    {
+        return round((float) $this->amount - (float) $this->wht_amount, 2);
+    }
 
     public function customer()
     {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
 use App\Services\Finance\VatSsclReturnService;
+use App\Services\Finance\WhtReportService;
 use Illuminate\Http\Request;
 
 /**
@@ -30,5 +31,22 @@ class TaxReturnController extends Controller
         $data = $this->service->build($from, $to);
 
         return view('finance.reports.vat-sscl-return', compact('data', 'from', 'to'));
+    }
+
+    public function wht(Request $request, WhtReportService $wht)
+    {
+        $this->authorize('finance.gl.view');
+
+        $request->validate([
+            'from' => 'nullable|date',
+            'to'   => 'nullable|date|after_or_equal:from',
+        ]);
+
+        $from = $request->input('from', now()->startOfMonth()->toDateString());
+        $to   = $request->input('to', now()->endOfMonth()->toDateString());
+
+        $data = $wht->build($from, $to);
+
+        return view('finance.reports.wht-report', compact('data', 'from', 'to'));
     }
 }

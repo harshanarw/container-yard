@@ -146,6 +146,9 @@ class ReceiptController extends Controller
             'cheque_no'             => ['nullable', 'string', 'max:50'],
             'reference_no'          => ['nullable', 'string', 'max:100'],
             'narration'             => ['required', 'string', 'max:255'],
+            'wht_type'              => ['nullable', 'string', 'max:50'],
+            'wht_rate'              => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'wht_amount'            => ['nullable', 'numeric', 'min:0'],
             'action'                => ['nullable', 'in:draft,post'],
             'allocations'           => ['required', 'array', 'min:1'],
             'allocations.*.type'    => ['required', 'in:storage,storage-handling,reefer,repair'],
@@ -200,6 +203,13 @@ class ReceiptController extends Controller
 
                 $totalAmount = round(collect($rows)->sum('amount'), 2);
 
+                // WHT the customer withheld (in the receipt currency). Cannot exceed
+                // the gross being settled.
+                $whtAmount = round((float) ($validated['wht_amount'] ?? 0), 2);
+                if ($whtAmount > $totalAmount + 0.005) {
+                    throw new \RuntimeException('Withholding tax cannot exceed the receipt total.');
+                }
+
                 $receipt = Receipt::create([
                     'receipt_no'      => $this->nextReceiptNo(),
                     'receipt_date'    => $validated['receipt_date'],
@@ -209,6 +219,9 @@ class ReceiptController extends Controller
                     'currency'        => $receiptCurrency,
                     'exchange_rate'   => $rate,
                     'base_amount'     => round($totalAmount * $rate, 4),
+                    'wht_type'        => $validated['wht_type'] ?? null,
+                    'wht_rate'        => round((float) ($validated['wht_rate'] ?? 0), 4),
+                    'wht_amount'      => $whtAmount,
                     'payment_method'  => $validated['payment_method'],
                     'cheque_no'       => $validated['cheque_no'] ?? null,
                     'reference_no'    => $validated['reference_no'] ?? null,

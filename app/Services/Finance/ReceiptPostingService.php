@@ -84,18 +84,41 @@ class ReceiptPostingService
             $rcCcy = strtoupper((string) ($receipt->currency ?? CurrencyService::defaultCurrency()));
             $rcAmt = (float) $receipt->amount;
 
+            // WHT the customer withheld and remitted to the IRD on our behalf. The AR
+            // is relieved at the gross; the bank receives the net; the withheld portion
+            // is a WHT Receivable we can claim. wht_amount is in the receipt currency.
+            $whtTxn  = round((float) $receipt->wht_amount, 2);
+            $whtBase = round($whtTxn * $receiptRate, 2);
+            $whtAccount = null;
+            if ($whtBase > 0.005) {
+                $whtAccount = $receipt->wht_account_id
+                    ? Account::where('id', $receipt->wht_account_id)->where('is_active', true)->first()
+                    : $this->resolveWhtReceivable();
+                if (!$whtAccount) {
+                    throw new \RuntimeException(
+                        'No WHT Receivable account resolved (expected code ' . config('wht.receivable_account_code', '1103')
+                        . '). Add it to the Chart of Accounts or map it under Account Mappings.'
+                    );
+                }
+            }
+
             // AR is relieved at the invoices' booked rates (cashBase uses the receipt
             // rate); the difference is the FX leg. So the AR line's effective rate is
             // crArTotal / amount, keeping base = txn × rate consistent on every line.
             $arRate = $rcAmt > 0 ? round($crArTotal / $rcAmt, 6) : $receiptRate;
             $lines = [
-                ['account_id' => $bankAccount->id, 'debit' => $cashBase, 'credit' => 0, 'narration' => "Receipt from {$customerName}{$fxNote}",
-                 'currency' => $rcCcy, 'exchange_rate' => $receiptRate, 'txn_debit' => $rcAmt, 'txn_credit' => 0],
+                ['account_id' => $bankAccount->id, 'debit' => round($cashBase - $whtBase, 2), 'credit' => 0, 'narration' => "Receipt from {$customerName}{$fxNote}",
+                 'currency' => $rcCcy, 'exchange_rate' => $receiptRate, 'txn_debit' => round($rcAmt - $whtTxn, 2), 'txn_credit' => 0],
                 ['account_id' => $arAccount->id,   'debit' => 0, 'credit' => $crArTotal, 'narration' => 'Customer payment',
                  'currency' => $rcCcy, 'exchange_rate' => $arRate, 'txn_debit' => 0, 'txn_credit' => $rcAmt],
             ];
 
-            // AR: cash received minus AR relieved → positive = exchange gain.
+            // Withholding tax the customer deducted → WHT Receivable (base currency).
+            if ($whtBase > 0.005 && $whtAccount) {
+                $lines[] = ['account_id' => $whtAccount->id, 'debit' => $whtBase, 'credit' => 0, 'narration' => 'WHT withheld by customer — receivable'];
+            }
+
+            // AR: gross settlement minus AR relieved → positive = exchange gain.
             $fx = round($cashBase - $crArTotal, 2);
             if (abs($fx) >= 0.01) {
                 $lines[] = $this->fxLine($fx > 0, abs($fx));
@@ -205,6 +228,24 @@ class ReceiptPostingService
             $vrCcy = strtoupper((string) ($voucher->currency ?? CurrencyService::defaultCurrency()));
             $vrAmt = (float) $voucher->amount;
 
+            // WHT withheld from the supplier and remitted to the IRD. The AP/expense
+            // is booked at the gross; the bank pays the net; the withheld portion is
+            // credited to WHT Payable. wht_amount is in the voucher (txn) currency.
+            $whtTxn  = round((float) $voucher->wht_amount, 2);
+            $whtBase = round($whtTxn * $voucherRate, 2);
+            $whtAccount = null;
+            if ($whtBase > 0.005) {
+                $whtAccount = $voucher->wht_account_id
+                    ? Account::where('id', $voucher->wht_account_id)->where('is_active', true)->first()
+                    : $this->resolveWhtPayable();
+                if (!$whtAccount) {
+                    throw new \RuntimeException(
+                        'No WHT Payable account resolved (expected code ' . config('wht.payable_account_code', '2103')
+                        . '). Add it to the Chart of Accounts or map it under Account Mappings.'
+                    );
+                }
+            }
+
             $lines = [];
 
             if ($voucher->customer_id) {
@@ -228,10 +269,10 @@ class ReceiptPostingService
                 $apRate = $vrAmt > 0 ? round($drApTotal / $vrAmt, 6) : $voucherRate;
                 $lines[] = ['account_id' => $expenseAccount->id, 'debit' => $drApTotal, 'credit' => 0, 'narration' => "Payment to {$voucher->payee_name}{$fxNote}",
                             'currency' => $vrCcy, 'exchange_rate' => $apRate, 'txn_debit' => $vrAmt, 'txn_credit' => 0];
-                $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => $cashBase, 'narration' => 'Bank payment',
-                            'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => 0, 'txn_credit' => $vrAmt];
+                $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => round($cashBase - $whtBase, 2), 'narration' => 'Bank payment',
+                            'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => 0, 'txn_credit' => round($vrAmt - $whtTxn, 2)];
 
-                // AP: cash paid minus AP relieved → positive = exchange loss.
+                // AP: gross settlement minus AP relieved → positive = exchange loss.
                 $fx = round($cashBase - $drApTotal, 2);
                 if (abs($fx) >= 0.01) {
                     $lines[] = $this->fxLine($fx < 0, abs($fx));
@@ -240,8 +281,13 @@ class ReceiptPostingService
                 // Direct expense voucher — no AP relief, no FX gain/loss.
                 $lines[] = ['account_id' => $expenseAccount->id, 'debit' => $cashBase, 'credit' => 0, 'narration' => "Payment to {$voucher->payee_name}{$fxNote}",
                             'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => $vrAmt, 'txn_credit' => 0];
-                $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => $cashBase, 'narration' => 'Bank payment',
-                            'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => 0, 'txn_credit' => $vrAmt];
+                $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => round($cashBase - $whtBase, 2), 'narration' => 'Bank payment',
+                            'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => 0, 'txn_credit' => round($vrAmt - $whtTxn, 2)];
+            }
+
+            // Withholding tax credited to WHT Payable (base currency — remitted in LKR).
+            if ($whtBase > 0.005 && $whtAccount) {
+                $lines[] = ['account_id' => $whtAccount->id, 'debit' => 0, 'credit' => $whtBase, 'narration' => 'WHT withheld — payable to IRD'];
             }
 
             $journal = $this->engine->createJournal([
@@ -355,5 +401,21 @@ class ReceiptPostingService
 
         return $mapping?->account
             ?? Account::where('code', '2011')->where('is_active', true)->first();
+    }
+
+    /** WHT Payable (liability) — mapping override, else config/COA code (2103). */
+    private function resolveWhtPayable(): ?Account
+    {
+        return AccountMapping::where('mapping_type', 'wht_payable')
+                ->whereNull('source_type')->whereNull('source_id')->where('is_active', true)->first()?->account
+            ?? Account::where('code', config('wht.payable_account_code', '2103'))->where('is_active', true)->first();
+    }
+
+    /** WHT Receivable (asset) — mapping override, else config/COA code (1103). */
+    private function resolveWhtReceivable(): ?Account
+    {
+        return AccountMapping::where('mapping_type', 'wht_receivable')
+                ->whereNull('source_type')->whereNull('source_id')->where('is_active', true)->first()?->account
+            ?? Account::where('code', config('wht.receivable_account_code', '1103'))->where('is_active', true)->first();
     }
 }
