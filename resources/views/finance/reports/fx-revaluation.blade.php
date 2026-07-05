@@ -37,6 +37,16 @@
             <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-journal-check me-1"></i>Post Revaluation</button>
         </form>
         @endif
+        @if($alreadyPosted)
+        @can('finance.gl.void')
+        <form method="POST" action="{{ route('finance.reports.fx-revaluation.void') }}"
+              onsubmit="return confirm('Void the FX revaluation for {{ \Carbon\Carbon::parse($as_of)->format('d M Y') }}? This voids both the adjustment and its next-day reversal so you can re-run it.');">
+            @csrf
+            <input type="hidden" name="as_of" value="{{ $as_of }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Void Revaluation</button>
+        </form>
+        @endcan
+        @endif
     </div>
 </div>
 
@@ -50,7 +60,7 @@
 @if($alreadyPosted)
 <div class="alert alert-success small d-flex align-items-start gap-2">
     <i class="bi bi-check-circle mt-1"></i>
-    <div>An FX revaluation has already been posted for {{ \Carbon\Carbon::parse($as_of)->format('d M Y') }} (with its next-day reversal). To re-run, void those journals first.</div>
+    <div>An FX revaluation has already been posted for {{ \Carbon\Carbon::parse($as_of)->format('d M Y') }} (with its next-day reversal). To re-run, use <strong>Void Revaluation</strong> above — it voids both journals together.</div>
 </div>
 @else
 <div class="alert alert-info small d-flex align-items-start gap-2">

@@ -47,6 +47,7 @@ class FxRevaluationService
         private ArAllocationService $ar,
         private ApAllocationService $ap,
         private PostingEngine $engine,
+        private PeriodManager $periods,
     ) {}
 
     /**
@@ -86,6 +87,18 @@ class FxRevaluationService
             throw new \RuntimeException("An FX revaluation for {$asOf} has already been posted. Void it first to re-run.");
         }
 
+        // The revaluation reverses the next day, so that day's period must be open
+        // too — most often a problem at year-end, when the reversal falls into a new
+        // financial year that has not been created/opened yet. Check up front and
+        // explain, instead of letting the reversal fail deep inside the transaction.
+        $reversalDate = Carbon::parse($asOf)->addDay();
+        if (!$this->periods->canPost($reversalDate)) {
+            throw new \RuntimeException(
+                "This revaluation as of {$asOf} reverses on {$reversalDate->toDateString()}, but that date has no open "
+                . "accounting period. Create/open the next period (or the next financial year, at year-end) before posting."
+            );
+        }
+
         [$arAcc, $apAcc, $gainAcc, $lossAcc] = $this->resolveAccounts();
 
         // AR and cash/bank are assets (delta + = revalued up = debit the account);
@@ -114,10 +127,10 @@ class FxRevaluationService
             $lines[] = ['account_id' => $lossAcc->id, 'debit' => $loss, 'credit' => 0.0, 'narration' => 'Unrealized exchange loss'];
         }
 
-        $refId        = $this->refId($asOf);
-        $reversalDate = Carbon::parse($asOf)->addDay()->toDateString();
+        $refId           = $this->refId($asOf);
+        $reversalDateStr = $reversalDate->toDateString();
 
-        return DB::transaction(function () use ($lines, $asOf, $reversalDate, $refId, $userId, $gain, $loss) {
+        return DB::transaction(function () use ($lines, $asOf, $reversalDateStr, $refId, $userId, $gain, $loss) {
             $reval = $this->engine->createJournal([
                 'journal_date'   => $asOf,
                 'journal_type'   => 'adjustment',
@@ -135,7 +148,7 @@ class FxRevaluationService
             ], $lines);
 
             $reversal = $this->engine->createJournal([
-                'journal_date'   => $reversalDate,
+                'journal_date'   => $reversalDateStr,
                 'journal_type'   => 'adjustment',
                 'reference_type' => 'fx-revaluation-reversal',
                 'reference_id'   => $refId,
@@ -150,6 +163,45 @@ class FxRevaluationService
                 'gain'     => $gain,
                 'loss'     => $loss,
             ];
+        });
+    }
+
+    /**
+     * Void a posted revaluation. It MUST void both journals — the adjustment and
+     * its automatic next-day reversal — together: they net to zero, so voiding only
+     * the adjustment (e.g. from the generic journal list) would leave the reversal
+     * live and throw the ledger off by the revaluation amount. Voiding both is
+     * balanced whichever way the void reversals fall.
+     *
+     * @return array{voided:int, journals:array<int,string>}
+     */
+    public function voidRevaluation(string $asOf, int $userId, string $reason = ''): array
+    {
+        $refId = $this->refId($asOf);
+
+        $journals = GlJournal::whereIn('reference_type', ['fx-revaluation', 'fx-revaluation-reversal'])
+            ->where('reference_id', $refId)
+            ->where('status', 'posted')
+            ->get();
+
+        if ($journals->isEmpty()) {
+            throw new \RuntimeException("No posted FX revaluation found for {$asOf} to void.");
+        }
+
+        return DB::transaction(function () use ($journals, $userId, $reason, $asOf) {
+            $nos = [];
+            foreach ($journals as $j) {
+                $reversal = $this->engine->voidJournal($j->load('entries'), $userId, $reason ?: "Void FX revaluation as of {$asOf}");
+                // voidJournal copies the original reference_type onto its reversal.
+                // Re-tag it with a "-void" suffix so isPosted() (an exact match on
+                // 'fx-revaluation') no longer sees a live revaluation and re-running
+                // is allowed. Bank reconciliation still excludes it via its
+                // 'fx-revaluation%' prefix filter.
+                $reversal->update(['reference_type' => $j->reference_type . '-void']);
+                $nos[] = $j->journal_no;
+            }
+
+            return ['voided' => count($nos), 'journals' => $nos];
         });
     }
 

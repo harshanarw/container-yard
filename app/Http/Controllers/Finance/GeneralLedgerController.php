@@ -185,6 +185,15 @@ class GeneralLedgerController extends Controller
             return back()->with('error', 'Closing journals cannot be voided manually. Reverse the period P&L close instead.');
         }
 
+        // An FX revaluation is an adjustment + its next-day reversal that net to
+        // zero (plus, once voided, their re-tagged void-reversals). Voiding any one
+        // leg here would leave the others live and throw the ledger off — the whole
+        // set must be handled together from the FX Revaluation screen. Match the
+        // 'fx-revaluation' prefix so the void-reversals are covered too.
+        if (str_starts_with((string) $journal->reference_type, 'fx-revaluation')) {
+            return back()->with('error', 'Void an FX revaluation from Finance → Reports → FX Revaluation so both the adjustment and its reversal are voided together.');
+        }
+
         try {
             $this->engine->voidJournal($journal, auth()->id(), $request->input('reason', ''));
             return back()->with('success', "Journal {$journal->journal_no} voided and reversal created.");
@@ -589,6 +598,26 @@ class GeneralLedgerController extends Controller
 
         return redirect()->route('finance.reports.fx-revaluation', ['as_of' => $asOf])
             ->with('success', "FX revaluation posted — journal {$result['journal']}, reversal {$result['reversal']}.");
+    }
+
+    /**
+     * Void a posted FX revaluation — voids both the adjustment and its next-day
+     * reversal together so the ledger stays balanced (then it can be re-run).
+     */
+    public function voidFxRevaluation(Request $request, \App\Services\Finance\FxRevaluationService $service)
+    {
+        $this->authorize('finance.gl.void');
+
+        $asOf = $request->input('as_of', Carbon::now()->endOfMonth()->toDateString());
+
+        try {
+            $result = $service->voidRevaluation($asOf, auth()->id(), $request->input('reason', ''));
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('finance.reports.fx-revaluation', ['as_of' => $asOf])
+            ->with('success', "FX revaluation voided ({$result['voided']} journal(s): " . implode(', ', $result['journals']) . '). You can re-run it now.');
     }
 
     // AR Aging: outstanding receivables by customer and age bucket

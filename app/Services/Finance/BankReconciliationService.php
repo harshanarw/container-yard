@@ -41,6 +41,14 @@ class BankReconciliationService
             ->join('gl_journals', 'gl_journals.id', '=', 'gl_entries.journal_id')
             ->where('gl_entries.account_id', $accountId)
             ->where('gl_journals.status', 'posted')
+            // Exclude period-end FX revaluation adjustments, their next-day reversals
+            // and any void-reversals (all share the 'fx-revaluation' prefix): they
+            // re-price the bank balance for the balance sheet but never appear on the
+            // bank statement, so they must not surface as reconcilable items.
+            ->where(function ($q) {
+                $q->whereNull('gl_journals.reference_type')
+                    ->orWhere('gl_journals.reference_type', 'not like', 'fx-revaluation%');
+            })
             ->whereDate('gl_journals.journal_date', '<=', $recon->statement_date->toDateString())
             ->where(function ($q) use ($recon) {
                 $q->whereNull('gl_entries.bank_reconciliation_id')
@@ -112,6 +120,13 @@ class BankReconciliationService
             ->join('gl_journals', 'gl_journals.id', '=', 'gl_entries.journal_id')
             ->where('gl_entries.account_id', $accountId)
             ->where('gl_journals.status', 'posted')
+            // Consistent with availableEntries(): unrealized FX revaluation of the
+            // bank account (and its reversals/void-reversals) is not part of the
+            // reconcilable book balance.
+            ->where(function ($q) {
+                $q->whereNull('gl_journals.reference_type')
+                    ->orWhere('gl_journals.reference_type', 'not like', 'fx-revaluation%');
+            })
             ->whereDate('gl_journals.journal_date', '<=', $date)
             ->selectRaw('COALESCE(SUM(gl_entries.debit) - SUM(gl_entries.credit), 0) as bal')
             ->value('bal');
