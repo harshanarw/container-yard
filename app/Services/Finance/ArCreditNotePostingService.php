@@ -41,14 +41,17 @@ class ArCreditNotePostingService
                 throw new \RuntimeException('No AR control account mapped. Configure Account Mappings → AR/AP Controls.');
             }
 
-            $rate       = (float) ($cn->exchange_rate ?: 1);
-            $defaultRev = Account::where('code', '4001')->where('is_active', true)->first();
-
             // Document (transaction) currency for the per-line multi-currency amounts.
             $base    = CurrencyService::defaultCurrency();
             $docCcy  = strtoupper((string) ($cn->currency ?? $base));
-            $docRate = $docCcy === $base ? 1.0 : ($rate ?: 1.0);
+            // A base-currency credit note must convert at 1:1 even if a stray
+            // non-unity rate was stored (mirrors InvoicePostingService); otherwise
+            // every leg — revenue, VAT and AR — would be inflated by that rate.
+            $rate    = $docCcy === $base ? 1.0 : ((float) ($cn->exchange_rate ?: 1) ?: 1.0);
+            $docRate = $rate;
             $toTxn   = fn (float $baseAmt) => $docRate > 0 ? round($baseAmt / $docRate, 2) : $baseAmt;
+
+            $defaultRev = Account::where('code', '4001')->where('is_active', true)->first();
 
             // Debit revenue per line (reverse the income), in base currency.
             $debits = [];

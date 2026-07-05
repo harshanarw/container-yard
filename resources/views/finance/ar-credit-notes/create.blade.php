@@ -75,19 +75,21 @@
                 </thead>
                 <tbody id="linesBody">
                 @if($prefill ?? null)
+                    @foreach($prefill['lines'] as $li => $pl)
                     <tr>
-                        <td><input type="text" name="lines[0][description]" class="form-control form-control-sm" required maxlength="255" value="Reversal of invoice {{ $prefill['invoice_no'] }}"></td>
+                        <td><input type="text" name="lines[{{ $li }}][description]" class="form-control form-control-sm" required maxlength="255" value="{{ $pl['description'] }}"></td>
                         <td>
-                            <select name="lines[0][revenue_account_id]" class="form-select form-select-sm s2-code" data-s2-sel="name">
+                            <select name="lines[{{ $li }}][revenue_account_id]" class="form-select form-select-sm s2-code" data-s2-sel="name">
                                 <option value="">— Default revenue —</option>
                                 @foreach($revenueAccounts as $a)
-                                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}" {{ ($prefill['revenue_account_id'] ?? null) == $a->id ? 'selected' : '' }}>{{ $a->code }} — {{ $a->name }}</option>
+                                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}" {{ ($pl['revenue_account_id'] ?? null) == $a->id ? 'selected' : '' }}>{{ $a->code }} — {{ $a->name }}</option>
                                 @endforeach
                             </select>
                         </td>
-                        <td><input type="number" name="lines[0][amount]" class="form-control form-control-sm text-end font-monospace line-amt" min="0.01" step="0.01" required value="{{ number_format($prefill['net'], 2, '.', '') }}"></td>
+                        <td><input type="number" name="lines[{{ $li }}][amount]" class="form-control form-control-sm text-end font-monospace line-amt" min="0.01" step="0.01" required value="{{ number_format($pl['amount'], 2, '.', '') }}"></td>
                         <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger rm-line"><i class="bi bi-x"></i></button></td>
                     </tr>
+                    @endforeach
                 @endif
                 </tbody>
             </table>
@@ -134,7 +136,7 @@
     const body = document.getElementById('linesBody');
     const tpl  = document.getElementById('lineTpl').innerHTML;
     const prefilled = {{ ($prefill ?? null) ? 'true' : 'false' }};
-    let idx = prefilled ? 1 : 0;
+    let idx = {{ ($prefill ?? null) ? count($prefill['lines']) : 0 }};
     function addLine() {
         body.insertAdjacentHTML('beforeend', tpl.replace(/IDX/g, idx++));
         // Rows added after page load need Select2 initialised here (the global

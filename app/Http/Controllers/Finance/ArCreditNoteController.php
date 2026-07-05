@@ -62,22 +62,60 @@ class ArCreditNoteController extends Controller
             try {
                 $type    = $request->invoice_type;
                 $invoice = $this->allocationService->resolveInvoice($type, (int) $request->invoice_id);
-                $total   = $this->allocationService->getTotal($invoice, $type);
-                $vat     = (float) ($type === 'repair' ? ($invoice->vat_total ?? 0) : ($invoice->vat_amount ?? 0));
 
-                $codeMap = ['storage' => '4001', 'storage-handling' => '4002', 'reefer' => '4004', 'repair' => '4003'];
-                $revAcc  = Account::where('code', $codeMap[$type] ?? '4001')->where('is_active', true)->first();
+                // Work in the invoice's DOCUMENT currency so the amounts match the
+                // currency + rate the credit note declares. currencyBreakdown() already
+                // returns the document-currency total (storage/handling store base, so
+                // it divides by the rate); the posting service then multiplies back by
+                // the rate. Using the raw base total_amount here with the invoice's rate
+                // would double-convert (over-reverse ~rate×) on a foreign invoice.
+                $cb   = $this->allocationService->currencyBreakdown($invoice, $type);
+                $rate = $cb['rate'];
+
+                // VAT is stored in base for storage/handling, document currency otherwise.
+                $rawVat = (float) ($type === 'repair' ? ($invoice->vat_total ?? 0) : ($invoice->vat_amount ?? 0));
+                $docVat = (in_array($type, ['storage', 'storage-handling'], true) && $rate > 0)
+                    ? round($rawVat / $rate, 2)
+                    : round($rawVat, 2);
+                $docNet = round($cb['doc_total'] - $docVat, 2);
+
+                $accId = fn (string $code) => Account::where('code', $code)->where('is_active', true)->first()?->id;
+
+                // Mirror the invoice's revenue split so revenue-by-account reverses
+                // correctly. Storage & Handling splits net proportionally across
+                // 4001 (storage) / 4002 (handling) by storage_subtotal : handling_subtotal
+                // — exactly how InvoicePostingService booked it (single-mode bills put
+                // one subtotal at 0, routing 100% to the right account).
+                $lines = [];
+                if ($type === 'storage-handling') {
+                    $storagePre  = (float) ($invoice->storage_subtotal ?? 0);
+                    $handlingPre = (float) ($invoice->handling_subtotal ?? 0);
+                    $preTotal    = $storagePre + $handlingPre;
+                    $storageAmt  = $preTotal > 0 ? round($docNet * ($storagePre / $preTotal), 2) : 0.0;
+                    $handlingAmt = round($docNet - $storageAmt, 2);
+
+                    if ($storageAmt > 0) {
+                        $lines[] = ['revenue_account_id' => $accId('4001'), 'amount' => $storageAmt, 'description' => 'Reversal of storage income — ' . $invoice->invoice_no];
+                    }
+                    if ($handlingAmt > 0) {
+                        $lines[] = ['revenue_account_id' => $accId('4002'), 'amount' => $handlingAmt, 'description' => 'Reversal of handling income — ' . $invoice->invoice_no];
+                    }
+                }
+
+                if (empty($lines)) {
+                    $codeMap = ['storage' => '4001', 'storage-handling' => '4002', 'reefer' => '4004', 'repair' => '4003'];
+                    $lines[] = ['revenue_account_id' => $accId($codeMap[$type] ?? '4001'), 'amount' => $docNet, 'description' => 'Reversal of invoice ' . $invoice->invoice_no];
+                }
 
                 $prefill = [
                     'invoice_type' => $type,
                     'invoice_id'   => $invoice->id,
                     'invoice_no'   => $invoice->invoice_no,
                     'customer_id'  => $this->allocationService->getCustomerId($invoice, $type),
-                    'currency'     => strtoupper((string) ($invoice->invoice_currency ?? $invoice->currency ?? $options['baseCurrency'])),
-                    'exchange_rate'=> $this->allocationService->getExchangeRate($invoice, $type),
-                    'net'          => round($total - $vat, 2),
-                    'vat'          => round($vat, 2),
-                    'revenue_account_id' => $revAcc?->id,
+                    'currency'     => $cb['currency'],
+                    'exchange_rate'=> $rate,
+                    'vat'          => $docVat,
+                    'lines'        => $lines,
                 ];
             } catch (\Throwable) {
                 $prefill = null;
