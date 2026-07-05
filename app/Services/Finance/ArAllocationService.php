@@ -141,30 +141,32 @@ class ArAllocationService
             return;
         }
 
-        $total     = $this->getTotal($invoice, $type);
-        $allocated = $this->getAllocatedTotal($type, $invoice->id);
-
-        if ($total <= 0) {
+        // Compare like with like: currencyBreakdown() returns the total, allocated
+        // and outstanding all in the invoice's DOCUMENT currency. Using the raw
+        // getTotal()/getAllocatedTotal() here mixed a base-currency total_amount
+        // (storage/handling store base) with document-currency allocations, so a
+        // fully-paid foreign invoice could never reach "paid".
+        $cb = $this->currencyBreakdown($invoice, $type);
+        if ($cb['doc_total'] <= 0) {
             return;
         }
 
-        // Repair invoices also carry their own amount_paid (Record Payment) and a
-        // balance_due column. Combine both settlement sources (manual payments +
-        // AR allocations from receipts/credit notes) so the repair invoice's own
-        // page balance and status stay correct.
-        if ($type === 'repair') {
-            $settled = round((float) $invoice->amount_paid + $allocated, 2);
+        $fullyPaid = $cb['doc_outstanding'] <= 0.005;
 
-            if ($settled >= round($total - 0.005, 2)) {
+        // Repair invoices carry a persisted balance_due column and support a
+        // partially_paid status (doc_allocated already folds in the manual
+        // amount_paid), so keep both in sync.
+        if ($type === 'repair') {
+            if ($fullyPaid) {
                 $newStatus = 'paid';
-            } elseif ($settled > 0) {
+            } elseif ($cb['doc_allocated'] > 0) {
                 $newStatus = 'partially_paid';
             } else {
                 $newStatus = in_array($current, ['paid', 'partially_paid']) ? 'issued' : $current;
             }
 
             $invoice->update([
-                'balance_due' => round(max(0, $total - $settled), 2),
+                'balance_due' => $cb['doc_outstanding'],
                 'status'      => $newStatus,
             ]);
             return;
@@ -172,7 +174,7 @@ class ArAllocationService
 
         // Other AR types have no partial-paid status; outstanding is derived from
         // allocations, so only the status needs syncing.
-        if ($allocated >= $total) {
+        if ($fullyPaid) {
             $newStatus = 'paid';
         } else {
             $newStatus = in_array($current, ['paid', 'partially_paid']) ? 'issued' : $current;

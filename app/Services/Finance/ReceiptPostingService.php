@@ -139,6 +139,14 @@ class ReceiptPostingService
                 'status'     => 'confirmed',
             ]);
 
+            // Now that the receipt counts as a confirmed settlement, re-sync each
+            // invoice's status (issued → paid, etc.). At draft-creation time the
+            // allocation did not yet count, so this is the point it takes effect.
+            foreach ($receipt->allocations as $alloc) {
+                $invoice = $this->arAllocation->resolveInvoice($alloc->invoice_type, (int) $alloc->invoice_id);
+                $this->arAllocation->syncInvoiceStatus($invoice, $alloc->invoice_type);
+            }
+
             return $receipt->fresh(['journal', 'customer']);
         });
     }
@@ -304,6 +312,13 @@ class ReceiptPostingService
                 'journal_id' => $journal->id,
                 'status'     => 'confirmed',
             ]);
+
+            // Re-sync each settled bill's status now the voucher counts as a
+            // confirmed settlement (direct-expense vouchers have no allocations).
+            foreach ($voucher->allocations as $alloc) {
+                $invoice = $this->apAllocation->resolveInvoice((int) $alloc->supplier_invoice_id);
+                $this->apAllocation->syncInvoiceStatus($invoice);
+            }
 
             return $voucher->fresh(['journal']);
         });
