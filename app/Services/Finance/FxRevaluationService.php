@@ -70,11 +70,15 @@ class FxRevaluationService
      */
     public function post(string $asOf, int $userId): array
     {
-        $summary = $this->preview($asOf)['summary'];
-        $arDelta = round((float) $summary['ar_delta'], 2);
-        $apDelta = round((float) $summary['ap_delta'], 2);
+        $preview   = $this->preview($asOf);
+        $summary   = $preview['summary'];
+        $arDelta   = round((float) $summary['ar_delta'], 2);
+        $apDelta   = round((float) $summary['ap_delta'], 2);
+        $bankDelta = round((float) $summary['bank_delta'], 2);
+        $bankItems = collect($preview['items'])->where('side', 'BANK')
+            ->filter(fn ($i) => abs((float) $i['delta']) >= 0.01)->values();
 
-        if (abs($arDelta) < 0.01 && abs($apDelta) < 0.01) {
+        if (abs($arDelta) < 0.01 && abs($apDelta) < 0.01 && abs($bankDelta) < 0.01) {
             return ['posted' => false, 'message' => 'No open foreign balances to revalue (nothing posted).', 'gain' => 0.0, 'loss' => 0.0];
         }
 
@@ -84,10 +88,13 @@ class FxRevaluationService
 
         [$arAcc, $apAcc, $gainAcc, $lossAcc] = $this->resolveAccounts();
 
-        // AR is an asset (delta + = revalued up = debit AR); AP is a liability
-        // (delta + = revalued up = credit AP). Gains and losses are shown gross.
-        $gain = round(max(0.0, $arDelta) + max(0.0, -$apDelta), 2);
-        $loss = round(max(0.0, -$arDelta) + max(0.0, $apDelta), 2);
+        // AR and cash/bank are assets (delta + = revalued up = debit the account);
+        // AP is a liability (delta + = revalued up = credit AP). Each cash/bank
+        // account is adjusted on its own GL account. Gains/losses are shown gross.
+        $bankGain = round((float) $bankItems->sum(fn ($i) => max(0.0, (float) $i['delta'])), 2);
+        $bankLoss = round((float) $bankItems->sum(fn ($i) => max(0.0, -(float) $i['delta'])), 2);
+        $gain = round(max(0.0, $arDelta) + max(0.0, -$apDelta) + $bankGain, 2);
+        $loss = round(max(0.0, -$arDelta) + max(0.0, $apDelta) + $bankLoss, 2);
 
         $lines = [];
         if (abs($arDelta) >= 0.01) {
@@ -95,6 +102,10 @@ class FxRevaluationService
         }
         if (abs($apDelta) >= 0.01) {
             $lines[] = ['account_id' => $apAcc->id, 'debit' => max(0.0, -$apDelta), 'credit' => max(0.0, $apDelta), 'narration' => 'AP revaluation'];
+        }
+        foreach ($bankItems as $bi) {
+            $d = (float) $bi['delta'];
+            $lines[] = ['account_id' => (int) $bi['account_id'], 'debit' => max(0.0, $d), 'credit' => max(0.0, -$d), 'narration' => 'Cash/bank revaluation — ' . $bi['no']];
         }
         if ($gain >= 0.01) {
             $lines[] = ['account_id' => $gainAcc->id, 'debit' => 0.0, 'credit' => $gain, 'narration' => 'Unrealized exchange gain'];
@@ -197,20 +208,31 @@ class FxRevaluationService
             $this->consider('AP', 'supplier-invoice', $inv->invoice_no ?? "#{$inv->id}", $inv->id, $cb, $asOf, $base, $items, $missing);
         }
 
+        // Open foreign-currency cash/bank balances, taken straight from the posted
+        // ledger (foreign balance from the transaction-currency legs, revalued to
+        // base). AR/AP control accounts are excluded — they are revalued above.
+        foreach ($this->bankBalances($base) as $bal) {
+            $this->considerBank($bal, $asOf, $base, $items, $missing);
+        }
+
         $col = fn (string $side, string $key) => collect($items)->where('side', $side)->sum($key);
 
-        $arDelta = round((float) $col('AR', 'delta'), 2);   // asset: + = gain
-        $apDelta = round((float) $col('AP', 'delta'), 2);   // liability: + = loss
-        $net     = round($arDelta - $apDelta, 2);           // + = net unrealized gain
+        $arDelta   = round((float) $col('AR', 'delta'), 2);     // asset: + = gain
+        $apDelta   = round((float) $col('AP', 'delta'), 2);     // liability: + = loss
+        $bankDelta = round((float) $col('BANK', 'delta'), 2);   // asset: + = gain
+        $net       = round($arDelta - $apDelta + $bankDelta, 2); // + = net unrealized gain
 
         $summary = [
-            'ar_booked'    => round((float) $col('AR', 'booked_base'), 2),
-            'ar_revalued'  => round((float) $col('AR', 'revalued_base'), 2),
-            'ar_delta'     => $arDelta,
-            'ap_booked'    => round((float) $col('AP', 'booked_base'), 2),
-            'ap_revalued'  => round((float) $col('AP', 'revalued_base'), 2),
-            'ap_delta'     => $apDelta,
-            'net_gain'     => $net,
+            'ar_booked'     => round((float) $col('AR', 'booked_base'), 2),
+            'ar_revalued'   => round((float) $col('AR', 'revalued_base'), 2),
+            'ar_delta'      => $arDelta,
+            'ap_booked'     => round((float) $col('AP', 'booked_base'), 2),
+            'ap_revalued'   => round((float) $col('AP', 'revalued_base'), 2),
+            'ap_delta'      => $apDelta,
+            'bank_booked'   => round((float) $col('BANK', 'booked_base'), 2),
+            'bank_revalued' => round((float) $col('BANK', 'revalued_base'), 2),
+            'bank_delta'    => $bankDelta,
+            'net_gain'      => $net,
         ];
 
         return ['as_of' => $asOf, 'base' => $base, 'items' => $items, 'missing' => $missing, 'summary' => $summary];
@@ -244,6 +266,74 @@ class FxRevaluationService
             'currency'       => $cb['currency'],
             'doc_outstanding'=> round((float) $cb['doc_outstanding'], 2),
             'booked_rate'    => round((float) $cb['rate'], 6),
+            'asof_rate'      => round((float) $asofRate, 6),
+            'booked_base'    => $bookedBase,
+            'revalued_base'  => $revaluedBase,
+            'delta'          => round($revaluedBase - $bookedBase, 2),
+        ];
+    }
+
+    /**
+     * Foreign-currency balances held in cash/bank GL accounts, one row per
+     * (account, currency), taken from posted journals. The foreign balance is the
+     * net of the transaction-currency legs; the base balance is the net of the
+     * base legs. AR/AP control accounts are not cash/bank, so they are excluded.
+     *
+     * @return \Illuminate\Support\Collection<int,object>
+     */
+    private function bankBalances(string $base): \Illuminate\Support\Collection
+    {
+        return DB::table('gl_entries')
+            ->join('accounts', 'accounts.id', '=', 'gl_entries.account_id')
+            ->join('gl_journals', 'gl_journals.id', '=', 'gl_entries.journal_id')
+            ->where('accounts.is_cash_bank', true)
+            ->where('gl_journals.status', 'posted')
+            ->whereRaw('UPPER(COALESCE(gl_entries.currency, ?)) <> ?', [$base, strtoupper($base)])
+            ->groupBy('gl_entries.account_id', 'gl_entries.currency', 'accounts.code', 'accounts.name')
+            ->selectRaw(
+                'gl_entries.account_id as account_id,
+                 UPPER(gl_entries.currency) as currency,
+                 accounts.code as code,
+                 accounts.name as name,
+                 SUM(gl_entries.txn_debit) - SUM(gl_entries.txn_credit) as foreign_balance,
+                 SUM(gl_entries.debit) - SUM(gl_entries.credit) as base_balance'
+            )
+            ->get();
+    }
+
+    /**
+     * Revalue one cash/bank foreign holding: base value implied by the ledger vs
+     * (foreign units × as-of rate). Treated as an asset (delta + = gain).
+     */
+    private function considerBank(object $bal, string $asOf, string $base, array &$items, array &$missing): void
+    {
+        $foreign = round((float) $bal->foreign_balance, 4);
+        if (abs($foreign) < 0.0001) {
+            return; // fully settled — no open foreign balance
+        }
+
+        $asofRate = ExchangeRate::getRate($bal->currency, $base, $asOf);
+        if (!$asofRate || $asofRate <= 0) {
+            $missing[] = [
+                'side' => 'BANK', 'type' => 'cash-bank',
+                'no' => trim($bal->code . ' ' . $bal->name), 'id' => (int) $bal->account_id,
+                'currency' => $bal->currency, 'doc_outstanding' => $foreign,
+            ];
+            return;
+        }
+
+        $bookedBase   = round((float) $bal->base_balance, 2);
+        $revaluedBase = round($foreign * (float) $asofRate, 2);
+
+        $items[] = [
+            'side'            => 'BANK',
+            'type'           => 'cash-bank',
+            'no'             => trim($bal->code . ' ' . $bal->name),
+            'id'             => (int) $bal->account_id,
+            'account_id'     => (int) $bal->account_id,
+            'currency'       => $bal->currency,
+            'doc_outstanding'=> round($foreign, 2),
+            'booked_rate'    => $foreign != 0.0 ? round($bookedBase / $foreign, 6) : 0.0,
             'asof_rate'      => round((float) $asofRate, 6),
             'booked_base'    => $bookedBase,
             'revalued_base'  => $revaluedBase,

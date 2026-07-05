@@ -91,6 +91,15 @@
             <div class="text-muted" style="font-size:.72rem;">{{ number_format($summary['ap_booked'], 2) }} → {{ number_format($summary['ap_revalued'], 2) }}</div>
         </div>
     </div>
+    <div class="col-md-4 col-6">
+        <div class="card content-card text-center py-3">
+            <div class="text-muted small">Cash/Bank Revaluation (asset)</div>
+            <div class="fw-bold fs-6 font-monospace {{ ($summary['bank_delta'] ?? 0) >= 0 ? 'text-success' : 'text-danger' }}">
+                {{ $base }} {{ number_format($summary['bank_delta'] ?? 0, 2) }}
+            </div>
+            <div class="text-muted" style="font-size:.72rem;">{{ number_format($summary['bank_booked'] ?? 0, 2) }} → {{ number_format($summary['bank_revalued'] ?? 0, 2) }}</div>
+        </div>
+    </div>
 </div>
 
 @if($missing->isNotEmpty())
@@ -126,7 +135,8 @@
             <tbody>
                 @forelse($items as $it)
                 <tr>
-                    <td><span class="badge bg-{{ $it['side'] === 'AR' ? 'primary' : 'danger' }}-subtle text-{{ $it['side'] === 'AR' ? 'primary' : 'danger' }}">{{ $it['side'] }}</span></td>
+                    @php $sideColor = ['AR' => 'primary', 'AP' => 'danger', 'BANK' => 'info'][$it['side']] ?? 'secondary'; @endphp
+                    <td><span class="badge bg-{{ $sideColor }}-subtle text-{{ $sideColor }}">{{ $it['side'] === 'BANK' ? 'CASH/BANK' : $it['side'] }}</span></td>
                     <td>{{ ucwords(str_replace('-', ' ', $it['type'])) }}</td>
                     <td class="font-monospace">{{ $it['no'] }}</td>
                     <td>{{ $it['currency'] }}</td>
