@@ -143,8 +143,15 @@ class PostingEngine
         }
 
         return DB::transaction(function () use ($journal, $userId, $reason) {
-            // Reversal posts to today (current open period), not the original closed period
-            $reversalDate = Carbon::today();
+            // Reverse in the original's OWN period when it is still open — the
+            // original and its reversal then net to zero within that period, so a
+            // cross-year void no longer shifts results between two years' P&L. Only
+            // when the original period is closed/locked does the reversal fall to
+            // today's open period (you cannot post into a closed period).
+            $originalDate = $journal->journal_date instanceof Carbon
+                ? $journal->journal_date
+                : Carbon::parse($journal->journal_date);
+            $reversalDate = $this->periods->canPost($originalDate) ? $originalDate->copy() : Carbon::today();
 
             // Build reversal lines (debits and credits swapped, in both base and
             // transaction currency, carrying the original currency/rate).
