@@ -36,6 +36,13 @@ class ArCreditNotePostingService
         }
 
         return DB::transaction(function () use ($cn, $userId) {
+            // Lock the row and re-check under the lock so two concurrent approvals
+            // can't both post a reversal journal (double-relieving AR).
+            $locked = ArCreditNote::where('id', $cn->id)->lockForUpdate()->first();
+            if (!$locked || !$locked->isDraft()) {
+                throw new \RuntimeException("Credit note {$cn->credit_note_no} is already " . ($locked->status ?? 'gone') . '.');
+            }
+
             $arAccount = $this->resolveArAccount();
             if (!$arAccount) {
                 throw new \RuntimeException('No AR control account mapped. Configure Account Mappings → AR/AP Controls.');
