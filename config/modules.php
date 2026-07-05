@@ -300,6 +300,12 @@ return [
         'actions' => ['view', 'create', 'post', 'void', 'delete'],
     ],
 
+    'finance.bank-reconciliation' => [
+        'label'   => 'Bank Reconciliation',
+        'section' => 'Finance',
+        'actions' => ['view', 'create', 'edit', 'delete'],
+    ],
+
     // ── Reports ───────────────────────────────────────────────────────────────
 
     'reports' => [

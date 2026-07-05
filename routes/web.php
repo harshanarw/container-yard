@@ -665,6 +665,25 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/{bankAccount}', [BankAccountController::class, 'destroy'])->name('destroy');
         });
 
+        // Bank Reconciliation
+        Route::prefix('bank-reconciliation')->name('bank-reconciliation.')->group(function () {
+            $c = \App\Http\Controllers\Finance\BankReconciliationController::class;
+            Route::get('/',                                [$c, 'index'])->name('index');
+            Route::get('/create',                          [$c, 'create'])->name('create');
+            Route::post('/',                               [$c, 'store'])->name('store');
+            Route::get('/{bankReconciliation}',            [$c, 'show'])->name('show');
+            Route::post('/{bankReconciliation}/toggle-clear', [$c, 'toggleClear'])->name('toggle-clear');
+            Route::post('/{bankReconciliation}/import',    [$c, 'importStatement'])->name('import');
+            Route::post('/{bankReconciliation}/auto-match', [$c, 'autoMatch'])->name('auto-match');
+            Route::post('/{bankReconciliation}/lines/{line}/match',   [$c, 'matchLine'])->name('lines.match');
+            Route::post('/{bankReconciliation}/lines/{line}/unmatch', [$c, 'unmatchLine'])->name('lines.unmatch');
+            Route::post('/{bankReconciliation}/lines/{line}/adjust',  [$c, 'bookAdjustment'])->name('lines.adjust');
+            Route::delete('/{bankReconciliation}/lines/{line}',       [$c, 'deleteStatementLine'])->name('lines.destroy');
+            Route::post('/{bankReconciliation}/complete', [$c, 'complete'])->name('complete');
+            Route::post('/{bankReconciliation}/reopen',   [$c, 'reopen'])->name('reopen');
+            Route::delete('/{bankReconciliation}',        [$c, 'destroy'])->name('destroy');
+        });
+
         // Exchange-rate lookup for receipt/voucher entry (returns base-currency rate)
         Route::get('fx-rate', [\App\Http\Controllers\Finance\FxRateController::class, 'show'])->name('fx-rate');
 

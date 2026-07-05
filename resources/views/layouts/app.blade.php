@@ -921,6 +921,16 @@
                             <i class="bi bi-building-fill"></i><span>Bank Accounts</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('finance.bank-reconciliation.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.bank-reconciliation.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.bank-reconciliation.*') ? 'active' : '' }}">
+                            <i class="bi bi-bank"></i><span>Bank Reconciliation</span>
+                        </a>
+                    </li>
+                    @endcan
+                    @can('finance.receipts.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('finance.receipts.index') }}"
                            class="nav-link {{ request()->routeIs('finance.receipts.*') && !request()->routeIs('finance.receipts.receive') ? 'active' : '' }}">

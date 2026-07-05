@@ -21,6 +21,9 @@ class GlEntry extends Model
         'group_currency',
         'group_debit',
         'group_credit',
+        // Bank reconciliation
+        'bank_reconciliation_id',
+        'cleared_at',
     ];
 
     protected $casts = [
@@ -31,6 +34,7 @@ class GlEntry extends Model
         'txn_credit'    => 'decimal:4',
         'group_debit'   => 'decimal:4',
         'group_credit'  => 'decimal:4',
+        'cleared_at'    => 'datetime',
     ];
 
     public function journal(): BelongsTo
@@ -41,5 +45,10 @@ class GlEntry extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    public function bankReconciliation(): BelongsTo
+    {
+        return $this->belongsTo(BankReconciliation::class, 'bank_reconciliation_id');
     }
 }
