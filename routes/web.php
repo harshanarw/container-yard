@@ -627,6 +627,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('fx-revaluation',   [GeneralLedgerController::class, 'postFxRevaluation'])->name('fx-revaluation.post');
             Route::get('customer-statement', [\App\Http\Controllers\Finance\StatementController::class, 'customer'])->name('customer-statement');
             Route::get('supplier-statement', [\App\Http\Controllers\Finance\StatementController::class, 'supplier'])->name('supplier-statement');
+            Route::get('vat-sscl-return',    [\App\Http\Controllers\Finance\TaxReturnController::class, 'vatSscl'])->name('vat-sscl-return');
         });
 
         // AR / Invoice Postings

@@ -1031,6 +1031,12 @@
                         </a>
                     </li>
                     @endcan
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.reports.vat-sscl-return') }}"
+                           class="nav-link {{ request()->routeIs('finance.reports.vat-sscl-return') ? 'active' : '' }}">
+                            <i class="bi bi-percent"></i><span>VAT / SSCL Return</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
             @endcan
