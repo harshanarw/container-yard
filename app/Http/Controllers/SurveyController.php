@@ -180,6 +180,17 @@ class SurveyController extends Controller
                     }
                 }
 
+                // Survey outcome drives the container disposition (empty-depot
+                // lifecycle): sound → available pool, damaged → repair.
+                $svc = app(\App\Services\ContainerStatusService::class);
+                if ($request->recommended_action === 'repair') {
+                    $svc->markInRepair($container);
+                } elseif (in_array($request->recommended_action, ['no_action', 'monitor'], true)
+                          && !$svc->hasOpenWorkOrder($container)) {
+                    // Sound survey → available, but never short-circuit an open repair.
+                    $svc->markAvailable($container);
+                }
+
                 return $_inquiry;
             });
 

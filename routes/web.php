@@ -119,6 +119,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Container Master
     Route::get('containers/master-lookup', [ContainerController::class, 'masterLookup'])->name('containers.master-lookup');
+    Route::post('containers/{container}/mark-available', [ContainerController::class, 'markAvailable'])->name('containers.mark-available');
     Route::resource('containers', ContainerController::class);
 
     // Container Surveys (formerly Inquiries)

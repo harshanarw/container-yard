@@ -210,6 +210,11 @@ class WorkOrderController extends Controller
                 ]);
             }
 
+            // Repair work is starting → move the container into 'in_repair'.
+            if ($estimate->container) {
+                app(\App\Services\ContainerStatusService::class)->markInRepair($estimate->container);
+            }
+
             return $workOrder;
         });
 
@@ -412,6 +417,17 @@ class WorkOrderController extends Controller
             'qc_notes'  => $validated['qc_notes'] ?? null,
             'closed_by' => $anyFailed ? null : $qcBy,
         ]);
+
+        // QC passed → this repair is complete. Only return the container to the
+        // available pool once NO other work order for it is still open (a container
+        // can carry several work orders across repair categories). This WO is now
+        // 'closed', so it is excluded from the open check.
+        if (!$anyFailed && $workOrder->container) {
+            $svc = app(\App\Services\ContainerStatusService::class);
+            if (!$svc->hasOpenWorkOrder($workOrder->container)) {
+                $svc->markAvailable($workOrder->container);
+            }
+        }
 
         if ($anyFailed) {
             $failCount = collect($validated['line_results'])->filter(fn($r) => $r === 'failed')->count();

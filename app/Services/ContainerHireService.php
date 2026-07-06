@@ -229,9 +229,9 @@ class ContainerHireService
 
     private function guardOnHire(Container $container, Carbon $onHireDate): void
     {
-        if ($container->status !== 'in_yard') {
+        if (!in_array($container->status, ['in_yard', 'available'], true)) {
             throw new \RuntimeException(
-                'Only containers currently in the yard can be put on hire.'
+                'Only containers currently in the yard (in-yard or available) can be put on hire.'
             );
         }
 

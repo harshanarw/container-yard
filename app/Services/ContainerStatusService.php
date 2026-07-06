@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Container;
+use App\Models\WorkOrder;
 
 /**
  * Single point for container disposition transitions (empty-depot lifecycle).
@@ -30,6 +31,18 @@ class ContainerStatusService
     public function markAvailable(Container $container): void
     {
         $this->setStatus($container, self::AVAILABLE);
+    }
+
+    /**
+     * True while the container still has a work order that is not closed/cancelled.
+     * Used to avoid marking a container available before ALL its repairs are done
+     * (a container/estimate can carry several work orders across repair categories).
+     */
+    public function hasOpenWorkOrder(Container $container): bool
+    {
+        return WorkOrder::where('container_id', $container->id)
+            ->whereNotIn('status', ['closed', 'cancelled'])
+            ->exists();
     }
 
     /** Repair work has started. */

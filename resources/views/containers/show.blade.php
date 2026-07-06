@@ -11,7 +11,7 @@
 
 @php
     $catBadge = ['consignee'=>'bg-secondary','owned'=>'bg-info','leased'=>'bg-warning text-dark'];
-    $statusBadge = ['in_yard'=>'bg-success','in_repair'=>'bg-warning text-dark','reserved'=>'bg-info','released'=>'bg-secondary'];
+    $statusBadge = ['available'=>'bg-primary','in_yard'=>'bg-success','in_repair'=>'bg-warning text-dark','reserved'=>'bg-info','released'=>'bg-secondary'];
     $today = \Carbon\Carbon::today();
     $cscExpired = $container->csc_expiry_date && $container->csc_expiry_date->lt($today);
     $cscSoon    = $container->csc_expiry_date && !$cscExpired && $container->csc_expiry_date->lt($today->addDays(90));
@@ -52,6 +52,20 @@
         @endif
         @endcan
         @endif
+        @can('containers.edit')
+        @if(in_array($container->status, ['in_yard', 'in_repair']))
+        <form method="POST" action="{{ route('containers.mark-available', $container) }}"
+              data-confirm="Mark this container as available (sound / repaired) stock ready for allocation?"
+              data-confirm-title="Mark Available"
+              data-confirm-class="btn-success"
+              data-confirm-label="Mark Available">
+            @csrf
+            <button type="submit" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-check2-circle me-1"></i>Mark Available
+            </button>
+        </form>
+        @endif
+        @endcan
         <a href="{{ route('containers.edit', $container) }}" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>

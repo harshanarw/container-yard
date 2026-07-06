@@ -132,6 +132,19 @@ class InquiryController extends Controller
                 }
             }
 
+            // Survey outcome drives the container disposition (empty-depot
+            // lifecycle). Only in_yard/in_repair containers can be surveyed, so
+            // this safely routes a sound box to the available pool and a damaged
+            // one to repair. 'scrap'/unset leaves the status unchanged.
+            $svc = app(\App\Services\ContainerStatusService::class);
+            if ($request->recommended_action === 'repair') {
+                $svc->markInRepair($container);
+            } elseif (in_array($request->recommended_action, ['no_action', 'monitor'], true)
+                      && !$svc->hasOpenWorkOrder($container)) {
+                // Sound survey → available, but never short-circuit an open repair.
+                $svc->markAvailable($container);
+            }
+
             return $_inquiry;
         });
 

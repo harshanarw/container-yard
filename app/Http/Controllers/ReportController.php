@@ -31,8 +31,10 @@ class ReportController extends Controller
 
         $summary = [
             'total'        => $containers->count(),
+            'available'    => $containers->where('status', 'available')->count(),
             'in_yard'      => $containers->where('status', 'in_yard')->count(),
             'in_repair'    => $containers->where('status', 'in_repair')->count(),
+            'reserved'     => $containers->where('status', 'reserved')->count(),
             'released'     => $containers->where('status', 'released')->count(),
             'by_size_20'   => $containers->where('size', '20')->count(),
             'by_size_40'   => $containers->where('size', '40')->count(),

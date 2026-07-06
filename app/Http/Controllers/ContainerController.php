@@ -7,6 +7,7 @@ use App\Models\ContainerGrade;
 use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\YardLocation;
+use App\Services\ContainerStatusService;
 use Illuminate\Http\Request;
 
 class ContainerController extends Controller
@@ -15,7 +16,7 @@ class ContainerController extends Controller
     {
         $this->middleware('can:containers.view')->only(['index', 'show', 'masterLookup']);
         $this->middleware('can:containers.create')->only(['create', 'store']);
-        $this->middleware('can:containers.edit')->only(['edit', 'update']);
+        $this->middleware('can:containers.edit')->only(['edit', 'update', 'markAvailable']);
         $this->middleware('can:containers.delete')->only(['destroy']);
     }
 
@@ -51,10 +52,34 @@ class ContainerController extends Controller
         $validated = $request->validate($this->rules());
         $validated = $this->deriveEquipmentFields($validated);
 
+        // A manually-registered container is stock, not a physical arrival, so it
+        // starts 'available' (the DB default 'in_yard' is for gate-in only).
+        $validated['status']          = $validated['status'] ?? 'available';
+        $validated['available_since'] = $validated['status'] === 'available' ? now() : null;
+
         $container = Container::create($validated);
 
         return redirect()->route('containers.show', $container)
             ->with('success', "Container {$container->container_no} created successfully.");
+    }
+
+    /**
+     * Manually move a container into the available pool (e.g. sound on inspection,
+     * or repaired outside the work-order flow). Only meaningful while the container
+     * is physically in the yard.
+     */
+    public function markAvailable(Container $container, ContainerStatusService $status)
+    {
+        if ($container->status === 'released') {
+            return back()->with('error', 'A released container is not in the yard — gate it in before marking available.');
+        }
+        if ($container->status === 'available') {
+            return back()->with('info', 'Container is already available.');
+        }
+
+        $status->markAvailable($container);
+
+        return back()->with('success', "Container {$container->container_no} marked available.");
     }
 
     public function show(Container $container)

@@ -99,9 +99,10 @@ class YardController extends Controller
             ->get()
             ->groupBy('zone');
 
-        // Containers currently in yard
+        // Containers currently in yard (any non-released disposition — includes
+        // available/in-repair, which still physically occupy their slots)
         $inYardContainers = Container::with(['customer', 'equipmentType', 'activeHire'])
-            ->where('status', 'in_yard')
+            ->whereIn('status', Container::IN_YARD_STATUSES)
             ->orderBy('location_zone')->orderBy('location_row')->orderBy('location_bay')
             ->get();
 
@@ -321,6 +322,8 @@ class YardController extends Controller
             'grade_id'          => $validated['grade_id'] ?? null,
             'cargo_status'      => $validated['cargo_status'],
             'status'            => 'in_yard',
+            'status_changed_at' => now(),
+            'available_since'   => null,  // arrived → out of the available pool until re-dispositioned
             'location_zone'     => $validated['location_zone'],
             'location_row'      => $validated['location_row'],
             'location_bay'      => $validated['location_bay'],
@@ -688,12 +691,14 @@ class YardController extends Controller
 
         // Update container status
         $container->update([
-            'status'        => 'released',
-            'location_zone' => null,
-            'gate_out_date' => $gateOutDate,
-            'location_row'  => null,
-            'location_bay'  => null,
-            'location_tier' => null,
+            'status'            => 'released',
+            'status_changed_at' => now(),
+            'available_since'   => null,  // left the yard → out of the available pool
+            'location_zone'     => null,
+            'gate_out_date'     => $gateOutDate,
+            'location_row'      => null,
+            'location_bay'      => null,
+            'location_tier'     => null,
         ]);
 
         NotificationService::notifyAll(

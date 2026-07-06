@@ -62,12 +62,12 @@ class ContainerHireController extends Controller
         // Allow pre-filling from container detail page
         $container = null;
         if ($request->filled('container_id')) {
-            $container = Container::where('status', 'in_yard')
+            $container = Container::whereIn('status', ['in_yard', 'available'])
                 ->whereDoesntHave('activeHire')
                 ->find($request->input('container_id'));
         }
 
-        $inYardContainers = Container::where('status', 'in_yard')
+        $inYardContainers = Container::whereIn('status', ['in_yard', 'available'])
             ->whereDoesntHave('activeHire')
             ->with('customer')
             ->orderBy('container_no')

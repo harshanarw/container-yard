@@ -25,7 +25,8 @@ class DashboardController extends Controller
         }
 
         $stats = [
-            'total_containers'  => Container::whereIn('status', ['in_yard', 'in_repair', 'reserved'])->count(),
+            'total_containers'  => Container::whereIn('status', Container::IN_YARD_STATUSES)->count(),
+            'available_empties' => Container::where('status', 'available')->count(),
             'available_slots'   => YardLocation::where('status', 'empty')->count(),
             'total_capacity'    => YardLocation::count(),
             'pending_repairs'   => Container::where('status', 'in_repair')->count(),
@@ -38,7 +39,7 @@ class DashboardController extends Controller
             'gate_in_week'      => GateMovement::where('movement_type', 'in')
                                         ->whereBetween('created_at', [now()->startOfWeek(), now()])->count(),
             'pending_estimates' => Estimate::where('status', 'draft')->count(),
-            'unallocated'       => Container::where('status', 'in_yard')->whereNull('location_row')->count(),
+            'unallocated'       => Container::whereIn('status', ['in_yard', 'available'])->whereNull('location_row')->count(),
         ];
 
         $approvalEnabled = CompanySetting::current()->enable_digital_approvals ?? false;
