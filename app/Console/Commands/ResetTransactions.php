@@ -56,6 +56,8 @@ class ResetTransactions extends Command
         'ap_credit_note_applications', 'ap_credit_note_lines', 'ap_credit_notes',
         // General ledger / posting
         'gl_entries', 'gl_journals', 'invoice_postings',
+        // Bank reconciliation (statements + reconciliation sessions)
+        'bank_statement_lines', 'bank_reconciliations',
         // Approvals (instances only — workflows are master)
         'approval_actions', 'approval_requests',
         // Misc transactional / system
