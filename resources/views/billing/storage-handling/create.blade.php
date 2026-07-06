@@ -565,13 +565,16 @@ function renderPreview(data) {
     // Tax exempt alert
     document.getElementById('taxExemptAlert').classList.toggle('d-none', !data.tax_exempt);
 
-    // Tariff status alerts
+    // Tariff status alerts — only warn about a tariff for a section that is
+    // actually being billed. On a storage-only or handling-only bill the other
+    // section's tariff is never looked up (so its *_tariff_found flag is false by
+    // design); warning about it would be misleading.
     const alertBox = document.getElementById('tariffAlert');
     const msgs = [];
-    if (!data.storage_tariff_found) {
+    if (showStorage && !data.storage_tariff_found) {
         msgs.push('<i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i> No active <strong>storage tariff</strong> found for this shipping line. Rates from stored gate-in values will be used. <a href="{{ route("masters.storage-tariff.index") }}">Set up tariff &rarr;</a>');
     }
-    if (!data.handling_tariff_found) {
+    if (showHandling && !data.handling_tariff_found) {
         msgs.push('<i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i> No active <strong>handling tariff</strong> found for this shipping line — Lift On / Lift Off rates will be zero. <a href="{{ route("masters.handling-tariff.index") }}">Set up tariff &rarr;</a>');
     }
 
@@ -580,8 +583,14 @@ function renderPreview(data) {
         alertBox.innerHTML = msgs.join('<hr class="my-2">');
         alertBox.classList.remove('d-none');
     } else {
+        const loaded = [];
+        if (showStorage)  loaded.push('storage');
+        if (showHandling) loaded.push('handling');
+        const label = loaded.length === 2
+            ? 'Both storage and handling tariffs'
+            : (loaded[0].charAt(0).toUpperCase() + loaded[0].slice(1) + ' tariff');
         alertBox.className = 'alert alert-success d-flex align-items-center gap-2 mb-3';
-        alertBox.innerHTML = '<i class="bi bi-check-circle-fill"></i> Both storage and handling tariffs loaded successfully.';
+        alertBox.innerHTML = '<i class="bi bi-check-circle-fill"></i> ' + label + ' loaded successfully.';
         alertBox.classList.remove('d-none');
     }
 
