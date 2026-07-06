@@ -54,20 +54,47 @@ class Container extends Model
         'customer_id', 'condition', 'cargo_status', 'status',
         'location_zone', 'location_row', 'location_bay', 'location_tier',
         'seal_no', 'gate_in_date', 'gate_out_date', 'csc_plate_valid',
+        // disposition lifecycle
+        'status_changed_at', 'available_since',
     ];
 
     protected $casts = [
-        'gate_in_date'     => 'date',
-        'gate_out_date'    => 'date',
-        'csc_expiry_date'  => 'date',
-        'lease_start_date' => 'date',
-        'lease_end_date'   => 'date',
-        'csc_plate_valid'  => 'boolean',
-        'gross_weight_kg'  => 'decimal:2',
-        'tare_weight_kg'   => 'decimal:2',
-        'max_payload_kg'   => 'decimal:2',
-        'vent_count'       => 'integer',
+        'gate_in_date'      => 'date',
+        'gate_out_date'     => 'date',
+        'csc_expiry_date'   => 'date',
+        'lease_start_date'  => 'date',
+        'lease_end_date'    => 'date',
+        'csc_plate_valid'   => 'boolean',
+        'gross_weight_kg'   => 'decimal:2',
+        'tare_weight_kg'    => 'decimal:2',
+        'max_payload_kg'    => 'decimal:2',
+        'vent_count'        => 'integer',
+        'status_changed_at' => 'datetime',
+        'available_since'   => 'datetime',
     ];
+
+    /** Dispositions where the container is physically present in the yard. */
+    public const IN_YARD_STATUSES = ['in_yard', 'in_repair', 'reserved', 'available'];
+
+    /** Available (sound / repaired) stock, ready for allocation. */
+    public function scopeAvailable($query)
+    {
+        return $query->where('status', 'available');
+    }
+
+    /** Physically present in the yard (any non-released disposition). */
+    public function scopeInYard($query)
+    {
+        return $query->whereIn('status', self::IN_YARD_STATUSES);
+    }
+
+    /** Whole days the container has sat in the available pool (null if not available). */
+    public function getAvailableDaysAttribute(): ?int
+    {
+        return $this->status === 'available' && $this->available_since
+            ? (int) $this->available_since->diffInDays(now())
+            : null;
+    }
 
     // Relationships
     public function grade()
