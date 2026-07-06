@@ -1166,6 +1166,14 @@
                         </a>
                     </li>
                     @endcan
+                    @can('container-bookings.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('container-bookings.index') }}"
+                           class="nav-link {{ request()->routeIs('container-bookings.*') ? 'active' : '' }}">
+                            <i class="bi bi-journal-bookmark"></i><span>Container Bookings</span>
+                        </a>
+                    </li>
+                    @endcan
                     @can('masters.equipment-types.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.equipment-types.index') }}"
