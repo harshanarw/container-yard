@@ -161,12 +161,15 @@ class YardController extends Controller
         }
 
         $jobTypes = YardJobType::active()->forGateIn()->orderBy('sort_order')->get();
+        $gateOutPurposes = YardJobType::active()->forGateOut()->orderBy('sort_order')->get();
+        $openBookings = \App\Models\ContainerBooking::whereIn('status', ['open', 'partial'])
+            ->orderByDesc('id')->get(['id', 'booking_no', 'customer_id']);
 
         $emptySlots = YardLocation::where('status', 'empty')
             ->orderBy('zone')->orderBy('row')->orderBy('bay')->orderBy('tier')
             ->get();
 
-        return view('yard.gate', compact('recentMovements', 'search', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones', 'prefill', 'guardCapture', 'jobTypes', 'emptySlots'));
+        return view('yard.gate', compact('recentMovements', 'search', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones', 'prefill', 'guardCapture', 'jobTypes', 'gateOutPurposes', 'openBookings', 'emptySlots'));
     }
 
     public function gateIn(Request $request)
@@ -548,6 +551,9 @@ class YardController extends Controller
             'release_order'  => ['nullable', 'string', 'max:50'],
             'seal_no'        => ['nullable', 'string', 'max:20'],
             'grade_id'       => ['nullable', 'exists:container_grades,id'],
+            // Purpose + booking (export release)
+            'gate_out_purpose'     => ['nullable', 'string', 'max:30'],
+            'container_booking_id' => ['nullable', 'integer', 'exists:container_bookings,id'],
             // Export information
             'loading_vessel' => ['nullable', 'string', 'max:100'],
             'loading_voyage' => ['nullable', 'string', 'max:50'],
@@ -573,6 +579,41 @@ class YardController extends Controller
                 ->withInput();
         }
 
+        // ── Booking / export-release context ────────────────────────────────
+        // The release may fulfil a booking either because the container was
+        // pre-reserved, or via reserve-at-gate (a booking chosen now, matching an
+        // open line by size/type). Export-Release purposes expect a booking; the
+        // enforce_export_booking setting makes that a hard rule instead of a warning.
+        $purposeCode  = $validated['gate_out_purpose'] ?? null;
+        $purpose      = $purposeCode
+            ? \App\Models\YardJobType::where('job_type_code', $purposeCode)->where('movement_direction', 'gate_out')->first()
+            : null;
+        $needsBooking = (bool) ($purpose?->booking_applicable);
+
+        $reservedLine = $container->status === 'reserved' ? $container->bookingLine : null;
+        $gateLine     = $reservedLine;
+
+        if (!$gateLine && !empty($validated['container_booking_id'])) {
+            $booking = \App\Models\ContainerBooking::with('lines')->find($validated['container_booking_id']);
+            // Match a line with a genuinely free slot (unallocated > 0, not just
+            // not-yet-released), preferring an exact grade match when the container
+            // is graded — mirrors the allocation rules so counters can't overshoot.
+            $lines   = $booking?->lines->filter(fn ($l) => $l->size === $container->size
+                && $l->type_code === $container->type_code
+                && $l->unallocated > 0) ?? collect();
+            $gateLine = $lines->first(fn ($l) => $l->grade_id && $l->grade_id === $container->grade_id)
+                ?? $lines->first();
+        }
+
+        if ($needsBooking && !$gateLine) {
+            if ((bool) (\App\Models\CompanySetting::current()->enforce_export_booking ?? false)) {
+                return back()->withErrors(['container_no' =>
+                    "An export release requires a booking, but no matching open booking line was found for {$container->container_no}."
+                ])->withInput();
+            }
+            session()->flash('warning', "Container {$container->container_no} was released for export without a booking reservation.");
+        }
+
         // Resolve actual gate-out datetime — admin can override, others use now()
         $gateOutTime = (auth()->user()->can('yard.backdate') && !empty($validated['gate_out_time']))
             ? \Carbon\Carbon::parse($validated['gate_out_time'])
@@ -580,7 +621,7 @@ class YardController extends Controller
         $gateOutDate = $gateOutTime->toDateString();
 
         // Record gate movement
-        $movement = DB::transaction(function () use ($container, $validated, $gateOutTime) {
+        $movement = DB::transaction(function () use ($container, $validated, $gateOutTime, $purposeCode, $gateLine) {
             return GateMovement::create([
                 'container_id'     => $container->id,
                 'container_no'     => $container->container_no,
@@ -614,6 +655,9 @@ class YardController extends Controller
                 'loading_voyage'  => $validated['loading_voyage'] ?? null,
                 'sailing_date'    => $validated['sailing_date'] ?? null,
                 'shipper'         => $validated['shipper'] ?? null,
+                // Purpose + booking fulfilled
+                'gate_out_purpose'     => $purposeCode,
+                'container_booking_id' => $gateLine?->container_booking_id ?? ($validated['container_booking_id'] ?? null),
             ]);
         });
 
@@ -695,17 +739,28 @@ class YardController extends Controller
             'last_updated_at' => now(),
         ]);
 
-        // Update container status
-        $container->update([
-            'status'            => 'released',
-            'status_changed_at' => now(),
-            'available_since'   => null,  // left the yard → out of the available pool
-            'location_zone'     => null,
-            'gate_out_date'     => $gateOutDate,
-            'location_row'      => null,
-            'location_bay'      => null,
-            'location_tier'     => null,
-        ]);
+        // Release the container and record any booking fulfilment ATOMICALLY, so a
+        // failure can't leave the box released with stale booking counters. A
+        // pre-reserved container moves allocated → released and clears its link; a
+        // reserve-at-gate release just increments the chosen line's released count.
+        DB::transaction(function () use ($container, $gateOutDate, $reservedLine, $gateLine) {
+            $container->update([
+                'status'            => 'released',
+                'status_changed_at' => now(),
+                'available_since'   => null,  // left the yard → out of the available pool
+                'location_zone'     => null,
+                'gate_out_date'     => $gateOutDate,
+                'location_row'      => null,
+                'location_bay'      => null,
+                'location_tier'     => null,
+            ]);
+
+            if ($reservedLine) {
+                app(\App\Services\BookingService::class)->recordRelease($container);
+            } elseif ($gateLine) {
+                app(\App\Services\BookingService::class)->recordReleaseForLine($gateLine);
+            }
+        });
 
         NotificationService::notifyAll(
             'Gate OUT — ' . $container->container_no,

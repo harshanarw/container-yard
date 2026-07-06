@@ -62,6 +62,11 @@ class YardJobType extends Model
         return $query->where('movement_direction', 'gate_in');
     }
 
+    public function scopeForGateOut(Builder $query): Builder
+    {
+        return $query->where('movement_direction', 'gate_out');
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**

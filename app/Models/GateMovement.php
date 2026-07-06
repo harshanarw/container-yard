@@ -23,6 +23,7 @@ class GateMovement extends Model
         'vessel_name', 'voyage_no', 'berthing_date', 'bl_number', 'do_expiry_date', 'fcl_expiry_date', 'consignee',
         // Gate-Out: export information
         'loading_vessel', 'loading_voyage', 'sailing_date', 'shipper',
+        'gate_out_purpose', 'container_booking_id',
         'codeco_exported_at', 'csv_exported_at',
         'codeco_exported_by', 'csv_exported_by',
         'codeco_batch_ref', 'csv_batch_ref',

@@ -114,6 +114,19 @@ class BookingService
         });
     }
 
+    /**
+     * Record a release straight against a booking line (reserve-at-gate: an
+     * available container released for export without a prior reservation). Only
+     * the released counter moves; the container's status is handled by gate-out.
+     */
+    public function recordReleaseForLine(ContainerBookingLine $line): void
+    {
+        DB::transaction(function () use ($line) {
+            $line->increment('released_qty');
+            $this->recomputeStatus($line->booking);
+        });
+    }
+
     /** Cancel a booking: release every reserved container back to available, mark cancelled. */
     public function cancel(ContainerBooking $booking): void
     {

@@ -948,6 +948,24 @@
                         <div class="rounded-bottom p-3" style="border:1px solid #0ea5e9;border-top:none;">
                             <div class="row g-3">
                                 <div class="col-6">
+                                    <label class="form-label fw-semibold">Gate-Out Purpose</label>
+                                    <select name="gate_out_purpose" class="form-select">
+                                        <option value="">— Select purpose —</option>
+                                        @foreach($gateOutPurposes as $p)
+                                            <option value="{{ $p->job_type_code }}" data-booking="{{ $p->booking_applicable ? '1' : '0' }}">{{ $p->job_type_name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Booking / EDO <span class="text-muted small fw-normal">(export release)</span></label>
+                                    <select name="container_booking_id" class="form-select">
+                                        <option value="">— None —</option>
+                                        @foreach($openBookings as $bk)
+                                            <option value="{{ $bk->id }}">{{ $bk->booking_no }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-6">
                                     <label class="form-label fw-semibold">Loading Vessel</label>
                                     <input type="text" name="loading_vessel" class="form-control" placeholder="Loading vessel name">
                                 </div>
