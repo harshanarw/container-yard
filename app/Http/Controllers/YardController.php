@@ -251,8 +251,8 @@ class YardController extends Controller
         // ── Duplicate Gate-In guard ──────────────────────────────────────────
         $existingContainer = Container::where('container_no', $validated['container_no'])->first();
 
-        // Check 1: container is currently in the yard
-        if ($existingContainer && $existingContainer->status === 'in_yard') {
+        // Check 1: container is currently in the yard (any present disposition)
+        if ($existingContainer && in_array($existingContainer->status, Container::IN_YARD_STATUSES, true)) {
             $since = $existingContainer->gate_in_date
                 ? ' (since ' . $existingContainer->gate_in_date->format('d M Y') . ')'
                 : '';
@@ -529,8 +529,14 @@ class YardController extends Controller
                 'exists:containers,container_no',
                 function ($attr, $val, $fail) {
                     $c = Container::where('container_no', $val)->first();
-                    if ($c && $c->status !== 'in_yard') {
-                        $fail("Container {$val} is not currently in the yard (status: {$c->status}).");
+                    // Releasable dispositions: in the yard (in_yard), sound stock
+                    // (available) or booked (reserved). An 'in_repair' box must finish
+                    // repair first; 'released' has already left.
+                    if ($c && !in_array($c->status, ['in_yard', 'available', 'reserved'], true)) {
+                        $reason = $c->status === 'in_repair'
+                            ? 'it is under repair — complete or close the work order first'
+                            : "its status is '{$c->status}'";
+                        $fail("Container {$val} cannot be gated out: {$reason}.");
                     }
                 },
             ],
@@ -1403,7 +1409,7 @@ class YardController extends Controller
             return response()->json(['found' => false, 'message' => "Container {$no} not found."]);
         }
 
-        if ($container->status !== 'in_yard') {
+        if (!in_array($container->status, Container::IN_YARD_STATUSES, true)) {
             return response()->json([
                 'found'   => false,
                 'message' => "Container {$no} is not in the yard (status: {$container->status}).",
@@ -1480,7 +1486,7 @@ class YardController extends Controller
         $q = strtoupper(trim($request->query('q', '')));
 
         $containers = Container::with(['customer', 'equipmentType'])
-            ->where('status', 'in_yard')
+            ->whereIn('status', Container::IN_YARD_STATUSES)
             ->when($q, fn ($query) => $query->where('container_no', 'like', '%' . $q . '%'))
             ->orderBy('container_no')
             ->limit(25)

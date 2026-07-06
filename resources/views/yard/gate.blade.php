@@ -1709,14 +1709,16 @@ btnOut.addEventListener('click', activateOut);
             const res  = await fetch('{{ route("containers.master-lookup") }}?container_no=' + encodeURIComponent(val));
             const data = await res.json();
             if (data.found) {
-                // Block early if container is currently in yard
-                if (data.status === 'in_yard') {
+                // Block early if the container is physically present under any
+                // disposition (in_yard / available / in_repair / reserved) — it must
+                // be gated out before a new gate-in.
+                if (['in_yard', 'available', 'in_repair', 'reserved'].includes(data.status)) {
                     const since = data.gate_in_date ? ' since ' + data.gate_in_date : '';
                     infoBox.className = 'mt-1 small';
                     infoBox.innerHTML =
                         '<div class="alert alert-danger py-2 mb-0 small">' +
                         '<i class="bi bi-exclamation-triangle-fill me-1"></i>' +
-                        '<strong>Already in yard' + since + '.</strong> ' +
+                        '<strong>Already in yard' + since + ' (' + data.status.replace('_', ' ') + ').</strong> ' +
                         'Gate-Out must be completed before a new Gate-In.' +
                         '</div>';
                 } else {

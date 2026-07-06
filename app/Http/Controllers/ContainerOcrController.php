@@ -56,8 +56,9 @@ class ContainerOcrController extends Controller
                     'max_gross_weight'  => $master->max_gross_weight,
                 ];
 
-                // Use the Container status field — same source of truth as containerLookup
-                if ($master->status === 'in_yard') {
+                // Use the Container status field — same source of truth as containerLookup.
+                // Any present disposition (in_yard / available / in_repair / reserved) counts.
+                if (in_array($master->status, \App\Models\Container::IN_YARD_STATUSES, true)) {
                     $inYard      = true;
                     $inYardSince = $master->gate_in_date?->format('d M Y');
                 }
