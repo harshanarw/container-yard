@@ -153,14 +153,23 @@ class ResetTransactions extends Command
         // ── 4. Optional: reset container in-yard status ──────────────────────
         $containersReset = 0;
         if ($this->option('reset-containers') && Schema::hasTable('containers')) {
-            $reset = array_intersect(
-                ['status', 'cargo_status', 'condition', 'location_row', 'location_bay', 'location_tier', 'seal_no', 'gate_in_date', 'gate_out_date'],
-                Schema::getColumnListing('containers')
-            );
-            $payload = [];
-            foreach ($reset as $col) {
-                $payload[$col] = in_array($col, ['status'], true) ? 'available' : null;
-            }
+            // Empty-yard baseline. status/cargo_status/condition are NOT-NULL enums,
+            // so they must be set to a valid value (not null): status 'released'
+            // (no longer in the yard — the only non in-yard status), cargo 'empty',
+            // condition 'sound'. Only the genuinely nullable columns are nulled.
+            $baseline = [
+                'status'        => 'released',
+                'cargo_status'  => 'empty',
+                'condition'     => 'sound',
+                'location_row'  => null,
+                'location_bay'  => null,
+                'location_tier' => null,
+                'seal_no'       => null,
+                'gate_in_date'  => null,
+                'gate_out_date' => null,
+            ];
+            $cols    = Schema::getColumnListing('containers');
+            $payload = array_intersect_key($baseline, array_flip($cols));
             if ($payload) {
                 $containersReset = DB::table('containers')->update($payload);
             }
