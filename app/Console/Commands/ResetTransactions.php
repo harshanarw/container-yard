@@ -27,7 +27,7 @@ class ResetTransactions extends Command
         {--dry-run   : Show what would be cleared without changing anything}
         {--force     : Skip the interactive confirmation}
         {--keep-audit : Do not clear the audit_logs table}
-        {--reset-containers : Also null the container movement-derived status (in-yard, location, gate dates)}';
+        {--reset-containers : Also reset movement-derived state — container in-yard status/location/gate dates AND free all yard slots (zone occupancy)}';
 
     protected $description = 'Wipe all transactional data and reset sequences for a fresh go-live (keeps master data).';
 
@@ -100,8 +100,12 @@ class ResetTransactions extends Command
         $this->line('<comment>Sequences:</comment> number_sequences -> reset to 0 ; ird_invoice_sequences -> emptied');
         if ($this->option('reset-containers')) {
             $this->line('<comment>Containers:</comment> movement-derived status columns will be reset to an empty-yard baseline');
+            if (Schema::hasTable('yard_locations')) {
+                $occupied = (int) DB::table('yard_locations')->where('status', 'occupied')->count();
+                $this->line("<comment>Yard slots:</comment> {$occupied} occupied slot(s) will be freed (zone occupancy reset to empty)");
+            }
         } else {
-            $this->line('<comment>Containers:</comment> kept as-is (add --reset-containers to also clear stale in-yard status)');
+            $this->line('<comment>Containers:</comment> kept as-is (add --reset-containers to also clear stale in-yard status and free yard slots)');
         }
         $this->line('');
 
@@ -162,6 +166,21 @@ class ResetTransactions extends Command
             }
         }
 
+        // Free every yard slot the cleared movements had occupied. Zone occupancy
+        // is derived from yard_locations.status = 'occupied' (not a stored counter),
+        // so the slots must be emptied alongside the container status — otherwise
+        // zones keep showing stale occupancy after the reset. yard_locations is a
+        // master table (the physical layout), so the rows are kept and only their
+        // movement-derived occupancy is cleared.
+        $slotsReset = 0;
+        if ($this->option('reset-containers') && Schema::hasTable('yard_locations')) {
+            $payload = ['status' => 'empty', 'container_id' => null];
+            if (Schema::hasColumn('yard_locations', 'last_updated_at')) {
+                $payload['last_updated_at'] = null;
+            }
+            $slotsReset = DB::table('yard_locations')->update($payload);
+        }
+
         $this->line('');
         $this->info('Done.');
         $this->line("  Cleared tables:   " . count($tables));
@@ -169,6 +188,7 @@ class ResetTransactions extends Command
         $this->line("  Sequences reset:  number_sequences + ird_invoice_sequences");
         if ($this->option('reset-containers')) {
             $this->line("  Containers reset: {$containersReset}");
+            $this->line("  Yard slots freed: {$slotsReset}");
         }
         $this->warn('Recommended: php artisan optimize:clear   (flush any cached counts/config)');
 
