@@ -56,6 +56,8 @@ class Container extends Model
         'seal_no', 'gate_in_date', 'gate_out_date', 'csc_plate_valid',
         // disposition lifecycle
         'status_changed_at', 'available_since',
+        // booking allocation (reserved → booking line)
+        'container_booking_line_id', 'reserved_at',
     ];
 
     protected $casts = [
@@ -71,6 +73,7 @@ class Container extends Model
         'vent_count'        => 'integer',
         'status_changed_at' => 'datetime',
         'available_since'   => 'datetime',
+        'reserved_at'       => 'datetime',
     ];
 
     /** Dispositions where the container is physically present in the yard. */
@@ -80,6 +83,18 @@ class Container extends Model
     public function scopeAvailable($query)
     {
         return $query->where('status', 'available');
+    }
+
+    /** Reserved against a booking line. */
+    public function scopeReserved($query)
+    {
+        return $query->where('status', 'reserved');
+    }
+
+    /** The booking line this container is currently reserved against (if any). */
+    public function bookingLine()
+    {
+        return $this->belongsTo(ContainerBookingLine::class, 'container_booking_line_id');
     }
 
     /** Physically present in the yard (any non-released disposition). */

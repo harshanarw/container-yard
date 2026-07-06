@@ -183,33 +183,67 @@ class YardJobTypeSeeder extends Seeder
             ],
         ];
 
-        foreach ($types as $row) {
+        // Gate-out purposes — mirror the gate-in set where meaningful. Only
+        // Export Release expects a booking. Flags default to false unless noted.
+        $gateOutTypes = [
+            ['code' => 'EXPORT_RELEASE',    'short_code' => 'EX', 'name' => 'Export Release (Empty Out)', 'sort_order' => 1,
+             'description' => 'Sound empty released to a haulier/exporter for stuffing, against a shipping-line booking (EDO). Captures booking, vessel and voyage.',
+             'handling' => true, 'booking' => true],
+            ['code' => 'LADEN_OUT',         'short_code' => 'LO', 'name' => 'Laden Out', 'sort_order' => 2,
+             'description' => 'Full / laden container leaves the yard.', 'handling' => true],
+            ['code' => 'OFFHIRE_OUT',       'short_code' => 'OO', 'name' => 'Off-Hire Out (return to lessor)', 'sort_order' => 3,
+             'description' => 'Container redelivered to the leasing company at end of hire.', 'handling' => true],
+            ['code' => 'ONHIRE_OUT',        'short_code' => 'OU', 'name' => 'On-Hire Out', 'sort_order' => 4,
+             'description' => 'Container released to a customer under hire / lease.', 'handling' => true],
+            ['code' => 'STORAGE_OUT',       'short_code' => 'SO', 'name' => 'Storage Out', 'sort_order' => 5,
+             'description' => 'Stored container collected by its owner; ends the storage period.', 'handling' => true, 'storage' => true],
+            ['code' => 'REEFER_OUT',        'short_code' => 'FO', 'name' => 'Reefer Out', 'sort_order' => 6,
+             'description' => 'Reefer container released; PTI / set-point confirmed.', 'handling' => true, 'reefer' => true],
+            ['code' => 'TRANSFER_OUT',      'short_code' => 'TO', 'name' => 'Transfer Out (to another depot)', 'sort_order' => 7,
+             'description' => 'Container transferred out to another yard / depot.', 'handling' => true],
+            ['code' => 'CUSTOMS_RELEASE',   'short_code' => 'CR', 'name' => 'Customs Release', 'sort_order' => 8,
+             'description' => 'Container released after a customs hold is cleared.', 'handling' => true, 'customs' => true],
+            ['code' => 'SALE_DISPOSAL_OUT', 'short_code' => 'SD', 'name' => 'Sale / Disposal Out', 'sort_order' => 9,
+             'description' => 'Sold, scrapped or disposed container leaves the yard.', 'handling' => true],
+            ['code' => 'OTHER_OUT',         'short_code' => 'OT', 'name' => 'Other / Manual Out', 'sort_order' => 10,
+             'description' => 'Any other gate-out not covered above.', 'handling' => true],
+        ];
+
+        $upsert = function (array $row, string $direction): void {
             YardJobType::updateOrCreate(
                 ['job_type_code' => $row['code']],
                 [
                     'type_short_code'           => $row['short_code'],
                     'job_type_name'             => $row['name'],
-                    'movement_direction'        => 'gate_in',
+                    'movement_direction'        => $direction,
                     'description'               => $row['description'],
                     'sort_order'                => $row['sort_order'],
                     'is_active'                 => true,
                     'is_system'                 => true,
-                    'handling_applicable'       => $row['handling'],
-                    'survey_applicable'         => $row['survey'],
-                    'estimate_applicable'       => $row['estimate'],
-                    'repair_applicable'         => $row['repair'],
-                    'storage_applicable'        => $row['storage'],
-                    'wash_applicable'           => $row['wash'],
-                    'reefer_applicable'         => $row['reefer'],
-                    'customs_applicable'        => $row['customs'],
-                    'cargo_transfer_applicable' => $row['cargo_transfer'],
-                    'approval_required'         => $row['approval'],
-                    'damage_capture_required'   => $row['damage_capture'],
-                    'default_next_status'       => $row['next_status'],
+                    'handling_applicable'       => $row['handling']        ?? false,
+                    'survey_applicable'         => $row['survey']          ?? false,
+                    'estimate_applicable'       => $row['estimate']        ?? false,
+                    'repair_applicable'         => $row['repair']          ?? false,
+                    'storage_applicable'        => $row['storage']         ?? false,
+                    'wash_applicable'           => $row['wash']            ?? false,
+                    'reefer_applicable'         => $row['reefer']          ?? false,
+                    'customs_applicable'        => $row['customs']         ?? false,
+                    'cargo_transfer_applicable' => $row['cargo_transfer']  ?? false,
+                    'booking_applicable'        => $row['booking']         ?? false,
+                    'approval_required'         => $row['approval']        ?? false,
+                    'damage_capture_required'   => $row['damage_capture']  ?? false,
+                    'default_next_status'       => $row['next_status']     ?? 'released',
                 ]
             );
+        };
+
+        foreach ($types as $row) {
+            $upsert($row, 'gate_in');
+        }
+        foreach ($gateOutTypes as $row) {
+            $upsert($row, 'gate_out');
         }
 
-        $this->command->info('  ✔  Seeded ' . count($types) . ' yard job types.');
+        $this->command->info('  ✔  Seeded ' . count($types) . ' gate-in and ' . count($gateOutTypes) . ' gate-out job types.');
     }
 }
