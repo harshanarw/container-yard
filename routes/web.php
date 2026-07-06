@@ -123,6 +123,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('containers/{container}/mark-available', [ContainerController::class, 'markAvailable'])->name('containers.mark-available');
     Route::resource('containers', ContainerController::class);
 
+    // Container bookings (EDO) — reservation / export release
+    Route::get('container-bookings', [\App\Http\Controllers\ContainerBookingController::class, 'index'])->name('container-bookings.index');
+    Route::get('container-bookings/create', [\App\Http\Controllers\ContainerBookingController::class, 'create'])->name('container-bookings.create');
+    Route::post('container-bookings', [\App\Http\Controllers\ContainerBookingController::class, 'store'])->name('container-bookings.store');
+    Route::get('container-bookings/{containerBooking}', [\App\Http\Controllers\ContainerBookingController::class, 'show'])->name('container-bookings.show');
+    Route::post('container-bookings/{containerBooking}/allocate', [\App\Http\Controllers\ContainerBookingController::class, 'allocate'])->name('container-bookings.allocate');
+    Route::post('container-bookings/{containerBooking}/lines/{line}/auto-allocate', [\App\Http\Controllers\ContainerBookingController::class, 'autoAllocate'])->name('container-bookings.auto-allocate');
+    Route::post('container-bookings/{containerBooking}/containers/{container}/deallocate', [\App\Http\Controllers\ContainerBookingController::class, 'deallocate'])->name('container-bookings.deallocate');
+    Route::post('container-bookings/{containerBooking}/cancel', [\App\Http\Controllers\ContainerBookingController::class, 'cancel'])->name('container-bookings.cancel');
+    Route::delete('container-bookings/{containerBooking}', [\App\Http\Controllers\ContainerBookingController::class, 'destroy'])->name('container-bookings.destroy');
+
     // Container Surveys (formerly Inquiries)
     Route::resource('surveys', SurveyController::class);
     Route::delete('surveys/{survey}/photos/{photo}', [SurveyController::class, 'destroyPhoto'])->name('surveys.photos.destroy');

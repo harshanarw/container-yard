@@ -111,6 +111,12 @@ return [
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
+    'container-bookings' => [
+        'label'   => 'Container Bookings',
+        'section' => 'Customers & Containers',
+        'actions' => ['view', 'create', 'edit', 'allocate', 'cancel', 'delete'],
+    ],
+
     // ── Masters — Tariffs ─────────────────────────────────────────────────────
 
     'masters.reefer-tariff' => [

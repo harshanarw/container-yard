@@ -41,10 +41,10 @@ class ContainerBookingLine extends Model
         return max(0, (int) $this->quantity - (int) $this->released_qty);
     }
 
-    /** Units not yet allocated (quantity − allocated). */
+    /** Units still needing a container — neither currently reserved nor already released. */
     public function getUnallocatedAttribute(): int
     {
-        return max(0, (int) $this->quantity - (int) $this->allocated_qty);
+        return max(0, (int) $this->quantity - (int) $this->allocated_qty - (int) $this->released_qty);
     }
 
     public function getLabelAttribute(): string
