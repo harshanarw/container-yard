@@ -13,9 +13,14 @@
         <h4><i class="bi bi-boxes me-2 text-primary"></i>Container Master</h4>
         <p class="text-muted mb-0 small">Master registry for all consignee, owned and leased containers</p>
     </div>
-    <a href="{{ route('containers.create') }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-circle me-1"></i>Add Container
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('containers.available-stock') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-check2-circle me-1"></i>Available Empties
+        </a>
+        <a href="{{ route('containers.create') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle me-1"></i>Add Container
+        </a>
+    </div>
 </div>
 
 @if(session('success'))
@@ -36,6 +41,7 @@
     @php
         $totalCount     = $containers->total();
         $inYardCount    = \App\Models\Container::where('status','in_yard')->count();
+        $availableCount = \App\Models\Container::where('status','available')->count();
         $ownedCount     = \App\Models\Container::where('category','owned')->count();
         $leasedCount    = \App\Models\Container::where('category','leased')->count();
     @endphp
@@ -48,12 +54,24 @@
         </div>
     </div>
     <div class="col-6 col-md-3">
+        <a href="{{ route('containers.index', ['status' => 'in_yard']) }}" class="text-decoration-none">
         <div class="card stat-card">
             <div class="card-body py-3 d-flex align-items-center gap-3">
                 <div class="card-icon bg-success-subtle text-success"><i class="bi bi-geo-alt"></i></div>
                 <div><div class="text-muted small">In Yard</div><div class="fs-5 fw-bold">{{ number_format($inYardCount) }}</div></div>
             </div>
         </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{{ route('containers.index', ['status' => 'available']) }}" class="text-decoration-none">
+        <div class="card stat-card">
+            <div class="card-body py-3 d-flex align-items-center gap-3">
+                <div class="card-icon bg-primary-subtle text-primary"><i class="bi bi-check2-circle"></i></div>
+                <div><div class="text-muted small">Available</div><div class="fs-5 fw-bold">{{ number_format($availableCount) }}</div></div>
+            </div>
+        </div>
+        </a>
     </div>
     <div class="col-6 col-md-3">
         <div class="card stat-card">
@@ -105,6 +123,7 @@
             <div class="col-6 col-md-2">
                 <select name="status" class="form-select form-select-sm">
                     <option value="">All Statuses</option>
+                    <option value="available" {{ request('status')=='available'?'selected':'' }}>Available</option>
                     <option value="in_yard"   {{ request('status')=='in_yard'  ?'selected':'' }}>In Yard</option>
                     <option value="in_repair" {{ request('status')=='in_repair'?'selected':'' }}>In Repair</option>
                     <option value="reserved"  {{ request('status')=='reserved' ?'selected':'' }}>Reserved</option>
@@ -177,6 +196,7 @@
                     <td>
                         @php
                             $statusClass = [
+                                'available' => 'bg-primary',
                                 'in_yard'   => 'bg-success',
                                 'in_repair' => 'bg-warning text-dark',
                                 'reserved'  => 'bg-info',

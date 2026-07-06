@@ -77,8 +77,8 @@
                     <div class="text-muted small">In-Yard Containers</div>
                     <div class="fs-4 fw-bold count-up" data-target="{{ $stats['total_containers'] }}">0</div>
                     <div class="small text-muted">
-                        <i class="bi bi-arrow-up-short text-primary"></i>
-                        <span class="count-up" data-target="{{ $stats['gate_in_week'] }}">0</span> gate-in this week
+                        <i class="bi bi-check2-circle text-primary"></i>
+                        <span class="count-up" data-target="{{ $stats['available_empties'] }}">0</span> available for release
                     </div>
                 </div>
             </div>

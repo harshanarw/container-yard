@@ -14,7 +14,7 @@ class ContainerController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('can:containers.view')->only(['index', 'show', 'masterLookup']);
+        $this->middleware('can:containers.view')->only(['index', 'show', 'masterLookup', 'availableStock']);
         $this->middleware('can:containers.create')->only(['create', 'store']);
         $this->middleware('can:containers.edit')->only(['edit', 'update', 'markAvailable']);
         $this->middleware('can:containers.delete')->only(['destroy']);
@@ -61,6 +61,39 @@ class ContainerController extends Controller
 
         return redirect()->route('containers.show', $container)
             ->with('success', "Container {$container->container_no} created successfully.");
+    }
+
+    /**
+     * Available empties stock — sound/repaired containers ready for allocation,
+     * grouped by size / type / grade, with dwell-aging buckets from available_since.
+     */
+    public function availableStock()
+    {
+        $now = now();
+
+        $rows = Container::available()
+            ->with(['grade', 'equipmentType'])
+            ->get()
+            ->groupBy(fn ($c) => $c->size . ' ' . $c->type_code . ' · ' . ($c->grade->code ?? 'Ungraded'))
+            ->map(function ($items, $label) use ($now) {
+                $days = $items->map(fn ($c) => $c->available_since ? (int) $c->available_since->diffInDays($now) : 0);
+
+                return [
+                    'label'    => $label,
+                    'count'    => $items->count(),
+                    'fresh'    => $days->filter(fn ($d) => $d <= 7)->count(),
+                    'aging'    => $days->filter(fn ($d) => $d > 7 && $d <= 30)->count(),
+                    'stale'    => $days->filter(fn ($d) => $d > 30)->count(),
+                    'avg_days' => (int) round($days->avg() ?? 0),
+                    'max_days' => (int) ($days->max() ?? 0),
+                ];
+            })
+            ->sortByDesc('count')
+            ->values();
+
+        $total = (int) $rows->sum('count');
+
+        return view('containers.available-stock', compact('rows', 'total'));
     }
 
     /**

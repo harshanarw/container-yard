@@ -49,7 +49,18 @@
     <div class="col-6 col-md-3">
         <div class="card stat-card h-100">
             <div class="card-body py-3 d-flex align-items-center gap-3">
-                <div class="card-icon bg-success-subtle text-success"><i class="bi bi-check2-circle"></i></div>
+                <div class="card-icon bg-primary-subtle text-primary"><i class="bi bi-check2-circle"></i></div>
+                <div>
+                    <div class="text-muted small">Available</div>
+                    <div class="fs-4 fw-bold">{{ $summary['available'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body py-3 d-flex align-items-center gap-3">
+                <div class="card-icon bg-success-subtle text-success"><i class="bi bi-geo-alt"></i></div>
                 <div>
                     <div class="text-muted small">In Yard</div>
                     <div class="fs-4 fw-bold">{{ $summary['in_yard'] }}</div>
@@ -124,6 +135,7 @@
                     <label class="form-label form-label-sm mb-1">Status</label>
                     <select name="status" class="form-select form-select-sm">
                         <option value="">All Status</option>
+                        <option value="available" {{ request('status') === 'available' ? 'selected' : '' }}>Available</option>
                         <option value="in_yard"   {{ request('status') === 'in_yard'   ? 'selected' : '' }}>In Yard</option>
                         <option value="in_repair" {{ request('status') === 'in_repair' ? 'selected' : '' }}>In Repair</option>
                         <option value="reserved"  {{ request('status') === 'reserved'  ? 'selected' : '' }}>Reserved</option>
@@ -256,6 +268,7 @@
                         <td>
                             @php
                                 $stColor = match($container->status) {
+                                    'available' => 'primary',
                                     'in_yard'   => 'success',
                                     'in_repair' => 'warning',
                                     'reserved'  => 'info',
@@ -263,6 +276,7 @@
                                     default     => 'light',
                                 };
                                 $stLabel = match($container->status) {
+                                    'available' => 'Available',
                                     'in_yard'   => 'In Yard',
                                     'in_repair' => 'In Repair',
                                     'reserved'  => 'Reserved',
