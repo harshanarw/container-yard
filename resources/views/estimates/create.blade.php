@@ -528,18 +528,66 @@
         }
     }
 
-    function showCurrencyChangedWarning() {
-        const hasLines = document.querySelectorAll('.estimate-line').length > 0;
-        if (hasLines) document.getElementById('currencyChangedWarn')?.classList.remove('d-none');
+    // ── Live currency / exchange-rate reconversion ───────────────────────────
+    // Tariffs are in USD; on-screen amounts are held in the estimate currency at
+    // `appliedFactor` (1.0 for USD, else the USD→currency rate). When the user
+    // switches currency or edits the rate, rescale every line so the totals move
+    // to the new currency instead of silently keeping USD magnitudes.
+    function estFactor() {
+        const cur  = document.getElementById('estimateCurrency')?.value || 'USD';
+        const rate = parseFloat(document.getElementById('estimateExchangeRate')?.value) || 0;
+        return cur === 'USD' ? 1.0 : (rate > 0 ? rate : 1.0);
+    }
+    let appliedFactor = estFactor();
+
+    function scaleField(el, ratio, dp) {
+        if (!el) return;
+        el.value = ((parseFloat(el.value) || 0) * ratio).toFixed(dp);
     }
 
-    document.getElementById('estimateCurrency')?.addEventListener('change', function () {
-        showCurrencyChangedWarning();
-        fetchEstimateExchangeRate();
+    function reconvertLines(ratio) {
+        if (!isFinite(ratio) || ratio <= 0 || ratio === 1) return;
+        document.querySelectorAll('.estimate-line').forEach(row => {
+            const bdRow = row.nextElementSibling;
+            const hasBd = bdRow && bdRow.classList.contains('bd-row');
+            const laborAmt = parseFloat(row.querySelector('[name$="[labor_amount]"]')?.value) || 0;
+            const matAmt   = parseFloat(row.querySelector('[name$="[material_amount]"]')?.value) || 0;
+            const ancAmt   = parseFloat(row.querySelector('[name$="[ancillary_amount]"]')?.value) || 0;
+            if (hasBd && (laborAmt + matAmt + ancAmt) > 0) {
+                // Breakdown-driven price: rescale the cost components, then re-derive.
+                scaleField(bdRow.querySelector('.bd-labor-rate'),    ratio, 2);
+                scaleField(bdRow.querySelector('.bd-material-amt'),  ratio, 2);
+                scaleField(bdRow.querySelector('.bd-ancillary-amt'), ratio, 2);
+                scaleField(row.querySelector('[name$="[material_rate]"]'), ratio, 2);
+                syncBreakdown(bdRow, null);
+            } else {
+                // Manual / flat-price line.
+                scaleField(row.querySelector('.unit-price'), ratio, 4);
+            }
+        });
+        recalculate();
+    }
+
+    function applyCurrencyRate() {
+        const nf = estFactor();
+        if (appliedFactor > 0 && nf !== appliedFactor) {
+            reconvertLines(nf / appliedFactor);
+        }
+        appliedFactor = nf;
+        document.getElementById('currencyChangedWarn')?.classList.add('d-none');
+    }
+
+    document.getElementById('estimateCurrency')?.addEventListener('change', async function () {
+        await fetchEstimateExchangeRate();
+        applyCurrencyRate();
     });
-    document.getElementById('estimateDate')?.addEventListener('change', function () {
+    document.getElementById('estimateExchangeRate')?.addEventListener('change', applyCurrencyRate);
+    document.getElementById('estimateDate')?.addEventListener('change', async function () {
         const currency = document.getElementById('estimateCurrency')?.value || 'USD';
-        if (currency !== 'USD') fetchEstimateExchangeRate();
+        if (currency !== 'USD') {
+            await fetchEstimateExchangeRate();
+            applyCurrencyRate();
+        }
     });
     // On first load, ensure UI reflects the default currency
     (function initExchangeRateUI() {
@@ -1048,6 +1096,9 @@
                         insertRow(line);
                     });
                     recalculate();
+                    // Imported prices are already in the estimate currency at the
+                    // current rate, so re-baseline the applied factor.
+                    appliedFactor = estFactor();
 
                     const alertEl   = document.getElementById('importAlert');
                     const alertText = document.getElementById('importAlertText');

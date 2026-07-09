@@ -598,18 +598,73 @@
         }
     }
 
+    // ── Live currency / exchange-rate reconversion ───────────────────────────
+    // Same model as the create form: on-screen amounts are held in the estimate
+    // currency at `appliedFactor` (1.0 for USD, else USD→currency rate). Editing
+    // the rate — allowed until the estimate is sent — rescales every line so the
+    // totals track the new rate rather than keeping the old-rate magnitudes.
+    function estFactor() {
+        const cur  = document.getElementById('estimateCurrency')?.value || 'USD';
+        const rate = parseFloat(document.getElementById('estimateExchangeRate')?.value) || 0;
+        return cur === 'USD' ? 1.0 : (rate > 0 ? rate : 1.0);
+    }
+    let appliedFactor = estFactor();
+
+    function scaleField(el, ratio, dp) {
+        if (!el) return;
+        el.value = ((parseFloat(el.value) || 0) * ratio).toFixed(dp);
+    }
+
+    function reconvertLines(ratio) {
+        if (!isFinite(ratio) || ratio <= 0 || ratio === 1) return;
+        document.querySelectorAll('.estimate-line').forEach(row => {
+            const bdRow = row.nextElementSibling;
+            const hasBd = bdRow && bdRow.classList.contains('bd-row');
+            const laborAmt = parseFloat(row.querySelector('[name$="[labor_amount]"]')?.value) || 0;
+            const matAmt   = parseFloat(row.querySelector('[name$="[material_amount]"]')?.value) || 0;
+            const ancAmt   = parseFloat(row.querySelector('[name$="[ancillary_amount]"]')?.value) || 0;
+            if (hasBd && (laborAmt + matAmt + ancAmt) > 0) {
+                scaleField(bdRow.querySelector('.bd-labor-rate'),    ratio, 2);
+                scaleField(bdRow.querySelector('.bd-material-amt'),  ratio, 2);
+                scaleField(bdRow.querySelector('.bd-ancillary-amt'), ratio, 2);
+                scaleField(row.querySelector('[name$="[material_rate]"]'), ratio, 2);
+                syncBreakdown(bdRow, null);
+            } else {
+                scaleField(row.querySelector('.unit-price'), ratio, 4);
+            }
+        });
+        recalculate();
+    }
+
+    function applyCurrencyRate() {
+        const nf = estFactor();
+        if (appliedFactor > 0 && nf !== appliedFactor) {
+            reconvertLines(nf / appliedFactor);
+        }
+        appliedFactor = nf;
+    }
+
     if (!RATE_LOCKED) {
-        document.getElementById('estimateCurrency')?.addEventListener('change', fetchEstimateExchangeRate);
-        document.getElementById('estimateDate')?.addEventListener('change', function () {
+        document.getElementById('estimateCurrency')?.addEventListener('change', async function () {
+            await fetchEstimateExchangeRate();
+            applyCurrencyRate();
+        });
+        document.getElementById('estimateExchangeRate')?.addEventListener('change', applyCurrencyRate);
+        document.getElementById('estimateDate')?.addEventListener('change', async function () {
             const currency = document.getElementById('estimateCurrency')?.value || 'USD';
-            if (currency !== 'USD') fetchEstimateExchangeRate();
+            if (currency !== 'USD') {
+                await fetchEstimateExchangeRate();
+                applyCurrencyRate();
+            }
         });
     }
 
     let lineIdx  = {{ $estimate->lineItems->count() }};
     const currency = '{{ $estimate->currency }}';
+    // Totals label follows the live currency dropdown (falls back to the saved code).
+    function curCode() { return document.getElementById('estimateCurrency')?.value || currency; }
 
-    function fmt(n)      { return currency + ' ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    function fmt(n)      { return curCode() + ' ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
     function fmtSmall(n) { return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
     function esc(str)    { return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 

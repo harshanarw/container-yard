@@ -125,7 +125,9 @@ class EstimateController extends Controller
                 'estimate_date'  => $request->estimate_date,
                 'valid_until'    => $request->valid_until,
                 'currency'       => $request->currency,
-                'exchange_rate'  => $request->exchange_rate ?? 1.0,
+                // Rate is USD → estimate currency; a USD estimate is 1:1 with the
+                // tariff currency, so never let it carry a stray conversion rate.
+                'exchange_rate'  => $request->currency === 'USD' ? 1.0 : ($request->exchange_rate ?? 1.0),
                 'priority'       => $request->priority,
                 'status'         => 'draft',
                 'scope_of_work'  => $request->scope_of_work,
@@ -276,7 +278,10 @@ class EstimateController extends Controller
             'estimate_date'  => $request->estimate_date,
             'valid_until'    => $request->valid_until,
             'currency'       => $request->currency,
-            'exchange_rate'  => $lockRate ? $estimate->exchange_rate : ($request->exchange_rate ?? 1.0),
+            // Locked once sent; while editable, a USD estimate is always 1:1.
+            'exchange_rate'  => $lockRate
+                ? $estimate->exchange_rate
+                : ($request->currency === 'USD' ? 1.0 : ($request->exchange_rate ?? 1.0)),
             'priority'       => $request->priority,
             'scope_of_work'  => $request->scope_of_work,
             'terms'          => $request->terms,
