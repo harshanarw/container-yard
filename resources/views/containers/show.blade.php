@@ -33,6 +33,11 @@
                 On Hire
             </span>
             @endif
+            @if($container->isHeld())
+            <span class="badge bg-danger ms-1" style="font-size:.7rem; vertical-align:middle;">
+                <i class="bi bi-hand-index-thumb me-1"></i>On Hold
+            </span>
+            @endif
         </h4>
         <p class="text-muted mb-0 small">Container master profile</p>
     </div>
@@ -88,6 +93,65 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 @endif
+@if(session('error'))
+<div class="alert alert-danger alert-dismissible fade show py-2 small" role="alert">
+    <i class="bi bi-exclamation-triangle me-1"></i>{{ session('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+@endif
+
+@php $activeHolds = $container->activeHolds()->with('placedBy')->latest('placed_at')->get(); @endphp
+<div class="card content-card mb-3 {{ $activeHolds->isNotEmpty() ? 'border-danger' : '' }}">
+    <div class="card-header bg-transparent py-2 d-flex justify-content-between align-items-center">
+        <strong class="small"><i class="bi bi-hand-index-thumb me-1 {{ $activeHolds->isNotEmpty() ? 'text-danger' : 'text-muted' }}"></i>Holds</strong>
+        @can('containers.hold')
+        @if(!in_array($container->status, ['released']))
+        <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="collapse" data-bs-target="#placeHold"><i class="bi bi-plus-lg me-1"></i>Place Hold</button>
+        @endif
+        @endcan
+    </div>
+    <div class="card-body py-2">
+        @can('containers.hold')
+        <div class="collapse mb-2" id="placeHold">
+            <form method="POST" action="{{ route('containers.hold', $container) }}" class="row g-2 align-items-end border-bottom pb-2">
+                @csrf
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Type</label>
+                    <select name="hold_type" class="form-select form-select-sm" required>
+                        @foreach(\App\Models\ContainerHold::TYPES as $k => $label)
+                            <option value="{{ $k }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-7">
+                    <label class="form-label small mb-1">Reason</label>
+                    <input type="text" name="reason" class="form-control form-control-sm" maxlength="255" placeholder="Optional">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-sm btn-danger w-100"><i class="bi bi-hand-index-thumb me-1"></i>Hold</button>
+                </div>
+            </form>
+        </div>
+        @endcan
+
+        @forelse($activeHolds as $h)
+        <div class="d-flex justify-content-between align-items-center py-1 {{ !$loop->last ? 'border-bottom' : '' }}">
+            <div class="small">
+                <span class="badge bg-danger-subtle text-danger border">{{ $h->typeLabel() }}</span>
+                @if($h->reason)<span class="text-muted">— {{ $h->reason }}</span>@endif
+                <span class="text-muted" style="font-size:.7rem;">· {{ optional($h->placed_at)->format('d M Y') }} by {{ optional($h->placedBy)->name ?? '—' }}</span>
+            </div>
+            @can('containers.hold')
+            <form method="POST" action="{{ route('containers.hold.clear', [$container, $h]) }}" onsubmit="return confirm('Clear this hold?')">
+                @csrf<button class="btn btn-sm btn-outline-success py-0"><i class="bi bi-check2 me-1"></i>Clear</button>
+            </form>
+            @endcan
+        </div>
+        @empty
+        <div class="small text-muted">No active holds.</div>
+        @endforelse
+    </div>
+</div>
 
 <div class="row g-4">
 

@@ -130,6 +130,12 @@
                     <option value="released"  {{ request('status')=='released' ?'selected':'' }}>Released</option>
                 </select>
             </div>
+            <div class="col-auto">
+                <div class="form-check form-check-sm mt-3">
+                    <input type="checkbox" class="form-check-input" id="heldChk" name="held" value="1" {{ request()->boolean('held') ? 'checked' : '' }}>
+                    <label class="form-check-label small" for="heldChk">On hold only</label>
+                </div>
+            </div>
             <div class="col-auto d-flex gap-1">
                 <button type="submit" class="btn btn-sm btn-primary flex-grow-1">Filter</button>
                 <a href="{{ route('containers.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
@@ -206,6 +212,9 @@
                         <span class="badge {{ $statusClass[$c->status] ?? 'bg-secondary' }}">
                             {{ str_replace('_', ' ', ucfirst($c->status ?? 'unknown')) }}
                         </span>
+                        @if(($c->active_holds_count ?? 0) > 0)
+                        <span class="badge bg-danger" title="On hold"><i class="bi bi-hand-index-thumb"></i></span>
+                        @endif
                     </td>
                     <td class="small text-muted">
                         @if($c->location_zone)

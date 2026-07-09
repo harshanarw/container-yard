@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Container;
 use App\Models\ContainerGrade;
 use App\Models\Customer;
+use App\Models\ContainerHold;
 use App\Models\EquipmentType;
 use App\Models\YardLocation;
 use App\Services\ContainerStatusService;
+use App\Services\HoldService;
 use Illuminate\Http\Request;
 
 class ContainerController extends Controller
@@ -17,12 +19,14 @@ class ContainerController extends Controller
         $this->middleware('can:containers.view')->only(['index', 'show', 'masterLookup', 'availableStock']);
         $this->middleware('can:containers.create')->only(['create', 'store']);
         $this->middleware('can:containers.edit')->only(['edit', 'update', 'markAvailable']);
+        $this->middleware('can:containers.hold')->only(['placeHold', 'clearHold']);
         $this->middleware('can:containers.delete')->only(['destroy']);
     }
 
     public function index(Request $request)
     {
         $containers = Container::with(['customer', 'equipmentType'])
+            ->withCount(['holds as active_holds_count' => fn ($q) => $q->whereNull('cleared_at')])
             ->when($request->search, fn ($q, $v) =>
                 $q->where('container_no', 'like', "%{$v}%")
                   ->orWhere('owner_name', 'like', "%{$v}%")
@@ -31,6 +35,7 @@ class ContainerController extends Controller
             ->when($request->category, fn ($q, $v) => $q->where('category', $v))
             ->when($request->status,   fn ($q, $v) => $q->where('status', $v))
             ->when($request->size,     fn ($q, $v) => $q->where('size', $v))
+            ->when($request->boolean('held'), fn ($q) => $q->held())
             ->orderBy('container_no')
             ->paginate(25)
             ->withQueryString();
@@ -94,6 +99,30 @@ class ContainerController extends Controller
         $total = (int) $rows->sum('count');
 
         return view('containers.available-stock', compact('rows', 'total'));
+    }
+
+    /** Place a hold on a container (blocks allocation and gate-out until cleared). */
+    public function placeHold(Request $request, Container $container, HoldService $holds)
+    {
+        $validated = $request->validate([
+            'hold_type' => ['required', 'string', 'in:' . implode(',', array_keys(ContainerHold::TYPES))],
+            'reason'    => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $holds->place($container, $validated['hold_type'], $validated['reason'] ?? null, auth()->id());
+
+        return back()->with('success', "Hold placed on {$container->container_no}.");
+    }
+
+    /** Clear a specific hold. */
+    public function clearHold(Request $request, Container $container, ContainerHold $hold, HoldService $holds)
+    {
+        abort_unless($hold->container_id === $container->id, 404);
+
+        $request->validate(['clear_notes' => ['nullable', 'string', 'max:255']]);
+        $holds->clear($hold, $request->input('clear_notes'), auth()->id());
+
+        return back()->with('success', "Hold cleared on {$container->container_no}.");
     }
 
     /**

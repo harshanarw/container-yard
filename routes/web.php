@@ -121,6 +121,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('containers/master-lookup', [ContainerController::class, 'masterLookup'])->name('containers.master-lookup');
     Route::get('containers/available-stock', [ContainerController::class, 'availableStock'])->name('containers.available-stock');
     Route::post('containers/{container}/mark-available', [ContainerController::class, 'markAvailable'])->name('containers.mark-available');
+    Route::post('containers/{container}/hold', [ContainerController::class, 'placeHold'])->name('containers.hold');
+    Route::post('containers/{container}/holds/{hold}/clear', [ContainerController::class, 'clearHold'])->name('containers.hold.clear');
     Route::resource('containers', ContainerController::class);
 
     // Container bookings (EDO) — reservation / export release
