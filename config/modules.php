@@ -108,7 +108,7 @@ return [
     'containers' => [
         'label'   => 'Containers',
         'section' => 'Customers & Containers',
-        'actions' => ['view', 'create', 'edit', 'delete', 'hold'],
+        'actions' => ['view', 'create', 'edit', 'delete', 'hold', 'pti'],
     ],
 
     'container-bookings' => [

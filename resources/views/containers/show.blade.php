@@ -38,6 +38,11 @@
                 <i class="bi bi-hand-index-thumb me-1"></i>On Hold
             </span>
             @endif
+            @if($container->isReefer() && $container->pti_status !== 'none')
+            <span class="badge {{ $container->hasValidPti() ? 'bg-success' : 'bg-danger' }} ms-1" style="font-size:.7rem; vertical-align:middle;">
+                <i class="bi bi-thermometer-snow me-1"></i>PTI {{ $container->hasValidPti() ? 'Valid' : ($container->pti_status === 'failed' ? 'Failed' : 'Expired') }}
+            </span>
+            @endif
         </h4>
         <p class="text-muted mb-0 small">Container master profile</p>
     </div>
@@ -152,6 +157,77 @@
         @endforelse
     </div>
 </div>
+
+{{-- Reefer PTI (pre-trip inspection) — reefer containers only --}}
+@if($container->isReefer())
+@php
+    $ptiValid = $container->hasValidPti();
+    $ptiBadge = $ptiValid ? 'bg-success' : ($container->pti_status === 'failed' ? 'bg-danger' : ($container->pti_status === 'passed' ? 'bg-warning text-dark' : 'bg-secondary'));
+    $ptiLabel = $ptiValid ? 'Valid' : ($container->pti_status === 'failed' ? 'Failed' : ($container->pti_status === 'passed' ? 'Expired' : 'Not tested'));
+@endphp
+<div class="card content-card mb-3 {{ $container->pti_status === 'failed' ? 'border-danger' : '' }}">
+    <div class="card-header bg-transparent py-2 d-flex justify-content-between align-items-center">
+        <strong class="small">
+            <i class="bi bi-thermometer-snow me-1 text-info"></i>Reefer PTI
+            <span class="badge {{ $ptiBadge }} ms-1">{{ $ptiLabel }}</span>
+            @if($container->pti_at)
+            <span class="text-muted fw-normal" style="font-size:.7rem;">· last {{ $container->pti_at->format('d M Y') }}</span>
+            @endif
+        </strong>
+        @can('containers.pti')
+        <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#recordPti"><i class="bi bi-plus-lg me-1"></i>Record PTI</button>
+        @endcan
+    </div>
+    <div class="card-body py-2">
+        @can('containers.pti')
+        <div class="collapse mb-2" id="recordPti">
+            <form method="POST" action="{{ route('containers.pti', $container) }}" class="row g-2 align-items-end border-bottom pb-2">
+                @csrf
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Result</label>
+                    <select name="result" class="form-select form-select-sm" required>
+                        <option value="pass">Pass</option>
+                        <option value="fail">Fail</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Set Point (°C)</label>
+                    <input type="number" step="0.1" min="-40" max="40" name="set_point_temp" class="form-control form-control-sm" placeholder="e.g. -18">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Valid Until <span class="text-muted">(optional)</span></label>
+                    <input type="date" name="valid_until" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-sm btn-info w-100 text-white"><i class="bi bi-clipboard-check me-1"></i>Record</button>
+                </div>
+                <div class="col-12">
+                    <input type="text" name="findings" class="form-control form-control-sm" maxlength="1000" placeholder="Findings / remarks (optional)">
+                </div>
+            </form>
+        </div>
+        @endcan
+
+        @forelse($container->ptiInspections as $pti)
+        <div class="d-flex justify-content-between align-items-start py-1 {{ !$loop->last ? 'border-bottom' : '' }}">
+            <div class="small">
+                <span class="badge {{ $pti->result === 'pass' ? 'bg-success' : 'bg-danger' }}">{{ ucfirst($pti->result) }}</span>
+                @if($pti->set_point_temp !== null)<span class="text-muted">@ {{ rtrim(rtrim(number_format($pti->set_point_temp, 1), '0'), '.') }}°C</span>@endif
+                @if($pti->findings)<span class="text-muted">— {{ $pti->findings }}</span>@endif
+                <span class="text-muted d-block" style="font-size:.7rem;">
+                    {{ optional($pti->inspected_at)->format('d M Y H:i') }} by {{ optional($pti->inspectedBy)->name ?? '—' }}
+                    @if($pti->result === 'pass' && $pti->valid_until)
+                        · valid until <span class="{{ $pti->valid_until->lt(\Carbon\Carbon::today()) ? 'text-danger' : '' }}">{{ $pti->valid_until->format('d M Y') }}</span>
+                    @endif
+                </span>
+            </div>
+        </div>
+        @empty
+        <div class="small text-muted">No PTI on record.</div>
+        @endforelse
+    </div>
+</div>
+@endif
 
 <div class="row g-4">
 

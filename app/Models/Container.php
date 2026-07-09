@@ -58,6 +58,8 @@ class Container extends Model
         'status_changed_at', 'available_since',
         // booking allocation (reserved → booking line)
         'container_booking_line_id', 'reserved_at',
+        // reefer PTI (denormalised latest result)
+        'pti_status', 'pti_at',
     ];
 
     protected $casts = [
@@ -74,6 +76,7 @@ class Container extends Model
         'status_changed_at' => 'datetime',
         'available_since'   => 'datetime',
         'reserved_at'       => 'datetime',
+        'pti_at'            => 'datetime',
     ];
 
     /** Dispositions where the container is physically present in the yard. */
@@ -125,6 +128,32 @@ class Container extends Model
     public function scopeNotHeld($query)
     {
         return $query->whereDoesntHave('holds', fn ($q) => $q->whereNull('cleared_at'));
+    }
+
+    // ── Reefer PTI ───────────────────────────────────────────────────────────
+    public function ptiInspections()
+    {
+        return $this->hasMany(ReeferPtiInspection::class);
+    }
+
+    /** True for Reefer / Reefer High-Cube container types. */
+    public function isReefer(): bool
+    {
+        return in_array($this->type_code, ['RF', 'RH'], true);
+    }
+
+    /** A currently-valid passing PTI (passed and not expired). */
+    public function hasValidPti(): bool
+    {
+        if ($this->pti_status !== 'passed') {
+            return false;
+        }
+
+        $latest = $this->ptiInspections()->where('result', 'pass')->latest('inspected_at')->first();
+
+        // valid_until is a date and is inclusive — the PTI stays valid through that
+        // whole day, so it only lapses once today is past it.
+        return $latest && (!$latest->valid_until || !$latest->valid_until->lt(\Illuminate\Support\Carbon::today()));
     }
 
     /** Physically present in the yard (any non-released disposition). */

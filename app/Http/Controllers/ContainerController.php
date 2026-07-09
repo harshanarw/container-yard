@@ -153,6 +153,7 @@ class ContainerController extends Controller
             'activeHire.originalCustomer',
             'activeHire.hireCustomer',
             'hires' => fn ($q) => $q->with(['originalCustomer', 'hireCustomer'])->latest('on_hire_date')->take(10),
+            'ptiInspections' => fn ($q) => $q->with('inspectedBy')->latest('inspected_at')->take(10),
         ]);
 
         return view('containers.show', compact('container'));

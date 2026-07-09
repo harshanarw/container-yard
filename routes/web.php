@@ -123,6 +123,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('containers/{container}/mark-available', [ContainerController::class, 'markAvailable'])->name('containers.mark-available');
     Route::post('containers/{container}/hold', [ContainerController::class, 'placeHold'])->name('containers.hold');
     Route::post('containers/{container}/holds/{hold}/clear', [ContainerController::class, 'clearHold'])->name('containers.hold.clear');
+    Route::post('containers/{container}/pti', [\App\Http\Controllers\ReeferPtiController::class, 'store'])->name('containers.pti');
     Route::resource('containers', ContainerController::class);
 
     // Container bookings (EDO) — reservation / export release
