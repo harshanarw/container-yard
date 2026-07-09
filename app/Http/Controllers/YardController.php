@@ -491,6 +491,15 @@ class YardController extends Controller
             \Log::warning('[GateIn] Reefer plug session creation failed: ' . $e->getMessage());
         }
 
+        // Auto-place a customs hold when the container enters under a customs-hold job.
+        try {
+            if ($jobType->job_type_code === 'CUSTOMS_HOLD_IN') {
+                app(\App\Services\HoldService::class)->place($container, 'customs', 'Auto-placed on Customs Hold In gate-in', auth()->id());
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('[GateIn] Customs auto-hold failed: ' . $e->getMessage());
+        }
+
         // Link guard capture if this gate-in originated from the Guard Post queue
         if ($request->filled('guard_capture_id')) {
             GuardCapture::where('id', $request->guard_capture_id)
@@ -554,6 +563,9 @@ class YardController extends Controller
             // Purpose + booking (export release)
             'gate_out_purpose'     => ['nullable', 'string', 'max:30'],
             'container_booking_id' => ['nullable', 'integer', 'exists:container_bookings,id'],
+            // Hold override (authorised users only)
+            'hold_override'        => ['nullable', 'boolean'],
+            'hold_override_reason' => ['nullable', 'string', 'max:255'],
             // Export information
             'loading_vessel' => ['nullable', 'string', 'max:100'],
             'loading_voyage' => ['nullable', 'string', 'max:50'],
@@ -612,6 +624,25 @@ class YardController extends Controller
                 ])->withInput();
             }
             session()->flash('warning', "Container {$container->container_no} was released for export without a booking reservation.");
+        }
+
+        // ── Hold block ───────────────────────────────────────────────────────
+        // A held container cannot be gated out — except a Customs Release, which is
+        // the flow that clears the customs hold. An authorised user (containers.hold)
+        // may override any other hold with a reason.
+        if ($container->isHeld() && $purposeCode !== 'CUSTOMS_RELEASE') {
+            $overriding = $request->boolean('hold_override')
+                && auth()->user()->can('containers.hold')
+                && filled($request->input('hold_override_reason'));
+
+            if (!$overriding) {
+                $holdList = $container->activeHolds()->pluck('hold_type')
+                    ->map(fn ($t) => str_replace('_', ' ', $t))->implode(', ');
+                return back()->withErrors(['container_no' =>
+                    "Container {$container->container_no} is on hold ({$holdList}) and cannot be gated out. "
+                    . 'Clear the hold, or an authorised user can override with a reason.'
+                ])->withInput();
+            }
         }
 
         // Resolve actual gate-out datetime — admin can override, others use now()
@@ -743,7 +774,7 @@ class YardController extends Controller
         // failure can't leave the box released with stale booking counters. A
         // pre-reserved container moves allocated → released and clears its link; a
         // reserve-at-gate release just increments the chosen line's released count.
-        DB::transaction(function () use ($container, $gateOutDate, $reservedLine, $gateLine) {
+        DB::transaction(function () use ($container, $gateOutDate, $reservedLine, $gateLine, $purposeCode) {
             $container->update([
                 'status'            => 'released',
                 'status_changed_at' => now(),
@@ -759,6 +790,11 @@ class YardController extends Controller
                 app(\App\Services\BookingService::class)->recordRelease($container);
             } elseif ($gateLine) {
                 app(\App\Services\BookingService::class)->recordReleaseForLine($gateLine);
+            }
+
+            // A Customs Release clears the container's customs hold(s) as it leaves.
+            if ($purposeCode === 'CUSTOMS_RELEASE') {
+                app(\App\Services\HoldService::class)->clearByType($container, 'customs', 'Cleared at customs release gate-out', auth()->id());
             }
         });
 

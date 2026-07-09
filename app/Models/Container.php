@@ -97,6 +97,36 @@ class Container extends Model
         return $this->belongsTo(ContainerBookingLine::class, 'container_booking_line_id');
     }
 
+    // ── Holds (cross-cutting block, independent of disposition) ──────────────
+    public function holds()
+    {
+        return $this->hasMany(ContainerHold::class);
+    }
+
+    /** Uncleared holds. */
+    public function activeHolds()
+    {
+        return $this->holds()->whereNull('cleared_at');
+    }
+
+    /** True while any hold is uncleared. */
+    public function isHeld(): bool
+    {
+        return $this->activeHolds()->exists();
+    }
+
+    /** Containers with at least one uncleared hold. */
+    public function scopeHeld($query)
+    {
+        return $query->whereHas('holds', fn ($q) => $q->whereNull('cleared_at'));
+    }
+
+    /** Containers with no uncleared hold. */
+    public function scopeNotHeld($query)
+    {
+        return $query->whereDoesntHave('holds', fn ($q) => $q->whereNull('cleared_at'));
+    }
+
     /** Physically present in the yard (any non-released disposition). */
     public function scopeInYard($query)
     {

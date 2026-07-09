@@ -28,6 +28,7 @@ class BookingService
     public function allocate(ContainerBookingLine $line, Container $container): void
     {
         abort_unless($container->status === 'available', 422, "Container {$container->container_no} is not available (status: {$container->status}).");
+        abort_if($container->isHeld(), 422, "Container {$container->container_no} is on hold and cannot be allocated. Clear the hold first.");
         abort_unless($line->booking->isOpen(), 422, 'Booking is not open for allocation.');
         abort_if($line->unallocated <= 0, 422, 'This booking line is already fully allocated.');
 
@@ -77,6 +78,7 @@ class BookingService
         }
 
         $candidates = Container::available()
+            ->notHeld() // never auto-pick a held container
             ->where('size', $line->size)
             ->where('type_code', $line->type_code)
             ->when($line->grade_id, fn ($q) => $q->where('grade_id', $line->grade_id))
