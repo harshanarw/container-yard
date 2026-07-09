@@ -370,6 +370,50 @@
         </div>
     </div>
 
+    {{-- Container Release Controls --}}
+    <div class="card content-card mb-4">
+        <div class="card-header py-2">
+            <i class="bi bi-box-arrow-right me-2 text-primary"></i>Container Release Controls
+        </div>
+        <div class="card-body">
+            <div class="d-flex align-items-start gap-3 mb-3">
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="enforceExportBooking" name="enforce_export_booking" value="1"
+                           {{ old('enforce_export_booking', $settings->enforce_export_booking) ? 'checked' : '' }}>
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="enforceExportBooking">
+                        Require a booking for export releases
+                    </label>
+                    <div class="form-text mt-1">
+                        When enabled, an Export Release gate-out is <strong>blocked</strong> unless the container is
+                        matched to an open booking (EDO) line. When disabled, the release proceeds but a warning is
+                        recorded that it went out without a booking reservation.
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-start gap-3">
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="enforceReeferPti" name="enforce_reefer_pti" value="1"
+                           {{ old('enforce_reefer_pti', $settings->enforce_reefer_pti) ? 'checked' : '' }}>
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="enforceReeferPti">
+                        Require a valid PTI for reefer releases
+                    </label>
+                    <div class="form-text mt-1">
+                        When enabled, a reefer released for export (or under the Reefer Out purpose) is
+                        <strong>blocked</strong> unless it has a passing, unexpired pre-trip inspection (PTI) on
+                        record. When disabled, the release proceeds but a warning is recorded that it went out
+                        without a valid PTI.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- IRD Tax Invoice Settings --}}
     <div class="card content-card mb-4">
         <div class="card-header py-2">

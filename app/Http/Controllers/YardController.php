@@ -647,15 +647,18 @@ class YardController extends Controller
 
         // ── Reefer PTI gate ──────────────────────────────────────────────────
         // A reefer released for export must carry a valid (passing, unexpired) PTI.
-        // enforce_reefer_pti makes that a hard block; otherwise it is a warning.
-        if ($container->isReefer() && $needsBooking && !$container->hasValidPti()) {
+        // The gate fires on an export-booking release (EXPORT_RELEASE) or any
+        // reefer-applicable purpose (REEFER_OUT) — driven by the job-type flags,
+        // not hard-coded codes. enforce_reefer_pti makes it a hard block; else warn.
+        $reeferRelease = $needsBooking || (bool) ($purpose?->reefer_applicable);
+        if ($container->isReefer() && $reeferRelease && !$container->hasValidPti()) {
             if ((bool) (\App\Models\CompanySetting::current()->enforce_reefer_pti ?? false)) {
                 return back()->withErrors(['container_no' =>
-                    "Reefer {$container->container_no} has no valid PTI on record and cannot be released for export. "
+                    "Reefer {$container->container_no} has no valid PTI on record and cannot be released. "
                     . 'Record a passing pre-trip inspection first.'
                 ])->withInput();
             }
-            session()->flash('warning', "Reefer {$container->container_no} was released for export without a valid PTI.");
+            session()->flash('warning', "Reefer {$container->container_no} was released without a valid PTI.");
         }
 
         // Resolve actual gate-out datetime — admin can override, others use now()

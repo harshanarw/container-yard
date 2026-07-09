@@ -49,6 +49,8 @@ class CompanySetting extends Model
         'surcharge_night',
         'enable_digital_approvals',
         'enable_guard_post',
+        'enforce_export_booking',
+        'enforce_reefer_pti',
         'mr_dimension_uom',
         // Gate Pass Defaults
         'default_gate_in_format',
@@ -63,6 +65,8 @@ class CompanySetting extends Model
     protected $casts = [
         'enable_digital_approvals' => 'boolean',
         'enable_guard_post'        => 'boolean',
+        'enforce_export_booking'   => 'boolean',
+        'enforce_reefer_pti'       => 'boolean',
     ];
 
     public static function current(): static

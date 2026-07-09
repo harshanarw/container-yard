@@ -71,6 +71,8 @@ class CompanySettingController extends Controller
             'ird_sequence_reset'       => ['nullable', 'string', 'in:continuous,monthly,yearly'],
             'enable_digital_approvals' => ['nullable', 'boolean'],
             'enable_guard_post'        => ['nullable', 'boolean'],
+            'enforce_export_booking'   => ['nullable', 'boolean'],
+            'enforce_reefer_pti'       => ['nullable', 'boolean'],
             'logo'                     => ['nullable', 'image', 'max:2048'],
             'icon'            => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
             'product_icon'    => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
@@ -80,6 +82,8 @@ class CompanySettingController extends Controller
         $data = collect($validated)->except(['logo', 'icon', 'product_icon'])->toArray();
         $data['enable_digital_approvals'] = $request->boolean('enable_digital_approvals');
         $data['enable_guard_post']        = $request->boolean('enable_guard_post');
+        $data['enforce_export_booking']   = $request->boolean('enforce_export_booking');
+        $data['enforce_reefer_pti']       = $request->boolean('enforce_reefer_pti');
 
         if ($request->hasFile('logo')) {
             if ($settings->logo_path) {

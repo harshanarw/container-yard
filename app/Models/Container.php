@@ -149,7 +149,11 @@ class Container extends Model
             return false;
         }
 
-        $latest = $this->ptiInspections()->where('result', 'pass')->latest('inspected_at')->first();
+        // Reuse the eager-loaded relation when present (the show page loads it and
+        // calls this twice) to avoid extra queries; fall back to a scoped query.
+        $latest = $this->relationLoaded('ptiInspections')
+            ? $this->ptiInspections->where('result', 'pass')->sortByDesc('inspected_at')->first()
+            : $this->ptiInspections()->where('result', 'pass')->latest('inspected_at')->first();
 
         // valid_until is a date and is inclusive — the PTI stays valid through that
         // whole day, so it only lapses once today is past it.
