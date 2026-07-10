@@ -11,7 +11,9 @@ use App\Models\GeneralInvoice;
 use App\Models\TaxCode;
 use App\Services\CurrencyService;
 use App\Services\NumberSequenceService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -130,15 +132,76 @@ class GeneralInvoiceController extends Controller
         return back()->with('success', "{$general->invoice_no} voided.");
     }
 
+    /**
+     * Render through the canonical IRD invoice format (same header/footer as the
+     * other billing modules), converting to base currency. The document title and
+     * footer switch by type; SSCL/VAT rows self-hide at zero (tax-exempt / non-tax).
+     */
     public function pdf(GeneralInvoice $general)
     {
         $general->load(['customer', 'billingParty', 'lines.chargeCode', 'lines.taxCode', 'createdBy']);
+        $company = \App\Models\CompanySetting::current();
 
-        return view('billing.general.pdf', [
-            'invoice'  => $general,
-            'settings' => \App\Models\CompanySetting::current(),
-            'base'     => CurrencyService::defaultCurrency(),
-        ]);
+        $default = CurrencyService::defaultCurrency();
+        $invCur  = strtoupper($general->currency ?: $default);
+        $toBase  = $invCur === $default ? 1.0 : (float) ($general->exchange_rate ?: 1);   // invoice → base
+
+        $lines = $general->lines->map(function ($l) use ($toBase) {
+            $qty = (float) ($l->qty ?: 1);
+            $amt = round((float) ($l->line_amount ?? 0) * $toBase, 2);
+            return [
+                'reference'       => $l->chargeCode?->code,
+                'description'     => $l->description,
+                'quantity'        => $l->qty ?? 1,
+                'unit_price'      => $qty > 0 ? round($amt / $qty, 2) : $amt,
+                'amount_excl_vat' => $amt,
+            ];
+        });
+
+        $subtotalBase = round((float) $general->subtotal * $toBase, 2);
+        $ssclBase     = round((float) ($general->sscl_total ?? 0) * $toBase, 2);
+        $vatBase      = round((float) ($general->vat_total ?? 0) * $toBase, 2);
+
+        $ssclRates = $general->lines->map(fn ($l) => ($l->tax1_rate ?? 0) > 0 ? round((float) $l->tax1_rate, 4) : null)->filter()->unique()->sort()->values();
+        $vatRates  = $general->lines->map(fn ($l) => ($l->tax2_rate ?? 0) > 0 ? round((float) $l->tax2_rate, 4) : null)->filter()->unique()->sort()->values();
+
+        $number = $general->ird_invoice_no ?: $general->invoice_no;
+
+        $data = [
+            'doc_title'             => $general->type_title,
+            'doc_footer_label'      => ($general->isTaxDocument() ? 'IRD ' : '') . $general->type_label,
+            'ird_invoice_no'        => $number,
+            'invoice_date'          => $general->invoice_date,
+            'company'               => $company,
+            'verifyUrl'             => URL::signedRoute('documents.verify', ['type' => 'general', 'id' => $general->id]),
+            'customer'              => $general->billingParty ?? $general->customer,
+            'lines'                 => $lines,
+            'subtotal'              => $subtotalBase,
+            'sscl_amount'           => $ssclBase,
+            'sscl_percentage'       => (float) ($ssclRates->first() ?? 0),
+            'sscl_percentage_label' => $ssclRates->count() > 1 ? $ssclRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ') : null,
+            'vat_amount'            => $vatBase,
+            'vat_percentage'        => (float) ($vatRates->first() ?? 0),
+            'vat_percentage_label'  => $vatRates->count() > 1 ? $vatRates->map(fn ($r) => number_format($r, 2) . '%')->implode(' / ') : null,
+            'total_incl_vat'        => round($subtotalBase + $ssclBase + $vatBase, 2),
+            'invoice_currency'      => $general->currency,
+            'exchange_rate'         => $general->exchange_rate,
+            'invoice_no'            => $general->invoice_no,
+            'category_info'         => array_filter([
+                'Category'    => $general->category ? $general->category_label : null,
+                'Payment Due' => $general->due_date?->format('d M Y'),
+                'Reference'   => $general->reference,
+            ]),
+        ];
+
+        $filename = strtoupper(str_replace(' ', '_', $general->type_label)) . '_'
+            . preg_replace('/[^A-Za-z0-9_\-]/', '_', $number) . '.pdf';
+
+        return Pdf::loadView('billing.ird-tax-invoice-pdf', $data)
+            ->setPaper('a4', 'portrait')
+            ->set_option('defaultFont', 'Courier')
+            ->set_option('isHtml5ParserEnabled', true)
+            ->stream($filename);
     }
 
     public function edit(GeneralInvoice $general)

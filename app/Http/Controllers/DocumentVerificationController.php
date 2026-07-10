@@ -93,6 +93,16 @@ class DocumentVerificationController extends Controller
                 'status'   => $i->status,
             ] : null,
 
+            'general' => ($i = \App\Models\GeneralInvoice::with('customer', 'billingParty')->find($id)) ? [
+                'number'    => $i->invoice_no,
+                'date'      => $i->invoice_date?->format('d M Y'),
+                'party'     => ($i->billingParty ?? $i->customer)?->name,
+                'amount'    => (float) $i->grand_total,
+                'currency'  => $i->currency,
+                'status'    => $i->status,
+                'doc_label' => $i->type_label,
+            ] : null,
+
             'estimate' => ($i = Estimate::with('customer')->find($id)) ? [
                 'number'   => $i->estimate_no,
                 'date'     => $i->estimate_date?->format('d M Y'),
@@ -149,6 +159,7 @@ class DocumentVerificationController extends Controller
             'storage-handling' => 'Storage & Handling Invoice',
             'reefer'           => 'Reefer Electricity Invoice',
             'repair'           => 'Repair Invoice',
+            'general'          => 'General Invoice',
             'estimate'         => 'Repair Estimate',
             'receipt'          => 'Receipt',
             'voucher'          => 'Payment Voucher',

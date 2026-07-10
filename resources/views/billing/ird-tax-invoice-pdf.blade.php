@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TAX INVOICE &mdash; {{ $ird_invoice_no }}</title>
+    <title>{{ $doc_title ?? 'TAX INVOICE' }} &mdash; {{ $ird_invoice_no }}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -101,7 +101,7 @@
     <table class="pf-row">
         <tr>
             <td style="text-align:left">
-                <strong>{{ $company->company_name }}</strong> &mdash; IRD Tax Invoice
+                <strong>{{ $company->company_name }}</strong> &mdash; {{ $doc_footer_label ?? 'IRD Tax Invoice' }}
                 @if($company->tin_number) &mdash; TIN: {{ $company->tin_number }} @endif
             </td>
             <td style="text-align:center">
@@ -157,7 +157,7 @@
 
 {{-- ── Title ── --}}
 <div class="title-wrap">
-    <table class="title-tbl"><tr><td>TAX INVOICE</td></tr></table>
+    <table class="title-tbl"><tr><td>{{ $doc_title ?? 'TAX INVOICE' }}</td></tr></table>
 </div>
 
 {{-- ── Date / Invoice No / Supplier / Purchaser / Supply ── --}}
