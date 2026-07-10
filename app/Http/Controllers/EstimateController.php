@@ -212,7 +212,7 @@ class EstimateController extends Controller
     public function show(Estimate $estimate)
     {
         $estimate->load([
-            'container', 'customer', 'inquiry', 'lineItems',
+            'container', 'customer', 'inquiry', 'lineItems.taxCode',
             'createdBy', 'updatedBy', 'approvedBy', 'parentEstimate', 'revisions',
             'approvalActions.lineItem', 'approvalActions.actionedBy',
             'documents',

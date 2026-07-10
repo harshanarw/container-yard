@@ -18,6 +18,15 @@
     .dim-no-spin { -moz-appearance: textfield; appearance: textfield; }
     .dim-unit-lbl { font-size: .72rem; color: #6c757d; }
     .dim-axis-lbl { font-size: .72rem; font-weight: 700; color: #0d6efd; min-width: 10px; }
+    /* Compact the charges section so long figures stay visible in narrow inputs
+       on smaller laptop screens. */
+    #lineTable .form-control,
+    #lineTable .form-select { font-size: .78rem; padding: .2rem .35rem; }
+    #lineTable .bd-panel .form-control { font-size: .76rem; padding: .2rem .3rem; }
+    #lineTable .bd-labor-rate,
+    #lineTable .bd-labor-amt,
+    #lineTable .bd-material-amt,
+    #lineTable .bd-ancillary-amt { width: 96px !important; }
 </style>
 @endpush
 

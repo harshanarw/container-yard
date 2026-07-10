@@ -209,7 +209,7 @@
                                 <th class="text-end text-primary">Labour Hrs</th>
                                 <th class="text-end text-primary">Labour Cost</th>
                                 <th class="text-end text-success">Materials</th>
-                                <th class="text-end">Tax %</th>
+                                <th class="text-center">Tax</th>
                                 <th class="text-end">Amount</th>
                                 <th class="text-center pe-3">Approval</th>
                             </tr>
@@ -249,7 +249,25 @@
                                         <span class="text-muted">—</span>
                                     @endif
                                 </td>
-                                <td class="text-end small">{{ $item->tax_percentage }}%</td>
+                                <td class="text-center small">
+                                    @if($item->taxCode)
+                                        <span class="badge bg-light text-dark border" title="{{ $item->taxCode->description ?? '' }}">{{ $item->taxCode->code }}</span>
+                                        @php
+                                            $t1 = (float) ($item->tax1_rate ?? 0);
+                                            $t2 = (float) ($item->tax2_rate ?? 0);
+                                            $fmtPct = fn ($v) => rtrim(rtrim(number_format($v, 2), '0'), '.');
+                                        @endphp
+                                        @if($t1 > 0 || $t2 > 0)
+                                            <div class="text-muted" style="font-size:.66rem; white-space:nowrap;">
+                                                @if($t1 > 0)SSCL {{ $fmtPct($t1) }}%@endif
+                                                @if($t1 > 0 && $t2 > 0) · @endif
+                                                @if($t2 > 0)VAT {{ $fmtPct($t2) }}%@endif
+                                            </div>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                                 <td class="text-end fw-semibold small">
                                     {{ $estimate->currency }} {{ number_format($item->line_amount, 2) }}
                                 </td>
@@ -269,14 +287,27 @@
                                     {{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}
                                 </td>
                             </tr>
+                            @if($estimate->sscl_amount > 0 || $estimate->vat_amount > 0)
+                                @if($estimate->sscl_amount > 0)
+                                <tr>
+                                    <td colspan="9" class="text-end pe-3 text-muted">SSCL:</td>
+                                    <td class="text-end pe-3">{{ $estimate->currency }} {{ number_format($estimate->sscl_amount, 2) }}</td>
+                                </tr>
+                                @endif
+                                @if($estimate->vat_amount > 0)
+                                <tr>
+                                    <td colspan="9" class="text-end pe-3 text-muted">VAT:</td>
+                                    <td class="text-end pe-3">{{ $estimate->currency }} {{ number_format($estimate->vat_amount, 2) }}</td>
+                                </tr>
+                                @endif
+                            @else
                             <tr>
-                                <td colspan="9" class="text-end fw-semibold pe-3">
-                                    Tax ({{ $estimate->tax_percentage }}%):
-                                </td>
+                                <td colspan="9" class="text-end fw-semibold pe-3">Tax:</td>
                                 <td class="text-end fw-semibold pe-3">
                                     {{ $estimate->currency }} {{ number_format($estimate->tax_amount, 2) }}
                                 </td>
                             </tr>
+                            @endif
                             <tr class="table-primary">
                                 <td colspan="9" class="text-end fw-bold pe-3 fs-6">TOTAL:</td>
                                 <td class="text-end fw-bold pe-3 fs-6">
