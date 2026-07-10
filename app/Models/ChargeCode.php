@@ -15,6 +15,7 @@ class ChargeCode extends Model
         'labour'        => 'Labour',
         'transport'     => 'Transport',
         'special'       => 'Special Cargo',
+        'penalty'       => 'Penalties & Demurrage',
         'documentation' => 'Documentation',
         'miscellaneous' => 'Miscellaneous',
     ];
@@ -29,6 +30,7 @@ class ChargeCode extends Model
         'labour'        => 'bg-secondary text-white',
         'transport'     => 'bg-dark text-white',
         'special'       => 'bg-danger-subtle text-danger border border-danger-subtle',
+        'penalty'       => 'bg-danger text-white',
         'documentation' => 'bg-primary-subtle text-primary border border-primary-subtle',
         'miscellaneous' => 'bg-light border text-muted',
     ];

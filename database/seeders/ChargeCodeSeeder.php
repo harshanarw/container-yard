@@ -76,6 +76,15 @@ class ChargeCodeSeeder extends Seeder
             ['category' => 'special', 'code' => 'STUF',  'description' => 'Stuffing / Packing',                   'rate_type' => 'per_unit',      'tax_code_id' => $vat18sscl],
             ['category' => 'special', 'code' => 'SEAL',  'description' => 'Container Seal Supply / Replacement',   'rate_type' => 'per_unit',      'tax_code_id' => $vat18sscl],
 
+            // ── Penalties & Demurrage ───────────────────────────────────────────
+            ['category' => 'penalty', 'code' => 'DEM',   'description' => 'Demurrage (over-free-period detention at yard)', 'rate_type' => 'per_day', 'tax_code_id' => $vat18sscl],
+            ['category' => 'penalty', 'code' => 'DET',   'description' => 'Detention (equipment kept beyond free time)',    'rate_type' => 'per_day', 'tax_code_id' => $vat18sscl],
+            ['category' => 'penalty', 'code' => 'PEN',   'description' => 'Penalty / Late Fee',                            'rate_type' => 'flat_rate', 'tax_code_id' => $vat18sscl],
+
+            // ── Equipment & Recovery ────────────────────────────────────────────
+            ['category' => 'handling',      'code' => 'EQP',  'description' => 'Equipment / Plant Hire (forklift, reach stacker, genset)', 'rate_type' => 'per_day',   'tax_code_id' => $vat18sscl],
+            ['category' => 'miscellaneous', 'code' => 'DMGR', 'description' => 'Damage Recovery / Compensation',           'rate_type' => 'flat_rate', 'tax_code_id' => $vat18sscl],
+
             // ── Documentation ───────────────────────────────────────────────────
             ['category' => 'documentation', 'code' => 'DOC',   'description' => 'Documentation Fee',              'rate_type' => 'flat_rate',     'tax_code_id' => $vat18sscl],
             ['category' => 'documentation', 'code' => 'ADM',   'description' => 'Administration / Processing Fee','rate_type' => 'flat_rate',     'tax_code_id' => $vat18sscl],

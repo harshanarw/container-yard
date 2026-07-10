@@ -103,6 +103,7 @@ class DefaultCoaSeeder extends Seeder
             ['code' => '4005', 'name' => 'Survey & Inspection Revenue', 'classification' => 'income', 'normal_balance' => 'credit', 'parent' => '4000', 'is_posting' => true, 'is_system' => true, 'sort_order' => 305],
             ['code' => '4006', 'name' => 'Other Operational Revenue',   'classification' => 'income', 'normal_balance' => 'credit', 'parent' => '4000', 'is_posting' => true, 'sort_order' => 306],
             ['code' => '4007', 'name' => 'Cleaning Revenue',            'classification' => 'income', 'normal_balance' => 'credit', 'parent' => '4000', 'is_posting' => true, 'is_system' => true, 'sort_order' => 307],
+            ['code' => '4008', 'name' => 'Demurrage & Detention Income','classification' => 'income', 'normal_balance' => 'credit', 'parent' => '4000', 'is_posting' => true, 'is_system' => true, 'sort_order' => 308],
             ['code' => '4100', 'name' => 'Other Income',                'classification' => 'income', 'normal_balance' => 'credit', 'sort_order' => 310],
             ['code' => '4101', 'name' => 'Interest Income',             'classification' => 'income', 'normal_balance' => 'credit', 'parent' => '4100', 'is_posting' => true, 'sort_order' => 311],
             ['code' => '4102', 'name' => 'Foreign Exchange Gain',       'classification' => 'income', 'normal_balance' => 'credit', 'parent' => '4100', 'is_posting' => true, 'sort_order' => 312],

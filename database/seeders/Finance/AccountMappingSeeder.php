@@ -121,6 +121,12 @@ class AccountMappingSeeder extends Seeder
             'WSH'   => '4007', 'PSWSH' => '4007', 'DGAS'  => '4007',
             'PEST'  => '4007', 'DEZN'  => '4007',
 
+            // ── Penalties & Demurrage ───────────────────────────────────────
+            'DEM'   => '4008', 'DET'   => '4008', 'PEN'   => '4008',
+
+            // ── Equipment / Recovery ────────────────────────────────────────
+            'EQP'   => '4006', 'DMGR'  => '4006',
+
             // ── Labour ──────────────────────────────────────────────────────
             'LAB'   => '4002', 'OT'    => '4002', 'NIT'   => '4002', 'HOL'   => '4002',
 
@@ -164,6 +170,10 @@ class AccountMappingSeeder extends Seeder
             // ── Cleaning — dedicated cleaning/washing cost of revenue ───────
             'WSH'   => '5003', 'PSWSH' => '5003', 'DGAS'  => '5003',
             'PEST'  => '5003', 'DEZN'  => '5003',
+
+            // ── Penalties / Equipment / Recovery (AR income codes; nominal cost) ─
+            'DEM'   => '6005', 'DET'   => '6005', 'PEN'   => '6005',
+            'EQP'   => '6002', 'DMGR'  => '5002',
 
             // ── Labour — direct payroll ──────────────────────────────────────
             'LAB'   => '5001', 'OT'    => '5001', 'NIT'   => '5001', 'HOL'   => '5001',
