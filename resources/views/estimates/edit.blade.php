@@ -166,6 +166,17 @@
                                 <option value="critical" {{ old('priority', $estimate->priority) === 'critical' ? 'selected' : '' }}>Critical (Next day)</option>
                             </select>
                         </div>
+                        @php $taxDefault = old('tax_applicable', $estimate->tax_applicable ? '1' : '0'); @endphp
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Tax Applicable <span class="text-danger">*</span></label>
+                            <select name="tax_applicable" id="taxApplicable" class="form-select" required>
+                                <option value="1" {{ (string) $taxDefault === '1' ? 'selected' : '' }}>Yes</option>
+                                <option value="0" {{ (string) $taxDefault === '0' ? 'selected' : '' }}>No — Tax Exempt</option>
+                            </select>
+                            @if($estimate->customer?->tax_exempt)
+                            <div class="form-text text-warning"><i class="bi bi-info-circle me-1"></i>Customer is tax-exempt</div>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -195,7 +206,7 @@
                                     <th style="width:14%">Repair Type</th>
                                     <th style="width:7%">Qty</th>
                                     <th style="width:10%">Unit Price</th>
-                                    <th style="width:8%">Tax Code</th>
+                                    <th style="width:8%" class="tax-col">Tax Code</th>
                                     <th style="width:11%">Net Amount</th>
                                     <th style="width:40px"></th>
                                 </tr>
@@ -275,7 +286,7 @@
                                                value="{{ old("line_items.{$i}.unit_price", $item->unit_price) }}"
                                                step="0.01" min="0" required>
                                     </td>
-                                    <td>
+                                    <td class="tax-col">
                                         <select name="line_items[{{ $i }}][tax_code_id]" class="form-select form-select-sm tax-code-sel s2 s2-code">
                                             <option value="">— none —</option>
                                             @foreach($taxCodes as $tc)
@@ -365,7 +376,7 @@
                                     </td>
                                     <td></td>
                                 </tr>
-                                <tr>
+                                <tr class="tax-row">
                                     <td colspan="7" class="text-end pe-3 small text-muted">
                                         SSCL <span id="ssclPctDisplay" class="text-muted"></span>:
                                     </td>
@@ -374,7 +385,7 @@
                                     </td>
                                     <td></td>
                                 </tr>
-                                <tr>
+                                <tr class="tax-row">
                                     <td colspan="7" class="text-end pe-3 small text-muted">
                                         VAT <span id="vatPctDisplay" class="text-muted"></span>:
                                     </td>
@@ -886,9 +897,14 @@
         }
     }
 
+    function taxApplicable() {
+        return (document.getElementById('taxApplicable')?.value ?? '1') !== '0';
+    }
+
     function recalculate() {
         let subtotal = 0, ssclTotal = 0, vatTotal = 0;
         let ssclRates = new Set(), vatRates = new Set();
+        const taxOn = taxApplicable();
 
         document.querySelectorAll('.estimate-line').forEach(row => {
             const qty   = parseFloat(row.querySelector('.qty')?.value       || 0);
@@ -897,8 +913,8 @@
 
             const taxSel = row.querySelector('.tax-code-sel');
             const selOpt = taxSel?.selectedOptions[0];
-            const t1Rate = parseFloat(selOpt?.dataset.tax1Rate || 0);
-            const t2Rate = parseFloat(selOpt?.dataset.tax2Rate || 0);
+            const t1Rate = taxOn ? parseFloat(selOpt?.dataset.tax1Rate || 0) : 0;
+            const t2Rate = taxOn ? parseFloat(selOpt?.dataset.tax2Rate || 0) : 0;
 
             const t1 = net * (t1Rate / 100);
             const t2 = (net + t1) * (t2Rate / 100);
@@ -925,7 +941,16 @@
 
         document.getElementById('ssclPctDisplay').textContent = ssclRates.size === 1 ? `(${[...ssclRates][0]}%)` : '';
         document.getElementById('vatPctDisplay').textContent  = vatRates.size  === 1 ? `(${[...vatRates][0]}%)`  : '';
+
+        syncTaxVisibility();
     }
+
+    // Show the tax code column + SSCL/VAT total rows only when tax is applicable.
+    function syncTaxVisibility() {
+        const show = taxApplicable();
+        document.querySelectorAll('.tax-col, .tax-row').forEach(el => el.classList.toggle('d-none', !show));
+    }
+    document.getElementById('taxApplicable')?.addEventListener('change', recalculate);
 
     // Change events: component code → auto-fill + AJAX resolve; charge code → set tax code; tax code → recalc
     document.getElementById('lineItems').addEventListener('change', function (e) {
@@ -1023,7 +1048,7 @@
                 </td>
                 <td><input type="number" name="line_items[${i}][qty]"        class="form-control form-control-sm qty"        value="1"    min="0.01" step="0.01" required></td>
                 <td><input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="0.00" step="0.01" min="0"   required></td>
-                <td>${buildTaxCodeSelect(`line_items[${i}][tax_code_id]`)}</td>
+                <td class="tax-col">${buildTaxCodeSelect(`line_items[${i}][tax_code_id]`)}</td>
                 <td class="text-end pe-2 small">
                     <div class="fw-semibold line-net">${currency} 0.00</div>
                     <div style="font-size:.68rem; line-height:1.4; color:#6c757d;">
@@ -1491,7 +1516,7 @@
                 </select></td>
                 <td><input type="number" name="line_items[${i}][qty]" class="form-control form-control-sm qty" value="${selectedItem.qty}" min="0.01" step="0.01"></td>
                 <td><input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="${(selectedRate.total * fx).toFixed(4)}" min="0" step="0.01"></td>
-                <td>${buildTaxCodeSelect(`line_items[${i}][tax_code_id]`)}</td>
+                <td class="tax-col">${buildTaxCodeSelect(`line_items[${i}][tax_code_id]`)}</td>
                 <td class="text-end pe-2 small">
                     <div class="fw-semibold line-net">${currency} 0.00</div>
                     <div style="font-size:.68rem; line-height:1.4; color:#6c757d;">

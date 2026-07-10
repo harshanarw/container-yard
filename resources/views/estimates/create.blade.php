@@ -163,6 +163,17 @@
                                 <option value="critical" {{ old('priority')==='critical'?'selected':'' }}>Critical</option>
                             </select>
                         </div>
+                        @php $taxDefault = old('tax_applicable', ($defaultTaxApplicable ?? true) ? '1' : '0'); @endphp
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Tax Applicable <span class="text-danger">*</span></label>
+                            <select name="tax_applicable" id="taxApplicable" class="form-select" required>
+                                <option value="1" {{ (string) $taxDefault === '1' ? 'selected' : '' }}>Yes</option>
+                                <option value="0" {{ (string) $taxDefault === '0' ? 'selected' : '' }}>No — Tax Exempt</option>
+                            </select>
+                            @unless($defaultTaxApplicable ?? true)
+                            <div class="form-text text-warning"><i class="bi bi-info-circle me-1"></i>Customer is tax-exempt</div>
+                            @endunless
+                        </div>
                         {{-- Warning shown when currency/rate changes after line items are imported --}}
                         <div class="col-12 d-none" id="currencyChangedWarn">
                             <div class="alert alert-warning py-2 small mb-0">
@@ -212,7 +223,7 @@
                                     <th style="width:13%">Repair Type</th>
                                     <th style="width:6%">Qty</th>
                                     <th style="width:9%">Unit Price</th>
-                                    <th style="width:8%">Tax Code</th>
+                                    <th style="width:8%" class="tax-col">Tax Code</th>
                                     <th style="width:9%" class="text-end pe-2">Net Amount</th>
                                     <th style="width:36px;"></th>
                                 </tr>
@@ -226,14 +237,14 @@
                                     <td class="fw-semibold text-end pe-2 small" id="subtotal">0.00</td>
                                     <td></td>
                                 </tr>
-                                <tr>
+                                <tr class="tax-row">
                                     <td colspan="8" class="text-end pe-3 small text-muted">
                                         SSCL <span id="ssclPctDisplay" class="text-muted"></span>:
                                     </td>
                                     <td class="text-end pe-2 small text-muted" id="totalSscl">0.00</td>
                                     <td></td>
                                 </tr>
-                                <tr>
+                                <tr class="tax-row">
                                     <td colspan="8" class="text-end pe-3 small text-muted">
                                         VAT <span id="vatPctDisplay" class="text-muted"></span>:
                                     </td>
@@ -940,7 +951,7 @@
             <td>
                 <input type="number" name="line_items[${i}][unit_price]" class="form-control form-control-sm unit-price" value="${data.unit_price ?? 0}" min="0"    step="0.01">
             </td>
-            <td>
+            <td class="tax-col">
                 ${buildTaxCodeSelect(`line_items[${i}][tax_code_id]`, data.tax_code_id ?? '')}
             </td>
             <td class="text-end pe-2 small">
@@ -1047,9 +1058,14 @@
     function fmt(n) { return currency() + ' ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
     function fmtSmall(n) { return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
+    function taxApplicable() {
+        return (document.getElementById('taxApplicable')?.value ?? '1') !== '0';
+    }
+
     function recalculate() {
         let subtotal = 0, ssclTotal = 0, vatTotal = 0;
         let ssclRates = new Set(), vatRates = new Set();
+        const taxOn = taxApplicable();
 
         document.querySelectorAll('.estimate-line').forEach(row => {
             const qty   = parseFloat(row.querySelector('.qty')?.value       || 0);
@@ -1058,8 +1074,8 @@
 
             const taxSel  = row.querySelector('.tax-code-sel');
             const selOpt  = taxSel?.selectedOptions[0];
-            const t1Rate  = parseFloat(selOpt?.dataset.tax1Rate || 0);
-            const t2Rate  = parseFloat(selOpt?.dataset.tax2Rate || 0);
+            const t1Rate  = taxOn ? parseFloat(selOpt?.dataset.tax1Rate || 0) : 0;
+            const t2Rate  = taxOn ? parseFloat(selOpt?.dataset.tax2Rate || 0) : 0;
 
             const t1 = net * (t1Rate / 100);
             const t2 = (net + t1) * (t2Rate / 100);
@@ -1090,7 +1106,16 @@
         const vatRateLabel  = vatRates.size  === 1 ? `(${[...vatRates][0]}%)`  : '';
         document.getElementById('ssclPctDisplay').textContent = ssclRateLabel;
         document.getElementById('vatPctDisplay').textContent  = vatRateLabel;
+
+        syncTaxVisibility();
     }
+
+    // Show the tax code column + SSCL/VAT total rows only when tax is applicable.
+    function syncTaxVisibility() {
+        const show = taxApplicable();
+        document.querySelectorAll('.tax-col, .tax-row').forEach(el => el.classList.toggle('d-none', !show));
+    }
+    document.getElementById('taxApplicable')?.addEventListener('change', recalculate);
 
     // ── Component code: auto-fill description + AJAX resolve charge/tax ──
     // ── Charge code: auto-set matching tax code ───────────────────────────

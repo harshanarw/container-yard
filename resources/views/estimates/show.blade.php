@@ -172,7 +172,12 @@
                     </div>
                     <div class="col-md-3">
                         <div class="text-muted small">Currency</div>
-                        <div>{{ $estimate->currency }}</div>
+                        <div>
+                            {{ $estimate->currency }}
+                            @unless($estimate->tax_applicable)
+                            <span class="badge bg-secondary-subtle text-secondary border ms-1">Tax Exempt</span>
+                            @endunless
+                        </div>
                     </div>
                     <div class="col-md-3">
                         <div class="text-muted small">Priority</div>
@@ -209,7 +214,7 @@
                                 <th class="text-end text-primary">Labour Hrs</th>
                                 <th class="text-end text-primary">Labour Cost</th>
                                 <th class="text-end text-success">Materials</th>
-                                <th class="text-center">Tax</th>
+                                @if($estimate->tax_applicable)<th class="text-center">Tax</th>@endif
                                 <th class="text-end">Amount</th>
                                 <th class="text-center pe-3">Approval</th>
                             </tr>
@@ -249,6 +254,7 @@
                                         <span class="text-muted">—</span>
                                     @endif
                                 </td>
+                                @if($estimate->tax_applicable)
                                 <td class="text-center small">
                                     @if($item->taxCode)
                                         <span class="badge bg-light text-dark border" title="{{ $item->taxCode->description ?? '' }}">{{ $item->taxCode->code }}</span>
@@ -268,6 +274,7 @@
                                         <span class="text-muted">—</span>
                                     @endif
                                 </td>
+                                @endif
                                 <td class="text-end fw-semibold small">
                                     {{ $estimate->currency }} {{ number_format($item->line_amount, 2) }}
                                 </td>
@@ -280,36 +287,45 @@
                             </tr>
                             @endforeach
                         </tbody>
+                        @php $footColspan = $estimate->tax_applicable ? 9 : 8; @endphp
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="9" class="text-end fw-semibold pe-3">Subtotal:</td>
+                                <td colspan="{{ $footColspan }}" class="text-end fw-semibold pe-3">Subtotal:</td>
                                 <td class="text-end fw-semibold pe-3">
                                     {{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}
                                 </td>
                             </tr>
-                            @if($estimate->sscl_amount > 0 || $estimate->vat_amount > 0)
+                            @if($estimate->tax_applicable)
                                 @if($estimate->sscl_amount > 0)
                                 <tr>
-                                    <td colspan="9" class="text-end pe-3 text-muted">SSCL:</td>
+                                    <td colspan="{{ $footColspan }}" class="text-end pe-3 text-muted">SSCL:</td>
                                     <td class="text-end pe-3">{{ $estimate->currency }} {{ number_format($estimate->sscl_amount, 2) }}</td>
                                 </tr>
                                 @endif
                                 @if($estimate->vat_amount > 0)
                                 <tr>
-                                    <td colspan="9" class="text-end pe-3 text-muted">VAT:</td>
+                                    <td colspan="{{ $footColspan }}" class="text-end pe-3 text-muted">VAT:</td>
                                     <td class="text-end pe-3">{{ $estimate->currency }} {{ number_format($estimate->vat_amount, 2) }}</td>
+                                </tr>
+                                @endif
+                                @if($estimate->sscl_amount <= 0 && $estimate->vat_amount <= 0)
+                                <tr>
+                                    <td colspan="{{ $footColspan }}" class="text-end fw-semibold pe-3">Tax:</td>
+                                    <td class="text-end fw-semibold pe-3">
+                                        {{ $estimate->currency }} {{ number_format($estimate->tax_amount, 2) }}
+                                    </td>
                                 </tr>
                                 @endif
                             @else
                             <tr>
-                                <td colspan="9" class="text-end fw-semibold pe-3">Tax:</td>
-                                <td class="text-end fw-semibold pe-3">
-                                    {{ $estimate->currency }} {{ number_format($estimate->tax_amount, 2) }}
+                                <td colspan="{{ $footColspan }}" class="text-end pe-3">
+                                    <span class="badge bg-secondary-subtle text-secondary border">Tax Exempt</span>
                                 </td>
+                                <td></td>
                             </tr>
                             @endif
                             <tr class="table-primary">
-                                <td colspan="9" class="text-end fw-bold pe-3 fs-6">TOTAL:</td>
+                                <td colspan="{{ $footColspan }}" class="text-end fw-bold pe-3 fs-6">TOTAL:</td>
                                 <td class="text-end fw-bold pe-3 fs-6">
                                     {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}
                                 </td>

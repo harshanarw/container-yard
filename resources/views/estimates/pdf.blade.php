@@ -137,6 +137,9 @@
                     @if($estimate->exchange_rate && $estimate->exchange_rate != 1 && $estimate->currency !== 'USD')
                         <span style="font-size:10px;color:#666;display:block;">1 USD = {{ number_format((float)$estimate->exchange_rate, 4) }} {{ $estimate->currency }}</span>
                     @endif
+                    @unless($estimate->tax_applicable)
+                        <span style="font-size:10px;color:#666;display:block;">Tax exempt — no SSCL/VAT applied</span>
+                    @endunless
                 </span>
             </div>
             <div class="info-row">

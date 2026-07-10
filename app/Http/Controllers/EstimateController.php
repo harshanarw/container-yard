@@ -97,10 +97,17 @@ class EstimateController extends Controller
             ?? $selectedContainer?->customer?->currency
             ?? 'USD';
 
+        // Tax applicability defaults from the customer's tax-exempt flag (exempt → No)
+        $defaultTaxApplicable = ! (
+            $selectedInquiry?->customer?->tax_exempt
+            ?? $selectedContainer?->customer?->tax_exempt
+            ?? false
+        );
+
         return view('estimates.create', compact(
             'customers', 'containers', 'equipmentTypes', 'selectedInquiry', 'selectedContainer',
             'mrComponentCodes', 'mrLocationCodes', 'chargeCodes', 'taxCodes', 'dimUom',
-            'defaultCurrency', 'todayRate', 'defaultEstimateCurrency'
+            'defaultCurrency', 'todayRate', 'defaultEstimateCurrency', 'defaultTaxApplicable'
         ));
     }
 
