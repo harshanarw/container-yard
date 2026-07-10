@@ -766,7 +766,11 @@
                 applyScaled(nf / snap.factor);
                 appliedFactor = nf;
             });
-            rateEl.addEventListener('blur', () => { snap = null; applyCurrencyRate(); });
+            rateEl.addEventListener('blur', () => {
+                // Don't settle on an empty/zero rate — that would collapse all amounts.
+                if (rateEl.value.trim() !== '' && estFactor() > 0) applyCurrencyRate();
+                snap = null;
+            });
         })();
         document.getElementById('estimateDate')?.addEventListener('change', async function () {
             const currency = document.getElementById('estimateCurrency')?.value || 'USD';
