@@ -143,6 +143,12 @@ return [
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
+    'masters.washing-tariff' => [
+        'label'   => 'Washing / Cleaning Tariff',
+        'section' => 'Masters — Tariffs',
+        'actions' => ['view', 'create', 'edit', 'delete', 'toggle'],
+    ],
+
     // ── Masters — Operations ─────────────────────────────────────────────────
 
     'masters.job-types' => [
