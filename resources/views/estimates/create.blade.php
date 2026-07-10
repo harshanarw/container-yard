@@ -589,6 +589,23 @@
             applyCurrencyRate();
         }
     });
+
+    // Block submit of a foreign-currency estimate with no real conversion rate
+    // (1.0 = no conversion) so the line amounts can't be persisted in USD under a
+    // foreign label. Mirrors the server-side StoreEstimateRequest guard, but here
+    // it prevents a round-trip that would drop the JS-built line items.
+    document.getElementById('estimateForm')?.addEventListener('submit', function (e) {
+        const cur  = document.getElementById('estimateCurrency')?.value || 'USD';
+        const rate = parseFloat(document.getElementById('estimateExchangeRate')?.value) || 0;
+        if (cur !== 'USD' && (rate <= 0 || Math.abs(rate - 1.0) < 1e-7)) {
+            e.preventDefault();
+            const note = document.getElementById('estRateNote');
+            if (note) note.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Enter the USD → ${cur} exchange rate before saving — a rate of 1.0 means no conversion.</span>`;
+            const input = document.getElementById('estimateExchangeRate');
+            input?.focus();
+            input?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+    });
     // On first load, ensure UI reflects the default currency
     (function initExchangeRateUI() {
         const currency = document.getElementById('estimateCurrency')?.value || 'USD';

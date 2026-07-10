@@ -659,6 +659,23 @@
         });
     }
 
+    // Block submit of a foreign-currency estimate with no real conversion rate
+    // (mirrors UpdateEstimateRequest). Skipped when the rate is locked — the rate
+    // is then server-preserved and the readonly value is already valid.
+    document.getElementById('estimateForm')?.addEventListener('submit', function (e) {
+        if (RATE_LOCKED) return;
+        const cur  = document.getElementById('estimateCurrency')?.value || 'USD';
+        const rate = parseFloat(document.getElementById('estimateExchangeRate')?.value) || 0;
+        if (cur !== 'USD' && (rate <= 0 || Math.abs(rate - 1.0) < 1e-7)) {
+            e.preventDefault();
+            const note = document.getElementById('estRateNote');
+            if (note) note.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Enter the USD → ${cur} exchange rate before saving — a rate of 1.0 means no conversion.</span>`;
+            const input = document.getElementById('estimateExchangeRate');
+            input?.focus();
+            input?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+    });
+
     let lineIdx  = {{ $estimate->lineItems->count() }};
     const currency = '{{ $estimate->currency }}';
     // Totals label follows the live currency dropdown (falls back to the saved code).

@@ -11,6 +11,37 @@ class UpdateEstimateRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Same foreign-currency rate guard as StoreEstimateRequest — a non-USD
+     * estimate must carry a real USD → currency rate rather than the default 1.0.
+     * Skipped once the rate is locked (estimate already sent), because update()
+     * preserves the stored rate regardless of the readonly value submitted.
+     */
+    public function withValidator($validator): void
+    {
+        $estimate = $this->route('estimate');
+        $rateLocked = $estimate && in_array($estimate->status, [
+            'sent', 'under_review', 'partially_approved', 'approved', 'completed',
+        ], true);
+
+        if ($rateLocked) {
+            return;
+        }
+
+        $validator->after(function ($validator) {
+            $currency = strtoupper((string) $this->input('currency'));
+            $rate     = (float) $this->input('exchange_rate', 0);
+
+            if ($currency !== '' && $currency !== 'USD' && ($rate <= 0 || abs($rate - 1.0) < 1e-7)) {
+                $validator->errors()->add('exchange_rate',
+                    "A {$currency} estimate needs a real USD → {$currency} exchange rate "
+                    . '(a rate of 1.0 means no conversion). Enter it, or add one under '
+                    . 'Finance → Exchange Rates, before saving.'
+                );
+            }
+        });
+    }
+
     public function rules(): array
     {
         return [

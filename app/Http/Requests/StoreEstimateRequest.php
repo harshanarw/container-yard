@@ -11,6 +11,28 @@ class StoreEstimateRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Guard against a foreign-currency estimate saved with no real conversion
+     * rate. Tariffs are in USD, so exchange_rate is USD → estimate currency; a
+     * non-USD estimate left at the default 1.0 would persist USD magnitudes under
+     * a foreign label (the reported bug). USD estimates are legitimately 1:1.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $currency = strtoupper((string) $this->input('currency'));
+            $rate     = (float) $this->input('exchange_rate', 0);
+
+            if ($currency !== '' && $currency !== 'USD' && ($rate <= 0 || abs($rate - 1.0) < 1e-7)) {
+                $validator->errors()->add('exchange_rate',
+                    "A {$currency} estimate needs a real USD → {$currency} exchange rate "
+                    . '(a rate of 1.0 means no conversion). Enter it, or add one under '
+                    . 'Finance → Exchange Rates, before saving.'
+                );
+            }
+        });
+    }
+
     public function rules(): array
     {
         return [
