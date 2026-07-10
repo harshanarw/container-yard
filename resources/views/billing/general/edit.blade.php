@@ -19,6 +19,18 @@
         'tax_code_id' => $l->tax_code_id,
     ])->all());
     $curCode = old('currency', $invoice->currency ?? $baseCurrency);
+
+    // Precompute JS data here — the json blade directive can't parse arrow-fn
+    // array literals inline, so build the arrays first.
+    $chargeJs = $chargeCodes->map(fn($c) => [
+        'id' => $c->id, 'code' => $c->code, 'desc' => $c->description,
+        'tax_code_id' => $c->tax_code_id,
+        't1' => (float) ($c->taxCode->tax1_rate ?? 0), 't2' => (float) ($c->taxCode->tax2_rate ?? 0),
+    ])->values();
+    $taxJs = $taxCodes->map(fn($t) => [
+        'id' => $t->id, 'code' => $t->code, 't1' => (float) $t->tax1_rate, 't2' => (float) $t->tax2_rate,
+    ])->values();
+    $curJs = array_keys($currencies);
 @endphp
 
 @if($errors->any())
@@ -163,10 +175,10 @@
     const RATE_URL   = '{{ route("billing.general.currency-rate") }}';
     const CC_URL     = '{{ route("billing.general.charge-code-info") }}';
     const BASE       = '{{ $baseCurrency }}';
-    const CHARGE     = @json($chargeCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'desc'=>$c->description,'tax_code_id'=>$c->tax_code_id,'t1'=>(float)($c->taxCode->tax1_rate ?? 0),'t2'=>(float)($c->taxCode->tax2_rate ?? 0)]));
+    const CHARGE     = @json($chargeJs);
     const ACCOUNTS   = @json($revenueAccounts);
-    const TAXCODES   = @json($taxCodes->map(fn($t) => ['id'=>$t->id,'code'=>$t->code,'t1'=>(float)$t->tax1_rate,'t2'=>(float)$t->tax2_rate]));
-    const CURRENCIES = @json(array_keys($currencies));
+    const TAXCODES   = @json($taxJs);
+    const CURRENCIES = @json($curJs);
     const SEED       = @json($lineData);
 
     let idx = 0;
