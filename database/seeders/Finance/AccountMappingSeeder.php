@@ -91,6 +91,7 @@ class AccountMappingSeeder extends Seeder
         // Expense accounts used:
         //   5001 — Labour Costs          (direct labour)
         //   5002 — Material Costs        (parts, consumables)
+        //   5003 — Cleaning & Washing Costs (chemicals, water, effluent, wash labour)
         //   6002 — Utilities             (reefer electricity)
         //   6003 — Rent & Facilities     (storage space rental)
         //   6005 — Office & Administrative (documentation, transport overhead)
@@ -160,9 +161,9 @@ class AccountMappingSeeder extends Seeder
             'PTI'   => '6005', 'PLUG'  => '6002', 'ELC'   => '6002',
             'GEN'   => '6002', 'REEF'  => '5002',
 
-            // ── Cleaning — materials & consumables ──────────────────────────
-            'WSH'   => '5002', 'PSWSH' => '5002', 'DGAS'  => '5002',
-            'PEST'  => '5002', 'DEZN'  => '5002',
+            // ── Cleaning — dedicated cleaning/washing cost of revenue ───────
+            'WSH'   => '5003', 'PSWSH' => '5003', 'DGAS'  => '5003',
+            'PEST'  => '5003', 'DEZN'  => '5003',
 
             // ── Labour — direct payroll ──────────────────────────────────────
             'LAB'   => '5001', 'OT'    => '5001', 'NIT'   => '5001', 'HOL'   => '5001',

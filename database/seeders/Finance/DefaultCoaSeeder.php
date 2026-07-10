@@ -111,6 +111,7 @@ class DefaultCoaSeeder extends Seeder
             ['code' => '5000', 'name' => 'Cost of Revenue',             'classification' => 'expense', 'normal_balance' => 'debit', 'sort_order' => 400],
             ['code' => '5001', 'name' => 'Labour Costs',                'classification' => 'expense', 'normal_balance' => 'debit', 'parent' => '5000', 'is_posting' => true, 'sort_order' => 401],
             ['code' => '5002', 'name' => 'Material Costs',              'classification' => 'expense', 'normal_balance' => 'debit', 'parent' => '5000', 'is_posting' => true, 'sort_order' => 402],
+            ['code' => '5003', 'name' => 'Cleaning & Washing Costs',    'classification' => 'expense', 'normal_balance' => 'debit', 'parent' => '5000', 'is_posting' => true, 'is_system' => true, 'sort_order' => 403],
             ['code' => '6000', 'name' => 'Operating Expenses',          'classification' => 'expense', 'normal_balance' => 'debit', 'sort_order' => 410],
             ['code' => '6001', 'name' => 'Salaries & Wages',            'classification' => 'expense', 'normal_balance' => 'debit', 'parent' => '6000', 'is_posting' => true, 'sort_order' => 411],
             ['code' => '6002', 'name' => 'Utilities',                   'classification' => 'expense', 'normal_balance' => 'debit', 'parent' => '6000', 'is_posting' => true, 'sort_order' => 412],
