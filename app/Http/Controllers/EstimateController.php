@@ -18,6 +18,7 @@ use App\Models\MrTariffHeader;
 use App\Models\PortalToken;
 use App\Models\ExchangeRate;
 use App\Models\TaxCode;
+use App\Models\WashingTariff;
 use App\Services\CurrencyService;
 use App\Services\EstimateMailService;
 use App\Services\ExternalRecipientResolver;
@@ -31,7 +32,7 @@ class EstimateController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('can:estimates.view')->only(['index', 'show', 'resolveChargeCode', 'exchangeRateLookup', 'importDamages', 'pdf']);
+        $this->middleware('can:estimates.view')->only(['index', 'show', 'resolveChargeCode', 'exchangeRateLookup', 'washingLookup', 'importDamages', 'pdf']);
         $this->middleware('can:estimates.create')->only(['create', 'store']);
         $this->middleware('can:estimates.edit')->only(['edit', 'update', 'send', 'sendReminder', 'revokeToken']);
         $this->middleware('can:estimates.delete')->only(['destroy']);
@@ -165,6 +166,9 @@ class EstimateController extends Controller
                     'tax1_amount'         => $meta['tax1_amount'],
                     'tax2_amount'         => $meta['tax2_amount'],
                     'gross_amount'        => $meta['gross_amount'],
+                    // Washing traceability (set by the washing picker)
+                    'washing_tariff_id'   => $item['washing_tariff_id'] ?? null,
+                    'wash_scope'          => $item['wash_scope'] ?? null,
                     // MR code traceability
                     'damage_id'           => $item['damage_id'] ?? null,
                     'mr_tariff_rule_id'   => $item['mr_tariff_rule_id'] ?? null,
@@ -320,6 +324,9 @@ class EstimateController extends Controller
                 'tax1_amount'         => $meta['tax1_amount'],
                 'tax2_amount'         => $meta['tax2_amount'],
                 'gross_amount'        => $meta['gross_amount'],
+                // Washing traceability (set by the washing picker)
+                'washing_tariff_id'   => $item['washing_tariff_id'] ?? null,
+                'wash_scope'          => $item['wash_scope'] ?? null,
                 // MR code traceability
                 'damage_id'           => $item['damage_id'] ?? null,
                 'mr_tariff_rule_id'   => $item['mr_tariff_rule_id'] ?? null,
@@ -746,6 +753,51 @@ class EstimateController extends Controller
 
         $rate = ExchangeRate::getRate($from, $to, $date);
         return response()->json(['rate' => $rate, 'found' => $rate !== null, 'from' => $from, 'to' => $to]);
+    }
+
+    /**
+     * AJAX: resolve internal & external washing rates for the estimate context.
+     * Tariff rates are in USD; the response is already converted to the estimate
+     * currency at the given rate (mirrors importDamages / the Phase A factor).
+     */
+    public function washingLookup(Request $request)
+    {
+        $customerId = $request->integer('customer_id') ?: null;
+        $size       = $request->get('size') ?: null;
+        $type       = $request->get('wash_type', 'standard');
+        $date       = $request->get('date') ?: today()->toDateString();
+        $estCur     = strtoupper($request->get('currency', 'USD'));
+        $rate       = max(0.000001, (float) $request->get('exchange_rate', 1.0));
+        $factor     = $estCur === 'USD' ? 1.0 : $rate;
+
+        $out = [];
+        foreach (['internal', 'external'] as $scope) {
+            $wt = WashingTariff::resolve($customerId, $scope, $type, $size, $date);
+
+            if (! $wt) {
+                $out[$scope] = ['found' => false];
+                continue;
+            }
+
+            $taxCode = $wt->taxCode ?: $wt->chargeCode?->taxCode;
+
+            $out[$scope] = [
+                'found'             => true,
+                'washing_tariff_id' => $wt->id,
+                'wash_scope'        => $scope,
+                'label'             => $wt->scope_label . ' — ' . $wt->type_label,
+                'unit_price'        => round((float) $wt->rate * $factor, 2),
+                'currency'          => $estCur,
+                'charge_code_id'    => $wt->charge_code_id,
+                'charge_code'       => $wt->chargeCode?->code,
+                'tax_code_id'       => $taxCode?->id,
+                'tax1_rate'         => (float) ($taxCode?->tax1_rate ?? 0),
+                'tax2_rate'         => (float) ($taxCode?->tax2_rate ?? 0),
+                'size'              => $wt->container_size,
+            ];
+        }
+
+        return response()->json($out);
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────

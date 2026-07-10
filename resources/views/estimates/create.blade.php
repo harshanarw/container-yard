@@ -177,6 +177,9 @@
                             <i class="bi bi-download me-1"></i>Import {{ $selectedInquiry->damages->count() }} Damage(s) as Lines
                         </button>
                         @endif
+                        <button type="button" class="btn btn-sm btn-outline-info" id="addWashingBtn" data-bs-toggle="modal" data-bs-target="#washingModal">
+                            <i class="bi bi-droplet me-1"></i>Add Washing
+                        </button>
                         <button type="button" class="btn btn-sm btn-outline-success" id="getRateBtn" data-bs-toggle="modal" data-bs-target="#getRateModal">
                             <i class="bi bi-calculator me-1"></i>Get Rate
                         </button>
@@ -382,6 +385,44 @@
 
     </div>
 </form>
+
+{{-- ── Add Washing Modal ── --}}
+<div class="modal fade" id="washingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="bi bi-droplet me-2 text-info"></i>Add Washing / Cleaning</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2 align-items-end mb-3">
+                    <div class="col-8">
+                        <label class="form-label small mb-1">Wash Type</label>
+                        <select id="washType" class="form-select form-select-sm">
+                            @foreach(\App\Models\WashingTariff::TYPES as $k => $label)
+                                <option value="{{ $k }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <button type="button" class="btn btn-sm btn-outline-primary w-100" id="washFetchBtn">
+                            <i class="bi bi-search me-1"></i>Get Rates
+                        </button>
+                    </div>
+                </div>
+                <div id="washResult" class="small">
+                    <div class="text-muted">Choose a wash type and click <strong>Get Rates</strong>. Internal and external rates are shown for the container size; tick the ones to add.</div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-info text-white" id="washAddBtn" disabled>
+                    <i class="bi bi-plus-lg me-1"></i>Add Selected
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {{-- ── Get Rate Modal ── --}}
 <div class="modal fade" id="getRateModal" tabindex="-1">
@@ -806,6 +847,8 @@
                 <input type="hidden" name="line_items[${i}][material_code_id]"   value="${data.material_code_id   ?? ''}">
                 <input type="hidden" name="line_items[${i}][cedex_code]"         value="${esc(data.cedex_code     ?? '')}">
                 <input type="hidden" name="line_items[${i}][repair_category_id]" value="${data.repair_category_id ?? ''}">
+                <input type="hidden" name="line_items[${i}][washing_tariff_id]" value="${data.washing_tariff_id ?? ''}">
+                <input type="hidden" name="line_items[${i}][wash_scope]"         value="${data.wash_scope ?? ''}">
                 <input type="hidden" name="line_items[${i}][std_labor_hours]"    value="${bdLaborHrs}">
                 <input type="hidden" name="line_items[${i}][labor_rate]"         value="${bdLaborRate}">
                 <input type="hidden" name="line_items[${i}][labor_amount]"       value="${bdLaborAmt.toFixed(4)}">
@@ -1164,6 +1207,85 @@
             recalculate();
         }
     });
+
+    // ── Add Washing picker ──────────────────────────────────────────────────
+    (function () {
+        const WASHING_URL = '{{ route("estimates.washing-lookup") }}';
+        const resultEl = document.getElementById('washResult');
+        const addBtn   = document.getElementById('washAddBtn');
+        let   resolved = {};
+
+        function ctx() {
+            return {
+                customer_id:   document.querySelector('[name="customer_id"]')?.value || '',
+                size:          document.getElementById('eqtSize')?.value || '',
+                currency:      document.getElementById('estimateCurrency')?.value || 'USD',
+                exchange_rate: document.getElementById('estimateExchangeRate')?.value || '1',
+                date:          document.getElementById('estimateDate')?.value || '',
+                wash_type:     document.getElementById('washType')?.value || 'standard',
+            };
+        }
+
+        async function fetchRates() {
+            const c = ctx();
+            resultEl.innerHTML = '<div class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Loading…</div>';
+            addBtn.disabled = true;
+            try {
+                const res  = await fetch(WASHING_URL + '?' + new URLSearchParams(c).toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                resolved   = await res.json();
+                renderRows(resolved, c.currency);
+            } catch (_) {
+                resultEl.innerHTML = '<div class="text-danger">Failed to load washing rates.</div>';
+            }
+        }
+
+        function renderRows(data, cur) {
+            let html = '';
+            ['internal', 'external'].forEach(scope => {
+                const r = data[scope];
+                const title = scope === 'internal' ? 'Internal Wash' : 'External Wash';
+                if (r && r.found) {
+                    html += `<div class="border rounded px-2 py-1 mb-1 d-flex align-items-center justify-content-between">
+                        <div class="form-check mb-0">
+                            <input class="form-check-input wash-pick" type="checkbox" value="${scope}" id="wash_${scope}" checked>
+                            <label class="form-check-label" for="wash_${scope}"><strong>${title}</strong> <span class="text-muted">${r.label}</span></label>
+                        </div>
+                        <span class="fw-semibold">${cur} ${Number(r.unit_price).toFixed(2)}</span>
+                    </div>`;
+                } else {
+                    html += `<div class="border rounded px-2 py-1 mb-1 text-muted d-flex justify-content-between"><span>${title}</span><span class="small">No rate configured</span></div>`;
+                }
+            });
+            const anyFound = !!(data.internal?.found || data.external?.found);
+            if (!anyFound) html += '<div class="small text-warning mt-1"><i class="bi bi-exclamation-triangle me-1"></i>No washing rates for this container. Add them under Masters → Tariffs → Washing.</div>';
+            resultEl.innerHTML = html;
+            addBtn.disabled = !anyFound;
+        }
+
+        function addSelected() {
+            Array.from(document.querySelectorAll('.wash-pick:checked')).forEach(el => {
+                const r = resolved[el.value];
+                if (!r || !r.found) return;
+                insertRow({
+                    component:         r.label,
+                    repair_type:       'clean_and_treat',
+                    qty:               1,
+                    unit_price:        r.unit_price,
+                    charge_code_id:    r.charge_code_id,
+                    tax_code_id:       r.tax_code_id,
+                    washing_tariff_id: r.washing_tariff_id,
+                    wash_scope:        r.wash_scope,
+                });
+            });
+            recalculate();
+            // Washing prices already include the current factor.
+            appliedFactor = estFactor();
+            bootstrap.Modal.getInstance(document.getElementById('washingModal'))?.hide();
+        }
+
+        document.getElementById('washFetchBtn')?.addEventListener('click', fetchRates);
+        addBtn?.addEventListener('click', addSelected);
+    })();
 
     // ── Get Rate Modal ────────────────────────────────────────────────────────
     (function () {

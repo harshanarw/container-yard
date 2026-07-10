@@ -61,6 +61,10 @@ class StoreEstimateRequest extends FormRequest
             'line_items.*.unit_price'             => ['required', 'numeric', 'min:0'],
             'line_items.*.tax_percentage'         => ['nullable', 'numeric', 'min:0', 'max:100'],
 
+            // Washing traceability (optional, populated by the washing picker)
+            'line_items.*.washing_tariff_id'      => ['nullable', 'exists:washing_tariffs,id'],
+            'line_items.*.wash_scope'             => ['nullable', 'in:internal,external'],
+
             // MR code traceability (optional, populated from damage import)
             'line_items.*.damage_id'              => ['nullable', 'exists:damages,id'],
             'line_items.*.mr_tariff_rule_id'      => ['nullable', 'exists:mr_tariff_rules,id'],

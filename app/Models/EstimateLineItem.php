@@ -11,6 +11,7 @@ class EstimateLineItem extends Model
 
     protected $fillable = [
         'estimate_id', 'damage_id', 'mr_tariff_rule_id', 'mr_tariff_item_id',
+        'washing_tariff_id', 'wash_scope',
         'location_code_id', 'component_code_id', 'damage_code_id',
         'repair_code_id', 'material_code_id',
         'component', 'repair_type',
@@ -66,6 +67,11 @@ class EstimateLineItem extends Model
     public function tariffItem()
     {
         return $this->belongsTo(MrTariffItem::class, 'mr_tariff_item_id');
+    }
+
+    public function washingTariff()
+    {
+        return $this->belongsTo(WashingTariff::class, 'washing_tariff_id');
     }
 
     public function locationCode()

@@ -70,6 +70,9 @@ class UpdateEstimateRequest extends FormRequest
             'line_items.*.dim_length'      => ['nullable', 'numeric', 'min:0'],
             'line_items.*.dim_width'       => ['nullable', 'numeric', 'min:0'],
             'line_items.*.dim_uom'         => ['nullable', 'in:ft_in,cm,m'],
+
+            'line_items.*.washing_tariff_id' => ['nullable', 'exists:washing_tariffs,id'],
+            'line_items.*.wash_scope'        => ['nullable', 'in:internal,external'],
         ];
     }
 }
