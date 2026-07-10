@@ -701,7 +701,62 @@
             await fetchEstimateExchangeRate();
             applyCurrencyRate();
         });
-        document.getElementById('estimateExchangeRate')?.addEventListener('change', applyCurrencyRate);
+        // Live reconvert while typing the rate (keyup), scaling from a stable
+        // focus snapshot so intermediate digits don't compound.
+        (function () {
+            const rateEl = document.getElementById('estimateExchangeRate');
+            if (!rateEl) return;
+            let snap = null;
+
+            function capture() {
+                const rows = [];
+                document.querySelectorAll('.estimate-line').forEach(row => {
+                    const bdRow = row.nextElementSibling;
+                    const hasBd = bdRow && bdRow.classList.contains('bd-row');
+                    const laborAmt = parseFloat(row.querySelector('[name$="[labor_amount]"]')?.value) || 0;
+                    const matAmt   = parseFloat(row.querySelector('[name$="[material_amount]"]')?.value) || 0;
+                    const ancAmt   = parseFloat(row.querySelector('[name$="[ancillary_amount]"]')?.value) || 0;
+                    if (hasBd && (laborAmt + matAmt + ancAmt) > 0) {
+                        rows.push({ row, bdRow, type: 'bd',
+                            laborRate: parseFloat(bdRow.querySelector('.bd-labor-rate')?.value) || 0,
+                            matAmt:    parseFloat(bdRow.querySelector('.bd-material-amt')?.value) || 0,
+                            ancAmt:    parseFloat(bdRow.querySelector('.bd-ancillary-amt')?.value) || 0,
+                            matRate:   parseFloat(row.querySelector('[name$="[material_rate]"]')?.value) || 0 });
+                    } else {
+                        rows.push({ row, type: 'flat', unit: parseFloat(row.querySelector('.unit-price')?.value) || 0 });
+                    }
+                });
+                return { factor: estFactor(), rows };
+            }
+
+            function applyScaled(ratio) {
+                if (!snap || !isFinite(ratio) || ratio <= 0) return;
+                snap.rows.forEach(r => {
+                    if (r.type === 'bd') {
+                        r.bdRow.querySelector('.bd-labor-rate').value    = (r.laborRate * ratio).toFixed(2);
+                        r.bdRow.querySelector('.bd-material-amt').value  = (r.matAmt * ratio).toFixed(2);
+                        r.bdRow.querySelector('.bd-ancillary-amt').value = (r.ancAmt * ratio).toFixed(2);
+                        const mr = r.row.querySelector('[name$="[material_rate]"]'); if (mr) mr.value = (r.matRate * ratio).toFixed(2);
+                        syncBreakdown(r.bdRow, null);
+                    } else {
+                        r.row.querySelector('.unit-price').value = (r.unit * ratio).toFixed(4);
+                    }
+                });
+                recalculate();
+            }
+
+            rateEl.addEventListener('focus', () => { snap = capture(); });
+            rateEl.addEventListener('input', () => {
+                if ((document.getElementById('estimateCurrency')?.value || 'USD') === 'USD') return;
+                if (rateEl.value.trim() === '') return;
+                if (!snap) snap = capture();
+                const nf = estFactor();
+                if (!(nf > 0) || !(snap.factor > 0)) return;
+                applyScaled(nf / snap.factor);
+                appliedFactor = nf;
+            });
+            rateEl.addEventListener('blur', () => { snap = null; applyCurrencyRate(); });
+        })();
         document.getElementById('estimateDate')?.addEventListener('change', async function () {
             const currency = document.getElementById('estimateCurrency')?.value || 'USD';
             if (currency !== 'USD') {
