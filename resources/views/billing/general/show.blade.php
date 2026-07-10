@@ -159,12 +159,53 @@
         <div class="alert alert-info py-2 small mb-0">
             <i class="bi bi-info-circle me-1"></i>Issue the document to post it to the general ledger. Receipt settlement is added in the next phase.
         </div>
-        @elseif(in_array($invoice->status, ['issued','partially_paid','overdue','paid']))
-        <div class="alert alert-success py-2 small mb-0">
-            <i class="bi bi-check-circle me-1"></i>Posted to the general ledger. Receipt settlement is added in the next phase.
-        </div>
         @endif
     </div>
 </div>
+
+{{-- ── Finance / GL Posting ── --}}
+@can('finance.ar.post')
+@php
+    $_posting = \App\Models\InvoicePosting::where('invoice_type', 'general')
+        ->where('invoice_id', $invoice->id)
+        ->with('journal', 'postedBy')
+        ->first();
+@endphp
+@if($invoice->status !== 'draft')
+<div class="card content-card mt-3">
+    <div class="card-header"><i class="bi bi-bank me-2 text-primary"></i>Finance — GL Posting</div>
+    <div class="card-body">
+        @if($_posting && $_posting->isPosted())
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <span class="badge bg-success-subtle text-success fs-6"><i class="bi bi-check-circle me-1"></i>Posted</span>
+                @if($_posting->journal)
+                <a href="{{ route('finance.gl.journals.show', $_posting->journal) }}" class="font-monospace fw-semibold text-decoration-none">{{ $_posting->journal->journal_no }}</a>
+                @endif
+                <span class="text-muted small">by {{ $_posting->postedBy->name ?? '—' }} {{ $_posting->posted_at ? 'on ' . $_posting->posted_at->format('d M Y H:i') : '' }}</span>
+            </div>
+        @elseif($_posting && $_posting->isVoided())
+            <span class="badge bg-secondary-subtle text-secondary fs-6"><i class="bi bi-x-circle me-1"></i>Voided</span>
+            @if($_posting->journal)<span class="text-muted small ms-2">Journal: {{ $_posting->journal->journal_no }}</span>@endif
+        @elseif($_posting && $_posting->isFailed())
+            <div class="alert alert-danger py-2 small mb-2"><i class="bi bi-exclamation-circle me-1"></i>Posting failed: {{ $_posting->error_message }}</div>
+            <form method="POST" action="{{ route('finance.ar.postings.store') }}" class="d-inline">
+                @csrf
+                <input type="hidden" name="invoice_type" value="general">
+                <input type="hidden" name="invoice_id" value="{{ $invoice->id }}">
+                <button class="btn btn-sm btn-warning"><i class="bi bi-arrow-repeat me-1"></i>Retry Post to GL</button>
+            </form>
+        @else
+            <p class="text-muted small mb-2">Not yet posted to the General Ledger.</p>
+            <form method="POST" action="{{ route('finance.ar.postings.store') }}" class="d-inline">
+                @csrf
+                <input type="hidden" name="invoice_type" value="general">
+                <input type="hidden" name="invoice_id" value="{{ $invoice->id }}">
+                <button class="btn btn-sm btn-primary"><i class="bi bi-bank me-1"></i>Post to GL</button>
+            </form>
+        @endif
+    </div>
+</div>
+@endif
+@endcan
 
 @endsection

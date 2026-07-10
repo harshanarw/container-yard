@@ -41,7 +41,7 @@ class InvoicePostingController extends Controller
         $this->authorize('finance.ar.post');
 
         $validated = $request->validate([
-            'invoice_type' => ['required', 'in:storage,storage-handling,reefer,repair'],
+            'invoice_type' => ['required', 'in:storage,storage-handling,reefer,repair,general'],
             'invoice_id'   => ['required', 'integer', 'min:1'],
         ]);
 
@@ -95,6 +95,7 @@ class InvoicePostingController extends Controller
             'storage-handling' => \App\Models\StorageHandlingInvoice::find($id),
             'reefer'           => \App\Models\ReeferElectricityInvoice::find($id),
             'repair'           => \App\Models\RepairInvoice::find($id),
+            'general'          => \App\Models\GeneralInvoice::find($id),
             default            => null,
         };
     }
