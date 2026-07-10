@@ -280,7 +280,15 @@ class GeneralInvoiceController extends Controller
         ]);
 
         $data['currency']       = strtoupper($data['currency']);
-        $data['tax_applicable'] = $request->boolean('tax_applicable');
+
+        // Tax applicability: submitted value wins; else default from the AR party's
+        // (billing party, then customer) tax-exempt status.
+        if ($request->has('tax_applicable')) {
+            $data['tax_applicable'] = $request->boolean('tax_applicable');
+        } else {
+            $partyId = $data['billing_party_id'] ?: $data['customer_id'];
+            $data['tax_applicable'] = ! (Customer::find($partyId)?->tax_exempt);
+        }
 
         // Foreign document currency needs a real rate (mirrors the estimate guard).
         $base = CurrencyService::defaultCurrency();

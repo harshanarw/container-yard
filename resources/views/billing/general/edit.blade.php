@@ -87,16 +87,16 @@
                     <select name="customer_id" id="customerSel" class="form-select select2" required>
                         <option value="">— select —</option>
                         @foreach($customers as $c)
-                            <option value="{{ $c->id }}" {{ (string) old('customer_id', $invoice->customer_id) === (string) $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                            <option value="{{ $c->id }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" {{ (string) old('customer_id', $invoice->customer_id) === (string) $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Billing Party</label>
-                    <select name="billing_party_id" class="form-select select2">
+                    <select name="billing_party_id" id="billingPartySel" class="form-select select2">
                         <option value="">Same as customer</option>
                         @foreach($customers as $c)
-                            <option value="{{ $c->id }}" {{ (string) old('billing_party_id', $invoice->billing_party_id) === (string) $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                            <option value="{{ $c->id }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" {{ (string) old('billing_party_id', $invoice->billing_party_id) === (string) $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -111,7 +111,7 @@
 
                 <div class="col-md-2">
                     <label class="form-label fw-semibold">Currency <span class="text-danger">*</span></label>
-                    <select name="currency" id="invoiceCurrency" class="form-select s2-code" data-s2-sel="name" required>
+                    <select name="currency" id="invoiceCurrency" class="form-select s2-code" required>
                         @foreach($currencies as $code => $name)
                             <option value="{{ $code }}" data-code="{{ $code }}" data-name="{{ $name }}" {{ $curCode === $code ? 'selected' : '' }}>{{ $code }} — {{ $name }}</option>
                         @endforeach
@@ -180,6 +180,7 @@
     const ACCOUNTS   = @json($revenueAccounts);
     const TAXCODES   = @json($taxJs);
     const CURRENCIES = @json($curJs);
+    const CURNAMES   = @json($currencies);
     const SEED       = @json($lineData);
 
     let idx = 0;
@@ -203,7 +204,7 @@
             return `<option value="${t.id}" data-code="${esc(t.code)}" data-name="${esc(label)}" data-t1="${t.t1}" data-t2="${t.t2}" ${String(sel)===String(t.id)?'selected':''}>${esc(t.code)}</option>`;
         }).join('');
     }
-    function curOpts(sel){ return CURRENCIES.map(c => `<option value="${c}" ${sel===c?'selected':''}>${c}</option>`).join(''); }
+    function curOpts(sel){ return CURRENCIES.map(c => `<option value="${c}" data-code="${c}" data-name="${esc(CURNAMES[c] || c)}" ${sel===c?'selected':''}>${c}</option>`).join(''); }
 
     function buildRow(d = {}) {
         const i = idx++;
@@ -214,7 +215,7 @@
             <td><input type="text" name="lines[${i}][description]" class="form-control form-control-sm desc" value="${esc(d.description)}" required></td>
             <td><input type="number" name="lines[${i}][qty]" class="form-control form-control-sm qty" value="${d.qty ?? 1}" min="0.001" step="0.001" required></td>
             <td><input type="number" name="lines[${i}][unit_rate]" class="form-control form-control-sm rate" value="${d.unit_rate ?? 0}" min="0" step="0.01" required></td>
-            <td><select name="lines[${i}][line_currency]" class="form-select form-select-sm select2 lcur">${curOpts(lc)}</select></td>
+            <td><select name="lines[${i}][line_currency]" class="form-select form-select-sm s2-code lcur">${curOpts(lc)}</select></td>
             <td><input type="number" name="lines[${i}][line_exchange_rate]" class="form-control form-control-sm lfx" value="${d.line_exchange_rate ?? 1}" min="0.000001" step="0.000001" required></td>
             <td class="tax-col"><select name="lines[${i}][tax_code_id]" class="form-select form-select-sm s2-code taxsel">${taxOpts(d.tax_code_id)}</select></td>
             <td class="text-end small fw-semibold line-amt">0.00</td>
@@ -331,6 +332,20 @@
         document.getElementById('taxApplicable').value = this.value === 'invoice' ? '0' : '1';
         recalc();
     });
+
+    // Default Tax Applicable from the billing party's (else the customer's) tax-exempt
+    // status — the AR party drives it. Fires only on user change, so a saved value
+    // isn't overwritten on edit; the user can still override afterwards.
+    function autoTaxFromParty() {
+        const bp   = document.getElementById('billingPartySel');
+        const cust = document.getElementById('customerSel');
+        const opt  = (bp && bp.value) ? bp.selectedOptions[0]
+                   : ((cust && cust.value) ? cust.selectedOptions[0] : null);
+        if (!opt) return;
+        document.getElementById('taxApplicable').value = opt.dataset.taxExempt === '1' ? '0' : '1';
+        recalc();
+    }
+    $('#customerSel, #billingPartySel').on('change', autoTaxFromParty);
 
     // Seed after DOM-ready so the layout's Select2 helpers (window.initS2Code)
     // and header select initialisation have run.
