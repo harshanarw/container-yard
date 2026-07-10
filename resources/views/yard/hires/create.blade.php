@@ -64,8 +64,9 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
                 <div class="form-text">
-                    Must be <strong>after</strong> the container's gate-in date.
-                    The original owner is billed up to and including the day before this date.
+                    Must be <strong>on or after</strong> the container's gate-in date.
+                    Same-day hire is allowed — the original owner then accrues no storage;
+                    otherwise the owner is billed up to and including the day before this date.
                 </div>
             </div>
 

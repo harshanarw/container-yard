@@ -42,24 +42,41 @@ class ContainerHireService
             $originalCustomerId = $originalStorage->customer_id;
             $originalGateIn     = $originalStorage->billing_gate_in_date; // respects chained hires
 
-            // 1. Close the original customer's storage the day before hire starts
-            $originalStorage->update([
-                'gate_out_date' => $onHireDate->copy()->subDay()->toDateString(),
-                'updated_at'    => now(),
-            ]);
+            if ($onHireDate->isSameDay($originalStorage->gate_in_date)) {
+                // Same-day hire: the container goes on hire the day it was gated in,
+                // so the original customer accrues no storage. Repurpose the just-
+                // opened storage as the hire-period record instead of splitting it
+                // (closing the original on gate_in − 1 would be a negative period).
+                $originalStorage->update([
+                    'customer_id' => $data['hire_customer_id'] ?? null,
+                    'free_days'   => 0,
+                    'daily_rate'  => 0,
+                    'hire_type'   => 'on_hire',
+                    'updated_at'  => now(),
+                ]);
+                $hireStorage       = $originalStorage;
+                $originalStorageId = null;   // no separate original-customer period
+            } else {
+                // 1. Close the original customer's storage the day before hire starts
+                $originalStorage->update([
+                    'gate_out_date' => $onHireDate->copy()->subDay()->toDateString(),
+                    'updated_at'    => now(),
+                ]);
 
-            // 2. Open a hire-period storage record
-            //    customer_id is null for internal hires — this prevents the original
-            //    customer from being billed for the hire period via WHERE customer_id = ?
-            $hireStorage = YardStorage::create([
-                'container_id'  => $container->id,
-                'customer_id'   => $data['hire_customer_id'] ?? null,
-                'gate_in_date'  => $onHireDate->toDateString(),
-                'gate_out_date' => null,
-                'free_days'     => 0,
-                'daily_rate'    => 0,
-                'hire_type'     => 'on_hire',
-            ]);
+                // 2. Open a hire-period storage record
+                //    customer_id is null for internal hires — this prevents the original
+                //    customer from being billed for the hire period via WHERE customer_id = ?
+                $hireStorage = YardStorage::create([
+                    'container_id'  => $container->id,
+                    'customer_id'   => $data['hire_customer_id'] ?? null,
+                    'gate_in_date'  => $onHireDate->toDateString(),
+                    'gate_out_date' => null,
+                    'free_days'     => 0,
+                    'daily_rate'    => 0,
+                    'hire_type'     => 'on_hire',
+                ]);
+                $originalStorageId = $originalStorage->id;
+            }
 
             // 3. Create the ContainerHire record
             $hire = ContainerHire::create([
@@ -72,15 +89,17 @@ class ContainerHireService
                 'hire_reference'           => $data['hire_reference'] ?? null,
                 'on_hire_notes'            => $data['on_hire_notes'] ?? null,
                 'status'                   => 'active',
-                'original_yard_storage_id' => $originalStorage->id,
+                'original_yard_storage_id' => $originalStorageId,
                 'hire_yard_storage_id'     => $hireStorage->id,
                 'created_by'               => $userId,
                 'updated_by'               => $userId,
             ]);
 
-            // Back-fill hire_id on both storage records
-            $originalStorage->update(['hire_id' => $hire->id]);
+            // Back-fill hire_id on the storage record(s)
             $hireStorage->update(['hire_id' => $hire->id]);
+            if ($originalStorageId && $originalStorageId !== $hireStorage->id) {
+                $originalStorage->update(['hire_id' => $hire->id]);
+            }
 
             return $hire->fresh([
                 'container', 'originalCustomer', 'hireCustomer',
@@ -254,17 +273,17 @@ class ContainerHireService
             );
         }
 
-        // On-hire date must not be before the container's existing storage start
+        // On-hire date may equal the gate-in date (same-day hire) but not precede it.
         $earliestGateIn = YardStorage::where('container_id', $container->id)
             ->whereNull('gate_out_date')
             ->whereIn('hire_type', ['normal', 'resumed'])
             ->min('gate_in_date');
 
-        if ($earliestGateIn && $onHireDate->lte(Carbon::parse($earliestGateIn))) {
+        if ($earliestGateIn && $onHireDate->lt(Carbon::parse($earliestGateIn))) {
             throw new \RuntimeException(
-                'On-hire date must be after the container\'s gate-in date ('
+                'On-hire date cannot be before the container\'s gate-in date ('
                 . Carbon::parse($earliestGateIn)->format('d M Y') . '). '
-                . 'At least one day of storage must accrue on the original customer\'s account before hire begins.'
+                . 'Same-day hire (on the gate-in date) is allowed — the original customer then accrues no storage.'
             );
         }
     }
