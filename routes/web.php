@@ -34,6 +34,7 @@ use App\Http\Controllers\DamageAssessmentRuleController;
 use App\Http\Controllers\MrCodeController;
 use App\Http\Controllers\MrCodeChargeMappingController;
 use App\Http\Controllers\MrTariffController;
+use App\Http\Controllers\WashingTariffController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\ApprovalWorkflowController;
@@ -458,6 +459,16 @@ Route::middleware(['auth'])->group(function () {
                 Route::patch('{rate}',  [HandlingTariffController::class, 'updateRate'])->name('update');
                 Route::delete('{rate}', [HandlingTariffController::class, 'destroyRate'])->name('destroy');
             });
+        });
+        // Washing / Cleaning Tariff (flat per-container rates by scope × type × size)
+        Route::prefix('washing-tariff')->name('washing-tariff.')->group(function () {
+            Route::get('/',                        [WashingTariffController::class, 'index'])->name('index');
+            Route::get('create',                   [WashingTariffController::class, 'create'])->name('create');
+            Route::post('/',                       [WashingTariffController::class, 'store'])->name('store');
+            Route::get('{washingTariff}/edit',     [WashingTariffController::class, 'edit'])->name('edit');
+            Route::patch('{washingTariff}',        [WashingTariffController::class, 'update'])->name('update');
+            Route::patch('{washingTariff}/toggle', [WashingTariffController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{washingTariff}',       [WashingTariffController::class, 'destroy'])->name('destroy');
         });
         // Reefer Electricity Tariff
         Route::prefix('reefer-tariff')->name('reefer-tariff.')->group(function () {

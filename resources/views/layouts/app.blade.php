@@ -1360,6 +1360,14 @@
                         </a>
                     </li>
                     @endcan
+                    @can('masters.washing-tariff.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.washing-tariff.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.washing-tariff.*') ? 'active' : '' }}">
+                            <i class="bi bi-droplet"></i><span>Washing</span>
+                        </a>
+                    </li>
+                    @endcan
                     @can('masters.reefer-tariff.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.reefer-tariff.index') }}"
