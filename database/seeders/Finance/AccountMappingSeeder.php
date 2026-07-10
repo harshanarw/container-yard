@@ -86,6 +86,7 @@ class AccountMappingSeeder extends Seeder
         //   4004 — Reefer Electricity Revenue
         //   4005 — Survey & Inspection Revenue
         //   4006 — Other Operational Revenue
+        //   4007 — Cleaning Revenue
         //
         // Expense accounts used:
         //   5001 — Labour Costs          (direct labour)
@@ -116,8 +117,8 @@ class AccountMappingSeeder extends Seeder
             'GEN'   => '4004', 'REEF'  => '4004',
 
             // ── Cleaning ────────────────────────────────────────────────────
-            'WSH'   => '4006', 'PSWSH' => '4006', 'DGAS'  => '4006',
-            'PEST'  => '4006', 'DEZN'  => '4006',
+            'WSH'   => '4007', 'PSWSH' => '4007', 'DGAS'  => '4007',
+            'PEST'  => '4007', 'DEZN'  => '4007',
 
             // ── Labour ──────────────────────────────────────────────────────
             'LAB'   => '4002', 'OT'    => '4002', 'NIT'   => '4002', 'HOL'   => '4002',

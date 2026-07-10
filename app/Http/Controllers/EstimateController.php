@@ -596,11 +596,8 @@ class EstimateController extends Controller
         $customerId    = $inquiry->customer_id;
         $containerSize = $request->container_size ?? $inquiry->equipmentType?->size;
 
-        // Currency conversion: tariff rates are in USD.
-        // If estimate currency is different, multiply all monetary amounts by the exchange rate.
         $estCurrency  = strtoupper($request->get('currency', 'USD'));
         $exchangeRate = max(0.000001, (float) $request->get('exchange_rate', 1.0));
-        $factor       = ($estCurrency === 'USD') ? 1.0 : $exchangeRate;
 
         $tariffHeader = MrTariffHeader::with('rules')
             ->where('is_active', true)
@@ -612,6 +609,20 @@ class EstimateController extends Controller
             })
             ->orderByRaw('CASE WHEN customer_id IS NOT NULL THEN 0 ELSE 1 END')
             ->first();
+
+        // Convert tariff rates to the estimate currency, honouring the tariff's own
+        // currency (usually USD). exchange_rate is USD → estimate currency, so it
+        // only applies to a USD tariff; a tariff already in the estimate currency
+        // needs no conversion, and an unknown cross-currency is left as-is rather
+        // than double-converted.
+        $tariffCurrency = strtoupper($tariffHeader?->currency ?: 'USD');
+        if ($tariffCurrency === $estCurrency) {
+            $factor = 1.0;
+        } elseif ($tariffCurrency === 'USD') {
+            $factor = $estCurrency === 'USD' ? 1.0 : $exchangeRate;
+        } else {
+            $factor = 1.0;
+        }
 
         $lines = [];
 

@@ -10,6 +10,7 @@ class RepairInvoiceLine extends Model
         'repair_invoice_id', 'estimate_line_item_id', 'work_order_line_id',
         'location_code_id', 'component_code_id', 'damage_code_id', 'repair_code_id',
         'charge_code_id', 'tax_code_id',
+        'washing_tariff_id', 'wash_scope',
         'cedex_code', 'description', 'qty', 'unit_price', 'tax_percentage', 'line_amount',
         'tax1_rate', 'tax2_rate', 'tax1_amount', 'tax2_amount', 'gross_amount',
     ];

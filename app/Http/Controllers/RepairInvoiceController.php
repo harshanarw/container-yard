@@ -113,6 +113,8 @@ class RepairInvoiceController extends Controller
                 'repair_code_id'        => $line->repair_code_id,
                 'charge_code_id'        => $line->charge_code_id,
                 'tax_code_id'           => $line->tax_code_id,
+                'washing_tariff_id'     => $line->washing_tariff_id,
+                'wash_scope'            => $line->wash_scope,
                 'cedex_code'            => $line->cedex_code,
                 'description'           => $line->component ?? 'Repair work item',
                 'qty'                   => $line->qty ?? 1,
@@ -134,11 +136,14 @@ class RepairInvoiceController extends Controller
         $grandTotal = round($subtotal + $taxAmount, 2);
         $taxPct     = $subtotal > 0 ? round($taxAmount / $subtotal * 100, 4) : 0;
 
-        // Snapshot the exchange rate at invoice time so the AR can later be relieved
-        // at the booked rate (FX gain/loss on settlement). A foreign-currency
-        // customer with no configured rate is rejected rather than silently booked
-        // at 1.0, which would understate the base-currency ledger.
-        $currency = $estimate->customer?->currency ?? \App\Models\CompanySetting::baseCurrency();
+        // Bill in the estimate's own currency — its line amounts are stored in that
+        // currency, so the invoice magnitudes and stamped currency always agree.
+        // (Deriving from the customer instead could mismatch when the estimate was
+        // priced in a different currency, mis-billing and mis-posting the GL.)
+        // The rate is snapshot at invoice time (currency → base) so the AR can be
+        // relieved at the booked rate; a foreign currency with no configured rate
+        // is rejected rather than silently booked at 1.0.
+        $currency = $estimate->currency ?? \App\Models\CompanySetting::baseCurrency();
         try {
             $rate = \App\Services\CurrencyService::resolveRateOrFail($currency, now()->toDateString());
         } catch (\InvalidArgumentException $e) {
