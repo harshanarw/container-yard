@@ -253,7 +253,9 @@ class StorageHandlingController extends Controller
                     $toDate = $storage->gate_out_date->copy();
                 }
 
-                $totalDays        = max(1, (int) $fromDate->diffInDays($toDate) + 1);
+                // Empty window (gate_out before gate_in, e.g. a same-day hire's
+                // original record closed at gate_in − 1) accrues zero storage.
+                $totalDays        = $toDate->lt($fromDate) ? 0 : max(1, (int) $fromDate->diffInDays($toDate) + 1);
                 $daysBeforePeriod = max(0, (int) $gateIn->diffInDays($fromDate));
 
                 $freeDays   = $storageTariff?->default_free_days ?? $storage->free_days ?? 0;

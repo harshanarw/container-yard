@@ -172,6 +172,13 @@ class StorageBillingController extends Controller
                 $toDate = $storage->gate_out_date->copy();
             }
 
+            // Empty chargeable window (gate_out before gate_in) → no storage accrues.
+            // This is what a same-day hire produces on the original customer's record
+            // (closed at gate_in − 1); it must bill zero, not the max(1,…) minimum.
+            if ($toDate->lt($fromDate)) {
+                continue;
+            }
+
             // Days in this billing period for this storage record
             $totalDays = max(1, (int) $fromDate->diffInDays($toDate) + 1);
 
