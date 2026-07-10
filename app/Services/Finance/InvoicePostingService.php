@@ -323,13 +323,18 @@ class InvoicePostingService
                 break;
 
             case 'general':
-                // Same shape as repair: revenue = net + SSCL per line, split by
-                // charge code → revenue account (fallback 4006 Other Operational).
+                // Same shape as repair: revenue = net + SSCL per line. Credit the
+                // line's chosen revenue account when set, else the charge code →
+                // revenue account mapping (fallback 4006 Other Operational).
                 $invoice->loadMissing('lines');
                 foreach ($invoice->lines as $line) {
                     $amt = round((float) ($line->line_amount ?? 0) + (float) ($line->tax1_amount ?? 0), 2);
                     if ($amt <= 0) continue;
-                    $acc = $this->requireChargeRevenueAccount($line->charge_code_id, '4006', 'a general invoice line');
+                    $acc = null;
+                    if ($line->revenue_account_id) {
+                        $acc = Account::where('id', $line->revenue_account_id)->where('is_active', true)->first();
+                    }
+                    $acc ??= $this->requireChargeRevenueAccount($line->charge_code_id, '4006', 'a general invoice line');
                     $add($acc->id, $amt, 'General invoice income');
                 }
                 break;

@@ -76,6 +76,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="ps-3">Charge Code</th>
+                                <th>Revenue A/C</th>
                                 <th>Description</th>
                                 <th class="text-end">Qty</th>
                                 <th class="text-end">Rate</th>
@@ -89,6 +90,12 @@
                         @foreach($invoice->lines as $l)
                         <tr>
                             <td class="ps-3 small">{{ $l->chargeCode?->code ?? '—' }}</td>
+                            <td class="small">
+                                @if($l->revenueAccount)
+                                    <span class="font-monospace">{{ $l->revenueAccount->code }}</span>
+                                    <span class="text-muted d-block" style="font-size:.66rem;">{{ $l->revenueAccount->name }}</span>
+                                @else — @endif
+                            </td>
                             <td class="small">{{ $l->description }}</td>
                             <td class="text-end small">{{ rtrim(rtrim(number_format($l->qty, 3), '0'), '.') }}</td>
                             <td class="text-end small">{{ number_format($l->unit_rate, 2) }}</td>
@@ -108,15 +115,15 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="{{ $invoice->tax_applicable ? 6 : 5 }}" class="text-end fw-semibold pe-3">Subtotal:</td>
+                                <td colspan="{{ $invoice->tax_applicable ? 7 : 6 }}" class="text-end fw-semibold pe-3">Subtotal:</td>
                                 <td class="text-end fw-semibold" colspan="2">{{ $invoice->currency }} {{ number_format($invoice->subtotal, 2) }}</td>
                             </tr>
                             @if($invoice->tax_applicable)
-                            @if($invoice->sscl_total > 0)<tr><td colspan="6" class="text-end text-muted pe-3">SSCL:</td><td class="text-end" colspan="2">{{ number_format($invoice->sscl_total, 2) }}</td></tr>@endif
-                            @if($invoice->vat_total > 0)<tr><td colspan="6" class="text-end text-muted pe-3">VAT:</td><td class="text-end" colspan="2">{{ number_format($invoice->vat_total, 2) }}</td></tr>@endif
+                            @if($invoice->sscl_total > 0)<tr><td colspan="7" class="text-end text-muted pe-3">SSCL:</td><td class="text-end" colspan="2">{{ number_format($invoice->sscl_total, 2) }}</td></tr>@endif
+                            @if($invoice->vat_total > 0)<tr><td colspan="7" class="text-end text-muted pe-3">VAT:</td><td class="text-end" colspan="2">{{ number_format($invoice->vat_total, 2) }}</td></tr>@endif
                             @endif
                             <tr class="table-primary">
-                                <td colspan="{{ $invoice->tax_applicable ? 6 : 5 }}" class="text-end fw-bold pe-3">TOTAL:</td>
+                                <td colspan="{{ $invoice->tax_applicable ? 7 : 6 }}" class="text-end fw-bold pe-3">TOTAL:</td>
                                 <td class="text-end fw-bold" colspan="2">{{ $invoice->currency }} {{ number_format($invoice->grand_total, 2) }}</td>
                             </tr>
                         </tfoot>

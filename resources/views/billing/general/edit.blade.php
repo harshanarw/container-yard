@@ -13,11 +13,13 @@
 
 @php
     $lineData = old('lines', $invoice->lines->map(fn($l) => [
-        'charge_code_id' => $l->charge_code_id, 'description' => $l->description,
+        'charge_code_id' => $l->charge_code_id, 'revenue_account_id' => $l->revenue_account_id,
+        'description' => $l->description,
         'qty' => $l->qty, 'unit_rate' => $l->unit_rate,
         'line_currency' => $l->line_currency, 'line_exchange_rate' => $l->line_exchange_rate,
         'tax_code_id' => $l->tax_code_id,
     ])->all());
+    $acctJs = $incomeAccounts->map(fn($a) => ['id' => $a->id, 'code' => $a->code, 'name' => $a->name])->values();
     $curCode = old('currency', $invoice->currency ?? $baseCurrency);
 
     // Precompute JS data here — the json blade directive can't parse arrow-fn
@@ -178,6 +180,7 @@
     const BASE       = '{{ $baseCurrency }}';
     const CHARGE     = @json($chargeJs);
     const ACCOUNTS   = @json($revenueAccounts);
+    const INCOME_ACCTS = @json($acctJs);
     const TAXCODES   = @json($taxJs);
     const CURRENCIES = @json($curJs);
     const CURNAMES   = @json($currencies);
@@ -205,13 +208,18 @@
         }).join('');
     }
     function curOpts(sel){ return CURRENCIES.map(c => `<option value="${c}" data-code="${c}" data-name="${esc(CURNAMES[c] || c)}" ${sel===c?'selected':''}>${c}</option>`).join(''); }
+    function acctOpts(sel){
+        return '<option value="">— revenue a/c —</option>' + INCOME_ACCTS.map(a =>
+            `<option value="${a.id}" data-code="${esc(a.code)}" data-name="${esc(a.name)}" ${String(sel)===String(a.id)?'selected':''}>${esc(a.code)} — ${esc(a.name)}</option>`
+        ).join('');
+    }
 
     function buildRow(d = {}) {
         const i = idx++;
         const lc = d.line_currency || invCur();
         return `<tr class="gi-line">
             <td><select name="lines[${i}][charge_code_id]" class="form-select form-select-sm s2-code charge-sel" required>${chargeOpts(d.charge_code_id)}</select></td>
-            <td class="acct-cell small">—</td>
+            <td><select name="lines[${i}][revenue_account_id]" class="form-select form-select-sm s2-code acct-sel">${acctOpts(d.revenue_account_id)}</select></td>
             <td><input type="text" name="lines[${i}][description]" class="form-control form-control-sm desc" value="${esc(d.description)}" required></td>
             <td><input type="number" name="lines[${i}][qty]" class="form-control form-control-sm qty" value="${d.qty ?? 1}" min="0.001" step="0.001" required></td>
             <td><input type="number" name="lines[${i}][unit_rate]" class="form-control form-control-sm rate" value="${d.unit_rate ?? 0}" min="0" step="0.01" required></td>
@@ -237,16 +245,22 @@
         return row;
     }
 
-    // syncDesc=true copies the charge code's description into Description (on user change).
+    // On charge-code select: default the revenue account to the charge's mapped
+    // account (overridable), and on a user change also sync description + tax code.
+    // syncDesc=true → user-initiated change; false → initial seed (keep saved values).
     function applyCharge(row, syncDesc) {
         const opt = row.querySelector('.charge-sel')?.selectedOptions[0];
-        const acctCell = row.querySelector('.acct-cell');
-        const acode = opt?.dataset.acode, aname = opt?.dataset.aname;
-        if (acode) acctCell.innerHTML = `<span class="badge bg-info-subtle text-info border font-monospace">${acode}</span> <span class="text-muted">${esc(aname)}</span>`;
-        else acctCell.innerHTML = (opt && opt.value) ? '<span class="badge bg-warning-subtle text-warning border">no revenue account</span>' : '<span class="text-muted">—</span>';
-
         if (!opt || !opt.value) return;
+
+        const acctSel = row.querySelector('.acct-sel');
+        const mapped  = ACCOUNTS[opt.value];   // { id, code, name } or undefined
+        if (acctSel && mapped && mapped.id && (syncDesc || !acctSel.value)) {
+            acctSel.value = mapped.id;
+            $(acctSel).trigger('change.select2');
+        }
+
         if (syncDesc) { const desc = row.querySelector('.desc'); desc.value = opt.dataset.name || desc.value; }
+
         const taxSel = row.querySelector('.taxsel');
         const tc = opt.dataset.tax || '';
         if (tc && (syncDesc || !taxSel.value)) { taxSel.value = tc; $(taxSel).trigger('change.select2'); }

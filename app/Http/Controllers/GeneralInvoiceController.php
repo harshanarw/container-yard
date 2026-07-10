@@ -84,7 +84,7 @@ class GeneralInvoiceController extends Controller
     {
         $general->load([
             'customer', 'billingParty', 'createdBy', 'issuedBy',
-            'lines.chargeCode', 'lines.taxCode',
+            'lines.chargeCode', 'lines.taxCode', 'lines.revenueAccount',
         ]);
 
         return view('billing.general.show', ['invoice' => $general]);
@@ -250,6 +250,9 @@ class GeneralInvoiceController extends Controller
             'taxCodes'        => TaxCode::where('is_active', true)->orderBy('sort_order')->get(),
             'currencies'      => CurrencyService::activeCurrencyNames(),
             'revenueAccounts' => $revenueAccounts,
+            'incomeAccounts'  => Account::where('classification', 'income')
+                                    ->where('is_posting', true)->where('is_active', true)
+                                    ->orderBy('code')->get(['id', 'code', 'name']),
             'baseCurrency'    => CurrencyService::defaultCurrency(),
         ];
     }
@@ -271,6 +274,7 @@ class GeneralInvoiceController extends Controller
 
             'lines'                     => ['required', 'array', 'min:1'],
             'lines.*.charge_code_id'    => ['required', 'exists:charge_codes,id'],
+            'lines.*.revenue_account_id'=> ['nullable', 'exists:accounts,id'],
             'lines.*.description'       => ['required', 'string', 'max:255'],
             'lines.*.qty'               => ['required', 'numeric', 'min:0.001'],
             'lines.*.unit_rate'         => ['required', 'numeric', 'min:0'],
@@ -331,6 +335,7 @@ class GeneralInvoiceController extends Controller
 
             $out[] = [
                 'charge_code_id'     => $line['charge_code_id'] ?? null,
+                'revenue_account_id' => $line['revenue_account_id'] ?: null,
                 'tax_code_id'        => $line['tax_code_id'] ?? null,
                 'description'        => $line['description'] ?? '',
                 'qty'                => $qty,
@@ -424,6 +429,7 @@ class GeneralInvoiceController extends Controller
             ->where('is_active', true)
             ->get()
             ->mapWithKeys(fn ($m) => [$m->source_id => [
+                'id'   => $m->account_id,
                 'code' => $m->account?->code,
                 'name' => $m->account?->name,
             ]])

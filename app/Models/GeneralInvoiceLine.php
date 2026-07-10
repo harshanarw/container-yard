@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class GeneralInvoiceLine extends Model
 {
     protected $fillable = [
-        'general_invoice_id', 'charge_code_id', 'tax_code_id',
+        'general_invoice_id', 'charge_code_id', 'revenue_account_id', 'tax_code_id',
         'description', 'qty', 'unit_rate',
         'line_currency', 'line_exchange_rate',
         'native_amount', 'line_amount',
@@ -38,6 +38,11 @@ class GeneralInvoiceLine extends Model
     public function chargeCode()
     {
         return $this->belongsTo(ChargeCode::class);
+    }
+
+    public function revenueAccount()
+    {
+        return $this->belongsTo(Account::class, 'revenue_account_id');
     }
 
     public function taxCode()
