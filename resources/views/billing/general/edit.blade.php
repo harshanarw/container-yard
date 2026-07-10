@@ -63,7 +63,7 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Category</label>
-                    <select name="category" class="form-select">
+                    <select name="category" class="form-select select2">
                         <option value="">—</option>
                         @foreach(\App\Models\GeneralInvoice::CATEGORIES as $k => $label)
                             <option value="{{ $k }}" {{ old('category', $invoice->category) === $k ? 'selected' : '' }}>{{ $label }}</option>
@@ -84,7 +84,7 @@
 
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Customer <span class="text-danger">*</span></label>
-                    <select name="customer_id" id="customerSel" class="form-select" required>
+                    <select name="customer_id" id="customerSel" class="form-select select2" required>
                         <option value="">— select —</option>
                         @foreach($customers as $c)
                             <option value="{{ $c->id }}" {{ (string) old('customer_id', $invoice->customer_id) === (string) $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
@@ -93,7 +93,7 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Billing Party</label>
-                    <select name="billing_party_id" class="form-select">
+                    <select name="billing_party_id" class="form-select select2">
                         <option value="">Same as customer</option>
                         @foreach($customers as $c)
                             <option value="{{ $c->id }}" {{ (string) old('billing_party_id', $invoice->billing_party_id) === (string) $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
@@ -111,9 +111,9 @@
 
                 <div class="col-md-2">
                     <label class="form-label fw-semibold">Currency <span class="text-danger">*</span></label>
-                    <select name="currency" id="invoiceCurrency" class="form-select" required>
+                    <select name="currency" id="invoiceCurrency" class="form-select s2-code" data-s2-sel="name" required>
                         @foreach($currencies as $code => $name)
-                            <option value="{{ $code }}" {{ $curCode === $code ? 'selected' : '' }}>{{ $code }}</option>
+                            <option value="{{ $code }}" data-code="{{ $code }}" data-name="{{ $name }}" {{ $curCode === $code ? 'selected' : '' }}>{{ $code }} — {{ $name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -137,24 +137,25 @@
                 <table class="table align-middle mb-0" id="lineTable">
                     <thead class="table-light">
                         <tr>
-                            <th style="width:15%">Charge Code</th>
-                            <th style="width:20%">Description</th>
-                            <th style="width:8%">Qty</th>
-                            <th style="width:11%">Unit Rate</th>
-                            <th style="width:9%">Ccy</th>
-                            <th style="width:10%">Line→Inv Rate</th>
-                            <th style="width:10%" class="tax-col">Tax Code</th>
-                            <th style="width:9%" class="text-end">Amount</th>
-                            <th style="width:9%" class="text-end">Base</th>
+                            <th style="min-width:150px">Charge Code</th>
+                            <th style="min-width:150px">Revenue Account</th>
+                            <th style="min-width:160px">Description</th>
+                            <th style="width:70px">Qty</th>
+                            <th style="width:95px">Unit Rate</th>
+                            <th style="width:95px">Ccy</th>
+                            <th style="width:100px">Line→Inv Rate</th>
+                            <th style="width:110px" class="tax-col">Tax Code</th>
+                            <th style="width:100px" class="text-end">Amount</th>
+                            <th style="width:100px" class="text-end">Base</th>
                             <th style="width:32px"></th>
                         </tr>
                     </thead>
                     <tbody id="lineItems"></tbody>
                     <tfoot class="table-light">
-                        <tr><td colspan="7" class="text-end fw-semibold pe-3">Subtotal (<span class="cur-lbl">{{ $curCode }}</span>):</td><td class="text-end fw-semibold" id="tSub">0.00</td><td class="text-end small text-muted" id="tSubBase">0.00</td><td></td></tr>
-                        <tr class="tax-row"><td colspan="7" class="text-end text-muted pe-3">SSCL:</td><td class="text-end text-muted" id="tSscl">0.00</td><td></td><td></td></tr>
-                        <tr class="tax-row"><td colspan="7" class="text-end text-muted pe-3">VAT:</td><td class="text-end text-muted" id="tVat">0.00</td><td></td><td></td></tr>
-                        <tr class="table-primary"><td colspan="7" class="text-end fw-bold pe-3">TOTAL (<span class="cur-lbl">{{ $curCode }}</span>):</td><td class="text-end fw-bold" id="tTotal">0.00</td><td class="text-end small" id="tTotalBase">0.00</td><td></td></tr>
+                        <tr><td colspan="8" class="text-end fw-semibold pe-3">Subtotal (<span class="cur-lbl">{{ $curCode }}</span>):</td><td class="text-end fw-semibold" id="tSub">0.00</td><td class="text-end small text-muted" id="tSubBase">0.00</td><td></td></tr>
+                        <tr class="tax-row"><td colspan="8" class="text-end text-muted pe-3">SSCL:</td><td class="text-end text-muted" id="tSscl">0.00</td><td></td><td></td></tr>
+                        <tr class="tax-row"><td colspan="8" class="text-end text-muted pe-3">VAT:</td><td class="text-end text-muted" id="tVat">0.00</td><td></td><td></td></tr>
+                        <tr class="table-primary"><td colspan="8" class="text-end fw-bold pe-3">TOTAL (<span class="cur-lbl">{{ $curCode }}</span>):</td><td class="text-end fw-bold" id="tTotal">0.00</td><td class="text-end small" id="tTotalBase">0.00</td><td></td></tr>
                     </tfoot>
                 </table>
             </div>
@@ -189,38 +190,65 @@
     function invRate(){ return parseFloat(document.getElementById('invoiceRate').value) || 1; }
     function taxOn(){ return document.getElementById('taxApplicable').value !== '0'; }
 
-    function chargeOpts(sel){ return '<option value="">—</option>' + CHARGE.map(c => `<option value="${c.id}" ${String(sel)===String(c.id)?'selected':''}>${esc(c.code)}</option>`).join(''); }
-    function taxOpts(sel){ return '<option value="">—</option>' + TAXCODES.map(t => `<option value="${t.id}" data-t1="${t.t1}" data-t2="${t.t2}" ${String(sel)===String(t.id)?'selected':''}>${esc(t.code)}</option>`).join(''); }
+    // Charge code option → code chip + description (s2-code), carrying tax + account.
+    function chargeOpts(sel){
+        return '<option value="">— charge code —</option>' + CHARGE.map(c => {
+            const a = ACCOUNTS[c.id];
+            return `<option value="${c.id}" data-code="${esc(c.code)}" data-name="${esc(c.desc)}" data-tax="${c.tax_code_id ?? ''}" data-acode="${a?esc(a.code):''}" data-aname="${a?esc(a.name):''}" ${String(sel)===String(c.id)?'selected':''}>${esc(c.code)} — ${esc(c.desc)}</option>`;
+        }).join('');
+    }
+    function taxOpts(sel){
+        return '<option value="">— none —</option>' + TAXCODES.map(t => {
+            const label = `${t.code} (SSCL ${t.t1}% + VAT ${t.t2}%)`;
+            return `<option value="${t.id}" data-code="${esc(t.code)}" data-name="${esc(label)}" data-t1="${t.t1}" data-t2="${t.t2}" ${String(sel)===String(t.id)?'selected':''}>${esc(t.code)}</option>`;
+        }).join('');
+    }
     function curOpts(sel){ return CURRENCIES.map(c => `<option value="${c}" ${sel===c?'selected':''}>${c}</option>`).join(''); }
 
     function buildRow(d = {}) {
         const i = idx++;
         const lc = d.line_currency || invCur();
         return `<tr class="gi-line">
-            <td>
-                <select name="lines[${i}][charge_code_id]" class="form-select form-select-sm charge-sel" required>${chargeOpts(d.charge_code_id)}</select>
-                <div class="text-muted acct-lbl" style="font-size:.66rem;"></div>
-            </td>
+            <td><select name="lines[${i}][charge_code_id]" class="form-select form-select-sm s2-code charge-sel" required>${chargeOpts(d.charge_code_id)}</select></td>
+            <td class="acct-cell small">—</td>
             <td><input type="text" name="lines[${i}][description]" class="form-control form-control-sm desc" value="${esc(d.description)}" required></td>
             <td><input type="number" name="lines[${i}][qty]" class="form-control form-control-sm qty" value="${d.qty ?? 1}" min="0.001" step="0.001" required></td>
             <td><input type="number" name="lines[${i}][unit_rate]" class="form-control form-control-sm rate" value="${d.unit_rate ?? 0}" min="0" step="0.01" required></td>
-            <td><select name="lines[${i}][line_currency]" class="form-select form-select-sm lcur">${curOpts(lc)}</select></td>
+            <td><select name="lines[${i}][line_currency]" class="form-select form-select-sm select2 lcur">${curOpts(lc)}</select></td>
             <td><input type="number" name="lines[${i}][line_exchange_rate]" class="form-control form-control-sm lfx" value="${d.line_exchange_rate ?? 1}" min="0.000001" step="0.000001" required></td>
-            <td class="tax-col"><select name="lines[${i}][tax_code_id]" class="form-select form-select-sm taxsel">${taxOpts(d.tax_code_id)}</select></td>
+            <td class="tax-col"><select name="lines[${i}][tax_code_id]" class="form-select form-select-sm s2-code taxsel">${taxOpts(d.tax_code_id)}</select></td>
             <td class="text-end small fw-semibold line-amt">0.00</td>
             <td class="text-end small text-muted line-base">0.00</td>
             <td class="text-end"><button type="button" class="btn btn-outline-danger btn-xs py-0 px-1 rm"><i class="bi bi-trash"></i></button></td>
         </tr>`;
     }
 
-    function addRow(d){ tbody.insertAdjacentHTML('beforeend', buildRow(d)); const row = tbody.lastElementChild; applyCharge(row); return row; }
+    function initRowSelects(row) {
+        $(row).find('select.s2-code').each(function(){ window.initS2Code($(this), { width: '100%', dropdownParent: $('body') }); });
+        $(row).find('select.select2').each(function(){ $(this).select2({ theme: 'bootstrap-5', width: '100%', dropdownParent: $('body') }); });
+    }
 
-    function applyCharge(row) {
-        const cid = row.querySelector('.charge-sel').value;
-        const c = CHARGE.find(x => String(x.id) === String(cid));
-        const acct = ACCOUNTS[cid];
-        row.querySelector('.acct-lbl').textContent = acct ? `→ ${acct.code} ${acct.name}` : (cid ? '→ no revenue account mapped' : '');
-        if (c && !row.querySelector('.taxsel').value) row.querySelector('.taxsel').value = c.tax_code_id || '';
+    function addRow(d){
+        tbody.insertAdjacentHTML('beforeend', buildRow(d));
+        const row = tbody.lastElementChild;
+        initRowSelects(row);
+        applyCharge(row, false);   // set account cell only; keep any saved description
+        return row;
+    }
+
+    // syncDesc=true copies the charge code's description into Description (on user change).
+    function applyCharge(row, syncDesc) {
+        const opt = row.querySelector('.charge-sel')?.selectedOptions[0];
+        const acctCell = row.querySelector('.acct-cell');
+        const acode = opt?.dataset.acode, aname = opt?.dataset.aname;
+        if (acode) acctCell.innerHTML = `<span class="badge bg-info-subtle text-info border font-monospace">${acode}</span> <span class="text-muted">${esc(aname)}</span>`;
+        else acctCell.innerHTML = (opt && opt.value) ? '<span class="badge bg-warning-subtle text-warning border">no revenue account</span>' : '<span class="text-muted">—</span>';
+
+        if (!opt || !opt.value) return;
+        if (syncDesc) { const desc = row.querySelector('.desc'); desc.value = opt.dataset.name || desc.value; }
+        const taxSel = row.querySelector('.taxsel');
+        const tc = opt.dataset.tax || '';
+        if (tc && (syncDesc || !taxSel.value)) { taxSel.value = tc; $(taxSel).trigger('change.select2'); }
     }
 
     async function fetchLineFx(row) {
@@ -285,12 +313,12 @@
     document.getElementById('addLine').addEventListener('click', () => { addRow(); recalc(); });
     tbody.addEventListener('click', e => { if (e.target.closest('.rm')) { e.target.closest('.gi-line').remove(); recalc(); } });
     tbody.addEventListener('input', e => { if (e.target.matches('.qty,.rate,.lfx')) recalc(); });
-    tbody.addEventListener('change', e => {
-        if (e.target.classList.contains('charge-sel')) applyCharge(e.target.closest('.gi-line'));
-        if (e.target.classList.contains('lcur')) fetchLineFx(e.target.closest('.gi-line'));
-        if (e.target.classList.contains('taxsel')) recalc();
-    });
-    document.getElementById('invoiceCurrency').addEventListener('change', async () => {
+    // Select2 fires jQuery change events — delegate via jQuery so they're caught.
+    $('#lineItems').on('change', 'select.charge-sel', function () { applyCharge(this.closest('tr'), true); recalc(); });
+    $('#lineItems').on('change', 'select.lcur',       function () { fetchLineFx(this.closest('tr')); });
+    $('#lineItems').on('change', 'select.taxsel',     function () { recalc(); });
+
+    $('#invoiceCurrency').on('change', async function () {
         await fetchInvoiceRate();
         // Re-pull each line's cross rate against the new invoice currency.
         for (const row of document.querySelectorAll('.gi-line')) await fetchLineFx(row);
@@ -304,10 +332,13 @@
         recalc();
     });
 
-    // Seed
-    (SEED && SEED.length ? SEED : [{}]).forEach(addRow);
-    fetchInvoiceRate();
-    recalc();
+    // Seed after DOM-ready so the layout's Select2 helpers (window.initS2Code)
+    // and header select initialisation have run.
+    $(function () {
+        (SEED && SEED.length ? SEED : [{}]).forEach(addRow);
+        fetchInvoiceRate();
+        recalc();
+    });
 })();
 </script>
 @endpush
