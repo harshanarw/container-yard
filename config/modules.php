@@ -45,6 +45,12 @@ return [
         'actions' => ['view', 'create', 'edit', 'delete', 'approve', 'pdf'],
     ],
 
+    'billing.general' => [
+        'label'   => 'General Invoicing',
+        'section' => 'Billing',
+        'actions' => ['view', 'create', 'edit', 'delete', 'post', 'void', 'pdf', 'email'],
+    ],
+
     // ── Yard Operations ───────────────────────────────────────────────────────
 
     'yard' => [
