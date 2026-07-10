@@ -25,6 +25,9 @@
         <p class="text-muted mb-0 small">{{ $invoice->type_title }} · {{ $invoice->category_label }}</p>
     </div>
     <div class="d-flex gap-2">
+        @can('billing.general.pdf')
+        <a href="{{ route('billing.general.pdf', $invoice) }}" target="_blank" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer me-1"></i>Print</a>
+        @endcan
         @can('billing.general.edit')
         @if($invoice->status === 'draft')
         <a href="{{ route('billing.general.edit', $invoice) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>

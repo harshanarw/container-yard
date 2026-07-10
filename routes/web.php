@@ -183,6 +183,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('charge-code-info', [\App\Http\Controllers\GeneralInvoiceController::class, 'chargeCodeInfo'])->name('charge-code-info');
         Route::get('currency-rate',    [\App\Http\Controllers\GeneralInvoiceController::class, 'currencyRate'])->name('currency-rate');
         Route::get('{general}',        [\App\Http\Controllers\GeneralInvoiceController::class, 'show'])->name('show');
+        Route::get('{general}/pdf',    [\App\Http\Controllers\GeneralInvoiceController::class, 'pdf'])->name('pdf');
         Route::get('{general}/edit',   [\App\Http\Controllers\GeneralInvoiceController::class, 'edit'])->name('edit');
         Route::patch('{general}',      [\App\Http\Controllers\GeneralInvoiceController::class, 'update'])->name('update');
         Route::delete('{general}',     [\App\Http\Controllers\GeneralInvoiceController::class, 'destroy'])->name('destroy');

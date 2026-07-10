@@ -20,6 +20,7 @@ class GeneralInvoiceController extends Controller
     public function __construct()
     {
         $this->middleware('can:billing.general.view')->only(['index', 'show', 'chargeCodeInfo', 'currencyRate']);
+        $this->middleware('can:billing.general.pdf')->only(['pdf']);
         $this->middleware('can:billing.general.create')->only(['create', 'store']);
         $this->middleware('can:billing.general.edit')->only(['edit', 'update']);
         $this->middleware('can:billing.general.delete')->only(['destroy']);
@@ -85,6 +86,17 @@ class GeneralInvoiceController extends Controller
         ]);
 
         return view('billing.general.show', ['invoice' => $general]);
+    }
+
+    public function pdf(GeneralInvoice $general)
+    {
+        $general->load(['customer', 'billingParty', 'lines.chargeCode', 'lines.taxCode', 'createdBy']);
+
+        return view('billing.general.pdf', [
+            'invoice'  => $general,
+            'settings' => \App\Models\CompanySetting::current(),
+            'base'     => CurrencyService::defaultCurrency(),
+        ]);
     }
 
     public function edit(GeneralInvoice $general)
