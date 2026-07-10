@@ -73,6 +73,10 @@ class RepairInvoiceController extends Controller
             return back()->withErrors(['estimate_id' => 'Only approved estimates can generate repair invoices.'])->withInput();
         }
 
+        // Inherit tax applicability from the estimate (source of truth). When the
+        // estimate is tax-exempt, the invoice charges no SSCL/VAT.
+        $taxApplicable = (bool) ($estimate->tax_applicable ?? true);
+
         $subtotal    = 0;
         $ssclTotal   = 0;
         $vatTotal    = 0;
@@ -93,10 +97,11 @@ class RepairInvoiceController extends Controller
                 $zeroLines[] = $line->cedex_code ?: ($line->component ?? 'item');
             }
 
-            // Per-line SSCL/VAT cascade: Tax1 on net; Tax2 on (net + Tax1)
+            // Per-line SSCL/VAT cascade: Tax1 on net; Tax2 on (net + Tax1).
+            // A tax-exempt estimate charges no tax regardless of the line codes.
             $tc      = $line->taxCode;
-            $t1Rate  = (float) ($tc?->tax1_rate ?? 0);
-            $t2Rate  = (float) ($tc?->tax2_rate ?? 0);
+            $t1Rate  = $taxApplicable ? (float) ($tc?->tax1_rate ?? 0) : 0.0;
+            $t2Rate  = $taxApplicable ? (float) ($tc?->tax2_rate ?? 0) : 0.0;
             $t1Amt   = round($lineAmount * $t1Rate / 100, 2);
             $t2Amt   = round(($lineAmount + $t1Amt) * $t2Rate / 100, 2);
             $gross   = round($lineAmount + $t1Amt + $t2Amt, 2);
@@ -150,7 +155,7 @@ class RepairInvoiceController extends Controller
             return back()->withInput()->with('error', $e->getMessage());
         }
 
-        $invoice = DB::transaction(function () use ($estimate, $lineRecords, $subtotal, $ssclTotal, $vatTotal, $taxAmount, $grandTotal, $taxPct, $validated, $currency, $rate) {
+        $invoice = DB::transaction(function () use ($estimate, $lineRecords, $subtotal, $ssclTotal, $vatTotal, $taxAmount, $grandTotal, $taxPct, $validated, $currency, $rate, $taxApplicable) {
             $invNo = app(\App\Services\NumberSequenceService::class)->generate('repair_invoice');
 
             $invoice = \App\Models\RepairInvoice::create([
@@ -165,6 +170,7 @@ class RepairInvoiceController extends Controller
                                     )->toDateString(),
                 'currency'       => $currency,
                 'exchange_rate'  => $rate,
+                'tax_applicable' => $taxApplicable,
                 'status'         => 'draft',
                 'subtotal'       => $subtotal,
                 'sscl_total'     => $ssclTotal,

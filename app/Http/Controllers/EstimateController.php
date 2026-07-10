@@ -108,10 +108,16 @@ class EstimateController extends Controller
     {
         $container = Container::findOrFail($request->container_id);
 
-        $lineItems = array_values($request->line_items);
-        $totals    = $this->calculateLineTotals($lineItems);
+        // Tax applicability: submitted value wins; otherwise default from the
+        // customer's tax-exempt status (exempt → not applicable).
+        $taxApplicable = $request->has('tax_applicable')
+            ? $request->boolean('tax_applicable')
+            : ! (Customer::find($request->customer_id)?->tax_exempt);
 
-        $estimate = DB::transaction(function () use ($container, $request, $lineItems, $totals) {
+        $lineItems = array_values($request->line_items);
+        $totals    = $this->calculateLineTotals($lineItems, $taxApplicable);
+
+        $estimate = DB::transaction(function () use ($container, $request, $lineItems, $totals, $taxApplicable) {
             $resolver = new RepairCategoryResolver();
 
             $estimate = Estimate::create([
@@ -129,6 +135,7 @@ class EstimateController extends Controller
                 // Rate is USD → estimate currency; a USD estimate is 1:1 with the
                 // tariff currency, so never let it carry a stray conversion rate.
                 'exchange_rate'  => $request->currency === 'USD' ? 1.0 : ($request->exchange_rate ?? 1.0),
+                'tax_applicable' => $taxApplicable,
                 'priority'       => $request->priority,
                 'status'         => 'draft',
                 'scope_of_work'  => $request->scope_of_work,
@@ -272,8 +279,14 @@ class EstimateController extends Controller
             return back()->with('error', 'Approved or completed estimates cannot be edited.');
         }
 
+        // Tax applicability: submitted value wins; otherwise keep the estimate's
+        // current setting (falling back to the customer default).
+        $taxApplicable = $request->has('tax_applicable')
+            ? $request->boolean('tax_applicable')
+            : (bool) ($estimate->tax_applicable ?? ! $estimate->customer?->tax_exempt);
+
         $lineItems = array_values($request->line_items);
-        $totals    = $this->calculateLineTotals($lineItems);
+        $totals    = $this->calculateLineTotals($lineItems, $taxApplicable);
 
         // Lock exchange_rate once sent to customer; only allow changes while still a draft
         $lockRate = in_array($estimate->status, ['sent', 'under_review', 'partially_approved']);
@@ -286,6 +299,7 @@ class EstimateController extends Controller
             'exchange_rate'  => $lockRate
                 ? $estimate->exchange_rate
                 : ($request->currency === 'USD' ? 1.0 : ($request->exchange_rate ?? 1.0)),
+            'tax_applicable' => $taxApplicable,
             'priority'       => $request->priority,
             'scope_of_work'  => $request->scope_of_work,
             'terms'          => $request->terms,
@@ -834,7 +848,7 @@ class EstimateController extends Controller
      * Compute per-line SSCL (Tax1) and VAT (Tax2) from each line's tax_code_id.
      * Tax1 applies to the net line amount; Tax2 applies to (net + Tax1).
      */
-    private function calculateLineTotals(array $lineItems): array
+    private function calculateLineTotals(array $lineItems, bool $taxApplicable = true): array
     {
         $taxCodeIds = collect($lineItems)->pluck('tax_code_id')->filter()->unique()->values()->all();
         $taxCodes   = TaxCode::whereIn('id', $taxCodeIds)->get()->keyBy('id');
@@ -847,8 +861,10 @@ class EstimateController extends Controller
         foreach ($lineItems as $item) {
             $net    = round((float)($item['qty'] ?? 0) * (float)($item['unit_price'] ?? 0), 2);
             $tc     = $taxCodes[$item['tax_code_id'] ?? 0] ?? null;
-            $t1Rate = (float) ($tc?->tax1_rate ?? 0);
-            $t2Rate = (float) ($tc?->tax2_rate ?? 0);
+            // A tax-exempt estimate charges no tax regardless of the line tax codes
+            // (the codes are kept for reference / when toggled back on).
+            $t1Rate = $taxApplicable ? (float) ($tc?->tax1_rate ?? 0) : 0.0;
+            $t2Rate = $taxApplicable ? (float) ($tc?->tax2_rate ?? 0) : 0.0;
             $t1Amt  = round($net * $t1Rate / 100, 2);
             $t2Amt  = round(($net + $t1Amt) * $t2Rate / 100, 2);
             $gross  = round($net + $t1Amt + $t2Amt, 2);

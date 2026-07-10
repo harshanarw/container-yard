@@ -8,7 +8,7 @@ class RepairInvoice extends Model
 {
     protected $fillable = [
         'invoice_no', 'estimate_id', 'work_order_id', 'container_id', 'container_no',
-        'customer_id', 'invoice_date', 'due_date', 'currency', 'exchange_rate', 'status',
+        'customer_id', 'invoice_date', 'due_date', 'currency', 'exchange_rate', 'tax_applicable', 'status',
         'subtotal', 'sscl_total', 'vat_total', 'tax_percentage', 'tax_amount', 'grand_total',
         'amount_paid', 'balance_due', 'notes', 'created_by', 'issued_by', 'issued_at',
         'ird_invoice_no',
@@ -18,6 +18,7 @@ class RepairInvoice extends Model
         'invoice_date'  => 'date',
         'due_date'      => 'date',
         'exchange_rate' => 'decimal:6',
+        'tax_applicable' => 'boolean',
         'subtotal'       => 'decimal:2',
         'sscl_total'     => 'decimal:2',
         'vat_total'      => 'decimal:2',

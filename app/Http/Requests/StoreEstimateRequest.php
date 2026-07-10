@@ -44,6 +44,7 @@ class StoreEstimateRequest extends FormRequest
             'valid_until'       => ['required', 'date', 'after_or_equal:estimate_date'],
             'currency'          => ['required', 'in:LKR,USD,EUR,GBP,SGD,AUD'],
             'exchange_rate'     => ['required', 'numeric', 'min:0.000001'],
+            'tax_applicable'    => ['nullable', 'boolean'],
             'priority'          => ['required', 'in:normal,urgent,critical'],
             'scope_of_work'     => ['nullable', 'string'],
             'terms'             => ['nullable', 'string'],
