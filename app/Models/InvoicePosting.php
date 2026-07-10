@@ -41,6 +41,7 @@ class InvoicePosting extends Model
             'storage-handling' => 'Storage & Handling Invoice',
             'reefer'           => 'Reefer Electricity Invoice',
             'repair'           => 'Repair Invoice',
+            'general'          => 'General Invoice',
             default            => ucfirst($type) . ' Invoice',
         };
     }

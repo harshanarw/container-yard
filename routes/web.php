@@ -186,6 +186,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('{general}/pdf',    [\App\Http\Controllers\GeneralInvoiceController::class, 'pdf'])->name('pdf');
         Route::get('{general}/edit',   [\App\Http\Controllers\GeneralInvoiceController::class, 'edit'])->name('edit');
         Route::patch('{general}',      [\App\Http\Controllers\GeneralInvoiceController::class, 'update'])->name('update');
+        Route::patch('{general}/issue',[\App\Http\Controllers\GeneralInvoiceController::class, 'issue'])->name('issue');
+        Route::patch('{general}/void', [\App\Http\Controllers\GeneralInvoiceController::class, 'void'])->name('void');
         Route::delete('{general}',     [\App\Http\Controllers\GeneralInvoiceController::class, 'destroy'])->name('destroy');
     });
 

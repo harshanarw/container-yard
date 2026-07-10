@@ -15,6 +15,7 @@ class IrdInvoiceNumberService
         'storage_handling' => 'HND',
         'repair'           => 'REP',
         'reefer'           => 'REF',
+        'general'          => 'GEN',
     ];
 
     /**

@@ -23,6 +23,8 @@ class GeneralInvoiceController extends Controller
         $this->middleware('can:billing.general.pdf')->only(['pdf']);
         $this->middleware('can:billing.general.create')->only(['create', 'store']);
         $this->middleware('can:billing.general.edit')->only(['edit', 'update']);
+        $this->middleware('can:billing.general.post')->only(['issue']);
+        $this->middleware('can:billing.general.void')->only(['void']);
         $this->middleware('can:billing.general.delete')->only(['destroy']);
     }
 
@@ -86,6 +88,46 @@ class GeneralInvoiceController extends Controller
         ]);
 
         return view('billing.general.show', ['invoice' => $general]);
+    }
+
+    /** Issue a draft: assign an IRD number (tax docs), mark issued → auto-posts to GL. */
+    public function issue(GeneralInvoice $general)
+    {
+        if ($general->status !== 'draft') {
+            return back()->with('error', 'Only draft documents can be issued.');
+        }
+        if ($general->lines()->count() === 0) {
+            return back()->with('error', 'Cannot issue a document with no line items.');
+        }
+
+        $irdNo = $general->ird_invoice_no;
+        if (! $irdNo && $general->isTaxDocument()) {
+            $irdNo = app(\App\Services\IrdInvoiceNumberService::class)->generate('general', $general->invoice_date);
+        }
+
+        $general->update([
+            'status'         => 'issued',
+            'ird_invoice_no' => $irdNo,
+            'issued_by'      => auth()->id(),
+            'issued_at'      => now(),
+        ]);
+
+        return back()->with('success', "{$general->type_label} {$general->invoice_no} issued and posted to the ledger.");
+    }
+
+    /** Void an issued document (reverses the GL journal via the observer). */
+    public function void(Request $request, GeneralInvoice $general)
+    {
+        if (! in_array($general->status, ['issued', 'overdue', 'partially_paid'], true)) {
+            return back()->with('error', 'Only an issued document can be voided.');
+        }
+        if ((float) $general->amount_paid > 0) {
+            return back()->with('error', 'This document has receipts allocated — reverse those before voiding.');
+        }
+
+        $general->update(['status' => 'void']);
+
+        return back()->with('success', "{$general->invoice_no} voided.");
     }
 
     public function pdf(GeneralInvoice $general)

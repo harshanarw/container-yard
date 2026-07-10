@@ -321,6 +321,18 @@ class InvoicePostingService
                     $add($acc->id, $amt, 'Repair income');
                 }
                 break;
+
+            case 'general':
+                // Same shape as repair: revenue = net + SSCL per line, split by
+                // charge code → revenue account (fallback 4006 Other Operational).
+                $invoice->loadMissing('lines');
+                foreach ($invoice->lines as $line) {
+                    $amt = round((float) ($line->line_amount ?? 0) + (float) ($line->tax1_amount ?? 0), 2);
+                    if ($amt <= 0) continue;
+                    $acc = $this->requireChargeRevenueAccount($line->charge_code_id, '4006', 'a general invoice line');
+                    $add($acc->id, $amt, 'General invoice income');
+                }
+                break;
         }
 
         // Fallback: if no per-line amounts resolved, post the full net to the type default
@@ -401,6 +413,7 @@ class InvoicePostingService
             'storage-handling' => '4002',
             'reefer'           => '4004',
             'repair'           => '4003',
+            'general'          => '4006',
         ];
 
         $code = $systemCodeMap[$invoiceType] ?? null;
@@ -431,6 +444,7 @@ class InvoicePostingService
         // in the service price — VAT is then calculated on (net + SSCL).
         return match ($invoiceType) {
             'repair'           => (float)($invoice->vat_total ?? 0),
+            'general'          => (float)($invoice->vat_total ?? 0),
             'reefer'           => (float)($invoice->vat_amount ?? 0),
             'storage'          => (float)($invoice->vat_amount ?? 0),
             'storage-handling' => (float)($invoice->vat_amount ?? 0),

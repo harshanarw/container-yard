@@ -28,6 +28,24 @@
         @can('billing.general.pdf')
         <a href="{{ route('billing.general.pdf', $invoice) }}" target="_blank" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer me-1"></i>Print</a>
         @endcan
+        @can('billing.general.post')
+        @if($invoice->status === 'draft')
+        <form method="POST" action="{{ route('billing.general.issue', $invoice) }}"
+              data-confirm="Issue this document? It will be posted to the general ledger and can no longer be edited." data-confirm-title="Issue & Post" data-confirm-class="btn-success" data-confirm-label="Issue">
+            @csrf @method('PATCH')
+            <button class="btn btn-success btn-sm"><i class="bi bi-send-check me-1"></i>Issue</button>
+        </form>
+        @endif
+        @endcan
+        @can('billing.general.void')
+        @if(in_array($invoice->status, ['issued','overdue','partially_paid']))
+        <form method="POST" action="{{ route('billing.general.void', $invoice) }}"
+              data-confirm="Void this document? The GL journal will be reversed." data-confirm-title="Void" data-confirm-class="btn-danger" data-confirm-label="Void">
+            @csrf @method('PATCH')
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-x-octagon me-1"></i>Void</button>
+        </form>
+        @endif
+        @endcan
         @can('billing.general.edit')
         @if($invoice->status === 'draft')
         <a href="{{ route('billing.general.edit', $invoice) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
@@ -116,6 +134,9 @@
             <div class="card-header py-2"><i class="bi bi-info-circle me-2 text-primary"></i>Details</div>
             <div class="card-body small">
                 <dl class="row mb-0">
+                    @if($invoice->ird_invoice_no)
+                    <dt class="col-5 text-muted">IRD No.</dt><dd class="col-7 fw-semibold">{{ $invoice->ird_invoice_no }}</dd>
+                    @endif
                     <dt class="col-5 text-muted">Customer</dt><dd class="col-7">{{ $invoice->customer?->name ?? '—' }}</dd>
                     <dt class="col-5 text-muted">Billing Party</dt><dd class="col-7">{{ $invoice->billingParty?->name ?? $invoice->customer?->name ?? '—' }}</dd>
                     <dt class="col-5 text-muted">Invoice Date</dt><dd class="col-7">{{ $invoice->invoice_date?->format('d M Y') }}</dd>
@@ -127,9 +148,15 @@
                 </dl>
             </div>
         </div>
+        @if($invoice->status === 'draft')
         <div class="alert alert-info py-2 small mb-0">
-            <i class="bi bi-info-circle me-1"></i>Posting to GL and settlement are added in the next phases.
+            <i class="bi bi-info-circle me-1"></i>Issue the document to post it to the general ledger. Receipt settlement is added in the next phase.
         </div>
+        @elseif(in_array($invoice->status, ['issued','partially_paid','overdue','paid']))
+        <div class="alert alert-success py-2 small mb-0">
+            <i class="bi bi-check-circle me-1"></i>Posted to the general ledger. Receipt settlement is added in the next phase.
+        </div>
+        @endif
     </div>
 </div>
 

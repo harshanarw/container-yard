@@ -27,6 +27,7 @@ use App\Observers\InquiryObserver;
 use App\Observers\ReeferElectricityInvoiceObserver;
 use App\Observers\ReeferPlugSessionObserver;
 use App\Observers\ReeferTempLogObserver;
+use App\Observers\GeneralInvoiceObserver;
 use App\Observers\RepairInvoiceObserver;
 use App\Observers\StorageHandlingInvoiceObserver;
 use App\Observers\StorageInvoiceObserver;
@@ -64,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
         Estimate::observe(EstimateObserver::class);
         WorkOrder::observe(WorkOrderObserver::class);
         RepairInvoice::observe(RepairInvoiceObserver::class);
+        \App\Models\GeneralInvoice::observe(GeneralInvoiceObserver::class);
         StorageInvoice::observe(StorageInvoiceObserver::class);
         StorageHandlingInvoice::observe(StorageHandlingInvoiceObserver::class);
         ReeferElectricityInvoice::observe(ReeferElectricityInvoiceObserver::class);
