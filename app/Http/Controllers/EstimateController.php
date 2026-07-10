@@ -768,7 +768,6 @@ class EstimateController extends Controller
         $date       = $request->get('date') ?: today()->toDateString();
         $estCur     = strtoupper($request->get('currency', 'USD'));
         $rate       = max(0.000001, (float) $request->get('exchange_rate', 1.0));
-        $factor     = $estCur === 'USD' ? 1.0 : $rate;
 
         $out = [];
         foreach (['internal', 'external'] as $scope) {
@@ -779,6 +778,24 @@ class EstimateController extends Controller
                 continue;
             }
 
+            // Convert the tariff rate to the estimate currency. Rates are normally
+            // in USD; only USD tariffs are scaled by the USD→currency rate. A
+            // tariff already in the estimate currency needs no conversion, and an
+            // unknown cross-currency is left as-is rather than double-converted.
+            $tariffCur = strtoupper($wt->currency ?: 'USD');
+            if ($tariffCur === $estCur) {
+                $factor = 1.0;
+            } elseif ($tariffCur === 'USD') {
+                $factor = $estCur === 'USD' ? 1.0 : $rate;
+            } else {
+                $factor = 1.0;
+            }
+
+            // Apply the configured minimum as a floor before conversion.
+            $base = $wt->min_charge !== null
+                ? max((float) $wt->rate, (float) $wt->min_charge)
+                : (float) $wt->rate;
+
             $taxCode = $wt->taxCode ?: $wt->chargeCode?->taxCode;
 
             $out[$scope] = [
@@ -786,7 +803,7 @@ class EstimateController extends Controller
                 'washing_tariff_id' => $wt->id,
                 'wash_scope'        => $scope,
                 'label'             => $wt->scope_label . ' — ' . $wt->type_label,
-                'unit_price'        => round((float) $wt->rate * $factor, 2),
+                'unit_price'        => round($base * $factor, 2),
                 'currency'          => $estCur,
                 'charge_code_id'    => $wt->charge_code_id,
                 'charge_code'       => $wt->chargeCode?->code,

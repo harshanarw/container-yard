@@ -126,7 +126,10 @@ class WashingTariffController extends Controller
         $data['customer_id']    = $data['customer_id'] ?: null;
         $data['container_size'] = $data['container_size'] ?: null;
         $data['currency']       = strtoupper($data['currency']);
-        $data['is_active']      = $request->boolean('is_active', true);
+        // Plain checkbox: unchecked submits nothing, so default to false (the
+        // create form renders it checked). Prevents Save silently re-activating a
+        // deactivated rate.
+        $data['is_active']      = $request->boolean('is_active');
 
         // One rate per customer × scope × type × size (nulls treated as equal here).
         $dup = WashingTariff::where('wash_scope', $data['wash_scope'])
