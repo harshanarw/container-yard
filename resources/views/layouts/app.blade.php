@@ -631,7 +631,7 @@
         @endif
 
         {{-- ── OPERATIONS ── --}}
-        @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.reefer.view') || Auth::user()->can('yard.hire.view') || Auth::user()->can('surveys.view') || Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view') || Auth::user()->can('billing.repair.view'))
+        @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.reefer.view') || Auth::user()->can('yard.hire.view') || Auth::user()->can('surveys.view') || Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view') || Auth::user()->can('billing.repair.view') || Auth::user()->can('billing.general.view'))
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-operations"
                 aria-expanded="false" aria-controls="nav-section-operations">
@@ -721,7 +721,7 @@
             @endif
 
             {{-- M&R sub-group --}}
-            @if(Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view') || Auth::user()->can('billing.repair.view'))
+            @if(Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view') || Auth::user()->can('billing.repair.view') || Auth::user()->can('billing.general.view'))
             @php $mrOpsActive = request()->routeIs('estimates.*') || request()->routeIs('work-orders.*') || request()->routeIs('repair-invoices.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-mr"
@@ -754,6 +754,14 @@
                         <a href="{{ route('repair-invoices.index') }}"
                            class="nav-link {{ request()->routeIs('repair-invoices.*') ? 'active' : '' }}">
                             <i class="bi bi-receipt"></i><span>Repair Invoices</span>
+                        </a>
+                    </li>
+                    @endcan
+                    @can('billing.general.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('billing.general.index') }}"
+                           class="nav-link {{ request()->routeIs('billing.general.*') ? 'active' : '' }}">
+                            <i class="bi bi-receipt-cutoff"></i><span>General Invoicing</span>
                         </a>
                     </li>
                     @endcan

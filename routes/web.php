@@ -174,6 +174,20 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('repair-invoices/{repairInvoice}/cancel',         [RepairInvoiceController::class, 'cancel'])->name('repair-invoices.cancel');
     Route::get('repair-invoices/{repairInvoice}/ird-print',        [RepairInvoiceController::class, 'irdPrint'])->name('repair-invoices.ird-print');
 
+    // General Invoicing (misc AR — tax invoice / invoice / debit note)
+    Route::prefix('billing/general')->name('billing.general.')->group(function () {
+        Route::get('/',                [\App\Http\Controllers\GeneralInvoiceController::class, 'index'])->name('index');
+        Route::get('create',           [\App\Http\Controllers\GeneralInvoiceController::class, 'create'])->name('create');
+        Route::post('/',               [\App\Http\Controllers\GeneralInvoiceController::class, 'store'])->name('store');
+        // AJAX endpoints — must precede the {general} wildcard
+        Route::get('charge-code-info', [\App\Http\Controllers\GeneralInvoiceController::class, 'chargeCodeInfo'])->name('charge-code-info');
+        Route::get('currency-rate',    [\App\Http\Controllers\GeneralInvoiceController::class, 'currencyRate'])->name('currency-rate');
+        Route::get('{general}',        [\App\Http\Controllers\GeneralInvoiceController::class, 'show'])->name('show');
+        Route::get('{general}/edit',   [\App\Http\Controllers\GeneralInvoiceController::class, 'edit'])->name('edit');
+        Route::patch('{general}',      [\App\Http\Controllers\GeneralInvoiceController::class, 'update'])->name('update');
+        Route::delete('{general}',     [\App\Http\Controllers\GeneralInvoiceController::class, 'destroy'])->name('destroy');
+    });
+
     // Yard Operations
     Route::prefix('yard')->name('yard.')->group(function () {
         Route::get('/',         [YardController::class, 'index'])->name('index');
