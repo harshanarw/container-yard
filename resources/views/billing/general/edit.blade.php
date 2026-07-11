@@ -89,7 +89,7 @@
                     <select name="customer_id" id="customerSel" class="form-select select2 s2-code" data-s2-sel="name" required>
                         <option value="">— select —</option>
                         @foreach($customers as $c)
-                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" {{ (string) old('customer_id', $invoice->customer_id) === (string) $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
+                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" data-terms="{{ $c->payment_terms }}" {{ (string) old('customer_id', $invoice->customer_id) === (string) $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -98,7 +98,7 @@
                     <select name="billing_party_id" id="billingPartySel" class="form-select select2 s2-code" data-s2-sel="name">
                         <option value="">Same as customer</option>
                         @foreach($customers as $c)
-                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" {{ (string) old('billing_party_id', $invoice->billing_party_id) === (string) $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
+                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" data-terms="{{ $c->payment_terms }}" {{ (string) old('billing_party_id', $invoice->billing_party_id) === (string) $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -106,9 +106,18 @@
                     <label class="form-label fw-semibold">Invoice Date <span class="text-danger">*</span></label>
                     <input type="date" name="invoice_date" id="invoiceDate" class="form-control" value="{{ old('invoice_date', optional($invoice->invoice_date)->format('Y-m-d') ?? now()->toDateString()) }}" required>
                 </div>
+                @php $curTerms = old('payment_terms', $invoice->payment_terms ?? 'net30'); @endphp
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Credit Term</label>
+                    <select name="payment_terms" id="creditTerm" class="form-select">
+                        @foreach(['cod' => 'Cash on Delivery', 'net15' => 'Net 15 Days', 'net30' => 'Net 30 Days', 'net45' => 'Net 45 Days', 'net60' => 'Net 60 Days'] as $k => $label)
+                            <option value="{{ $k }}" {{ $curTerms === $k ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="col-md-2">
                     <label class="form-label fw-semibold">Due Date</label>
-                    <input type="date" name="due_date" class="form-control" value="{{ old('due_date', optional($invoice->due_date)->format('Y-m-d')) }}">
+                    <input type="date" name="due_date" id="dueDate" class="form-control" value="{{ old('due_date', optional($invoice->due_date)->format('Y-m-d')) }}">
                 </div>
 
                 <div class="col-md-2">
@@ -366,16 +375,44 @@
     // Default Tax Applicable from the billing party's (else the customer's) tax-exempt
     // status — the AR party drives it. Fires only on user change, so a saved value
     // isn't overwritten on edit; the user can still override afterwards.
-    function autoTaxFromParty() {
+    function partyOpt() {
         const bp   = document.getElementById('billingPartySel');
         const cust = document.getElementById('customerSel');
-        const opt  = (bp && bp.value) ? bp.selectedOptions[0]
-                   : ((cust && cust.value) ? cust.selectedOptions[0] : null);
+        return (bp && bp.value) ? bp.selectedOptions[0]
+             : ((cust && cust.value) ? cust.selectedOptions[0] : null);
+    }
+    function autoTaxFromParty() {
+        const opt = partyOpt();
         if (!opt) return;
         document.getElementById('taxApplicable').value = opt.dataset.taxExempt === '1' ? '0' : '1';
         recalc();
     }
-    $('#customerSel, #billingPartySel').on('change', autoTaxFromParty);
+
+    // Credit term → due date. Picking a party pulls its profile term; changing
+    // the term or invoice date re-derives the due date. Due date stays editable.
+    const TERM_DAYS = { cod: 0, net15: 15, net30: 30, net45: 45, net60: 60 };
+    function recomputeDueDate() {
+        const inv = document.getElementById('invoiceDate').value; // YYYY-MM-DD
+        if (!inv) return;
+        const days = TERM_DAYS[document.getElementById('creditTerm').value] ?? 30;
+        const [y, m, d] = inv.split('-').map(Number);
+        // Compute in UTC so the result never shifts a day in +TZ locales.
+        const dt = new Date(Date.UTC(y, m - 1, d));
+        dt.setUTCDate(dt.getUTCDate() + days);
+        document.getElementById('dueDate').value = dt.toISOString().slice(0, 10);
+    }
+    function creditTermFromParty() {
+        const opt = partyOpt();
+        const t = opt && opt.dataset.terms;
+        if (t && TERM_DAYS.hasOwnProperty(t)) document.getElementById('creditTerm').value = t;
+        recomputeDueDate();
+    }
+    $('#customerSel, #billingPartySel').on('change', function () {
+        autoTaxFromParty();
+        creditTermFromParty();
+    });
+    document.getElementById('creditTerm').addEventListener('change', recomputeDueDate);
+    document.getElementById('invoiceDate').addEventListener('change', recomputeDueDate);
 
     // Seed after DOM-ready so the layout's Select2 helpers (window.initS2Code)
     // and header select initialisation have run.

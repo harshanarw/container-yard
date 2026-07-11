@@ -75,6 +75,7 @@
                 <tr><td class="lbl">Document No</td><td class="val" style="font-family:monospace;">{{ $invoice->invoice_no }}</td></tr>
                 @if($invoice->ird_invoice_no)<tr><td class="lbl">IRD No</td><td class="val" style="font-family:monospace;">{{ $invoice->ird_invoice_no }}</td></tr>@endif
                 <tr><td class="lbl">Date</td><td class="val">{{ $invoice->invoice_date?->format('d M Y') }}</td></tr>
+                @if($invoice->payment_terms)<tr><td class="lbl">Credit Term</td><td class="val">{{ \App\Services\Finance\PaymentTermsHelper::label($invoice->payment_terms) }}</td></tr>@endif
                 @if($invoice->due_date)<tr><td class="lbl">Payment Due</td><td class="val">{{ $invoice->due_date->format('d M Y') }}</td></tr>@endif
                 @if($invoice->category)<tr><td class="lbl">Category</td><td class="val">{{ $invoice->category_label }}</td></tr>@endif
                 @if($invoice->reference)<tr><td class="lbl">Reference</td><td class="val">{{ $invoice->reference }}</td></tr>@endif

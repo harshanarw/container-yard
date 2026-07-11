@@ -150,6 +150,7 @@
                     <dt class="col-5 text-muted">Customer</dt><dd class="col-7">{{ $invoice->customer?->name ?? '—' }}</dd>
                     <dt class="col-5 text-muted">Billing Party</dt><dd class="col-7">{{ $invoice->billingParty?->name ?? $invoice->customer?->name ?? '—' }}</dd>
                     <dt class="col-5 text-muted">Invoice Date</dt><dd class="col-7">{{ $invoice->invoice_date?->format('d M Y') }}</dd>
+                    <dt class="col-5 text-muted">Credit Term</dt><dd class="col-7">{{ $invoice->payment_terms ? \App\Services\Finance\PaymentTermsHelper::label($invoice->payment_terms) : '—' }}</dd>
                     <dt class="col-5 text-muted">Due Date</dt><dd class="col-7">{{ $invoice->due_date?->format('d M Y') ?? '—' }}</dd>
                     <dt class="col-5 text-muted">Currency</dt><dd class="col-7">{{ $invoice->currency }}@if($invoice->currency !== $base) <span class="text-muted">@ {{ number_format($invoice->exchange_rate, 4) }}</span>@endif</dd>
                     <dt class="col-5 text-muted">Reference</dt><dd class="col-7">{{ $invoice->reference ?? '—' }}</dd>

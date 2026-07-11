@@ -346,6 +346,7 @@ class GeneralInvoiceController extends Controller
             'billing_party_id' => ['nullable', 'exists:customers,id'],
             'invoice_date'     => ['required', 'date'],
             'due_date'         => ['nullable', 'date', 'after_or_equal:invoice_date'],
+            'payment_terms'    => ['nullable', 'in:cod,net15,net30,net45,net60'],
             'currency'         => ['required', 'string', 'size:3'],
             'exchange_rate'    => ['required', 'numeric', 'min:0.000001'],
             'tax_applicable'   => ['nullable', 'boolean'],
@@ -372,6 +373,18 @@ class GeneralInvoiceController extends Controller
         } else {
             $partyId = $data['billing_party_id'] ?: $data['customer_id'];
             $data['tax_applicable'] = ! (Customer::find($partyId)?->tax_exempt);
+        }
+
+        // Credit term drives the due date. Fall back to the AR party's profile
+        // term, then Net 30. Derive the due date from the term when it was left
+        // blank so the client-side helper and the server stay in agreement.
+        $partyId = $data['billing_party_id'] ?: $data['customer_id'];
+        $data['payment_terms'] = $data['payment_terms']
+            ?? (Customer::find($partyId)?->payment_terms ?? 'net30');
+        if (empty($data['due_date'])) {
+            $data['due_date'] = \App\Services\Finance\PaymentTermsHelper::dueDate(
+                $data['payment_terms'], \Carbon\Carbon::parse($data['invoice_date'])
+            )->toDateString();
         }
 
         // Foreign document currency needs a real rate (mirrors the estimate guard).
@@ -461,6 +474,7 @@ class GeneralInvoiceController extends Controller
             'billing_party_id'=> $data['billing_party_id'] ?: $data['customer_id'],
             'invoice_date'    => $data['invoice_date'],
             'due_date'        => $data['due_date'] ?? null,
+            'payment_terms'   => $data['payment_terms'] ?? null,
             'currency'        => $data['currency'],
             'exchange_rate'   => $data['currency'] === CurrencyService::defaultCurrency() ? 1.0 : (float) $data['exchange_rate'],
             'tax_applicable'  => $data['tax_applicable'],

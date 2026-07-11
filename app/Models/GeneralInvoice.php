@@ -9,7 +9,7 @@ class GeneralInvoice extends Model
     protected $fillable = [
         'invoice_no', 'ird_invoice_no', 'invoice_type', 'category',
         'customer_id', 'billing_party_id',
-        'invoice_date', 'due_date',
+        'invoice_date', 'due_date', 'payment_terms',
         'currency', 'exchange_rate', 'tax_applicable',
         'subtotal', 'sscl_total', 'vat_total', 'tax_percentage', 'tax_amount', 'grand_total',
         'amount_paid', 'balance_due',
