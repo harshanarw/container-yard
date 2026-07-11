@@ -211,4 +211,13 @@
 @endif
 @endcan
 
+@if($invoice->status !== 'draft')
+@include('partials._invoice-settlements', [
+    'invoiceType'     => 'general',
+    'invoiceId'       => $invoice->id,
+    'invoiceTotal'    => $invoice->grand_total,
+    'invoiceCurrency' => $invoice->currency,
+])
+@endif
+
 @endsection

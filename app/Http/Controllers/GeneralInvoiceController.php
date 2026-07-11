@@ -454,7 +454,9 @@ class GeneralInvoiceController extends Controller
             'invoice_type'    => $data['invoice_type'],
             'category'        => $data['category'] ?? null,
             'customer_id'     => $data['customer_id'],
-            'billing_party_id'=> $data['billing_party_id'] ?: null,
+            // Always persist the AR party (billing party, else the customer) so the
+            // finance services can key receipts / aging off a single column.
+            'billing_party_id'=> $data['billing_party_id'] ?: $data['customer_id'],
             'invoice_date'    => $data['invoice_date'],
             'due_date'        => $data['due_date'] ?? null,
             'currency'        => $data['currency'],

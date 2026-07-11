@@ -346,7 +346,7 @@ class ArCreditNoteController extends Controller
         }
 
         $validated = $request->validate([
-            'invoice_type'  => ['required', 'in:storage,storage-handling,reefer,repair'],
+            'invoice_type'  => ['required', 'in:storage,storage-handling,reefer,repair,general'],
             'invoice_id'    => ['required', 'integer', 'min:1'],
             'applied_amount'=> ['required', 'numeric', 'min:0.01'],
         ]);
@@ -453,7 +453,7 @@ class ArCreditNoteController extends Controller
             'credit_date'             => ['required', 'date'],
             'currency'                => ['required', 'string', 'max:10', 'exists:currencies,code'],
             'exchange_rate'           => ['required', 'numeric', 'min:0.000001'],
-            'reference_invoice_type'  => ['nullable', 'in:storage,storage-handling,reefer,repair'],
+            'reference_invoice_type'  => ['nullable', 'in:storage,storage-handling,reefer,repair,general'],
             'reference_invoice_id'    => ['nullable', 'integer'],
             'tax_amount'              => ['nullable', 'numeric', 'min:0'],
             'reason'                  => ['nullable', 'string', 'max:255'],

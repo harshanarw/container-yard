@@ -7,6 +7,7 @@ use App\Models\StorageInvoice;
 use App\Models\StorageHandlingInvoice;
 use App\Models\ReeferElectricityInvoice;
 use App\Models\RepairInvoice;
+use App\Models\GeneralInvoice;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -17,6 +18,7 @@ class ArAllocationService
         'storage-handling' => StorageHandlingInvoice::class,
         'reefer'           => ReeferElectricityInvoice::class,
         'repair'           => RepairInvoice::class,
+        'general'          => GeneralInvoice::class,
     ];
 
     public function resolveInvoice(string $type, int $id): Model
@@ -34,9 +36,11 @@ class ArAllocationService
 
     public function getCustomerId(Model $invoice, string $type): ?int
     {
-        $id = $type === 'storage-handling'
-            ? ($invoice->shipping_line_id ?? $invoice->customer_id ?? null)
-            : ($invoice->customer_id ?? null);
+        $id = match ($type) {
+            'storage-handling' => $invoice->shipping_line_id ?? $invoice->customer_id ?? null,
+            'general'          => $invoice->billing_party_id ?? $invoice->customer_id ?? null,
+            default            => $invoice->customer_id ?? null,
+        };
 
         return $id ? (int) $id : null;
     }
@@ -153,10 +157,10 @@ class ArAllocationService
 
         $fullyPaid = $cb['doc_outstanding'] <= 0.005;
 
-        // Repair invoices carry a persisted balance_due column and support a
+        // Repair & general invoices carry a persisted balance_due column and a
         // partially_paid status (doc_allocated already folds in the manual
         // amount_paid), so keep both in sync.
-        if ($type === 'repair') {
+        if (in_array($type, ['repair', 'general'], true)) {
             if ($fullyPaid) {
                 $newStatus = 'paid';
             } elseif ($cb['doc_allocated'] > 0) {
@@ -239,6 +243,18 @@ class ArAllocationService
                 $outstanding = $this->getOutstanding($inv, 'repair');
                 if ($outstanding > 0) {
                     $pending->push($this->row($inv, 'repair', 'Repair', $outstanding));
+                }
+            });
+
+        // General invoices (billed to the AR party = billing_party_id)
+        GeneralInvoice::where('billing_party_id', $customerId)
+            ->whereIn('status', ['issued', 'partially_paid', 'overdue'])
+            ->orderByDesc('invoice_date')
+            ->get()
+            ->each(function ($inv) use (&$pending) {
+                $outstanding = $this->getOutstanding($inv, 'general');
+                if ($outstanding > 0) {
+                    $pending->push($this->row($inv, 'general', $inv->type_label, $outstanding));
                 }
             });
 

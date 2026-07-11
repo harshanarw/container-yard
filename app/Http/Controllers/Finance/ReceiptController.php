@@ -151,7 +151,7 @@ class ReceiptController extends Controller
             'wht_amount'            => ['nullable', 'numeric', 'min:0'],
             'action'                => ['nullable', 'in:draft,post'],
             'allocations'           => ['required', 'array', 'min:1'],
-            'allocations.*.type'    => ['required', 'in:storage,storage-handling,reefer,repair'],
+            'allocations.*.type'    => ['required', 'in:storage,storage-handling,reefer,repair,general'],
             'allocations.*.id'      => ['required', 'integer', 'min:1'],
             'allocations.*.amount'  => ['nullable', 'numeric', 'min:0'],
             'allocations.*.selected' => ['nullable'],
@@ -395,7 +395,7 @@ class ReceiptController extends Controller
         }
 
         $validated = $request->validate([
-            'invoice_type'     => ['required', 'in:storage,storage-handling,reefer,repair'],
+            'invoice_type'     => ['required', 'in:storage,storage-handling,reefer,repair,general'],
             'invoice_id'       => ['required', 'integer', 'min:1'],
             'allocated_amount' => ['required', 'numeric', 'min:0.01'],
             'notes'            => ['nullable', 'string', 'max:255'],

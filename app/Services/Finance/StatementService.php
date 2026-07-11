@@ -50,10 +50,11 @@ class StatementService
 
         // AR invoices (posted-to-ledger statuses) — one debit per invoice.
         $arTypes = [
-            'storage'          => [StorageInvoice::class,          'customer_id'],
-            'storage-handling' => [StorageHandlingInvoice::class,  'shipping_line_id'],
+            'storage'          => [StorageInvoice::class,           'customer_id'],
+            'storage-handling' => [StorageHandlingInvoice::class,   'shipping_line_id'],
             'reefer'           => [ReeferElectricityInvoice::class, 'customer_id'],
-            'repair'           => [RepairInvoice::class,           'customer_id'],
+            'repair'           => [RepairInvoice::class,            'customer_id'],
+            'general'          => [\App\Models\GeneralInvoice::class, 'billing_party_id'],
         ];
         foreach ($arTypes as $type => [$class, $col]) {
             $class::where($col, $id)

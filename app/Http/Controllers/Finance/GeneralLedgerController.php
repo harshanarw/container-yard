@@ -685,7 +685,7 @@ class GeneralLedgerController extends Controller
 
                 $docAllocated = (float) ($allocations->get("{$type}-{$inv->id}")?->total_allocated ?? 0)
                               + (float) ($cnApplied->get("{$type}-{$inv->id}")?->total_applied ?? 0);
-                if ($type === 'repair') {
+                if (in_array($type, ['repair', 'general'], true)) {
                     $docAllocated += (float) ($inv->amount_paid ?? 0);
                 }
 
@@ -718,9 +718,11 @@ class GeneralLedgerController extends Controller
                     default            => '90+',
                 };
 
-                $customerId   = $type === 'storage-handling'
-                    ? ($inv->shipping_line_id ?? $inv->customer_id)
-                    : $inv->customer_id;
+                $customerId   = match ($type) {
+                    'storage-handling' => $inv->shipping_line_id ?? $inv->customer_id,
+                    'general'          => $inv->billing_party_id ?? $inv->customer_id,
+                    default            => $inv->customer_id,
+                };
 
                 $rows->push([
                     'customer_id'      => $customerId,
@@ -760,6 +762,10 @@ class GeneralLedgerController extends Controller
         $addRows(
             RepairInvoice::whereIn('status', ['issued', 'partially_paid', 'overdue'])->orderBy('invoice_date')->get(),
             'repair', 'Repair'
+        );
+        $addRows(
+            \App\Models\GeneralInvoice::whereIn('status', ['issued', 'partially_paid', 'overdue'])->orderBy('invoice_date')->get(),
+            'general', 'General'
         );
 
         // Unapplied approved credit notes appear as negative balances (customer credit),
