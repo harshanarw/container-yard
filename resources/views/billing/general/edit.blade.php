@@ -145,7 +145,7 @@
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table align-middle mb-0" id="lineTable" style="table-layout:fixed; min-width:1130px;">
+                <table class="table align-middle mb-0" id="lineTable" style="table-layout:fixed; width:100%; min-width:1130px;">
                     <thead class="table-light">
                         <tr>
                             <th style="width:105px">Charge Code</th>
@@ -384,7 +384,14 @@
     function autoTaxFromParty() {
         const opt = partyOpt();
         if (!opt) return;
-        document.getElementById('taxApplicable').value = opt.dataset.taxExempt === '1' ? '0' : '1';
+        const exempt = opt.dataset.taxExempt === '1';
+        document.getElementById('taxApplicable').value = exempt ? '0' : '1';
+        // Invoice type default follows tax status: a tax-exempt party can't be
+        // issued a Tax Invoice, a taxable party defaults to one. Debit Note is a
+        // distinct document type, so leave it untouched.
+        const it = document.getElementById('invoiceType');
+        if (exempt && it.value === 'tax_invoice') it.value = 'invoice';
+        else if (!exempt && it.value === 'invoice') it.value = 'tax_invoice';
         recalc();
     }
 
