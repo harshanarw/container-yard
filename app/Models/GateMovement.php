@@ -28,7 +28,28 @@ class GateMovement extends Model
         'codeco_exported_by', 'csv_exported_by',
         'codeco_batch_ref', 'csv_batch_ref',
         'container_ocr_image_path', 'plate_ocr_image_path',
+        'share_code',
     ];
+
+    protected static function booted(): void
+    {
+        // Give every new movement a short, unguessable code for the shareable
+        // driver gate-pass link (/g/{code}).
+        static::creating(function (GateMovement $movement) {
+            if (empty($movement->share_code)) {
+                $movement->share_code = static::generateShareCode();
+            }
+        });
+    }
+
+    public static function generateShareCode(): string
+    {
+        do {
+            $code = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(12));
+        } while (static::where('share_code', $code)->exists());
+
+        return $code;
+    }
 
     protected $casts = [
         'vent_count'         => 'integer',

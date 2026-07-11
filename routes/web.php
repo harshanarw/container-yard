@@ -86,6 +86,10 @@ Route::get('/gp/pass/{movement}', [YardController::class, 'driverGatePass'])
     ->name('gp.pass')
     ->middleware('signed');
 
+// Short branded variant of the above (/g/{code}) — resolves the movement by its
+// unguessable share code, so the WhatsApp message shows a tidy link.
+Route::get('/g/{code}', [YardController::class, 'shortGatePass'])->name('gp.short');
+
 // Public document verification (QR target on invoice/estimate PDFs). Signed URL
 // so the link is tamper-proof and cannot be forged or guessed.
 Route::get('/verify/{type}/{id}', [\App\Http\Controllers\DocumentVerificationController::class, 'show'])

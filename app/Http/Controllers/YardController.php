@@ -1445,6 +1445,23 @@ class YardController extends Controller
      */
     public function driverGatePass(GateMovement $movement)
     {
+        return $this->renderDriverPass($movement);
+    }
+
+    /**
+     * Short branded link (/g/{code}) shared with the driver over WhatsApp —
+     * resolves the movement by its unguessable share code, then renders the
+     * same driver print view.
+     */
+    public function shortGatePass(string $code)
+    {
+        $movement = GateMovement::where('share_code', $code)->firstOrFail();
+
+        return $this->renderDriverPass($movement);
+    }
+
+    private function renderDriverPass(GateMovement $movement)
+    {
         $companySetting = \App\Models\CompanySetting::current();
         $format = $movement->movement_type === 'in'
             ? ($companySetting->default_gate_in_format  ?: 'full')
