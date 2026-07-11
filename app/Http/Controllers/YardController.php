@@ -1436,6 +1436,34 @@ class YardController extends Controller
         return view('yard.gate-pass-verify', compact('movement', 'gateIn', 'passType', 'checks', 'allMatch', 'hasParams'));
     }
 
+    /**
+     * Driver-facing paperless gate pass, reached via a temporary signed URL
+     * (shared over WhatsApp). Same view as the QR verification page, but flagged
+     * so it shows a Save/Print action instead of tamper cross-checks.
+     */
+    public function driverGatePass(GateMovement $movement)
+    {
+        $movement->load(['customer', 'transporter']);
+        $passType = $movement->movement_type;
+
+        $gateIn = $passType === 'out'
+            ? GateMovement::where('container_id', $movement->container_id)
+                ->where('movement_type', 'in')
+                ->latest('gate_in_time')
+                ->first()
+            : null;
+
+        return view('yard.gate-pass-verify', [
+            'movement'   => $movement,
+            'gateIn'     => $gateIn,
+            'passType'   => $passType,
+            'checks'     => [],
+            'allMatch'   => true,
+            'hasParams'  => false,
+            'driverView' => true,
+        ]);
+    }
+
     public function destroyMovementPhoto(GateMovement $movement, GateMovementPhoto $photo)
     {
         if ($photo->gate_movement_id !== $movement->id) {

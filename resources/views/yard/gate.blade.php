@@ -1189,6 +1189,20 @@
                                    style="font-size:.65rem;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;" title="{{ $mv->movement_type === 'out' ? 'Gate Pass' : 'Inward Gate Pass' }}">
                                     <i class="bi bi-printer"></i>
                                 </a>
+                                @if($mv->driver_phone)
+                                    @php
+                                        $gpLink = \Illuminate\Support\Facades\URL::temporarySignedRoute('gp.pass', now()->addDays(7), ['movement' => $mv->id]);
+                                        $waMsg  = 'Hello' . ($mv->driver_name ? ' ' . $mv->driver_name : '') . ', your ' . ($mv->movement_type === 'out' ? 'outward' : 'inward') . ' gate pass for container ' . $mv->container_no . '. View & download: ' . $gpLink . ' (link valid 7 days).';
+                                        $waUrl  = \App\Services\WhatsAppLink::chatUrl($mv->driver_phone, $waMsg);
+                                    @endphp
+                                    @if($waUrl)
+                                    <a href="{{ $waUrl }}" target="_blank" rel="noopener"
+                                       class="btn btn-success btn-sm"
+                                       style="font-size:.65rem;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;" title="Send gate pass to driver via WhatsApp">
+                                        <i class="bi bi-whatsapp"></i>
+                                    </a>
+                                    @endif
+                                @endif
                                 <a href="{{ route('yard.movements.edit', $mv) }}"
                                    class="btn btn-outline-secondary btn-sm"
                                    style="font-size:.65rem;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;" title="Edit">

@@ -80,6 +80,12 @@ require __DIR__.'/portal.php';
 */
 Route::get('/gp/verify/{movement}', [YardController::class, 'verifyGatePass'])->name('gp.verify');
 
+// Driver-facing gate pass shared over WhatsApp — temporary signed URL so the
+// link is tamper-proof, unguessable and self-expiring.
+Route::get('/gp/pass/{movement}', [YardController::class, 'driverGatePass'])
+    ->name('gp.pass')
+    ->middleware('signed');
+
 // Public document verification (QR target on invoice/estimate PDFs). Signed URL
 // so the link is tamper-proof and cannot be forged or guessed.
 Route::get('/verify/{type}/{id}', [\App\Http\Controllers\DocumentVerificationController::class, 'show'])

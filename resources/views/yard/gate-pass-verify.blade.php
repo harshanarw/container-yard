@@ -134,7 +134,18 @@
     $gpNumber  = ($companyPrefix ? $companyPrefix . '-' : '') . $gpPrefix . '-' . str_pad($movement->id, 5, '0', STR_PAD_LEFT);
     $isLaden   = strtolower($movement->cargo_status ?? '') === 'laden';
     $verifiedAt = now()->format('d M Y, H:i');
+    $driverView = $driverView ?? false;
 @endphp
+
+<style>
+    .gp-driver-actions { text-align:center; margin:12px 16px; }
+    .gp-driver-actions .gp-btn {
+        display:inline-flex; align-items:center; gap:6px; border:0; cursor:pointer;
+        background:#1565C0; color:#fff; font-weight:600; font-size:14px;
+        padding:10px 18px; border-radius:10px; text-decoration:none;
+    }
+    @media print { .gp-driver-actions, .no-print { display:none !important; } }
+</style>
 
 {{-- Header --}}
 <div class="vfy-header">
@@ -142,11 +153,15 @@
     <img src="{{ $companySetting->logo_url }}" class="vfy-logo" alt="Logo">
     @endif
     <div class="vfy-yard">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
-    <div class="vfy-label">{{ $isInward ? 'Inward' : 'Outward' }} Gate Pass Verification</div>
+    <div class="vfy-label">{{ $isInward ? 'Inward' : 'Outward' }} Gate Pass{{ $driverView ? '' : ' Verification' }}</div>
 </div>
 
 {{-- Status banner --}}
-@if(!$hasParams)
+@if($driverView)
+<div class="gp-driver-actions">
+    <button type="button" class="gp-btn" onclick="window.print()">📄 Save / Print Gate Pass</button>
+</div>
+@elseif(!$hasParams)
 <div class="vfy-banner noparams">
     <div class="vfy-banner-icon">📋</div>
     <div>
