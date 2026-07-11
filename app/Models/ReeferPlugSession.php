@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\HasYardJob;
 use Illuminate\Database\Eloquent\Model;
 
 class ReeferPlugSession extends Model
 {
+    use HasYardJob;
+
     protected $fillable = [
-        'container_id', 'gate_movement_id', 'customer_id', 'service_type',
+        'container_id', 'gate_movement_id', 'yard_job_id', 'customer_id', 'service_type',
         'plug_in_at', 'plug_out_at', 'status',
         'set_temperature', 'gate_out_movement_id',
         'notes', 'created_by', 'updated_by',

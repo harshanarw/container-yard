@@ -5,13 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\HasDocuments;
+use App\Traits\HasYardJob;
 
 class Estimate extends Model
 {
-    use HasFactory, HasDocuments;
+    use HasFactory, HasDocuments, HasYardJob;
 
     protected $fillable = [
-        'estimate_no', 'version_no', 'parent_estimate_id',
+        'estimate_no', 'version_no', 'parent_estimate_id', 'yard_job_id',
         'inquiry_id', 'container_id', 'equipment_type_id', 'container_no', 'customer_id',
         'size', 'type_code', 'estimate_date', 'valid_until', 'currency', 'exchange_rate', 'priority',
         'tax_applicable',

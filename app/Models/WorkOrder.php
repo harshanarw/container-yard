@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
+use App\Traits\HasYardJob;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class WorkOrder extends Model
 {
-    use HasFactory;
+    use HasFactory, HasYardJob;
 
     protected $fillable = [
-        'wo_no', 'estimate_id', 'container_id', 'container_no', 'customer_id',
+        'wo_no', 'estimate_id', 'yard_job_id', 'container_id', 'container_no', 'customer_id',
         'repair_category_id', 'assigned_to', 'status', 'priority',
         'target_date', 'started_date', 'completed_date',
         'instructions', 'technician_notes', 'created_by', 'closed_by',

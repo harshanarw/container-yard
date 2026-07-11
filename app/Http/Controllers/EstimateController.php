@@ -130,6 +130,7 @@ class EstimateController extends Controller
             $estimate = Estimate::create([
                 'estimate_no'       => $this->generateEstimateNo(),
                 'inquiry_id'        => $request->inquiry_id,
+                'yard_job_id'       => \App\Services\JobResolver::forInquiry($request->inquiry_id),
                 'container_id'      => $container->id,
                 'equipment_type_id' => $request->equipment_type_id ?? $container->equipment_type_id,
                 'container_no'      => $container->container_no,

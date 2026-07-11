@@ -3,14 +3,16 @@
 namespace App\Models;
 
 use App\Traits\HasDocuments;
+use App\Traits\HasYardJob;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Inquiry extends Model
 {
-    use HasFactory, HasDocuments;
+    use HasFactory, HasDocuments, HasYardJob;
 
     protected $fillable = [
+        'yard_job_id',
         'inquiry_no', 'container_id', 'container_no', 'equipment_type_id', 'size', 'type_code',
         'customer_id', 'inquiry_type', 'inspector_id', 'inspection_date',
         'gate_in_ref', 'priority', 'overall_condition', 'findings',

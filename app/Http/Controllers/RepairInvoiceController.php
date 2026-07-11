@@ -161,6 +161,7 @@ class RepairInvoiceController extends Controller
             $invoice = \App\Models\RepairInvoice::create([
                 'invoice_no'     => $invNo,
                 'estimate_id'    => $estimate->id,
+                'yard_job_id'    => $estimate->yard_job_id ?: \App\Services\JobResolver::forEstimate($estimate->id),
                 'container_id'   => $estimate->container_id,
                 'container_no'   => $estimate->container_no,
                 'customer_id'    => $estimate->customer_id,

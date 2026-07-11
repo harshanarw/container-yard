@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\HasYardJob;
 use Illuminate\Database\Eloquent\Model;
 
 class RepairInvoice extends Model
 {
+    use HasYardJob;
+
     protected $fillable = [
-        'invoice_no', 'estimate_id', 'work_order_id', 'container_id', 'container_no',
+        'invoice_no', 'estimate_id', 'work_order_id', 'yard_job_id', 'container_id', 'container_no',
         'customer_id', 'invoice_date', 'due_date', 'currency', 'exchange_rate', 'tax_applicable', 'status',
         'subtotal', 'sscl_total', 'vat_total', 'tax_percentage', 'tax_amount', 'grand_total',
         'amount_paid', 'balance_due', 'notes', 'created_by', 'issued_by', 'issued_at',
