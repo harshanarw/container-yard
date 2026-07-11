@@ -631,7 +631,7 @@
         @endif
 
         {{-- ── OPERATIONS ── --}}
-        @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.reefer.view') || Auth::user()->can('yard.hire.view') || Auth::user()->can('surveys.view') || Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view') || Auth::user()->can('billing.repair.view') || Auth::user()->can('billing.general.view'))
+        @if(Auth::user()->can('yard.view') || Auth::user()->can('yard.reefer.view') || Auth::user()->can('yard.hire.view') || Auth::user()->can('surveys.view') || Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view'))
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-operations"
                 aria-expanded="false" aria-controls="nav-section-operations">
@@ -721,8 +721,8 @@
             @endif
 
             {{-- M&R sub-group --}}
-            @if(Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view') || Auth::user()->can('billing.repair.view') || Auth::user()->can('billing.general.view'))
-            @php $mrOpsActive = request()->routeIs('estimates.*') || request()->routeIs('work-orders.*') || request()->routeIs('repair-invoices.*'); @endphp
+            @if(Auth::user()->can('estimates.view') || Auth::user()->can('work-orders.view'))
+            @php $mrOpsActive = request()->routeIs('estimates.*') || request()->routeIs('work-orders.*'); @endphp
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-ops-mr"
                     aria-expanded="{{ $mrOpsActive ? 'true' : 'false' }}"
@@ -746,22 +746,6 @@
                         <a href="{{ route('work-orders.index') }}"
                            class="nav-link {{ request()->routeIs('work-orders.*') ? 'active' : '' }}">
                             <i class="bi bi-hammer"></i><span>Work Orders</span>
-                        </a>
-                    </li>
-                    @endcan
-                    @can('billing.repair.view')
-                    <li class="nav-item sub-item">
-                        <a href="{{ route('repair-invoices.index') }}"
-                           class="nav-link {{ request()->routeIs('repair-invoices.*') ? 'active' : '' }}">
-                            <i class="bi bi-receipt"></i><span>Repair Invoices</span>
-                        </a>
-                    </li>
-                    @endcan
-                    @can('billing.general.view')
-                    <li class="nav-item sub-item">
-                        <a href="{{ route('billing.general.index') }}"
-                           class="nav-link {{ request()->routeIs('billing.general.*') ? 'active' : '' }}">
-                            <i class="bi bi-receipt-cutoff"></i><span>General Invoicing</span>
                         </a>
                     </li>
                     @endcan
@@ -1069,18 +1053,19 @@
         @endif
 
         {{-- ── BILLING ── --}}
-        @if(Auth::user()->can('billing.storage.view') || Auth::user()->can('billing.storage-handling.view') || Auth::user()->can('billing.reefer.view'))
+        @if(Auth::user()->can('billing.storage.view') || Auth::user()->can('billing.storage-handling.view') || Auth::user()->can('billing.reefer.view') || Auth::user()->can('billing.repair.view') || Auth::user()->can('billing.general.view'))
+        @php $billingActive = request()->routeIs('billing.*') || request()->routeIs('repair-invoices.*'); @endphp
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-billing"
-                aria-expanded="false" aria-controls="nav-section-billing">
+                aria-expanded="{{ $billingActive ? 'true' : 'false' }}" aria-controls="nav-section-billing">
             <i class="bi bi-receipt-cutoff section-icon"></i><span>Billing</span><i class="bi bi-chevron-down section-chevron"></i>
         </button>
-        <div class="collapse" id="nav-section-billing">
+        <div class="collapse {{ $billingActive ? 'show' : '' }}" id="nav-section-billing">
             <ul class="nav flex-column">
                 @can('billing.storage.view')
                 <li class="nav-item">
                     <a href="{{ route('billing.index') }}"
-                       class="nav-link {{ request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*') && !request()->routeIs('billing.reefer.*') ? 'active' : '' }}">
+                       class="nav-link {{ request()->routeIs('billing.*') && !request()->routeIs('billing.storage-handling.*') && !request()->routeIs('billing.reefer.*') && !request()->routeIs('billing.general.*') ? 'active' : '' }}">
                         <i class="bi bi-file-earmark-text"></i><span>Storage Invoices (Archive)</span>
                     </a>
                 </li>
@@ -1098,6 +1083,22 @@
                     <a href="{{ route('billing.reefer.index') }}"
                        class="nav-link {{ request()->routeIs('billing.reefer.*') ? 'active' : '' }}">
                         <i class="bi bi-lightning-charge-fill"></i><span>Reefer Electricity</span>
+                    </a>
+                </li>
+                @endcan
+                @can('billing.repair.view')
+                <li class="nav-item">
+                    <a href="{{ route('repair-invoices.index') }}"
+                       class="nav-link {{ request()->routeIs('repair-invoices.*') ? 'active' : '' }}">
+                        <i class="bi bi-receipt"></i><span>Repair Invoices</span>
+                    </a>
+                </li>
+                @endcan
+                @can('billing.general.view')
+                <li class="nav-item">
+                    <a href="{{ route('billing.general.index') }}"
+                       class="nav-link {{ request()->routeIs('billing.general.*') ? 'active' : '' }}">
+                        <i class="bi bi-receipt-cutoff"></i><span>General Invoicing</span>
                     </a>
                 </li>
                 @endcan
