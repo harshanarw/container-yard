@@ -370,6 +370,33 @@
         </div>
     </div>
 
+    {{-- Gate Pass Delivery --}}
+    <div class="card content-card mb-4">
+        <div class="card-header py-2">
+            <i class="bi bi-whatsapp me-2 text-success"></i>Gate Pass Delivery
+        </div>
+        <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="enableGatepassWhatsapp" name="enable_gatepass_whatsapp" value="1"
+                           {{ old('enable_gatepass_whatsapp', $settings->enable_gatepass_whatsapp) ? 'checked' : '' }}>
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="enableGatepassWhatsapp">
+                        Send Gate Pass to Driver via WhatsApp
+                    </label>
+                    <div class="form-text mt-1">
+                        When enabled, gate movements with a driver phone number show a WhatsApp button that opens
+                        WhatsApp pre-addressed to the driver with a secure, time-limited link to view and print
+                        the gate pass — a paperless handover. Uses free WhatsApp click-to-chat (no paid API);
+                        the officer taps Send. Turn this off to hide the button everywhere.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Container Release Controls --}}
     <div class="card content-card mb-4">
         <div class="card-header py-2">
