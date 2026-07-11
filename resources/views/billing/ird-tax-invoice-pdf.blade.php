@@ -355,6 +355,13 @@
     <div style="font-weight:bold;font-size:10px;margin-top:2px">{{ strtoupper($amountInWords) }}</div>
 </div>
 
+@if(!empty($remarks))
+<div class="footer-box">
+    <span style="font-size:8px;letter-spacing:.3px">Remarks:</span>
+    <span style="font-size:9.5px;margin-left:8px;text-transform:none">{{ $remarks }}</span>
+</div>
+@endif
+
 {{-- ── Mode of Payment ── --}}
 <div class="footer-box">
     <span style="font-size:8px;letter-spacing:.3px">Mode of Payment:</span>

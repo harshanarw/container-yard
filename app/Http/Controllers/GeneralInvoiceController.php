@@ -22,7 +22,7 @@ class GeneralInvoiceController extends Controller
     public function __construct()
     {
         $this->middleware('can:billing.general.view')->only(['index', 'show', 'chargeCodeInfo', 'currencyRate']);
-        $this->middleware('can:billing.general.pdf')->only(['pdf']);
+        $this->middleware('can:billing.general.pdf')->only(['pdf', 'irdPrint']);
         $this->middleware('can:billing.general.create')->only(['create', 'store']);
         $this->middleware('can:billing.general.edit')->only(['edit', 'update']);
         $this->middleware('can:billing.general.post')->only(['issue']);
@@ -132,12 +132,26 @@ class GeneralInvoiceController extends Controller
         return back()->with('success', "{$general->invoice_no} voided.");
     }
 
-    /**
-     * Render through the canonical IRD invoice format (same header/footer as the
-     * other billing modules), converting to base currency. The document title and
-     * footer switch by type; SSCL/VAT rows self-hide at zero (tax-exempt / non-tax).
-     */
+    /** Regular (non-IRD) print format — the default, mirroring the other modules. */
     public function pdf(GeneralInvoice $general)
+    {
+        $general->load(['customer', 'billingParty', 'lines.chargeCode', 'lines.taxCode']);
+
+        $number = $general->ird_invoice_no ?: $general->invoice_no;
+        $filename = strtoupper(str_replace(' ', '_', $general->type_label)) . '_'
+            . preg_replace('/[^A-Za-z0-9_\-]/', '_', $number) . '.pdf';
+
+        return Pdf::loadView('billing.general.pdf', ['invoice' => $general])
+            ->setPaper('a4', 'portrait')
+            ->stream($filename);
+    }
+
+    /**
+     * IRD tax-invoice format (mandatory for tax documents) — the canonical shared
+     * format used by the other billing modules, converting to base currency. The
+     * title/footer switch by type; SSCL/VAT rows self-hide at zero.
+     */
+    public function irdPrint(GeneralInvoice $general)
     {
         $general->load(['customer', 'billingParty', 'lines.chargeCode', 'lines.taxCode', 'createdBy']);
         $company = \App\Models\CompanySetting::current();
@@ -192,6 +206,7 @@ class GeneralInvoiceController extends Controller
                 'Payment Due' => $general->due_date?->format('d M Y'),
                 'Reference'   => $general->reference,
             ]),
+            'remarks'               => $general->remarks,
         ];
 
         $filename = strtoupper(str_replace(' ', '_', $general->type_label)) . '_'

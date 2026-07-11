@@ -27,6 +27,9 @@
     <div class="d-flex gap-2">
         @can('billing.general.pdf')
         <a href="{{ route('billing.general.pdf', $invoice) }}" target="_blank" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer me-1"></i>Print</a>
+        @if($invoice->isTaxDocument())
+        <a href="{{ route('billing.general.ird-print', $invoice) }}" target="_blank" class="btn btn-outline-danger btn-sm"><i class="bi bi-file-earmark-text me-1"></i>IRD Tax Invoice</a>
+        @endif
         @endcan
         @can('billing.general.post')
         @if($invoice->status === 'draft')
