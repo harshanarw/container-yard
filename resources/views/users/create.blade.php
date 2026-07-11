@@ -20,7 +20,7 @@
 </div>
 
 @if($errors->any())
-<div class="alert alert-danger alert-dismissible fade show">
+<div class="alert alert-danger alert-dismissible fade show" id="validationSummary">
     <i class="bi bi-exclamation-triangle-fill me-2"></i>
     <strong>Please fix the following errors:</strong>
     <ul class="mb-0 mt-1 ps-3">
@@ -343,6 +343,20 @@ $(document).ready(function () {
         }
     }
     $('#createPassword, #createPasswordConfirm').on('input', checkPwMatch);
+
+    // Clear stale server-side validation errors as the user edits a field.
+    document.getElementById('createUserForm')?.addEventListener('input', function (e) {
+        const field = e.target;
+        field.classList.remove('is-invalid');
+        const col = field.closest('[class*="col-"]');
+        if (col) {
+            col.querySelectorAll('.invalid-feedback, .text-danger').forEach(function (el) {
+                if (el.id !== 'pwMismatch') el.style.display = 'none';
+            });
+        }
+        const alertBox = document.getElementById('validationSummary');
+        if (alertBox) alertBox.style.display = 'none';
+    });
 
     // Block submit if passwords don't match
     $('#createUserForm').on('submit', function (e) {

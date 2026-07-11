@@ -339,6 +339,7 @@
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </div>
+                            <div id="addPasswordMismatch" class="text-danger small mt-1 d-none">Passwords do not match.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Account Status</label>
@@ -496,6 +497,45 @@ $(document).ready(function () {
         $('#deleteUserName').text(btn.data('name'));
         $('#formDeleteUser').attr('action', btn.data('url'));
     });
+
+    // ── Add User modal: clear stale server errors as the user edits ───
+    const addForm = document.querySelector('#modalAddUser form');
+    if (addForm) {
+        addForm.addEventListener('input', function (e) {
+            const field = e.target;
+            field.classList.remove('is-invalid');
+            // Hide the inline message tied to this field's column (but leave the
+            // live password-match indicator to its own handler).
+            const col = field.closest('[class*="col-"]');
+            if (col) {
+                col.querySelectorAll('.invalid-feedback, .text-danger').forEach(function (el) {
+                    if (el.id !== 'addPasswordMismatch') el.style.display = 'none';
+                });
+            }
+            // Once the user starts correcting things, drop the summary alert.
+            const alertBox = addForm.querySelector('.alert-danger');
+            if (alertBox) alertBox.style.display = 'none';
+        });
+
+        // Live password-match feedback + guard on submit.
+        const pw       = document.getElementById('addPassword');
+        const cpw      = document.getElementById('addPasswordConfirm');
+        const mismatch = document.getElementById('addPasswordMismatch');
+        function checkAddMatch() {
+            if (!cpw.value) { mismatch.classList.add('d-none'); return true; }
+            const ok = pw.value === cpw.value;
+            mismatch.classList.toggle('d-none', ok);
+            return ok;
+        }
+        pw.addEventListener('input', checkAddMatch);
+        cpw.addEventListener('input', checkAddMatch);
+        addForm.addEventListener('submit', function (e) {
+            if (!checkAddMatch()) {
+                e.preventDefault();
+                cpw.focus();
+            }
+        });
+    }
 
     // ── Re-open Add User modal if there are validation errors ─
     @if($errors->any())
