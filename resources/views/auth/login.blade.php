@@ -203,6 +203,16 @@
             color: #94a3b8;
         }
         .auth-footer a { color: #2196F3; text-decoration: none; }
+
+        /* ── Small phones: tighten side padding so fields aren't cramped ── */
+        @media (max-width: 400px) {
+            .auth-body    { padding: 1.4rem 1.1rem; }
+            .auth-header  { padding: .9rem 1.1rem 1.4rem; }
+            .logo-banner  { padding: 1.1rem 1.1rem .9rem; }
+            .auth-footer  { padding: .85rem 1.1rem; }
+            .step-bar     { margin: 10px 1.1rem 18px; }
+            .captcha-display { letter-spacing: 4px; font-size: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -250,7 +260,8 @@
             <div class="auth-input-group mb-4">
                 <span class="ig-icon"><i class="bi bi-person"></i></span>
                 <input type="text" id="emailInput" placeholder="Enter your username or email"
-                       value="{{ old('login') }}" autocomplete="username" autofocus>
+                       value="{{ old('login') }}" autocomplete="username"
+                       autocapitalize="none" autocorrect="off" spellcheck="false" autofocus>
             </div>
 
             <button type="button" class="btn-login" id="continueBtn">
