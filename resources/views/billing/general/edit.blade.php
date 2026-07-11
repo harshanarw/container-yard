@@ -369,7 +369,13 @@
         recalc();
     });
     document.getElementById('invoiceRate').addEventListener('input', recalc);
-    document.getElementById('taxApplicable').addEventListener('change', recalc);
+    document.getElementById('taxApplicable').addEventListener('change', function () {
+        // Tax Applicable drives the document type: Yes → Tax Invoice, No →
+        // Invoice. A Debit Note is a distinct document type, so leave it be.
+        const it = document.getElementById('invoiceType');
+        if (it.value !== 'debit_note') it.value = this.value === '1' ? 'tax_invoice' : 'invoice';
+        recalc();
+    });
     document.getElementById('invoiceType').addEventListener('change', function () {
         // A plain "Invoice" is non-tax by default; tax invoice / debit note default to taxed.
         document.getElementById('taxApplicable').value = this.value === 'invoice' ? '0' : '1';
