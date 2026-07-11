@@ -206,6 +206,19 @@
         .gp-compact td, .gp-compact th { padding: 4px 6px; }
         .gp-compact .sec { margin-top: 3px; }
 
+        /* ── Mobile screen: stack the header so the logo, gate-pass number and
+              QR don't overlap on a narrow phone. Screen only — the A4 print /
+              PDF layout is untouched. ── */
+        @media screen and (max-width: 640px) {
+            .gp-header { flex-wrap: wrap; text-align: center; }
+            .gp-header-company { flex: 1 1 100%; }
+            .gp-company-logo { margin-left: auto; margin-right: auto; max-height: 48px; }
+            .gp-company-name, .gp-address-line { white-space: normal; overflow: visible; }
+            .gp-header-mid { flex: 1 1 100%; text-align: center; white-space: normal; padding-left: 0; margin-top: 8px; }
+            .gp-header-qr  { flex: 1 1 100%; align-items: center; padding-left: 0; margin-top: 8px; }
+            .gp-qr, .gp-qr-caption { text-align: center; width: auto; }
+        }
+
         @media print {
             .screen-toolbar { display: none !important; }
             body { background: #fff; margin: 0; }
