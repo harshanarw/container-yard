@@ -163,10 +163,10 @@
                     </thead>
                     <tbody id="lineItems"></tbody>
                     <tfoot class="table-light">
-                        <tr><td colspan="8" class="text-end fw-semibold pe-3">Subtotal (<span class="cur-lbl">{{ $curCode }}</span>):</td><td class="text-end fw-semibold" id="tSub">0.00</td><td class="text-end small text-muted" id="tSubBase">0.00</td><td></td></tr>
+                        <tr><td colspan="8" class="foot-span text-end fw-semibold pe-3">Subtotal (<span class="cur-lbl">{{ $curCode }}</span>):</td><td class="text-end fw-semibold" id="tSub">0.00</td><td class="text-end small text-muted" id="tSubBase">0.00</td><td></td></tr>
                         <tr class="tax-row"><td colspan="8" class="text-end text-muted pe-3">SSCL:</td><td class="text-end text-muted" id="tSscl">0.00</td><td></td><td></td></tr>
                         <tr class="tax-row"><td colspan="8" class="text-end text-muted pe-3">VAT:</td><td class="text-end text-muted" id="tVat">0.00</td><td></td><td></td></tr>
-                        <tr class="table-primary"><td colspan="8" class="text-end fw-bold pe-3">TOTAL (<span class="cur-lbl">{{ $curCode }}</span>):</td><td class="text-end fw-bold" id="tTotal">0.00</td><td class="text-end small" id="tTotalBase">0.00</td><td></td></tr>
+                        <tr class="table-primary"><td colspan="8" class="foot-span text-end fw-bold pe-3">TOTAL (<span class="cur-lbl">{{ $curCode }}</span>):</td><td class="text-end fw-bold" id="tTotal">0.00</td><td class="text-end small" id="tTotalBase">0.00</td><td></td></tr>
                     </tfoot>
                 </table>
             </div>
@@ -330,6 +330,10 @@
     function syncTax() {
         const show = taxOn();
         document.querySelectorAll('.tax-col, .tax-row').forEach(el => el.classList.toggle('d-none', !show));
+        // The footer label spans every column left of Amount. Hiding the Tax
+        // column drops the row to 10 columns, so the label must span 7 (not 8)
+        // to keep Amount / Base / trash aligned under their headers.
+        document.querySelectorAll('.foot-span').forEach(td => td.colSpan = show ? 8 : 7);
         document.querySelectorAll('.cur-lbl').forEach(el => el.textContent = invCur());
     }
 
