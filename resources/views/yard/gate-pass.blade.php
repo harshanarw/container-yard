@@ -240,6 +240,10 @@
 <div class="screen-toolbar">
     <h6>&#128438; &nbsp; Gate Pass{{ $driverView ? '' : ' Preview' }} — {{ $movement->container_no }}</h6>
     <button class="tb-btn tb-btn-primary" onclick="window.print()">&#128438; Print / Save PDF</button>
+    @if(!$driverView && $movement->driver_phone && \App\Models\CompanySetting::current()->enable_gatepass_whatsapp)
+    <a class="tb-btn" href="{{ route('yard.movements.wa-gatepass', $movement) }}" target="_blank" rel="noopener"
+       style="background:#25D366;color:#fff;border:none;">&#128241; Send to Driver (WhatsApp)</a>
+    @endif
     @unless($driverView)
     <span style="color:#94a3b8;font-size:11px;margin:0 2px;">Format:</span>
     <a href="{{ route('yard.movements.gate-pass', ['movement' => $movement->id, 'format' => 'full']) }}"
