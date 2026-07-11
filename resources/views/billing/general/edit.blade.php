@@ -86,19 +86,19 @@
 
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Customer <span class="text-danger">*</span></label>
-                    <select name="customer_id" id="customerSel" class="form-select select2" required>
+                    <select name="customer_id" id="customerSel" class="form-select select2 s2-code" data-s2-sel="name" required>
                         <option value="">— select —</option>
                         @foreach($customers as $c)
-                            <option value="{{ $c->id }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" {{ (string) old('customer_id', $invoice->customer_id) === (string) $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" {{ (string) old('customer_id', $invoice->customer_id) === (string) $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Billing Party</label>
-                    <select name="billing_party_id" id="billingPartySel" class="form-select select2">
+                    <select name="billing_party_id" id="billingPartySel" class="form-select select2 s2-code" data-s2-sel="name">
                         <option value="">Same as customer</option>
                         @foreach($customers as $c)
-                            <option value="{{ $c->id }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" {{ (string) old('billing_party_id', $invoice->billing_party_id) === (string) $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" {{ (string) old('billing_party_id', $invoice->billing_party_id) === (string) $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -139,7 +139,7 @@
                 <table class="table align-middle mb-0" id="lineTable">
                     <thead class="table-light">
                         <tr>
-                            <th style="min-width:150px">Charge Code</th>
+                            <th style="width:105px">Charge Code</th>
                             <th style="min-width:150px">Revenue Account</th>
                             <th style="min-width:160px">Description</th>
                             <th style="width:70px">Qty</th>
@@ -219,7 +219,7 @@
         const lc = d.line_currency || invCur();
         return `<tr class="gi-line">
             <td><select name="lines[${i}][charge_code_id]" class="form-select form-select-sm s2-code charge-sel" required>${chargeOpts(d.charge_code_id)}</select></td>
-            <td><select name="lines[${i}][revenue_account_id]" class="form-select form-select-sm s2-code acct-sel">${acctOpts(d.revenue_account_id)}</select></td>
+            <td><select name="lines[${i}][revenue_account_id]" class="form-select form-select-sm s2-code acct-sel" data-s2-sel="name">${acctOpts(d.revenue_account_id)}</select></td>
             <td><input type="text" name="lines[${i}][description]" class="form-control form-control-sm desc" value="${esc(d.description)}" required></td>
             <td><input type="number" name="lines[${i}][qty]" class="form-control form-control-sm qty" value="${d.qty ?? 1}" min="0.001" step="0.001" required></td>
             <td><input type="number" name="lines[${i}][unit_rate]" class="form-control form-control-sm rate" value="${d.unit_rate ?? 0}" min="0" step="0.01" required></td>
