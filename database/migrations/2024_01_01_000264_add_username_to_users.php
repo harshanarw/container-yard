@@ -32,6 +32,8 @@ return new class extends Migration
                     ?: (Str::contains((string) $u->email, '@') ? Str::before($u->email, '@') : null)
                     ?: ('user' . $u->id);
                 $base = Str::lower(preg_replace('/[^A-Za-z0-9._-]/', '', (string) $base)) ?: ('user' . $u->id);
+                // Keep headroom under the VARCHAR(50) column for the dedup suffix.
+                $base = substr($base, 0, 40);
 
                 $username = $base;
                 $n = 1;
