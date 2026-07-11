@@ -1192,7 +1192,7 @@
                                 @if($mv->driver_phone && \App\Models\CompanySetting::current()->enable_gatepass_whatsapp)
                                     @php
                                         $gpLink = \Illuminate\Support\Facades\URL::temporarySignedRoute('gp.pass', now()->addDays(7), ['movement' => $mv->id]);
-                                        $waMsg  = 'Hello' . ($mv->driver_name ? ' ' . $mv->driver_name : '') . ', your ' . ($mv->movement_type === 'out' ? 'outward' : 'inward') . ' gate pass for container ' . $mv->container_no . '. View & download: ' . $gpLink . ' (link valid 7 days).';
+                                        $waMsg  = 'Hello' . ($mv->driver_name ? ' ' . $mv->driver_name : '') . ', your ' . ($mv->movement_type === 'out' ? 'outward' : 'inward') . ' gate pass for container ' . $mv->container_no . ' is ready (link valid 7 days). Tap to view, download or print:' . "\n" . $gpLink;
                                         $waUrl  = \App\Services\WhatsAppLink::chatUrl($mv->driver_phone, $waMsg);
                                     @endphp
                                     @if($waUrl)
