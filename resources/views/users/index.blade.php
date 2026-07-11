@@ -14,9 +14,9 @@
         <p class="text-muted mb-0 small">Manage system users and role assignments</p>
     </div>
     @can('settings.users.create')
-    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAddUser">
+    <a href="{{ route('users.create') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-circle me-1"></i>Add User
-    </button>
+    </a>
     @endcan
 </div>
 
@@ -241,127 +241,8 @@
 </div>
 
 
-{{-- ══════════════════ MODAL: ADD USER ══════════════════ --}}
-@can('settings.users.create')
-<div class="modal fade" id="modalAddUser" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form method="POST" action="{{ route('users.store') }}" novalidate>
-                @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-person-plus me-2 text-primary"></i>Add New User</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    {{-- Validation errors --}}
-                    @if($errors->any())
-                    <div class="alert alert-danger alert-sm py-2 small">
-                        <ul class="mb-0 ps-3">
-                            @foreach($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                    @endif
-
-                    <div class="row g-3">
-                        <div class="col-md-2">
-                            <label class="form-label fw-semibold">Title</label>
-                            <select name="title" class="form-select">
-                                <option value="">—</option>
-                                @foreach(['Mr','Ms','Mrs','Dr','Prof','Engr','Rev'] as $t)
-                                <option value="{{ $t }}" {{ old('title') === $t ? 'selected' : '' }}>{{ $t }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
-                            <input type="text" name="first_name"
-                                   class="form-control @error('first_name') is-invalid @enderror"
-                                   value="{{ old('first_name') }}" placeholder="e.g. Ahmad" required>
-                            @error('first_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
-                            <input type="text" name="last_name"
-                                   class="form-control @error('last_name') is-invalid @enderror"
-                                   value="{{ old('last_name') }}" placeholder="e.g. Razali" required>
-                            @error('last_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
-                            <input type="text" name="username" class="form-control @error('username') is-invalid @enderror"
-                                   value="{{ old('username') }}" placeholder="e.g. ahmad.r or EMP-0001" autocomplete="off" required>
-                            <div class="form-text">Used to log in. Unique per user — ideal when staff share a common email.</div>
-                            @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Email Address <span class="text-muted small fw-normal">(optional)</span></label>
-                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
-                                   value="{{ old('email') }}" placeholder="user@cym.my">
-                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Phone Number</label>
-                            <input type="text" name="phone" class="form-control"
-                                   value="{{ old('phone') }}" placeholder="01X-XXXXXXX">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
-                            <select name="role" class="form-select @error('role') is-invalid @enderror" required>
-                                <option value="">— Select Role —</option>
-                                @if(auth()->user()->isSystemAdmin())
-                                <option value="system_administrator" {{ old('role') === 'system_administrator' ? 'selected' : '' }}>System Administrator</option>
-                                @endif
-                                @foreach($assignableRoles as $r)
-                                <option value="{{ $r->name }}" {{ old('role') === $r->name ? 'selected' : '' }}>{{ $r->display_name }}</option>
-                                @endforeach
-                            </select>
-                            @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <input type="password" name="password" id="addPassword"
-                                       class="form-control @error('password') is-invalid @enderror"
-                                       placeholder="Min 8 characters" required>
-                                <button type="button" class="btn btn-outline-secondary toggle-pw" data-target="addPassword">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                            </div>
-                            @error('password')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <input type="password" name="password_confirmation" id="addPasswordConfirm"
-                                       class="form-control" placeholder="Repeat password" required>
-                                <button type="button" class="btn btn-outline-secondary toggle-pw" data-target="addPasswordConfirm">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                            </div>
-                            <div id="addPasswordMismatch" class="text-danger small mt-1 d-none">Passwords do not match.</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Account Status</label>
-                            <select name="status" class="form-select">
-                                <option value="active"   {{ old('status','active') === 'active'   ? 'selected' : '' }}>Active</option>
-                                <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle me-1"></i>Create User
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endcan
+{{-- Add User now uses the full create page (users.create) with the complete
+     profile fields, so the quick-add modal was removed. --}}
 
 
 {{-- ══════════════════ MODAL: RESET PASSWORD ══════════════════ --}}
@@ -498,87 +379,6 @@ $(document).ready(function () {
         $('#deleteUserName').text(btn.data('name'));
         $('#formDeleteUser').attr('action', btn.data('url'));
     });
-
-    // ── Add User modal: clear stale server errors as the user edits ───
-    const addForm = document.querySelector('#modalAddUser form');
-    if (addForm) {
-        addForm.addEventListener('input', function (e) {
-            const field = e.target;
-            field.classList.remove('is-invalid');
-            // Hide the inline message tied to this field's column (but leave the
-            // live password-match indicator to its own handler).
-            const col = field.closest('[class*="col-"]');
-            if (col) {
-                col.querySelectorAll('.invalid-feedback, .text-danger').forEach(function (el) {
-                    if (el.id !== 'addPasswordMismatch') el.style.display = 'none';
-                });
-            }
-            // Once the user starts correcting things, drop the summary alert.
-            const alertBox = addForm.querySelector('.alert-danger');
-            if (alertBox) alertBox.style.display = 'none';
-        });
-
-        // Live password-match feedback + guard on submit.
-        const pw       = document.getElementById('addPassword');
-        const cpw      = document.getElementById('addPasswordConfirm');
-        const mismatch = document.getElementById('addPasswordMismatch');
-        function checkAddMatch() {
-            if (!cpw.value) { mismatch.classList.add('d-none'); return true; }
-            const ok = pw.value === cpw.value;
-            mismatch.classList.toggle('d-none', ok);
-            return ok;
-        }
-        pw.addEventListener('input', checkAddMatch);
-        cpw.addEventListener('input', checkAddMatch);
-
-        // ── Field-level validation shown when a field loses focus ──
-        function setFieldError(field, msg) {
-            field.classList.toggle('is-invalid', !!msg);
-            const col = field.closest('[class*="col-"]') || field.parentElement;
-            let holder = col.querySelector('.client-error');
-            if (!holder) {
-                holder = document.createElement('div');
-                holder.className = 'client-error invalid-feedback';
-                (field.closest('.input-group') || field).insertAdjacentElement('afterend', holder);
-            }
-            holder.textContent = msg;
-            holder.style.display = msg ? 'block' : 'none';
-        }
-        function validateField(field) {
-            if (field.name === 'password_confirmation') return true; // handled by match check
-            const val = (field.value || '').trim();
-            let msg = '';
-            if (field.hasAttribute('required') && !val) {
-                msg = 'This field is required.';
-            } else if (field.name === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-                msg = 'Please enter a valid email address.';
-            } else if (field.name === 'username' && val && !/^[A-Za-z0-9._-]+$/.test(val)) {
-                msg = 'Use only letters, numbers, dot, dash and underscore.';
-            } else if (field.name === 'password' && val && val.length < 8) {
-                msg = 'Password must be at least 8 characters.';
-            }
-            setFieldError(field, msg);
-            return !msg;
-        }
-        addForm.addEventListener('focusout', function (e) {
-            if (e.target.matches('input[name], select[name]')) validateField(e.target);
-        });
-
-        addForm.addEventListener('submit', function (e) {
-            let firstInvalid = null;
-            addForm.querySelectorAll('input[name], select[name]').forEach(function (f) {
-                if (!validateField(f) && !firstInvalid) firstInvalid = f;
-            });
-            if (!checkAddMatch() && !firstInvalid) firstInvalid = cpw;
-            if (firstInvalid) { e.preventDefault(); firstInvalid.focus(); }
-        });
-    }
-
-    // ── Re-open Add User modal if there are validation errors ─
-    @if($errors->any())
-        var modal = new bootstrap.Modal(document.getElementById('modalAddUser'));
-        modal.show();
-    @endif
 });
 </script>
 @endpush
