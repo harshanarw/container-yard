@@ -24,7 +24,7 @@ class RepairInvoiceController extends Controller
 
     public function index(Request $request)
     {
-        $query = RepairInvoice::with('estimate', 'container', 'customer');
+        $query = RepairInvoice::with('estimate', 'container', 'customer', 'yardJob.jobType');
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);

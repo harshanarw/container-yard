@@ -46,6 +46,7 @@
                 <tr>
                     <th style="width: 100px">Invoice #</th>
                     <th>Container</th>
+                    <th>Job</th>
                     <th>Customer</th>
                     <th style="width: 120px">Invoice Date</th>
                     <th style="width: 80px">Status</th>
@@ -61,6 +62,7 @@
                             <a href="{{ route('repair-invoices.show', $invoice) }}">{{ $invoice->invoice_no }}</a>
                         </td>
                         <td class="small">{{ $invoice->container_no ?? '—' }}</td>
+                        <td>@include('partials.job-badge', ['job' => $invoice->yardJob, 'mode' => 'cell'])</td>
                         <td class="small">{{ $invoice->customer->code ?? $invoice->customer->name ?? '—' }}</td>
                         <td class="small text-muted">{{ \Carbon\Carbon::parse($invoice->invoice_date)->format('d M Y') }}</td>
                         <td class="small">
@@ -89,7 +91,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center py-4 text-muted">
+                        <td colspan="9" class="text-center py-4 text-muted">
                             No repair invoices found.
                         </td>
                     </tr>

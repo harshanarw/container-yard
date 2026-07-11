@@ -103,6 +103,7 @@
                     <tr>
                         <th class="ps-3">Est. No.</th>
                         <th>Container No.</th>
+                        <th>Job</th>
                         <th>Customer</th>
                         <th>Inquiry</th>
                         <th>Issue Date</th>
@@ -117,6 +118,7 @@
                     <tr>
                         <td class="ps-3 fw-semibold small">{{ $estimate->estimate_no }}</td>
                         <td class="font-monospace small">{{ $estimate->container_no }}</td>
+                        <td>@include('partials.job-badge', ['job' => $estimate->yardJob, 'mode' => 'cell'])</td>
                         <td class="small">{{ $estimate->customer->name ?? '—' }}</td>
                         <td>
                             @if($estimate->inquiry)
@@ -196,7 +198,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-4">
+                        <td colspan="10" class="text-center text-muted py-4">
                             <i class="bi bi-inbox fs-3 d-block mb-2"></i>No estimates found.
                         </td>
                     </tr>

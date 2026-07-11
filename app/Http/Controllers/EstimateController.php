@@ -41,7 +41,7 @@ class EstimateController extends Controller
 
     public function index(Request $request)
     {
-        $estimates = Estimate::with(['container', 'customer', 'createdBy'])
+        $estimates = Estimate::with(['container', 'customer', 'createdBy', 'yardJob.jobType'])
             ->when($request->search, fn ($q, $s) =>
                 $q->where('estimate_no', 'like', "%{$s}%")
                   ->orWhere('container_no', 'like', "%{$s}%")

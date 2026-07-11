@@ -70,6 +70,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Container</th>
+                    <th>Job</th>
                     <th>Customer</th>
                     <th>Gate In</th>
                     <th>Plug-In</th>
@@ -86,6 +87,7 @@
                         <span class="font-monospace fw-medium">{{ $session->container?->container_no }}</span>
                         <div class="text-muted small">{{ $session->container?->equipmentType?->dropdown_label ?? '—' }}</div>
                     </td>
+                    <td>@include('partials.job-badge', ['job' => $session->yardJob, 'mode' => 'cell'])</td>
                     <td>{{ $session->customer?->name }}</td>
                     <td>
                         @if($session->gateMovement?->gate_in_time)
@@ -144,7 +146,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">
+                    <td colspan="9" class="text-center text-muted py-4">
                         <i class="bi bi-plug fs-2 d-block mb-2 opacity-25"></i>
                         No reefer plug sessions found.
                     </td>

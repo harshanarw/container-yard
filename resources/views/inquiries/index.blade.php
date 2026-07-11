@@ -113,6 +113,7 @@
                     <tr>
                         <th class="ps-3">Inq. No.</th>
                         <th>Container No.</th>
+                        <th>Job</th>
                         <th>Size/Type</th>
                         <th>Customer</th>
                         <th>Inquiry Type</th>
@@ -145,6 +146,7 @@
                     <tr>
                         <td class="ps-3 fw-semibold small">{{ $inquiry->inquiry_no }}</td>
                         <td class="font-monospace fw-semibold small">{{ $inquiry->container_no }}</td>
+                        <td>@include('partials.job-badge', ['job' => $inquiry->yardJob, 'mode' => 'cell'])</td>
                         <td>
                             <span class="badge {{ in_array($inquiry->type_code, ['RF','RH']) ? 'badge-reefer' : 'bg-secondary-subtle text-secondary' }}">
                                 {{ $inquiry->size }} {{ $inquiry->type_code }}
@@ -202,7 +204,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="text-center py-4 text-muted">
+                        <td colspan="11" class="text-center py-4 text-muted">
                             <i class="bi bi-inbox fs-4 d-block mb-1"></i>
                             No inquiries found.
                             <a href="{{ route('inquiries.create') }}">Create the first one</a>.

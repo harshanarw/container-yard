@@ -18,7 +18,20 @@
     $jobUrl = $job ? route('yard.jobs.show', $job) : null;
 @endphp
 
-@if($mode === 'inline')
+@if($mode === 'cell')
+    @if($job)
+        @if($short)
+            <span class="badge bg-primary-subtle text-primary border font-monospace" style="font-size:.65rem">{{ $short }}</span>
+        @endif
+        @if($link && $jobUrl)
+            <a href="{{ $jobUrl }}" class="text-decoration-none font-monospace small">{{ $job->job_no }}</a>
+        @else
+            <span class="font-monospace small">{{ $job->job_no }}</span>
+        @endif
+    @else
+        <span class="text-muted">—</span>
+    @endif
+@elseif($mode === 'inline')
     @if($job)
         @if($short)
             <span class="badge bg-primary-subtle text-primary border font-monospace">{{ $short }}</span>

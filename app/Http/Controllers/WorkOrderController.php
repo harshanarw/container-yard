@@ -22,7 +22,7 @@ class WorkOrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = WorkOrder::with('estimate', 'container', 'customer', 'assignedTo', 'repairCategory');
+        $query = WorkOrder::with('estimate', 'container', 'customer', 'assignedTo', 'repairCategory', 'yardJob.jobType');
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);

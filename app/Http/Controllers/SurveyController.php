@@ -33,7 +33,7 @@ class SurveyController extends Controller
 
     public function index(Request $request)
     {
-        $inquiries = Inquiry::with(['container', 'customer', 'inspector', 'estimate'])
+        $inquiries = Inquiry::with(['container', 'customer', 'inspector', 'estimate', 'yardJob.jobType'])
             ->when($request->search, fn ($q, $s) =>
                 $q->where(fn ($sub) =>
                     $sub->where('inquiry_no', 'like', "%{$s}%")

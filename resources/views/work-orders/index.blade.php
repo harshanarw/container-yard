@@ -45,6 +45,7 @@
                 <tr>
                     <th>WO #</th>
                     <th>Container</th>
+                    <th>Job</th>
                     <th>Customer</th>
                     <th>Category</th>
                     <th>Priority</th>
@@ -61,6 +62,7 @@
                             <a href="{{ route('work-orders.show', $wo) }}">{{ $wo->wo_no }}</a>
                         </td>
                         <td class="small">{{ $wo->container_no }}</td>
+                        <td>@include('partials.job-badge', ['job' => $wo->yardJob, 'mode' => 'cell'])</td>
                         <td class="small">{{ $wo->customer->code ?? $wo->customer->name ?? '—' }}</td>
                         <td class="small">
                             @if($wo->repairCategory)
@@ -102,7 +104,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="text-center py-4 text-muted">
+                        <td colspan="10" class="text-center py-4 text-muted">
                             No work orders found.
                         </td>
                     </tr>
