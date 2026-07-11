@@ -54,84 +54,156 @@
     {{-- Header --}}
     <div class="card content-card mb-3">
         <div class="card-body">
+            @php
+                $lblCls = 'col-sm-4 col-form-label fw-semibold text-sm-end';
+                $curTerms = old('payment_terms', $invoice->payment_terms ?? 'net30');
+            @endphp
             <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Invoice Type <span class="text-danger">*</span></label>
-                    <select name="invoice_type" id="invoiceType" class="form-select" required>
-                        @foreach(\App\Models\GeneralInvoice::TYPES as $k => $label)
-                            <option value="{{ $k }}" {{ old('invoice_type', $invoice->invoice_type) === $k ? 'selected' : '' }}>{{ $label }}</option>
-                        @endforeach
-                    </select>
+                {{-- ① Billing Parties — chosen first; they drive Tax, Type, Credit Term & Currency defaults --}}
+                <div class="col-12">
+                    <div class="text-primary fw-semibold small text-uppercase border-bottom pb-1">
+                        <i class="bi bi-people me-1"></i>Billing Parties
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Category</label>
-                    <select name="category" class="form-select select2">
-                        <option value="">—</option>
-                        @foreach(\App\Models\GeneralInvoice::CATEGORIES as $k => $label)
-                            <option value="{{ $k }}" {{ old('category', $invoice->category) === $k ? 'selected' : '' }}>{{ $label }}</option>
-                        @endforeach
-                    </select>
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="customerSel">Customer <span class="text-danger">*</span></label>
+                        <div class="col-sm-8">
+                            <select name="customer_id" id="customerSel" class="form-select select2 s2-code" data-s2-sel="name" required>
+                                <option value="">— select —</option>
+                                @foreach($customers as $c)
+                                    <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" data-terms="{{ $c->payment_terms }}" data-currency="{{ $c->currency }}" {{ (string) old('customer_id', $invoice->customer_id) === (string) $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Tax Applicable <span class="text-danger">*</span></label>
-                    <select name="tax_applicable" id="taxApplicable" class="form-select" required>
-                        <option value="1" {{ old('tax_applicable', $invoice->tax_applicable ? '1' : '0') === '1' ? 'selected' : '' }}>Yes</option>
-                        <option value="0" {{ old('tax_applicable', $invoice->tax_applicable ? '1' : '0') === '0' ? 'selected' : '' }}>No — Tax Exempt</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Reference</label>
-                    <input type="text" name="reference" class="form-control" maxlength="100" value="{{ old('reference', $invoice->reference) }}">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Customer <span class="text-danger">*</span></label>
-                    <select name="customer_id" id="customerSel" class="form-select select2 s2-code" data-s2-sel="name" required>
-                        <option value="">— select —</option>
-                        @foreach($customers as $c)
-                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" data-terms="{{ $c->payment_terms }}" {{ (string) old('customer_id', $invoice->customer_id) === (string) $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Billing Party</label>
-                    <select name="billing_party_id" id="billingPartySel" class="form-select select2 s2-code" data-s2-sel="name">
-                        <option value="">Same as customer</option>
-                        @foreach($customers as $c)
-                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" data-terms="{{ $c->payment_terms }}" {{ (string) old('billing_party_id', $invoice->billing_party_id) === (string) $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold">Invoice Date <span class="text-danger">*</span></label>
-                    <input type="date" name="invoice_date" id="invoiceDate" class="form-control" value="{{ old('invoice_date', optional($invoice->invoice_date)->format('Y-m-d') ?? now()->toDateString()) }}" required>
-                </div>
-                @php $curTerms = old('payment_terms', $invoice->payment_terms ?? 'net30'); @endphp
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold">Credit Term</label>
-                    <select name="payment_terms" id="creditTerm" class="form-select">
-                        @foreach(['cod' => 'Cash on Delivery', 'net15' => 'Net 15 Days', 'net30' => 'Net 30 Days', 'net45' => 'Net 45 Days', 'net60' => 'Net 60 Days'] as $k => $label)
-                            <option value="{{ $k }}" {{ $curTerms === $k ? 'selected' : '' }}>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold">Due Date</label>
-                    <input type="date" name="due_date" id="dueDate" class="form-control" value="{{ old('due_date', optional($invoice->due_date)->format('Y-m-d')) }}">
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="billingPartySel">Billing Party</label>
+                        <div class="col-sm-8">
+                            <select name="billing_party_id" id="billingPartySel" class="form-select select2 s2-code" data-s2-sel="name">
+                                <option value="">Same as customer</option>
+                                @foreach($customers as $c)
+                                    <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" data-terms="{{ $c->payment_terms }}" data-currency="{{ $c->currency }}" {{ (string) old('billing_party_id', $invoice->billing_party_id) === (string) $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold">Currency <span class="text-danger">*</span></label>
-                    <select name="currency" id="invoiceCurrency" class="form-select s2-code" required>
-                        @foreach($currencies as $code => $name)
-                            <option value="{{ $code }}" data-code="{{ $code }}" data-name="{{ $name }}" {{ $curCode === $code ? 'selected' : '' }}>{{ $code }} — {{ $name }}</option>
-                        @endforeach
-                    </select>
+                {{-- ② Invoice Details --}}
+                <div class="col-12">
+                    <div class="text-primary fw-semibold small text-uppercase border-bottom pb-1">
+                        <i class="bi bi-receipt me-1"></i>Invoice Details
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">Exchange Rate <span class="text-muted small" id="invRateLbl"></span></label>
-                    <input type="number" step="0.000001" min="0.000001" name="exchange_rate" id="invoiceRate" class="form-control" value="{{ old('exchange_rate', $invoice->exchange_rate ?? 1) }}" required>
-                    <div class="form-text" id="invRateNote">Rate of the invoice currency to base ({{ $baseCurrency }}).</div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="invoiceType">Invoice Type <span class="text-danger">*</span></label>
+                        <div class="col-sm-8">
+                            <select name="invoice_type" id="invoiceType" class="form-select" required>
+                                @foreach(\App\Models\GeneralInvoice::TYPES as $k => $label)
+                                    <option value="{{ $k }}" {{ old('invoice_type', $invoice->invoice_type) === $k ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="taxApplicable">Tax Applicable <span class="text-danger">*</span></label>
+                        <div class="col-sm-8">
+                            <select name="tax_applicable" id="taxApplicable" class="form-select" required>
+                                <option value="1" {{ old('tax_applicable', $invoice->tax_applicable ? '1' : '0') === '1' ? 'selected' : '' }}>Yes</option>
+                                <option value="0" {{ old('tax_applicable', $invoice->tax_applicable ? '1' : '0') === '0' ? 'selected' : '' }}>No — Tax Exempt</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="category">Category</label>
+                        <div class="col-sm-8">
+                            <select name="category" id="category" class="form-select select2">
+                                <option value="">—</option>
+                                @foreach(\App\Models\GeneralInvoice::CATEGORIES as $k => $label)
+                                    <option value="{{ $k }}" {{ old('category', $invoice->category) === $k ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="reference">Reference</label>
+                        <div class="col-sm-8">
+                            <input type="text" name="reference" id="reference" class="form-control" maxlength="100" value="{{ old('reference', $invoice->reference) }}">
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ③ Currency --}}
+                <div class="col-12">
+                    <div class="text-primary fw-semibold small text-uppercase border-bottom pb-1">
+                        <i class="bi bi-currency-exchange me-1"></i>Currency
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="invoiceCurrency">Currency <span class="text-danger">*</span></label>
+                        <div class="col-sm-8">
+                            <select name="currency" id="invoiceCurrency" class="form-select s2-code" required>
+                                @foreach($currencies as $code => $name)
+                                    <option value="{{ $code }}" data-code="{{ $code }}" data-name="{{ $name }}" {{ $curCode === $code ? 'selected' : '' }}>{{ $code }} — {{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="invoiceRate">Exchange Rate <span class="text-muted small fw-normal" id="invRateLbl"></span></label>
+                        <div class="col-sm-8">
+                            <input type="number" step="0.000001" min="0.000001" name="exchange_rate" id="invoiceRate" class="form-control" value="{{ old('exchange_rate', $invoice->exchange_rate ?? 1) }}" required>
+                            <div class="form-text" id="invRateNote">Rate of the invoice currency to base ({{ $baseCurrency }}).</div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ④ Dates & Credit Terms --}}
+                <div class="col-12">
+                    <div class="text-primary fw-semibold small text-uppercase border-bottom pb-1">
+                        <i class="bi bi-calendar-event me-1"></i>Dates &amp; Credit Terms
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="invoiceDate">Invoice Date <span class="text-danger">*</span></label>
+                        <div class="col-sm-8">
+                            <input type="date" name="invoice_date" id="invoiceDate" class="form-control" value="{{ old('invoice_date', optional($invoice->invoice_date)->format('Y-m-d') ?? now()->toDateString()) }}" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="creditTerm">Credit Term</label>
+                        <div class="col-sm-8">
+                            <select name="payment_terms" id="creditTerm" class="form-select">
+                                @foreach(['cod' => 'Cash on Delivery', 'net15' => 'Net 15 Days', 'net30' => 'Net 30 Days', 'net45' => 'Net 45 Days', 'net60' => 'Net 60 Days'] as $k => $label)
+                                    <option value="{{ $k }}" {{ $curTerms === $k ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="dueDate">Due Date</label>
+                        <div class="col-sm-8">
+                            <input type="date" name="due_date" id="dueDate" class="form-control" value="{{ old('due_date', optional($invoice->due_date)->format('Y-m-d')) }}">
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -424,9 +496,25 @@
         if (t && TERM_DAYS.hasOwnProperty(t)) document.getElementById('creditTerm').value = t;
         recomputeDueDate();
     }
+
+    // Default the invoice currency from the AR party's master currency. Only
+    // when no line data has been entered yet, so we never silently re-denominate
+    // an invoice mid-edit. Triggers the currency change handler (rate + empty
+    // line propagation). Stays overridable afterwards.
+    function currencyFromParty() {
+        const opt = partyOpt();
+        const cur = opt && opt.dataset.currency;
+        if (!cur) return;
+        const anyData = [...document.querySelectorAll('.gi-line')].some(r => !isLineEmpty(r));
+        if (anyData) return;
+        const sel = document.getElementById('invoiceCurrency');
+        if (sel.value === cur) return;
+        $(sel).val(cur).trigger('change');
+    }
     $('#customerSel, #billingPartySel').on('change', function () {
         autoTaxFromParty();
         creditTermFromParty();
+        currencyFromParty();
     });
     document.getElementById('creditTerm').addEventListener('change', recomputeDueDate);
     document.getElementById('invoiceDate').addEventListener('change', recomputeDueDate);
