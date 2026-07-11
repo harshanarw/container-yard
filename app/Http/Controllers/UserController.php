@@ -65,7 +65,13 @@ class UserController extends Controller
             $data['profile_photo'] = $request->file('profile_photo')->store('users/photos', 'public');
         }
 
-        User::create($data);
+        $user = User::create($data);
+
+        // Link the chosen system role into the RBAC pivot (user_roles) so the
+        // user inherits that role's permissions from Settings → Roles &
+        // Permissions. Super-user roles (system_administrator) have no Role row
+        // and bypass RBAC, so this is a no-op for them.
+        $user->syncRoles(array_filter([$data['role'] ?? null]));
 
         return redirect()->route('users.index')
             ->with('success', 'User created successfully.');
@@ -131,7 +137,20 @@ class UserController extends Controller
             $data['profile_photo'] = $request->file('profile_photo')->store('users/photos', 'public');
         }
 
+        $oldRole = $user->role;
         $user->update($data);
+
+        // Keep the RBAC pivot in step with the primary role when it changes,
+        // without disturbing any extra roles granted via Access Control: swap
+        // the old primary role for the new one.
+        if ($oldRole !== $user->role) {
+            if ($oldRole) {
+                $user->removeRole($oldRole);
+            }
+            if ($user->role) {
+                $user->assignRole($user->role);
+            }
+        }
 
         return redirect()->route('users.show', $user)
             ->with('success', 'User profile updated successfully.');
