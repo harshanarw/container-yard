@@ -1,8 +1,15 @@
+@php $driverView = $driverView ?? false; @endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    {{-- Driver (mobile) view: fix the layout width so the phone renders the full
+         A4 pass and scales it down like a PDF, instead of squashing the header. --}}
+    @if($driverView)
+    <meta name="viewport" content="width=820">
+    @else
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @endif
     <title>Gate Pass — {{ $movement->container_no }}</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
@@ -292,6 +299,9 @@
         'vh' => preg_replace('/[^A-Z0-9]/', '', strtoupper($movement->vehicle_plate ?? '')),
     ]);
     $qrData = route('gp.verify', $movement->id) . '?' . http_build_query($qrParams);
+    // Server-rendered QR (SVG) — reliable on every device and in print; falls
+    // back to the JS QR generator when the package is absent.
+    $qrImg = \App\Support\Qr::svgDataUri($qrData, 220);
 
     // Digital approval
     $approvalEnabled = $companySetting?->enable_digital_approvals ?? false;
@@ -337,7 +347,7 @@
         {{-- Right: QR code --}}
         <div class="gp-header-qr">
             <div class="gp-qr">
-                <div id="qr-full"></div>
+                @if($qrImg)<img src="{{ $qrImg }}" alt="Scan to verify">@else<div id="qr-full"></div>@endif
             </div>
             <div class="gp-qr-caption">Scan to verify</div>
         </div>
@@ -574,7 +584,7 @@
         </div>
         <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;">
             <div class="gp-qr gp-qr-sm">
-                <div id="qr-hc"></div>
+                @if($qrImg)<img src="{{ $qrImg }}" alt="Scan to verify">@else<div id="qr-hc"></div>@endif
             </div>
             <div class="gp-qr-caption" style="width:70px;">Scan to verify</div>
         </div>
@@ -764,7 +774,7 @@
         {{-- Right: QR code --}}
         <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;">
             <div class="gp-qr gp-qr-sm">
-                <div id="qr-half"></div>
+                @if($qrImg)<img src="{{ $qrImg }}" alt="Scan to verify">@else<div id="qr-half"></div>@endif
             </div>
             <div class="gp-qr-caption" style="width:70px;">Scan to verify</div>
         </div>
