@@ -138,10 +138,10 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Email Address <span class="text-muted small fw-normal">(optional)</span></label>
                             <input type="email" name="email"
                                    class="form-control @error('email') is-invalid @enderror"
-                                   value="{{ old('email') }}" placeholder="user@example.com" required>
+                                   value="{{ old('email') }}" placeholder="user@example.com">
                             @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
@@ -176,6 +176,15 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                            <input type="text" name="username"
+                                   class="form-control @error('username') is-invalid @enderror"
+                                   value="{{ old('username') }}" placeholder="e.g. ahmad.r or EMP-0001"
+                                   autocomplete="off" required>
+                            <div class="form-text">Used to log in. Letters, numbers, dot, dash and underscore only. Unique per user — ideal when staff share a common email.</div>
+                            @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">System Role <span class="text-danger">*</span></label>
                             <select name="role" class="form-select @error('role') is-invalid @enderror" required>

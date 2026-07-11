@@ -1724,7 +1724,7 @@
                         @endif
                         <div style="line-height:1.3;">
                             <div class="fw-semibold text-dark" style="font-size:.83rem;">{{ auth()->user()->full_name }}</div>
-                            <div class="text-muted" style="font-size:.72rem;">{{ auth()->user()->email }}</div>
+                            <div class="text-muted" style="font-size:.72rem;">{{ auth()->user()->email ?? '@'.auth()->user()->username }}</div>
                         </div>
                     </div>
                 </li>

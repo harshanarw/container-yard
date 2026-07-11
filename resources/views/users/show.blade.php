@@ -59,7 +59,8 @@
                     {{ strtoupper(substr($user->name, 0, 2)) }}
                 </div>
                 <h5 class="mb-1 fw-bold">{{ $user->name }}</h5>
-                <div class="text-muted small mb-2">{{ $user->email }}</div>
+                <div class="text-muted small font-monospace">&#64;{{ $user->username }}</div>
+                <div class="text-muted small mb-2">{{ $user->email ?? 'No email' }}</div>
                 <span class="badge bg-{{ $roleColor }}-subtle text-{{ $roleColor }} px-3 py-1 rounded-pill">
                     {{ ucwords(str_replace('_', ' ', $user->role)) }}
                 </span>

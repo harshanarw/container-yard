@@ -151,14 +151,16 @@
                                     {{ strtoupper(substr($user->name, 0, 2)) }}
                                 </span>
                                 <div>
-                                    <div class="fw-semibold small">{{ $user->name }}</div>
-                                    @if($user->id === auth()->id())
-                                        <span class="badge bg-primary-subtle text-primary" style="font-size:.6rem;">You</span>
-                                    @endif
+                                    <div class="fw-semibold small">{{ $user->name }}
+                                        @if($user->id === auth()->id())
+                                            <span class="badge bg-primary-subtle text-primary" style="font-size:.6rem;">You</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-muted font-monospace" style="font-size:.7rem;">&#64;{{ $user->username }}</div>
                                 </div>
                             </div>
                         </td>
-                        <td class="small text-muted">{{ $user->email }}</td>
+                        <td class="small text-muted">{{ $user->email ?? '—' }}</td>
                         <td>
                             <span class="badge bg-{{ $roleColors[$user->role] ?? 'secondary' }}-subtle text-{{ $roleColors[$user->role] ?? 'secondary' }} badge-status">
                                 {{ $roleLabels[$user->role] ?? $user->role }}
@@ -287,9 +289,16 @@
                             @error('last_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                            <input type="text" name="username" class="form-control @error('username') is-invalid @enderror"
+                                   value="{{ old('username') }}" placeholder="e.g. ahmad.r or EMP-0001" autocomplete="off" required>
+                            <div class="form-text">Used to log in. Unique per user — ideal when staff share a common email.</div>
+                            @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email Address <span class="text-muted small fw-normal">(optional)</span></label>
                             <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
-                                   value="{{ old('email') }}" placeholder="user@cym.my" required>
+                                   value="{{ old('email') }}" placeholder="user@cym.my">
                             @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">

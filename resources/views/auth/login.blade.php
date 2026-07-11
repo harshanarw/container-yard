@@ -246,11 +246,11 @@
 
         {{-- ══ STEP 1: Username ══ --}}
         <div id="step1">
-            <label class="auth-label">Username</label>
+            <label class="auth-label">Username or Email</label>
             <div class="auth-input-group mb-4">
                 <span class="ig-icon"><i class="bi bi-person"></i></span>
-                <input type="email" id="emailInput" placeholder="Enter your email"
-                       value="{{ old('email') }}" autocomplete="username" autofocus>
+                <input type="text" id="emailInput" placeholder="Enter your username or email"
+                       value="{{ old('login') }}" autocomplete="username" autofocus>
             </div>
 
             <button type="button" class="btn-login" id="continueBtn">
@@ -261,7 +261,7 @@
         {{-- ══ STEP 2: Password + CAPTCHA ══ --}}
         <form method="POST" action="{{ route('login') }}" id="loginForm" class="d-none">
             @csrf
-            <input type="hidden" name="email" id="emailHidden">
+            <input type="hidden" name="login" id="emailHidden">
             <input type="hidden" id="captchaAnswer">
 
             {{-- Username pill --}}
@@ -334,7 +334,7 @@
 
     // ── If server returned an error, jump straight to step 2 ─────────────────
     @if($errors->any())
-    const savedEmail = '{{ old('email') }}';
+    const savedEmail = @json(old('login'));
     if (savedEmail) {
         emailInput.value = savedEmail;
         goToStep2(savedEmail);
@@ -378,20 +378,21 @@
     }
 
     continueBtn.addEventListener('click', function () {
-        const email = emailInput.value.trim();
-        if (!email) {
-            showError('Please enter your username / email.');
+        const login = emailInput.value.trim();
+        if (!login) {
+            showError('Please enter your username or email.');
             emailInput.focus();
             return;
         }
-        // Basic email format check
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        // Accept a username or an email. Only validate the format when it looks
+        // like an email (contains '@'); plain usernames pass through.
+        if (login.includes('@') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(login)) {
             showError('Please enter a valid email address.');
             emailInput.focus();
             return;
         }
         hideError();
-        goToStep2(email);
+        goToStep2(login);
     });
 
     // Allow Enter key on email field to continue
