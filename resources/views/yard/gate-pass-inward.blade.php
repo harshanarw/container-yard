@@ -182,9 +182,11 @@
 <body>
 
 {{-- ── Screen-only toolbar ─────────────────────────────────────────────────── --}}
+@php $driverView = $driverView ?? false; @endphp
 <div class="screen-toolbar">
-    <h6>&#128438; &nbsp; Inward Gate Pass Preview — {{ $movement->container_no }}</h6>
+    <h6>&#128438; &nbsp; Inward Gate Pass{{ $driverView ? '' : ' Preview' }} — {{ $movement->container_no }}</h6>
     <button class="tb-btn tb-btn-primary" onclick="window.print()">&#128438; Print / Save PDF</button>
+    @unless($driverView)
     <span style="color:#94a3b8;font-size:11px;margin:0 2px;">Format:</span>
     <a href="{{ route('yard.movements.gate-pass', ['movement' => $movement->id, 'format' => 'full']) }}"
        class="tb-btn {{ $format === 'full' ? 'tb-btn-primary' : 'tb-btn-secondary' }}">Full A4</a>
@@ -197,6 +199,7 @@
     @can('yard.hire.create')
     <a href="{{ route('yard.hires.create', ['container_id' => $movement->container_id]) }}" class="tb-btn" style="background:#92400e;color:#fef3c7;border:none;">&#x21c6; On Hire</a>
     @endcan
+    @endunless
 </div>
 <script>
 (function () {

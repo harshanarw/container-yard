@@ -216,9 +216,11 @@
 <body>
 
 {{-- ── Screen-only toolbar ─────────────────────────────────────────────────── --}}
+@php $driverView = $driverView ?? false; @endphp
 <div class="screen-toolbar">
-    <h6>&#128438; &nbsp; Gate Pass Preview — {{ $movement->container_no }}</h6>
+    <h6>&#128438; &nbsp; Gate Pass{{ $driverView ? '' : ' Preview' }} — {{ $movement->container_no }}</h6>
     <button class="tb-btn tb-btn-primary" onclick="window.print()">&#128438; Print / Save PDF</button>
+    @unless($driverView)
     <span style="color:#94a3b8;font-size:11px;margin:0 2px;">Format:</span>
     <a href="{{ route('yard.movements.gate-pass', ['movement' => $movement->id, 'format' => 'full']) }}"
        class="tb-btn {{ $format === 'full' ? 'tb-btn-primary' : 'tb-btn-secondary' }}">Full A4</a>
@@ -228,6 +230,7 @@
        class="tb-btn {{ $format === 'half-custom' ? 'tb-btn-primary' : 'tb-btn-secondary' }}">Custom Half</a>
     <a href="{{ route('yard.movements.edit', $movement) }}" class="tb-btn tb-btn-outline" id="tbBackBtn">&#8592; Back</a>
     <a href="{{ route('yard.gate') }}?tab=out" class="tb-btn tb-btn-outline" id="tbNewMovementBtn">&#43; New Movement</a>
+    @endunless
 </div>
 <script>
 (function () {

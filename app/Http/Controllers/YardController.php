@@ -1438,29 +1438,33 @@ class YardController extends Controller
 
     /**
      * Driver-facing paperless gate pass, reached via a temporary signed URL
-     * (shared over WhatsApp). Same view as the QR verification page, but flagged
-     * so it shows a Save/Print action instead of tamper cross-checks.
+     * (shared over WhatsApp). Renders the company's default print format —
+     * exactly the same header/footer/QR layout as the staff printout — flagged
+     * as driverView so staff-only toolbar links are hidden but the driver keeps
+     * the Print / Save-PDF action.
      */
     public function driverGatePass(GateMovement $movement)
     {
-        $movement->load(['customer', 'transporter']);
-        $passType = $movement->movement_type;
+        $companySetting = \App\Models\CompanySetting::current();
+        $format = $movement->movement_type === 'in'
+            ? ($companySetting->default_gate_in_format  ?: 'full')
+            : ($companySetting->default_gate_out_format ?: 'full');
 
-        $gateIn = $passType === 'out'
-            ? GateMovement::where('container_id', $movement->container_id)
-                ->where('movement_type', 'in')
-                ->latest('gate_in_time')
-                ->first()
-            : null;
+        $movement->load(['container', 'customer', 'transporter', 'createdBy', 'approvalRequest.actions.actionedBy']);
 
-        return view('yard.gate-pass-verify', [
-            'movement'   => $movement,
-            'gateIn'     => $gateIn,
-            'passType'   => $passType,
-            'checks'     => [],
-            'allMatch'   => true,
-            'hasParams'  => false,
-            'driverView' => true,
+        if ($movement->movement_type === 'in') {
+            return view('yard.gate-pass-inward', [
+                'movement' => $movement, 'format' => $format, 'driverView' => true,
+            ]);
+        }
+
+        $gateIn = GateMovement::where('container_id', $movement->container_id)
+            ->where('movement_type', 'in')
+            ->latest('gate_in_time')
+            ->first();
+
+        return view('yard.gate-pass', [
+            'movement' => $movement, 'gateIn' => $gateIn, 'format' => $format, 'driverView' => true,
         ]);
     }
 
