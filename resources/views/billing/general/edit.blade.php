@@ -136,12 +136,12 @@
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table align-middle mb-0" id="lineTable">
+                <table class="table align-middle mb-0" id="lineTable" style="table-layout:fixed; min-width:1130px;">
                     <thead class="table-light">
                         <tr>
                             <th style="width:105px">Charge Code</th>
-                            <th style="min-width:150px">Revenue Account</th>
-                            <th style="min-width:160px">Description</th>
+                            <th style="width:150px">Revenue Account</th>
+                            <th style="width:170px">Description</th>
                             <th style="width:70px">Qty</th>
                             <th style="width:95px">Unit Rate</th>
                             <th style="width:95px">Ccy</th>
@@ -333,10 +333,26 @@
     $('#lineItems').on('change', 'select.lcur',       function () { fetchLineFx(this.closest('tr')); });
     $('#lineItems').on('change', 'select.taxsel',     function () { recalc(); });
 
+    // A line the user hasn't touched yet: no charge, blank description, zero rate.
+    function isLineEmpty(row) {
+        return !row.querySelector('.charge-sel').value
+            && !row.querySelector('.desc').value.trim()
+            && (parseFloat(row.querySelector('.rate').value) || 0) === 0;
+    }
     $('#invoiceCurrency').on('change', async function () {
         await fetchInvoiceRate();
-        // Re-pull each line's cross rate against the new invoice currency.
-        for (const row of document.querySelectorAll('.gi-line')) await fetchLineFx(row);
+        const ic = invCur();
+        for (const row of document.querySelectorAll('.gi-line')) {
+            if (isLineEmpty(row)) {
+                // Untouched line — follow the new invoice currency (1:1 cross rate).
+                const lc = row.querySelector('.lcur');
+                lc.value = ic; $(lc).trigger('change.select2');
+                row.querySelector('.lfx').value = '1';
+            } else {
+                // Populated line keeps its own currency; re-pull the cross rate.
+                await fetchLineFx(row);
+            }
+        }
         recalc();
     });
     document.getElementById('invoiceRate').addEventListener('input', recalc);
