@@ -118,13 +118,15 @@ class GeneralInvoiceController extends Controller
     }
 
     /** Void an issued document (reverses the GL journal via the observer). */
-    public function void(Request $request, GeneralInvoice $general)
+    public function void(Request $request, GeneralInvoice $general, \App\Services\Finance\ArAllocationService $ar)
     {
         if (! in_array($general->status, ['issued', 'overdue', 'partially_paid'], true)) {
             return back()->with('error', 'Only an issued document can be voided.');
         }
-        if ((float) $general->amount_paid > 0) {
-            return back()->with('error', 'This document has receipts allocated — reverse those before voiding.');
+        // Any settlement (confirmed receipt or approved credit note) must be
+        // reversed first — voiding would strand the receipt's cash journal.
+        if ($ar->getAllocatedTotal('general', $general->id) > 0.005) {
+            return back()->with('error', 'This document has receipts or credit notes applied — reverse those before voiding.');
         }
 
         $general->update(['status' => 'void']);

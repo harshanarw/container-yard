@@ -685,7 +685,9 @@ class GeneralLedgerController extends Controller
 
                 $docAllocated = (float) ($allocations->get("{$type}-{$inv->id}")?->total_allocated ?? 0)
                               + (float) ($cnApplied->get("{$type}-{$inv->id}")?->total_applied ?? 0);
-                if (in_array($type, ['repair', 'general'], true)) {
+                // Only repair persists a manual amount_paid; general settles purely
+                // via receipts/credit notes (kept consistent with currencyBreakdown).
+                if ($type === 'repair') {
                     $docAllocated += (float) ($inv->amount_paid ?? 0);
                 }
 

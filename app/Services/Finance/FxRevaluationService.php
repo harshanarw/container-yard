@@ -7,6 +7,7 @@ use App\Models\AccountMapping;
 use App\Models\ExchangeRate;
 use App\Models\GlJournal;
 use App\Models\ReeferElectricityInvoice;
+use App\Models\GeneralInvoice;
 use App\Models\RepairInvoice;
 use App\Models\StorageHandlingInvoice;
 use App\Models\StorageInvoice;
@@ -41,6 +42,7 @@ class FxRevaluationService
         ['storage-handling', StorageHandlingInvoice::class,  ['issued']],
         ['reefer',           ReeferElectricityInvoice::class, ['issued']],
         ['repair',           RepairInvoice::class,           ['issued', 'partially_paid', 'overdue']],
+        ['general',          GeneralInvoice::class,          ['issued', 'partially_paid', 'overdue']],
     ];
 
     public function __construct(
