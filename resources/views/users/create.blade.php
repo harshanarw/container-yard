@@ -32,7 +32,7 @@
 </div>
 @endif
 
-<form method="POST" action="{{ route('users.store') }}" enctype="multipart/form-data" id="createUserForm">
+<form method="POST" action="{{ route('users.store') }}" enctype="multipart/form-data" id="createUserForm" novalidate>
     @csrf
 
     <div class="row g-4">

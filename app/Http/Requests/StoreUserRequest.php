@@ -27,7 +27,7 @@ class StoreUserRequest extends FormRequest
             'date_of_birth'     => ['nullable', 'date', 'before:today'],
             'national_id'       => ['nullable', 'string', 'max:50'],
             'username'          => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9._-]+$/', 'unique:users,username'],
-            'email'             => ['nullable', 'email', 'unique:users,email'],
+            'email'             => ['nullable', 'email:filter', 'unique:users,email'],
             'phone'             => ['nullable', 'string', 'max:20'],
             'employee_reg_no'   => ['nullable', 'string', 'max:50'],
             'department'        => ['nullable', 'string', 'max:100'],
