@@ -11,7 +11,10 @@
             <span class="font-monospace">{{ $session->container?->container_no }}</span>
             <span class="ms-2 badge {{ $session->status_badge_class }}">{{ ucfirst($session->status) }}</span>
         </h4>
-        <p class="text-muted small mb-0">{{ $session->customer?->name }}</p>
+        <p class="text-muted small mb-0">
+            {{ $session->customer?->name }}
+            &nbsp;·&nbsp; @include('partials.job-badge', ['job' => $session->yardJob, 'mode' => 'inline'])
+        </p>
     </div>
     <div class="ms-auto d-flex gap-2">
         @if($session->isPending())
@@ -35,6 +38,8 @@
         <div class="card shadow-sm h-100">
             <div class="card-header bg-transparent fw-semibold">Session Details</div>
             <div class="card-body">
+                @include('partials.job-badge', ['job' => $session->yardJob, 'mode' => 'card'])
+                <hr class="my-2">
                 <dl class="row small mb-0">
                     <dt class="col-sm-5 text-muted">Container</dt>
                     <dd class="col-sm-7 font-monospace fw-bold">{{ $session->container?->container_no }}</dd>

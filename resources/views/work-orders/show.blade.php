@@ -37,6 +37,7 @@ $statusColors = [
             @endif
             &nbsp;·&nbsp; {{ $workOrder->container_no }}
             &nbsp;·&nbsp; {{ $workOrder->customer->name ?? '—' }}
+            &nbsp;·&nbsp; @include('partials.job-badge', ['job' => $workOrder->yardJob, 'mode' => 'inline'])
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
@@ -207,6 +208,8 @@ $statusColors = [
         <div class="card h-100">
             <div class="card-header bg-light"><h5 class="mb-0">Work Details</h5></div>
             <div class="card-body">
+                @include('partials.job-badge', ['job' => $workOrder->yardJob, 'mode' => 'card'])
+                <hr class="my-3">
                 <dl class="row mb-0">
                     <dt class="col-5 text-muted fw-normal small">Container</dt>
                     <dd class="col-7 fw-semibold">{{ $workOrder->container_no }}</dd>

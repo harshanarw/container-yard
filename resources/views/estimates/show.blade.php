@@ -56,6 +56,7 @@
             <span class="badge bg-{{ $statusColors[$estimate->status] ?? 'secondary' }}">{{ ucfirst(str_replace('_',' ',$estimate->status)) }}</span>
             &nbsp;·&nbsp; {{ $estimate->customer->name ?? '—' }}
             &nbsp;·&nbsp; {{ $estimate->container_no }}
+            &nbsp;·&nbsp; @include('partials.job-badge', ['job' => $estimate->yardJob, 'mode' => 'inline'])
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
@@ -139,6 +140,8 @@
                 </span>
             </div>
             <div class="card-body">
+                @include('partials.job-badge', ['job' => $estimate->yardJob, 'mode' => 'card'])
+                <hr class="my-3">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <div class="text-muted small">Estimate No.</div>

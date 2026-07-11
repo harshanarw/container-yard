@@ -32,6 +32,7 @@ $statusColors = [
             </span>
             &nbsp;·&nbsp; {{ $invoice->container_no }}
             &nbsp;·&nbsp; {{ $invoice->customer->name ?? '—' }}
+            &nbsp;·&nbsp; @include('partials.job-badge', ['job' => $invoice->yardJob, 'mode' => 'inline'])
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
@@ -131,6 +132,8 @@ $statusColors = [
         <div class="card">
             <div class="card-header bg-light"><h5 class="mb-0">Invoice Details</h5></div>
             <div class="card-body small">
+                @include('partials.job-badge', ['job' => $invoice->yardJob, 'mode' => 'card'])
+                <hr class="my-2">
                 <dl class="row mb-0">
                     <dt class="col-6">Invoice Date</dt>
                     <dd class="col-6">{{ $invoice->invoice_date?->format('d M Y') ?? '—' }}</dd>

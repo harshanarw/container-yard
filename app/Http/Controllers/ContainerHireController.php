@@ -121,7 +121,14 @@ class ContainerHireController extends Controller
             'updatedBy',
         ]);
 
-        return view('yard.hires.show', compact('hire'));
+        // Container hires have no owning job column; resolve the on-hire gate-in
+        // visit's job for display (best-effort — labelled as the on-hire job).
+        $hireJobId = \App\Services\JobResolver::forContainerVisit(
+            $hire->container_id, $hire->original_gate_in_date
+        );
+        $hireJob = $hireJobId ? \App\Models\YardJob::with('jobType')->find($hireJobId) : null;
+
+        return view('yard.hires.show', compact('hire', 'hireJob'));
     }
 
     // ── Off Hire form ─────────────────────────────────────────────────────────

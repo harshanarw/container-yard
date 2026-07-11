@@ -40,6 +40,9 @@
             @if($hire->hire_reference)
                 <span class="text-muted small"><i class="bi bi-tag me-1"></i>{{ $hire->hire_reference }}</span>
             @endif
+            @if($hireJob)
+                &nbsp;·&nbsp; @include('partials.job-badge', ['job' => $hireJob, 'mode' => 'inline'])
+            @endif
         </div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
@@ -71,6 +74,9 @@
         <div class="card content-card h-100">
             <div class="card-header"><i class="bi bi-info-circle me-2 text-primary"></i>Hire Summary</div>
             <div class="card-body">
+                <div class="text-muted small mb-1">On-Hire Job</div>
+                @include('partials.job-badge', ['job' => $hireJob, 'mode' => 'card'])
+                <hr class="my-2">
                 <table class="table table-sm table-borderless mb-0">
                     <tbody>
                         <tr>

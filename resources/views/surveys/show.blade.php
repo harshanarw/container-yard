@@ -76,6 +76,7 @@
         <p class="text-muted mb-0 small">
             Created {{ $inquiry->created_at->format('d M Y, H:i') }}
             &nbsp;·&nbsp; Last updated {{ $inquiry->updated_at->diffForHumans() }}
+            &nbsp;·&nbsp; @include('partials.job-badge', ['job' => $inquiry->yardJob, 'mode' => 'inline'])
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
@@ -107,6 +108,8 @@
                 <i class="bi bi-box-seam me-2 text-primary"></i>Container & Survey Details
             </div>
             <div class="card-body">
+                @include('partials.job-badge', ['job' => $inquiry->yardJob, 'mode' => 'card'])
+                <hr class="my-3">
                 <div class="row g-3 small">
                     <div class="col-sm-6">
                         <div class="text-muted mb-1">Container Number</div>
