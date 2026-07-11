@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Role;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreUserRequest extends FormRequest
 {
@@ -13,6 +15,10 @@ class StoreUserRequest extends FormRequest
 
     public function rules(): array
     {
+        // Accept any role defined in Settings → Roles & Permissions, plus the
+        // built-in super-user role which has no RBAC row.
+        $roleNames = Role::pluck('name')->push('system_administrator')->all();
+
         return [
             'title'             => ['nullable', 'string', 'max:10'],
             'first_name'        => ['required', 'string', 'max:100'],
@@ -30,7 +36,7 @@ class StoreUserRequest extends FormRequest
             'emergency_contact' => ['nullable', 'string', 'max:100'],
             'emergency_phone'   => ['nullable', 'string', 'max:20'],
             'password'          => ['required', 'string', 'min:8', 'confirmed'],
-            'role'              => ['required', 'in:system_administrator,administrator,yard_supervisor,gate_officer,inspector,billing_clerk,security_officer'],
+            'role'              => ['required', Rule::in($roleNames)],
             'status'            => ['required', 'in:active,inactive'],
         ];
     }

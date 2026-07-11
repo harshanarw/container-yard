@@ -192,12 +192,9 @@
                                 @if(auth()->user()->isSystemAdmin())
                                 <option value="system_administrator" {{ old('role') === 'system_administrator' ? 'selected' : '' }}>System Administrator</option>
                                 @endif
-                                <option value="administrator"   {{ old('role') === 'administrator'   ? 'selected' : '' }}>Administrator</option>
-                                <option value="yard_supervisor" {{ old('role') === 'yard_supervisor' ? 'selected' : '' }}>Yard Supervisor</option>
-                                <option value="gate_officer"      {{ old('role') === 'gate_officer'      ? 'selected' : '' }}>Gate Officer</option>
-                                <option value="security_officer" {{ old('role') === 'security_officer' ? 'selected' : '' }}>Security Officer</option>
-                                <option value="inspector"        {{ old('role') === 'inspector'        ? 'selected' : '' }}>Inspector</option>
-                                <option value="billing_clerk"    {{ old('role') === 'billing_clerk'    ? 'selected' : '' }}>Billing Clerk</option>
+                                @foreach($assignableRoles as $r)
+                                <option value="{{ $r->name }}" {{ old('role') === $r->name ? 'selected' : '' }}>{{ $r->display_name }}</option>
+                                @endforeach
                             </select>
                             @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
@@ -358,15 +355,53 @@ $(document).ready(function () {
         if (alertBox) alertBox.style.display = 'none';
     });
 
-    // Block submit if passwords don't match
+    // ── Field-level validation shown when a field loses focus ──
+    const createForm = document.getElementById('createUserForm');
+    function setFieldError(field, msg) {
+        field.classList.toggle('is-invalid', !!msg);
+        const col = field.closest('[class*="col-"]') || field.parentElement;
+        let holder = col.querySelector('.client-error');
+        if (!holder) {
+            holder = document.createElement('div');
+            holder.className = 'client-error invalid-feedback';
+            (field.closest('.input-group') || field).insertAdjacentElement('afterend', holder);
+        }
+        holder.textContent = msg;
+        holder.style.display = msg ? 'block' : 'none';
+    }
+    function validateField(field) {
+        if (field.name === 'password_confirmation') return true; // handled by match check
+        const val = (field.value || '').trim();
+        let msg = '';
+        if (field.hasAttribute('required') && !val) {
+            msg = 'This field is required.';
+        } else if (field.name === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+            msg = 'Please enter a valid email address.';
+        } else if (field.name === 'username' && val && !/^[A-Za-z0-9._-]+$/.test(val)) {
+            msg = 'Use only letters, numbers, dot, dash and underscore.';
+        } else if (field.name === 'password' && val && val.length < 8) {
+            msg = 'Password must be at least 8 characters.';
+        }
+        setFieldError(field, msg);
+        return !msg;
+    }
+    createForm?.addEventListener('focusout', function (e) {
+        if (e.target.matches('input[name], select[name]')) validateField(e.target);
+    });
+
+    // Block submit on field errors or password mismatch, focusing the first.
     $('#createUserForm').on('submit', function (e) {
+        let firstInvalid = null;
+        createForm.querySelectorAll('input[name], select[name]').forEach(function (f) {
+            if (!validateField(f) && !firstInvalid) firstInvalid = f;
+        });
         const pw  = $('#createPassword').val();
         const cpw = $('#createPasswordConfirm').val();
         if (pw !== cpw) {
-            e.preventDefault();
             $('#pwMismatch').removeClass('d-none');
-            $('#createPasswordConfirm').focus();
+            if (!firstInvalid) firstInvalid = document.getElementById('createPasswordConfirm');
         }
+        if (firstInvalid) { e.preventDefault(); firstInvalid.focus(); }
     });
 
     // Photo preview

@@ -203,15 +203,8 @@
                                 @if(auth()->user()->isSystemAdmin())
                                 <option value="system_administrator" {{ old('role', $user->role) === 'system_administrator' ? 'selected' : '' }}>System Administrator</option>
                                 @endif
-                                @foreach([
-                                    'administrator'    => 'Administrator',
-                                    'yard_supervisor'  => 'Yard Supervisor',
-                                    'gate_officer'     => 'Gate Officer',
-                                    'security_officer' => 'Security Officer',
-                                    'inspector'        => 'Inspector',
-                                    'billing_clerk'    => 'Billing Clerk',
-                                ] as $val => $label)
-                                <option value="{{ $val }}" {{ old('role', $user->role) === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                @foreach($roles as $r)
+                                <option value="{{ $r->name }}" {{ old('role', $user->role) === $r->name ? 'selected' : '' }}>{{ $r->display_name }}</option>
                                 @endforeach
                             </select>
                             @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror

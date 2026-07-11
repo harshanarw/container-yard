@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Role;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateUserRequest extends FormRequest
 {
@@ -14,6 +16,7 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         $userId = $this->route('user')->id;
+        $roleNames = Role::pluck('name')->push('system_administrator')->all();
 
         return [
             'title'             => ['nullable', 'string', 'max:10'],
@@ -33,7 +36,7 @@ class UpdateUserRequest extends FormRequest
             'emergency_contact' => ['nullable', 'string', 'max:100'],
             'emergency_phone'   => ['nullable', 'string', 'max:20'],
             'password'          => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role'              => ['required', 'in:system_administrator,administrator,yard_supervisor,gate_officer,inspector,billing_clerk,security_officer'],
+            'role'              => ['required', Rule::in($roleNames)],
             'status'            => ['required', 'in:active,inactive'],
         ];
     }

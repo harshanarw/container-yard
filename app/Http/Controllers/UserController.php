@@ -43,12 +43,21 @@ class UserController extends Controller
 
         $users = $users->paginate(15)->withQueryString();
 
-        return view('users.index', compact('users'));
+        return view('users.index', ['users' => $users, 'assignableRoles' => $this->assignableRoles()]);
     }
 
     public function create()
     {
-        return view('users.create');
+        return view('users.create', ['assignableRoles' => $this->assignableRoles()]);
+    }
+
+    /**
+     * Roles selectable as a user's primary system role — every role defined in
+     * Settings → Roles & Permissions, so the dropdown always mirrors that list.
+     */
+    private function assignableRoles()
+    {
+        return Role::orderByDesc('is_system')->orderBy('display_name')->get(['name', 'display_name']);
     }
 
     public function store(StoreUserRequest $request)
