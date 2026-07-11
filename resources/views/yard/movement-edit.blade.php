@@ -51,6 +51,12 @@
             <i class="bi bi-printer me-1"></i>Inward Gate Pass
         </a>
         @endif
+        @if($movement->driver_phone && \App\Models\CompanySetting::current()->enable_gatepass_whatsapp)
+        <a href="{{ route('yard.movements.wa-gatepass', $movement) }}" target="_blank" rel="noopener"
+           class="btn btn-success" title="Send gate pass to driver via WhatsApp">
+            <i class="bi bi-whatsapp me-1"></i>Send to Driver
+        </a>
+        @endif
         <a href="{{ route('yard.gate') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back
         </a>

@@ -2323,7 +2323,15 @@ function initPhotoUploader(cfg) {
                         );
                     }
                     window.open(finalUrl, 'gate_pass_popup', 'width=940,height=1120,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,status=no');
-                    window.location.href = cfg.redirectUrl || window.location.pathname;
+                    // If the server flagged WhatsApp sharing (feature on + driver phone),
+                    // hand the main window to WhatsApp (which pre-fills the message and
+                    // opens the driver's chat). Otherwise reload the gate page as usual.
+                    var waId = /[?&]wa=1(?:&|$)/.test(finalUrl) ? (finalUrl.match(/\/movements\/(\d+)\/gate-pass/) || [])[1] : null;
+                    if (waId && cfg.waUrlTemplate) {
+                        window.location.href = cfg.waUrlTemplate.replace('__MID__', waId);
+                    } else {
+                        window.location.href = cfg.redirectUrl || window.location.pathname;
+                    }
                 } else {
                     window.location.href = finalUrl || cfg.redirectUrl || window.location.pathname;
                 }
@@ -2332,8 +2340,9 @@ function initPhotoUploader(cfg) {
     });
 }
 
-initPhotoUploader({ fileInput: document.getElementById('inPhotoInput'), cameraInput: document.getElementById('inCameraInput'), browseBtn: document.getElementById('inBrowseBtn'), cameraBtn: document.getElementById('inCameraBtn'), dropZone: document.getElementById('inDropZone'), errorEl: document.getElementById('inPhotoError'), previewGrid: document.getElementById('inPhotoPreview'), counterEl: document.getElementById('inPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=in', direction: 'IN', max: 5 });
-initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraInput: document.getElementById('outCameraInput'), browseBtn: document.getElementById('outBrowseBtn'), cameraBtn: document.getElementById('outCameraBtn'), dropZone: document.getElementById('outDropZone'), errorEl: document.getElementById('outPhotoError'), previewGrid: document.getElementById('outPhotoPreview'), counterEl: document.getElementById('outPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=out', direction: 'OUT', max: 5 });
+@php $waUrlTemplate = route('yard.movements.wa-gatepass', ['movement' => '__MID__']); @endphp
+initPhotoUploader({ fileInput: document.getElementById('inPhotoInput'), cameraInput: document.getElementById('inCameraInput'), browseBtn: document.getElementById('inBrowseBtn'), cameraBtn: document.getElementById('inCameraBtn'), dropZone: document.getElementById('inDropZone'), errorEl: document.getElementById('inPhotoError'), previewGrid: document.getElementById('inPhotoPreview'), counterEl: document.getElementById('inPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=in', waUrlTemplate: '{{ $waUrlTemplate }}', direction: 'IN', max: 5 });
+initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraInput: document.getElementById('outCameraInput'), browseBtn: document.getElementById('outBrowseBtn'), cameraBtn: document.getElementById('outCameraBtn'), dropZone: document.getElementById('outDropZone'), errorEl: document.getElementById('outPhotoError'), previewGrid: document.getElementById('outPhotoPreview'), counterEl: document.getElementById('outPhotoCounter'), redirectUrl: '{{ route("yard.gate") }}?tab=out', waUrlTemplate: '{{ $waUrlTemplate }}', direction: 'OUT', max: 5 });
 
 // ── Gate Out container Select2 autocomplete + AJAX lookup + submit confirmation ──
 (function () {

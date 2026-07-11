@@ -525,7 +525,7 @@ class YardController extends Controller
             }
         }
 
-        $redirect = redirect()->route('yard.movements.gate-pass', $movement)
+        $redirect = redirect()->route('yard.movements.gate-pass', $this->gatePassParams($movement))
             ->with('gp_note', $gpNote);
 
         if ($photoError) {
@@ -533,6 +533,22 @@ class YardController extends Controller
         }
 
         return $redirect;
+    }
+
+    /**
+     * Gate-pass redirect params. Adds wa=1 when the movement should also be
+     * offered over WhatsApp (feature on + a driver phone captured), so the
+     * gate screen can auto-trigger the send alongside the print preview.
+     */
+    private function gatePassParams(GateMovement $movement): array
+    {
+        $params = ['movement' => $movement];
+
+        if (\App\Models\CompanySetting::current()->enable_gatepass_whatsapp && $movement->driver_phone) {
+            $params['wa'] = 1;
+        }
+
+        return $params;
     }
 
     public function gateOut(Request $request)
@@ -823,7 +839,7 @@ class YardController extends Controller
             route('yard.movements.edit', $movement)
         );
 
-        $redirect = redirect()->route('yard.movements.gate-pass', $movement)
+        $redirect = redirect()->route('yard.movements.gate-pass', $this->gatePassParams($movement))
             ->with('gp_note', "Gate OUT recorded for {$container->container_no}.");
 
         if ($photoError) {
