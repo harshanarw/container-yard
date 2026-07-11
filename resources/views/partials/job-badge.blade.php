@@ -4,6 +4,7 @@
     Params:
       $job   — App\Models\YardJob|null (with jobType loaded ideally)
       $mode  — 'inline' (compact chips for a page-header subtitle)
+             | 'cell'   (compact chip + job no for a table cell)
              | 'card'   (labelled block for an info card)   [default]
       $link  — bool, wrap the job no in a link to the job page [default true]
 

@@ -470,14 +470,6 @@ class YardController extends Controller
 
             $movement->update(['yard_job_id' => $yardJob->id]);
             $yardJobNo = $yardJob->job_no;
-
-            // Propagate the job to the survey this gate-in raised, so the
-            // Surveys/Inquiries module can show the same Job No / Job Type.
-            if ($movement->survey_id) {
-                \App\Models\Inquiry::whereKey($movement->survey_id)
-                    ->whereNull('yard_job_id')
-                    ->update(['yard_job_id' => $yardJob->id]);
-            }
         } catch (\Throwable $e) {
             \Log::error('[GateIn] Yard job creation failed: ' . $e->getMessage());
         }

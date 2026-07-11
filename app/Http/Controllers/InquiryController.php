@@ -81,6 +81,7 @@ class InquiryController extends Controller
             $_inquiry = Inquiry::create([
                 'inquiry_no'            => $this->generateInquiryNo(),
                 'container_id'          => $container->id,
+                'yard_job_id'           => \App\Services\JobResolver::forContainerVisit($container->id, $request->inspection_date),
                 'container_no'          => $container->container_no,
                 'equipment_type_id'     => $container->equipment_type_id,
                 'size'                  => $container->size,

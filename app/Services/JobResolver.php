@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Estimate;
 use App\Models\GateMovement;
+use App\Models\Inquiry;
 
 /**
  * Resolves the YardJob a given operational record belongs to.
@@ -24,28 +25,42 @@ class JobResolver
     }
 
     /**
-     * A survey/inquiry is pointed at by the gate movement that raised it
-     * (`gate_movements.survey_id`), so the job is that movement's job.
+     * A survey/inquiry is raised while the container is in the yard, against its
+     * current gate-in visit. There is no FK for this — surveys carry only the
+     * container and a free-text gate_in_ref — so resolve the job from the
+     * container's latest gate-in on or before the inspection date.
      */
     public static function forInquiry(?int $inquiryId): ?int
     {
-        return $inquiryId
-            ? GateMovement::where('survey_id', $inquiryId)->value('yard_job_id')
-            : null;
+        if (! $inquiryId) {
+            return null;
+        }
+        $inquiry = Inquiry::select('id', 'container_id', 'yard_job_id', 'inspection_date')->find($inquiryId);
+        if (! $inquiry) {
+            return null;
+        }
+
+        return $inquiry->yard_job_id
+            ?? self::forContainerVisit($inquiry->container_id, $inquiry->inspection_date);
     }
 
-    /** An estimate inherits its job from the inquiry it was raised against. */
+    /**
+     * An estimate inherits its job from the inquiry it was raised against,
+     * falling back to the container's gate-in visit when it has no inquiry.
+     */
     public static function forEstimate(?int $estimateId): ?int
     {
         if (! $estimateId) {
             return null;
         }
-        $estimate = Estimate::select('id', 'inquiry_id', 'yard_job_id')->find($estimateId);
+        $estimate = Estimate::select('id', 'inquiry_id', 'container_id', 'yard_job_id', 'estimate_date')->find($estimateId);
         if (! $estimate) {
             return null;
         }
 
-        return $estimate->yard_job_id ?? self::forInquiry($estimate->inquiry_id);
+        return $estimate->yard_job_id
+            ?? self::forInquiry($estimate->inquiry_id)
+            ?? self::forContainerVisit($estimate->container_id, $estimate->estimate_date);
     }
 
     /**
