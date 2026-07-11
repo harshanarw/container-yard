@@ -224,6 +224,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/movements/{movement}',            [YardController::class, 'destroyMovement'])->name('movements.destroy');
         Route::delete('/movements/{movement}/photos/{photo}', [YardController::class, 'destroyMovementPhoto'])->name('movements.photo.destroy');
         Route::get('/movements/{movement}/gate-pass',     [YardController::class, 'gatePass'])->name('movements.gate-pass');
+        Route::get('/movements/{movement}/wa-gatepass',   [YardController::class, 'whatsappGatePass'])->name('movements.wa-gatepass');
     });
 
     // Container Hires (On Hire / Off Hire)

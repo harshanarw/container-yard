@@ -28,8 +28,11 @@ class GateMovement extends Model
         'codeco_exported_by', 'csv_exported_by',
         'codeco_batch_ref', 'csv_batch_ref',
         'container_ocr_image_path', 'plate_ocr_image_path',
-        'share_code',
+        'share_code', 'share_expires_at',
     ];
+
+    /** Days a freshly-sent driver gate-pass link stays valid. */
+    public const SHARE_LINK_DAYS = 7;
 
     protected static function booted(): void
     {
@@ -51,8 +54,27 @@ class GateMovement extends Model
         return $code;
     }
 
+    /** Start (or refresh) the share link's validity window from now. */
+    public function refreshShareLink(): void
+    {
+        if (empty($this->share_code)) {
+            $this->share_code = static::generateShareCode();
+        }
+        $this->share_expires_at = now()->addDays(self::SHARE_LINK_DAYS);
+        $this->save();
+    }
+
+    /** True while the driver share link is live (sent and not yet expired). */
+    public function shareLinkIsValid(): bool
+    {
+        return $this->share_code
+            && $this->share_expires_at
+            && $this->share_expires_at->isFuture();
+    }
+
     protected $casts = [
         'vent_count'         => 'integer',
+        'share_expires_at'   => 'datetime',
         'gate_in_time'       => 'datetime',
         'gate_out_time'      => 'datetime',
         'berthing_date'      => 'date',

@@ -1451,13 +1451,53 @@ class YardController extends Controller
     /**
      * Short branded link (/g/{code}) shared with the driver over WhatsApp —
      * resolves the movement by its unguessable share code, then renders the
-     * same driver print view.
+     * same driver print view. Refuses access once the link's window has passed.
      */
     public function shortGatePass(string $code)
     {
         $movement = GateMovement::where('share_code', $code)->firstOrFail();
 
+        if (! $movement->shareLinkIsValid()) {
+            return response()->view('yard.gate-pass-expired', ['movement' => $movement], 410);
+        }
+
         return $this->renderDriverPass($movement);
+    }
+
+    /**
+     * Refresh the driver share link's validity window and hand off to WhatsApp
+     * with a pre-filled message. Redirecting through the server means every
+     * "Send" gives the driver a fresh window (like the old signed URL) without
+     * writing to the DB on every gate-list render.
+     */
+    public function whatsappGatePass(GateMovement $movement)
+    {
+        $cs = \App\Models\CompanySetting::current();
+
+        if (! $cs->enable_gatepass_whatsapp) {
+            return back()->with('error', 'Gate pass WhatsApp sharing is turned off in Company Settings.');
+        }
+        if (! $movement->driver_phone) {
+            return back()->with('error', 'This movement has no driver phone number to send to.');
+        }
+
+        $movement->refreshShareLink();
+
+        $company = $cs->company_name ?: 'Container Yard';
+        $link    = route('gp.short', $movement->share_code);
+        $message = '*' . $company . '*' . "\n"
+                 . 'Hello' . ($movement->driver_name ? ' ' . $movement->driver_name : '')
+                 . ', your ' . ($movement->movement_type === 'out' ? 'outward' : 'inward')
+                 . ' gate pass for container ' . $movement->container_no
+                 . ' is ready (link valid ' . GateMovement::SHARE_LINK_DAYS . ' days). Tap to view, download or print:' . "\n"
+                 . $link;
+
+        $waUrl = \App\Services\WhatsAppLink::chatUrl($movement->driver_phone, $message);
+        if (! $waUrl) {
+            return back()->with('error', 'Could not build a WhatsApp link for this driver number.');
+        }
+
+        return redirect()->away($waUrl);
     }
 
     private function renderDriverPass(GateMovement $movement)
