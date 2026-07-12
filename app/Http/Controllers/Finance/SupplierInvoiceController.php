@@ -65,8 +65,7 @@ class SupplierInvoiceController extends Controller
             ->orderBy('code')
             ->get(['id', 'code', 'description', 'tax1_rate', 'tax2_rate']);
 
-        $jobs = \App\Models\YardJob::with('customer')->whereIn('status', ['open', 'in_progress'])
-            ->orderByDesc('id')->limit(500)->get();
+        $jobs = \App\Models\YardJob::pickerData();
 
         return view('finance.supplier-invoices.create', compact('suppliers', 'accounts', 'chargeCodes', 'taxCodes', 'jobs'));
     }
@@ -86,6 +85,7 @@ class SupplierInvoiceController extends Controller
             'notes'                        => ['nullable', 'string', 'max:1000'],
             'yard_job_id'                  => ['nullable', 'exists:yard_jobs,id'],
             'lines'                        => ['required', 'array', 'min:1'],
+            'lines.*.yard_job_id'          => ['nullable', 'exists:yard_jobs,id'],
             'lines.*.description'          => ['required', 'string', 'max:255'],
             'lines.*.expense_account_id'   => ['required', 'exists:accounts,id'],
             'lines.*.amount'               => ['required', 'numeric', 'gt:0'],
@@ -114,9 +114,15 @@ class SupplierInvoiceController extends Controller
             $vatTotal    = 0.0;
             $lineRecords = [];
 
-            // Job costing: attribute this cost to a job/container (header-level).
-            $jobId       = $validated['yard_job_id'] ?? null;
-            $containerId = $jobId ? optional(\App\Models\YardJob::find($jobId))->primaryContainerId() : null;
+            // Job costing: each line's job wins; a blank line falls back to the
+            // header job. Container derived from whichever job applies (cached).
+            $headerJobId  = $validated['yard_job_id'] ?? null;
+            $containerFor = [];
+            $resolveJob = function ($lineJob) use ($headerJobId, &$containerFor): array {
+                $jid = ($lineJob ?: null) ?: $headerJobId;
+                $cid = $jid ? ($containerFor[$jid] ??= optional(\App\Models\YardJob::find($jid))->primaryContainerId()) : null;
+                return [$jid, $cid];
+            };
 
             foreach ($validated['lines'] as $line) {
                 $net   = (float) $line['amount'];
@@ -130,10 +136,11 @@ class SupplierInvoiceController extends Controller
                 $ssclTotal += $sscl;
                 $vatTotal  += $vat;
 
+                [$lineJobId, $lineContainerId] = $resolveJob($line['yard_job_id'] ?? null);
                 $lineRecords[] = [
                     'description'        => $line['description'],
-                    'yard_job_id'        => $jobId,
-                    'container_id'       => $containerId,
+                    'yard_job_id'        => $lineJobId,
+                    'container_id'       => $lineContainerId,
                     'charge_code_id'     => ($line['charge_code_id'] ?? null) ?: null,
                     'tax_code_id'        => ($line['tax_code_id'] ?? null) ?: null,
                     'expense_account_id' => $line['expense_account_id'],
@@ -221,8 +228,7 @@ class SupplierInvoiceController extends Controller
             ->orderBy('code')
             ->get(['id', 'code', 'description', 'tax1_rate', 'tax2_rate']);
 
-        $jobs = \App\Models\YardJob::with('customer')->whereIn('status', ['open', 'in_progress'])
-            ->orderByDesc('id')->limit(500)->get();
+        $jobs = \App\Models\YardJob::pickerData();
 
         return view('finance.supplier-invoices.edit', compact(
             'supplierInvoice', 'suppliers', 'accounts', 'chargeCodes', 'taxCodes', 'jobs'
@@ -248,6 +254,7 @@ class SupplierInvoiceController extends Controller
             'notes'                        => ['nullable', 'string', 'max:1000'],
             'yard_job_id'                  => ['nullable', 'exists:yard_jobs,id'],
             'lines'                        => ['required', 'array', 'min:1'],
+            'lines.*.yard_job_id'          => ['nullable', 'exists:yard_jobs,id'],
             'lines.*.description'          => ['required', 'string', 'max:255'],
             'lines.*.expense_account_id'   => ['required', 'exists:accounts,id'],
             'lines.*.amount'               => ['required', 'numeric', 'gt:0'],
@@ -274,9 +281,15 @@ class SupplierInvoiceController extends Controller
             $vatTotal    = 0.0;
             $lineRecords = [];
 
-            // Job costing: attribute this cost to a job/container (header-level).
-            $jobId       = $validated['yard_job_id'] ?? null;
-            $containerId = $jobId ? optional(\App\Models\YardJob::find($jobId))->primaryContainerId() : null;
+            // Job costing: each line's job wins; a blank line falls back to the
+            // header job. Container derived from whichever job applies (cached).
+            $headerJobId  = $validated['yard_job_id'] ?? null;
+            $containerFor = [];
+            $resolveJob = function ($lineJob) use ($headerJobId, &$containerFor): array {
+                $jid = ($lineJob ?: null) ?: $headerJobId;
+                $cid = $jid ? ($containerFor[$jid] ??= optional(\App\Models\YardJob::find($jid))->primaryContainerId()) : null;
+                return [$jid, $cid];
+            };
 
             foreach ($validated['lines'] as $line) {
                 $net   = (float) $line['amount'];
@@ -290,10 +303,11 @@ class SupplierInvoiceController extends Controller
                 $ssclTotal += $sscl;
                 $vatTotal  += $vat;
 
+                [$lineJobId, $lineContainerId] = $resolveJob($line['yard_job_id'] ?? null);
                 $lineRecords[] = [
                     'description'        => $line['description'],
-                    'yard_job_id'        => $jobId,
-                    'container_id'       => $containerId,
+                    'yard_job_id'        => $lineJobId,
+                    'container_id'       => $lineContainerId,
                     'charge_code_id'     => ($line['charge_code_id'] ?? null) ?: null,
                     'tax_code_id'        => ($line['tax_code_id'] ?? null) ?: null,
                     'expense_account_id' => $line['expense_account_id'],

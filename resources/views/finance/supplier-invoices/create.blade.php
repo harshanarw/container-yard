@@ -63,15 +63,28 @@
                             <label class="form-label small">Notes</label>
                             <textarea name="notes" class="form-control form-control-sm" rows="2">{{ old('notes') }}</textarea>
                         </div>
+                        @php
+                            $jobName = function ($j) {
+                                $p = [];
+                                if (!empty($j['container_no'])) $p[] = $j['container_no'];
+                                if (!empty($j['size']))         $p[] = $j['size']."'".$j['type_code'];
+                                if (!empty($j['customer']))     $p[] = $j['customer'];
+                                return implode(' · ', $p);
+                            };
+                            $jobLabel = fn ($j) => trim($j['job_no'] . ' · ' . $jobName($j), ' ·');
+                        @endphp
                         <div class="col-12">
                             <label class="form-label small">Job <span class="text-muted">(costing)</span></label>
-                            <select name="yard_job_id" class="form-select form-select-sm select2 s2-code" data-s2-sel="name">
+                            <select name="yard_job_id" id="yard_job_id" class="form-select form-select-sm s2-code job-select" data-s2-sel="name">
                                 <option value="">— None —</option>
                                 @foreach($jobs as $j)
-                                    <option value="{{ $j->id }}" @selected(old('yard_job_id') == $j->id)>{{ $j->job_no }} · {{ $j->job_type_code }} · {{ $j->customer?->name }}</option>
+                                    <option value="{{ $j['id'] }}" data-code="{{ $j['job_no'] }}" data-name="{{ $jobName($j) }}" data-cust-id="{{ $j['customer_id'] }}" @selected(old('yard_job_id') == $j['id'])>{{ $jobLabel($j) }}</option>
                                 @endforeach
                             </select>
-                            <div class="form-text">Attributes this cost to a container job for job P&amp;L.</div>
+                            <div class="form-text d-flex justify-content-between align-items-center flex-wrap">
+                                <span>Sets the job for <strong>all lines</strong>; blank = tag lines individually.</span>
+                                <label class="small mb-0"><input type="checkbox" id="jobShowAll" class="form-check-input me-1"> Show all jobs</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -134,6 +147,7 @@
                     <tr>
                         <th style="min-width:170px">Charge Code</th>
                         <th style="min-width:200px">Description</th>
+                        <th style="width:130px">Job <span class="text-muted fw-normal" style="font-size:.7rem;">(costing)</span></th>
                         <th style="min-width:175px">Expense / Asset Account</th>
                         <th style="min-width:110px">Tax Code</th>
                         <th class="text-end" style="min-width:110px">Net Amount</th>
@@ -218,6 +232,7 @@
 <script>
 (function () {
     const body        = document.getElementById('linesBody');
+    const JOBS        = @json($jobs);
     const accountOpts = @json($accountOptionsHtml);
     const chargeCodes = @json($chargeCodesData);
     const taxCodes    = @json($taxCodesData);
@@ -276,6 +291,43 @@
         return accountOpts.replace('value="' + selectedId + '"', 'value="' + selectedId + '" selected');
     }
 
+    // ── Job costing picker (chip pattern + party soft-filter + inheritance) ────
+    function jobEsc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function jobName(j){
+        let p = [];
+        if (j.container_no) p.push(j.container_no);
+        if (j.size) p.push(j.size + "'" + (j.type_code || ''));
+        if (j.customer) p.push(j.customer);
+        return p.join(' · ');
+    }
+    function jobLabel(j){ const n = jobName(j); return n ? (j.job_no + ' · ' + n) : j.job_no; }
+    function jobOption(j, sel){
+        return `<option value="${j.id}" data-code="${jobEsc(j.job_no)}" data-name="${jobEsc(jobName(j))}" data-cust-id="${j.customer_id ?? ''}" ${String(sel)===String(j.id)?'selected':''}>${jobEsc(jobLabel(j))}</option>`;
+    }
+    function jobOpts(sel){ return '<option value="">— none —</option>' + JOBS.map(j => jobOption(j, sel)).join(''); }
+    function jobPartyId(){ return document.getElementById('supplierSelect')?.value || ''; }
+    function jobShowAll(){ return !!document.getElementById('jobShowAll')?.checked; }
+    function jobsForParty(){
+        const p = jobPartyId();
+        if (!p || jobShowAll()) return JOBS;
+        return JOBS.filter(j => String(j.customer_id) === String(p));
+    }
+    function rebuildJobSelect($sel){
+        const cur = $sel.val();
+        let list = jobsForParty().slice();
+        if (cur && !list.some(j => String(j.id) === String(cur))) {
+            const f = JOBS.find(j => String(j.id) === String(cur));
+            if (f) list.unshift(f);
+        }
+        const lbl = $sel.hasClass('job-line') ? 'none' : 'None';
+        $sel.html('<option value="">— ' + lbl + ' —</option>' + list.map(j => jobOption(j, cur)).join(''))
+            .val(cur || '').trigger('change.select2');
+    }
+    function refreshAllJobSelects(){
+        rebuildJobSelect(jQuery('#yard_job_id'));
+        jQuery('select.job-line').each(function(){ rebuildJobSelect(jQuery(this)); });
+    }
+
     function rowHtml(i, line) {
         const desc = (line?.description || '').replace(/"/g, '&quot;');
         const net  = line?.amount || '';
@@ -291,6 +343,7 @@
                 <input type="hidden" name="lines[${i}][tax2_rate]" class="tax2-rate" value="${t2r}">
             </td>
             <td><input type="text" name="lines[${i}][description]" class="form-control form-control-sm" value="${desc}" required></td>
+            <td><select name="lines[${i}][yard_job_id]" class="form-select form-select-sm s2-code job-line">${jobOpts(line?.yard_job_id)}</select></td>
             <td>
                 <select name="lines[${i}][expense_account_id]" class="form-select form-select-sm acct-select" data-s2-sel="name" required>
                     ${buildAccountOpts(line?.expense_account_id)}
@@ -356,6 +409,20 @@
             templateResult    : window.s2CodeResult    || null,
             templateSelection : window.s2CodeSelection || null,
         });
+
+        // ── Job (costing) Select2 — chip + auto-width dropdown, party-filtered ─
+        const jobEl = row.querySelector('.job-line');
+        if (jobEl) {
+            const savedJob = jobEl.value;
+            jQuery(jobEl).select2({
+                theme: 'bootstrap-5', width: '100%', dropdownAutoWidth: true,
+                templateResult: window.s2CodeResult || null,
+                templateSelection: window.s2CodeSelection || null,
+            });
+            rebuildJobSelect(jQuery(jobEl));
+            const hv = document.getElementById('yard_job_id')?.value;
+            if (hv && !savedJob) jQuery(jobEl).val(hv).trigger('change.select2');
+        }
     }
 
     function addRow(line) {
@@ -561,6 +628,15 @@
         // Seed line rows (must come after DOMContentLoaded for s2CodeResult)
         const seed = @json(array_values($oldLines));
         if (seed.length) seed.forEach(line => addRow(line)); else addRow();
+
+        // ── Job costing wiring ────────────────────────────────────────────────
+        jQuery('#supplierSelect').on('change', refreshAllJobSelects);   // filter jobs to the supplier
+        jQuery('#jobShowAll').on('change', refreshAllJobSelects);
+        jQuery('#yard_job_id').on('change', function () {               // header → all lines
+            const v = this.value;
+            if (v) jQuery('select.job-line').each(function () { jQuery(this).val(v).trigger('change.select2'); });
+        });
+        refreshAllJobSelects();
     });
 
     // ── Attachment queue (files staged locally, submitted with the form) ────
