@@ -133,3 +133,21 @@ off-hire closes it. Wire to cargo-substitution `container_hire_id`.
 - **Lessor cost basis**: actual supplier invoice for now; per-diem accrual later
   if needed.
 - **Start**: Phase A, beginning A1–A3 (schema + models + posting propagation).
+
+## 7. Delivery status — all phases shipped ✅
+- **A1–A3** — dimension on `general_invoice_lines` / `supplier_invoice_lines` /
+  `payment_vouchers` / `gl_entries`; posting propagates it to the GL (P&L lines
+  only). *(migration 000272; JobCostingDimensionTest)*
+- **A4** — Job pickers on the general-invoice, supplier-invoice and voucher
+  screens (header-level, stamped onto lines; per-line override remains open).
+- **A5** — consistency by construction (container derived from the job).
+- **A6** — historical repair GL entries backfilled *(migration 000273)*.
+- **B** — two-sided `JobPnlService` (realized Revenue − Cost = Margin from posted
+  `gl_entries`; pending from drafts/accruals). Yard Job page headlines it.
+  *(JobPnlTest)*
+- **C** — lessor on-hire (yard as lessee) as its own costed job; the lessor fee
+  is AP cost tagged to the job → realized cost on its P&L. *(migration 000274;
+  LessorOnHireFlowTest)*
+
+**Deferred (optional):** per-diem accrual for lessor cost (`per_diem_rate` stored,
+ready); per-line job override on invoice lines.
