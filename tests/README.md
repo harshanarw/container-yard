@@ -95,6 +95,7 @@ user↔role linkage.
 | Repair chain → GL | `Billing/RepairInvoiceFlowTest` | approved estimate → repair invoice → issue → posted |
 | Reefer billing → GL | `Billing/ReeferBillingFlowTest` | completed session → invoice → session billed → issue → posted |
 | Estimate → Work Order | `Repair/WorkOrderFlowTest` | approve estimate; generate WO → lines copied + container in-repair |
+| AR settlement | `Finance/ReceiptSettlementTest` | confirm receipt → invoice paid / partially_paid + cash journal posted |
 
 Bugs these tests surfaced and fixed: repair-invoice route-model binding
 (issue/cancel/payment silently failed); undefined-key fatals on partial
@@ -105,7 +106,7 @@ stores; and silently-swallowed GL-posting failures (now visible + retryable).
 
 - Survey → Estimate creation (front of the repair chain; approve → WO covered)
 - Storage & Handling billing generation (multi-line storage + handling)
-- General Invoice: receipt / settlement → AR aging
+- AR aging buckets (settlement itself is covered)
 - Container hire on / off
 
 ### Resolved finding — GL-posting failures now visible + retryable
