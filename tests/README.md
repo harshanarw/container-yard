@@ -94,22 +94,26 @@ user↔role linkage.
 | General invoice → GL | `Billing/GeneralInvoiceFlowTest` | draft → issue → posted `invoice_postings`; minimal-payload variant |
 | Repair chain → GL | `Billing/RepairInvoiceFlowTest` | approved estimate → repair invoice → issue → posted |
 | Reefer billing → GL | `Billing/ReeferBillingFlowTest` | completed session → invoice → session billed → issue → posted |
+| Estimate → Work Order | `Repair/WorkOrderFlowTest` | approve estimate; generate WO → lines copied + container in-repair |
 
 Bugs these tests surfaced and fixed: repair-invoice route-model binding
-(issue/cancel/payment silently failed), and undefined-key fatals on partial
-payloads in the gate-in / general-invoice / repair-invoice stores.
+(issue/cancel/payment silently failed); undefined-key fatals on partial
+payloads in the gate-in / general-invoice / repair-invoice / **work-order**
+stores; and silently-swallowed GL-posting failures (now visible + retryable).
 
 ### Still to add
 
-- Survey → Estimate → approve → Work Order (front half of the repair chain)
+- Survey → Estimate creation (front of the repair chain; approve → WO covered)
 - Storage & Handling billing generation (multi-line storage + handling)
 - General Invoice: receipt / settlement → AR aging
 - Container hire on / off
 
-### Known open finding (not yet actioned)
+### Resolved finding — GL-posting failures now visible + retryable
 
-All invoice observers (general / repair / reefer / storage) **catch and log**
-GL-posting failures, so an invoice can reach `issued` with no ledger entry when
-posting can't resolve (e.g. no open accounting period, unmapped account). This
-is a deliberate "non-blocking post" design — whether issuing should instead
-block on posting failure is a finance product decision, still to be made.
+Previously all invoice observers caught-and-logged posting failures, so an
+invoice could reach `issued` with no ledger entry (e.g. no open accounting
+period) — silently. Now `InvoicePostingService::postSafely()` records a durable
+`failed` posting, the issue action flashes a warning, every invoice show page
+carries a "Not posted to GL — Retry" banner, and `billing.postings.retry`
+re-attempts posting. The success path is unchanged (non-breaking). Covered by
+`GeneralInvoiceFlowTest::test_posting_failure_is_recorded_warned_and_retryable`.

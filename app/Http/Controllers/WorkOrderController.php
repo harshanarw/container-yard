@@ -190,11 +190,11 @@ class WorkOrderController extends Controller
                 'container_no'       => $estimate->container_no,
                 'customer_id'        => $estimate->customer_id,
                 'repair_category_id' => $validated['repair_category_id'],
-                'assigned_to'        => $validated['assigned_to'],
+                'assigned_to'        => $validated['assigned_to'] ?? null,
                 'status'             => 'pending',
                 'priority'           => $validated['priority'],
-                'target_date'        => $validated['target_date'],
-                'instructions'       => $validated['instructions'],
+                'target_date'        => $validated['target_date'] ?? null,
+                'instructions'       => $validated['instructions'] ?? null,
                 'created_by'         => auth()->id(),
             ]);
 
