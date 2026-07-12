@@ -178,11 +178,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('work-orders/{estimate}/preview-lines/{repairCategory}',              [WorkOrderController::class, 'previewLines'])->name('work-orders.preview-lines');
 
     // Repair Invoices
-    Route::resource('repair-invoices', RepairInvoiceController::class);
-    Route::patch('repair-invoices/{repairInvoice}/issue',          [RepairInvoiceController::class, 'issue'])->name('repair-invoices.issue');
-    Route::patch('repair-invoices/{repairInvoice}/record-payment', [RepairInvoiceController::class, 'recordPayment'])->name('repair-invoices.record-payment');
-    Route::patch('repair-invoices/{repairInvoice}/cancel',         [RepairInvoiceController::class, 'cancel'])->name('repair-invoices.cancel');
-    Route::get('repair-invoices/{repairInvoice}/ird-print',        [RepairInvoiceController::class, 'irdPrint'])->name('repair-invoices.ird-print');
+    // NOTE: the route parameter must be named {invoice} to match the controller
+    // method signatures (RepairInvoice $invoice); Laravel resolves implicit
+    // model binding by parameter name, so a mismatch yields an empty model.
+    Route::resource('repair-invoices', RepairInvoiceController::class)
+        ->parameters(['repair-invoices' => 'invoice']);
+    Route::patch('repair-invoices/{invoice}/issue',          [RepairInvoiceController::class, 'issue'])->name('repair-invoices.issue');
+    Route::patch('repair-invoices/{invoice}/record-payment', [RepairInvoiceController::class, 'recordPayment'])->name('repair-invoices.record-payment');
+    Route::patch('repair-invoices/{invoice}/cancel',         [RepairInvoiceController::class, 'cancel'])->name('repair-invoices.cancel');
+    Route::get('repair-invoices/{invoice}/ird-print',        [RepairInvoiceController::class, 'irdPrint'])->name('repair-invoices.ird-print');
 
     // General Invoicing (misc AR — tax invoice / invoice / debit note)
     Route::prefix('billing/general')->name('billing.general.')->group(function () {
