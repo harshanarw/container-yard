@@ -1189,7 +1189,7 @@
                                    style="font-size:.65rem;width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;" title="{{ $mv->movement_type === 'out' ? 'Gate Pass' : 'Inward Gate Pass' }}">
                                     <i class="bi bi-printer"></i>
                                 </a>
-                                @if($mv->driver_phone && \App\Models\CompanySetting::current()->enable_gatepass_whatsapp)
+                                @if($mv->driver_phone && \Illuminate\Support\Facades\Route::has('yard.movements.wa-gatepass') && \App\Models\CompanySetting::current()->enable_gatepass_whatsapp)
                                     {{-- Routes through the server so each send refreshes the link's 7-day window. --}}
                                     <a href="{{ route('yard.movements.wa-gatepass', $mv) }}" target="_blank" rel="noopener"
                                        class="btn btn-success btn-sm"
