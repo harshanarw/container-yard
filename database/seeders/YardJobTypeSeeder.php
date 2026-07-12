@@ -173,11 +173,13 @@ class YardJobTypeSeeder extends Seeder
                 'code'        => 'CARGO_RENTAL_IN',
                 'short_code'  => 'CR',
                 'name'        => 'Cargo Rental / Container Substitution',
-                'description' => 'Laden customer container enters; cargo is transferred to a yard-owned substitution container. Customer\'s empty box released out. Triggers cargo transfer workflow and storage billing on yard container.',
+                'description' => 'Laden customer container enters; cargo is transferred to a yard-owned or on-hired substitution container. Customer\'s empty box released out. Triggers cargo transfer workflow and storage billing (plus reefer electricity when the substitute box is refrigerated) on the yard container.',
                 'sort_order'  => 14,
                 'handling'    => true,  'survey'   => false, 'estimate' => false,
                 'repair'      => false, 'storage'  => true,  'wash'     => false,
-                'reefer'      => false, 'customs'  => false, 'cargo_transfer' => true,
+                // Reefer-capable: the substitute box may be a reefer, which then
+                // accrues electricity charges alongside storage.
+                'reefer'      => true,  'customs'  => false, 'cargo_transfer' => true,
                 'approval'    => false, 'damage_capture' => false,
                 'next_status' => 'pending_cargo_transfer',
             ],
@@ -207,6 +209,9 @@ class YardJobTypeSeeder extends Seeder
              'description' => 'Sold, scrapped or disposed container leaves the yard.', 'handling' => true],
             ['code' => 'OTHER_OUT',         'short_code' => 'OT', 'name' => 'Other / Manual Out', 'sort_order' => 10,
              'description' => 'Any other gate-out not covered above.', 'handling' => true],
+            ['code' => 'CARGO_RENTAL_OUT',  'short_code' => 'CO', 'name' => 'Substitution Empty Out', 'sort_order' => 11,
+             'description' => 'The customer\'s now-empty box leaves the yard after its cargo was transferred to a substitution container (stops the shipping line\'s detention clock). Recorded on the same job as the cargo-rental gate-in.',
+             'handling' => true, 'cargo_transfer' => true],
         ];
 
         $upsert = function (array $row, string $direction): void {

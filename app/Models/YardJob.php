@@ -76,6 +76,12 @@ class YardJob extends Model
         return $this->hasOne(GateMovement::class)->where('movement_type', 'out');
     }
 
+    /** Cargo rental / container-substitution swaps tracked under this job. */
+    public function cargoTransfers()
+    {
+        return $this->hasMany(CargoTransfer::class);
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
