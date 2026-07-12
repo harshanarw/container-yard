@@ -50,26 +50,10 @@ class ArAgingTest extends FeatureTestCase
         ]));
         $response->assertOk();
 
-        $byCustomer = $response->viewData('byCustomer');
-        $row = $byCustomer->get($customer->id);
-
-        // TEMP DEBUG — replicate the controller's exact expression on a full model load.
-        $ctrl = GeneralInvoice::whereIn('status', ['issued', 'partially_paid', 'overdue'])
-            ->orderBy('invoice_date')->get()
-            ->map(fn ($i) => [
-                'id'          => $i->id,
-                'cust'        => $i->customer_id,
-                'bp'          => $i->billing_party_id,
-                'coalesce'    => $i->billing_party_id ?? $i->customer_id,
-                'bp_type'     => gettype($i->billing_party_id),
-            ])->all();
-        $diag = json_encode([
-            'customer_id'      => $customer->id,
-            'controller_view'  => $ctrl,
-            'byCustomer_keys'  => $byCustomer->keys()->all(),
-            'grandTotals'      => $response->viewData('grandTotals'),
-        ], JSON_PRETTY_PRINT);
-        $this->assertNotNull($row, "Customer not present in the aging report. DIAG: {$diag}");
+        // byCustomer is a values-indexed list (groupBy → sortByDesc → values),
+        // so locate our customer's group by its nested customer model.
+        $row = $response->viewData('byCustomer')->firstWhere('customer.id', $customer->id);
+        $this->assertNotNull($row, 'Customer not present in the aging report.');
 
         $this->assertEqualsWithDelta(100.0, (float) $row['current'], 0.01);
         $this->assertEqualsWithDelta(0.0,   (float) $row['1-30'],   0.01);
