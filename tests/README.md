@@ -96,6 +96,7 @@ user↔role linkage.
 | Reefer billing → GL | `Billing/ReeferBillingFlowTest` | completed session → invoice → session billed → issue → posted |
 | Estimate → Work Order | `Repair/WorkOrderFlowTest` | approve estimate; generate WO → lines copied + container in-repair |
 | AR settlement | `Finance/ReceiptSettlementTest` | confirm receipt → invoice paid / partially_paid + cash journal posted |
+| AR aging buckets | `Finance/ArAgingTest` | issued invoices bucketed current / 31-60 / 90+ by due date |
 | Storage & Handling → GL | `Billing/StorageHandlingFlowTest` | generate storage invoice → issue → posted (storage revenue → AR) |
 | Container hire lifecycle | `Yard/ContainerHireFlowTest` | on-hire → storage split + gate-out blocked; off-hire → resumed + completed |
 
@@ -108,7 +109,6 @@ visible + retryable).
 ### Still to add
 
 - Survey → Estimate creation (front of the repair chain; approve → WO covered)
-- AR aging buckets (settlement itself is covered)
 
 ### Resolved finding — GL-posting failures now visible + retryable
 
