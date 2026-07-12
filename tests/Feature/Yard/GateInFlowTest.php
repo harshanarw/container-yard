@@ -40,6 +40,15 @@ class GateInFlowTest extends FeatureTestCase
             'customer_id'       => $customer->id,
             'condition'         => 'sound',
             'cargo_status'      => 'empty',
+            // Optional fields the real gate-in form always posts (empty) and the
+            // controller reads directly from the validated set.
+            'location_zone' => '', 'location_row' => '', 'location_bay' => '', 'location_tier' => '',
+            'seal_no' => '', 'vehicle_plate' => '', 'transporter_id' => '',
+            'driver_name' => '', 'driver_ic' => '', 'driver_phone' => '',
+            'vessel_name' => '', 'voyage_no' => '', 'berthing_date' => '', 'bl_number' => '',
+            'do_expiry_date' => '', 'fcl_expiry_date' => '', 'consignee' => '',
+            'remarks' => '', 'grade_id' => '', 'ventilation_type' => '', 'vent_count' => '',
+            'return_reason' => '',
         ]);
 
         $response->assertSessionHasNoErrors();
