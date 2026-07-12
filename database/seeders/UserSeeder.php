@@ -54,6 +54,8 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($users as $user) {
+            // Login username derived from the email local-part (admin, gate, …).
+            $user['username'] = \Illuminate\Support\Str::before($user['email'], '@');
             User::firstOrCreate(['email' => $user['email']], $user);
         }
     }

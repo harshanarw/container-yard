@@ -17,6 +17,7 @@ class SystemAdminSeeder extends Seeder
             ['email' => $email],
             [
                 'name'     => 'System Admin',
+                'username' => 'sysadmin',
                 'password' => Hash::make($password),
                 'phone'    => null,
                 'role'     => 'system_administrator',
