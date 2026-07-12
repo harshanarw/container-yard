@@ -84,6 +84,7 @@ class InvoicePostingService
                     'journal_type'   => 'invoice',
                     'reference_type' => get_class($invoice),
                     'reference_id'   => $invoice->id,
+                    'ird_invoice_no' => $invoice->ird_invoice_no ?? null,
                     'narration'      => $this->narration($invoice, $invoiceType),
                 ], $lines);
 
@@ -545,6 +546,10 @@ class InvoicePostingService
     {
         $no   = $invoice->invoice_no ?? $invoice->reference_no ?? "#{$invoice->id}";
         $type = InvoicePosting::typeLabel($invoiceType);
-        return "{$type} {$no}";
+        // Carry the IRD tax-invoice serial into the JV narration when present, so
+        // the ledger is self-describing without joining back to the source doc.
+        $ird  = $invoice->ird_invoice_no ?? null;
+
+        return $ird ? "{$type} {$no} · Tax {$ird}" : "{$type} {$no}";
     }
 }

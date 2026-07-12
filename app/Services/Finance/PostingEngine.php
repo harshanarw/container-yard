@@ -48,6 +48,7 @@ class PostingEngine
                 'currency'          => $header['currency'] ?? $this->journalCurrency($entries, $base),
                 'reference_type'    => $header['reference_type'] ?? null,
                 'reference_id'      => $header['reference_id'] ?? null,
+                'ird_invoice_no'    => $header['ird_invoice_no'] ?? null,
                 'narration'         => $header['narration'],
                 'total_debit'       => $totalDebit,
                 'total_credit'      => $totalCredit,

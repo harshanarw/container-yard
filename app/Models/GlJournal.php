@@ -17,6 +17,7 @@ class GlJournal extends Model
         'currency',
         'reference_type',
         'reference_id',
+        'ird_invoice_no',
         'narration',
         'total_debit',
         'total_credit',

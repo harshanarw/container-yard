@@ -102,10 +102,11 @@ class GeneralInvoiceController extends Controller
             return back()->with('error', 'Cannot issue a document with no line items.');
         }
 
-        $irdNo = $general->ird_invoice_no;
-        if (! $irdNo && $general->isTaxDocument()) {
-            $irdNo = app(\App\Services\IrdInvoiceNumberService::class)->generate('general', $general->invoice_date);
-        }
+        // Per IRD guidelines every issued AR invoice — tax and non-tax alike —
+        // carries an IRD-format serial. Mint one if the document doesn't already
+        // have it (idempotent on re-issue).
+        $irdNo = $general->ird_invoice_no
+            ?? app(\App\Services\IrdInvoiceNumberService::class)->generate('general', $general->invoice_date);
 
         $general->update([
             'status'         => 'issued',
