@@ -24,19 +24,27 @@ class GeneralInvoiceFlowTest extends FeatureTestCase
 
         // ── Create a draft (base currency, non-tax invoice) ──
         $create = $this->post(route('billing.general.store'), [
-            'invoice_type'   => 'invoice',
-            'customer_id'    => $customer->id,
-            'invoice_date'   => now()->toDateString(),
-            'currency'       => 'LKR',
-            'exchange_rate'  => 1,
-            'tax_applicable' => 0,
-            'lines'          => [[
+            'invoice_type'     => 'invoice',
+            'customer_id'      => $customer->id,
+            'billing_party_id' => '',
+            'category'         => '',
+            'invoice_date'     => now()->toDateString(),
+            'due_date'         => '',
+            'payment_terms'    => '',
+            'currency'         => 'LKR',
+            'exchange_rate'    => 1,
+            'tax_applicable'   => 0,
+            'reference'        => '',
+            'remarks'          => '',
+            'lines'            => [[
                 'charge_code_id'     => $charge->id,
+                'revenue_account_id' => '',
                 'description'        => 'Test service charge',
                 'qty'                => 1,
                 'unit_rate'          => 100,
                 'line_currency'      => 'LKR',
                 'line_exchange_rate' => 1,
+                'tax_code_id'        => '',
             ]],
         ]);
 
