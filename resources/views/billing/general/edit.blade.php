@@ -145,22 +145,24 @@
 
                 {{-- Job costing — tag this invoice's income to a job/container --}}
                 @php
-                    $jobLabel = function ($j) {
-                        $parts = [$j['job_no']];
+                    // Full label (option text — searchable); name (the chip's description, no job no).
+                    $jobName = function ($j) {
+                        $parts = [];
                         if (!empty($j['container_no'])) $parts[] = $j['container_no'];
                         if (!empty($j['size']))         $parts[] = $j['size']."'".$j['type_code'];
                         if (!empty($j['customer']))     $parts[] = $j['customer'];
-                        return implode('  ·  ', $parts);
+                        return implode(' · ', $parts);
                     };
+                    $jobLabel = fn ($j) => trim($j['job_no'] . ' · ' . $jobName($j), ' ·');
                 @endphp
                 <div class="col-md-6">
                     <div class="row">
                         <label class="{{ $lblCls }}" for="yard_job_id">Job <span class="text-muted fw-normal">(costing)</span></label>
                         <div class="col-sm-8">
-                            <select name="yard_job_id" id="yard_job_id" class="form-select select2 job-select">
+                            <select name="yard_job_id" id="yard_job_id" class="form-select s2-code job-select" data-s2-sel="name">
                                 <option value="">— None —</option>
                                 @foreach($jobs as $j)
-                                    <option value="{{ $j['id'] }}" data-cust-id="{{ $j['customer_id'] }}" @selected(old('yard_job_id') == $j['id'])>{{ $jobLabel($j) }}</option>
+                                    <option value="{{ $j['id'] }}" data-code="{{ $j['job_no'] }}" data-name="{{ $jobName($j) }}" data-cust-id="{{ $j['customer_id'] }}" @selected(old('yard_job_id') == $j['id'])>{{ $jobLabel($j) }}</option>
                                 @endforeach
                             </select>
                             <div class="form-text d-flex justify-content-between align-items-center flex-wrap">
@@ -321,17 +323,19 @@
     function curOpts(sel){ return CURRENCIES.map(c => `<option value="${c}" data-code="${c}" data-name="${esc(CURNAMES[c] || c)}" ${sel===c?'selected':''}>${c}</option>`).join(''); }
     // Per-line job options — rich label (Job · Container · Size/Type · Customer),
     // carrying data-cust-id for the party soft-filter.
-    function jobLabel(j){
-        let p = [j.job_no];
+    function jobName(j){
+        let p = [];
         if (j.container_no) p.push(j.container_no);
         if (j.size) p.push(j.size + "'" + (j.type_code || ''));
         if (j.customer) p.push(j.customer);
-        return p.join('  ·  ');
+        return p.join(' · ');
+    }
+    function jobLabel(j){ const n = jobName(j); return n ? (j.job_no + ' · ' + n) : j.job_no; }
+    function jobOption(j, sel){
+        return `<option value="${j.id}" data-code="${esc(j.job_no)}" data-name="${esc(jobName(j))}" data-cust-id="${j.customer_id ?? ''}" ${String(sel)===String(j.id)?'selected':''}>${esc(jobLabel(j))}</option>`;
     }
     function jobOpts(sel){
-        return '<option value="">— none —</option>' + JOBS.map(j =>
-            `<option value="${j.id}" data-cust-id="${j.customer_id ?? ''}" ${String(sel)===String(j.id)?'selected':''}>${esc(jobLabel(j))}</option>`
-        ).join('');
+        return '<option value="">— none —</option>' + JOBS.map(j => jobOption(j, sel)).join('');
     }
     function acctOpts(sel){
         return '<option value="">— revenue a/c —</option>' + INCOME_ACCTS.map(a =>
@@ -346,7 +350,7 @@
             <td><select name="lines[${i}][charge_code_id]" class="form-select form-select-sm s2-code charge-sel" required>${chargeOpts(d.charge_code_id)}</select></td>
             <td><select name="lines[${i}][revenue_account_id]" class="form-select form-select-sm s2-code acct-sel" data-s2-sel="name">${acctOpts(d.revenue_account_id)}</select></td>
             <td><input type="text" name="lines[${i}][description]" class="form-control form-control-sm desc" value="${esc(d.description)}" required></td>
-            <td><select name="lines[${i}][yard_job_id]" class="form-select form-select-sm select2 job-line">${jobOpts(d.yard_job_id)}</select></td>
+            <td><select name="lines[${i}][yard_job_id]" class="form-select form-select-sm s2-code job-line">${jobOpts(d.yard_job_id)}</select></td>
             <td><input type="number" name="lines[${i}][qty]" class="form-control form-control-sm qty" value="${d.qty ?? 1}" min="0.001" step="0.001" required></td>
             <td><input type="number" name="lines[${i}][unit_rate]" class="form-control form-control-sm rate" value="${d.unit_rate ?? 0}" min="0" step="0.01" required></td>
             <td><select name="lines[${i}][line_currency]" class="form-select form-select-sm s2-code lcur">${curOpts(lc)}</select></td>
@@ -386,9 +390,8 @@
             if (f) list.unshift(f);
         }
         const label = $sel.hasClass('job-line') ? 'none' : 'None';
-        $sel.html('<option value="">— ' + label + ' —</option>' + list.map(j =>
-            `<option value="${j.id}" data-cust-id="${j.customer_id ?? ''}">${esc(jobLabel(j))}</option>`
-        ).join('')).val(cur || '').trigger('change.select2');
+        $sel.html('<option value="">— ' + label + ' —</option>' + list.map(j => jobOption(j, cur)).join(''))
+            .val(cur || '').trigger('change.select2');
     }
     function refreshAllJobSelects(){
         rebuildJobSelect($('#yard_job_id'));
