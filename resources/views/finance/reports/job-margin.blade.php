@@ -63,7 +63,7 @@
                 <select name="job_type_id" class="form-select form-select-sm">
                     <option value="">All</option>
                     @foreach($jobTypes as $t)
-                        <option value="{{ $t->id }}" @selected(($filters['job_type_id'] ?? null) == $t->id)>{{ $t->name }}</option>
+                        <option value="{{ $t->id }}" @selected(($filters['job_type_id'] ?? null) == $t->id)>{{ $t->job_type_name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -171,7 +171,7 @@
                     <tr>
                         <td class="ps-3">
                             <a href="{{ route('yard.jobs.show', $j) }}" class="fw-semibold text-decoration-none font-monospace">{{ $j->job_no }}</a>
-                            <div class="text-muted" style="font-size:.7rem">{{ $j->jobType->name ?? $j->job_type_code }}</div>
+                            <div class="text-muted" style="font-size:.7rem">{{ $j->jobType->job_type_name ?? $j->job_type_code }}</div>
                         </td>
                         <td>{{ $j->customer->name ?? '—' }}</td>
                         <td class="text-center">

@@ -134,7 +134,7 @@ class JobPnlService
      */
     public function summary(array $filters = []): array
     {
-        $jobQuery = YardJob::query()->with(['customer:id,name', 'jobType:id,name,job_type_code']);
+        $jobQuery = YardJob::query()->with(['customer:id,name', 'jobType:id,job_type_name,job_type_code']);
 
         if (! empty($filters['customer_id'])) $jobQuery->where('customer_id', $filters['customer_id']);
         if (! empty($filters['job_type_id'])) $jobQuery->where('job_type_id', $filters['job_type_id']);
