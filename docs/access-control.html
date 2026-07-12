@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Access Control Reference — Container Yard</title>
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --surface-2:#fbfcfd; --border:#e4e8ee; --border-strong:#d2d8e0;
+  --ink:#18202e; --muted:#5c6675; --faint:#8b95a4;
+  --accent:#2f6db0; --accent-ink:#1e5187; --accent-tint:#eaf1f9;
+  --full:#0d7a63; --full-tint:#e6f5f0; --full-bd:#bfe4d8;
+  --partial:#a65a12; --partial-tint:#fbf1e4; --partial-bd:#eecfa8;
+  --lock:#5b56a8; --lock-tint:#eeedf8;
+  --shadow:0 1px 2px rgba(20,30,50,.05),0 4px 16px rgba(20,30,50,.05);
+  --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+  --maxw:1180px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d1320; --surface:#151d2b; --surface-2:#111826; --border:#263141; --border-strong:#31404f;
+  --ink:#e7ecf3; --muted:#9aa6b8; --faint:#6b7788;
+  --accent:#6ea6e2; --accent-ink:#a9cbef; --accent-tint:#17273c;
+  --full:#43c3a1; --full-tint:#10302a; --full-bd:#1f4d43;
+  --partial:#e0a458; --partial-tint:#312512; --partial-bd:#4d3a1c;
+  --lock:#9a90e6; --lock-tint:#1e1c33;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.28);
+}}
+:root[data-theme="light"]{
+  --bg:#f6f7f9; --surface:#ffffff; --surface-2:#fbfcfd; --border:#e4e8ee; --border-strong:#d2d8e0;
+  --ink:#18202e; --muted:#5c6675; --faint:#8b95a4;
+  --accent:#2f6db0; --accent-ink:#1e5187; --accent-tint:#eaf1f9;
+  --full:#0d7a63; --full-tint:#e6f5f0; --full-bd:#bfe4d8;
+  --partial:#a65a12; --partial-tint:#fbf1e4; --partial-bd:#eecfa8;
+  --lock:#5b56a8; --lock-tint:#eeedf8;
+  --shadow:0 1px 2px rgba(20,30,50,.05),0 4px 16px rgba(20,30,50,.05);
+}
+:root[data-theme="dark"]{
+  --bg:#0d1320; --surface:#151d2b; --surface-2:#111826; --border:#263141; --border-strong:#31404f;
+  --ink:#e7ecf3; --muted:#9aa6b8; --faint:#6b7788;
+  --accent:#6ea6e2; --accent-ink:#a9cbef; --accent-tint:#17273c;
+  --full:#43c3a1; --full-tint:#10302a; --full-bd:#1f4d43;
+  --partial:#e0a458; --partial-tint:#312512; --partial-bd:#4d3a1c;
+  --lock:#9a90e6; --lock-tint:#1e1c33;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-sans);line-height:1.55;
+  font-size:15px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+a{color:var(--accent-ink)}
+code,.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+/* Header */
+.masthead{border-bottom:1px solid var(--border);background:
+  linear-gradient(180deg,var(--surface),var(--surface-2));position:relative}
+.masthead::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;
+  background:linear-gradient(90deg,var(--accent),var(--full))}
+.masthead .wrap{padding-top:34px;padding-bottom:24px}
+.eyebrow{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-ink);font-weight:700;margin:0 0 6px}
+h1{font-size:clamp(1.7rem,3.4vw,2.3rem);line-height:1.08;margin:0;letter-spacing:-.02em;text-wrap:balance;font-weight:800}
+.lede{color:var(--muted);max-width:60ch;margin:12px 0 0}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 14px;box-shadow:var(--shadow)}
+.stat b{font-size:1.15rem;font-weight:800;letter-spacing:-.01em}
+.stat span{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--faint);margin-top:1px}
+
+/* Toolbar */
+.toolbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.toolbar .wrap{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding-top:12px;padding-bottom:12px}
+.search{flex:1 1 260px;position:relative;min-width:220px}
+.search input{width:100%;padding:10px 14px 10px 38px;border:1px solid var(--border-strong);border-radius:9px;
+  background:var(--surface);color:var(--ink);font:inherit;font-size:.92rem}
+.search input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--faint)}
+.jump{display:flex;flex-wrap:wrap;gap:6px}
+.jump a{font-size:.76rem;padding:5px 10px;border:1px solid var(--border);border-radius:999px;background:var(--surface);
+  color:var(--muted);text-decoration:none;white-space:nowrap}
+.jump a:hover{color:var(--accent-ink);border-color:var(--accent)}
+.count{font-size:.78rem;color:var(--faint);white-space:nowrap}
+
+section.block{padding:26px 0 6px}
+.how{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
+.how h2{margin:0 0 8px;font-size:1rem}
+.how ul{margin:0 0 14px;padding-left:18px;color:var(--muted)}
+.how li{margin:3px 0}
+pre{margin:0;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;
+  overflow-x:auto;font-family:var(--font-mono);font-size:.82rem;color:var(--ink)}
+.note{color:var(--muted);font-size:.85rem;margin:12px 2px 0}
+
+/* Roles */
+.roles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:14px}
+.role-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 15px;box-shadow:var(--shadow)}
+.role-card h3{margin:0 0 4px;font-size:.92rem;display:flex;align-items:center;gap:8px}
+.role-card .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
+.role-card p{margin:0;font-size:.82rem;color:var(--muted)}
+.super{border-style:dashed;border-color:var(--lock);background:var(--lock-tint)}
+.super .dot{background:var(--lock)}
+
+/* Section heading */
+.sec-h{display:flex;align-items:baseline;gap:12px;margin:30px 2px 12px;padding-top:8px}
+.sec-h h2{font-size:.86rem;text-transform:uppercase;letter-spacing:.12em;margin:0;color:var(--accent-ink);font-weight:800}
+.sec-h .rule{flex:1;height:1px;background:var(--border)}
+.sec-h .n{font-size:.72rem;color:var(--faint);font-variant-numeric:tabular-nums}
+
+/* Module cards */
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.mod{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 15px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:9px}
+.mod-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.mod-top h4{margin:0;font-size:.93rem;font-weight:700;letter-spacing:-.01em}
+.mod-code{font-family:var(--font-mono);font-size:.72rem;color:var(--accent-ink);background:var(--accent-tint);
+  border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);padding:2px 7px;border-radius:6px;white-space:nowrap}
+.mod-desc{font-size:.83rem;color:var(--muted);margin:0}
+.lock-tag{font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;color:var(--lock);border:1px solid var(--lock);
+  border-radius:5px;padding:1px 6px;font-weight:700;background:var(--lock-tint)}
+.label{font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);font-weight:700;margin-bottom:5px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.act{font-family:var(--font-mono);font-size:.7rem;color:var(--ink);background:var(--surface-2);border:1px solid var(--border);
+  padding:2px 7px;border-radius:999px}
+.role{font-size:.71rem;padding:3px 9px;border-radius:999px;font-weight:600;border:1px solid transparent;line-height:1.3}
+.role--full{background:var(--full-tint);color:var(--full);border-color:var(--full-bd)}
+.role--part{background:var(--partial-tint);color:var(--partial);border-color:var(--partial-bd)}
+.role--part .ac{font-weight:400;opacity:.85}
+.role--sys{background:var(--lock-tint);color:var(--lock);border-color:var(--lock)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px;font-size:.76rem;color:var(--muted)}
+.legend .role{cursor:default}
+.empty{display:none;text-align:center;color:var(--faint);padding:40px 0}
+footer{border-top:1px solid var(--border);margin-top:34px;padding:22px 0 40px;color:var(--faint);font-size:.8rem}
+@media (max-width:560px){.mods,.roles-grid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+[id]{scroll-margin-top:76px}
+</style>
+</head>
+<body>
+<header class="masthead"><div class="wrap">
+  <p class="eyebrow">Container Yard · RBAC</p>
+  <h1>Access Control Reference</h1>
+  <p class="lede">Every screen and action is gated by a permission <b>code</b> (<code>module.action</code>). Use this to decide what each role can do, set up new roles, and audit who can do what.</p>
+  <div class="stats">
+    <div class="stat"><b>58</b><span>Modules</span></div>
+    <div class="stat"><b>252</b><span>Permission codes</span></div>
+    <div class="stat"><b>10</b><span>Sections</span></div>
+    <div class="stat"><b>7</b><span>Built-in roles</span></div>
+  </div>
+</div></header>
+
+<div class="toolbar"><div class="wrap">
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+    <input id="q" type="search" placeholder="Filter modules, codes, or descriptions…" aria-label="Filter modules">
+  </div>
+  <nav class="jump" aria-label="Jump to section">
+    <a href="#sec-billing">Billing</a><a href="#sec-yard">Yard</a><a href="#sec-operations">Operations</a><a href="#sec-customers-containers">Customers &amp; Containers</a><a href="#sec-masters-tariffs">Masters — Tariffs</a><a href="#sec-masters-operations">Masters — Operations</a><a href="#sec-masters-reference">Masters — Reference</a><a href="#sec-finance">Finance</a><a href="#sec-reports">Reports</a><a href="#sec-settings">Settings</a>  </nav>
+  <span class="count" id="count"></span>
+</div></div>
+
+<main class="wrap">
+
+  <section class="block">
+    <div class="how">
+      <h2>How it works</h2>
+      <ul>
+        <li><b>Codes</b> live in <code>config/modules.php</code> — the single source of truth.</li>
+        <li><b>Roles</b> are granted codes with wildcard patterns: <code>yard.*</code> grants every yard code, <code>billing.*.view</code> grants view on all billing, <code>*</code> grants everything.</li>
+        <li><b>Assign</b> in <b>Settings → Access Control</b>, or run the seeders:</li>
+      </ul>
+      <pre>php artisan permissions:sync                        <span style="color:var(--faint)"># register codes from config</span>
+php artisan db:seed --class=RolePermissionSeeder    <span style="color:var(--faint)"># (re)assign role patterns</span>
+php artisan config:clear                            <span style="color:var(--faint)"># modules.php is cached config</span></pre>
+      <p class="note">The <b>System Administrator</b> is a super-user that bypasses RBAC entirely. Modules marked <span class="lock-tag">system</span> are reserved for it and can't be granted to ordinary roles.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="sec-h"><h2>Roles at a glance</h2><span class="rule"></span></div>
+    <div class="roles-grid">
+            <div class="role-card"><h3><span class="dot"></span>Administrator</h3><p>Full access to everything.</p></div>
+            <div class="role-card"><h3><span class="dot"></span>Billing Manager</h3><p>All billing; view + toggle tariffs; view customers, containers, reports.</p></div>
+            <div class="role-card"><h3><span class="dot"></span>Billing Clerk</h3><p>Billing view / create / PDF; view customers &amp; containers.</p></div>
+            <div class="role-card"><h3><span class="dot"></span>Yard Supervisor</h3><p>All yard ops, surveys, estimates, work orders, approvals, containers; view customers &amp; reports.</p></div>
+            <div class="role-card"><h3><span class="dot"></span>Gate Officer</h3><p>Gate-in/out, reefer, hires, cargo transfers, guard post; view containers &amp; customers.</p></div>
+            <div class="role-card"><h3><span class="dot"></span>Inspector</h3><p>Surveys &amp; estimates; view containers &amp; customers.</p></div>
+            <div class="role-card"><h3><span class="dot"></span>Security Officer</h3><p>Guard post; view containers.</p></div>
+            <div class="role-card super"><h3><span class="dot"></span>System Administrator</h3><p>Super-user — bypasses all permission checks. Not assignable; reserved for system owners.</p></div>
+    </div>
+    <div class="legend">
+      <span>Role access on each module:</span>
+      <span class="role role--full">Role</span> full access
+      <span class="role role--part">Role <span class="ac">(actions)</span></span> partial
+      <span class="role role--sys">System Admin only</span>
+    </div>
+  </section>
+
+    <section class="block" id="sec-billing">
+    <div class="sec-h"><h2>Billing</h2><span class="rule"></span><span class="n">5 modules</span></div>
+    <div class="mods">
+            <article class="mod" data-search="storage billing billing.storage standalone storage invoices (read-only entry; generated from storage &amp; handling). view create edit delete approve pdf email" data-section="sec-billing">
+        <div class="mod-top">
+          <h4>Storage Billing</h4>
+          <span class="mod-code">billing.storage</span>        </div>
+                <p class="mod-desc">Standalone storage invoices (read-only entry; generated from Storage &amp; Handling).</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">approve</span><span class="act">pdf</span><span class="act">email</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Billing Mgr</span>
+                <span class="role role--part" title="view, create, pdf">Billing Clerk <span class="ac">(view, create, pdf)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="storage &amp; handling billing billing.storage-handling generate &amp; manage combined storage + lift-on/off (handling) invoices. view create edit delete approve pdf" data-section="sec-billing">
+        <div class="mod-top">
+          <h4>Storage &amp; Handling Billing</h4>
+          <span class="mod-code">billing.storage-handling</span>        </div>
+                <p class="mod-desc">Generate &amp; manage combined storage + lift-on/off (handling) invoices.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">approve</span><span class="act">pdf</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Billing Mgr</span>
+                <span class="role role--part" title="view, create, pdf">Billing Clerk <span class="ac">(view, create, pdf)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="reefer electricity billing billing.reefer reefer electricity invoices from completed plug sessions. view create edit delete approve pdf" data-section="sec-billing">
+        <div class="mod-top">
+          <h4>Reefer Electricity Billing</h4>
+          <span class="mod-code">billing.reefer</span>        </div>
+                <p class="mod-desc">Reefer electricity invoices from completed plug sessions.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">approve</span><span class="act">pdf</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Billing Mgr</span>
+                <span class="role role--part" title="view, create, pdf">Billing Clerk <span class="ac">(view, create, pdf)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="repair invoices billing.repair repair invoices raised from approved estimates. view create edit delete approve pdf" data-section="sec-billing">
+        <div class="mod-top">
+          <h4>Repair Invoices</h4>
+          <span class="mod-code">billing.repair</span>        </div>
+                <p class="mod-desc">Repair invoices raised from approved estimates.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">approve</span><span class="act">pdf</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Billing Mgr</span>
+                <span class="role role--part" title="view, create, pdf">Billing Clerk <span class="ac">(view, create, pdf)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="general invoicing billing.general miscellaneous ar: tax invoices, invoices, debit notes; posting to the ledger. view create edit delete post void pdf email" data-section="sec-billing">
+        <div class="mod-top">
+          <h4>General Invoicing</h4>
+          <span class="mod-code">billing.general</span>        </div>
+                <p class="mod-desc">Miscellaneous AR: tax invoices, invoices, debit notes; posting to the ledger.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">post</span><span class="act">void</span><span class="act">pdf</span><span class="act">email</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Billing Mgr</span>
+                <span class="role role--part" title="view, create, pdf">Billing Clerk <span class="ac">(view, create, pdf)</span></span>          </div>
+        </div>
+      </article>
+          </div>
+  </section>
+    <section class="block" id="sec-yard">
+    <div class="sec-h"><h2>Yard</h2><span class="rule"></span><span class="n">5 modules</span></div>
+    <div class="mods">
+            <article class="mod" data-search="yard gate operations yard the gate: record gate-in / gate-out movements, edit/delete them, backdate. view gate-in gate-out movement-edit movement-delete backdate" data-section="sec-yard">
+        <div class="mod-top">
+          <h4>Yard Gate Operations</h4>
+          <span class="mod-code">yard</span>        </div>
+                <p class="mod-desc">The gate: record gate-in / gate-out movements, edit/delete them, backdate.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">gate-in</span><span class="act">gate-out</span><span class="act">movement-edit</span><span class="act">movement-delete</span><span class="act">backdate</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Yard Supervisor</span>
+                <span class="role role--part" title="view, gate-in, gate-out">Gate Officer <span class="ac">(view, gate-in, gate-out)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="yard jobs yard.jobs yard jobs — the umbrella that ties a container’s movements together. view edit" data-section="sec-yard">
+        <div class="mod-top">
+          <h4>Yard Jobs</h4>
+          <span class="mod-code">yard.jobs</span>        </div>
+                <p class="mod-desc">Yard jobs — the umbrella that ties a container’s movements together.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">edit</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Yard Supervisor</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="reefer sessions yard.reefer reefer plug sessions: plug-in / plug-out and temperature logging. view plug-in plug-out temp-log" data-section="sec-yard">
+        <div class="mod-top">
+          <h4>Reefer Sessions</h4>
+          <span class="mod-code">yard.reefer</span>        </div>
+                <p class="mod-desc">Reefer plug sessions: plug-in / plug-out and temperature logging.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">plug-in</span><span class="act">plug-out</span><span class="act">temp-log</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Yard Supervisor</span>
+                <span class="role role--full">Gate Officer</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="container hires yard.hire put a container on hire to a customer and off-hire / cancel it. view create off_hire cancel" data-section="sec-yard">
+        <div class="mod-top">
+          <h4>Container Hires</h4>
+          <span class="mod-code">yard.hire</span>        </div>
+                <p class="mod-desc">Put a container on hire to a customer and off-hire / cancel it.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">off_hire</span><span class="act">cancel</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Yard Supervisor</span>
+                <span class="role role--part" title="view, create">Gate Officer <span class="ac">(view, create)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="cargo transfers (container substitution) yard.cargo-transfer cargo rental / container substitution: swap cargo into a yard box, gate the empty box out, complete on collection. view create complete" data-section="sec-yard">
+        <div class="mod-top">
+          <h4>Cargo Transfers (Container Substitution)</h4>
+          <span class="mod-code">yard.cargo-transfer</span>        </div>
+                <p class="mod-desc">Cargo rental / container substitution: swap cargo into a yard box, gate the empty box out, complete on collection.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">complete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Yard Supervisor</span>
+                <span class="role role--full">Gate Officer</span>
+                          </div>
+        </div>
+      </article>
+          </div>
+  </section>
+    <section class="block" id="sec-operations">
+    <div class="sec-h"><h2>Operations</h2><span class="rule"></span><span class="n">5 modules</span></div>
+    <div class="mods">
+            <article class="mod" data-search="surveys &amp; inquiries surveys container surveys &amp; inquiries (damage/condition/pti). view create edit delete" data-section="sec-operations">
+        <div class="mod-top">
+          <h4>Surveys &amp; Inquiries</h4>
+          <span class="mod-code">surveys</span>        </div>
+                <p class="mod-desc">Container surveys &amp; inquiries (damage/condition/PTI).</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Yard Supervisor</span>
+                <span class="role role--full">Inspector</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="repair estimates estimates repair estimates and their approval. view create edit delete approve" data-section="sec-operations">
+        <div class="mod-top">
+          <h4>Repair Estimates</h4>
+          <span class="mod-code">estimates</span>        </div>
+                <p class="mod-desc">Repair estimates and their approval.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">approve</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Yard Supervisor</span>
+                <span class="role role--full">Inspector</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="work orders work-orders work orders generated from approved estimates. view create edit delete approve" data-section="sec-operations">
+        <div class="mod-top">
+          <h4>Work Orders</h4>
+          <span class="mod-code">work-orders</span>        </div>
+                <p class="mod-desc">Work orders generated from approved estimates.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">approve</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Yard Supervisor</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="approvals approvals the approval inbox: approve / reject pending requests. view approve reject" data-section="sec-operations">
+        <div class="mod-top">
+          <h4>Approvals</h4>
+          <span class="mod-code">approvals</span>        </div>
+                <p class="mod-desc">The approval inbox: approve / reject pending requests.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">approve</span><span class="act">reject</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Yard Supervisor</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="guard post guard-post guard-post capture queue at the entrance. view create edit delete" data-section="sec-operations">
+        <div class="mod-top">
+          <h4>Guard Post</h4>
+          <span class="mod-code">guard-post</span>        </div>
+                <p class="mod-desc">Guard-post capture queue at the entrance.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view, create">Gate Officer <span class="ac">(view, create)</span></span><span class="role role--full">Security Officer</span>
+                          </div>
+        </div>
+      </article>
+          </div>
+  </section>
+    <section class="block" id="sec-customers-containers">
+    <div class="sec-h"><h2>Customers &amp; Containers</h2><span class="rule"></span><span class="n">3 modules</span></div>
+    <div class="mods">
+            <article class="mod" data-search="customers customers customer master records. view create edit delete" data-section="sec-customers-containers">
+        <div class="mod-top">
+          <h4>Customers</h4>
+          <span class="mod-code">customers</span>        </div>
+                <p class="mod-desc">Customer master records.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span><span class="role role--part" title="view">Billing Clerk <span class="ac">(view)</span></span><span class="role role--part" title="view">Yard Supervisor <span class="ac">(view)</span></span><span class="role role--part" title="view">Gate Officer <span class="ac">(view)</span></span><span class="role role--part" title="view">Inspector <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="containers containers container master records; holds and pti. view create edit delete hold pti" data-section="sec-customers-containers">
+        <div class="mod-top">
+          <h4>Containers</h4>
+          <span class="mod-code">containers</span>        </div>
+                <p class="mod-desc">Container master records; holds and PTI.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">hold</span><span class="act">pti</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span><span class="role role--part" title="view">Billing Clerk <span class="ac">(view)</span></span><span class="role role--full">Yard Supervisor</span>
+                <span class="role role--part" title="view">Gate Officer <span class="ac">(view)</span></span><span class="role role--part" title="view">Inspector <span class="ac">(view)</span></span><span class="role role--part" title="view">Security Officer <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="container bookings container-bookings export bookings (edo) and container allocation against them. view create edit allocate cancel delete" data-section="sec-customers-containers">
+        <div class="mod-top">
+          <h4>Container Bookings</h4>
+          <span class="mod-code">container-bookings</span>        </div>
+                <p class="mod-desc">Export bookings (EDO) and container allocation against them.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">allocate</span><span class="act">cancel</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+          </div>
+  </section>
+    <section class="block" id="sec-masters-tariffs">
+    <div class="sec-h"><h2>Masters — Tariffs</h2><span class="rule"></span><span class="n">5 modules</span></div>
+    <div class="mods">
+            <article class="mod" data-search="reefer electricity tariff masters.reefer-tariff reefer electricity rate cards. view create edit delete toggle" data-section="sec-masters-tariffs">
+        <div class="mod-top">
+          <h4>Reefer Electricity Tariff</h4>
+          <span class="mod-code">masters.reefer-tariff</span>        </div>
+                <p class="mod-desc">Reefer electricity rate cards.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">toggle</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view, toggle">Billing Mgr <span class="ac">(view, toggle)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="storage tariff masters.storage-tariff storage rate cards (per customer / equipment). view create edit delete toggle" data-section="sec-masters-tariffs">
+        <div class="mod-top">
+          <h4>Storage Tariff</h4>
+          <span class="mod-code">masters.storage-tariff</span>        </div>
+                <p class="mod-desc">Storage rate cards (per customer / equipment).</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">toggle</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view, toggle">Billing Mgr <span class="ac">(view, toggle)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="handling tariff masters.handling-tariff lift-on / lift-off (handling) rate cards. view create edit delete toggle" data-section="sec-masters-tariffs">
+        <div class="mod-top">
+          <h4>Handling Tariff</h4>
+          <span class="mod-code">masters.handling-tariff</span>        </div>
+                <p class="mod-desc">Lift-on / lift-off (handling) rate cards.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">toggle</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view, toggle">Billing Mgr <span class="ac">(view, toggle)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="m&amp;r tariff masters.mr-tariff maintenance &amp; repair rate cards. view create edit delete" data-section="sec-masters-tariffs">
+        <div class="mod-top">
+          <h4>M&amp;R Tariff</h4>
+          <span class="mod-code">masters.mr-tariff</span>        </div>
+                <p class="mod-desc">Maintenance &amp; Repair rate cards.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="washing / cleaning tariff masters.washing-tariff washing / cleaning rate cards. view create edit delete toggle" data-section="sec-masters-tariffs">
+        <div class="mod-top">
+          <h4>Washing / Cleaning Tariff</h4>
+          <span class="mod-code">masters.washing-tariff</span>        </div>
+                <p class="mod-desc">Washing / cleaning rate cards.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span><span class="act">toggle</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view, toggle">Billing Mgr <span class="ac">(view, toggle)</span></span>          </div>
+        </div>
+      </article>
+          </div>
+  </section>
+    <section class="block" id="sec-masters-operations">
+    <div class="sec-h"><h2>Masters — Operations</h2><span class="rule"></span><span class="n">1 module</span></div>
+    <div class="mods">
+            <article class="mod" data-search="gate-in job types masters.job-types gate-in / gate-out job type definitions. view create edit delete" data-section="sec-masters-operations">
+        <div class="mod-top">
+          <h4>Gate-In Job Types</h4>
+          <span class="mod-code">masters.job-types</span>        </div>
+                <p class="mod-desc">Gate-in / gate-out job type definitions.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+          </div>
+  </section>
+    <section class="block" id="sec-masters-reference">
+    <div class="sec-h"><h2>Masters — Reference</h2><span class="rule"></span><span class="n">14 modules</span></div>
+    <div class="mods">
+            <article class="mod" data-search="charge codes masters.charge-codes billing charge codes and their revenue mapping. view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Charge Codes</h4>
+          <span class="mod-code">masters.charge-codes</span>        </div>
+                <p class="mod-desc">Billing charge codes and their revenue mapping.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="tax codes masters.tax-codes vat / sscl tax codes. view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Tax Codes</h4>
+          <span class="mod-code">masters.tax-codes</span>        </div>
+                <p class="mod-desc">VAT / SSCL tax codes.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="currencies masters.currencies currencies used across the system. view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Currencies</h4>
+          <span class="mod-code">masters.currencies</span>        </div>
+                <p class="mod-desc">Currencies used across the system.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="banks masters.banks bank accounts master. view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Banks</h4>
+          <span class="mod-code">masters.banks</span>        </div>
+                <p class="mod-desc">Bank accounts master.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="exchange rates masters.exchange-rates fx rates for foreign-currency documents. view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Exchange Rates</h4>
+          <span class="mod-code">masters.exchange-rates</span>        </div>
+                <p class="mod-desc">FX rates for foreign-currency documents.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="equipment types masters.equipment-types container equipment types (size/type/iso). view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Equipment Types</h4>
+          <span class="mod-code">masters.equipment-types</span>        </div>
+                <p class="mod-desc">Container equipment types (size/type/ISO).</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="container grades masters.container-grades container condition grades. view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Container Grades</h4>
+          <span class="mod-code">masters.container-grades</span>        </div>
+                <p class="mod-desc">Container condition grades.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="storage zones &amp; slots masters.storage-zones yard zones and stacking slots. view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Storage Zones &amp; Slots</h4>
+          <span class="mod-code">masters.storage-zones</span>        </div>
+                <p class="mod-desc">Yard zones and stacking slots.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="customer types masters.customer-types customer classification types. view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Customer Types</h4>
+          <span class="mod-code">masters.customer-types</span>        </div>
+                <p class="mod-desc">Customer classification types.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="m&amp;r codes masters.mr-codes m&amp;r code sets (location/component/damage/repair). view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>M&amp;R Codes</h4>
+          <span class="mod-code">masters.mr-codes</span>        </div>
+                <p class="mod-desc">M&amp;R code sets (location/component/damage/repair).</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="repair categories masters.repair-categories repair categories used to group work. view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Repair Categories</h4>
+          <span class="mod-code">masters.repair-categories</span>        </div>
+                <p class="mod-desc">Repair categories used to group work.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="damage assessment rules masters.damage-rules damage-to-repair assessment rules. view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Damage Assessment Rules</h4>
+          <span class="mod-code">masters.damage-rules</span>        </div>
+                <p class="mod-desc">Damage-to-repair assessment rules.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="checklist items masters.checklist-items survey checklist master items. view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Checklist Items</h4>
+          <span class="mod-code">masters.checklist-items</span>        </div>
+                <p class="mod-desc">Survey checklist master items.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--part" title="view">Billing Mgr <span class="ac">(view)</span></span>          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="countries &amp; states masters.countries countries &amp; state/province reference (system-only). view create edit delete" data-section="sec-masters-reference">
+        <div class="mod-top">
+          <h4>Countries &amp; States</h4>
+          <span class="lock-tag">system</span>        </div>
+        <div class="mod-code" style="align-self:flex-start">masters.countries</div>        <p class="mod-desc">Countries &amp; state/province reference (system-only).</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+                          <span class="role role--sys">System Administrator only</span>
+                      </div>
+        </div>
+      </article>
+          </div>
+  </section>
+    <section class="block" id="sec-finance">
+    <div class="sec-h"><h2>Finance</h2><span class="rule"></span><span class="n">12 modules</span></div>
+    <div class="mods">
+            <article class="mod" data-search="finance setup (fiscal years) finance.setup fiscal (financial) years. view create edit delete" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>Finance Setup (Fiscal Years)</h4>
+          <span class="mod-code">finance.setup</span>        </div>
+                <p class="mod-desc">Fiscal (financial) years.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="accounting periods finance.periods accounting periods: close / reopen. view close reopen" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>Accounting Periods</h4>
+          <span class="mod-code">finance.periods</span>        </div>
+                <p class="mod-desc">Accounting periods: close / reopen.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">close</span><span class="act">reopen</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="chart of accounts finance.coa chart of accounts. view create edit delete" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>Chart of Accounts</h4>
+          <span class="mod-code">finance.coa</span>        </div>
+                <p class="mod-desc">Chart of accounts.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="account mappings finance.mappings account mappings (which gl account each transaction hits). view create edit delete" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>Account Mappings</h4>
+          <span class="mod-code">finance.mappings</span>        </div>
+                <p class="mod-desc">Account mappings (which GL account each transaction hits).</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="general ledger finance.gl general ledger: manual journals, posting, voiding. view create post void" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>General Ledger</h4>
+          <span class="mod-code">finance.gl</span>        </div>
+                <p class="mod-desc">General ledger: manual journals, posting, voiding.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">post</span><span class="act">void</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="ar / invoice posting finance.ar ar invoice postings — view, post, void. view post void" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>AR / Invoice Posting</h4>
+          <span class="mod-code">finance.ar</span>        </div>
+                <p class="mod-desc">AR invoice postings — view, post, void.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">post</span><span class="act">void</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="receipts finance.receipts customer receipts: create, confirm (posts cash), void. view create edit confirm void delete pdf email" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>Receipts</h4>
+          <span class="mod-code">finance.receipts</span>        </div>
+                <p class="mod-desc">Customer receipts: create, confirm (posts cash), void.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">confirm</span><span class="act">void</span><span class="act">delete</span><span class="act">pdf</span><span class="act">email</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="payment vouchers finance.vouchers supplier payment vouchers. view create edit confirm void pdf email" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>Payment Vouchers</h4>
+          <span class="mod-code">finance.vouchers</span>        </div>
+                <p class="mod-desc">Supplier payment vouchers.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">confirm</span><span class="act">void</span><span class="act">pdf</span><span class="act">email</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="ar credit notes finance.ar-credit-notes ar credit notes and their approval. view create edit approve delete pdf email" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>AR Credit Notes</h4>
+          <span class="mod-code">finance.ar-credit-notes</span>        </div>
+                <p class="mod-desc">AR credit notes and their approval.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">approve</span><span class="act">delete</span><span class="act">pdf</span><span class="act">email</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="ap credit notes finance.ap-credit-notes ap (supplier) credit notes and approval. view create edit approve delete pdf email" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>AP Credit Notes</h4>
+          <span class="mod-code">finance.ap-credit-notes</span>        </div>
+                <p class="mod-desc">AP (supplier) credit notes and approval.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">approve</span><span class="act">delete</span><span class="act">pdf</span><span class="act">email</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="ap / supplier invoices finance.ap ap / supplier invoices and posting. view create post void delete" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>AP / Supplier Invoices</h4>
+          <span class="mod-code">finance.ap</span>        </div>
+                <p class="mod-desc">AP / supplier invoices and posting.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">post</span><span class="act">void</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="bank reconciliation finance.bank-reconciliation bank statement import and reconciliation. view create edit delete" data-section="sec-finance">
+        <div class="mod-top">
+          <h4>Bank Reconciliation</h4>
+          <span class="mod-code">finance.bank-reconciliation</span>        </div>
+                <p class="mod-desc">Bank statement import and reconciliation.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+          </div>
+  </section>
+    <section class="block" id="sec-reports">
+    <div class="sec-h"><h2>Reports</h2><span class="rule"></span><span class="n">2 modules</span></div>
+    <div class="mods">
+            <article class="mod" data-search="reports reports operational &amp; financial reports. view" data-section="sec-reports">
+        <div class="mod-top">
+          <h4>Reports</h4>
+          <span class="mod-code">reports</span>        </div>
+                <p class="mod-desc">Operational &amp; financial reports.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                <span class="role role--full">Billing Mgr</span>
+                <span class="role role--full">Yard Supervisor</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="container inquiry container-inquiry container lookup / inquiry screen. view" data-section="sec-reports">
+        <div class="mod-top">
+          <h4>Container Inquiry</h4>
+          <span class="mod-code">container-inquiry</span>        </div>
+                <p class="mod-desc">Container lookup / inquiry screen.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+          </div>
+  </section>
+    <section class="block" id="sec-settings">
+    <div class="sec-h"><h2>Settings</h2><span class="rule"></span><span class="n">6 modules</span></div>
+    <div class="mods">
+            <article class="mod" data-search="user management settings.users user accounts. view create edit delete" data-section="sec-settings">
+        <div class="mod-top">
+          <h4>User Management</h4>
+          <span class="mod-code">settings.users</span>        </div>
+                <p class="mod-desc">User accounts.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="company settings settings.company company settings (system-only). view edit" data-section="sec-settings">
+        <div class="mod-top">
+          <h4>Company Settings</h4>
+          <span class="lock-tag">system</span>        </div>
+        <div class="mod-code" style="align-self:flex-start">settings.company</div>        <p class="mod-desc">Company settings (system-only).</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">edit</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+                          <span class="role role--sys">System Administrator only</span>
+                      </div>
+        </div>
+      </article>
+            <article class="mod" data-search="document storage settings.cloud-storage document storage configuration (system-only). view edit" data-section="sec-settings">
+        <div class="mod-top">
+          <h4>Document Storage</h4>
+          <span class="lock-tag">system</span>        </div>
+        <div class="mod-code" style="align-self:flex-start">settings.cloud-storage</div>        <p class="mod-desc">Document storage configuration (system-only).</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">edit</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+                          <span class="role role--sys">System Administrator only</span>
+                      </div>
+        </div>
+      </article>
+            <article class="mod" data-search="approval workflows settings.approval-workflows approval workflow rules. view create edit delete" data-section="sec-settings">
+        <div class="mod-top">
+          <h4>Approval Workflows</h4>
+          <span class="mod-code">settings.approval-workflows</span>        </div>
+                <p class="mod-desc">Approval workflow rules.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="access control access-control roles &amp; permissions administration. view create edit delete" data-section="sec-settings">
+        <div class="mod-top">
+          <h4>Access Control</h4>
+          <span class="mod-code">access-control</span>        </div>
+                <p class="mod-desc">Roles &amp; permissions administration.</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span><span class="act">create</span><span class="act">edit</span><span class="act">delete</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+            <article class="mod" data-search="audit log audit-log system audit trail (read-only). view" data-section="sec-settings">
+        <div class="mod-top">
+          <h4>Audit Log</h4>
+          <span class="mod-code">audit-log</span>        </div>
+                <p class="mod-desc">System audit trail (read-only).</p>
+        <div>
+          <div class="label">Actions</div>
+          <div class="chips"><span class="act">view</span></div>
+        </div>
+        <div>
+          <div class="label">Default roles</div>
+          <div class="chips">
+            <span class="role role--full">Administrator</span>
+                          </div>
+        </div>
+      </article>
+          </div>
+  </section>
+  
+  <p class="empty" id="empty">No modules match your filter.</p>
+
+</main>
+
+<footer><div class="wrap">
+  Generated from <code>config/modules.php</code> + <code>RolePermissionSeeder</code>. Regenerate whenever modules or role assignments change so this stays the source of truth.
+</div></footer>
+
+<script>
+(function(){
+  var q=document.getElementById('q'), cards=[].slice.call(document.querySelectorAll('.mod')),
+      secs=[].slice.call(document.querySelectorAll('section.block[id]')),
+      count=document.getElementById('count'), empty=document.getElementById('empty');
+  function apply(){
+    var t=(q.value||'').trim().toLowerCase(), shown=0;
+    cards.forEach(function(c){
+      var hit=!t||c.getAttribute('data-search').indexOf(t)>-1;
+      c.style.display=hit?'':'none'; if(hit)shown++;
+    });
+    secs.forEach(function(s){
+      var any=s.querySelector('.mod:not([style*="display: none"])');
+      s.style.display=any?'':'none';
+    });
+    empty.style.display=shown?'none':'block';
+    count.textContent=t?(shown+' of '+cards.length+' modules'):(cards.length+' modules');
+  }
+  q.addEventListener('input',apply); apply();
+})();
+</script>
+</body>
+</html>
