@@ -53,11 +53,19 @@ class ArAgingTest extends FeatureTestCase
         $byCustomer = $response->viewData('byCustomer');
         $row = $byCustomer->get($customer->id);
 
-        // TEMP DEBUG
+        // TEMP DEBUG — replicate the controller's exact expression on a full model load.
+        $ctrl = GeneralInvoice::whereIn('status', ['issued', 'partially_paid', 'overdue'])
+            ->orderBy('invoice_date')->get()
+            ->map(fn ($i) => [
+                'id'          => $i->id,
+                'cust'        => $i->customer_id,
+                'bp'          => $i->billing_party_id,
+                'coalesce'    => $i->billing_party_id ?? $i->customer_id,
+                'bp_type'     => gettype($i->billing_party_id),
+            ])->all();
         $diag = json_encode([
             'customer_id'      => $customer->id,
-            'my_invoices'      => GeneralInvoice::where('customer_id', $customer->id)
-                                    ->get(['id', 'status', 'grand_total', 'billing_party_id', 'due_date'])->toArray(),
+            'controller_view'  => $ctrl,
             'byCustomer_keys'  => $byCustomer->keys()->all(),
             'grandTotals'      => $response->viewData('grandTotals'),
         ], JSON_PRETTY_PRINT);
