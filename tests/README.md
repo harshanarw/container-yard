@@ -97,6 +97,7 @@ user↔role linkage.
 | Estimate → Work Order | `Repair/WorkOrderFlowTest` | approve estimate; generate WO → lines copied + container in-repair |
 | AR settlement | `Finance/ReceiptSettlementTest` | confirm receipt → invoice paid / partially_paid + cash journal posted |
 | Storage & Handling → GL | `Billing/StorageHandlingFlowTest` | generate storage invoice → issue → posted (storage revenue → AR) |
+| Container hire lifecycle | `Yard/ContainerHireFlowTest` | on-hire → storage split + gate-out blocked; off-hire → resumed + completed |
 
 Bugs these tests surfaced and fixed: repair-invoice route-model binding
 (issue/cancel/payment silently failed); undefined-key fatals on partial
@@ -108,7 +109,6 @@ visible + retryable).
 
 - Survey → Estimate creation (front of the repair chain; approve → WO covered)
 - AR aging buckets (settlement itself is covered)
-- Container hire on / off
 
 ### Resolved finding — GL-posting failures now visible + retryable
 
