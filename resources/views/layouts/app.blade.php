@@ -2023,6 +2023,46 @@
                 }
                 return el.dataset.code;
             };
+            // Job-costing picker: job-no chip + container chip + size/type badge +
+            // customer, so each part reads at a glance. Options carry data-job-no /
+            // data-cont / data-st / data-cust.
+            var jEsc = function (s) { return $('<span>').text(s == null ? '' : s).html(); };
+            window.jobResult = function (opt) {
+                if (!opt.id) return opt.text;
+                var el = opt.element; if (!el || !el.dataset.jobNo) return opt.text;
+                var d = el.dataset;
+                var h = '<span style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;line-height:1.4;">'
+                      + '<span class="s2-code-chip">' + jEsc(d.jobNo) + '</span>';
+                if (d.cont) h += '<span class="badge border font-monospace" style="background:#f1f5f9;color:#334155;font-size:.68rem;font-weight:600;">' + jEsc(d.cont) + '</span>';
+                if (d.st)   h += '<span class="badge bg-info-subtle text-info border" style="font-size:.66rem;">' + jEsc(d.st) + '</span>';
+                if (d.cust) h += '<span class="text-muted" style="font-size:.72rem;">' + jEsc(d.cust) + '</span>';
+                return $(h + '</span>');
+            };
+            window.jobSelection = function (opt) {
+                if (!opt.id) return opt.text;
+                var el = opt.element; if (!el || !el.dataset.jobNo) return opt.text;
+                var d = el.dataset;
+                var chip = '<span class="s2-code-chip">' + jEsc(d.jobNo) + '</span>';
+                // Header selects (data-s2-sel="name") show a fuller line; compact line
+                // cells show just the job-no chip.
+                if (el.parentElement && el.parentElement.dataset.s2Sel === 'name') {
+                    var ex = '';
+                    if (d.cont) ex += '<span class="font-monospace" style="font-size:.7rem;">' + jEsc(d.cont) + '</span>';
+                    if (d.st)   ex += '<span class="badge bg-info-subtle text-info border" style="font-size:.62rem;">' + jEsc(d.st) + '</span>';
+                    return $('<span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;">' + chip + ex + '</span>');
+                }
+                return $('<span>' + chip + '</span>');
+            };
+            window.initJobSelect = function ($el, extra) {
+                $el.select2($.extend({
+                    theme: 'bootstrap-5',
+                    templateResult: window.jobResult,
+                    templateSelection: window.jobSelection,
+                    dropdownAutoWidth: true,
+                    dropdownParent: $el.closest('.modal').length ? $el.closest('.modal') : $('body'),
+                    width: '100%',
+                }, extra || {}));
+            };
             window.initS2Code = function($el, extraOpts) {
                 var $modal = $el.closest('.modal');
                 $el.select2($.extend({

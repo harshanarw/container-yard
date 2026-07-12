@@ -75,10 +75,10 @@
                         @endphp
                         <div class="col-12">
                             <label class="form-label small">Job <span class="text-muted">(costing)</span></label>
-                            <select name="yard_job_id" id="yard_job_id" class="form-select form-select-sm s2-code job-select" data-s2-sel="name">
+                            <select name="yard_job_id" id="yard_job_id" class="form-select form-select-sm job-costing job-select" data-s2-sel="name">
                                 <option value="">— None —</option>
                                 @foreach($jobs as $j)
-                                    <option value="{{ $j['id'] }}" data-code="{{ $j['job_no'] }}" data-name="{{ $jobName($j) }}" data-cust-id="{{ $j['customer_id'] }}" @selected(old('yard_job_id') == $j['id'])>{{ $jobLabel($j) }}</option>
+                                    <option value="{{ $j['id'] }}" data-job-no="{{ $j['job_no'] }}" data-cont="{{ $j['container_no'] }}" data-st="{{ $j['size'] ? $j['size']."'".$j['type_code'] : '' }}" data-cust="{{ $j['customer'] }}" data-cust-id="{{ $j['customer_id'] }}" @selected(old('yard_job_id') == $j['id'])>{{ $jobLabel($j) }}</option>
                                 @endforeach
                             </select>
                             <div class="form-text d-flex justify-content-between align-items-center flex-wrap">
@@ -301,8 +301,9 @@
         return p.join(' · ');
     }
     function jobLabel(j){ const n = jobName(j); return n ? (j.job_no + ' · ' + n) : j.job_no; }
+    function jobST(j){ return j.size ? (j.size + "'" + (j.type_code || '')) : ''; }
     function jobOption(j, sel){
-        return `<option value="${j.id}" data-code="${jobEsc(j.job_no)}" data-name="${jobEsc(jobName(j))}" data-cust-id="${j.customer_id ?? ''}" ${String(sel)===String(j.id)?'selected':''}>${jobEsc(jobLabel(j))}</option>`;
+        return `<option value="${j.id}" data-job-no="${jobEsc(j.job_no)}" data-cont="${jobEsc(j.container_no || '')}" data-st="${jobEsc(jobST(j))}" data-cust="${jobEsc(j.customer || '')}" data-cust-id="${j.customer_id ?? ''}" ${String(sel)===String(j.id)?'selected':''}>${jobEsc(jobLabel(j))}</option>`;
     }
     function jobOpts(sel){ return '<option value="">— none —</option>' + JOBS.map(j => jobOption(j, sel)).join(''); }
     function jobPartyId(){ return document.getElementById('supplierSelect')?.value || ''; }
@@ -343,7 +344,7 @@
                 <input type="hidden" name="lines[${i}][tax2_rate]" class="tax2-rate" value="${t2r}">
             </td>
             <td><input type="text" name="lines[${i}][description]" class="form-control form-control-sm" value="${desc}" required></td>
-            <td><select name="lines[${i}][yard_job_id]" class="form-select form-select-sm s2-code job-line">${jobOpts(line?.yard_job_id)}</select></td>
+            <td><select name="lines[${i}][yard_job_id]" class="form-select form-select-sm job-costing job-line">${jobOpts(line?.yard_job_id)}</select></td>
             <td>
                 <select name="lines[${i}][expense_account_id]" class="form-select form-select-sm acct-select" data-s2-sel="name" required>
                     ${buildAccountOpts(line?.expense_account_id)}
@@ -414,11 +415,7 @@
         const jobEl = row.querySelector('.job-line');
         if (jobEl) {
             const savedJob = jobEl.value;
-            jQuery(jobEl).select2({
-                theme: 'bootstrap-5', width: '100%', dropdownAutoWidth: true,
-                templateResult: window.s2CodeResult || null,
-                templateSelection: window.s2CodeSelection || null,
-            });
+            window.initJobSelect(jQuery(jobEl));
             rebuildJobSelect(jQuery(jobEl));
             const hv = document.getElementById('yard_job_id')?.value;
             if (hv && !savedJob) jQuery(jobEl).val(hv).trigger('change.select2');
@@ -636,6 +633,7 @@
             const v = this.value;
             if (v) jQuery('select.job-line').each(function () { jQuery(this).val(v).trigger('change.select2'); });
         });
+        window.initJobSelect(jQuery('#yard_job_id'));                   // header uses the rich job template
         refreshAllJobSelects();
     });
 

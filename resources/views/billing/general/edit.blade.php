@@ -159,10 +159,10 @@
                     <div class="row">
                         <label class="{{ $lblCls }}" for="yard_job_id">Job <span class="text-muted fw-normal">(costing)</span></label>
                         <div class="col-sm-8">
-                            <select name="yard_job_id" id="yard_job_id" class="form-select s2-code job-select" data-s2-sel="name">
+                            <select name="yard_job_id" id="yard_job_id" class="form-select job-costing job-select" data-s2-sel="name">
                                 <option value="">— None —</option>
                                 @foreach($jobs as $j)
-                                    <option value="{{ $j['id'] }}" data-code="{{ $j['job_no'] }}" data-name="{{ $jobName($j) }}" data-cust-id="{{ $j['customer_id'] }}" @selected(old('yard_job_id') == $j['id'])>{{ $jobLabel($j) }}</option>
+                                    <option value="{{ $j['id'] }}" data-job-no="{{ $j['job_no'] }}" data-cont="{{ $j['container_no'] }}" data-st="{{ $j['size'] ? $j['size']."'".$j['type_code'] : '' }}" data-cust="{{ $j['customer'] }}" data-cust-id="{{ $j['customer_id'] }}" @selected(old('yard_job_id') == $j['id'])>{{ $jobLabel($j) }}</option>
                                 @endforeach
                             </select>
                             <div class="form-text d-flex justify-content-between align-items-center flex-wrap">
@@ -331,8 +331,9 @@
         return p.join(' · ');
     }
     function jobLabel(j){ const n = jobName(j); return n ? (j.job_no + ' · ' + n) : j.job_no; }
+    function jobST(j){ return j.size ? (j.size + "'" + (j.type_code || '')) : ''; }
     function jobOption(j, sel){
-        return `<option value="${j.id}" data-code="${esc(j.job_no)}" data-name="${esc(jobName(j))}" data-cust-id="${j.customer_id ?? ''}" ${String(sel)===String(j.id)?'selected':''}>${esc(jobLabel(j))}</option>`;
+        return `<option value="${j.id}" data-job-no="${esc(j.job_no)}" data-cont="${esc(j.container_no || '')}" data-st="${esc(jobST(j))}" data-cust="${esc(j.customer || '')}" data-cust-id="${j.customer_id ?? ''}" ${String(sel)===String(j.id)?'selected':''}>${esc(jobLabel(j))}</option>`;
     }
     function jobOpts(sel){
         return '<option value="">— none —</option>' + JOBS.map(j => jobOption(j, sel)).join('');
@@ -350,7 +351,7 @@
             <td><select name="lines[${i}][charge_code_id]" class="form-select form-select-sm s2-code charge-sel" required>${chargeOpts(d.charge_code_id)}</select></td>
             <td><select name="lines[${i}][revenue_account_id]" class="form-select form-select-sm s2-code acct-sel" data-s2-sel="name">${acctOpts(d.revenue_account_id)}</select></td>
             <td><input type="text" name="lines[${i}][description]" class="form-control form-control-sm desc" value="${esc(d.description)}" required></td>
-            <td><select name="lines[${i}][yard_job_id]" class="form-select form-select-sm s2-code job-line">${jobOpts(d.yard_job_id)}</select></td>
+            <td><select name="lines[${i}][yard_job_id]" class="form-select form-select-sm job-costing job-line">${jobOpts(d.yard_job_id)}</select></td>
             <td><input type="number" name="lines[${i}][qty]" class="form-control form-control-sm qty" value="${d.qty ?? 1}" min="0.001" step="0.001" required></td>
             <td><input type="number" name="lines[${i}][unit_rate]" class="form-control form-control-sm rate" value="${d.unit_rate ?? 0}" min="0" step="0.01" required></td>
             <td><select name="lines[${i}][line_currency]" class="form-select form-select-sm s2-code lcur">${curOpts(lc)}</select></td>
@@ -365,8 +366,9 @@
     function initRowSelects(row) {
         $(row).find('select.s2-code').each(function(){ window.initS2Code($(this), { width: '100%', dropdownParent: $('body') }); });
         $(row).find('select.select2').each(function(){ $(this).select2({ theme: 'bootstrap-5', width: '100%', dropdownParent: $('body') }); });
-        // New line's job select respects the active party filter + header default.
+        // New line's job select: rich job template, then party filter + header default.
         $(row).find('select.job-line').each(function(){
+            window.initJobSelect($(this));
             rebuildJobSelect($(this));
             const hv = document.getElementById('yard_job_id')?.value;
             if (hv && !this.value) $(this).val(hv).trigger('change.select2');
@@ -610,6 +612,7 @@
     // and header select initialisation have run.
     $(function () {
         (SEED && SEED.length ? SEED : [{}]).forEach(addRow);
+        window.initJobSelect($('#yard_job_id'));   // header uses the rich job template
         refreshAllJobSelects();   // apply the party filter to the header + seeded lines
         fetchInvoiceRate();
         recalc();
