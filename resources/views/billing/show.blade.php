@@ -32,6 +32,8 @@
 
 @section('content')
 
+@include('partials.posting-status', ['type' => 'storage', 'invoice' => $invoice])
+
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
         <h4 class="mb-1">

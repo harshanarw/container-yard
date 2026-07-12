@@ -2,6 +2,8 @@
 @section('title', 'Reefer Invoice ' . $reeferInvoice->invoice_no)
 
 @section('content')
+
+@include('partials.posting-status', ['type' => 'reefer', 'invoice' => $reeferInvoice])
 @php
     $ssclRates = $reeferInvoice->lines->map(fn ($l) => ($l->tax1_rate ?? 0) > 0 ? round((float) $l->tax1_rate, 2) : null)
         ->filter()->unique()->sort()->values();

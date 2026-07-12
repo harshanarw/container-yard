@@ -11,10 +11,33 @@ use App\Models\InvoicePosting;
 use App\Services\CurrencyService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class InvoicePostingService
 {
+    /** invoice_type => Eloquent model class, for resolving a retry target. */
+    public const INVOICE_MODELS = [
+        'general'          => \App\Models\GeneralInvoice::class,
+        'repair'           => \App\Models\RepairInvoice::class,
+        'reefer'           => \App\Models\ReeferElectricityInvoice::class,
+        'storage'          => \App\Models\StorageInvoice::class,
+        'storage-handling' => \App\Models\StorageHandlingInvoice::class,
+    ];
+
+    /** Message of the most recent auto-post failure in this request (null if none). */
+    private static ?string $lastFailure = null;
+
     public function __construct(private PostingEngine $engine) {}
+
+    public static function lastFailure(): ?string
+    {
+        return self::$lastFailure;
+    }
+
+    public static function clearLastFailure(): void
+    {
+        self::$lastFailure = null;
+    }
 
     /**
      * Post an invoice to the GL.
@@ -83,6 +106,50 @@ class InvoicePostingService
 
             return $posting->fresh(['journal']);
         });
+    }
+
+    /**
+     * Post without ever throwing.
+     *
+     * On success returns the posted InvoicePosting. On failure it records a
+     * DURABLE 'failed' posting row — post() writes one inside its transaction but
+     * then re-throws, which rolls that row back, so nothing would otherwise
+     * survive — and captures the reason in lastFailure() for the caller to surface
+     * to the user. This is what makes an "issued but not posted" invoice visible
+     * (and retryable) instead of silently swallowed.
+     */
+    public function postSafely(Model $invoice, string $invoiceType, int $userId): InvoicePosting
+    {
+        self::$lastFailure = null;
+
+        try {
+            return $this->post($invoice, $invoiceType, $userId);
+        } catch (\Throwable $e) {
+            self::$lastFailure = $e->getMessage();
+            Log::error("Invoice posting failed for {$invoiceType}#{$invoice->id}: {$e->getMessage()}");
+
+            return InvoicePosting::updateOrCreate(
+                ['invoice_type' => $invoiceType, 'invoice_id' => $invoice->id],
+                ['status' => 'failed', 'error_message' => $e->getMessage(), 'created_by' => $userId]
+            );
+        }
+    }
+
+    /**
+     * Re-attempt posting for an invoice identified by (type, id). Never throws for
+     * a posting failure — the returned InvoicePosting carries the outcome. Throws
+     * only for an unknown type or a missing invoice (caller-error, not a post fail).
+     */
+    public function retry(string $invoiceType, int $invoiceId, int $userId): InvoicePosting
+    {
+        $modelClass = self::INVOICE_MODELS[$invoiceType] ?? null;
+        if (! $modelClass) {
+            throw new \InvalidArgumentException("Unknown invoice type '{$invoiceType}'.");
+        }
+
+        $invoice = $modelClass::findOrFail($invoiceId);
+
+        return $this->postSafely($invoice, $invoiceType, $userId);
     }
 
     /**

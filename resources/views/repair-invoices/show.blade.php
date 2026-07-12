@@ -11,6 +11,8 @@
 
 @section('content')
 
+@include('partials.posting-status', ['type' => 'repair', 'invoice' => $invoice])
+
 @php
 $statusColors = [
     'draft'           => 'secondary',

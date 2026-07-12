@@ -114,6 +114,15 @@ class GeneralInvoiceController extends Controller
             'issued_at'      => now(),
         ]);
 
+        // The observer auto-posts to the GL. If that failed (e.g. no open period),
+        // the document is still issued but unposted — tell the user so, and point
+        // them at the retry action, instead of claiming it posted.
+        if ($err = \App\Services\Finance\InvoicePostingService::lastFailure()) {
+            return back()
+                ->with('success', "{$general->type_label} {$general->invoice_no} issued.")
+                ->with('warning', 'Not yet posted to the ledger — ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
+        }
+
         return back()->with('success', "{$general->type_label} {$general->invoice_no} issued and posted to the ledger.");
     }
 

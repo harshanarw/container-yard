@@ -530,6 +530,12 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
+    // Retry a failed / missing GL posting for any issued invoice (type + id).
+    // Cross-cutting across all invoice modules, so it lives outside the storage
+    // billing group to keep a single, module-agnostic endpoint + name.
+    Route::patch('billing/postings/{type}/{id}/retry', [\App\Http\Controllers\InvoicePostingController::class, 'retry'])
+        ->name('billing.postings.retry');
+
     // Billing — Storage Invoice generation and management
     Route::prefix('billing')->name('billing.')->group(function () {
         Route::get('/',                [StorageBillingController::class, 'index'])->name('index');

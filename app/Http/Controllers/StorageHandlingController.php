@@ -775,6 +775,10 @@ class StorageHandlingController extends Controller
         if ($debtor && ($warning = $credit->arOverLimitWarning($debtor))) {
             $redirect->with('warning', $warning);
         }
+        // Surface an auto-post failure so the invoice isn't silently left unposted.
+        if ($err = \App\Services\Finance\InvoicePostingService::lastFailure()) {
+            $redirect->with('warning', 'Issued, but not yet posted to the ledger — ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
+        }
 
         return $redirect;
     }

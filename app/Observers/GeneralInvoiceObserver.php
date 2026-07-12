@@ -44,11 +44,10 @@ class GeneralInvoiceObserver extends AuditObserver
                 description: $desc, reference: $ref, subject: $m, properties: $diff);
 
             if ($newStatus === 'issued') {
-                try {
-                    app(InvoicePostingService::class)->post($m, 'general', auth()->id() ?? 1);
-                } catch (\Throwable $e) {
-                    Log::error("Auto-post failed for general invoice {$ref}: {$e->getMessage()}");
-                }
+                // postSafely never throws: it records a durable 'failed' posting
+                // and captures the reason (surfaced to the user by the controller)
+                // instead of silently swallowing the failure.
+                app(InvoicePostingService::class)->postSafely($m, 'general', auth()->id() ?? 1);
             }
 
             if (in_array($newStatus, ['cancelled', 'void'], true)) {

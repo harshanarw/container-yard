@@ -17,6 +17,8 @@
 
 @section('content')
 
+@include('partials.posting-status', ['type' => 'storage-handling', 'invoice' => $invoice])
+
 @php
     // Stored amounts are in default currency (LKR).
     // Amount (invoice_currency) = stored / exchange_rate when invoice ≠ LKR.

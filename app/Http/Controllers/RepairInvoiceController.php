@@ -288,6 +288,11 @@ class RepairInvoiceController extends Controller
         if ($invoice->customer && ($warning = $credit->arOverLimitWarning($invoice->customer))) {
             $redirect->with('warning', $warning);
         }
+        // Surface an auto-post failure last so it isn't lost — an unposted issued
+        // invoice is the more important thing to flag than an AR-limit notice.
+        if ($err = \App\Services\Finance\InvoicePostingService::lastFailure()) {
+            $redirect->with('warning', 'Issued, but not yet posted to the ledger — ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
+        }
 
         return $redirect;
     }

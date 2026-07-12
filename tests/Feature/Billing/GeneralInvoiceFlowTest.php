@@ -111,4 +111,61 @@ class GeneralInvoiceFlowTest extends FeatureTestCase
         $this->assertSame($customer->id, $invoice->billing_party_id);
         $this->assertEqualsWithDelta(50.0, (float) $invoice->grand_total, 0.01);
     }
+
+    /**
+     * When posting fails at issue time (here: no open accounting period), the
+     * invoice still issues (non-breaking) but the failure is now VISIBLE — a
+     * warning is flashed and a durable 'failed' posting is recorded — and it can
+     * be RETRIED once the cause is resolved, which posts it to the ledger.
+     * (openAccountingPeriodForToday() is intentionally deferred until the retry.)
+     */
+    public function test_posting_failure_is_recorded_warned_and_retryable(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $customer = Customer::factory()->create();
+        $charge   = ChargeCode::where('is_active', true)->first();
+
+        $this->post(route('billing.general.store'), [
+            'invoice_type'  => 'invoice',
+            'customer_id'   => $customer->id,
+            'invoice_date'  => now()->toDateString(),
+            'currency'      => 'LKR',
+            'exchange_rate' => 1,
+            'lines'         => [[
+                'charge_code_id'     => $charge->id,
+                'description'        => 'Line',
+                'qty'                => 1,
+                'unit_rate'          => 90,
+                'line_currency'      => 'LKR',
+                'line_exchange_rate' => 1,
+            ]],
+        ])->assertSessionHasNoErrors();
+
+        $invoice = GeneralInvoice::latest('id')->first();
+
+        // Issue with no open period: still issues, but warns + records the failure.
+        $issue = $this->from(route('billing.general.show', $invoice))
+            ->patch(route('billing.general.issue', $invoice));
+        $issue->assertSessionHas('warning');
+
+        $invoice->refresh();
+        $this->assertSame('issued', $invoice->status); // non-breaking: still issues
+        $this->assertDatabaseHas('invoice_postings', [
+            'invoice_type' => 'general', 'invoice_id' => $invoice->id, 'status' => 'failed',
+        ]);
+        $this->assertDatabaseMissing('invoice_postings', [
+            'invoice_type' => 'general', 'invoice_id' => $invoice->id, 'status' => 'posted',
+        ]);
+
+        // Resolve the cause and retry → now it posts to the ledger.
+        $this->openAccountingPeriodForToday();
+        $this->from(route('billing.general.show', $invoice))
+            ->patch(route('billing.postings.retry', ['type' => 'general', 'id' => $invoice->id]))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('invoice_postings', [
+            'invoice_type' => 'general', 'invoice_id' => $invoice->id, 'status' => 'posted',
+        ]);
+    }
 }

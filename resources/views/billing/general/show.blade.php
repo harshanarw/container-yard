@@ -9,6 +9,8 @@
 
 @section('content')
 
+@include('partials.posting-status', ['type' => 'general', 'invoice' => $invoice])
+
 @php
     $sc = ['draft'=>'bg-secondary','issued'=>'bg-primary','partially_paid'=>'bg-warning text-dark','paid'=>'bg-success','overdue'=>'bg-danger','void'=>'bg-dark','cancelled'=>'bg-dark'];
     $base = \App\Services\CurrencyService::defaultCurrency();
