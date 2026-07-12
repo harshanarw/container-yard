@@ -80,14 +80,36 @@ class MyFlowTest extends FeatureTestCase
 }
 ```
 
-## Coverage roadmap (planned next phases)
+## Coverage map
 
-Phase 1 (this batch): harness + factories + CI, smoke across all screens, and
-E2E for user↔role linkage. Still to add:
+**Phase 1** — harness + factories + CI, smoke across all screens, and E2E for
+user↔role linkage.
 
-- Gate-in → movement + yard job + gate pass + share code
-- Gate-out → storage closed + gate pass
-- Survey → Estimate → approve → Work Order → Repair Invoice
-- Storage & Handling / Reefer billing generation
-- General Invoice: create → issue (GL posting) → receipt/settlement → AR aging
-- Container hire on/off
+**Phase 2** — critical money + movement workflows (all green):
+
+| Flow | Test | Asserts |
+|------|------|---------|
+| Gate-out releasability | `Yard/GateOutReleasabilityTest` | in-repair blocked at lookup + on POST; in-yard releasable |
+| Gate-in | `Yard/GateInFlowTest` | container in-yard + movement + yard job + share code; minimal-payload variant |
+| General invoice → GL | `Billing/GeneralInvoiceFlowTest` | draft → issue → posted `invoice_postings`; minimal-payload variant |
+| Repair chain → GL | `Billing/RepairInvoiceFlowTest` | approved estimate → repair invoice → issue → posted |
+| Reefer billing → GL | `Billing/ReeferBillingFlowTest` | completed session → invoice → session billed → issue → posted |
+
+Bugs these tests surfaced and fixed: repair-invoice route-model binding
+(issue/cancel/payment silently failed), and undefined-key fatals on partial
+payloads in the gate-in / general-invoice / repair-invoice stores.
+
+### Still to add
+
+- Survey → Estimate → approve → Work Order (front half of the repair chain)
+- Storage & Handling billing generation (multi-line storage + handling)
+- General Invoice: receipt / settlement → AR aging
+- Container hire on / off
+
+### Known open finding (not yet actioned)
+
+All invoice observers (general / repair / reefer / storage) **catch and log**
+GL-posting failures, so an invoice can reach `issued` with no ledger entry when
+posting can't resolve (e.g. no open accounting period, unmapped account). This
+is a deliberate "non-blocking post" design — whether issuing should instead
+block on posting failure is a finance product decision, still to be made.
