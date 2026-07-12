@@ -27,6 +27,7 @@
             Container <span class="font-monospace fw-semibold">{{ $inquiry->container_no }}</span>
             &nbsp;·&nbsp; {{ $inquiry->size }}ft {{ $inquiry->type_code }}
             &nbsp;·&nbsp; {{ $inquiry->customer?->name }}
+            &nbsp;·&nbsp; @include('partials.job-badge', ['job' => $inquiry->yardJob, 'mode' => 'inline'])
         </p>
     </div>
     <div class="d-flex flex-wrap gap-2">
@@ -69,6 +70,8 @@
                     <i class="bi bi-box-seam me-2 text-primary"></i>Container Details (read-only)
                 </div>
                 <div class="card-body">
+                    @include('partials.job-badge', ['job' => $inquiry->yardJob, 'mode' => 'card'])
+                    <hr class="my-3">
                     <div class="row g-3 small">
                         <div class="col-md-4">
                             <div class="text-muted mb-1">Container No.</div>

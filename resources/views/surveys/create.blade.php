@@ -76,6 +76,9 @@
                                         data-eqt-name="{{ $c->equipmentType?->description }}"
                                         data-eqt-size="{{ $c->size }}"
                                         data-eqt-type="{{ $c->type_code }}"
+                                        data-job-no="{{ $c->linked_job_no }}"
+                                        data-job-short="{{ $c->linked_job_short }}"
+                                        data-job-type="{{ $c->linked_job_type }}"
                                         {{ (old('container_id') ?? $selectedContainer?->id) == $c->id ? 'selected' : '' }}>
                                     {{ $c->container_no }}
                                     @if($c->customer) — {{ $c->customer->name }} @endif
@@ -111,12 +114,21 @@
                                         <span class="text-muted" style="min-width:72px">Customer</span>
                                         <span id="customerDisplay" class="fw-semibold"></span>
                                     </div>
-                                    <div class="d-flex align-items-baseline gap-2">
+                                    <div class="d-flex align-items-baseline gap-2 mb-1">
                                         <span class="text-muted" style="min-width:72px">Gate-In</span>
                                         <span>
                                             <span id="containerGateDate" class="fw-semibold"></span>
                                             <span class="text-muted mx-1">·</span>
                                             <span id="containerGateRef" class="font-monospace fw-semibold"></span>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex align-items-baseline gap-2">
+                                        <span class="text-muted" style="min-width:72px">Job</span>
+                                        <span>
+                                            <span id="jobShortBadge" class="badge bg-primary-subtle text-primary border font-monospace d-none"></span>
+                                            <span id="jobNoDisplay" class="font-monospace fw-semibold"></span>
+                                            <span id="jobTypeDisplay" class="text-muted ms-1"></span>
+                                            <span id="jobNoneDisplay" class="text-muted d-none">No linked job</span>
                                         </span>
                                     </div>
                                 </div>
@@ -599,6 +611,22 @@
             if (custDisplay)  custDisplay.textContent  = opt.dataset.customerName || '—';
             if (gateDateSpan) gateDateSpan.textContent = opt.dataset.gateDate     || '—';
             if (gateRefSpan)  gateRefSpan.textContent  = opt.dataset.gateRef      || '—';
+
+            // Linked yard job (previews what the survey will inherit on save)
+            var jobNo    = opt.dataset.jobNo    || '';
+            var jobShort = opt.dataset.jobShort || '';
+            var jobType  = opt.dataset.jobType  || '';
+            var jobShortEl = document.getElementById('jobShortBadge');
+            var jobNoEl    = document.getElementById('jobNoDisplay');
+            var jobTypeEl  = document.getElementById('jobTypeDisplay');
+            var jobNoneEl  = document.getElementById('jobNoneDisplay');
+            if (jobShortEl) {
+                jobShortEl.textContent = jobShort;
+                jobShortEl.classList.toggle('d-none', !jobShort);
+            }
+            if (jobNoEl)   jobNoEl.textContent   = jobNo;
+            if (jobTypeEl) jobTypeEl.textContent = jobType ? '· ' + jobType : '';
+            if (jobNoneEl) jobNoneEl.classList.toggle('d-none', !!jobNo);
 
             if (infoEmpty)  infoEmpty.classList.add('d-none');
             if (infoFilled) infoFilled.classList.remove('d-none');

@@ -78,6 +78,15 @@ class SurveyController extends Controller
                     : null;
                 $c->gate_movement_date = $latestGateIn?->gate_in_time?->toDateString()
                     ?? $c->gate_in_date?->toDateString();
+
+                // Preview the yard job that a survey on this container would inherit
+                // (same resolution store() uses), so the operator sees the Job No /
+                // Type before saving.
+                $jobId = \App\Services\JobResolver::forContainerVisit($c->id);
+                $job   = $jobId ? \App\Models\YardJob::with('jobType')->find($jobId) : null;
+                $c->linked_job_no    = $job?->job_no;
+                $c->linked_job_short = $job?->type_short_code ?: $job?->jobType?->type_short_code;
+                $c->linked_job_type  = $job ? ($job->jobType?->job_type_name ?? $job->job_type_code) : null;
                 return $c;
             });
 
@@ -224,7 +233,7 @@ class SurveyController extends Controller
     public function show(Inquiry $survey)
     {
         $survey->load([
-            'container', 'customer', 'inspector', 'checklists', 'estimate',
+            'container', 'customer', 'inspector', 'checklists', 'estimate', 'yardJob.jobType',
             'damages.locationCode', 'damages.componentCode', 'damages.damageCode',
             'damages.repairCode', 'damages.responsibilityCode', 'damages.estimateLineItem.estimate',
         ]);
@@ -237,7 +246,7 @@ class SurveyController extends Controller
     public function edit(Inquiry $survey)
     {
         $survey->load(['damages.locationCode', 'damages.componentCode', 'damages.damageCode',
-                       'damages.repairCode', 'damages.responsibilityCode', 'checklists']);
+                       'damages.repairCode', 'damages.responsibilityCode', 'checklists', 'yardJob.jobType']);
         $inspectors     = User::where('role', 'inspector')->where('status', 'active')->get();
         $checklistItems = ChecklistMasterItem::active()->get();
 
