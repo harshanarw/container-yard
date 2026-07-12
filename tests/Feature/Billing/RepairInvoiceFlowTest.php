@@ -41,18 +41,16 @@ class RepairInvoiceFlowTest extends FeatureTestCase
 
         $invoice->refresh();
 
-        // TEMP DEBUG — reveal why the status did not transition.
-        if ($invoice->status !== 'issued') {
-            dump([
-                'http_status'  => $issue->getStatusCode(),
-                'redirect_to'  => $issue->headers->get('Location'),
-                'flash_error'  => session('error'),
-                'flash_success'=> session('success'),
-                'issue_route'  => route('repair-invoices.issue', $invoice),
-            ]);
-        }
+        // TEMP DEBUG — fold diagnostics into the failure message so they survive
+        // artisan test's output buffering.
+        $diag = json_encode([
+            'http_status'   => $issue->getStatusCode(),
+            'redirect_to'   => $issue->headers->get('Location'),
+            'flash_error'   => session('error'),
+            'flash_success' => session('success'),
+        ], JSON_PRETTY_PRINT);
 
-        $this->assertSame('issued', $invoice->status);
+        $this->assertSame('issued', $invoice->status, "ISSUE DIAG: {$diag}");
 
         $this->assertDatabaseHas('invoice_postings', [
             'invoice_type' => 'repair',
