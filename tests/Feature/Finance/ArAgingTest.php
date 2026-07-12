@@ -50,8 +50,18 @@ class ArAgingTest extends FeatureTestCase
         ]));
         $response->assertOk();
 
-        $row = $response->viewData('byCustomer')->get($customer->id);
-        $this->assertNotNull($row, 'Customer not present in the aging report.');
+        $byCustomer = $response->viewData('byCustomer');
+        $row = $byCustomer->get($customer->id);
+
+        // TEMP DEBUG
+        $diag = json_encode([
+            'customer_id'      => $customer->id,
+            'my_invoices'      => GeneralInvoice::where('customer_id', $customer->id)
+                                    ->get(['id', 'status', 'grand_total', 'billing_party_id', 'due_date'])->toArray(),
+            'byCustomer_keys'  => $byCustomer->keys()->all(),
+            'grandTotals'      => $response->viewData('grandTotals'),
+        ], JSON_PRETTY_PRINT);
+        $this->assertNotNull($row, "Customer not present in the aging report. DIAG: {$diag}");
 
         $this->assertEqualsWithDelta(100.0, (float) $row['current'], 0.01);
         $this->assertEqualsWithDelta(0.0,   (float) $row['1-30'],   0.01);
