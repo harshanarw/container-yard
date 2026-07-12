@@ -750,7 +750,9 @@
                     {{-- Cargo Transfer notice --}}
                     <div id="cargoTransferNotice" class="alert alert-warning small py-2 mt-3 d-none">
                         <i class="bi bi-arrow-left-right me-1"></i>
-                        <strong>Cargo Transfer</strong> job — a cargo transfer workflow will be initiated after gate-in.
+                        <strong>Cargo Transfer</strong> job — after gate-in, complete the swap from
+                        <a href="{{ route('yard.cargo-transfers.index') }}" class="alert-link">Yard → Cargo Transfers</a>
+                        (this box will appear under “Awaiting Cargo Transfer”).
                     </div>
 
                     <div class="mt-3 d-grid">

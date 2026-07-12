@@ -242,6 +242,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{hire}/cancel',                [ContainerHireController::class, 'cancel'])->name('cancel');
     });
 
+    // Cargo Rental / Container Substitution ("cross-stuffing")
+    Route::prefix('yard/cargo-transfers')->name('yard.cargo-transfers.')->group(function () {
+        Route::get('/',                    [\App\Http\Controllers\CargoTransferController::class, 'index'])->name('index');
+        Route::get('/create/{movement}',   [\App\Http\Controllers\CargoTransferController::class, 'create'])->name('create');
+        Route::post('/',                   [\App\Http\Controllers\CargoTransferController::class, 'store'])->name('store');
+        Route::get('/{cargoTransfer}',     [\App\Http\Controllers\CargoTransferController::class, 'show'])->name('show');
+    });
+
     // Yard Jobs
     Route::prefix('yard/jobs')->name('yard.jobs.')->group(function () {
         Route::get('/',            [YardJobController::class, 'index'])->name('index');
