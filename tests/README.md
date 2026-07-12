@@ -96,16 +96,17 @@ user↔role linkage.
 | Reefer billing → GL | `Billing/ReeferBillingFlowTest` | completed session → invoice → session billed → issue → posted |
 | Estimate → Work Order | `Repair/WorkOrderFlowTest` | approve estimate; generate WO → lines copied + container in-repair |
 | AR settlement | `Finance/ReceiptSettlementTest` | confirm receipt → invoice paid / partially_paid + cash journal posted |
+| Storage & Handling → GL | `Billing/StorageHandlingFlowTest` | generate storage invoice → issue → posted (storage revenue → AR) |
 
 Bugs these tests surfaced and fixed: repair-invoice route-model binding
 (issue/cancel/payment silently failed); undefined-key fatals on partial
-payloads in the gate-in / general-invoice / repair-invoice / **work-order**
-stores; and silently-swallowed GL-posting failures (now visible + retryable).
+payloads in the gate-in / general-invoice / repair-invoice / **work-order** /
+**storage-handling** stores; and silently-swallowed GL-posting failures (now
+visible + retryable).
 
 ### Still to add
 
 - Survey → Estimate creation (front of the repair chain; approve → WO covered)
-- Storage & Handling billing generation (multi-line storage + handling)
 - AR aging buckets (settlement itself is covered)
 - Container hire on / off
 

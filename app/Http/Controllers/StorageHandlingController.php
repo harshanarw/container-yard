@@ -595,7 +595,7 @@ class StorageHandlingController extends Controller
                     'invoice_id'               => $invoice->id,
                     'container_id'             => $line['container_id'],
                     'container_no'             => $line['container_no'],
-                    'container_size'           => $line['container_size'],
+                    'container_size'           => $line['container_size'] ?? null,
                     'equipment_type_id'        => ($line['equipment_type_id'] ?? null) ?: null,
                     'equipment_type'           => $line['equipment_type'],
                     'cargo_status'             => $line['cargo_status'] ?? null,
