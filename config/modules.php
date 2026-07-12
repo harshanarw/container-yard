@@ -74,7 +74,7 @@ return [
     'yard.hire' => [
         'label'   => 'Container Hires',
         'section' => 'Yard',
-        'actions' => ['view', 'create', 'off_hire'],
+        'actions' => ['view', 'create', 'off_hire', 'cancel'],
     ],
 
     'yard.cargo-transfer' => [
