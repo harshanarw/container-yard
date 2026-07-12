@@ -21,8 +21,11 @@ class GateInFlowTest extends FeatureTestCase
 
         $customer = Customer::factory()->create();
         $equipment = EquipmentType::query()->first();
+        // A plain gate-in type — exclude Empty Return, which additionally
+        // requires a return reason.
         $jobType  = YardJobType::where('movement_direction', 'gate_in')
             ->where('is_active', true)
+            ->where('job_type_code', '!=', 'EMPTY_RETURN')
             ->first();
 
         $this->assertNotNull($equipment, 'Expected a seeded equipment type.');
