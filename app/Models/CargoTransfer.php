@@ -27,9 +27,11 @@ class CargoTransfer extends Model
         'substitute_source',
         'container_hire_id',
         'substitute_yard_storage_id',
+        'substitute_gate_out_movement_id',
         'reefer_plug_session_id',
         'is_reefer',
         'transfer_date',
+        'completed_date',
         'cargo_description',
         'handling_charge',
         'status',
@@ -41,6 +43,7 @@ class CargoTransfer extends Model
     protected $casts = [
         'is_reefer'       => 'boolean',
         'transfer_date'   => 'date',
+        'completed_date'  => 'date',
         'handling_charge' => 'decimal:2',
     ];
 
@@ -74,6 +77,11 @@ class CargoTransfer extends Model
     public function sourceGateOutMovement()
     {
         return $this->belongsTo(GateMovement::class, 'source_gate_out_movement_id');
+    }
+
+    public function substituteGateOutMovement()
+    {
+        return $this->belongsTo(GateMovement::class, 'substitute_gate_out_movement_id');
     }
 
     public function containerHire()

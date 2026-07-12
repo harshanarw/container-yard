@@ -90,12 +90,35 @@ class CargoTransferController extends Controller
                 . ($transfer->is_reefer ? ' with reefer electricity' : '') . ', and the empty box has been gated out.');
     }
 
+    public function complete(Request $request, CargoTransfer $cargoTransfer)
+    {
+        $validated = $request->validate([
+            'completion_date' => ['required', 'date'],
+            'release_box'     => ['required', 'boolean'],
+            'notes'           => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        try {
+            $this->service->complete($cargoTransfer, [
+                'completion_date' => $validated['completion_date'],
+                'release_box'     => $request->boolean('release_box'),
+                'notes'           => $validated['notes'] ?? null,
+            ], auth()->id() ?? 1);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('yard.cargo-transfers.show', $cargoTransfer)
+            ->with('success', 'Cargo transfer completed — storage and reefer closed'
+                . ($request->boolean('release_box') ? ', and the substitute box released.' : ' (box kept as empty stock).'));
+    }
+
     public function show(CargoTransfer $cargoTransfer)
     {
         $cargoTransfer->load([
             'customer', 'yardJob.jobType',
             'sourceContainer', 'substituteContainer.equipmentType',
-            'sourceGateMovement', 'sourceGateOutMovement',
+            'sourceGateMovement', 'sourceGateOutMovement', 'substituteGateOutMovement',
             'substituteYardStorage', 'reeferPlugSession', 'createdBy',
         ]);
 

@@ -114,13 +114,81 @@ class CargoTransferService
             }
 
             // Gate the now-empty source box out (stops the shipping line's detention).
-            $sourceOut = $this->gateSourceOutEmpty($source, $job, $transferDate, $userId);
-            $this->closeSourceStorage($source, $transferDate);
+            $sourceOut = $this->gateContainerOut($source, $job, $transferDate, $userId, 'CARGO_RENTAL_OUT', 'empty');
+            $this->closeOpenStorage($source, $transferDate);
 
             $transfer->update([
                 'substitute_yard_storage_id'  => $storage->id,
                 'reefer_plug_session_id'      => $reeferSessionId,
                 'source_gate_out_movement_id' => $sourceOut->id,
+            ]);
+
+            return $transfer->fresh();
+        });
+    }
+
+    /**
+     * Complete a transfer once the cargo is collected: close the substitute box's
+     * storage and reefer session, gate the substitute box out (unless the caller
+     * keeps it — devan-only), and mark the transfer completed. Same job throughout.
+     *
+     * @param  array  $data  completion_date, release_box? (default true), notes?
+     */
+    public function complete(CargoTransfer $transfer, array $data, int $userId): CargoTransfer
+    {
+        if (! $transfer->isActive()) {
+            throw new \RuntimeException('Only an active cargo transfer can be completed.');
+        }
+
+        $completionDate = Carbon::parse($data['completion_date']);
+        if ($completionDate->lt($transfer->transfer_date)) {
+            throw new \RuntimeException(
+                'The completion date cannot be before the transfer date (' . $transfer->transfer_date->format('d M Y') . ').'
+            );
+        }
+
+        $releaseBox = (bool) ($data['release_box'] ?? true);
+        $substitute = $transfer->substituteContainer;
+        $job        = $transfer->yardJob;
+
+        return DB::transaction(function () use ($transfer, $data, $completionDate, $releaseBox, $substitute, $job, $userId) {
+            // Close the substitute box's storage (free_days=0 → every day chargeable).
+            $this->closeOpenStorage($substitute, $completionDate);
+
+            // Gate the substitute box out, or keep it (devan-only) as empty stock.
+            $subOut = null;
+            if ($releaseBox) {
+                $subOut = $this->gateContainerOut($substitute, $job, $completionDate, $userId, 'STORAGE_OUT', 'empty');
+            } else {
+                $substitute->update([
+                    'cargo_status'      => 'empty',
+                    'status'            => 'in_yard',
+                    'status_changed_at' => now(),
+                ]);
+            }
+
+            // Close the reefer session (mirror gate-out: bill if it was plugged in,
+            // else just close a still-pending session with no energy to bill).
+            if ($transfer->reefer_plug_session_id) {
+                $session = ReeferPlugSession::find($transfer->reefer_plug_session_id);
+                if ($session && in_array($session->status, ['pending', 'active'], true)) {
+                    $updates = [
+                        'gate_out_movement_id' => $subOut?->id,
+                        'status'               => 'completed',
+                        'updated_by'           => $userId,
+                    ];
+                    if ($session->status === 'active') {
+                        $updates['plug_out_at'] = $completionDate;
+                    }
+                    $session->update($updates);
+                }
+            }
+
+            $transfer->update([
+                'substitute_gate_out_movement_id' => $subOut?->id,
+                'completed_date'                  => $completionDate->toDateString(),
+                'status'                          => 'completed',
+                'updated_by'                      => $userId,
             ]);
 
             return $transfer->fresh();
@@ -175,33 +243,33 @@ class CargoTransferService
         return (float) ($header->details()->where('equipment_type_id', $equipmentTypeId)->value('storage_rate') ?? 0);
     }
 
-    private function gateSourceOutEmpty(Container $source, ?YardJob $job, Carbon $date, int $userId): GateMovement
+    private function gateContainerOut(Container $container, ?YardJob $job, Carbon $date, int $userId, string $purpose, string $cargoStatus): GateMovement
     {
         $movement = GateMovement::create([
-            'container_id'     => $source->id,
-            'container_no'     => $source->container_no,
-            'customer_id'      => $source->customer_id,
+            'container_id'     => $container->id,
+            'container_no'     => $container->container_no,
+            'customer_id'      => $container->customer_id,
             'yard_job_id'      => $job?->id,
             'movement_type'    => 'out',
             'eir_no'           => app(NumberSequenceService::class)->generate('gate_out'),
-            'size'             => $source->size,
-            'container_type'   => $source->type_code,
-            'cargo_status'     => 'empty',
-            'gate_out_purpose' => 'CARGO_RENTAL_OUT',
+            'size'             => $container->size,
+            'container_type'   => $container->type_code,
+            'cargo_status'     => $cargoStatus,
+            'gate_out_purpose' => $purpose,
             'gate_out_time'    => $date,
             'movement_status'  => 'done',
             'created_by'       => $userId,
         ]);
 
-        YardLocation::where('container_id', $source->id)->update([
+        YardLocation::where('container_id', $container->id)->update([
             'container_id'    => null,
             'status'          => 'empty',
             'last_updated_at' => now(),
         ]);
 
-        $source->update([
+        $container->update([
             'status'            => 'released',
-            'cargo_status'      => 'empty',
+            'cargo_status'      => $cargoStatus,
             'status_changed_at' => now(),
             'available_since'   => null,
             'location_zone'     => null,
@@ -214,7 +282,7 @@ class CargoTransferService
         return $movement;
     }
 
-    private function closeSourceStorage(Container $source, Carbon $date): void
+    private function closeOpenStorage(Container $source, Carbon $date): void
     {
         $storage = YardStorage::where('container_id', $source->id)
             ->whereNull('gate_out_date')

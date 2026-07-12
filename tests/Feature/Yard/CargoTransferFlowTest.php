@@ -148,6 +148,56 @@ class CargoTransferFlowTest extends FeatureTestCase
         ]);
     }
 
+    public function test_completing_a_transfer_gates_substitute_out_closes_storage_reefer_and_marks_completed(): void
+    {
+        $this->actingAsSystemAdmin();
+        $customer = Customer::factory()->create();
+
+        [, $job, $sourceIn] = $this->seedSource($customer);
+        $substitute = $this->seedSubstitute('RF'); // reefer → has a plug session to close
+
+        $this->postTransfer($sourceIn, $substitute)->assertSessionHasNoErrors();
+        $transfer = CargoTransfer::latest('id')->first();
+        $this->assertSame('active', $transfer->status);
+
+        // ── Complete: cargo collected, box gated out ──
+        $this->post(route('yard.cargo-transfers.complete', $transfer), [
+            'completion_date' => now()->addDays(5)->toDateString(),
+            'release_box'     => 1,
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $transfer->refresh();
+        $this->assertSame('completed', $transfer->status);
+        $this->assertNotNull($transfer->completed_date);
+        $this->assertNotNull($transfer->substitute_gate_out_movement_id, 'Substitute box was not gated out.');
+
+        // Substitute storage closed (chargeable = every day; no free days).
+        $this->assertDatabaseHas('yard_storage', [
+            'id' => $transfer->substitute_yard_storage_id, 'chargeable_days' => 5,
+        ]);
+        $this->assertDatabaseMissing('yard_storage', [
+            'id' => $transfer->substitute_yard_storage_id, 'gate_out_date' => null,
+        ]);
+
+        // Substitute box released; its out movement is on the same job.
+        $this->assertDatabaseHas('containers', ['id' => $substitute->id, 'status' => 'released']);
+        $this->assertDatabaseHas('gate_movements', [
+            'id' => $transfer->substitute_gate_out_movement_id, 'yard_job_id' => $job->id, 'movement_type' => 'out',
+        ]);
+
+        // Reefer session closed.
+        $this->assertDatabaseHas('reefer_plug_sessions', [
+            'id' => $transfer->reefer_plug_session_id, 'status' => 'completed',
+        ]);
+
+        // Completing again is rejected.
+        $this->from(route('yard.cargo-transfers.show', $transfer))
+            ->post(route('yard.cargo-transfers.complete', $transfer), [
+                'completion_date' => now()->addDays(6)->toDateString(),
+                'release_box'     => 1,
+            ])->assertSessionHas('error');
+    }
+
     public function test_double_transfer_from_the_same_gate_in_is_rejected(): void
     {
         $this->actingAsSystemAdmin();

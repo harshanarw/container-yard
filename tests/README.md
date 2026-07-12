@@ -100,7 +100,7 @@ user↔role linkage.
 | AR aging buckets | `Finance/ArAgingTest` | issued invoices bucketed current / 31-60 / 90+ by due date |
 | Storage & Handling → GL | `Billing/StorageHandlingFlowTest` | generate storage invoice → issue → posted (storage revenue → AR) |
 | Container hire lifecycle | `Yard/ContainerHireFlowTest` | on-hire → storage split + gate-out blocked; off-hire → resumed + completed |
-| Cargo substitution (cross-stuff) | `Yard/CargoTransferFlowTest` | laden box in → cargo → reefer substitute; empty box out; 0-free-day storage + reefer session, all under one job |
+| Cargo substitution (cross-stuff) | `Yard/CargoTransferFlowTest` | laden box in → reefer/dry substitute; empty box out; 0-free-day storage + reefer session, one job; completion gates substitute out + closes storage/reefer; guards |
 
 Bugs these tests surfaced and fixed: repair-invoice route-model binding
 (issue/cancel/payment silently failed); undefined-key fatals on partial

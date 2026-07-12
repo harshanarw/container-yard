@@ -25,6 +25,44 @@
     <a href="{{ route('yard.cargo-transfers.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
 </div>
 
+@if($transfer->isActive())
+    {{-- Completion (cargo collected) --}}
+    <div class="card content-card mb-4 border-success">
+        <div class="card-header bg-success-subtle py-2 fw-semibold small"><i class="bi bi-check2-circle me-2 text-success"></i>Complete Transfer — cargo collected</div>
+        <div class="card-body">
+            <form method="POST" action="{{ route('yard.cargo-transfers.complete', $transfer) }}" class="row g-3 align-items-end">
+                @csrf
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small">Collection Date <span class="text-danger">*</span></label>
+                    <input type="date" name="completion_date" class="form-control" value="{{ old('completion_date', now()->toDateString()) }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small">Substitute Box</label>
+                    <select name="release_box" class="form-select" required>
+                        <option value="1" selected>Gate box out</option>
+                        <option value="0">Keep in yard (devan only)</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold small">Notes</label>
+                    <input type="text" name="notes" class="form-control" maxlength="1000" placeholder="Optional">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100"><i class="bi bi-check-circle me-1"></i>Complete</button>
+                </div>
+            </form>
+            <div class="form-text mt-2">
+                Closes the substitute box's storage &amp; reefer session and marks the transfer completed. Storage has no free days, so every day is chargeable.
+            </div>
+        </div>
+    </div>
+@else
+    <div class="alert alert-secondary small">
+        <i class="bi bi-check2-circle me-1"></i>Completed on <strong>{{ $transfer->completed_date?->format('d M Y') ?? '—' }}</strong>
+        @if($transfer->substituteGateOutMovement)· Substitute out EIR <span class="font-monospace">{{ $transfer->substituteGateOutMovement->eir_no }}</span>@endif
+    </div>
+@endif
+
 <div class="row g-4">
     <div class="col-lg-6">
         <div class="card content-card mb-4">

@@ -248,6 +248,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/create/{movement}',   [\App\Http\Controllers\CargoTransferController::class, 'create'])->name('create');
         Route::post('/',                   [\App\Http\Controllers\CargoTransferController::class, 'store'])->name('store');
         Route::get('/{cargoTransfer}',     [\App\Http\Controllers\CargoTransferController::class, 'show'])->name('show');
+        Route::post('/{cargoTransfer}/complete', [\App\Http\Controllers\CargoTransferController::class, 'complete'])->name('complete');
     });
 
     // Yard Jobs
