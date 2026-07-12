@@ -2296,6 +2296,24 @@ function initPhotoUploader(cfg) {
                 // (it would issue a GET and surface a misleading 405) — show the real
                 // failure instead.
                 var stillOnPost = /\/gate\/(in|out)(\?|$)/.test(finalUrl);
+                // 422 = validation failed. Surface the actual field messages so the
+                // operator sees *why* (e.g. a required field, or the container can't
+                // be gated out), instead of a meaningless "server error".
+                if (response.status === 422) {
+                    return response.json().then(function (data) {
+                        submitBtn.disabled = false; submitBtn.innerHTML = origHtml;
+                        var errs = (data && data.errors)
+                            ? Object.keys(data.errors).map(function (k) { return data.errors[k][0]; })
+                            : [];
+                        var msg = errs.length ? errs.join('  •  ')
+                                : ((data && data.message) || 'Please check the form and try again.');
+                        if (window.showToast) { showToast(msg, 'danger'); } else { alert(msg); }
+                    }).catch(function () {
+                        submitBtn.disabled = false; submitBtn.innerHTML = origHtml;
+                        var m = 'Gate ' + (cfg.direction || '') + ' failed validation. Please review the form.';
+                        if (window.showToast) { showToast(m, 'danger'); } else { alert(m); }
+                    });
+                }
                 if (!response.ok || stillOnPost || !finalUrl) {
                     submitBtn.disabled = false; submitBtn.innerHTML = origHtml;
                     var msg = 'Gate ' + (cfg.direction || '') + ' could not be completed'
