@@ -94,6 +94,7 @@ user↔role linkage.
 | General invoice → GL | `Billing/GeneralInvoiceFlowTest` | draft → issue → posted `invoice_postings`; minimal-payload variant |
 | Repair chain → GL | `Billing/RepairInvoiceFlowTest` | approved estimate → repair invoice → issue → posted |
 | Reefer billing → GL | `Billing/ReeferBillingFlowTest` | completed session → invoice → session billed → issue → posted |
+| Survey → Estimate | `Repair/SurveyToEstimateFlowTest` | record survey → create inquiry → generate estimate (lines + link) |
 | Estimate → Work Order | `Repair/WorkOrderFlowTest` | approve estimate; generate WO → lines copied + container in-repair |
 | AR settlement | `Finance/ReceiptSettlementTest` | confirm receipt → invoice paid / partially_paid + cash journal posted |
 | AR aging buckets | `Finance/ArAgingTest` | issued invoices bucketed current / 31-60 / 90+ by due date |
@@ -108,7 +109,10 @@ visible + retryable).
 
 ### Still to add
 
-- Survey → Estimate creation (front of the repair chain; approve → WO covered)
+All critical money + movement flows are now covered. Candidates for deeper
+coverage (not blocking): AR/AP credit notes, payment vouchers (AP side),
+multi-line/foreign-currency billing variants, and period close / FX
+revaluation.
 
 ### Resolved finding — GL-posting failures now visible + retryable
 
