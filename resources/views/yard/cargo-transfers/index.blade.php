@@ -45,9 +45,11 @@
                                 <td>{{ $m->customer?->name ?? '—' }}</td>
                                 <td class="small">{{ $m->gate_in_time?->format('d M Y') ?? $m->created_at->format('d M Y') }}</td>
                                 <td class="text-end">
+                                    @can('yard.cargo-transfer.create')
                                     <a href="{{ route('yard.cargo-transfers.create', $m) }}" class="btn btn-sm btn-primary">
                                         <i class="bi bi-arrow-left-right me-1"></i>Transfer Cargo
                                     </a>
+                                    @endcan
                                 </td>
                             </tr>
                         @endforeach

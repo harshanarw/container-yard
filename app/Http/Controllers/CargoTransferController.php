@@ -14,6 +14,8 @@ class CargoTransferController extends Controller
 
     public function index()
     {
+        $this->authorize('yard.cargo-transfer.view');
+
         // Pending: CARGO_RENTAL_IN gate-ins whose box is still in the yard and has
         // no transfer recorded yet.
         $done = CargoTransfer::where('status', '!=', 'cancelled')->pluck('source_gate_movement_id')->all();
@@ -36,6 +38,8 @@ class CargoTransferController extends Controller
 
     public function create(GateMovement $movement)
     {
+        $this->authorize('yard.cargo-transfer.create');
+
         $movement->load(['container.equipmentType', 'customer', 'yardJob']);
 
         if ($movement->job_type_code !== 'CARGO_RENTAL_IN' || $movement->movement_type !== 'in') {
@@ -66,6 +70,8 @@ class CargoTransferController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('yard.cargo-transfer.create');
+
         $validated = $request->validate([
             'source_gate_movement_id' => ['required', 'exists:gate_movements,id'],
             'substitute_container_id' => ['required', 'exists:containers,id'],
@@ -92,6 +98,8 @@ class CargoTransferController extends Controller
 
     public function complete(Request $request, CargoTransfer $cargoTransfer)
     {
+        $this->authorize('yard.cargo-transfer.complete');
+
         $validated = $request->validate([
             'completion_date' => ['required', 'date'],
             'release_box'     => ['required', 'boolean'],
@@ -115,6 +123,8 @@ class CargoTransferController extends Controller
 
     public function show(CargoTransfer $cargoTransfer)
     {
+        $this->authorize('yard.cargo-transfer.view');
+
         $cargoTransfer->load([
             'customer', 'yardJob.jobType',
             'sourceContainer', 'substituteContainer.equipmentType',

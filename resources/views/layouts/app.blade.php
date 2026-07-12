@@ -677,13 +677,14 @@
                         </a>
                     </li>
                     @endcan
-                    {{-- Cargo Rental / Container Substitution (RBAC permission TBD) --}}
+                    @can('yard.cargo-transfer.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('yard.cargo-transfers.index') }}"
                            class="nav-link {{ request()->routeIs('yard.cargo-transfers.*') ? 'active' : '' }}">
                             <i class="bi bi-box-arrow-in-right"></i><span>Cargo Transfers</span>
                         </a>
                     </li>
+                    @endcan
                     @can('yard.jobs.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('yard.jobs.index') }}"

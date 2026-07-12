@@ -71,6 +71,18 @@ return [
         'actions' => ['view', 'plug-in', 'plug-out', 'temp-log'],
     ],
 
+    'yard.hire' => [
+        'label'   => 'Container Hires',
+        'section' => 'Yard',
+        'actions' => ['view', 'create', 'off_hire'],
+    ],
+
+    'yard.cargo-transfer' => [
+        'label'   => 'Cargo Transfers (Container Substitution)',
+        'section' => 'Yard',
+        'actions' => ['view', 'create', 'complete'],
+    ],
+
     // ── Operations ────────────────────────────────────────────────────────────
 
     'surveys' => [

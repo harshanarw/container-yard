@@ -26,6 +26,7 @@
 </div>
 
 @if($transfer->isActive())
+    @can('yard.cargo-transfer.complete')
     {{-- Completion (cargo collected) --}}
     <div class="card content-card mb-4 border-success">
         <div class="card-header bg-success-subtle py-2 fw-semibold small"><i class="bi bi-check2-circle me-2 text-success"></i>Complete Transfer — cargo collected</div>
@@ -56,6 +57,7 @@
             </div>
         </div>
     </div>
+    @endcan
 @else
     <div class="alert alert-secondary small">
         <i class="bi bi-check2-circle me-1"></i>Completed on <strong>{{ $transfer->completed_date?->format('d M Y') ?? '—' }}</strong>
