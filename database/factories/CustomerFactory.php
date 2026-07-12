@@ -18,7 +18,6 @@ class CustomerFactory extends Factory
         return [
             'code'          => strtoupper(Str::random(6)),
             'name'          => $this->faker->company(),
-            'type'          => 'shipping_line',
             'currency'      => 'LKR',
             'payment_terms' => 'net30',
             'status'        => 'active',
