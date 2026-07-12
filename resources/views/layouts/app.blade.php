@@ -1061,6 +1061,12 @@
                             <i class="bi bi-cash-stack"></i><span>Withholding Tax</span>
                         </a>
                     </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('finance.reports.job-margin') }}"
+                           class="nav-link {{ request()->routeIs('finance.reports.job-margin') ? 'active' : '' }}">
+                            <i class="bi bi-clipboard-data"></i><span>Job Margin</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
             @endcan
