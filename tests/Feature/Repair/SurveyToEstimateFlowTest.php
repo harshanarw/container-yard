@@ -50,7 +50,9 @@ class SurveyToEstimateFlowTest extends FeatureTestCase
                 'customer_id'       => $customer->id,
                 'estimate_date'     => now()->toDateString(),
                 'valid_until'       => now()->addDays(30)->toDateString(),
-                'currency'          => 'LKR',
+                // Repair tariffs are natively USD; a USD estimate is legitimately
+                // 1:1, whereas a foreign-currency estimate needs a real USD→x rate.
+                'currency'          => 'USD',
                 'exchange_rate'     => 1,
                 'tax_applicable'    => 0,
                 'priority'          => 'normal',
