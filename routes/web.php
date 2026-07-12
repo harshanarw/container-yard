@@ -251,6 +251,15 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{cargoTransfer}/complete', [\App\Http\Controllers\CargoTransferController::class, 'complete'])->name('complete');
     });
 
+    // Lessor On-Hire (yard as lessee) — on-hire from a shipping line as a costed job
+    Route::prefix('yard/lessor-hires')->name('yard.lessor-hires.')->group(function () {
+        Route::get('/',                    [\App\Http\Controllers\LessorOnHireController::class, 'index'])->name('index');
+        Route::get('/create',              [\App\Http\Controllers\LessorOnHireController::class, 'create'])->name('create');
+        Route::post('/',                   [\App\Http\Controllers\LessorOnHireController::class, 'store'])->name('store');
+        Route::get('/{lessorHire}',        [\App\Http\Controllers\LessorOnHireController::class, 'show'])->name('show');
+        Route::post('/{lessorHire}/off-hire', [\App\Http\Controllers\LessorOnHireController::class, 'offHire'])->name('off-hire');
+    });
+
     // Yard Jobs
     Route::prefix('yard/jobs')->name('yard.jobs.')->group(function () {
         Route::get('/',            [YardJobController::class, 'index'])->name('index');

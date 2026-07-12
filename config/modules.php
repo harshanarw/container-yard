@@ -83,6 +83,12 @@ return [
         'actions' => ['view', 'create', 'complete'],
     ],
 
+    'yard.lessor-hire' => [
+        'label'   => 'Lessor On-Hire (yard as lessee)',
+        'section' => 'Yard',
+        'actions' => ['view', 'create', 'off_hire'],
+    ],
+
     // ── Operations ────────────────────────────────────────────────────────────
 
     'surveys' => [

@@ -59,6 +59,8 @@ class RolePermissionSeeder extends Seeder
             'yard.cargo-transfer.view',
             'yard.cargo-transfer.create',
             'yard.cargo-transfer.complete',
+            'yard.lessor-hire.view',
+            'yard.lessor-hire.create',
             'guard-post.view',
             'guard-post.create',
             'containers.view',

@@ -183,6 +183,18 @@ class YardJobTypeSeeder extends Seeder
                 'approval'    => false, 'damage_capture' => false,
                 'next_status' => 'pending_cargo_transfer',
             ],
+            [
+                'code'        => 'LESSOR_ONHIRE',
+                'short_code'  => 'LH',
+                'name'        => 'Lessor On-Hire (yard as lessee)',
+                'description' => 'The yard takes a container ON HIRE from a shipping line / lessor for a period. The lessor\'s fee is captured as an expense against this job; any revenue from using the box (storage, sub-hire) is tagged to the same job — so the on-hire→off-hire period has its own P&L.',
+                'sort_order'  => 15,
+                'handling'    => true,  'survey'   => false, 'estimate' => false,
+                'repair'      => false, 'storage'  => true,  'wash'     => false,
+                'reefer'      => true,  'customs'  => false, 'cargo_transfer' => false,
+                'approval'    => false, 'damage_capture' => false,
+                'next_status' => 'in_storage',
+            ],
         ];
 
         // Gate-out purposes — mirror the gate-in set where meaningful. Only

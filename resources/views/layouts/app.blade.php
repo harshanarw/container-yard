@@ -685,6 +685,14 @@
                         </a>
                     </li>
                     @endcan
+                    @can('yard.lessor-hire.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('yard.lessor-hires.index') }}"
+                           class="nav-link {{ request()->routeIs('yard.lessor-hires.*') ? 'active' : '' }}">
+                            <i class="bi bi-box-arrow-in-down-right"></i><span>Lessor On-Hire</span>
+                        </a>
+                    </li>
+                    @endcan
                     @can('yard.jobs.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('yard.jobs.index') }}"
