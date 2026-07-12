@@ -36,9 +36,22 @@ class RepairInvoiceFlowTest extends FeatureTestCase
         $this->assertGreaterThan(0, (float) $invoice->grand_total);
 
         // ── Issue it → posts to the ledger ──
-        $this->patch(route('repair-invoices.issue', $invoice))->assertSessionHasNoErrors();
+        $issue = $this->patch(route('repair-invoices.issue', $invoice));
+        $issue->assertSessionHasNoErrors();
 
         $invoice->refresh();
+
+        // TEMP DEBUG — reveal why the status did not transition.
+        if ($invoice->status !== 'issued') {
+            dump([
+                'http_status'  => $issue->getStatusCode(),
+                'redirect_to'  => $issue->headers->get('Location'),
+                'flash_error'  => session('error'),
+                'flash_success'=> session('success'),
+                'issue_route'  => route('repair-invoices.issue', $invoice),
+            ]);
+        }
+
         $this->assertSame('issued', $invoice->status);
 
         $this->assertDatabaseHas('invoice_postings', [
