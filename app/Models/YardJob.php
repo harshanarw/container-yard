@@ -82,6 +82,16 @@ class YardJob extends Model
         return $this->hasMany(CargoTransfer::class);
     }
 
+    /**
+     * The job's primary container — the gate-in movement's container (falls back
+     * to any movement's). Used to derive the container for job-costing tags.
+     */
+    public function primaryContainerId(): ?int
+    {
+        return $this->movements()->where('movement_type', 'in')->orderBy('id')->value('container_id')
+            ?? $this->movements()->orderBy('id')->value('container_id');
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');

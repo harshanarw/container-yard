@@ -83,6 +83,16 @@
                     @error('expense_account_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-6">
+                    <label class="form-label fw-semibold small">Job <span class="text-muted">(costing)</span></label>
+                    <select name="yard_job_id" class="form-select form-select-sm select2">
+                        <option value="">— None —</option>
+                        @foreach($jobs as $j)
+                            <option value="{{ $j->id }}" {{ old('yard_job_id') == $j->id ? 'selected' : '' }}>{{ $j->job_no }} · {{ $j->job_type_code }} · {{ $j->customer?->name }}</option>
+                        @endforeach
+                    </select>
+                    <div class="form-text small">Attributes a direct expense to a container job for job P&amp;L.</div>
+                </div>
+                <div class="col-md-6">
                     <label class="form-label fw-semibold small">Payment Method <span class="text-danger">*</span></label>
                     <select name="payment_method" id="paymentMethod" class="form-select form-select-sm @error('payment_method') is-invalid @enderror" required>
                         <option value="">— Select —</option>

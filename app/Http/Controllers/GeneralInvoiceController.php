@@ -73,7 +73,7 @@ class GeneralInvoiceController extends Controller
                 'created_by' => auth()->id(),
             ]);
 
-            $this->syncLines($invoice, $totals['lines']);
+            $this->syncLines($invoice, $totals['lines'], $data['yard_job_id'] ?? null);
 
             return $invoice;
         });
@@ -254,7 +254,7 @@ class GeneralInvoiceController extends Controller
 
             $general->update($this->headerAttributes($data, $totals));
             $general->lines()->delete();
-            $this->syncLines($general, $totals['lines']);
+            $this->syncLines($general, $totals['lines'], $data['yard_job_id'] ?? null);
         });
 
         return redirect()->route('billing.general.show', $general)
@@ -335,6 +335,9 @@ class GeneralInvoiceController extends Controller
         return [
             'invoice'         => $invoice,
             'customers'       => Customer::where('status', 'active')->orderBy('name')->get(),
+            'jobs'            => \App\Models\YardJob::with('customer')
+                                    ->whereIn('status', ['open', 'in_progress'])
+                                    ->orderByDesc('id')->limit(500)->get(),
             'chargeCodes'     => $chargeCodes,
             'taxCodes'        => TaxCode::where('is_active', true)->orderBy('sort_order')->get(),
             'currencies'      => CurrencyService::activeCurrencyNames(),
@@ -363,6 +366,7 @@ class GeneralInvoiceController extends Controller
             'remarks'          => ['nullable', 'string', 'max:1000'],
 
             'lines'                     => ['required', 'array', 'min:1'],
+            'yard_job_id'               => ['nullable', 'exists:yard_jobs,id'],
             'lines.*.charge_code_id'    => ['required', 'exists:charge_codes,id'],
             'lines.*.revenue_account_id'=> ['nullable', 'exists:accounts,id'],
             'lines.*.description'       => ['required', 'string', 'max:255'],
@@ -505,10 +509,18 @@ class GeneralInvoiceController extends Controller
         ];
     }
 
-    private function syncLines(GeneralInvoice $invoice, array $lines): void
+    private function syncLines(GeneralInvoice $invoice, array $lines, ?int $jobId = null): void
     {
+        // Job costing: stamp the chosen job (and its derived container) onto every
+        // line so the revenue posts against the job. Header-level for now; a per-line
+        // override can layer on top later without a schema change.
+        $containerId = $jobId ? optional(\App\Models\YardJob::find($jobId))->primaryContainerId() : null;
+
         foreach ($lines as $line) {
-            $invoice->lines()->create($line);
+            $invoice->lines()->create($line + [
+                'yard_job_id'  => $jobId,
+                'container_id' => $containerId,
+            ]);
         }
     }
 

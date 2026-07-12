@@ -63,6 +63,16 @@
                             <label class="form-label small">Notes</label>
                             <textarea name="notes" class="form-control form-control-sm" rows="2">{{ old('notes') }}</textarea>
                         </div>
+                        <div class="col-12">
+                            <label class="form-label small">Job <span class="text-muted">(costing)</span></label>
+                            <select name="yard_job_id" class="form-select form-select-sm select2 s2-code" data-s2-sel="name">
+                                <option value="">— None —</option>
+                                @foreach($jobs as $j)
+                                    <option value="{{ $j->id }}" @selected(old('yard_job_id') == $j->id)>{{ $j->job_no }} · {{ $j->job_type_code }} · {{ $j->customer?->name }}</option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">Attributes this cost to a container job for job P&amp;L.</div>
+                        </div>
                     </div>
                 </div>
 

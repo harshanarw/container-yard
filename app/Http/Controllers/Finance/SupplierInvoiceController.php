@@ -65,7 +65,10 @@ class SupplierInvoiceController extends Controller
             ->orderBy('code')
             ->get(['id', 'code', 'description', 'tax1_rate', 'tax2_rate']);
 
-        return view('finance.supplier-invoices.create', compact('suppliers', 'accounts', 'chargeCodes', 'taxCodes'));
+        $jobs = \App\Models\YardJob::with('customer')->whereIn('status', ['open', 'in_progress'])
+            ->orderByDesc('id')->limit(500)->get();
+
+        return view('finance.supplier-invoices.create', compact('suppliers', 'accounts', 'chargeCodes', 'taxCodes', 'jobs'));
     }
 
     public function store(Request $request)
@@ -81,6 +84,7 @@ class SupplierInvoiceController extends Controller
             'currency'                     => ['required', 'string', 'max:10'],
             'exchange_rate'                => ['required', 'numeric', 'min:0.000001'],
             'notes'                        => ['nullable', 'string', 'max:1000'],
+            'yard_job_id'                  => ['nullable', 'exists:yard_jobs,id'],
             'lines'                        => ['required', 'array', 'min:1'],
             'lines.*.description'          => ['required', 'string', 'max:255'],
             'lines.*.expense_account_id'   => ['required', 'exists:accounts,id'],
@@ -110,6 +114,10 @@ class SupplierInvoiceController extends Controller
             $vatTotal    = 0.0;
             $lineRecords = [];
 
+            // Job costing: attribute this cost to a job/container (header-level).
+            $jobId       = $validated['yard_job_id'] ?? null;
+            $containerId = $jobId ? optional(\App\Models\YardJob::find($jobId))->primaryContainerId() : null;
+
             foreach ($validated['lines'] as $line) {
                 $net   = (float) $line['amount'];
                 $t1    = (float) ($line['tax1_rate'] ?? 0);
@@ -124,6 +132,8 @@ class SupplierInvoiceController extends Controller
 
                 $lineRecords[] = [
                     'description'        => $line['description'],
+                    'yard_job_id'        => $jobId,
+                    'container_id'       => $containerId,
                     'charge_code_id'     => ($line['charge_code_id'] ?? null) ?: null,
                     'tax_code_id'        => ($line['tax_code_id'] ?? null) ?: null,
                     'expense_account_id' => $line['expense_account_id'],
@@ -211,8 +221,11 @@ class SupplierInvoiceController extends Controller
             ->orderBy('code')
             ->get(['id', 'code', 'description', 'tax1_rate', 'tax2_rate']);
 
+        $jobs = \App\Models\YardJob::with('customer')->whereIn('status', ['open', 'in_progress'])
+            ->orderByDesc('id')->limit(500)->get();
+
         return view('finance.supplier-invoices.edit', compact(
-            'supplierInvoice', 'suppliers', 'accounts', 'chargeCodes', 'taxCodes'
+            'supplierInvoice', 'suppliers', 'accounts', 'chargeCodes', 'taxCodes', 'jobs'
         ));
     }
 
@@ -233,6 +246,7 @@ class SupplierInvoiceController extends Controller
             'currency'                     => ['required', 'string', 'max:10'],
             'exchange_rate'                => ['required', 'numeric', 'min:0.000001'],
             'notes'                        => ['nullable', 'string', 'max:1000'],
+            'yard_job_id'                  => ['nullable', 'exists:yard_jobs,id'],
             'lines'                        => ['required', 'array', 'min:1'],
             'lines.*.description'          => ['required', 'string', 'max:255'],
             'lines.*.expense_account_id'   => ['required', 'exists:accounts,id'],
@@ -260,6 +274,10 @@ class SupplierInvoiceController extends Controller
             $vatTotal    = 0.0;
             $lineRecords = [];
 
+            // Job costing: attribute this cost to a job/container (header-level).
+            $jobId       = $validated['yard_job_id'] ?? null;
+            $containerId = $jobId ? optional(\App\Models\YardJob::find($jobId))->primaryContainerId() : null;
+
             foreach ($validated['lines'] as $line) {
                 $net   = (float) $line['amount'];
                 $t1    = (float) ($line['tax1_rate'] ?? 0);
@@ -274,6 +292,8 @@ class SupplierInvoiceController extends Controller
 
                 $lineRecords[] = [
                     'description'        => $line['description'],
+                    'yard_job_id'        => $jobId,
+                    'container_id'       => $containerId,
                     'charge_code_id'     => ($line['charge_code_id'] ?? null) ?: null,
                     'tax_code_id'        => ($line['tax_code_id'] ?? null) ?: null,
                     'expense_account_id' => $line['expense_account_id'],

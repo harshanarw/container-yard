@@ -143,6 +143,24 @@
                     </div>
                 </div>
 
+                {{-- Job costing — tag this invoice's income to a job/container --}}
+                <div class="col-md-6">
+                    <div class="row">
+                        <label class="{{ $lblCls }}" for="yard_job_id">Job <span class="text-muted fw-normal">(costing)</span></label>
+                        <div class="col-sm-8">
+                            <select name="yard_job_id" id="yard_job_id" class="form-select select2 s2-code" data-s2-sel="name">
+                                <option value="">— None —</option>
+                                @foreach($jobs as $j)
+                                    <option value="{{ $j->id }}" @selected(old('yard_job_id', optional($invoice->lines->first())->yard_job_id) == $j->id)>
+                                        {{ $j->job_no }} · {{ $j->job_type_code }} · {{ $j->customer?->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">Attributes this income to a container job for job P&amp;L. Leave blank if not job-related.</div>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- ③ Currency --}}
                 <div class="col-12">
                     <div class="text-primary fw-semibold small text-uppercase border-bottom pb-1">

@@ -71,8 +71,10 @@ class PaymentVoucherController extends Controller
         $suppliers = Customer::apContacts()->get(['id', 'code', 'name']);
         $currencies   = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
         $baseCurrency = CompanySetting::baseCurrency();
+        $jobs = \App\Models\YardJob::with('customer')->whereIn('status', ['open', 'in_progress'])
+            ->orderByDesc('id')->limit(500)->get();
 
-        return view('finance.vouchers.create', compact('bankAccounts', 'expenseAccounts', 'suppliers', 'currencies', 'baseCurrency'));
+        return view('finance.vouchers.create', compact('bankAccounts', 'expenseAccounts', 'suppliers', 'currencies', 'baseCurrency', 'jobs'));
     }
 
     public function store(Request $request)
@@ -92,12 +94,17 @@ class PaymentVoucherController extends Controller
             'reference_no'      => ['nullable', 'string', 'max:100'],
             'narration'         => ['required', 'string', 'max:255'],
             'expense_account_id' => ['nullable', 'exists:accounts,id'],
+            'yard_job_id'       => ['nullable', 'exists:yard_jobs,id'],
         ]);
 
         $validated['created_by']  = auth()->id();
         $validated['status']      = 'draft';
         // Snapshot the base/reporting-currency (LKR) value at entry time.
         $validated['base_amount'] = round((float) $validated['amount'] * (float) $validated['exchange_rate'], 4);
+        // Job costing: derive the container from the chosen job.
+        $validated['container_id'] = ($validated['yard_job_id'] ?? null)
+            ? optional(\App\Models\YardJob::find($validated['yard_job_id']))->primaryContainerId()
+            : null;
 
         $voucher = DB::transaction(function () use ($validated) {
             $validated['voucher_no'] = $this->nextVoucherNo();
