@@ -17,7 +17,7 @@
         'description' => $l->description,
         'qty' => $l->qty, 'unit_rate' => $l->unit_rate,
         'line_currency' => $l->line_currency, 'line_exchange_rate' => $l->line_exchange_rate,
-        'tax_code_id' => $l->tax_code_id,
+        'tax_code_id' => $l->tax_code_id, 'yard_job_id' => $l->yard_job_id,
     ])->all());
     $acctJs = $incomeAccounts->map(fn($a) => ['id' => $a->id, 'code' => $a->code, 'name' => $a->name])->values();
     $curCode = old('currency', $invoice->currency ?? $baseCurrency);
@@ -144,19 +144,29 @@
                 </div>
 
                 {{-- Job costing — tag this invoice's income to a job/container --}}
+                @php
+                    $jobLabel = function ($j) {
+                        $parts = [$j['job_no']];
+                        if (!empty($j['container_no'])) $parts[] = $j['container_no'];
+                        if (!empty($j['size']))         $parts[] = $j['size']."'".$j['type_code'];
+                        if (!empty($j['customer']))     $parts[] = $j['customer'];
+                        return implode('  ·  ', $parts);
+                    };
+                @endphp
                 <div class="col-md-6">
                     <div class="row">
                         <label class="{{ $lblCls }}" for="yard_job_id">Job <span class="text-muted fw-normal">(costing)</span></label>
                         <div class="col-sm-8">
-                            <select name="yard_job_id" id="yard_job_id" class="form-select select2 s2-code" data-s2-sel="name">
+                            <select name="yard_job_id" id="yard_job_id" class="form-select select2 job-select">
                                 <option value="">— None —</option>
                                 @foreach($jobs as $j)
-                                    <option value="{{ $j->id }}" @selected(old('yard_job_id', optional($invoice->lines->first())->yard_job_id) == $j->id)>
-                                        {{ $j->job_no }} · {{ $j->job_type_code }} · {{ $j->customer?->name }}
-                                    </option>
+                                    <option value="{{ $j['id'] }}" data-cust-id="{{ $j['customer_id'] }}" @selected(old('yard_job_id') == $j['id'])>{{ $jobLabel($j) }}</option>
                                 @endforeach
                             </select>
-                            <div class="form-text">Attributes this income to a container job for job P&amp;L. Leave blank if not job-related.</div>
+                            <div class="form-text d-flex justify-content-between align-items-center flex-wrap">
+                                <span>Sets the job for <strong>all lines</strong>. Leave blank to tag lines individually.</span>
+                                <label class="small mb-0"><input type="checkbox" id="jobShowAll" class="form-check-input me-1"> Show all jobs</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -241,6 +251,7 @@
                             <th style="width:105px">Charge Code</th>
                             <th style="width:150px">Revenue Account</th>
                             <th style="width:170px">Description</th>
+                            <th style="width:130px">Job <span class="text-muted fw-normal" style="font-size:.7rem;">(costing)</span></th>
                             <th style="width:70px">Qty</th>
                             <th style="width:95px">Unit Rate</th>
                             <th style="width:95px">Ccy</th>
@@ -283,6 +294,7 @@
     const TAXCODES   = @json($taxJs);
     const CURRENCIES = @json($curJs);
     const CURNAMES   = @json($currencies);
+    const JOBS       = @json($jobs);
     const SEED       = @json($lineData);
 
     let idx = 0;
@@ -307,6 +319,20 @@
         }).join('');
     }
     function curOpts(sel){ return CURRENCIES.map(c => `<option value="${c}" data-code="${c}" data-name="${esc(CURNAMES[c] || c)}" ${sel===c?'selected':''}>${c}</option>`).join(''); }
+    // Per-line job options — rich label (Job · Container · Size/Type · Customer),
+    // carrying data-cust-id for the party soft-filter.
+    function jobLabel(j){
+        let p = [j.job_no];
+        if (j.container_no) p.push(j.container_no);
+        if (j.size) p.push(j.size + "'" + (j.type_code || ''));
+        if (j.customer) p.push(j.customer);
+        return p.join('  ·  ');
+    }
+    function jobOpts(sel){
+        return '<option value="">— none —</option>' + JOBS.map(j =>
+            `<option value="${j.id}" data-cust-id="${j.customer_id ?? ''}" ${String(sel)===String(j.id)?'selected':''}>${esc(jobLabel(j))}</option>`
+        ).join('');
+    }
     function acctOpts(sel){
         return '<option value="">— revenue a/c —</option>' + INCOME_ACCTS.map(a =>
             `<option value="${a.id}" data-code="${esc(a.code)}" data-name="${esc(a.name)}" ${String(sel)===String(a.id)?'selected':''}>${esc(a.code)} — ${esc(a.name)}</option>`
@@ -320,6 +346,7 @@
             <td><select name="lines[${i}][charge_code_id]" class="form-select form-select-sm s2-code charge-sel" required>${chargeOpts(d.charge_code_id)}</select></td>
             <td><select name="lines[${i}][revenue_account_id]" class="form-select form-select-sm s2-code acct-sel" data-s2-sel="name">${acctOpts(d.revenue_account_id)}</select></td>
             <td><input type="text" name="lines[${i}][description]" class="form-control form-control-sm desc" value="${esc(d.description)}" required></td>
+            <td><select name="lines[${i}][yard_job_id]" class="form-select form-select-sm select2 job-line">${jobOpts(d.yard_job_id)}</select></td>
             <td><input type="number" name="lines[${i}][qty]" class="form-control form-control-sm qty" value="${d.qty ?? 1}" min="0.001" step="0.001" required></td>
             <td><input type="number" name="lines[${i}][unit_rate]" class="form-control form-control-sm rate" value="${d.unit_rate ?? 0}" min="0" step="0.01" required></td>
             <td><select name="lines[${i}][line_currency]" class="form-select form-select-sm s2-code lcur">${curOpts(lc)}</select></td>
@@ -334,6 +361,38 @@
     function initRowSelects(row) {
         $(row).find('select.s2-code').each(function(){ window.initS2Code($(this), { width: '100%', dropdownParent: $('body') }); });
         $(row).find('select.select2').each(function(){ $(this).select2({ theme: 'bootstrap-5', width: '100%', dropdownParent: $('body') }); });
+        // New line's job select respects the active party filter + header default.
+        $(row).find('select.job-line').each(function(){
+            rebuildJobSelect($(this));
+            const hv = document.getElementById('yard_job_id')?.value;
+            if (hv && !this.value) $(this).val(hv).trigger('change.select2');
+        });
+    }
+
+    // ── Job costing: party soft-filter + header→line inheritance ──────────────
+    function jobPartyId(){ return (document.getElementById('billingPartySel')?.value) || (document.getElementById('customerSel')?.value) || ''; }
+    function jobShowAll(){ return !!document.getElementById('jobShowAll')?.checked; }
+    function jobsForParty(){
+        const p = jobPartyId();
+        if (!p || jobShowAll()) return JOBS;
+        return JOBS.filter(j => String(j.customer_id) === String(p));
+    }
+    function rebuildJobSelect($sel){
+        const cur = $sel.val();
+        let list = jobsForParty().slice();
+        // Always keep the current selection visible even if filtered out.
+        if (cur && !list.some(j => String(j.id) === String(cur))) {
+            const f = JOBS.find(j => String(j.id) === String(cur));
+            if (f) list.unshift(f);
+        }
+        const label = $sel.hasClass('job-line') ? 'none' : 'None';
+        $sel.html('<option value="">— ' + label + ' —</option>' + list.map(j =>
+            `<option value="${j.id}" data-cust-id="${j.customer_id ?? ''}">${esc(jobLabel(j))}</option>`
+        ).join('')).val(cur || '').trigger('change.select2');
+    }
+    function refreshAllJobSelects(){
+        rebuildJobSelect($('#yard_job_id'));
+        $('select.job-line').each(function(){ rebuildJobSelect($(this)); });
     }
 
     function addRow(d){
@@ -533,6 +592,13 @@
         autoTaxFromParty();
         creditTermFromParty();
         currencyFromParty();
+        refreshAllJobSelects();   // re-filter jobs to the selected party
+    });
+    $('#jobShowAll').on('change', refreshAllJobSelects);
+    // Header job → set every line's job (still editable per line afterwards).
+    $('#yard_job_id').on('change', function () {
+        const v = this.value;
+        if (v) $('select.job-line').each(function () { $(this).val(v).trigger('change.select2'); });
     });
     document.getElementById('creditTerm').addEventListener('change', recomputeDueDate);
     document.getElementById('invoiceDate').addEventListener('change', recomputeDueDate);
@@ -541,6 +607,7 @@
     // and header select initialisation have run.
     $(function () {
         (SEED && SEED.length ? SEED : [{}]).forEach(addRow);
+        refreshAllJobSelects();   // apply the party filter to the header + seeded lines
         fetchInvoiceRate();
         recalc();
     });

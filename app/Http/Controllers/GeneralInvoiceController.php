@@ -335,9 +335,7 @@ class GeneralInvoiceController extends Controller
         return [
             'invoice'         => $invoice,
             'customers'       => Customer::where('status', 'active')->orderBy('name')->get(),
-            'jobs'            => \App\Models\YardJob::with('customer')
-                                    ->whereIn('status', ['open', 'in_progress'])
-                                    ->orderByDesc('id')->limit(500)->get(),
+            'jobs'            => \App\Models\YardJob::pickerData(),
             'chargeCodes'     => $chargeCodes,
             'taxCodes'        => TaxCode::where('is_active', true)->orderBy('sort_order')->get(),
             'currencies'      => CurrencyService::activeCurrencyNames(),
@@ -367,6 +365,7 @@ class GeneralInvoiceController extends Controller
 
             'lines'                     => ['required', 'array', 'min:1'],
             'yard_job_id'               => ['nullable', 'exists:yard_jobs,id'],
+            'lines.*.yard_job_id'       => ['nullable', 'exists:yard_jobs,id'],
             'lines.*.charge_code_id'    => ['required', 'exists:charge_codes,id'],
             'lines.*.revenue_account_id'=> ['nullable', 'exists:accounts,id'],
             'lines.*.description'       => ['required', 'string', 'max:255'],
@@ -449,6 +448,8 @@ class GeneralInvoiceController extends Controller
                 'charge_code_id'     => $line['charge_code_id'] ?? null,
                 'revenue_account_id' => ($line['revenue_account_id'] ?? null) ?: null,
                 'tax_code_id'        => $line['tax_code_id'] ?? null,
+                // Per-line job override (falls back to the header job in syncLines).
+                'yard_job_id'        => ($line['yard_job_id'] ?? null) ?: null,
                 'description'        => $line['description'] ?? '',
                 'qty'                => $qty,
                 'unit_rate'          => $rate,
@@ -509,17 +510,23 @@ class GeneralInvoiceController extends Controller
         ];
     }
 
-    private function syncLines(GeneralInvoice $invoice, array $lines, ?int $jobId = null): void
+    private function syncLines(GeneralInvoice $invoice, array $lines, ?int $headerJobId = null): void
     {
-        // Job costing: stamp the chosen job (and its derived container) onto every
-        // line so the revenue posts against the job. Header-level for now; a per-line
-        // override can layer on top later without a schema change.
-        $containerId = $jobId ? optional(\App\Models\YardJob::find($jobId))->primaryContainerId() : null;
+        // Job costing: each line's job wins; a blank line falls back to the header
+        // job. So one invoice can carry lines for several jobs. The container is
+        // derived from whichever job applies. Cache container lookups per job.
+        $containerFor = [];
+        $resolve = function (?int $jobId) use (&$containerFor): ?int {
+            if (! $jobId) return null;
+            return $containerFor[$jobId] ??= optional(\App\Models\YardJob::find($jobId))->primaryContainerId();
+        };
 
         foreach ($lines as $line) {
+            $jobId = ($line['yard_job_id'] ?? null) ?: $headerJobId;
+            unset($line['yard_job_id']); // set explicitly below
             $invoice->lines()->create($line + [
                 'yard_job_id'  => $jobId,
-                'container_id' => $containerId,
+                'container_id' => $resolve($jobId),
             ]);
         }
     }

@@ -92,6 +92,40 @@ class YardJob extends Model
             ?? $this->movements()->orderBy('id')->value('container_id');
     }
 
+    /**
+     * Enriched active-job list for the job-costing picker: each job with its
+     * customer and primary container (no + size/type) so the dropdown can show
+     * "JOB-NO · CONT-NO · 40'HC · Customer" and filter by party (customer_id).
+     */
+    public static function pickerData(int $limit = 500): \Illuminate\Support\Collection
+    {
+        return static::query()
+            ->with([
+                'customer:id,name',
+                'movements' => fn ($q) => $q->where('movement_type', 'in')->orderBy('id')
+                    ->with('container:id,container_no,size,type_code'),
+            ])
+            ->whereIn('status', ['open', 'in_progress'])
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(function ($j) {
+                $c = optional($j->movements->first())->container;
+                return [
+                    'id'           => $j->id,
+                    'job_no'       => $j->job_no,
+                    'short'        => $j->type_short_code,
+                    'type'         => $j->job_type_code,
+                    'customer_id'  => $j->customer_id,
+                    'customer'     => $j->customer?->name,
+                    'container_no' => $c?->container_no,
+                    'size'         => $c?->size,
+                    'type_code'    => $c?->type_code,
+                ];
+            })
+            ->values();
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');

@@ -34,6 +34,55 @@ class JobCostingDimensionTest extends FeatureTestCase
         ]);
     }
 
+    /** A job with its own container (via a gate-in movement), for per-line tests. */
+    private function jobWithContainer(Customer $customer): array
+    {
+        $container = Container::factory()->create(['customer_id' => $customer->id]);
+        $job = $this->makeJob($customer);
+        GateMovement::create([
+            'container_id' => $container->id, 'container_no' => $container->container_no,
+            'customer_id' => $customer->id, 'yard_job_id' => $job->id,
+            'movement_type' => 'in', 'size' => $container->size,
+            'container_type' => $container->type_code, 'created_by' => auth()->id(),
+        ]);
+        return [$job, $container];
+    }
+
+    /** Per-line override: one invoice, two lines, two different jobs. */
+    public function test_general_invoice_lines_can_carry_different_jobs(): void
+    {
+        $this->actingAsSystemAdmin();
+        $this->openAccountingPeriodForToday();
+
+        $customer = Customer::factory()->create();
+        $charge   = ChargeCode::where('is_active', true)->first();
+        [$jobA, $contA] = $this->jobWithContainer($customer);
+        [$jobB, $contB] = $this->jobWithContainer($customer);
+
+        $this->post(route('billing.general.store'), [
+            'invoice_type' => 'invoice', 'customer_id' => $customer->id,
+            'invoice_date' => now()->toDateString(), 'currency' => 'LKR', 'exchange_rate' => 1,
+            // header job intentionally blank → per-line tagging
+            'lines' => [
+                ['charge_code_id' => $charge->id, 'description' => 'For job A', 'qty' => 1, 'unit_rate' => 100,
+                 'line_currency' => 'LKR', 'line_exchange_rate' => 1, 'yard_job_id' => $jobA->id],
+                ['charge_code_id' => $charge->id, 'description' => 'For job B', 'qty' => 1, 'unit_rate' => 200,
+                 'line_currency' => 'LKR', 'line_exchange_rate' => 1, 'yard_job_id' => $jobB->id],
+            ],
+        ])->assertSessionHasNoErrors();
+
+        $invoice = GeneralInvoice::latest('id')->first();
+        $this->assertDatabaseHas('general_invoice_lines', ['general_invoice_id' => $invoice->id, 'yard_job_id' => $jobA->id, 'container_id' => $contA->id]);
+        $this->assertDatabaseHas('general_invoice_lines', ['general_invoice_id' => $invoice->id, 'yard_job_id' => $jobB->id, 'container_id' => $contB->id]);
+
+        $this->patch(route('billing.general.issue', $invoice))->assertSessionHasNoErrors();
+        $posting = InvoicePosting::where('invoice_type', 'general')->where('invoice_id', $invoice->id)->where('status', 'posted')->firstOrFail();
+
+        // Each job gets its own revenue GL entry.
+        $this->assertDatabaseHas('gl_entries', ['journal_id' => $posting->journal_id, 'yard_job_id' => $jobA->id, 'container_id' => $contA->id]);
+        $this->assertDatabaseHas('gl_entries', ['journal_id' => $posting->journal_id, 'yard_job_id' => $jobB->id, 'container_id' => $contB->id]);
+    }
+
     /** The engine persists the per-line dimension — the shared pipe for AR and AP. */
     public function test_posting_engine_persists_job_dimension_on_pnl_lines_only(): void
     {
