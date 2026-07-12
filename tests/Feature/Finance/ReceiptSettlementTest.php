@@ -46,6 +46,8 @@ class ReceiptSettlementTest extends FeatureTestCase
 
     private function receivePayment(Customer $customer, GeneralInvoice $invoice, float $amount)
     {
+        // 'post' confirms the receipt (a draft receipt's allocations do not count
+        // toward settlement — only a confirmed receipt relieves the invoice).
         return $this->from(route('finance.receipts.receive'))
             ->post(route('finance.receipts.receive.store'), [
                 'customer_id'    => $customer->id,
@@ -54,7 +56,7 @@ class ReceiptSettlementTest extends FeatureTestCase
                 'exchange_rate'  => 1,
                 'payment_method' => 'cash',
                 'narration'      => 'Test settlement',
-                'action'         => 'draft',
+                'action'         => 'post',
                 'allocations'    => [
                     ['type' => 'general', 'id' => $invoice->id, 'amount' => $amount, 'selected' => 1],
                 ],
@@ -75,6 +77,7 @@ class ReceiptSettlementTest extends FeatureTestCase
         $this->assertNotNull($receipt, 'Receipt was not created.');
         $this->assertEqualsWithDelta(100.0, (float) $receipt->amount, 0.01);
         $this->assertSame(1, $receipt->allocations()->count());
+        $this->assertSame('confirmed', $receipt->status, 'Receipt did not confirm (GL posting may have failed).');
 
         $invoice->refresh();
         $this->assertSame('paid', $invoice->status);
