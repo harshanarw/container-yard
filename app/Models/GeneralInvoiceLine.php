@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class GeneralInvoiceLine extends Model
 {
     protected $fillable = [
-        'general_invoice_id', 'charge_code_id', 'revenue_account_id', 'tax_code_id',
+        'general_invoice_id', 'yard_job_id', 'container_id',
+        'charge_code_id', 'revenue_account_id', 'tax_code_id',
         'description', 'qty', 'unit_rate',
         'line_currency', 'line_exchange_rate',
         'native_amount', 'line_amount',
@@ -48,5 +49,16 @@ class GeneralInvoiceLine extends Model
     public function taxCode()
     {
         return $this->belongsTo(TaxCode::class);
+    }
+
+    // ── Job costing dimension ────────────────────────────────────────────────
+    public function yardJob()
+    {
+        return $this->belongsTo(YardJob::class);
+    }
+
+    public function container()
+    {
+        return $this->belongsTo(Container::class);
     }
 }

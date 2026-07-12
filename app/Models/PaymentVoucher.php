@@ -10,6 +10,8 @@ class PaymentVoucher extends Model
         'voucher_no',
         'voucher_date',
         'customer_id',
+        'yard_job_id',
+        'container_id',
         'payee_name',
         'bank_account_id',
         'amount',
@@ -92,6 +94,17 @@ class PaymentVoucher extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // ── Job costing dimension ────────────────────────────────────────────────
+    public function yardJob()
+    {
+        return $this->belongsTo(YardJob::class);
+    }
+
+    public function container()
+    {
+        return $this->belongsTo(Container::class);
     }
 
     public function isDraft(): bool

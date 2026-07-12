@@ -77,6 +77,10 @@ class PostingEngine
 
         return [
             'account_id'     => $line['account_id'],
+            // Job costing dimension — set on P&L (revenue/expense) lines, null on
+            // balance-sheet control lines. Propagated from the source document line.
+            'yard_job_id'    => $line['job_id'] ?? null,
+            'container_id'   => $line['container_id'] ?? null,
             'debit'          => $debit,
             'credit'         => $credit,
             'narration'      => $line['narration'] ?? null,

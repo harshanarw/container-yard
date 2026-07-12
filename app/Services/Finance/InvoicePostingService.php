@@ -254,13 +254,16 @@ class InvoicePostingService
 
         $creditLines = [];
 
-        // Credit revenue — one line per distinct account
+        // Credit revenue — one line per distinct account + job + container, so the
+        // job costing dimension lands on each revenue GL entry.
         foreach ($revenueCredits as $rc) {
             $creditLines[] = [
-                'account_id' => $rc['account_id'],
-                'debit'      => 0,
-                'credit'     => round((float) $rc['amount'] * $rate, 2),
-                'narration'  => $rc['narration'],
+                'account_id'   => $rc['account_id'],
+                'job_id'       => $rc['job_id'] ?? null,
+                'container_id' => $rc['container_id'] ?? null,
+                'debit'        => 0,
+                'credit'       => round((float) $rc['amount'] * $rate, 2),
+                'narration'    => $rc['narration'],
             ];
         }
 
@@ -325,13 +328,23 @@ class InvoicePostingService
      */
     private function buildRevenueCredits(Model $invoice, string $invoiceType, float $netAmount): array
     {
-        $accumulator = []; // account_id => ['amount' => float, 'narration' => string]
+        // Accumulate by account + job + container so per-job revenue produces
+        // per-job GL lines (the job costing dimension). Lines with no job/container
+        // simply key on the account, unchanged.
+        $accumulator = [];
 
-        $add = function (int $accountId, float $amount, string $narration) use (&$accumulator): void {
-            if (!isset($accumulator[$accountId])) {
-                $accumulator[$accountId] = ['amount' => 0.0, 'narration' => $narration];
+        $add = function (int $accountId, float $amount, string $narration, ?int $jobId = null, ?int $containerId = null) use (&$accumulator): void {
+            $key = $accountId . '|' . ($jobId ?? '') . '|' . ($containerId ?? '');
+            if (!isset($accumulator[$key])) {
+                $accumulator[$key] = [
+                    'account_id'   => $accountId,
+                    'job_id'       => $jobId,
+                    'container_id' => $containerId,
+                    'amount'       => 0.0,
+                    'narration'    => $narration,
+                ];
             }
-            $accumulator[$accountId]['amount'] += $amount;
+            $accumulator[$key]['amount'] += $amount;
         };
 
         switch ($invoiceType) {
@@ -363,7 +376,7 @@ class InvoicePostingService
                     $amt = round((float) ($detail->subtotal ?? 0) + (float) ($detail->line_sscl ?? 0), 2);
                     if ($amt <= 0) continue;
                     $acc = $this->requireChargeRevenueAccount($detail->charge_code_id, '4001', 'a storage invoice line');
-                    $add($acc->id, $amt, 'Storage income');
+                    $add($acc->id, $amt, 'Storage income', null, $detail->container_id);
                 }
                 break;
 
@@ -374,7 +387,7 @@ class InvoicePostingService
                     $amt = round((float) ($line->subtotal ?? 0) + (float) ($line->line_sscl ?? 0), 2);
                     if ($amt <= 0) continue;
                     $acc = $this->requireChargeRevenueAccount($line->charge_code_id, '4004', 'a reefer invoice line');
-                    $add($acc->id, $amt, 'Reefer electricity income');
+                    $add($acc->id, $amt, 'Reefer electricity income', null, $line->container_id);
                 }
                 break;
 
@@ -385,7 +398,7 @@ class InvoicePostingService
                     $amt = round((float) ($line->line_amount ?? 0) + (float) ($line->tax1_amount ?? 0), 2);
                     if ($amt <= 0) continue;
                     $acc = $this->requireChargeRevenueAccount($line->charge_code_id, '4003', 'a repair invoice line');
-                    $add($acc->id, $amt, 'Repair income');
+                    $add($acc->id, $amt, 'Repair income', $invoice->yard_job_id, $invoice->container_id);
                 }
                 break;
 
@@ -402,7 +415,7 @@ class InvoicePostingService
                         $acc = Account::where('id', $line->revenue_account_id)->where('is_active', true)->first();
                     }
                     $acc ??= $this->requireChargeRevenueAccount($line->charge_code_id, '4006', 'a general invoice line');
-                    $add($acc->id, $amt, 'General invoice income');
+                    $add($acc->id, $amt, 'General invoice income', $line->yard_job_id, $line->container_id);
                 }
                 break;
         }
@@ -413,11 +426,13 @@ class InvoicePostingService
         }
 
         $credits = [];
-        foreach ($accumulator as $accountId => $entry) {
+        foreach ($accumulator as $entry) {
             $credits[] = [
-                'account_id' => $accountId,
-                'amount'     => round($entry['amount'], 2),
-                'narration'  => $entry['narration'],
+                'account_id'   => $entry['account_id'],
+                'job_id'       => $entry['job_id'],
+                'container_id' => $entry['container_id'],
+                'amount'       => round($entry['amount'], 2),
+                'narration'    => $entry['narration'],
             ];
         }
 

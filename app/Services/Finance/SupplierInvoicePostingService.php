@@ -72,10 +72,13 @@ class SupplierInvoicePostingService
                 }
 
                 $lines[] = [
-                    'account_id' => $expenseAccount->id,
-                    'debit'      => $expenseBase,
-                    'credit'     => 0,
-                    'narration'  => $line->description . $fxNote,
+                    'account_id'   => $expenseAccount->id,
+                    // Job costing dimension — the cost lands against the job/container.
+                    'job_id'       => $line->yard_job_id,
+                    'container_id' => $line->container_id,
+                    'debit'        => $expenseBase,
+                    'credit'       => 0,
+                    'narration'    => $line->description . $fxNote,
                 ];
             }
 

@@ -289,8 +289,10 @@ class ReceiptPostingService
                     $lines[] = $this->fxLine($fx < 0, abs($fx));
                 }
             } else {
-                // Direct expense voucher — no AP relief, no FX gain/loss.
+                // Direct expense voucher — no AP relief, no FX gain/loss. The expense
+                // carries the voucher's job costing dimension.
                 $lines[] = ['account_id' => $expenseAccount->id, 'debit' => $cashBase, 'credit' => 0, 'narration' => "Payment to {$voucher->payee_name}{$fxNote}",
+                            'job_id' => $voucher->yard_job_id, 'container_id' => $voucher->container_id,
                             'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => $vrAmt, 'txn_credit' => 0];
                 $lines[] = ['account_id' => $bankAccount->id, 'debit' => 0, 'credit' => round($cashBase - $whtBase, 2), 'narration' => 'Bank payment',
                             'currency' => $vrCcy, 'exchange_rate' => $voucherRate, 'txn_debit' => 0, 'txn_credit' => round($vrAmt - $whtTxn, 2)];

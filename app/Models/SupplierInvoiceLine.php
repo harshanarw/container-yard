@@ -9,6 +9,8 @@ class SupplierInvoiceLine extends Model
 {
     protected $fillable = [
         'supplier_invoice_id',
+        'yard_job_id',
+        'container_id',
         'charge_code_id',
         'tax_code_id',
         'description',
@@ -48,5 +50,16 @@ class SupplierInvoiceLine extends Model
     public function taxCode(): BelongsTo
     {
         return $this->belongsTo(TaxCode::class);
+    }
+
+    // ── Job costing dimension ────────────────────────────────────────────────
+    public function yardJob(): BelongsTo
+    {
+        return $this->belongsTo(YardJob::class);
+    }
+
+    public function container(): BelongsTo
+    {
+        return $this->belongsTo(Container::class);
     }
 }

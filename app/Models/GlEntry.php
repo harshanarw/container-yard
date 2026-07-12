@@ -10,6 +10,8 @@ class GlEntry extends Model
     protected $fillable = [
         'journal_id',
         'account_id',
+        'yard_job_id',
+        'container_id',
         'debit',
         'credit',
         'narration',
@@ -50,5 +52,16 @@ class GlEntry extends Model
     public function bankReconciliation(): BelongsTo
     {
         return $this->belongsTo(BankReconciliation::class, 'bank_reconciliation_id');
+    }
+
+    // ── Job costing dimension (propagated from the source document at posting) ─
+    public function yardJob(): BelongsTo
+    {
+        return $this->belongsTo(YardJob::class);
+    }
+
+    public function container(): BelongsTo
+    {
+        return $this->belongsTo(Container::class);
     }
 }
