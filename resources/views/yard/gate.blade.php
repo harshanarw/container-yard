@@ -2368,6 +2368,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         const gradeRow  = document.getElementById('outGradeRow');
         const gradeSelect = document.getElementById('outGradeSelect');
         let lookupDone = false;
+        let lookupBlocked = false;   // in yard but not releasable (repair/hire/hold)
 
         // Destroy any prior Select2 instance (prevents double-init artifacts)
         if ($(inp).data('select2')) { $(inp).select2('destroy'); }
@@ -2424,10 +2425,23 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 const data = await res.json();
                 if (!data.found) {
                     lookupDone = false;
+                    lookupBlocked = false;
                     gradeRow.classList.add('d-none');
                     setInfoBox('danger', '<i class="bi bi-x-circle me-1"></i><strong>Not found:</strong> ' + (data.message || 'Container not in yard.'));
+                } else if (data.release_block) {
+                    // In the yard, but not releasable — show the reason now and
+                    // block the submit, so the operator isn't rejected on save.
+                    lookupDone = false;
+                    lookupBlocked = true;
+                    gradeRow.classList.add('d-none');
+                    setInfoBox('danger',
+                        '<div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-x-octagon-fill fs-5"></i>' +
+                        '<strong class="font-monospace fs-6">' + data.container_no + '</strong></div>' +
+                        '<div><strong>Cannot be gated out.</strong> ' + data.release_block + '</div>'
+                    );
                 } else {
                     lookupDone = true;
+                    lookupBlocked = false;
                     const condMap  = { sound:'Sound', damaged:'Damaged', require_repair:'Requires Repair' };
                     const cargoMap = { empty:'Empty', laden:'Laden', full:'Laden' };
                     const daysBadge = data.days_in_yard !== null ? '<span class="badge bg-warning-subtle text-warning border ms-1">' + data.days_in_yard + ' day(s) in yard</span>' : '';
@@ -2487,6 +2501,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         // Reset verified state when selection is cleared
         $(inp).on('select2:clear', function () {
             lookupDone = false;
+            lookupBlocked = false;
             gradeRow.classList.add('d-none');
             infoBox.className = 'mb-3 d-none';
             infoBox.innerHTML = '';
@@ -2498,8 +2513,12 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         // Submit button — show confirmation modal
         document.getElementById('btnSubmitGateOut').addEventListener('click', function () {
             if (!lookupDone) {
-                setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please select and confirm the container is in yard.');
-                $(inp).select2('open');
+                // If it's a releasability block, keep the danger reason visible;
+                // otherwise prompt the operator to pick a container.
+                if (!lookupBlocked) {
+                    setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Please select and confirm the container is in yard.');
+                    $(inp).select2('open');
+                }
                 return;
             }
             const no = ($(inp).val() || '').trim().toUpperCase();

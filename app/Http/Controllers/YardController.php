@@ -1633,8 +1633,25 @@ class YardController extends Controller
             ? max(0, $storage->billing_gate_in_date->diffInDays(today()))
             : ($container->gate_in_date ? $container->gate_in_date->diffInDays(today()) : null);
 
+        // Can this container actually be gated out right now? Mirrors the gate-out
+        // validation so the form can warn at selection time instead of on save.
+        $releaseBlock = null;
+        if (! in_array($container->status, ['in_yard', 'available', 'reserved'], true)) {
+            $releaseBlock = $container->status === 'in_repair'
+                ? 'It is under repair — complete or close the work order first.'
+                : "Its status is '{$container->status}'.";
+        } elseif ($container->activeHire) {
+            $releaseBlock = 'It is currently on hire — complete or cancel the hire before gating out.';
+        } elseif ($container->isHeld()) {
+            $holds = $container->activeHolds()->pluck('hold_type')
+                ->map(fn ($t) => str_replace('_', ' ', $t))->implode(', ');
+            $releaseBlock = "It is on hold ({$holds}). Clear the hold first — a Customs Release clears a customs hold.";
+        }
+
         return response()->json([
             'found'            => true,
+            'releasable'       => is_null($releaseBlock),
+            'release_block'    => $releaseBlock,
             'container_no'     => $container->container_no,
             'size'             => $container->size,
             'type_code'        => $container->type_code,
