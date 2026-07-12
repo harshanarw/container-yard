@@ -39,4 +39,35 @@ abstract class FeatureTestCase extends TestCase
 
         return $user;
     }
+
+    /**
+     * Ensure an open financial year + accounting period covers today, so GL
+     * posting (invoice issue, receipts, etc.) can resolve a period. The seeder
+     * does not create one, and PostingEngine::resolvePeriod() requires it.
+     */
+    protected function openAccountingPeriodForToday(): void
+    {
+        $start = now()->startOfYear();
+        $end   = now()->endOfYear();
+
+        $fy = \App\Models\FinancialYear::firstOrCreate(
+            ['code' => 'FY' . now()->year],
+            [
+                'description' => 'Test FY ' . now()->year,
+                'start_date'  => $start->toDateString(),
+                'end_date'    => $end->toDateString(),
+                'status'      => 'open',
+            ]
+        );
+
+        \App\Models\AccountingPeriod::firstOrCreate(
+            ['financial_year_id' => $fy->id, 'period_no' => 1],
+            [
+                'name'       => 'Full Year',
+                'start_date' => $start->toDateString(),
+                'end_date'   => $end->toDateString(),
+                'status'     => 'open',
+            ]
+        );
+    }
 }

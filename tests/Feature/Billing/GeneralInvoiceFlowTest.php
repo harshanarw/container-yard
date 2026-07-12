@@ -17,6 +17,7 @@ class GeneralInvoiceFlowTest extends FeatureTestCase
     public function test_general_invoice_is_created_issued_and_posted_to_the_ledger(): void
     {
         $this->actingAsSystemAdmin();
+        $this->openAccountingPeriodForToday(); // GL posting needs an open period
 
         $customer = Customer::factory()->create();
         $charge   = ChargeCode::where('is_active', true)->first();
