@@ -242,6 +242,17 @@ class YardController extends Controller
 
         $validated = $validator->validated();
 
+        // These nullable fields are read directly (without a ?? guard) when the
+        // container / movement rows are built below. The browser form always posts
+        // them (empty), but a partial API or mobile payload may omit them entirely
+        // — and a key absent from the validated set would fatal on "Undefined array
+        // key". Backfill nulls for any that are missing (union keeps submitted values).
+        $validated += [
+            'location_zone' => null, 'location_row'  => null, 'location_bay' => null,
+            'location_tier' => null, 'seal_no'       => null, 'vehicle_plate' => null,
+            'remarks'       => null,
+        ];
+
         $jobType = YardJobType::findOrFail($validated['job_type_id']);
 
         // Return reason is required for Empty Return job type

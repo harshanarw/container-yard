@@ -181,7 +181,7 @@ class RepairInvoiceController extends Controller
                 'grand_total'    => $grandTotal,
                 'amount_paid'    => 0,
                 'balance_due'    => $grandTotal,
-                'notes'          => $validated['notes'],
+                'notes'          => $validated['notes'] ?? null,
                 'created_by'     => auth()->id(),
             ]);
 

@@ -24,11 +24,13 @@ class RepairInvoiceFlowTest extends FeatureTestCase
         $this->assertTrue($estimate->lineItems->isNotEmpty(), 'Approved estimate has no line items.');
 
         // ── Generate the repair invoice from the approved estimate ──
+        // Deliberately omit the nullable `notes` field: a partial client posts
+        // only estimate_id, and the controller must not fatal reading it.
         $create = $this->post(route('repair-invoices.store'), [
             'estimate_id' => $estimate->id,
-            'notes'       => '', // the real form always posts this (empty)
         ]);
         $create->assertSessionHasNoErrors();
+        $create->assertRedirect();
 
         $invoice = RepairInvoice::where('estimate_id', $estimate->id)->latest('id')->first();
         $this->assertNotNull($invoice, 'Repair invoice was not created.');

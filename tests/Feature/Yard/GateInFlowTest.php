@@ -70,4 +70,40 @@ class GateInFlowTest extends FeatureTestCase
 
         $this->assertDatabaseHas('yard_jobs', ['id' => $movement->yard_job_id, 'status' => 'open']);
     }
+
+    /**
+     * A partial API / mobile client posts only the required fields and omits every
+     * nullable one. The controller reads several nullable keys (location_*, seal_no,
+     * vehicle_plate, remarks) directly, so an omitted key must not fatal on an
+     * "Undefined array key" before the container row is written.
+     */
+    public function test_gate_in_succeeds_with_a_minimal_payload_omitting_optional_fields(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $customer  = Customer::factory()->create();
+        $equipment = EquipmentType::query()->first();
+        $jobType   = YardJobType::where('movement_direction', 'gate_in')
+            ->where('is_active', true)
+            ->where('job_type_code', '!=', 'EMPTY_RETURN')
+            ->first();
+
+        $response = $this->from(route('yard.gate'))->post(route('yard.gate.in'), [
+            'job_type_id'       => $jobType->id,
+            'container_no'      => 'MINI1234567',
+            'equipment_type_id' => $equipment->id,
+            'customer_id'       => $customer->id,
+            'condition'         => 'sound',
+            'cargo_status'      => 'empty',
+            // every nullable field intentionally omitted
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(); // a 500 (undefined key) would fail this
+
+        $this->assertDatabaseHas('containers', [
+            'container_no' => 'MINI1234567',
+            'status'       => 'in_yard',
+        ]);
+    }
 }

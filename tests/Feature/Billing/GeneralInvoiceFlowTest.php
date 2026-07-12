@@ -70,4 +70,45 @@ class GeneralInvoiceFlowTest extends FeatureTestCase
             'status'       => 'posted',
         ]);
     }
+
+    /**
+     * A partial client omits every nullable field. The controller reads
+     * billing_party_id (AR-party fallback) and the line's revenue_account_id
+     * directly, so an omitted key must not fatal on an "Undefined array key".
+     */
+    public function test_general_invoice_is_created_from_a_minimal_payload(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $customer = Customer::factory()->create();
+        $charge   = ChargeCode::where('is_active', true)->first();
+
+        $create = $this->post(route('billing.general.store'), [
+            'invoice_type'  => 'invoice',
+            'customer_id'   => $customer->id,
+            'invoice_date'  => now()->toDateString(),
+            'currency'      => 'LKR',
+            'exchange_rate' => 1,
+            'lines'         => [[
+                'charge_code_id'     => $charge->id,
+                'description'        => 'Minimal line',
+                'qty'                => 1,
+                'unit_rate'          => 50,
+                'line_currency'      => 'LKR',
+                'line_exchange_rate' => 1,
+                // revenue_account_id, tax_code_id intentionally omitted
+            ]],
+            // billing_party_id, category, due_date, payment_terms, tax_applicable,
+            // reference, remarks all intentionally omitted
+        ]);
+
+        $create->assertSessionHasNoErrors();
+        $create->assertRedirect(); // a 500 (undefined key) would fail this
+
+        $invoice = GeneralInvoice::latest('id')->first();
+        $this->assertNotNull($invoice, 'General invoice was not created from a minimal payload.');
+        // Billing party falls back to the customer when omitted.
+        $this->assertSame($customer->id, $invoice->billing_party_id);
+        $this->assertEqualsWithDelta(50.0, (float) $invoice->grand_total, 0.01);
+    }
 }

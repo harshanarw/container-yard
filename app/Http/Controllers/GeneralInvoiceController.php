@@ -366,6 +366,12 @@ class GeneralInvoiceController extends Controller
 
         $data['currency']       = strtoupper($data['currency']);
 
+        // A nullable field that the client omitted entirely is absent from the
+        // validated set (not null). Normalise it so the AR-party fallbacks below
+        // can read it safely — a partial API/mobile payload would otherwise fatal
+        // on an "Undefined array key" before any billing logic runs.
+        $data['billing_party_id'] = $data['billing_party_id'] ?? null;
+
         // Tax applicability: submitted value wins; else default from the AR party's
         // (billing party, then customer) tax-exempt status.
         if ($request->has('tax_applicable')) {
@@ -428,7 +434,7 @@ class GeneralInvoiceController extends Controller
 
             $out[] = [
                 'charge_code_id'     => $line['charge_code_id'] ?? null,
-                'revenue_account_id' => $line['revenue_account_id'] ?: null,
+                'revenue_account_id' => ($line['revenue_account_id'] ?? null) ?: null,
                 'tax_code_id'        => $line['tax_code_id'] ?? null,
                 'description'        => $line['description'] ?? '',
                 'qty'                => $qty,
