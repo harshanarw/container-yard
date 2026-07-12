@@ -228,8 +228,8 @@
         {{-- ── Job Revenue (P&L) ─────────────────────────────────────────── --}}
         <div class="card content-card mt-3">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                <span class="fw-semibold"><i class="bi bi-graph-up-arrow me-1 text-primary"></i>Job Revenue</span>
-                <span class="text-muted" style="font-size:.7rem;">pre-tax · by container</span>
+                <span class="fw-semibold"><i class="bi bi-graph-up-arrow me-1 text-primary"></i>Job P&amp;L</span>
+                <span class="text-muted" style="font-size:.7rem;">realized from posted ledger</span>
             </div>
             <div class="card-body py-2 px-3">
 
@@ -238,6 +238,32 @@
                     <i class="bi bi-inbox me-1"></i>No revenue data yet for this job.
                 </div>
                 @else
+
+                {{-- Realized margin — Revenue − Cost from the posted ledger --}}
+                <div class="mb-2">
+                    <div class="text-muted fw-semibold mb-1" style="font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;">Realized (posted to GL)</div>
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="small"><i class="bi bi-arrow-down-left-circle me-1 text-success"></i>Revenue</div>
+                        <span class="small font-monospace text-success">{{ number_format($pnlData['realized_revenue'], 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="small"><i class="bi bi-arrow-up-right-circle me-1 text-danger"></i>Cost</div>
+                        <span class="small font-monospace text-danger">({{ number_format($pnlData['realized_cost'], 2) }})</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-1 border-top mt-1 pt-2">
+                        <div class="fw-semibold small">Margin</div>
+                        @php $m = $pnlData['realized_margin']; @endphp
+                        <span class="fw-bold font-monospace {{ $m < 0 ? 'text-danger' : 'text-success' }}">{{ number_format($m, 2) }}</span>
+                    </div>
+                    @if($pnlData['pending_revenue'] > 0 || $pnlData['pending_cost'] > 0)
+                    <div class="text-muted mt-1" style="font-size:.7rem;">
+                        <i class="bi bi-hourglass-split me-1"></i>Pending (draft):
+                        +{{ number_format($pnlData['pending_revenue'], 2) }} rev · −{{ number_format($pnlData['pending_cost'], 2) }} cost
+                    </div>
+                    @endif
+                </div>
+
+                <hr class="my-2">
 
                 {{-- Accrued storage --}}
                 <div class="mb-2">
