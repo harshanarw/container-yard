@@ -112,4 +112,36 @@ class IrdInvoiceReferenceTest extends FeatureTestCase
             'ird_invoice_no' => $invoice->ird_invoice_no,
         ]);
     }
+
+    /**
+     * IRD compliance: once assigned, a serial persists through cancellation and is
+     * NEVER reused — a voided tax invoice number is "consumed", so the next issue
+     * takes a fresh serial rather than filling the gap.
+     */
+    public function test_voided_invoice_keeps_its_serial_and_the_number_is_not_reused(): void
+    {
+        $this->actingAsSystemAdmin();
+        $this->openAccountingPeriodForToday();
+
+        // Issue invoice A → serial minted.
+        $invoiceA = $this->createDraftGeneralInvoice(taxApplicable: true);
+        $this->patch(route('billing.general.issue', $invoiceA))->assertSessionHasNoErrors();
+        $invoiceA->refresh();
+        $serialA = $invoiceA->ird_invoice_no;
+        $this->assertNotNull($serialA);
+
+        // Void A → the serial must remain on the record (gazetted, not erased).
+        $this->patch(route('billing.general.void', $invoiceA))->assertSessionHasNoErrors();
+        $invoiceA->refresh();
+        $this->assertSame('void', $invoiceA->status);
+        $this->assertSame($serialA, $invoiceA->ird_invoice_no, 'A voided invoice must retain its IRD serial.');
+
+        // Issue invoice B → a NEW serial, never reusing A's consumed number.
+        $invoiceB = $this->createDraftGeneralInvoice(taxApplicable: true);
+        $this->patch(route('billing.general.issue', $invoiceB))->assertSessionHasNoErrors();
+        $invoiceB->refresh();
+
+        $this->assertNotNull($invoiceB->ird_invoice_no);
+        $this->assertNotSame($serialA, $invoiceB->ird_invoice_no, 'A consumed IRD serial must not be reused.');
+    }
 }
