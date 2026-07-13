@@ -73,6 +73,12 @@
                         <div class="small font-monospace">{{ $journal->reference_id }}</div>
                     </div>
                     @endif
+                    @if($journal->ird_invoice_no)
+                    <div class="col-sm-6">
+                        <div class="text-muted small fw-semibold mb-1">IRD Tax Invoice No</div>
+                        <div class="small font-monospace"><i class="bi bi-receipt me-1"></i>{{ $journal->ird_invoice_no }}</div>
+                    </div>
+                    @endif
                     <div class="col-sm-6">
                         <div class="text-muted small fw-semibold mb-1">Created By</div>
                         <div class="small">{{ $journal->createdBy?->name ?? '—' }}</div>

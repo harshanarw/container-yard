@@ -89,7 +89,14 @@
                 <tbody>
                     @forelse($journals as $journal)
                     <tr>
-                        <td class="font-monospace fw-semibold small">{{ $journal->journal_no }}</td>
+                        <td class="font-monospace fw-semibold small">
+                            {{ $journal->journal_no }}
+                            @if($journal->ird_invoice_no)
+                            <div class="text-muted fw-normal" style="font-size:.68rem" title="IRD Tax Invoice No">
+                                <i class="bi bi-receipt me-1"></i>{{ $journal->ird_invoice_no }}
+                            </div>
+                            @endif
+                        </td>
                         <td class="small">{{ $journal->journal_date->format('d M Y') }}</td>
                         <td>
                             <span class="badge bg-{{ \App\Models\GlJournal::typeBadge($journal->journal_type) }}-subtle text-{{ \App\Models\GlJournal::typeBadge($journal->journal_type) }}" style="font-size:.7rem;">

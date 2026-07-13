@@ -732,6 +732,7 @@ class GeneralLedgerController extends Controller
                     'type_label'       => $label,
                     'id'               => $inv->id,
                     'invoice_no'       => $inv->invoice_no,
+                    'ird_invoice_no'   => $inv->ird_invoice_no ?? null,
                     'invoice_date'     => $invDate,
                     'due_date'         => $dueDate,
                     'past_due'         => $pastDue,
@@ -791,6 +792,7 @@ class GeneralLedgerController extends Controller
                     'type_label'       => 'Credit Note',
                     'id'               => $cn->id,
                     'invoice_no'       => $cn->credit_note_no,
+                    'ird_invoice_no'   => null, // credit notes: separate IRD range, out of scope for now
                     'invoice_date'     => $d,
                     'due_date'         => $d,
                     'past_due'         => false,

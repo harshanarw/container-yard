@@ -182,6 +182,11 @@
                         @else
                         {{ $inv['invoice_no'] }}
                         @endif
+                        @if(!empty($inv['ird_invoice_no']))
+                        <div class="text-muted" style="font-size:.68rem" title="IRD Tax Invoice No">
+                            <i class="bi bi-receipt me-1"></i>{{ $inv['ird_invoice_no'] }}
+                        </div>
+                        @endif
                     </td>
 
                     <td>

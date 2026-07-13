@@ -69,6 +69,33 @@ class IrdInvoiceReferenceTest extends FeatureTestCase
         $this->assertStringContainsString($invoice->ird_invoice_no, $journal->narration);
     }
 
+    public function test_ird_serial_is_visible_in_reports_and_journal_views(): void
+    {
+        $this->actingAsSystemAdmin();
+        $this->openAccountingPeriodForToday();
+
+        $invoice = $this->createDraftGeneralInvoice(taxApplicable: true);
+        $this->patch(route('billing.general.issue', $invoice))->assertSessionHasNoErrors();
+        $invoice->refresh();
+        $serial = $invoice->ird_invoice_no;
+        $this->assertNotNull($serial);
+
+        // AR aging — the serial shows as a sub-line under the invoice number.
+        $this->get(route('finance.ar.aging'))->assertOk()->assertSee($serial);
+
+        // Customer statement — serial under the invoice reference.
+        $this->get(route('finance.reports.customer-statement', [
+            'party_id' => $invoice->billing_party_id,
+            'from'     => now()->startOfMonth()->toDateString(),
+            'to'       => now()->toDateString(),
+        ]))->assertOk()->assertSee($serial);
+
+        // GL journal detail — serial in its own field.
+        $posting = InvoicePosting::where('invoice_type', 'general')
+            ->where('invoice_id', $invoice->id)->where('status', 'posted')->firstOrFail();
+        $this->get(route('finance.gl.journals.show', $posting->journal_id))->assertOk()->assertSee($serial);
+    }
+
     public function test_tax_invoice_serial_also_reaches_the_jv(): void
     {
         $this->actingAsSystemAdmin();

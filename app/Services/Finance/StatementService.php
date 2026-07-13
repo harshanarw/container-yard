@@ -63,7 +63,7 @@ class StatementService
                 ->each(function ($inv) use ($type, &$rows) {
                     $cb = $this->ar->currencyBreakdown($inv, $type);
                     $rows[] = $this->row($inv->invoice_date, 'Invoice', ucwords(str_replace('-', ' ', $type)),
-                        $inv->invoice_no, $cb['base_total'], 0.0, $cb['currency'], $cb['doc_total']);
+                        $inv->invoice_no, $cb['base_total'], 0.0, $cb['currency'], $cb['doc_total'], $inv->ird_invoice_no ?? null);
                 });
         }
 
@@ -158,13 +158,14 @@ class StatementService
         ];
     }
 
-    private function row($date, string $type, string $sub, ?string $ref, float $debit, float $credit, ?string $currency, $docAmount): array
+    private function row($date, string $type, string $sub, ?string $ref, float $debit, float $credit, ?string $currency, $docAmount, ?string $ird = null): array
     {
         return [
             'date'       => ($date instanceof Carbon ? $date : Carbon::parse($date))->toDateString(),
             'type'       => $type,
             'sub'        => $sub,
             'ref'        => $ref ?? '—',
+            'ird'        => $ird, // IRD tax-invoice serial (AR invoices only)
             'debit'      => round($debit, 2),
             'credit'     => round($credit, 2),
             'currency'   => strtoupper((string) ($currency ?: CompanySetting::baseCurrency())),

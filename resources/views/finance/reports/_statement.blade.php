@@ -115,7 +115,14 @@
                             <span class="badge {{ $l['debit'] > 0 ? 'bg-primary-subtle text-primary' : 'bg-success-subtle text-success' }} border">{{ $l['type'] }}</span>
                             <span class="text-muted" style="font-size:.7rem;">{{ $l['sub'] }}</span>
                         </td>
-                        <td class="font-monospace">{{ $l['ref'] }}</td>
+                        <td class="font-monospace">
+                            {{ $l['ref'] }}
+                            @if(!empty($l['ird']))
+                            <div class="text-muted" style="font-size:.68rem" title="IRD Tax Invoice No">
+                                <i class="bi bi-receipt me-1"></i>{{ $l['ird'] }}
+                            </div>
+                            @endif
+                        </td>
                         <td>{{ $l['currency'] }}</td>
                         <td class="text-end font-monospace text-muted">{{ $l['currency'] }} {{ $money($l['doc_amount']) }}</td>
                         <td class="text-end font-monospace">{{ $l['debit'] > 0 ? $money($l['debit']) : '' }}</td>
