@@ -144,6 +144,11 @@
                 <span class="text-muted"> / </span>
                 <span class="text-danger">{{ $fmt($totals['pending_cost']) }}</span>
             </div>
+            @if(($totals['accrued_cost'] ?? 0) > 0)
+            <div class="text-muted" style="font-size:.7rem" title="Accrued lessor per-diem cost, not yet invoiced">
+                <i class="bi bi-hourglass-split me-1"></i>+{{ $fmt($totals['accrued_cost']) }} accrued cost
+            </div>
+            @endif
         </div>
     </div>
 </div>
@@ -192,8 +197,13 @@
                                 <span class="text-success">{{ $fmt($r['pending_revenue']) }}</span>
                                 <span class="text-muted"> / </span>
                                 <span class="text-danger">{{ $fmt($r['pending_cost']) }}</span>
-                            @else
+                            @elseif(($r['accrued_cost'] ?? 0) <= 0)
                                 <span class="text-muted">—</span>
+                            @endif
+                            @if(($r['accrued_cost'] ?? 0) > 0)
+                                <div class="text-danger" style="font-size:.66rem" title="Accrued lessor per-diem, not yet invoiced">
+                                    <i class="bi bi-hourglass-split me-1"></i>≈{{ $fmt($r['accrued_cost']) }} accrued
+                                </div>
                             @endif
                         </td>
                     </tr>
@@ -222,6 +232,9 @@
                             <span class="text-success">{{ $fmt($totals['pending_revenue']) }}</span>
                             <span class="text-muted"> / </span>
                             <span class="text-danger">{{ $fmt($totals['pending_cost']) }}</span>
+                            @if(($totals['accrued_cost'] ?? 0) > 0)
+                            <div class="text-danger fw-normal" style="font-size:.66rem">≈{{ $fmt($totals['accrued_cost']) }} accrued</div>
+                            @endif
                         </td>
                     </tr>
                 </tfoot>
@@ -234,8 +247,9 @@
 <p class="text-muted small mt-2 mb-0">
     <i class="bi bi-info-circle me-1"></i>
     <strong>Realized</strong> figures come from posted GL entries tagged to each job (income &rarr; revenue,
-    expense &rarr; cost). <strong>Pending</strong> is draft AR / AP / vouchers not yet posted — shown for the
-    pipeline but never counted in margin.
+    expense &rarr; cost). <strong>Pending</strong> is draft AR / AP / vouchers not yet posted, and
+    <strong>accrued</strong> is lessor per-diem cost building up before its supplier invoice arrives — both
+    shown for the pipeline but never counted in realized margin.
 </p>
 
 <div class="print-footer d-none d-print-block text-center text-muted mt-4 pt-3 border-top" style="font-size:.78rem;">

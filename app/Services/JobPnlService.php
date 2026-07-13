@@ -86,13 +86,24 @@ class JobPnlService
         $storageChargeableDays = (int) $storageRows->sum('chargeable_days');
         $storageDailyRate      = $storageRows->avg('daily_rate');
 
+        // ── Accrued lessor per-diem cost (WIP, live from LessorOnHire) ─────────
+        // If this job is a lessor on-hire with a per-diem rate, the un-invoiced
+        // hire cost builds daily until the actual supplier invoice lands. Kept
+        // separate from realized cost (like accrued storage on the revenue side).
+        $lessorHire        = \App\Models\LessorOnHire::where('yard_job_id', $yardJob->id)
+            ->whereIn('status', ['active', 'completed'])->orderByDesc('id')->first();
+        $lessorAccrued     = $lessorHire ? $lessorHire->accruedCost() : 0.0;
+        $lessorAccruedDays = $lessorHire ? $lessorHire->accruedDays() : 0;
+        $lessorPerDiemRate = $lessorHire?->per_diem_rate !== null ? (float) $lessorHire->per_diem_rate : null;
+
         // ── Legacy invoiced-by-container breakdown (informational) ─────────────
         [$storageInvoiced, $handlingInvoiced, $reeferInvoiced, $repairInvoiced] =
             $this->invoicedByContainer($containerIds);
         $totalInvoiced = round($storageInvoiced + $handlingInvoiced + $reeferInvoiced + $repairInvoiced, 2);
 
         $hasData = $realizedRevenue > 0 || $realizedCost > 0 || $storageAccrued > 0
-            || $pendingRevenue > 0 || $pendingCost > 0 || $totalInvoiced > 0;
+            || $pendingRevenue > 0 || $pendingCost > 0 || $totalInvoiced > 0
+            || $lessorAccrued > 0;
 
         return [
             'container_count'   => $containerIds->count(),
@@ -112,6 +123,11 @@ class JobPnlService
             'storage_accrued'         => $storageAccrued,
             'storage_chargeable_days' => $storageChargeableDays,
             'storage_daily_rate'      => $storageDailyRate,
+
+            // Accrued lessor per-diem cost (WIP)
+            'lessor_accrued'          => $lessorAccrued,
+            'lessor_accrued_days'     => $lessorAccruedDays,
+            'lessor_per_diem_rate'    => $lessorPerDiemRate,
 
             // Legacy invoiced-by-container detail
             'storage_invoiced'  => $storageInvoiced,
@@ -148,7 +164,7 @@ class JobPnlService
 
         $emptyTotals = [
             'realized_revenue' => 0.0, 'realized_cost' => 0.0, 'realized_margin' => 0.0,
-            'pending_revenue'  => 0.0, 'pending_cost'  => 0.0, 'margin_pct' => null,
+            'pending_revenue'  => 0.0, 'pending_cost'  => 0.0, 'accrued_cost' => 0.0, 'margin_pct' => null,
         ];
 
         if ($jobIds->isEmpty()) {
@@ -195,14 +211,21 @@ class JobPnlService
             ->groupBy('yard_job_id')
             ->selectRaw('yard_job_id, SUM(amount) as t')->pluck('t', 'yard_job_id');
 
+        // Accrued lessor per-diem cost (WIP) per on-hire job — one query, then the
+        // day-count math runs in PHP off each hire's dates/rate.
+        $lessorHires = \App\Models\LessorOnHire::whereIn('yard_job_id', $jobIds)
+            ->whereIn('status', ['active', 'completed'])
+            ->orderByDesc('id')->get()->groupBy('yard_job_id');
+
         $includeEmpty = ! empty($filters['include_empty']);
 
-        $rows = $jobs->map(function ($j) use ($realizedRevenue, $realizedCost, $pendingRevenue, $pendingCostInv, $pendingCostVou) {
+        $rows = $jobs->map(function ($j) use ($realizedRevenue, $realizedCost, $pendingRevenue, $pendingCostInv, $pendingCostVou, $lessorHires) {
             $rev    = $realizedRevenue[$j->id] ?? 0.0;
             $cost   = $realizedCost[$j->id] ?? 0.0;
             $margin = round($rev - $cost, 2);
             $pRev   = round((float) ($pendingRevenue[$j->id] ?? 0), 2);
             $pCost  = round((float) ($pendingCostInv[$j->id] ?? 0) + (float) ($pendingCostVou[$j->id] ?? 0), 2);
+            $accrued = round((float) optional($lessorHires->get($j->id)?->first())?->accruedCost(), 2);
 
             return [
                 'job'              => $j,
@@ -212,8 +235,9 @@ class JobPnlService
                 'margin_pct'       => $rev > 0 ? round($margin / $rev * 100, 1) : null,
                 'pending_revenue'  => $pRev,
                 'pending_cost'     => $pCost,
+                'accrued_cost'     => $accrued,
                 'has_activity'     => abs($rev) >= 0.005 || abs($cost) >= 0.005
-                                       || $pRev >= 0.005 || $pCost >= 0.005,
+                                       || $pRev >= 0.005 || $pCost >= 0.005 || $accrued >= 0.005,
             ];
         });
 
@@ -239,6 +263,7 @@ class JobPnlService
             'realized_margin'  => $totMrg,
             'pending_revenue'  => round($rows->sum('pending_revenue'), 2),
             'pending_cost'     => round($rows->sum('pending_cost'), 2),
+            'accrued_cost'     => round($rows->sum('accrued_cost'), 2),
             'margin_pct'       => $totRev > 0 ? round($totMrg / $totRev * 100, 1) : null,
         ];
 

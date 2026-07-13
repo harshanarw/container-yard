@@ -61,7 +61,7 @@ class JobMarginReportController extends Controller
             fputcsv($out, [
                 'Job No', 'Job Type', 'Customer', 'Status',
                 'Realized Revenue', 'Realized Cost', 'Realized Margin', 'Margin %',
-                'Pending Revenue', 'Pending Cost',
+                'Pending Revenue', 'Pending Cost', 'Accrued Cost',
             ]);
             foreach ($rows as $r) {
                 $j = $r['job'];
@@ -76,6 +76,7 @@ class JobMarginReportController extends Controller
                     $r['margin_pct'] === null ? '' : $r['margin_pct'],
                     number_format($r['pending_revenue'], 2, '.', ''),
                     number_format($r['pending_cost'], 2, '.', ''),
+                    number_format($r['accrued_cost'] ?? 0, 2, '.', ''),
                 ]);
             }
             fclose($out);

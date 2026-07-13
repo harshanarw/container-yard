@@ -265,7 +265,7 @@
 
                 <hr class="my-2">
 
-                {{-- Accrued storage --}}
+                {{-- Accrued storage + lessor per-diem (WIP, not yet invoiced) --}}
                 <div class="mb-2">
                     <div class="text-muted fw-semibold mb-1" style="font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;">Accrued</div>
                     <div class="d-flex justify-content-between align-items-center py-1">
@@ -277,6 +277,17 @@
                         </div>
                         <span class="fw-semibold small font-monospace">{{ number_format($pnlData['storage_accrued'], 2) }}</span>
                     </div>
+                    @if(($pnlData['lessor_accrued'] ?? 0) > 0)
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="small">
+                            <i class="bi bi-arrow-left-right me-1 text-danger"></i>Lessor per-diem
+                            @if($pnlData['lessor_accrued_days'] > 0)
+                            <span class="text-muted ms-1" style="font-size:.7rem;">({{ $pnlData['lessor_accrued_days'] }} day{{ $pnlData['lessor_accrued_days'] == 1 ? '' : 's' }}@if($pnlData['lessor_per_diem_rate']) @ {{ number_format($pnlData['lessor_per_diem_rate'], 2) }}@endif)</span>
+                            @endif
+                        </div>
+                        <span class="fw-semibold small font-monospace text-danger">({{ number_format($pnlData['lessor_accrued'], 2) }})</span>
+                    </div>
+                    @endif
                 </div>
 
                 <hr class="my-2">

@@ -65,4 +65,42 @@ class LessorOnHire extends Model
     {
         return $this->status === 'active';
     }
+
+    /**
+     * Chargeable days on hire as of a date, inclusive of the on-hire day (each
+     * calendar day the box is out is a per-diem day). An active hire accrues up
+     * to $asOf (today); a completed hire stops at its off-hire date. Cancelled
+     * hires and reversed ranges accrue nothing.
+     */
+    public function accruedDays(?\Carbon\Carbon $asOf = null): int
+    {
+        if ($this->status === 'cancelled' || ! $this->on_hire_date) {
+            return 0;
+        }
+
+        $asOf  = ($asOf ?? \Carbon\Carbon::today())->copy()->startOfDay();
+        $start = $this->on_hire_date->copy()->startOfDay();
+        $end   = ($this->off_hire_date ?? $asOf)->copy()->startOfDay();
+
+        // Never accrue into the future (guards a future-dated off-hire too).
+        if ($end->gt($asOf)) {
+            $end = $asOf;
+        }
+        if ($end->lt($start)) {
+            return 0;
+        }
+
+        return (int) $start->diffInDays($end) + 1;
+    }
+
+    /** Accrued (un-invoiced) lessor per-diem cost as of a date. */
+    public function accruedCost(?\Carbon\Carbon $asOf = null): float
+    {
+        $rate = (float) ($this->per_diem_rate ?? 0);
+        if ($rate <= 0) {
+            return 0.0;
+        }
+
+        return round($this->accruedDays($asOf) * $rate, 2);
+    }
 }
