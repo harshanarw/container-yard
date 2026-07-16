@@ -145,6 +145,9 @@ class SurveyController extends Controller
                     'findings'              => $request->findings,
                     'recommended_action'    => $request->recommended_action,
                     'estimated_repair_cost' => $request->estimated_repair_cost,
+                    'wash_required'         => $request->boolean('wash_required'),
+                    'wash_scope'            => $request->boolean('wash_required') ? $request->wash_scope : null,
+                    'wash_type'             => $request->boolean('wash_required') ? ($request->wash_type ?: 'standard') : null,
                     'status'                => 'open',
                 ]);
                 \Log::debug('[StoreSurvey] Inquiry created: id=' . $_inquiry->id . ' no=' . $_inquiry->inquiry_no);
@@ -288,7 +291,11 @@ class SurveyController extends Controller
                 'inspector_id', 'inspection_date', 'priority',
                 'overall_condition', 'findings', 'recommended_action',
                 'status', 'estimated_repair_cost',
-            ]));
+            ]) + [
+                'wash_required' => $request->boolean('wash_required'),
+                'wash_scope'    => $request->boolean('wash_required') ? $request->wash_scope : null,
+                'wash_type'     => $request->boolean('wash_required') ? ($request->wash_type ?: 'standard') : null,
+            ]);
             \Log::debug('[UpdateSurvey] Survey fields updated');
 
             // Replace damages

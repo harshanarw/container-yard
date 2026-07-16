@@ -300,6 +300,39 @@
                 </div>
             </div>
 
+            <!-- Washing / Cleaning -->
+            <div class="card content-card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-droplet me-2 text-info"></i>Washing / Cleaning
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" value="1"
+                               id="washRequired" name="wash_required" {{ old('wash_required') ? 'checked' : '' }}>
+                        <label class="form-check-label fw-semibold" for="washRequired">Washing required</label>
+                        <div class="form-text">Flags this box for cleaning. Pulls into the estimate as washing line(s) — even if there are no repair damages.</div>
+                    </div>
+                    <div class="row g-3" id="washFields" style="{{ old('wash_required') ? '' : 'display:none' }}">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Scope</label>
+                            <select name="wash_scope" class="form-select">
+                                <option value="internal" {{ old('wash_scope') === 'internal' ? 'selected' : '' }}>Internal only</option>
+                                <option value="external" {{ old('wash_scope') === 'external' ? 'selected' : '' }}>External only</option>
+                                <option value="both"     {{ old('wash_scope', 'both') === 'both' ? 'selected' : '' }}>Both (internal + external)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Wash Type</label>
+                            <select name="wash_type" class="form-select">
+                                @foreach(\App\Models\WashingTariff::TYPES as $k => $label)
+                                <option value="{{ $k }}" {{ old('wash_type', 'standard') === $k ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Inspector's Notes -->
             <div class="card content-card mb-3">
                 <div class="card-header">
@@ -510,6 +543,15 @@
 @push('scripts')
 <script>
     const DIM_UOM = '{{ $dimUom }}';
+
+    // Washing: reveal scope/type only when washing is required.
+    (function () {
+        const chk = document.getElementById('washRequired');
+        const box = document.getElementById('washFields');
+        if (chk && box) {
+            chk.addEventListener('change', () => { box.style.display = chk.checked ? '' : 'none'; });
+        }
+    })();
 
     // Convert ft+in sub-inputs → total decimal inches in hidden field
     function syncDimHidden(cell) {

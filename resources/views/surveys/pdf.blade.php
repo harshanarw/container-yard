@@ -203,6 +203,12 @@
             <div style="font-size:13px;font-weight:bold;">
                 {{ $inquiry->recommended_action ? ucwords(str_replace('_', ' ', $inquiry->recommended_action)) : '—' }}
             </div>
+            @if($inquiry->wash_required)
+            <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px;">Washing / Cleaning</div>
+            <div style="font-size:12px;font-weight:bold;">
+                {{ ucfirst($inquiry->wash_scope) }} · {{ \App\Models\WashingTariff::TYPES[$inquiry->wash_type] ?? ucfirst($inquiry->wash_type ?? 'Standard') }}
+            </div>
+            @endif
         </div>
     </div>
 

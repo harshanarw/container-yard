@@ -309,6 +309,17 @@
                                 : '—' }}
                         </div>
                     </div>
+                    <div class="col-sm-6">
+                        <div class="text-muted mb-1">Washing / Cleaning</div>
+                        @if($inquiry->wash_required)
+                        <span class="badge bg-info-subtle text-info px-2 py-1" style="font-size:.75rem;">
+                            <i class="bi bi-droplet me-1"></i>{{ ucfirst($inquiry->wash_scope) }}
+                        </span>
+                        <span class="text-muted ms-1">{{ \App\Models\WashingTariff::TYPES[$inquiry->wash_type] ?? ucfirst($inquiry->wash_type ?? 'Standard') }}</span>
+                        @else
+                        <span class="text-muted">— Not required</span>
+                        @endif
+                    </div>
                     <div class="col-12">
                         <div class="text-muted mb-1">Detailed Findings</div>
                         @if($inquiry->findings)

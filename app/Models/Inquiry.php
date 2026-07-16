@@ -17,11 +17,13 @@ class Inquiry extends Model
         'customer_id', 'inquiry_type', 'inspector_id', 'inspection_date',
         'gate_in_ref', 'priority', 'overall_condition', 'findings',
         'recommended_action', 'status', 'estimated_repair_cost',
+        'wash_required', 'wash_scope', 'wash_type',
     ];
 
     protected $casts = [
         'inspection_date'      => 'date',
         'estimated_repair_cost' => 'decimal:2',
+        'wash_required'        => 'boolean',
     ];
 
     // Relationships

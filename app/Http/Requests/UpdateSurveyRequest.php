@@ -47,6 +47,11 @@ class UpdateSurveyRequest extends FormRequest
             'status'                => ['required', 'in:open,in_progress,estimate_sent,approved,closed'],
             'estimated_repair_cost' => ['nullable', 'numeric', 'min:0'],
 
+            // Washing (flows to the estimate like a repair category)
+            'wash_required'         => ['nullable', 'boolean'],
+            'wash_scope'            => ['nullable', 'required_if:wash_required,1', 'in:internal,external,both'],
+            'wash_type'             => ['nullable', 'in:standard,chemical,steam,food_grade,degas'],
+
             'damages'                          => ['nullable', 'array'],
             'damages.*.id'                     => ['nullable', 'exists:damages,id'],
             'damages.*.location_code_id'       => ['nullable', 'exists:mr_codes,id'],
