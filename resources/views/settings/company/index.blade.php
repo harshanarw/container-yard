@@ -394,6 +394,23 @@
                     </div>
                 </div>
             </div>
+
+            <hr class="my-3">
+
+            <div class="row">
+                <div class="col-md-7">
+                    <label class="form-label small fw-semibold" for="gatepassBaseUrl">Gate Pass link base URL</label>
+                    <input type="text" class="form-control" id="gatepassBaseUrl" name="gatepass_base_url"
+                           placeholder="https://crown.gensoftcyms.com"
+                           value="{{ old('gatepass_base_url', $settings->gatepass_base_url) }}">
+                    <div class="form-text mt-1">
+                        Optional. The public address of <em>this</em> system, used to build the driver link
+                        (e.g. <code>https://crown.gensoftcyms.com/g/&hellip;</code>). Set this if the WhatsApp
+                        link shows the wrong domain — behind a proxy or on a shared domain the app can’t always
+                        detect its own host. Leave blank to use the address you’re browsing on.
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

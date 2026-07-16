@@ -1495,7 +1495,7 @@ class YardController extends Controller
         $movement->refreshShareLink();
 
         $company = $cs->company_name ?: 'Container Yard';
-        $link    = route('gp.short', $movement->share_code);
+        $link    = $cs->gatePassUrl($movement->share_code);
         $message = '*' . $company . '*' . "\n"
                  . 'Hello' . ($movement->driver_name ? ' ' . $movement->driver_name : '')
                  . ', your ' . ($movement->movement_type === 'out' ? 'outward' : 'inward')

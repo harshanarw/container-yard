@@ -52,6 +52,7 @@ class CompanySetting extends Model
         'enforce_export_booking',
         'enforce_reefer_pti',
         'enable_gatepass_whatsapp',
+        'gatepass_base_url',
         'mr_dimension_uom',
         // Gate Pass Defaults
         'default_gate_in_format',
@@ -100,5 +101,28 @@ class CompanySetting extends Model
     public function getProductIconUrlAttribute(): ?string
     {
         return $this->product_icon_path ? Storage::url($this->product_icon_path) : null;
+    }
+
+    /**
+     * Absolute URL for a driver gate-pass short link (/g/{code}).
+     *
+     * route() derives its host from the request/APP_URL, which on a proxied,
+     * multi-tenant subdomain can come out wrong (the marketing host instead of
+     * this tenant's). When the operator has pinned gatepass_base_url we keep the
+     * framework-generated PATH (so the route stays the source of truth) but swap
+     * the scheme+host for the configured base. Unset → plain route().
+     */
+    public function gatePassUrl(string $code): string
+    {
+        $url  = route('gp.short', $code);
+        $base = trim((string) $this->gatepass_base_url);
+        if ($base === '') {
+            return $url;
+        }
+
+        $path  = (string) parse_url($url, PHP_URL_PATH);
+        $query = parse_url($url, PHP_URL_QUERY);
+
+        return rtrim($base, '/') . $path . ($query ? '?' . $query : '');
     }
 }

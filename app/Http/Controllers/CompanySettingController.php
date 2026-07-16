@@ -74,6 +74,7 @@ class CompanySettingController extends Controller
             'enforce_export_booking'   => ['nullable', 'boolean'],
             'enforce_reefer_pti'       => ['nullable', 'boolean'],
             'enable_gatepass_whatsapp' => ['nullable', 'boolean'],
+            'gatepass_base_url'        => ['nullable', 'string', 'max:255'],
             'logo'                     => ['nullable', 'image', 'max:2048'],
             'icon'            => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
             'product_icon'    => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
@@ -86,6 +87,18 @@ class CompanySettingController extends Controller
         $data['enforce_export_booking']   = $request->boolean('enforce_export_booking');
         $data['enforce_reefer_pti']       = $request->boolean('enforce_reefer_pti');
         $data['enable_gatepass_whatsapp'] = $request->boolean('enable_gatepass_whatsapp');
+
+        // Normalise the gate-pass base URL: blank → null; add https:// if the
+        // operator typed a bare host; drop any trailing slash.
+        $base = trim((string) $request->input('gatepass_base_url'));
+        if ($base === '') {
+            $data['gatepass_base_url'] = null;
+        } else {
+            if (! preg_match('~^https?://~i', $base)) {
+                $base = 'https://' . $base;
+            }
+            $data['gatepass_base_url'] = rtrim($base, '/');
+        }
 
         if ($request->hasFile('logo')) {
             if ($settings->logo_path) {
