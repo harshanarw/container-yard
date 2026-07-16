@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\StripsBlankDamages;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 
 class StoreSurveyRequest extends FormRequest
 {
+    use StripsBlankDamages;
+
     public function authorize(): bool
     {
         return true;
@@ -14,6 +17,8 @@ class StoreSurveyRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->stripBlankDamages();
+
         \Log::debug('[StoreSurvey-REQ] Incoming request', [
             'wants_json'   => $this->wantsJson(),
             'accept'       => $this->header('Accept'),
