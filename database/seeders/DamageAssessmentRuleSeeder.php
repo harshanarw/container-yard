@@ -153,6 +153,26 @@ class DamageAssessmentRuleSeeder extends Seeder
             $rule('Vent — Blocked / Clean',                             null, 'VNT', 'STN', 'CLN', 'minor',    'Vent blocked with debris or contamination'),
             $rule('Floor Plug — Missing / Replace',                     null, 'PLG', 'MIS', 'RPL', 'minor',    'Drain / floor plug missing'),
             $rule('Floor Plug — Broken / Replace',                      null, 'PLG', 'BRK', 'RPL', 'minor',    'Drain plug cracked or broken'),
+
+            // ── EXTENDED DAMAGE TYPES (Phase 2 M&R expansion) ────────────────
+            $rule('Panel — Scratch / Treat & Paint',                    'SWL', 'PNL', 'SCR', 'TAP', 'minor',    'Surface scratch or score on side wall'),
+            $rule('Panel — Gouge / Crop & Weld',                        'SWL', 'PNL', 'GOU', 'CRP', 'moderate', 'Deep gouge removing material — crop & weld section'),
+            $rule('Panel — Torn / Insert',                              'SWL', 'PNL', 'TRN', 'IST', 'moderate', 'Torn panel — let-in a new section'),
+            $rule('Panel — Pitted / Crop & Weld',                       'SWL', 'PNL', 'PIT', 'CRP', 'moderate', 'Corrosion pitting through panel — section replace'),
+            $rule('Panel — Bulged / Straighten',                        'SWL', 'PNL', 'BLG', 'STR', 'moderate', 'Bulged / pushed-out panel — push back & straighten'),
+            $rule('Panel — Chafed / Treat & Paint',                     'SWL', 'PNL', 'CHF', 'TAP', 'minor',    'Chafing / abrasion — treat and repaint'),
+            $rule('Panel — Peeling / Treat & Paint',                    'SWL', 'PNL', 'PEL', 'TAP', 'minor',    'Peeling coating — surface prep and repaint'),
+            $rule('Corner Post — Distorted / Straighten',               'CP',  'PST', 'DIS', 'STR', 'moderate', 'Racked / distorted corner post — straighten to square'),
+            $rule('Rail — Pitted / Crop & Weld',                        'BR',  'RAL', 'PIT', 'CRP', 'moderate', 'Corrosion pitting on rail — crop & weld section'),
+            $rule('Door — Warped / Straighten',                         'DR',  'DOR', 'WRP', 'STR', 'moderate', 'Warped door leaf — straighten to close square'),
+            $rule('Hinge — Loose / Refit',                              'DR',  'HNG', 'LSE', 'RFT', 'minor',    'Loose hinge — refit and secure'),
+            $rule('Locking Rod — Loose / Tighten',                      'DR',  'LKR', 'LSE', 'TGT', 'minor',    'Loose locking rod keepers — tighten'),
+            $rule('Door Seal — Leaking / Reseal',                       'DR',  'SEL', 'LEK', 'RSL', 'moderate', 'Water-tightness leak at door seal — reseal gasket'),
+            $rule('Floor — Contaminated / Clean',                       'FL',  'FLB', 'CON', 'CLN', 'minor',    'Chemical / cargo contamination on floor — clean'),
+            $rule('Floor — Odour / Clean',                              'FL',  'FLB', 'ODR', 'CLN', 'minor',    'Persistent odour / taint — deep clean'),
+            $rule('Floor — Water Damage / Replace',                     'FL',  'FLB', 'WTR', 'RPL', 'moderate', 'Water-damaged floor board — replace section'),
+            $rule('Floor — Rotten / Replace',                           'FL',  'FLB', 'ROT', 'RPL', 'severe',   'Rotten / soft timber floor — replace board'),
+            $rule('Vent — Inoperative / Recondition',                   null,  'VNT', 'INO', 'RCD', 'moderate', 'Ventilator / mechanical unit not operating — recondition'),
         ];
 
         $data = array_values(array_filter($rules));

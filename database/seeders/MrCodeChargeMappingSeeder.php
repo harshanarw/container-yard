@@ -157,6 +157,40 @@ class MrCodeChargeMappingSeeder extends Seeder
              'notes' => 'Vent replace → general damage repair'],
             ['comp' => 'VNT', 'rep' => 'WLD', 'charge' => 'DMR',   'priority' => 10,
              'notes' => 'Vent weld repair → general damage repair'],
+
+            // ── New repair-code defaults (Phase 2 M&R expansion) ──────────────────
+            ['comp' => null,  'rep' => 'CRP', 'charge' => 'WLD',   'priority' => 20,
+             'notes' => 'Crop & weld → welding repair charge'],
+            ['comp' => null,  'rep' => 'IST', 'charge' => 'WLD',   'priority' => 20,
+             'notes' => 'Insert (let-in) → welding repair charge'],
+            ['comp' => null,  'rep' => 'RSL', 'charge' => 'DOOR',  'priority' => 20,
+             'notes' => 'Reseal → door / gasket charge'],
+            ['comp' => null,  'rep' => 'RFT', 'charge' => 'DMR',   'priority' => 20,
+             'notes' => 'Refit / secure → general damage repair'],
+            ['comp' => null,  'rep' => 'TGT', 'charge' => 'DMR',   'priority' => 20,
+             'notes' => 'Tighten → general damage repair'],
+            ['comp' => null,  'rep' => 'RCD', 'charge' => 'DMR',   'priority' => 20,
+             'notes' => 'Recondition → general damage repair'],
+
+            // ── New repair component overrides ────────────────────────────────────
+            ['comp' => 'PNL', 'rep' => 'CRP', 'charge' => 'WALL',  'priority' => 10,
+             'notes' => 'Panel crop & weld → side wall repair'],
+            ['comp' => 'PNL', 'rep' => 'IST', 'charge' => 'WALL',  'priority' => 10,
+             'notes' => 'Panel insert → side wall repair'],
+            ['comp' => 'PST', 'rep' => 'CRP', 'charge' => 'CORN',  'priority' => 10,
+             'notes' => 'Corner post crop & weld → corner casting repair'],
+            ['comp' => 'RAL', 'rep' => 'CRP', 'charge' => 'ROOF',  'priority' => 10,
+             'notes' => 'Rail crop & weld → roof / top-rail repair'],
+            ['comp' => 'FLB', 'rep' => 'IST', 'charge' => 'FLOR',  'priority' => 10,
+             'notes' => 'Floor board insert → floor repair'],
+            ['comp' => 'SEL', 'rep' => 'RSL', 'charge' => 'DOOR',  'priority' => 10,
+             'notes' => 'Seal reseal → door / gasket charge'],
+            ['comp' => 'HNG', 'rep' => 'RFT', 'charge' => 'DOOR',  'priority' => 10,
+             'notes' => 'Hinge refit → door repair'],
+            ['comp' => 'LKR', 'rep' => 'RFT', 'charge' => 'DOOR',  'priority' => 10,
+             'notes' => 'Locking rod refit → door repair'],
+            ['comp' => 'LKR', 'rep' => 'TGT', 'charge' => 'DOOR',  'priority' => 10,
+             'notes' => 'Locking rod tighten → door repair'],
         ];
 
         $created = 0;
