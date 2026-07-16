@@ -194,11 +194,18 @@
                     <span><i class="bi bi-list-ul me-2 text-primary"></i>Repair Line Items</span>
                     <div class="d-flex gap-2">
                         @if($selectedInquiry && ($selectedInquiry->damages->isNotEmpty() || $selectedInquiry->wash_required))
+                        @php
+                            $dmgN = $selectedInquiry->damages->count();
+                            $importLabel = $dmgN > 0
+                                ? 'Import ' . $dmgN . ' Damage' . ($dmgN == 1 ? '' : 's') . ($selectedInquiry->wash_required ? ' + Washing' : '') . ' as Lines'
+                                : 'Import Washing from Survey';
+                        @endphp
                         <button type="button" class="btn btn-sm btn-warning" id="importDamagesBtn"
                                 data-url="{{ route('estimates.import-damages', $selectedInquiry) }}"
-                                data-count="{{ $selectedInquiry->damages->count() }}">
-                            <i class="bi bi-download me-1"></i>
-                            @if($selectedInquiry->damages->isNotEmpty())Import {{ $selectedInquiry->damages->count() }} Damage(s) as Lines@else Import Washing from Survey @endif
+                                data-count="{{ $dmgN }}"
+                                data-wash="{{ $selectedInquiry->wash_required ? 1 : 0 }}"
+                                title="Pull the survey's repair{{ $selectedInquiry->wash_required ? ' and washing' : '' }} line(s) into this estimate">
+                            <i class="bi bi-download me-1"></i>{{ $importLabel }}
                         </button>
                         @endif
                         <button type="button" class="btn btn-sm btn-outline-info" id="addWashingBtn" data-bs-toggle="modal" data-bs-target="#washingModal">
@@ -351,9 +358,15 @@
                 <div class="card-footer bg-white py-2">
                     <button type="button" class="btn btn-warning btn-sm w-100" id="importDamagesSideBtn"
                             data-url="{{ route('estimates.import-damages', $selectedInquiry) }}"
-                            data-count="{{ $selectedInquiry->damages->count() }}">
+                            data-count="{{ $selectedInquiry->damages->count() }}"
+                            data-wash="{{ $selectedInquiry->wash_required ? 1 : 0 }}">
                         <i class="bi bi-download me-1"></i>{{ $selectedInquiry->damages->isNotEmpty() ? 'Import All as Lines' : 'Import Washing from Survey' }}
                     </button>
+                    @if($selectedInquiry->wash_required)
+                    <div class="text-muted mt-2" style="font-size:.72rem;">
+                        <i class="bi bi-droplet me-1 text-info"></i>Washing ({{ ucfirst($selectedInquiry->wash_scope) }}) will be added as line item(s).
+                    </div>
+                    @endif
                 </div>
                 @endif
                 @endif
@@ -1293,13 +1306,16 @@
                     alertEl.classList.remove('d-none');
 
                     btn.disabled = false;
-                    const relabel = count > 0 ? `Reimport ${count} Damage(s)` : 'Reimport from Survey';
+                    const wash    = btn.dataset.wash === '1';
+                    const relabel = count > 0
+                        ? `Reimport ${count} Damage(s)` + (wash ? ' + Washing' : '')
+                        : 'Reimport Washing from Survey';
                     btn.innerHTML = `<i class="bi bi-check-circle me-1"></i>${relabel}`;
                 })
                 .catch(() => {
                     btn.disabled = false;
-                    btn.innerHTML = `<i class="bi bi-download me-1"></i>Import ${count} Damage(s) as Lines`;
-                    showToast('Failed to import damages. Please try again.', 'danger');
+                    btn.innerHTML = `<i class="bi bi-download me-1"></i>${count > 0 ? `Import ${count} Damage(s) as Lines` : 'Import Washing from Survey'}`;
+                    showToast('Failed to import from survey. Please try again.', 'danger');
                 });
         };
 
