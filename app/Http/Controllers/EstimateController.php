@@ -739,11 +739,57 @@ class EstimateController extends Controller
             ];
         }
 
+        $damageCount = count($lines);
+
+        // ── Washing pull: append the survey's washing line(s) ──────────────────
+        // A washing-only survey (no damages) still produces these. Both → internal
+        // + external; single → one. Skip a scope already present (e.g. a manually
+        // added washing line carried into a re-import). No tariff → 0-priced line
+        // so the operator can still see and price it.
+        $washingCount = 0;
+        if ($inquiry->wash_required && $inquiry->wash_scope) {
+            $scopes    = $inquiry->wash_scope === 'both' ? ['internal', 'external'] : [$inquiry->wash_scope];
+            $washType  = $inquiry->wash_type ?: 'standard';
+            $washDate  = $request->get('date') ?: today()->toDateString();
+            $present   = collect($lines)->pluck('wash_scope')->filter()->all();
+
+            foreach ($scopes as $scope) {
+                if (in_array($scope, $present, true)) {
+                    continue;
+                }
+                $w = $this->resolveWashingRate($customerId, $scope, $washType, $containerSize, $washDate, $estCurrency, $exchangeRate);
+
+                $lines[] = [
+                    'component'         => $w['label'] ?? (ucfirst($scope) . ' Wash — ' . ucfirst($washType)),
+                    'repair_type'       => 'clean_and_treat',
+                    'qty'               => 1,
+                    'unit_price'        => $w['unit_price'] ?? 0,
+                    'charge_code_id'    => $w['charge_code_id'] ?? null,
+                    'tax_code_id'       => $w['tax_code_id'] ?? null,
+                    'tax1_rate'         => $w['tax1_rate'] ?? 0,
+                    'tax2_rate'         => $w['tax2_rate'] ?? 0,
+                    'washing_tariff_id' => $w['washing_tariff_id'] ?? null,
+                    'wash_scope'        => $scope,
+                    'std_labor_hours'   => 0, 'labor_rate' => 0, 'labor_amount' => 0,
+                    'material_qty'      => 0, 'material_rate' => 0, 'material_amount' => 0,
+                    'ancillary_amount'  => 0,
+                    '_location'         => 'Washing / Cleaning',
+                    '_damage'           => ucfirst($scope) . ' wash',
+                    '_severity'         => null,
+                    '_tariff_matched'   => $w !== null,
+                    '_washing'          => true,
+                ];
+                $present[] = $scope;
+                $washingCount++;
+            }
+        }
+
         return response()->json([
-            'lines'        => $lines,
-            'tariff_name'  => $tariffHeader?->name,
-            'tariff_found' => $tariffHeader !== null,
-            'damage_count' => count($lines),
+            'lines'         => $lines,
+            'tariff_name'   => $tariffHeader?->name,
+            'tariff_found'  => $tariffHeader !== null,
+            'damage_count'  => $damageCount,
+            'washing_count' => $washingCount,
         ]);
     }
 
@@ -805,50 +851,58 @@ class EstimateController extends Controller
 
         $out = [];
         foreach (['internal', 'external'] as $scope) {
-            $wt = WashingTariff::resolve($customerId, $scope, $type, $size, $date);
-
-            if (! $wt) {
-                $out[$scope] = ['found' => false];
-                continue;
-            }
-
-            // Convert the tariff rate to the estimate currency. Rates are normally
-            // in USD; only USD tariffs are scaled by the USD→currency rate. A
-            // tariff already in the estimate currency needs no conversion, and an
-            // unknown cross-currency is left as-is rather than double-converted.
-            $tariffCur = strtoupper($wt->currency ?: 'USD');
-            if ($tariffCur === $estCur) {
-                $factor = 1.0;
-            } elseif ($tariffCur === 'USD') {
-                $factor = $estCur === 'USD' ? 1.0 : $rate;
-            } else {
-                $factor = 1.0;
-            }
-
-            // Apply the configured minimum as a floor before conversion.
-            $base = $wt->min_charge !== null
-                ? max((float) $wt->rate, (float) $wt->min_charge)
-                : (float) $wt->rate;
-
-            $taxCode = $wt->taxCode ?: $wt->chargeCode?->taxCode;
-
-            $out[$scope] = [
-                'found'             => true,
-                'washing_tariff_id' => $wt->id,
-                'wash_scope'        => $scope,
-                'label'             => $wt->scope_label . ' — ' . $wt->type_label,
-                'unit_price'        => round($base * $factor, 2),
-                'currency'          => $estCur,
-                'charge_code_id'    => $wt->charge_code_id,
-                'charge_code'       => $wt->chargeCode?->code,
-                'tax_code_id'       => $taxCode?->id,
-                'tax1_rate'         => (float) ($taxCode?->tax1_rate ?? 0),
-                'tax2_rate'         => (float) ($taxCode?->tax2_rate ?? 0),
-                'size'              => $wt->container_size,
-            ];
+            $data = $this->resolveWashingRate($customerId, $scope, $type, $size, $date, $estCur, $rate);
+            $out[$scope] = $data ? (['found' => true] + $data) : ['found' => false];
         }
 
         return response()->json($out);
+    }
+
+    /**
+     * Resolve a single washing tariff to a currency-converted line payload, or
+     * null when no tariff matches. Shared by washingLookup (the manual picker)
+     * and importDamages (the survey pull) so both price washing identically.
+     */
+    private function resolveWashingRate(?int $customerId, string $scope, string $type, ?string $size, string $date, string $estCur, float $rate): ?array
+    {
+        $wt = WashingTariff::resolve($customerId, $scope, $type, $size, $date);
+        if (! $wt) {
+            return null;
+        }
+
+        // Convert the tariff rate to the estimate currency. Rates are normally in
+        // USD; only USD tariffs are scaled by the USD→currency rate. A tariff
+        // already in the estimate currency needs no conversion, and an unknown
+        // cross-currency is left as-is rather than double-converted.
+        $tariffCur = strtoupper($wt->currency ?: 'USD');
+        if ($tariffCur === $estCur) {
+            $factor = 1.0;
+        } elseif ($tariffCur === 'USD') {
+            $factor = $estCur === 'USD' ? 1.0 : $rate;
+        } else {
+            $factor = 1.0;
+        }
+
+        // Apply the configured minimum as a floor before conversion.
+        $base = $wt->min_charge !== null
+            ? max((float) $wt->rate, (float) $wt->min_charge)
+            : (float) $wt->rate;
+
+        $taxCode = $wt->taxCode ?: $wt->chargeCode?->taxCode;
+
+        return [
+            'washing_tariff_id' => $wt->id,
+            'wash_scope'        => $scope,
+            'label'             => $wt->scope_label . ' — ' . $wt->type_label,
+            'unit_price'        => round($base * $factor, 2),
+            'currency'          => $estCur,
+            'charge_code_id'    => $wt->charge_code_id,
+            'charge_code'       => $wt->chargeCode?->code,
+            'tax_code_id'       => $taxCode?->id,
+            'tax1_rate'         => (float) ($taxCode?->tax1_rate ?? 0),
+            'tax2_rate'         => (float) ($taxCode?->tax2_rate ?? 0),
+            'size'              => $wt->container_size,
+        ];
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────

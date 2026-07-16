@@ -190,11 +190,12 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-list-ul me-2 text-primary"></i>Repair Line Items</span>
                     <div class="d-flex gap-2">
-                        @if($selectedInquiry && $selectedInquiry->damages->isNotEmpty())
+                        @if($selectedInquiry && ($selectedInquiry->damages->isNotEmpty() || $selectedInquiry->wash_required))
                         <button type="button" class="btn btn-sm btn-warning" id="importDamagesBtn"
                                 data-url="{{ route('estimates.import-damages', $selectedInquiry) }}"
                                 data-count="{{ $selectedInquiry->damages->count() }}">
-                            <i class="bi bi-download me-1"></i>Import {{ $selectedInquiry->damages->count() }} Damage(s) as Lines
+                            <i class="bi bi-download me-1"></i>
+                            @if($selectedInquiry->damages->isNotEmpty())Import {{ $selectedInquiry->damages->count() }} Damage(s) as Lines@else Import Washing from Survey @endif
                         </button>
                         @endif
                         <button type="button" class="btn btn-sm btn-outline-info" id="addWashingBtn" data-bs-toggle="modal" data-bs-target="#washingModal">
@@ -335,12 +336,12 @@
                         @endforeach
                     </ul>
                 </div>
-                @if($selectedInquiry->damages->isNotEmpty())
+                @if($selectedInquiry->damages->isNotEmpty() || $selectedInquiry->wash_required)
                 <div class="card-footer bg-white py-2">
                     <button type="button" class="btn btn-warning btn-sm w-100" id="importDamagesSideBtn"
                             data-url="{{ route('estimates.import-damages', $selectedInquiry) }}"
                             data-count="{{ $selectedInquiry->damages->count() }}">
-                        <i class="bi bi-download me-1"></i>Import All as Lines
+                        <i class="bi bi-download me-1"></i>{{ $selectedInquiry->damages->isNotEmpty() ? 'Import All as Lines' : 'Import Washing from Survey' }}
                     </button>
                 </div>
                 @endif
@@ -1256,19 +1257,30 @@
 
                     const alertEl   = document.getElementById('importAlert');
                     const alertText = document.getElementById('importAlertText');
-                    let msg = `${data.lines.length} damage(s) imported as line items.`;
-                    if (data.tariff_found) {
-                        msg += ` Prices pre-filled from tariff: <strong>${data.tariff_name}</strong>.`;
-                        const noPrice = data.lines.filter(l => !l._tariff_matched).length;
-                        if (noPrice > 0) msg += ` <span class="text-warning">${noPrice} line(s) had no matching tariff rule — unit price set to 0.</span>`;
-                    } else {
-                        msg += ' <span class="text-warning">No active M&R tariff found — unit prices set to 0. Please fill them in manually.</span>';
+                    const parts = [];
+                    if (data.damage_count > 0) {
+                        let m = `${data.damage_count} damage(s) imported as line items.`;
+                        if (data.tariff_found) {
+                            m += ` Prices pre-filled from tariff: <strong>${data.tariff_name}</strong>.`;
+                            const noPrice = data.lines.filter(l => !l._washing && !l._tariff_matched).length;
+                            if (noPrice > 0) m += ` <span class="text-warning">${noPrice} line(s) had no matching tariff rule — unit price set to 0.</span>`;
+                        } else {
+                            m += ' <span class="text-warning">No active M&R tariff found — unit prices set to 0. Please fill them in manually.</span>';
+                        }
+                        parts.push(m);
                     }
-                    alertText.innerHTML = msg;
+                    if (data.washing_count > 0) {
+                        let w = `${data.washing_count} washing line(s) added from the survey.`;
+                        const noWash = data.lines.filter(l => l._washing && !l._tariff_matched).length;
+                        if (noWash > 0) w += ` <span class="text-warning">${noWash} had no washing rate — unit price set to 0.</span>`;
+                        parts.push(w);
+                    }
+                    alertText.innerHTML = parts.length ? parts.join(' ') : 'Nothing to import from this survey.';
                     alertEl.classList.remove('d-none');
 
                     btn.disabled = false;
-                    btn.innerHTML = `<i class="bi bi-check-circle me-1"></i>Reimport ${count} Damage(s)`;
+                    const relabel = count > 0 ? `Reimport ${count} Damage(s)` : 'Reimport from Survey';
+                    btn.innerHTML = `<i class="bi bi-check-circle me-1"></i>${relabel}`;
                 })
                 .catch(() => {
                     btn.disabled = false;
