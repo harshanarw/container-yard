@@ -55,6 +55,13 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Pin every generated absolute URL to the operator-configured public base
+        // URL (Company Settings). Covers web, queued jobs and console (emailed
+        // links). The ForceBaseUrl middleware additionally normalises the request
+        // host so signed verification links validate. No-op when unset.
+        \App\Support\BaseUrl::forceGeneration();
+        $this->app['router']->prependMiddlewareToGroup('web', \App\Http\Middleware\ForceBaseUrl::class);
+
         // ── Audit log model observers ────────────────────────────────────────
         GateMovement::observe(GateMovementObserver::class);
         YardJob::observe(YardJobObserver::class);

@@ -399,15 +399,16 @@
 
             <div class="row">
                 <div class="col-md-7">
-                    <label class="form-label small fw-semibold" for="gatepassBaseUrl">Gate Pass link base URL</label>
-                    <input type="text" class="form-control" id="gatepassBaseUrl" name="gatepass_base_url"
+                    <label class="form-label small fw-semibold" for="appBaseUrl">System Base URL <span class="text-muted fw-normal">(all generated links)</span></label>
+                    <input type="text" class="form-control" id="appBaseUrl" name="app_base_url"
                            placeholder="https://crown.gensoftcyms.com"
-                           value="{{ old('gatepass_base_url', $settings->gatepass_base_url) }}">
+                           value="{{ old('app_base_url', $settings->app_base_url) }}">
                     <div class="form-text mt-1">
-                        Optional. The public address of <em>this</em> system, used to build the driver link
-                        (e.g. <code>https://crown.gensoftcyms.com/g/&hellip;</code>). Set this if the WhatsApp
-                        link shows the wrong domain — behind a proxy or on a shared domain the app can’t always
-                        detect its own host. Leave blank to use the address you’re browsing on.
+                        Optional. The public address of <em>this</em> system. When set, it is used as the base for
+                        <strong>every</strong> link the system generates — WhatsApp gate passes, portal approval links,
+                        QR verification links on gate passes and invoices, and emailed links. Set this if any of those
+                        show the wrong domain (behind a proxy or on a shared domain the app can’t always detect its own
+                        host). Leave blank to use the address you’re browsing on.
                     </div>
                 </div>
             </div>

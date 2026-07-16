@@ -52,7 +52,7 @@ class CompanySetting extends Model
         'enforce_export_booking',
         'enforce_reefer_pti',
         'enable_gatepass_whatsapp',
-        'gatepass_base_url',
+        'app_base_url',
         'mr_dimension_uom',
         // Gate Pass Defaults
         'default_gate_in_format',
@@ -104,25 +104,42 @@ class CompanySetting extends Model
     }
 
     /**
-     * Absolute URL for a driver gate-pass short link (/g/{code}).
-     *
-     * route() derives its host from the request/APP_URL, which on a proxied,
-     * multi-tenant subdomain can come out wrong (the marketing host instead of
-     * this tenant's). When the operator has pinned gatepass_base_url we keep the
-     * framework-generated PATH (so the route stays the source of truth) but swap
-     * the scheme+host for the configured base. Unset → plain route().
+     * The operator-pinned public base URL for this system, normalised to
+     * scheme://host[:port] with no trailing slash, or null when unset. Used to
+     * force the URL root for ALL generated links (see App\Support\BaseUrl and
+     * the ForceBaseUrl middleware) so proxy/subdomain host detection can't send
+     * out links on the wrong domain.
+     */
+    public function appBaseUrl(): ?string
+    {
+        $base = trim((string) $this->app_base_url);
+        if ($base === '') {
+            return null;
+        }
+
+        // Tolerate a bare host saved without a scheme.
+        if (! preg_match('~^https?://~i', $base)) {
+            $base = 'https://' . $base;
+        }
+
+        $parts = parse_url(rtrim($base, '/'));
+        if (empty($parts['host'])) {
+            return null;
+        }
+
+        $scheme = strtolower($parts['scheme'] ?? 'https');
+        $host   = $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
+
+        return $scheme . '://' . $host;
+    }
+
+    /**
+     * Absolute URL for a driver gate-pass short link (/g/{code}). With the URL
+     * root forced globally from app_base_url, a plain route() already carries
+     * the correct host — no per-link handling needed.
      */
     public function gatePassUrl(string $code): string
     {
-        $url  = route('gp.short', $code);
-        $base = trim((string) $this->gatepass_base_url);
-        if ($base === '') {
-            return $url;
-        }
-
-        $path  = (string) parse_url($url, PHP_URL_PATH);
-        $query = parse_url($url, PHP_URL_QUERY);
-
-        return rtrim($base, '/') . $path . ($query ? '?' . $query : '');
+        return route('gp.short', $code);
     }
 }
