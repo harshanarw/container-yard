@@ -38,6 +38,9 @@
         <p class="text-muted mb-0 small">Generate a repair cost estimate
             @if($selectedInquiry) from survey <strong>{{ $selectedInquiry->inquiry_no }}</strong> @endif
         </p>
+        @if($selectedInquiry?->yardJob)
+        <div class="mt-1">@include('partials.job-badge', ['job' => $selectedInquiry->yardJob, 'mode' => 'inline'])</div>
+        @endif
     </div>
 </div>
 
@@ -234,26 +237,26 @@
                             </tbody>
                             <tfoot class="table-light">
                                 <tr>
-                                    <td colspan="8" class="text-end fw-semibold pe-3 small">Subtotal:</td>
+                                    <td colspan="8" class="sum-span text-end fw-semibold pe-3 small">Subtotal:</td>
                                     <td class="fw-semibold text-end pe-2 small" id="subtotal">0.00</td>
                                     <td></td>
                                 </tr>
                                 <tr class="tax-row">
-                                    <td colspan="8" class="text-end pe-3 small text-muted">
+                                    <td colspan="8" class="sum-span text-end pe-3 small text-muted">
                                         SSCL <span id="ssclPctDisplay" class="text-muted"></span>:
                                     </td>
                                     <td class="text-end pe-2 small text-muted" id="totalSscl">0.00</td>
                                     <td></td>
                                 </tr>
                                 <tr class="tax-row">
-                                    <td colspan="8" class="text-end pe-3 small text-muted">
+                                    <td colspan="8" class="sum-span text-end pe-3 small text-muted">
                                         VAT <span id="vatPctDisplay" class="text-muted"></span>:
                                     </td>
                                     <td class="text-end pe-2 small text-muted" id="totalVat">0.00</td>
                                     <td></td>
                                 </tr>
                                 <tr class="table-primary">
-                                    <td colspan="8" class="text-end fw-bold pe-3">TOTAL:</td>
+                                    <td colspan="8" class="sum-span text-end fw-bold pe-3">TOTAL:</td>
                                     <td class="fw-bold text-end pe-2" id="grandTotal">0.00</td>
                                     <td></td>
                                 </tr>
@@ -1127,6 +1130,9 @@
     function syncTaxVisibility() {
         const show = taxApplicable();
         document.querySelectorAll('.tax-col, .tax-row').forEach(el => el.classList.toggle('d-none', !show));
+        // Keep the totals label colspan in step with the visible column count, so
+        // hiding the Tax Code column doesn't leave the charges footer misaligned.
+        document.querySelectorAll('#lineTable .sum-span').forEach(el => { el.colSpan = show ? 8 : 7; });
     }
     document.getElementById('taxApplicable')?.addEventListener('change', recalculate);
 

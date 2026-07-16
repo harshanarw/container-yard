@@ -152,6 +152,16 @@
                 <span class="info-value">{{ $estimate->inquiry->inquiry_no }}</span>
             </div>
             @endif
+            @if($estimate->yardJob)
+            <div class="info-row">
+                <span class="info-label">Job No.</span>
+                <span class="info-value">{{ $estimate->yardJob->job_no }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Job Type</span>
+                <span class="info-value">{{ $estimate->yardJob->jobType?->job_type_name ?? $estimate->yardJob->job_type_code }}</span>
+            </div>
+            @endif
         </div>
     </div>
 

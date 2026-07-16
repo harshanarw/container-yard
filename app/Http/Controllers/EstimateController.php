@@ -72,7 +72,7 @@ class EstimateController extends Controller
 
         $selectedInquiry   = $request->inquiry_id
             ? Inquiry::with(['container', 'customer', 'damages.locationCode', 'damages.componentCode',
-                             'damages.damageCode', 'damages.repairCode', 'equipmentType'])->find($request->inquiry_id)
+                             'damages.damageCode', 'damages.repairCode', 'equipmentType', 'yardJob.jobType'])->find($request->inquiry_id)
             : null;
 
         $selectedContainer = $request->container_id
@@ -228,7 +228,7 @@ class EstimateController extends Controller
     public function show(Estimate $estimate)
     {
         $estimate->load([
-            'container', 'customer', 'inquiry', 'lineItems.taxCode',
+            'container', 'customer', 'inquiry', 'lineItems.taxCode', 'yardJob.jobType',
             'createdBy', 'updatedBy', 'approvedBy', 'parentEstimate', 'revisions',
             'approvalActions.lineItem', 'approvalActions.actionedBy',
             'documents',
@@ -261,7 +261,7 @@ class EstimateController extends Controller
             ->with('customer')->orderBy('container_no')->get();
         $equipmentTypes = EquipmentType::active()->get();
 
-        $estimate->load(['lineItems.taxCode', 'equipmentType']);
+        $estimate->load(['lineItems.taxCode', 'equipmentType', 'yardJob.jobType']);
 
         $mrComponentCodes = MrCode::ofType('component')->active()->orderBy('sort_order')->get();
         $mrLocationCodes  = MrCode::ofType('location')->active()->orderBy('sort_order')->get();
@@ -594,7 +594,7 @@ class EstimateController extends Controller
     public function pdf(Estimate $estimate)
     {
         $estimate->load(['container', 'customer', 'inquiry', 'lineItems.componentCode',
-                         'lineItems.chargeCode', 'lineItems.taxCode', 'createdBy']);
+                         'lineItems.chargeCode', 'lineItems.taxCode', 'createdBy', 'yardJob.jobType']);
 
         return view('estimates.pdf', compact('estimate'));
     }

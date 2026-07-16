@@ -37,6 +37,9 @@
         <h4><i class="bi bi-tools me-2 text-primary"></i>Edit Estimate</h4>
         <p class="text-muted mb-0 small">Ref: <strong>{{ $estimate->estimate_no }}</strong>
             &nbsp;·&nbsp; {{ $estimate->estimate_date->format('d M Y') }}</p>
+        @if($estimate->yardJob)
+        <div class="mt-1">@include('partials.job-badge', ['job' => $estimate->yardJob, 'mode' => 'inline'])</div>
+        @endif
     </div>
 </div>
 
@@ -370,14 +373,14 @@
                             </tbody>
                             <tfoot class="table-light">
                                 <tr>
-                                    <td colspan="7" class="text-end fw-semibold pe-3">Subtotal:</td>
+                                    <td colspan="7" class="sum-span text-end fw-semibold pe-3">Subtotal:</td>
                                     <td class="fw-semibold text-end pe-2" id="subtotal">
                                         {{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}
                                     </td>
                                     <td></td>
                                 </tr>
                                 <tr class="tax-row">
-                                    <td colspan="7" class="text-end pe-3 small text-muted">
+                                    <td colspan="7" class="sum-span text-end pe-3 small text-muted">
                                         SSCL <span id="ssclPctDisplay" class="text-muted"></span>:
                                     </td>
                                     <td class="text-end pe-2 small text-muted" id="totalSscl">
@@ -386,7 +389,7 @@
                                     <td></td>
                                 </tr>
                                 <tr class="tax-row">
-                                    <td colspan="7" class="text-end pe-3 small text-muted">
+                                    <td colspan="7" class="sum-span text-end pe-3 small text-muted">
                                         VAT <span id="vatPctDisplay" class="text-muted"></span>:
                                     </td>
                                     <td class="text-end pe-2 small text-muted" id="totalVat">
@@ -395,7 +398,7 @@
                                     <td></td>
                                 </tr>
                                 <tr class="table-primary">
-                                    <td colspan="7" class="text-end fw-bold pe-3 fs-6">TOTAL:</td>
+                                    <td colspan="7" class="sum-span text-end fw-bold pe-3 fs-6">TOTAL:</td>
                                     <td class="fw-bold text-end pe-2 fs-6" id="grandTotal">
                                         {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}
                                     </td>
@@ -953,6 +956,9 @@
     function syncTaxVisibility() {
         const show = taxApplicable();
         document.querySelectorAll('.tax-col, .tax-row').forEach(el => el.classList.toggle('d-none', !show));
+        // Keep the totals label colspan in step with the visible column count, so
+        // hiding the Tax Code column doesn't leave the charges footer misaligned.
+        document.querySelectorAll('#lineTable .sum-span').forEach(el => { el.colSpan = show ? 7 : 6; });
     }
     document.getElementById('taxApplicable')?.addEventListener('change', recalculate);
 
