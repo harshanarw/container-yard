@@ -614,6 +614,9 @@ class EstimateController extends Controller
             'RPL' => 'replace', 'SLR' => 'replace', 'WLD' => 'weld',
             'STR' => 'straighten', 'TAP' => 'paint', 'CLN' => 'clean_and_treat',
             'PAT' => 'repair', 'GRD' => 'repair', 'BLT' => 'repair', 'INS' => 'repair',
+            // Extended CEDEX repair codes (Phase 2 M&R master expansion)
+            'CRP' => 'weld', 'IST' => 'weld', 'RSL' => 'repair',
+            'RFT' => 'repair', 'TGT' => 'repair', 'RCD' => 'repair',
         ];
 
         $customerId    = $inquiry->customer_id;
