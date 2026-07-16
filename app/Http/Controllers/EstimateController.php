@@ -753,6 +753,11 @@ class EstimateController extends Controller
             $washDate  = $request->get('date') ?: today()->toDateString();
             $present   = collect($lines)->pluck('wash_scope')->filter()->all();
 
+            // Roll washing up under a repair category like any other line — the
+            // existing clean_and_treat → "Cleaning & Treatment" (CLN) mapping.
+            $washCategory   = app(RepairCategoryResolver::class)->resolve(null, 'clean_and_treat');
+            $washCategoryId = $washCategory?->id;
+
             foreach ($scopes as $scope) {
                 if (in_array($scope, $present, true)) {
                     continue;
@@ -770,12 +775,14 @@ class EstimateController extends Controller
                     'tax2_rate'         => $w['tax2_rate'] ?? 0,
                     'washing_tariff_id' => $w['washing_tariff_id'] ?? null,
                     'wash_scope'        => $scope,
+                    'repair_category_id' => $washCategoryId,
                     'std_labor_hours'   => 0, 'labor_rate' => 0, 'labor_amount' => 0,
                     'material_qty'      => 0, 'material_rate' => 0, 'material_amount' => 0,
                     'ancillary_amount'  => 0,
                     '_location'         => 'Washing / Cleaning',
                     '_damage'           => ucfirst($scope) . ' wash',
                     '_severity'         => null,
+                    '_repair_category'  => $washCategory?->name,
                     '_tariff_matched'   => $w !== null,
                     '_washing'          => true,
                 ];

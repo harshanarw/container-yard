@@ -294,6 +294,14 @@
                     <span><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Survey Damages</span>
                     <span class="badge bg-warning text-dark">{{ $selectedInquiry->damages->count() }}</span>
                 </div>
+                @if($selectedInquiry->wash_required)
+                <div class="px-3 py-2 border-bottom bg-info-subtle small d-flex align-items-center gap-1">
+                    <i class="bi bi-droplet text-info"></i>
+                    <span class="fw-semibold">Washing:</span>
+                    <span class="badge bg-info-subtle text-info border">{{ ucfirst($selectedInquiry->wash_scope) }}</span>
+                    <span class="text-muted">{{ \App\Models\WashingTariff::TYPES[$selectedInquiry->wash_type] ?? ucfirst($selectedInquiry->wash_type ?? 'Standard') }}</span>
+                </div>
+                @endif
                 @if($selectedInquiry->damages->isEmpty())
                 <div class="card-body text-center text-muted small py-3">
                     <i class="bi bi-shield-check fs-4 d-block mb-1 text-success"></i>No damages recorded on this survey.

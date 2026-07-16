@@ -61,6 +61,11 @@ class EstimateWashingImportTest extends FeatureTestCase
         $this->assertTrue($wash->every(fn ($l) => (float) $l['unit_price'] > 0));
         $this->assertTrue($wash->every(fn ($l) => $l['_tariff_matched'] === true));
         $this->assertTrue($wash->every(fn ($l) => $l['repair_type'] === 'clean_and_treat'));
+
+        // Phase 3: washing rolls up under the Cleaning & Treatment (CLN) category.
+        $cln = \App\Models\RepairCategory::where('code', 'CLN')->value('id');
+        $this->assertNotNull($cln, 'CLN repair category should be seeded.');
+        $this->assertTrue($wash->every(fn ($l) => $l['repair_category_id'] === $cln));
     }
 
     public function test_single_scope_yields_one_line(): void
