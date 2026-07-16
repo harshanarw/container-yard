@@ -114,7 +114,17 @@ class DamageAssessmentRuleController extends Controller
             ->with('locationCode', 'componentCode', 'damageCode', 'repairCode');
 
         if ($request->filled('q')) {
-            $query->where('name', 'like', '%' . $request->q . '%');
+            // Match the rule name OR the related code names/codes, so a search for
+            // a damage/repair term (e.g. "Corrosion") finds rules whose name uses
+            // a synonym ("Rust") — and vice-versa.
+            $term = '%' . $request->q . '%';
+            $query->where(function ($w) use ($term) {
+                $w->where('name', 'like', $term)
+                    ->orWhereHas('damageCode',    fn ($q) => $q->where('name', 'like', $term)->orWhere('code', 'like', $term))
+                    ->orWhereHas('componentCode', fn ($q) => $q->where('name', 'like', $term)->orWhere('code', 'like', $term))
+                    ->orWhereHas('repairCode',    fn ($q) => $q->where('name', 'like', $term)->orWhere('code', 'like', $term))
+                    ->orWhereHas('locationCode',  fn ($q) => $q->where('name', 'like', $term)->orWhere('code', 'like', $term));
+            });
         }
         if ($request->filled('location_code_id')) {
             $query->where('location_code_id', $request->location_code_id);
