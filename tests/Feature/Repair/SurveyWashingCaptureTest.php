@@ -78,6 +78,8 @@ class SurveyWashingCaptureTest extends FeatureTestCase
             'inquiry_no'    => 'INQ-WASH1',
             'container_id'  => $container->id,
             'container_no'  => $container->container_no,
+            'size'          => $container->size,
+            'type_code'     => $container->type_code,
             'customer_id'   => $customer->id,
             'inquiry_type'  => 'condition_survey',
             'status'        => 'open',
