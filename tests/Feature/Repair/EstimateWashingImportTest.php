@@ -22,7 +22,7 @@ class EstimateWashingImportTest extends FeatureTestCase
         ]);
 
         return Inquiry::create([
-            'inquiry_no'    => 'INQ-' . strtoupper($scope) . '-' . uniqid(),
+            'inquiry_no'    => 'INQ-' . substr($scope, 0, 3),
             'container_id'  => $container->id,
             'container_no'  => $container->container_no,
             'size'          => $container->size,
