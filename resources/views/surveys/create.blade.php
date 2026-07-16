@@ -244,7 +244,7 @@
                                         <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrResponsibilityCodes as $c)
-                                                <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->code }}">{{ $c->code }}</option>
+                                                <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
                                         </select>
                                     </td>
@@ -696,7 +696,7 @@
     const mrCmpOpts  = @json($mrComponentCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
     const mrDmgOpts  = @json($mrDamageCodes->map(fn($c)    => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
     const mrRepOpts  = @json($mrRepairCodes->map(fn($c)    => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
-    const mrResOpts  = @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->code]));
+    const mrResOpts  = @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
 
     function buildSel(name, opts, codeOnly) {
         let html = `<select name="${name}" class="form-select form-select-sm s2 s2-code"><option value="">—</option>`;

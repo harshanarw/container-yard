@@ -231,7 +231,7 @@
                                         <select name="damages[{{ $di }}][responsibility_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrResponsibilityCodes as $c)
-                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->code }}" {{ $dmg->responsibility_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $dmg->responsibility_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
                                         </select>
                                     </td>
@@ -331,7 +331,7 @@
                                         <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm s2 s2-code">
                                             <option value="">—</option>
                                             @foreach($mrResponsibilityCodes as $c)
-                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->code }}">{{ $c->code }}</option>
+                                            <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
                                         </select>
                                     </td>
