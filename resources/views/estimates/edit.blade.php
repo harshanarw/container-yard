@@ -27,6 +27,10 @@
     #lineTable .bd-labor-amt,
     #lineTable .bd-material-amt,
     #lineTable .bd-ancillary-amt { width: 96px !important; }
+    /* Keep the row action buttons a fixed compact width so freeing the Tax Code
+       column (Tax Applicable = No) grows the content columns, not these. */
+    #lineTable .col-act { width: 46px; }
+    #lineTable .col-act > div { width: 34px; margin-inline: auto; }
 </style>
 @endpush
 
@@ -211,7 +215,7 @@
                                     <th style="width:10%">Unit Price</th>
                                     <th style="width:8%" class="tax-col">Tax Code</th>
                                     <th style="width:11%">Net Amount</th>
-                                    <th style="width:40px"></th>
+                                    <th class="col-act"></th>
                                 </tr>
                             </thead>
                             <tbody id="lineItems">
@@ -322,7 +326,7 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="pe-2">
+                                    <td class="pe-2 col-act">
                                         <div class="d-flex flex-column gap-1">
                                             <button type="button" class="btn btn-sm btn-outline-secondary btn-breakdown" title="Cost breakdown"><i class="bi bi-sliders2-vertical"></i></button>
                                             <button type="button" class="btn btn-sm btn-outline-danger remove-line">
@@ -1066,7 +1070,7 @@
                         <span class="line-vat-amt"></span>
                     </div>
                 </td>
-                <td class="pe-2">
+                <td class="pe-2 col-act">
                     <div class="d-flex flex-column gap-1">
                         <button type="button" class="btn btn-sm btn-outline-secondary btn-breakdown" title="Cost breakdown"><i class="bi bi-sliders2-vertical"></i></button>
                         <button type="button" class="btn btn-sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button>
@@ -1534,7 +1538,7 @@
                         <span class="line-vat-amt"></span>
                     </div>
                 </td>
-                <td class="pe-2">
+                <td class="pe-2 col-act">
                     <div class="d-flex flex-column gap-1">
                         <button type="button" class="btn btn-sm btn-outline-secondary btn-breakdown" title="Cost breakdown"><i class="bi bi-sliders2-vertical"></i></button>
                         <button type="button" class="btn btn-sm btn-outline-danger remove-line"><i class="bi bi-trash"></i></button>
