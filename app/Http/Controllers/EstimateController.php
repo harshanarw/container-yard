@@ -221,8 +221,41 @@ class EstimateController extends Controller
             return $estimate;
         });
 
+        // Make the customer approval link available immediately (no email needed).
+        $this->ensurePortalToken($estimate);
+
         return redirect()->route('estimates.show', $estimate)
             ->with('success', "Estimate {$estimate->estimate_no} created successfully.");
+    }
+
+    /**
+     * Ensure an active portal (approval) link exists for the estimate so it shows
+     * on the estimate view straight after saving — no email required. Returns the
+     * active token. Never resurrects a link the operator explicitly revoked: if a
+     * token was created before and is now revoked/expired, we leave it be.
+     */
+    private function ensurePortalToken(Estimate $estimate): ?PortalToken
+    {
+        $active = PortalToken::where('tokenable_type', Estimate::class)
+            ->where('tokenable_id', $estimate->id)
+            ->whereNull('revoked_at')
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->latest()
+            ->first();
+
+        if ($active) {
+            return $active;
+        }
+
+        // A prior token (revoked or expired) means the operator has already
+        // managed the link — don't auto-recreate one behind their back.
+        if (PortalToken::where('tokenable_type', Estimate::class)->where('tokenable_id', $estimate->id)->exists()) {
+            return null;
+        }
+
+        $email = $estimate->customer?->email ?: ($estimate->send_to_email ?: '');
+
+        return PortalToken::generate($estimate, (string) $email, 30);
     }
 
     public function show(Estimate $estimate)
@@ -238,14 +271,9 @@ class EstimateController extends Controller
         $hasUnassignedLines = $estimate->status === 'approved'
             && $estimate->lineItems()->whereDoesntHave('workOrderLine')->exists();
 
-        $activeToken = PortalToken::where('tokenable_type', Estimate::class)
-            ->where('tokenable_id', $estimate->id)
-            ->whereNull('revoked_at')
-            ->where(function ($q) {
-                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            })
-            ->latest()
-            ->first();
+        // Surfaces the approval link on the view — creating one on first view for
+        // estimates saved before this behaviour existed (respecting any revoke).
+        $activeToken = $this->ensurePortalToken($estimate);
 
         return view('estimates.show', compact('estimate', 'activeToken', 'hasUnassignedLines'));
     }
