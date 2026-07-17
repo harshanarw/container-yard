@@ -539,8 +539,16 @@ class YardController extends Controller
         $redirect = redirect()->route('yard.movements.gate-pass', $movement)
             ->with('gp_note', $gpNote);
 
+        // Surface any soft warnings together (photo save + ISO 6346 check digit).
+        $warnings = [];
         if ($photoError) {
-            $redirect->with('warning', $photoError);
+            $warnings[] = $photoError;
+        }
+        if (! \App\Support\Iso6346::checkDigitValid($container->container_no)) {
+            $warnings[] = "Container {$container->container_no} fails the ISO 6346 check digit — please verify it against the box.";
+        }
+        if ($warnings) {
+            $redirect->with('warning', implode('  ', $warnings));
         }
 
         return $redirect;

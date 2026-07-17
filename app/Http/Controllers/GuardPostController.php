@@ -125,8 +125,17 @@ class GuardPostController extends Controller
 
         $capture = GuardCapture::create($data);
 
-        return redirect()->route('guard-post.status', $capture)
+        $redirect = redirect()->route('guard-post.status', $capture)
             ->with('success', "Capture {$capture->reference_no} submitted. Waiting for clearance.");
+
+        // Soft check-digit warning: the shape is already valid (form rule), but a
+        // wrong ISO 6346 check digit usually means an OCR/typo slip — flag it so
+        // the ops desk double-checks, without blocking the capture.
+        if ($capture->container_number && ! \App\Support\Iso6346::checkDigitValid($capture->container_number)) {
+            $redirect->with('warning', "Container number {$capture->container_number} fails the ISO 6346 check digit — please verify it against the box.");
+        }
+
+        return $redirect;
     }
 
     // ─── Status display ───────────────────────────────────────────────────────
