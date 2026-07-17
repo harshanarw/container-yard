@@ -277,7 +277,7 @@
         /* ══ Level 3 — Leaf nav items ════════════════════════════════════
            Transparent background → most recessed, the bare sidebar base.
            Hover adds a subtle white tint (consistent lightening direction). */
-        .nav-item a.nav-link {
+        #sidebar .nav-item a.nav-link {
             color: rgba(255,255,255,.62);
             display: flex;
             align-items: center;
@@ -288,21 +288,21 @@
             white-space: nowrap;
             overflow: hidden;
         }
-        .nav-item a.nav-link i { font-size: 1rem; flex-shrink: 0; min-width: 22px; text-align: center; }
-        .nav-item a.nav-link span { font-size: .83rem; }
-        .nav-item a.nav-link:hover {
+        #sidebar .nav-item a.nav-link i { font-size: 1rem; flex-shrink: 0; min-width: 22px; text-align: center; }
+        #sidebar .nav-item a.nav-link span { font-size: .83rem; }
+        #sidebar .nav-item a.nav-link:hover {
             color: rgba(255,255,255,.95);
             background: rgba(255,255,255,.10);
             border-left-color: rgba(255,255,255,.28);
         }
-        .nav-item a.nav-link.active {
+        #sidebar .nav-item a.nav-link.active {
             color: #fff;
             background: rgba(255,255,255,.16);
             border-left-color: var(--primary);
             font-weight: 600;
         }
 
-        .nav-item.sub-item a.nav-link { padding-left: 42px; }
+        #sidebar .nav-item.sub-item a.nav-link { padding-left: 42px; }
         #sidebar.collapsed .nav-sub-toggle { display: none; }
         #sidebar.collapsed .nav-item.sub-item a.nav-link { padding-left: 20px; }
 
@@ -398,26 +398,28 @@
         }
         .nav-tabs .nav-link {
             font-size: .82rem;
-            font-weight: 500;
-            color: #495057;
-            background-color: #e9ecef;
+            font-weight: 600;
+            color: #3f4650;
+            background-color: #eef1f4;
             border: 1px solid #dee2e6;
             border-bottom: none;
             border-radius: 6px 6px 0 0;
-            padding: .45rem 1rem;
+            padding: .45rem 1.05rem;
             transition: color .15s, background-color .15s, border-color .15s;
         }
         .nav-tabs .nav-link:hover:not(.active) {
-            color: #1565c0;
-            background-color: #dbeafe;
-            border-color: #90caf9 #90caf9 transparent;
+            color: #0d47a1;
+            background-color: #e2ecfb;
+            border-color: #c9dcf7 #c9dcf7 transparent;
         }
         .nav-tabs .nav-link.active {
-            color: #0d47a1;
+            color: var(--primary);
             font-weight: 700;
-            background-color: #e3f2fd;
-            border-color: #90caf9;
+            background-color: #fff;
+            border-color: #dee2e6;
             border-top: 3px solid var(--primary);
+            border-bottom: 2px solid #fff;
+            margin-bottom: -2px;
             padding-top: calc(.45rem - 2px);
         }
 
