@@ -33,6 +33,12 @@ class GuardCaptureValidationTest extends FeatureTestCase
 
     public function test_valid_format_but_bad_check_digit_saves_with_a_warning(): void
     {
+        // ── TEMP DIAGNOSTIC (pre-POST flag state) ────────────────────────
+        fwrite(STDERR, "\n[DIAG2] db_flag=" . var_export(\Illuminate\Support\Facades\DB::table('company_settings')->value('enable_guard_post'), true)
+            . " row_count=" . \Illuminate\Support\Facades\DB::table('company_settings')->count()
+            . " current_flag=" . var_export(\App\Models\CompanySetting::current()->enable_guard_post, true) . "\n");
+        // ─────────────────────────────────────────────────────────────────
+
         // Correct shape, wrong check digit (should be 3, not 4).
         $res = $this->post(route('guard-post.store'), [
             'direction'        => 'gate_in',
