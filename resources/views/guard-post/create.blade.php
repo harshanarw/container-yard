@@ -71,10 +71,10 @@
                                placeholder="XXXX0000000" maxlength="11" autocomplete="off">
                         <div id="containerCheckDigitWarn" class="mt-1 d-none">
                             <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fbbf24;font-size:.72rem;">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Check digit not confirmed — please verify number
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid ISO 6346 check digit — please re-check the number
                             </span>
                         </div>
-                        <div class="form-text">Filled automatically by OCR — edit if incorrect</div>
+                        <div class="form-text">Type the number, or attach a container photo to read it automatically.</div>
                     </div>
                     <div>
                         <label class="form-label fw-semibold small">ISO Type Code</label>
