@@ -74,7 +74,7 @@
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid ISO 6346 check digit — please re-check the number
                             </span>
                         </div>
-                        <div class="form-text">Type the number, or attach a container photo to read it automatically.</div>
+                        <div class="form-text" id="containerHelp">Type the number, or attach a container photo to read it automatically.</div>
                     </div>
                     <div>
                         <label class="form-label fw-semibold small">ISO Type Code</label>
@@ -348,6 +348,7 @@ document.getElementById('containerImage').addEventListener('change', async funct
         if (data.success && data.container_no) {
             document.getElementById('containerNumber').value = data.container_no;
             if (data.iso_type) document.getElementById('isoCode').value = data.iso_type;
+            setContainerHelp('Filled automatically by OCR — edit if incorrect.');
             const warn = document.getElementById('containerCheckDigitWarn');
 
             if (data.check_digit_valid === false) {
@@ -370,6 +371,7 @@ document.getElementById('containerImage').addEventListener('change', async funct
             }
         } else {
             document.getElementById('containerCheckDigitWarn').classList.add('d-none');
+            setContainerHelp();     // OCR didn't fill → keep the neutral hint
             setOcrOverlay('ocrOverlayContainer', 'boxContainerImage', 'warn',
                 '<i class="bi bi-exclamation-triangle-fill fs-2"></i>' +
                 '<span>Could not read</span>' +
@@ -379,6 +381,7 @@ document.getElementById('containerImage').addEventListener('change', async funct
                 '<i class="bi bi-exclamation-triangle me-1"></i>Could not read number — enter manually</span>');
         }
     } catch (e) {
+        setContainerHelp();         // OCR errored → keep the neutral hint
         setOcrOverlay('ocrOverlayContainer', 'boxContainerImage', 'err',
             '<i class="bi bi-x-circle-fill fs-2"></i><span>OCR failed</span>');
         setOcrStatus('ocrStatus',
@@ -412,10 +415,17 @@ document.getElementById('containerImage').addEventListener('change', async funct
             if (out.length >= 11) break;
         }
         this.value = out;
+        setContainerHelp();          // manual typing → revert the OCR hint to neutral
         checkContainerDigit();
     });
     inp.addEventListener('blur', checkContainerDigit);
 })();
+
+// Container-number help line: OCR sets its own message; typing reverts to neutral.
+function setContainerHelp(text) {
+    const el = document.getElementById('containerHelp');
+    if (el) el.textContent = text || 'Type the number, or attach a container photo to read it automatically.';
+}
 
 // Live ISO 6346 check-digit warning for the manually-typed number.
 function isoCheckDigitValid(no) {
