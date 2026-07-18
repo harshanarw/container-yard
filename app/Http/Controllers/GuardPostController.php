@@ -84,24 +84,33 @@ class GuardPostController extends Controller
             $data['container_image_path'] = $request->file('container_image')
                 ->store('guard-captures/containers', 'public');
 
-            // Auto-OCR if no manual container number
-            if (!$request->filled('container_number')) {
-                try {
-                    $ocr = $this->ocr->extractFromImage($request->file('container_image'));
-                    if ($ocr['container_no']) {
-                        $data['ocr_container_no'] = $ocr['container_no'];
+            // Run OCR whenever there's an image — a manually-typed number no longer
+            // suppresses it, so the ISO type code and weights are still captured.
+            try {
+                $ocr = $this->ocr->extractFromImage($request->file('container_image'));
+                if ($ocr['container_no']) {
+                    $data['ocr_container_no'] = $ocr['container_no'];
+                    if (! $request->filled('container_number')) {
                         $data['container_number'] = $ocr['container_no'];
-                        if ($ocr['iso_type']) {
-                            $data['iso_code'] = $ocr['iso_type'];
-                        }
                     }
-                } catch (\Throwable) {
-                    // OCR failure is non-fatal
                 }
+                if ($ocr['iso_type'] && ! $request->filled('iso_code')) {
+                    $data['iso_code'] = $ocr['iso_type'];
+                }
+                if (! empty($ocr['tare_kg']))      $data['tare_kg']      = $ocr['tare_kg'];
+                if (! empty($ocr['max_gross_kg'])) $data['max_gross_kg'] = $ocr['max_gross_kg'];
+            } catch (\Throwable) {
+                // OCR failure is non-fatal
             }
         }
         $data['container_number'] ??= $request->container_number;
         $data['iso_code']         ??= $request->iso_code;
+
+        // Resolve the equipment type from the final ISO size/type code (typed or
+        // OCR-read), so the capture — and the gate-in hand-off — carry a real type.
+        if (! empty($data['iso_code'])) {
+            $data['equipment_type_id'] = \App\Models\EquipmentType::where('iso_code', $data['iso_code'])->value('id');
+        }
 
         // Vehicle
         if ($request->hasFile('plate_image')) {
@@ -174,13 +183,31 @@ class GuardPostController extends Controller
             'image' => ['required', 'file', 'image', 'max:10240'],
         ]);
 
+        // Tell the UI plainly when OCR can't run on this host, so it shows a
+        // "not available — enter manually" state rather than "could not read".
+        if (! $this->ocr->isAvailable()) {
+            return response()->json(['available' => false, 'success' => false]);
+        }
+
         $result = $this->ocr->extractFromImage($request->file('image'));
 
+        $eqt = $result['iso_type']
+            ? \App\Models\EquipmentType::where('iso_code', $result['iso_type'])->first()
+            : null;
+
         return response()->json([
+            'available'         => true,
             'success'           => $result['container_no'] !== null,
             'container_no'      => $result['container_no'],
             'iso_type'          => $result['iso_type'],
             'check_digit_valid' => $result['check_digit_valid'],
+            'tare_kg'           => $result['tare_kg'],
+            'max_gross_kg'      => $result['max_gross_kg'],
+            'equipment'         => $eqt ? [
+                'code'      => $eqt->eqt_code,
+                'size'      => $eqt->size,
+                'type_code' => $eqt->type_code,
+            ] : null,
         ]);
     }
 

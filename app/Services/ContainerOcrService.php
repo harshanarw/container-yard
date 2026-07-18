@@ -424,6 +424,29 @@ class ContainerOcrService
         return escapeshellarg(env('TESSERACT_PATH', 'tesseract'));
     }
 
+    /**
+     * Whether the Tesseract binary is actually runnable on this host. Cached for
+     * the request so the UI can say "OCR unavailable — enter details manually"
+     * instead of failing silently. Returns false if proc_open/shell are disabled.
+     */
+    private ?bool $available = null;
+
+    public function isAvailable(): bool
+    {
+        if ($this->available !== null) {
+            return $this->available;
+        }
+
+        if (! function_exists('shell_exec')
+            || in_array('shell_exec', array_map('trim', explode(',', (string) ini_get('disable_functions'))), true)) {
+            return $this->available = false;
+        }
+
+        $out = @shell_exec($this->tesseractBin() . ' --version 2>&1');
+
+        return $this->available = is_string($out) && stripos($out, 'tesseract') !== false;
+    }
+
 
     /**
      * Extract a container number by trying candidates in quality order.

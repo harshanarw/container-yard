@@ -82,6 +82,7 @@
                                class="form-control font-monospace"
                                value="{{ old('iso_code') }}"
                                placeholder="e.g. 22G1" maxlength="10">
+                        <div class="form-text d-none mt-1" id="ocrExtra"></div>
                     </div>
                 </div>
             </div>
@@ -345,11 +346,34 @@ document.getElementById('containerImage').addEventListener('change', async funct
         const res  = await fetch('{{ route('guard-post.ocr-scan') }}', { method: 'POST', body: fd });
         const data = await res.json();
 
+        document.getElementById('ocrExtra')?.classList.add('d-none');
+
+        // OCR engine not installed on the server — say so plainly.
+        if (data.available === false) {
+            document.getElementById('containerCheckDigitWarn').classList.add('d-none');
+            setContainerHelp();
+            setOcrOverlay('ocrOverlayContainer', 'boxContainerImage', 'warn',
+                '<i class="bi bi-info-circle-fill fs-2"></i>' +
+                '<span>OCR not available</span>' +
+                '<span style="font-size:.72rem;font-weight:400;">Enter number manually</span>');
+            setOcrStatus('ocrStatus',
+                '<span class="badge bg-secondary-subtle text-secondary-emphasis border px-2 py-1">' +
+                '<i class="bi bi-info-circle me-1"></i>Photo saved. OCR is not available on this server — enter the details manually.</span>');
+            return;
+        }
+
         if (data.success && data.container_no) {
             document.getElementById('containerNumber').value = data.container_no;
             if (data.iso_type) document.getElementById('isoCode').value = data.iso_type;
             setContainerHelp('Filled automatically by OCR — edit if incorrect.');
             const warn = document.getElementById('containerCheckDigitWarn');
+            // Show the resolved equipment type + weights when OCR found them.
+            const bits = [];
+            if (data.equipment) bits.push('Type: <strong>' + data.equipment.size + data.equipment.type_code + '</strong>');
+            if (data.tare_kg)      bits.push('Tare ' + data.tare_kg + ' kg');
+            if (data.max_gross_kg) bits.push('Max gross ' + data.max_gross_kg + ' kg');
+            const extraEl = document.getElementById('ocrExtra');
+            if (extraEl) { extraEl.innerHTML = bits.join(' &middot; '); extraEl.classList.toggle('d-none', bits.length === 0); }
 
             if (data.check_digit_valid === false) {
                 warn.classList.remove('d-none');

@@ -9,7 +9,8 @@ class GuardCapture extends Model
 {
     protected $fillable = [
         'reference_no', 'direction', 'status',
-        'container_image_path', 'container_number', 'iso_code', 'ocr_container_no',
+        'container_image_path', 'container_number', 'iso_code', 'equipment_type_id',
+        'tare_kg', 'max_gross_kg', 'ocr_container_no',
         'plate_image_path', 'vehicle_number', 'vehicle_type', 'ocr_vehicle_no',
         'nic_front_path', 'nic_back_path', 'license_front_path',
         'driver_name', 'nic_number', 'driver_phone',
@@ -115,5 +116,10 @@ class GuardCapture extends Model
     public function linkedGateMovement()
     {
         return $this->belongsTo(GateMovement::class, 'linked_gate_movement_id');
+    }
+
+    public function equipmentType()
+    {
+        return $this->belongsTo(EquipmentType::class);
     }
 }
