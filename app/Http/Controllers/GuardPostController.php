@@ -130,9 +130,12 @@ class GuardPostController extends Controller
 
         // Soft check-digit warning: the shape is already valid (form rule), but a
         // wrong ISO 6346 check digit usually means an OCR/typo slip — flag it so
-        // the ops desk double-checks, without blocking the capture.
-        if ($capture->container_number && ! \App\Support\Iso6346::checkDigitValid($capture->container_number)) {
-            $redirect->with('warning', "Container number {$capture->container_number} fails the ISO 6346 check digit — please verify it against the box.");
+        // the ops desk double-checks, without blocking the capture. Computed from
+        // the submitted (normalised) number so it doesn't depend on how the model
+        // stored/derived container_number.
+        $cno = \App\Support\Iso6346::normalize($request->input('container_number', ''));
+        if ($cno !== '' && ! \App\Support\Iso6346::checkDigitValid($cno)) {
+            $redirect->with('warning', "Container number {$cno} fails the ISO 6346 check digit — please verify it against the box.");
         }
 
         return $redirect;
