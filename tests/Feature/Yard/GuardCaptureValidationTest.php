@@ -34,10 +34,21 @@ class GuardCaptureValidationTest extends FeatureTestCase
     public function test_valid_format_but_bad_check_digit_saves_with_a_warning(): void
     {
         // Correct shape, wrong check digit (should be 3, not 4).
-        $this->post(route('guard-post.store'), [
+        $res = $this->post(route('guard-post.store'), [
             'direction'        => 'gate_in',
             'container_number' => 'CSQU3054384',
-        ])->assertSessionHasNoErrors()->assertSessionHas('warning');
+        ]);
+
+        // ── TEMP DIAGNOSTIC ──────────────────────────────────────────────
+        fwrite(STDERR, "\n[DIAG] status=" . $res->getStatusCode()
+            . " redirect=" . ($res->headers->get('Location') ?? '-')
+            . " cd_valid=" . var_export(\App\Support\Iso6346::checkDigitValid('CSQU3054384'), true)
+            . " warning=" . var_export(session('warning'), true)
+            . " capture_cno=" . var_export(\App\Models\GuardCapture::latest('id')->value('container_number'), true)
+            . "\n");
+        // ─────────────────────────────────────────────────────────────────
+
+        $res->assertSessionHasNoErrors()->assertSessionHas('warning');
 
         $this->assertDatabaseHas('guard_captures', ['container_number' => 'CSQU3054384']);
     }
