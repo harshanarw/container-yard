@@ -68,7 +68,7 @@
                         <input type="text" name="container_number" id="containerNumber"
                                class="form-control font-monospace text-uppercase"
                                value="{{ old('container_number') }}"
-                               placeholder="XXXX0000000" maxlength="20" autocomplete="off">
+                               placeholder="XXXX0000000" maxlength="11" autocomplete="off">
                         <div id="containerCheckDigitWarn" class="mt-1 d-none">
                             <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fbbf24;font-size:.72rem;">
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>Check digit not confirmed — please verify number
@@ -386,6 +386,56 @@ document.getElementById('containerImage').addEventListener('change', async funct
             '<i class="bi bi-x-circle me-1"></i>OCR failed — enter manually</span>');
     }
 });
+
+// ── Container number: enforce ISO 6346 shape while typing (like the gate form) ─
+(function () {
+    const inp = document.getElementById('containerNumber');
+    if (!inp) return;
+
+    // Block invalid keys: letters only in positions 0-3, digits only in 4-10, cap 11.
+    inp.addEventListener('keydown', function (e) {
+        const ctrl = e.ctrlKey || e.metaKey;
+        const nav  = ['Backspace','Delete','ArrowLeft','ArrowRight','Home','End','Tab','Enter'].includes(e.key);
+        if (ctrl || nav) return;
+        const pos = this.selectionStart, sel = this.selectionEnd;
+        if (this.value.length >= 11 && pos === sel) { e.preventDefault(); return; }
+        if (pos < 4) { if (!/^[A-Za-z]$/.test(e.key)) e.preventDefault(); }
+        else         { if (!/^[0-9]$/.test(e.key))     e.preventDefault(); }
+    });
+    // Uppercase + keep only 4 letters then 7 digits (handles paste too).
+    inp.addEventListener('input', function () {
+        const raw = this.value.toUpperCase();
+        let out = '', letters = 0, digits = 0;
+        for (let i = 0; i < raw.length; i++) {
+            if (letters < 4 && /[A-Z]/.test(raw[i])) { out += raw[i]; letters++; }
+            else if (letters === 4 && digits < 7 && /[0-9]/.test(raw[i])) { out += raw[i]; digits++; }
+            if (out.length >= 11) break;
+        }
+        this.value = out;
+        checkContainerDigit();
+    });
+    inp.addEventListener('blur', checkContainerDigit);
+})();
+
+// Live ISO 6346 check-digit warning for the manually-typed number.
+function isoCheckDigitValid(no) {
+    if (!/^[A-Z]{4}[0-9]{7}$/.test(no)) return null;
+    const v = {A:10,B:12,C:13,D:14,E:15,F:16,G:17,H:18,I:19,J:20,K:21,L:23,M:24,
+               N:25,O:26,P:27,Q:28,R:29,S:30,T:31,U:32,V:34,W:35,X:36,Y:37,Z:38};
+    let sum = 0;
+    for (let i = 0; i < 10; i++) {
+        const ch = no[i];
+        sum += (/[A-Z]/.test(ch) ? v[ch] : parseInt(ch, 10)) * Math.pow(2, i);
+    }
+    return (sum % 11) % 10 === parseInt(no[10], 10);
+}
+function checkContainerDigit() {
+    const inp  = document.getElementById('containerNumber');
+    const warn = document.getElementById('containerCheckDigitWarn');
+    if (!inp || !warn) return;
+    // Show only when the number is complete (11 chars) and the check digit is wrong.
+    warn.classList.toggle('d-none', isoCheckDigitValid(inp.value.trim().toUpperCase()) !== false);
+}
 
 // ── Plate OCR ─────────────────────────────────────────────────────────────────
 
