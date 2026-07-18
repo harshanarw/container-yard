@@ -4,6 +4,7 @@ namespace Tests\Feature\Yard;
 
 use App\Models\CompanySetting;
 use App\Models\GuardCapture;
+use Illuminate\Support\Facades\DB;
 use Tests\Support\FeatureTestCase;
 
 /**
@@ -16,8 +17,11 @@ class GuardCaptureValidationTest extends FeatureTestCase
     {
         parent::setUp();
         $this->actingAsSystemAdmin();
-        $cs = CompanySetting::current();
-        $cs->update(['enable_guard_post' => true]);
+
+        // Enable the Guard Post feature directly on the DB row (a direct update
+        // hits the real row regardless of the cached settings model), then bust
+        // the settings cache so the request reads the new value.
+        DB::table('company_settings')->update(['enable_guard_post' => true]);
         CompanySetting::flushCache();
     }
 
@@ -33,28 +37,11 @@ class GuardCaptureValidationTest extends FeatureTestCase
 
     public function test_valid_format_but_bad_check_digit_saves_with_a_warning(): void
     {
-        // ── TEMP DIAGNOSTIC (pre-POST flag state) ────────────────────────
-        fwrite(STDERR, "\n[DIAG2] db_flag=" . var_export(\Illuminate\Support\Facades\DB::table('company_settings')->value('enable_guard_post'), true)
-            . " row_count=" . \Illuminate\Support\Facades\DB::table('company_settings')->count()
-            . " current_flag=" . var_export(\App\Models\CompanySetting::current()->enable_guard_post, true) . "\n");
-        // ─────────────────────────────────────────────────────────────────
-
         // Correct shape, wrong check digit (should be 3, not 4).
-        $res = $this->post(route('guard-post.store'), [
+        $this->post(route('guard-post.store'), [
             'direction'        => 'gate_in',
             'container_number' => 'CSQU3054384',
-        ]);
-
-        // ── TEMP DIAGNOSTIC ──────────────────────────────────────────────
-        fwrite(STDERR, "\n[DIAG] status=" . $res->getStatusCode()
-            . " redirect=" . ($res->headers->get('Location') ?? '-')
-            . " cd_valid=" . var_export(\App\Support\Iso6346::checkDigitValid('CSQU3054384'), true)
-            . " warning=" . var_export(session('warning'), true)
-            . " capture_cno=" . var_export(\App\Models\GuardCapture::latest('id')->value('container_number'), true)
-            . "\n");
-        // ─────────────────────────────────────────────────────────────────
-
-        $res->assertSessionHasNoErrors()->assertSessionHas('warning');
+        ])->assertSessionHasNoErrors()->assertSessionHas('warning');
 
         $this->assertDatabaseHas('guard_captures', ['container_number' => 'CSQU3054384']);
     }
