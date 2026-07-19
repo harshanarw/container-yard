@@ -106,6 +106,12 @@ class GateMovement extends Model
         return $this->belongsTo(Container::class);
     }
 
+    /** The Guard Post capture this movement was promoted from, if any. */
+    public function guardCapture()
+    {
+        return $this->hasOne(\App\Models\GuardCapture::class, 'linked_gate_movement_id');
+    }
+
     public function customer()
     {
         return $this->belongsTo(Customer::class);

@@ -144,19 +144,28 @@ class YardController extends Controller
         $guardCapture = null;
         $prefill      = null;
         if ($request->filled('capture_id')) {
-            $guardCapture = GuardCapture::with(['capturedBy', 'clearedBy'])->find($request->capture_id);
+            $guardCapture = GuardCapture::with(['capturedBy', 'clearedBy', 'equipmentType'])->find($request->capture_id);
             if ($guardCapture && $guardCapture->isCleared() && !$guardCapture->linked_gate_movement_id) {
                 $prefill = [
-                    'capture_id'      => $guardCapture->id,
-                    'container_no'    => $guardCapture->container_number,
-                    'iso_code'        => $guardCapture->iso_code,
-                    'vehicle_plate'   => $guardCapture->vehicle_number,
-                    'driver_name'     => $guardCapture->driver_name,
-                    'driver_ic'       => $guardCapture->nic_number,
-                    'driver_phone'    => $guardCapture->driver_phone,
-                    'reference_no'    => $guardCapture->reference_no,
-                    'container_image' => $guardCapture->container_image_url,
+                    'capture_id'        => $guardCapture->id,
+                    'container_no'      => $guardCapture->container_number,
+                    'iso_code'          => $guardCapture->iso_code,
+                    // Exact equipment type resolved at capture (Phase 2) — the gate
+                    // form preselects it directly instead of re-matching the ISO.
+                    'equipment_type_id' => $guardCapture->equipment_type_id,
+                    'vehicle_plate'     => $guardCapture->vehicle_number,
+                    'driver_name'       => $guardCapture->driver_name,
+                    'driver_ic'         => $guardCapture->nic_number,
+                    'driver_phone'      => $guardCapture->driver_phone,
+                    'reference_no'      => $guardCapture->reference_no,
+                    'container_image'   => $guardCapture->container_image_url,
                 ];
+
+                // Gate-out of a container the yard doesn't have on record — flag it
+                // so the operator is warned before trying to release it.
+                if ($guardCapture->direction === 'gate_out' && $guardCapture->container_number) {
+                    $prefill['container_missing'] = ! Container::where('container_no', $guardCapture->container_number)->exists();
+                }
             }
         }
 

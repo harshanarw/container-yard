@@ -778,6 +778,11 @@
                     <input type="hidden" name="guard_capture_id" value="{{ $prefill['capture_id'] }}">
                     @endif
 
+                    <div id="gateOutMissingWarn" class="alert alert-warning py-2 small d-none">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        This container from the guard capture isn't on record in the yard — verify it before releasing.
+                    </div>
+
                     {{-- ── Guard Post Verification Panel (Gate Out) ──────────── --}}
                     @if(isset($guardCapture) && $guardCapture && $guardCapture->direction === 'gate_out')
                     @php
@@ -2961,25 +2966,35 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         setField(inForm, 'driver_ic',     prefill.driver_ic);
         setField(inForm, 'driver_phone',  prefill.driver_phone);
 
-        // Equipment type from Guard Post ISO code.
-        // findEqtByIso / preselectEqt live inside the OCR IIFE and are out of scope
-        // here, so the option scan and select-set are inlined.
-        if (prefill.iso_code) {
-            const eqtSel = document.getElementById('gateEqtSelect');
-            const upper  = prefill.iso_code.toUpperCase();
-            let   eqtId  = null;
-            for (const opt of eqtSel ? eqtSel.options : []) {
-                if (opt.dataset.iso && opt.dataset.iso.toUpperCase() === upper) { eqtId = opt.value; break; }
-            }
-            if (eqtId) {
-                if (typeof $ !== 'undefined') {
-                    $(eqtSel).val(eqtId).trigger('change');
-                } else {
-                    eqtSel.value = eqtId;
-                    eqtSel.dispatchEvent(new Event('change'));
-                }
+        // Equipment type: prefer the exact id resolved at capture (Phase 2); fall
+        // back to matching the ISO code against the option list.
+        const eqtSel = document.getElementById('gateEqtSelect');
+        let eqtId = null;
+        if (prefill.equipment_type_id && eqtSel) {
+            for (const opt of eqtSel.options) {
+                if (String(opt.value) === String(prefill.equipment_type_id)) { eqtId = opt.value; break; }
             }
         }
+        if (!eqtId && prefill.iso_code && eqtSel) {
+            const upper = prefill.iso_code.toUpperCase();
+            for (const opt of eqtSel.options) {
+                if (opt.dataset.iso && opt.dataset.iso.toUpperCase() === upper) { eqtId = opt.value; break; }
+            }
+        }
+        if (eqtId) {
+            if (typeof $ !== 'undefined') {
+                $(eqtSel).val(eqtId).trigger('change');
+            } else {
+                eqtSel.value = eqtId;
+                eqtSel.dispatchEvent(new Event('change'));
+            }
+        }
+    }
+
+    // Gate-out of a container the yard has no record of — warn the operator.
+    if (prefill.container_missing) {
+        const el = document.getElementById('gateOutMissingWarn');
+        if (el) el.classList.remove('d-none');
     }
 })();
 
