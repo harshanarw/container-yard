@@ -235,8 +235,27 @@
                             </select>
                         </div>
                         <div class="col-4">
-                            <label class="form-label fw-semibold">Seal Number</label>
+                            <label class="form-label fw-semibold">Seal Number
+                                @if($companySetting?->require_seal_for_laden)
+                                <span class="text-danger" id="sealReqStarIn" style="display:none;">*</span>
+                                @endif
+                            </label>
                             <input type="text" name="seal_no" id="sealNoIn" class="form-control" placeholder="Optional">
+                            @if($companySetting?->require_seal_for_laden)
+                            <div class="mt-2 d-none" id="noSealWrapIn">
+                                <label class="form-label fw-semibold small mb-1">No-seal reason
+                                    <span class="text-muted fw-normal">— required for a laden box with no seal</span>
+                                </label>
+                                <select name="no_seal_reason" id="noSealReasonIn" class="form-select form-select-sm">
+                                    <option value="">— Select reason —</option>
+                                    <option value="lcl">LCL / groupage</option>
+                                    <option value="customs_exam">Customs examination</option>
+                                    <option value="broken_missing">Seal broken / missing</option>
+                                    <option value="special_equipment">Special equipment (flat rack / open top / tank)</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            @endif
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Container Grade</label>
@@ -804,7 +823,23 @@
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label fw-semibold">Seal Number</label>
-                                    <input type="text" name="seal_no" class="form-control" placeholder="Optional">
+                                    <input type="text" name="seal_no" id="sealNoOut" class="form-control" placeholder="Optional">
+                                    @if($companySetting?->require_seal_for_laden)
+                                    <div class="form-text">A laden release needs a seal number, or a no-seal reason below.</div>
+                                    <div class="mt-2" id="noSealWrapOut">
+                                        <label class="form-label fw-semibold small mb-1">No-seal reason
+                                            <span class="text-muted fw-normal">— only if a laden box has no seal</span>
+                                        </label>
+                                        <select name="no_seal_reason" id="noSealReasonOut" class="form-select form-select-sm">
+                                            <option value="">— Select reason —</option>
+                                            <option value="lcl">LCL / groupage</option>
+                                            <option value="customs_exam">Customs examination</option>
+                                            <option value="broken_missing">Seal broken / missing</option>
+                                            <option value="special_equipment">Special equipment (flat rack / open top / tank)</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -2853,6 +2888,29 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         if (e.key === 'ArrowLeft')  show(current - 1);
         if (e.key === 'ArrowRight') show(current + 1);
     }
+})();
+
+// ── Seal requirement (laden) — reveal the no-seal reason on the gate-in form ───
+// Only present when the company enabled require_seal_for_laden. Server-side
+// validation is the source of truth; this just guides the operator.
+(function () {
+    const cargo = document.getElementById('cargoStatusIn');
+    const seal  = document.getElementById('sealNoIn');
+    const wrap  = document.getElementById('noSealWrapIn');
+    const star  = document.getElementById('sealReqStarIn');
+    if (!cargo || !wrap) return; // policy off → elements absent
+
+    function sync() {
+        const laden = cargo.value === 'laden';
+        if (star) star.style.display = laden ? '' : 'none';
+        // Show the reason picker only when it's actually needed: laden + no seal.
+        const needReason = laden && !(seal && seal.value.trim());
+        wrap.classList.toggle('d-none', !needReason);
+        if (!needReason) { const r = document.getElementById('noSealReasonIn'); if (r) r.value = ''; }
+    }
+    cargo.addEventListener('change', sync);
+    if (seal) seal.addEventListener('input', sync);
+    sync();
 })();
 
 // ── Plate OCR Scan ────────────────────────────────────────────────────────────

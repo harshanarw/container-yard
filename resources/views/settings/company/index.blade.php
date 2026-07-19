@@ -477,6 +477,24 @@
                     </div>
                 </div>
             </div>
+            <div class="d-flex align-items-start gap-3 mt-3">
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="requireSealForLaden" name="require_seal_for_laden" value="1"
+                           {{ old('require_seal_for_laden', $settings->require_seal_for_laden) ? 'checked' : '' }}>
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="requireSealForLaden">
+                        Require a seal number for laden containers
+                    </label>
+                    <div class="form-text mt-1">
+                        When enabled, a <strong>laden</strong> gate-in or gate-out is <strong>blocked</strong> unless
+                        a seal number is entered — or a no-seal reason (LCL, customs exam, broken/missing, special
+                        equipment) is recorded on the movement for audit. Empty containers are never affected. When
+                        disabled, the seal stays optional as before.
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

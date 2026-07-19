@@ -51,6 +51,7 @@ class CompanySetting extends Model
         'enable_guard_post',
         'enforce_export_booking',
         'enforce_reefer_pti',
+        'require_seal_for_laden',
         'enable_gatepass_whatsapp',
         'guardpost_warn_no_capture',
         'app_base_url',
@@ -70,6 +71,7 @@ class CompanySetting extends Model
         'enable_guard_post'        => 'boolean',
         'enforce_export_booking'   => 'boolean',
         'enforce_reefer_pti'       => 'boolean',
+        'require_seal_for_laden'   => 'boolean',
         'enable_gatepass_whatsapp' => 'boolean',
         'guardpost_warn_no_capture' => 'boolean',
     ];

@@ -209,6 +209,7 @@ class YardController extends Controller
             'location_bay'      => ['nullable', 'integer', 'min:1', 'max:99'],
             'location_tier'     => ['nullable', 'integer', 'min:1', 'max:10'],
             'seal_no'           => ['nullable', 'string', 'max:20'],
+            'no_seal_reason'    => ['nullable', 'string', 'in:' . implode(',', self::NO_SEAL_REASONS)],
             'vehicle_plate'     => ['nullable', 'string', 'max:20'],
             'transporter_id'    => ['nullable', 'exists:customers,id'],
             'driver_name'       => ['nullable', 'string', 'max:255'],
@@ -328,6 +329,16 @@ class YardController extends Controller
                 ->withInput();
         }
 
+        // Seal policy: a laden gate-in must carry a seal, or a documented no-seal
+        // reason, when the company enables the requirement (off by default).
+        if ($err = $this->sealRequirementError(
+            $validated['cargo_status'] === 'laden',
+            $validated['seal_no'],
+            $validated['no_seal_reason'] ?? null
+        )) {
+            return redirect()->back()->withErrors(['seal_no' => $err])->withInput();
+        }
+
         // Resolve actual gate-in datetime (admin can override; everyone else uses now())
         $gateInTime = (auth()->user()->can('yard.backdate') && !empty($validated['gate_in_time']))
             ? \Carbon\Carbon::parse($validated['gate_in_time'])
@@ -397,6 +408,7 @@ class YardController extends Controller
                 'grade_id'        => $validated['grade_id'] ?? null,
                 'cargo_status'    => $validated['cargo_status'],
                 'seal_no'         => $validated['seal_no'],
+                'no_seal_reason'  => $validated['no_seal_reason'] ?? null,
                 'vehicle_plate'   => $validated['vehicle_plate'],
                 'driver_name'     => $validated['driver_name'] ?? null,
                 'driver_ic'       => $validated['driver_ic'] ?? null,
@@ -585,6 +597,31 @@ class YardController extends Controller
         return 'Recorded without a linked Guard Post capture — check the Review Queue if a capture exists.';
     }
 
+    /** Documented reasons a laden container may legitimately move without a seal. */
+    public const NO_SEAL_REASONS = ['lcl', 'customs_exam', 'broken_missing', 'special_equipment', 'other'];
+
+    /**
+     * Seal policy for laden moves. When require_seal_for_laden is on, a laden
+     * gate movement must carry a seal number, or a documented no-seal reason
+     * (LCL, customs exam, broken/missing, special equipment). Returns the
+     * validation message to raise on `seal_no`, or null when the move is allowed.
+     */
+    private function sealRequirementError(bool $isLaden, ?string $sealNo, ?string $reason): ?string
+    {
+        if (! $isLaden) {
+            return null; // empties are never sealed
+        }
+        if (! \App\Models\CompanySetting::current()->require_seal_for_laden) {
+            return null; // policy off
+        }
+        if (filled($sealNo) || filled($reason)) {
+            return null; // sealed, or a documented exception was given
+        }
+
+        return 'A seal number is required for laden containers. Enter the seal number, '
+             . 'or record a no-seal reason (LCL, customs exam, broken/missing, or special equipment).';
+    }
+
     public function gateOut(Request $request)
     {
         $validated = $request->validate([
@@ -611,6 +648,7 @@ class YardController extends Controller
             'driver_phone'   => ['nullable', 'string', 'max:20'],
             'release_order'  => ['nullable', 'string', 'max:50'],
             'seal_no'        => ['nullable', 'string', 'max:20'],
+            'no_seal_reason' => ['nullable', 'string', 'in:' . implode(',', self::NO_SEAL_REASONS)],
             'grade_id'       => ['nullable', 'exists:container_grades,id'],
             // Purpose + booking (export release)
             'gate_out_purpose'     => ['nullable', 'string', 'max:30'],
@@ -713,6 +751,17 @@ class YardController extends Controller
             session()->flash('warning', "Reefer {$container->container_no} was released without a valid PTI.");
         }
 
+        // Seal policy: a laden gate-out must carry a seal, or a documented no-seal
+        // reason, when the company enables the requirement (off by default). Laden
+        // status comes from the container record, not the form.
+        if ($err = $this->sealRequirementError(
+            $container->cargo_status === 'laden',
+            $validated['seal_no'] ?? null,
+            $validated['no_seal_reason'] ?? null
+        )) {
+            return back()->withErrors(['seal_no' => $err])->withInput();
+        }
+
         // Resolve actual gate-out datetime — admin can override, others use now()
         $gateOutTime = (auth()->user()->can('yard.backdate') && !empty($validated['gate_out_time']))
             ? \Carbon\Carbon::parse($validated['gate_out_time'])
@@ -745,6 +794,7 @@ class YardController extends Controller
                 'driver_phone'    => $validated['driver_phone'] ?? null,
                 'release_order'   => $validated['release_order'],
                 'seal_no'         => $validated['seal_no'] ?? null,
+                'no_seal_reason'  => $validated['no_seal_reason'] ?? null,
                 'gate_out_time'   => $gateOutTime,
                 'movement_status' => 'done',
                 'remarks'         => $validated['remarks'],
