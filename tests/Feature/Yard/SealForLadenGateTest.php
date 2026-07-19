@@ -157,7 +157,6 @@ class SealForLadenGateTest extends FeatureTestCase
 
     public function test_laden_gate_out_without_seal_passes_with_a_reason(): void
     {
-        $this->withoutExceptionHandling(); // TEMP: surface the real gate-out error
         $this->actingAsSystemAdmin();
         $this->enableSealPolicy();
         $container = $this->containerInYard('laden');

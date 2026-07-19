@@ -669,6 +669,14 @@ class YardController extends Controller
             'plate_ocr_image'     => ['nullable', 'image', 'max:20480'],
         ]);
 
+        // These nullable fields are read directly (without a ?? guard) when the
+        // movement row is built below. The browser form always posts them (empty),
+        // but a partial API / mobile payload may omit them — and a key absent from
+        // the validated set would fatal on "Undefined array key" (this app converts
+        // warnings to exceptions). Backfill nulls for any that are missing; the
+        // union keeps submitted values. Mirrors the same guard in gateIn().
+        $validated += ['release_order' => null, 'remarks' => null];
+
         $container = Container::where('container_no', $validated['container_no'])->firstOrFail();
 
         // Block gate-out while container is on active hire — the hire must be completed first
