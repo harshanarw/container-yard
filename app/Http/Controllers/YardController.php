@@ -1728,7 +1728,7 @@ class YardController extends Controller
      */
     public function guardPostCheck(Request $request): \Illuminate\Http\JsonResponse
     {
-        if (! CompanySetting::current()->enable_guard_post) {
+        if (! \App\Models\CompanySetting::current()->enable_guard_post) {
             return response()->json(['enabled' => false, 'match' => false]);
         }
 
