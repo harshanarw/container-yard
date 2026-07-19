@@ -119,6 +119,15 @@ class SealForLadenGateTest extends FeatureTestCase
 
     // ─── Gate-out ─────────────────────────────────────────────────────────────
 
+    /** A releasable in-yard container with the given cargo status and a real equipment type. */
+    private function containerInYard(string $cargoStatus): Container
+    {
+        return Container::factory()->create([
+            'cargo_status'      => $cargoStatus,
+            'equipment_type_id' => $this->dryEquipment()->id,
+        ]);
+    }
+
     private function gateOutPayload(Container $c, array $overrides = []): array
     {
         return array_merge([
@@ -134,7 +143,7 @@ class SealForLadenGateTest extends FeatureTestCase
     {
         $this->actingAsSystemAdmin();
         $this->enableSealPolicy();
-        $container = Container::factory()->create(['cargo_status' => 'laden']);
+        $container = $this->containerInYard('laden');
 
         $this->from(route('yard.gate'))
             ->post(route('yard.gate.out'), $this->gateOutPayload($container, ['seal_no' => '']))
@@ -150,7 +159,7 @@ class SealForLadenGateTest extends FeatureTestCase
     {
         $this->actingAsSystemAdmin();
         $this->enableSealPolicy();
-        $container = Container::factory()->create(['cargo_status' => 'laden']);
+        $container = $this->containerInYard('laden');
 
         $this->from(route('yard.gate'))
             ->post(route('yard.gate.out'), $this->gateOutPayload($container, ['seal_no' => '', 'no_seal_reason' => 'broken_missing']))
@@ -167,7 +176,7 @@ class SealForLadenGateTest extends FeatureTestCase
     {
         $this->actingAsSystemAdmin();
         $this->enableSealPolicy();
-        $container = Container::factory()->create(['cargo_status' => 'empty']);
+        $container = $this->containerInYard('empty');
 
         $this->from(route('yard.gate'))
             ->post(route('yard.gate.out'), $this->gateOutPayload($container, ['seal_no' => '']))
