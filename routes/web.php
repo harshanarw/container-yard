@@ -323,6 +323,14 @@ Route::middleware(['auth'])->group(function () {
 
     // Masters
     Route::prefix('masters')->name('masters.')->group(function () {
+        // Driver master (auto-built from movements; admin list / edit / merge / history)
+        Route::prefix('drivers')->name('drivers.')->group(function () {
+            Route::get('/',           [\App\Http\Controllers\DriverController::class, 'index'])->name('index');
+            Route::post('merge',      [\App\Http\Controllers\DriverController::class, 'merge'])->name('merge');
+            Route::get('{driver}',    [\App\Http\Controllers\DriverController::class, 'show'])->name('show');
+            Route::patch('{driver}',  [\App\Http\Controllers\DriverController::class, 'update'])->name('update');
+            Route::delete('{driver}', [\App\Http\Controllers\DriverController::class, 'destroy'])->name('destroy');
+        });
         Route::prefix('zones')->name('zones.')->group(function () {
             Route::get('/',                    [StorageZoneController::class, 'index'])->name('index');
             Route::post('/',                   [StorageZoneController::class, 'store'])->name('store');

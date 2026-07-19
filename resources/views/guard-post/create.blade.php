@@ -179,15 +179,15 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label fw-semibold small">Driver Name</label>
-                    <input type="text" name="driver_name" class="form-control" value="{{ old('driver_name') }}" maxlength="100">
+                    <input type="text" name="driver_name" id="gpDriverName" autocomplete="off" class="form-control" value="{{ old('driver_name') }}" maxlength="100">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label fw-semibold small">NIC / ID Number</label>
-                    <input type="text" name="nic_number" class="form-control" value="{{ old('nic_number') }}" maxlength="50">
+                    <input type="text" name="nic_number" id="gpNicNumber" autocomplete="off" class="form-control" value="{{ old('nic_number') }}" maxlength="50">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label fw-semibold small">Phone Number</label>
-                    <input type="text" name="driver_phone" class="form-control" value="{{ old('driver_phone') }}" maxlength="30">
+                    <input type="text" name="driver_phone" id="gpDriverPhone" autocomplete="off" class="form-control" value="{{ old('driver_phone') }}" maxlength="30">
                 </div>
             </div>
         </div>
@@ -262,6 +262,83 @@
 function triggerUpload(id) {
     document.getElementById(id).click();
 }
+
+// ── Driver master typeahead ───────────────────────────────────────────────────
+// Typing in name / NIC / phone surfaces previously-seen drivers; picking one fills
+// all three. Fields stay free-text so new drivers aren't blocked. (Mirrors the
+// gate form's driver autocomplete.)
+(function () {
+    const DRIVER_URL = @json(route('yard.driver-search'));
+    const name  = document.getElementById('gpDriverName');
+    const ic    = document.getElementById('gpNicNumber');
+    const phone = document.getElementById('gpDriverPhone');
+    if (!name || !ic || !phone) return;
+
+    const style = document.createElement('style');
+    style.textContent = '.driver-ac-item:hover{background:#eef2ff;}';
+    document.head.appendChild(style);
+    function esc(s) { const e = document.createElement('div'); e.textContent = (s == null ? '' : s); return e.innerHTML; }
+
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute;z-index:1085;display:none;max-height:240px;overflow:auto;' +
+        'background:#fff;border:1px solid #ced4da;border-radius:.375rem;min-width:220px;';
+    document.body.appendChild(box);
+
+    let items = [], activeInput = null, timer = null;
+    function hide() { box.style.display = 'none'; box.innerHTML = ''; items = []; }
+    function position(inp) {
+        const r = inp.getBoundingClientRect();
+        box.style.left = (window.scrollX + r.left) + 'px';
+        box.style.top  = (window.scrollY + r.bottom + 2) + 'px';
+        box.style.width = r.width + 'px';
+    }
+    function render(list) {
+        if (!list.length) { hide(); return; }
+        items = list;
+        box.innerHTML = list.map((d, i) =>
+            '<div class="driver-ac-item px-2 py-1" data-i="' + i + '" style="cursor:pointer;font-size:.85rem;line-height:1.25;">' +
+            '<div class="fw-semibold">' + esc(d.name || '(no name)') + '</div>' +
+            '<div class="text-muted" style="font-size:.75rem;">' +
+            (d.nic_number ? esc(d.nic_number) : '') +
+            (d.phone ? ' &middot; ' + esc(d.phone) : '') +
+            (d.last_seen ? ' &middot; ' + esc(d.last_seen) : '') +
+            '</div></div>'
+        ).join('');
+        position(activeInput);
+        box.style.display = 'block';
+    }
+    function pick(d) {
+        if (!d) return;
+        if (d.name)       name.value  = d.name;
+        if (d.nic_number) ic.value    = d.nic_number;
+        if (d.phone)      phone.value = d.phone;
+        hide();
+    }
+    function query(inp) {
+        activeInput = inp;
+        const q = inp.value.trim();
+        clearTimeout(timer);
+        if (q.length < 2) { hide(); return; }
+        timer = setTimeout(async () => {
+            try {
+                const res  = await fetch(DRIVER_URL + '?q=' + encodeURIComponent(q), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const data = await res.json();
+                if (document.activeElement === inp) render(data.results || []);
+            } catch (e) { hide(); }
+        }, 250);
+    }
+    [name, ic, phone].forEach(inp => {
+        inp.addEventListener('input', () => query(inp));
+        inp.addEventListener('focus', () => { if (inp.value.trim().length >= 2) query(inp); });
+        inp.addEventListener('blur',  () => setTimeout(hide, 200));
+    });
+    box.addEventListener('mousedown', (e) => {
+        const item = e.target.closest('.driver-ac-item');
+        if (item) { e.preventDefault(); pick(items[+item.dataset.i]); }
+    });
+    window.addEventListener('resize', () => { if (box.style.display === 'block') position(activeInput); });
+    window.addEventListener('scroll', () => { if (box.style.display === 'block') position(activeInput); }, true);
+})();
 
 function wirePreview(inputId, previewId, placeholderId) {
     const input   = document.getElementById(inputId);

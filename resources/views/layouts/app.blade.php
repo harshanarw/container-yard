@@ -681,6 +681,14 @@
                         </a>
                     </li>
                     @endcan
+                    @if(in_array(Auth::user()->role, ['yard_supervisor', 'administrator', 'system_administrator'], true))
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.drivers.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.drivers.*') ? 'active' : '' }}">
+                            <i class="bi bi-person-badge"></i><span>Drivers</span>
+                        </a>
+                    </li>
+                    @endif
                     @can('yard.hire.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('yard.hires.index') }}"
