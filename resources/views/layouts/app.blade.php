@@ -610,14 +610,24 @@
         </button>
         <div class="collapse {{ $guardPostActive ? 'show' : '' }}" id="nav-section-guard-post">
             <ul class="nav flex-column">
+                {{-- Ops-desk review: clear / hold / reject and promote to a gate movement --}}
+                @if(in_array(Auth::user()->role, ['gate_officer','yard_supervisor','administrator','system_administrator']))
                 <li class="nav-item">
-                    <a href="{{ route('guard-post.index') }}"
-                       class="nav-link {{ request()->routeIs('guard-post.index') || request()->routeIs('guard-post.status') ? 'active' : '' }}">
-                        <i class="bi bi-list-check"></i><span>Capture Queue</span>
+                    <a href="{{ route('guard-post.queue') }}"
+                       class="nav-link {{ request()->routeIs('guard-post.queue') ? 'active' : '' }}">
+                        <i class="bi bi-clipboard-check"></i><span>Review Queue</span>
                         @php $pendingCaptures = \App\Models\GuardCapture::where('status','pending')->count(); @endphp
                         @if($pendingCaptures > 0)
                             <span class="badge bg-warning text-dark ms-auto">{{ $pendingCaptures }}</span>
                         @endif
+                    </a>
+                </li>
+                @endif
+                {{-- The current user's own captures --}}
+                <li class="nav-item">
+                    <a href="{{ route('guard-post.index') }}"
+                       class="nav-link {{ request()->routeIs('guard-post.index') || request()->routeIs('guard-post.status') ? 'active' : '' }}">
+                        <i class="bi bi-list-check"></i><span>My Captures</span>
                     </a>
                 </li>
                 @can('guard-post.create')
