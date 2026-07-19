@@ -480,21 +480,21 @@
                                 Driver Name
                                 <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
                             </label>
-                            <input type="text" name="driver_name" class="form-control" placeholder="Driver's full name">
+                            <input type="text" name="driver_name" id="driverNameIn" autocomplete="off" class="form-control" placeholder="Driver's full name">
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold">
                                 Driver NIC
                                 <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
                             </label>
-                            <input type="text" name="driver_ic" class="form-control" placeholder="IC / Passport No.">
+                            <input type="text" name="driver_ic" id="driverIcIn" autocomplete="off" class="form-control" placeholder="IC / Passport No.">
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold">
                                 Driver Phone
                                 <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
                             </label>
-                            <input type="text" name="driver_phone" class="form-control" placeholder="+60 12-345 6789">
+                            <input type="text" name="driver_phone" id="driverPhoneIn" autocomplete="off" class="form-control" placeholder="+60 12-345 6789">
                         </div>
                     </div>
 
@@ -887,18 +887,18 @@
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold">Driver Name <span class="text-danger">*</span></label>
-                            <input type="text" name="driver_name" class="form-control" placeholder="Driver's name">
+                            <input type="text" name="driver_name" id="driverNameOut" autocomplete="off" class="form-control" placeholder="Driver's name">
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold">Driver IC/Passport <span class="text-danger">*</span></label>
-                            <input type="text" name="driver_ic" class="form-control" placeholder="ID number">
+                            <input type="text" name="driver_ic" id="driverIcOut" autocomplete="off" class="form-control" placeholder="ID number">
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold">
                                 Driver Phone
                                 <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
                             </label>
-                            <input type="text" name="driver_phone" class="form-control" placeholder="+60 12-345 6789">
+                            <input type="text" name="driver_phone" id="driverPhoneOut" autocomplete="off" class="form-control" placeholder="+60 12-345 6789">
                         </div>
                     </div>
 
@@ -2911,6 +2911,96 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     cargo.addEventListener('change', sync);
     if (seal) seal.addEventListener('input', sync);
     sync();
+})();
+
+// ── Driver master typeahead ───────────────────────────────────────────────────
+// Typing in any of the three driver fields (name / NIC / phone) queries the
+// driver master; picking a match fills all three. Fields stay free-text so a
+// brand-new driver is never blocked (they're added to the master on save).
+(function () {
+    const DRIVER_URL = @json(route('yard.driver-search'));
+
+    const style = document.createElement('style');
+    style.textContent = '.driver-ac-item:hover,.driver-ac-item.active{background:#eef2ff;}';
+    document.head.appendChild(style);
+
+    function esc(s) { const e = document.createElement('div'); e.textContent = (s == null ? '' : s); return e.innerHTML; }
+
+    function attach(nameId, icId, phoneId) {
+        const name  = document.getElementById(nameId);
+        const ic    = document.getElementById(icId);
+        const phone = document.getElementById(phoneId);
+        if (!name || !ic || !phone) return;
+
+        const box = document.createElement('div');
+        box.className = 'driver-ac-menu shadow-sm';
+        box.style.cssText = 'position:absolute;z-index:1085;display:none;max-height:240px;overflow:auto;' +
+            'background:#fff;border:1px solid #ced4da;border-radius:.375rem;min-width:220px;';
+        document.body.appendChild(box);
+
+        let items = [], activeInput = null, timer = null;
+
+        function hide() { box.style.display = 'none'; box.innerHTML = ''; items = []; }
+        function position(inp) {
+            const r = inp.getBoundingClientRect();
+            box.style.left  = (window.scrollX + r.left) + 'px';
+            box.style.top   = (window.scrollY + r.bottom + 2) + 'px';
+            box.style.width = r.width + 'px';
+        }
+        function render(list) {
+            if (!list.length) { hide(); return; }
+            items = list;
+            box.innerHTML = list.map((d, i) =>
+                '<div class="driver-ac-item px-2 py-1" data-i="' + i + '" style="cursor:pointer;font-size:.85rem;line-height:1.25;">' +
+                '<div class="fw-semibold">' + esc(d.name || '(no name)') + '</div>' +
+                '<div class="text-muted" style="font-size:.75rem;">' +
+                (d.nic_number ? esc(d.nic_number) : '') +
+                (d.phone ? ' &middot; ' + esc(d.phone) : '') +
+                (d.last_seen ? ' &middot; ' + esc(d.last_seen) : '') +
+                '</div></div>'
+            ).join('');
+            position(activeInput);
+            box.style.display = 'block';
+        }
+        function pick(d) {
+            if (!d) return;
+            if (d.name)       name.value  = d.name;
+            if (d.nic_number) ic.value    = d.nic_number;
+            if (d.phone)      phone.value = d.phone;
+            // let any dependent handlers (e.g. WhatsApp) see the new phone
+            phone.dispatchEvent(new Event('input', { bubbles: true }));
+            hide();
+        }
+        function query(inp) {
+            activeInput = inp;
+            const q = inp.value.trim();
+            clearTimeout(timer);
+            if (q.length < 2) { hide(); return; }
+            timer = setTimeout(async () => {
+                try {
+                    const res  = await fetch(DRIVER_URL + '?q=' + encodeURIComponent(q),
+                                             { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    const data = await res.json();
+                    if (document.activeElement === inp) render(data.results || []);
+                } catch (e) { hide(); }
+            }, 250);
+        }
+
+        [name, ic, phone].forEach(inp => {
+            inp.addEventListener('input', () => query(inp));
+            inp.addEventListener('focus', () => { if (inp.value.trim().length >= 2) query(inp); });
+            inp.addEventListener('blur',  () => setTimeout(hide, 200));
+        });
+        box.addEventListener('mousedown', (e) => {
+            const item = e.target.closest('.driver-ac-item');
+            if (item) { e.preventDefault(); pick(items[+item.dataset.i]); }
+        });
+        window.addEventListener('resize', () => { if (box.style.display === 'block') position(activeInput); });
+        window.addEventListener('scroll', () => { if (box.style.display === 'block') position(activeInput); }, true);
+    }
+
+    attach('driverNameIn',  'driverIcIn',  'driverPhoneIn');
+    attach('driverNameOut', 'driverIcOut', 'driverPhoneOut');
 })();
 
 // ── Plate OCR Scan ────────────────────────────────────────────────────────────

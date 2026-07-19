@@ -219,6 +219,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/container-lookup',    [YardController::class, 'containerLookup'])->name('container-lookup');
         Route::get('/guard-post-check',    [YardController::class, 'guardPostCheck'])->name('guard-post-check');
         Route::get('/in-yard-search',      [YardController::class, 'inYardSearch'])->name('in-yard-search');
+        Route::get('/driver-search',       [YardController::class, 'driverSearch'])->name('driver-search');
         Route::get('/zones/{zone}/slots',  [YardController::class, 'slotsByZone'])->name('zones.slots');
         Route::get('/survey/{survey}', [YardController::class, 'surveyLookup'])->name('survey.lookup');
         Route::post('/ocr-scan',       [ContainerOcrController::class, 'process'])->name('ocr-scan');

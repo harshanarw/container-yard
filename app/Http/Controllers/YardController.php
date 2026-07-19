@@ -431,6 +431,9 @@ class YardController extends Controller
         // Save OCR-captured images
         $this->saveMovementOcrImages($movement, $validated);
 
+        // Remember the driver in the master (best-effort — never break the gate flow).
+        $this->rememberDriver($validated['driver_name'] ?? null, $validated['driver_ic'] ?? null, $validated['driver_phone'] ?? null);
+
         // Save gate-in photos via DocumentManager
         $photoError = null;
         if (!empty($validated['photos'])) {
@@ -595,6 +598,20 @@ class YardController extends Controller
         }
 
         return 'Recorded without a linked Guard Post capture — check the Review Queue if a capture exists.';
+    }
+
+    /**
+     * Upsert a driver into the master from a movement's captured details.
+     * Best-effort: a master write must never break the gate flow, so any failure
+     * is logged and swallowed.
+     */
+    private function rememberDriver(?string $name, ?string $nic, ?string $phone): void
+    {
+        try {
+            app(\App\Services\DriverService::class)->remember($name, $nic, $phone, auth()->id());
+        } catch (\Throwable $e) {
+            \Log::warning('[Gate] Driver master upsert failed: ' . $e->getMessage());
+        }
     }
 
     /** Documented reasons a laden container may legitimately move without a seal. */
@@ -820,6 +837,9 @@ class YardController extends Controller
 
         // Save OCR-captured images
         $this->saveMovementOcrImages($movement, $validated);
+
+        // Remember the driver in the master (best-effort — never break the gate flow).
+        $this->rememberDriver($validated['driver_name'] ?? null, $validated['driver_ic'] ?? null, $validated['driver_phone'] ?? null);
 
         // Link guard capture if this gate-out originated from the Guard Post queue
         if ($request->filled('guard_capture_id')) {
@@ -1894,6 +1914,38 @@ class YardController extends Controller
                 'customer' => $c->customer->name ?? 'Unknown',
                 'eqt_code' => $c->equipmentType?->eqt_code,
                 'days'     => $c->gate_in_date ? (int) $c->gate_in_date->diffInDays(today()) : null,
+            ]),
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Driver master typeahead: match previously-seen drivers by name / NIC /
+    // phone so the operator can pick instead of re-keying. Used by the driver
+    // autocomplete on the gate-in and gate-out forms.
+    // -------------------------------------------------------------------------
+    public function driverSearch(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json(['results' => []]);
+        }
+
+        $like = '%' . $q . '%';
+        $drivers = \App\Models\Driver::query()
+            ->where(fn ($w) => $w->where('name', 'like', $like)
+                ->orWhere('nic_number', 'like', $like)
+                ->orWhere('phone', 'like', $like))
+            ->orderByDesc('last_seen_at')
+            ->limit(10)
+            ->get(['id', 'nic_number', 'name', 'phone', 'last_seen_at']);
+
+        return response()->json([
+            'results' => $drivers->map(fn ($d) => [
+                'id'         => $d->id,
+                'nic_number' => $d->nic_number,
+                'name'       => $d->name,
+                'phone'      => $d->phone,
+                'last_seen'  => $d->last_seen_at?->format('d M Y'),
             ]),
         ]);
     }

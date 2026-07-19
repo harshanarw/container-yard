@@ -134,6 +134,18 @@ class GuardPostController extends Controller
 
         $capture = GuardCapture::create($data);
 
+        // Remember the driver in the master (best-effort — never break the capture).
+        try {
+            app(\App\Services\DriverService::class)->remember(
+                $data['driver_name'] ?? null,
+                $data['nic_number'] ?? null,
+                $data['driver_phone'] ?? null,
+                auth()->id(),
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('[GuardPost] Driver master upsert failed: ' . $e->getMessage());
+        }
+
         $redirect = redirect()->route('guard-post.status', $capture)
             ->with('success', "Capture {$capture->reference_no} submitted. Waiting for clearance.");
 
