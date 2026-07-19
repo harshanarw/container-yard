@@ -81,12 +81,15 @@ class GuardCaptureGatePromoteTest extends FeatureTestCase
 
     public function test_gate_movement_exposes_its_source_guard_capture(): void
     {
+        $this->actingAsSystemAdmin();
+
         $customer  = Customer::factory()->create();
         $container = Container::factory()->create(['customer_id' => $customer->id]);
         $movement  = GateMovement::create([
             'container_id' => $container->id, 'container_no' => $container->container_no,
             'customer_id' => $customer->id, 'movement_type' => 'in',
             'size' => $container->size, 'container_type' => $container->type_code,
+            'created_by' => auth()->id(),
         ]);
         $capture = $this->clearedCapture([
             'direction'               => 'gate_in',
