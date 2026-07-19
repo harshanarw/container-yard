@@ -74,6 +74,7 @@ class CompanySettingController extends Controller
             'enforce_export_booking'   => ['nullable', 'boolean'],
             'enforce_reefer_pti'       => ['nullable', 'boolean'],
             'enable_gatepass_whatsapp' => ['nullable', 'boolean'],
+            'guardpost_warn_no_capture' => ['nullable', 'boolean'],
             'app_base_url'             => ['nullable', 'string', 'max:255'],
             'logo'                     => ['nullable', 'image', 'max:2048'],
             'icon'            => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
@@ -87,6 +88,7 @@ class CompanySettingController extends Controller
         $data['enforce_export_booking']   = $request->boolean('enforce_export_booking');
         $data['enforce_reefer_pti']       = $request->boolean('enforce_reefer_pti');
         $data['enable_gatepass_whatsapp'] = $request->boolean('enable_gatepass_whatsapp');
+        $data['guardpost_warn_no_capture'] = $request->boolean('guardpost_warn_no_capture');
 
         // Normalise the system base URL: blank → null; add https:// if the
         // operator typed a bare host; drop any trailing slash.

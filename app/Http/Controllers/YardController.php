@@ -556,11 +556,33 @@ class YardController extends Controller
         if (! \App\Support\Iso6346::checkDigitValid($container->container_no)) {
             $warnings[] = "Container {$container->container_no} fails the ISO 6346 check digit — please verify it against the box.";
         }
+        if ($w = $this->noGuardCaptureWarning($request)) {
+            $warnings[] = $w;
+        }
         if ($warnings) {
             $redirect->with('warning', implode('  ', $warnings));
         }
 
         return $redirect;
+    }
+
+    /**
+     * Optional nudge (Phase B): when Guard Post is on and the operator opted into
+     * the reminder, flag a gate movement that isn't linked to a cleared capture.
+     * Non-blocking — returns the message, or null when it shouldn't fire.
+     */
+    private function noGuardCaptureWarning(Request $request): ?string
+    {
+        if ($request->filled('guard_capture_id')) {
+            return null; // a capture was linked — nothing to warn about
+        }
+
+        $cs = \App\Models\CompanySetting::current();
+        if (! $cs->enable_guard_post || ! $cs->guardpost_warn_no_capture) {
+            return null;
+        }
+
+        return 'Recorded without a linked Guard Post capture — check the Review Queue if a capture exists.';
     }
 
     public function gateOut(Request $request)
@@ -854,8 +876,15 @@ class YardController extends Controller
         $redirect = redirect()->route('yard.movements.gate-pass', $movement)
             ->with('gp_note', "Gate OUT recorded for {$container->container_no}.");
 
+        $warnings = [];
         if ($photoError) {
-            $redirect->with('warning', $photoError);
+            $warnings[] = $photoError;
+        }
+        if ($w = $this->noGuardCaptureWarning($request)) {
+            $warnings[] = $w;
+        }
+        if ($warnings) {
+            $redirect->with('warning', implode('  ', $warnings));
         }
 
         return $redirect;

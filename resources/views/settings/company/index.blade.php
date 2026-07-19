@@ -367,6 +367,27 @@
                     </div>
                 </div>
             </div>
+
+            <hr class="my-3">
+
+            <div class="d-flex align-items-start gap-3">
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="guardpostWarnNoCapture" name="guardpost_warn_no_capture" value="1"
+                           {{ old('guardpost_warn_no_capture', $settings->guardpost_warn_no_capture) ? 'checked' : '' }}>
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="guardpostWarnNoCapture">
+                        Warn when a gate movement has no Guard Post capture
+                    </label>
+                    <div class="form-text mt-1">
+                        When enabled, recording a Gate In / Out that isn't linked to a cleared Guard Post capture
+                        shows a non-blocking reminder on the gate pass — a nudge to work from captures so the two
+                        systems don't drift. The movement is still recorded either way. (Only applies while the
+                        Guard Post module above is enabled.)
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

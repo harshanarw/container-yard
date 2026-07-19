@@ -52,6 +52,7 @@ class CompanySetting extends Model
         'enforce_export_booking',
         'enforce_reefer_pti',
         'enable_gatepass_whatsapp',
+        'guardpost_warn_no_capture',
         'app_base_url',
         'mr_dimension_uom',
         // Gate Pass Defaults
@@ -70,6 +71,7 @@ class CompanySetting extends Model
         'enforce_export_booking'   => 'boolean',
         'enforce_reefer_pti'       => 'boolean',
         'enable_gatepass_whatsapp' => 'boolean',
+        'guardpost_warn_no_capture' => 'boolean',
     ];
 
     public static function current(): static
