@@ -105,4 +105,48 @@ class GuardPostGateCheckTest extends FeatureTestCase
             ->assertOk()
             ->assertJson(['enabled' => true, 'match' => false]);
     }
+
+    public function test_matched_capture_returns_a_rendered_detail_panel(): void
+    {
+        $this->enableGuardPost();
+        $this->capture([
+            'direction'            => 'gate_in',
+            'status'               => 'cleared',
+            'cleared_at'           => now(),
+            'container_number'     => 'CSQU3054383',
+            'driver_name'          => 'Sunil Perera',
+            'vehicle_number'       => 'ABC-1234',
+            'container_image_path' => 'guard/demo-container.jpg',
+        ]);
+
+        $res = $this->getJson(route('yard.guard-post-check', ['container_no' => 'CSQU3054383', 'direction' => 'in']))
+            ->assertOk();
+
+        $html = $res->json('panel_html');
+        $this->assertIsString($html);
+        $this->assertStringContainsString('Guard Post Verification', $html);
+        $this->assertStringContainsString('Sunil Perera', $html);
+        $this->assertStringContainsString('ABC-1234', $html);
+        // Photo thumbnail carries the data attributes the data-driven lightbox reads.
+        $this->assertStringContainsString('data-gp-url', $html);
+    }
+
+    public function test_pending_capture_still_returns_a_detail_panel(): void
+    {
+        // Non-cleared captures now surface the panel too (not just cleared ones),
+        // so the officer can inspect the guard's photos before deciding.
+        $this->enableGuardPost();
+        $this->capture([
+            'direction'        => 'gate_in',
+            'status'           => 'pending',
+            'container_number' => 'CSQU3054383',
+            'driver_name'      => 'Nimal Silva',
+        ]);
+
+        $res = $this->getJson(route('yard.guard-post-check', ['container_no' => 'CSQU3054383', 'direction' => 'in']))
+            ->assertOk()
+            ->assertJson(['actionable' => false]);
+
+        $this->assertStringContainsString('Nimal Silva', (string) $res->json('panel_html'));
+    }
 }

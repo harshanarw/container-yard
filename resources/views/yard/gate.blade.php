@@ -53,119 +53,13 @@
                     <input type="hidden" name="guard_capture_id" id="gateInGuardCaptureId" value="{{ $gateInCaptureId }}">
                     @if($companySetting?->enable_guard_post)
                     <div id="gpStatusIn" class="mb-2 d-none"></div>
+                    {{-- rich verification panel injected here on the type / OCR-scan path --}}
+                    <div id="gpPanelSlot"></div>
                     @endif
 
                     {{-- ── Guard Post Verification Panel ──────────────────────── --}}
                     @if(isset($guardCapture) && $guardCapture && $guardCapture->direction === 'gate_in')
-                    @php
-                        $gpPhotos = [];
-                        if ($guardCapture->container_image_url) $gpPhotos[] = ['label' => 'Container', 'url' => $guardCapture->container_image_url, 'icon' => 'bi-box-seam',          'rescan' => 'container'];
-                        if ($guardCapture->plate_image_url)     $gpPhotos[] = ['label' => 'Plate',     'url' => $guardCapture->plate_image_url,     'icon' => 'bi-truck',             'rescan' => 'plate'];
-                        if ($guardCapture->nic_front_url)       $gpPhotos[] = ['label' => 'NIC Front', 'url' => $guardCapture->nic_front_url,       'icon' => 'bi-person-vcard',      'rescan' => null];
-                        if ($guardCapture->nic_back_url)        $gpPhotos[] = ['label' => 'NIC Back',  'url' => $guardCapture->nic_back_url,        'icon' => 'bi-person-vcard-fill', 'rescan' => null];
-                        if ($guardCapture->license_front_url)   $gpPhotos[] = ['label' => 'License',   'url' => $guardCapture->license_front_url,   'icon' => 'bi-card-text',         'rescan' => null];
-                    @endphp
-                    <div class="gp-panel mb-3" id="gpVerifyPanel">
-                        {{-- Header --}}
-                        <div class="gp-panel-hdr" data-bs-toggle="collapse" data-bs-target="#gpPanelBody"
-                             aria-expanded="true" aria-controls="gpPanelBody" style="cursor:pointer;">
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <i class="bi bi-shield-check text-success" style="font-size:1rem;"></i>
-                                <span class="fw-semibold" style="font-size:.82rem;">Guard Post Verification</span>
-                                <span class="gp-ref-badge">{{ $guardCapture->reference_no }}</span>
-                                <span class="gp-dir-badge {{ $guardCapture->direction === 'gate_in' ? 'gp-dir-in' : 'gp-dir-out' }}">
-                                    <i class="bi {{ $guardCapture->direction === 'gate_in' ? 'bi-box-arrow-in-right' : 'bi-box-arrow-right' }}"></i>
-                                    {{ $guardCapture->direction_label }}
-                                </span>
-                                <span class="text-muted ms-auto" style="font-size:.72rem;">
-                                    Captured {{ $guardCapture->captured_at?->format('d M H:i') }}
-                                    @if($guardCapture->capturedBy) · by {{ $guardCapture->capturedBy->full_name }}@endif
-                                    @if($guardCapture->clearedBy) · Cleared by {{ $guardCapture->clearedBy->full_name }}@endif
-                                </span>
-                            </div>
-                            <i class="bi bi-chevron-down gp-panel-chevron"></i>
-                        </div>
-
-                        {{-- Collapsible body --}}
-                        <div class="collapse show" id="gpPanelBody">
-                            <div class="gp-panel-body">
-
-                                {{-- Photo thumbnails --}}
-                                @if(count($gpPhotos))
-                                <div class="gp-photos-row">
-                                    @foreach($gpPhotos as $idx => $photo)
-                                    <div class="gp-thumb" onclick="gpOpenLightbox({{ $idx }})"
-                                         title="View {{ $photo['label'] }}">
-                                        <img src="{{ $photo['url'] }}" alt="{{ $photo['label'] }}"
-                                             loading="lazy">
-                                        <div class="gp-thumb-label">
-                                            <span><i class="bi {{ $photo['icon'] }} me-1"></i>{{ $photo['label'] }}</span>
-                                            @if(!empty($photo['rescan']))
-                                            <button type="button" class="gp-rescan-btn"
-                                                    title="Re-scan with OCR"
-                                                    onclick="event.stopPropagation();gpRescan(this,'{{ $photo['url'] }}','{{ $photo['rescan'] }}')">
-                                                <i class="bi bi-arrow-repeat"></i>
-                                            </button>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    @endforeach
-                                </div>
-                                @endif
-
-                                {{-- Data row --}}
-                                <div class="gp-data-row">
-                                    @if($guardCapture->container_number)
-                                    <div class="gp-data-cell">
-                                        <div class="gp-data-lbl"><i class="bi bi-box-seam me-1"></i>Container</div>
-                                        <div class="gp-data-val font-monospace">{{ $guardCapture->container_number }}</div>
-                                    </div>
-                                    @endif
-                                    @if($guardCapture->iso_code)
-                                    <div class="gp-data-cell">
-                                        <div class="gp-data-lbl"><i class="bi bi-tag me-1"></i>ISO Code</div>
-                                        <div class="gp-data-val font-monospace">{{ $guardCapture->iso_code }}</div>
-                                    </div>
-                                    @endif
-                                    @if($guardCapture->vehicle_number)
-                                    <div class="gp-data-cell">
-                                        <div class="gp-data-lbl"><i class="bi bi-truck me-1"></i>Vehicle</div>
-                                        <div class="gp-data-val">{{ $guardCapture->vehicle_number }}</div>
-                                    </div>
-                                    @endif
-                                    @if($guardCapture->driver_name)
-                                    <div class="gp-data-cell">
-                                        <div class="gp-data-lbl"><i class="bi bi-person me-1"></i>Driver</div>
-                                        <div class="gp-data-val">{{ $guardCapture->driver_name }}</div>
-                                    </div>
-                                    @endif
-                                    @if($guardCapture->nic_number)
-                                    <div class="gp-data-cell">
-                                        <div class="gp-data-lbl"><i class="bi bi-person-vcard me-1"></i>NIC</div>
-                                        <div class="gp-data-val font-monospace">{{ $guardCapture->nic_number }}</div>
-                                    </div>
-                                    @endif
-                                    @if($guardCapture->driver_phone)
-                                    <div class="gp-data-cell">
-                                        <div class="gp-data-lbl"><i class="bi bi-telephone me-1"></i>Phone</div>
-                                        <div class="gp-data-val">{{ $guardCapture->driver_phone }}</div>
-                                    </div>
-                                    @endif
-                                </div>
-
-                                {{-- Ops note --}}
-                                @if($guardCapture->notes)
-                                <div class="gp-notes-row">
-                                    <i class="bi bi-chat-left-text me-1 text-muted"></i>
-                                    <span class="text-muted" style="font-size:.78rem;">Ops note:</span>
-                                    <span style="font-size:.78rem;">{{ $guardCapture->notes }}</span>
-                                </div>
-                                @endif
-
-                            </div>
-                        </div>
-                    </div>
-
+                    @include('yard.partials.guard-post-panel', ['guardCapture' => $guardCapture, 'rescan' => true])
                     @endif
 
                     @if($errors->any())
@@ -780,6 +674,8 @@
                     <input type="hidden" name="guard_capture_id" id="gateOutGuardCaptureId" value="{{ $gateOutCaptureId }}">
                     @if($companySetting?->enable_guard_post)
                     <div id="gpStatusOut" class="mb-2 d-none"></div>
+                    {{-- rich verification panel injected here on the type / OCR-scan path --}}
+                    <div id="gpPanelSlotOut"></div>
                     @endif
 
                     <div id="gateOutMissingWarn" class="alert alert-warning py-2 small d-none">
@@ -789,97 +685,7 @@
 
                     {{-- ── Guard Post Verification Panel (Gate Out) ──────────── --}}
                     @if(isset($guardCapture) && $guardCapture && $guardCapture->direction === 'gate_out')
-                    @php
-                        $gpPhotosOut = [];
-                        if ($guardCapture->container_image_url) $gpPhotosOut[] = ['label' => 'Container', 'url' => $guardCapture->container_image_url, 'icon' => 'bi-box-seam',          'rescan' => 'container'];
-                        if ($guardCapture->plate_image_url)     $gpPhotosOut[] = ['label' => 'Plate',     'url' => $guardCapture->plate_image_url,     'icon' => 'bi-truck',             'rescan' => 'plate'];
-                        if ($guardCapture->nic_front_url)       $gpPhotosOut[] = ['label' => 'NIC Front', 'url' => $guardCapture->nic_front_url,       'icon' => 'bi-person-vcard',      'rescan' => null];
-                        if ($guardCapture->nic_back_url)        $gpPhotosOut[] = ['label' => 'NIC Back',  'url' => $guardCapture->nic_back_url,        'icon' => 'bi-person-vcard-fill', 'rescan' => null];
-                        if ($guardCapture->license_front_url)   $gpPhotosOut[] = ['label' => 'License',   'url' => $guardCapture->license_front_url,   'icon' => 'bi-card-text',         'rescan' => null];
-                    @endphp
-                    <div class="gp-panel mb-3" id="gpVerifyPanelOut">
-                        <div class="gp-panel-hdr" data-bs-toggle="collapse" data-bs-target="#gpPanelBodyOut"
-                             aria-expanded="true" aria-controls="gpPanelBodyOut" style="cursor:pointer;">
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <i class="bi bi-shield-check text-success" style="font-size:1rem;"></i>
-                                <span class="fw-semibold" style="font-size:.82rem;">Guard Post Verification</span>
-                                <span class="gp-ref-badge">{{ $guardCapture->reference_no }}</span>
-                                <span class="gp-dir-badge gp-dir-out">
-                                    <i class="bi bi-box-arrow-right"></i>
-                                    {{ $guardCapture->direction_label }}
-                                </span>
-                                <span class="text-muted ms-auto" style="font-size:.72rem;">
-                                    Captured {{ $guardCapture->captured_at?->format('d M H:i') }}
-                                    @if($guardCapture->capturedBy) · by {{ $guardCapture->capturedBy->full_name }}@endif
-                                    @if($guardCapture->clearedBy) · Cleared by {{ $guardCapture->clearedBy->full_name }}@endif
-                                </span>
-                            </div>
-                            <i class="bi bi-chevron-down gp-panel-chevron"></i>
-                        </div>
-                        <div class="collapse show" id="gpPanelBodyOut">
-                            <div class="gp-panel-body">
-                                @if(count($gpPhotosOut))
-                                <div class="gp-photos-row">
-                                    @foreach($gpPhotosOut as $idx => $photo)
-                                    <div class="gp-thumb" onclick="gpOpenLightbox({{ $idx }})"
-                                         title="View {{ $photo['label'] }}">
-                                        <img src="{{ $photo['url'] }}" alt="{{ $photo['label'] }}" loading="lazy">
-                                        <div class="gp-thumb-label">
-                                            <span><i class="bi {{ $photo['icon'] }} me-1"></i>{{ $photo['label'] }}</span>
-                                            @if(!empty($photo['rescan']))
-                                            <button type="button" class="gp-rescan-btn"
-                                                    title="Re-scan with OCR"
-                                                    onclick="event.stopPropagation();gpRescan(this,'{{ $photo['url'] }}','{{ $photo['rescan'] }}')">
-                                                <i class="bi bi-arrow-repeat"></i>
-                                            </button>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    @endforeach
-                                </div>
-                                @endif
-                                <div class="gp-data-row">
-                                    @if($guardCapture->container_number)
-                                    <div class="gp-data-cell">
-                                        <div class="gp-data-lbl"><i class="bi bi-box-seam me-1"></i>Container</div>
-                                        <div class="gp-data-val font-monospace">{{ $guardCapture->container_number }}</div>
-                                    </div>
-                                    @endif
-                                    @if($guardCapture->vehicle_number)
-                                    <div class="gp-data-cell">
-                                        <div class="gp-data-lbl"><i class="bi bi-truck me-1"></i>Vehicle</div>
-                                        <div class="gp-data-val">{{ $guardCapture->vehicle_number }}</div>
-                                    </div>
-                                    @endif
-                                    @if($guardCapture->driver_name)
-                                    <div class="gp-data-cell">
-                                        <div class="gp-data-lbl"><i class="bi bi-person me-1"></i>Driver</div>
-                                        <div class="gp-data-val">{{ $guardCapture->driver_name }}</div>
-                                    </div>
-                                    @endif
-                                    @if($guardCapture->nic_number)
-                                    <div class="gp-data-cell">
-                                        <div class="gp-data-lbl"><i class="bi bi-person-vcard me-1"></i>NIC</div>
-                                        <div class="gp-data-val font-monospace">{{ $guardCapture->nic_number }}</div>
-                                    </div>
-                                    @endif
-                                    @if($guardCapture->driver_phone)
-                                    <div class="gp-data-cell">
-                                        <div class="gp-data-lbl"><i class="bi bi-telephone me-1"></i>Phone</div>
-                                        <div class="gp-data-val">{{ $guardCapture->driver_phone }}</div>
-                                    </div>
-                                    @endif
-                                </div>
-                                @if($guardCapture->notes)
-                                <div class="gp-notes-row">
-                                    <i class="bi bi-chat-left-text me-1 text-muted"></i>
-                                    <span class="text-muted" style="font-size:.78rem;">Ops note:</span>
-                                    <span style="font-size:.78rem;">{{ $guardCapture->notes }}</span>
-                                </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
+                    @include('yard.partials.guard-post-panel', ['guardCapture' => $guardCapture, 'rescan' => true])
                     @endif
 
                     @if($errors->any())
@@ -1250,7 +1056,7 @@
 </div>
 
 {{-- ── Guard Post lightbox modal (shared by Gate In + Gate Out panels) ─────── --}}
-@if(isset($guardCapture) && $guardCapture)
+@if($companySetting?->enable_guard_post)
 <div class="modal fade" id="gpLightboxModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content bg-dark border-0">
@@ -3002,41 +2808,38 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     }
 })();
 
-/* ── Guard Post Lightbox ───────────────────────────────────────────────────── */
-@php
-    $gpLightboxPhotos = [];
-    if (isset($guardCapture) && $guardCapture) {
-        if ($guardCapture->container_image_url) $gpLightboxPhotos[] = ['label' => 'Container', 'url' => $guardCapture->container_image_url];
-        if ($guardCapture->plate_image_url)     $gpLightboxPhotos[] = ['label' => 'Plate',     'url' => $guardCapture->plate_image_url];
-        if ($guardCapture->nic_front_url)       $gpLightboxPhotos[] = ['label' => 'NIC Front', 'url' => $guardCapture->nic_front_url];
-        if ($guardCapture->nic_back_url)        $gpLightboxPhotos[] = ['label' => 'NIC Back',  'url' => $guardCapture->nic_back_url];
-        if ($guardCapture->license_front_url)   $gpLightboxPhotos[] = ['label' => 'License',   'url' => $guardCapture->license_front_url];
-    }
-@endphp
+/* ── Guard Post Lightbox (data-driven — reads photos from whichever panel was
+   clicked, so it works for both the server-rendered panel and one injected over
+   AJAX on the type / OCR-scan path) ─────────────────────────────────────────── */
 (function () {
-    const photos = @json($gpLightboxPhotos);
-
-    if (!photos.length) return;
-
-    let current = 0;
-    const modal   = document.getElementById('gpLightboxModal');
+    const modal = document.getElementById('gpLightboxModal');
+    if (!modal) return;
     const img     = document.getElementById('gpLightboxImg');
     const title   = document.getElementById('gpLightboxTitle');
     const openBtn = document.getElementById('gpLightboxOpen');
     const prevBtn = document.getElementById('gpLightboxPrev');
     const nextBtn = document.getElementById('gpLightboxNext');
 
+    let photos  = [];
+    let current = 0;
+
     function show(idx) {
+        if (!photos.length) return;
         current = (idx + photos.length) % photos.length;
-        img.src        = photos[current].url;
+        img.src           = photos[current].url;
         title.textContent = photos[current].label + ' (' + (current + 1) + '/' + photos.length + ')';
-        openBtn.href   = photos[current].url;
+        openBtn.href      = photos[current].url;
         prevBtn.style.display = photos.length > 1 ? '' : 'none';
         nextBtn.style.display = photos.length > 1 ? '' : 'none';
     }
 
-    window.gpOpenLightbox = function (idx) {
-        show(idx);
+    // Called from a thumbnail's inline onclick with the thumbnail element. Gather
+    // its sibling thumbnails from the enclosing panel to build the gallery.
+    window.gpOpenLightbox = function (thumbEl) {
+        const panel  = (thumbEl && thumbEl.closest) ? thumbEl.closest('.gp-panel') : null;
+        const thumbs = panel ? Array.from(panel.querySelectorAll('.gp-thumb')) : [];
+        photos = thumbs.map(t => ({ url: t.dataset.gpUrl, label: t.dataset.gpLabel }));
+        show(Math.max(0, thumbs.indexOf(thumbEl)));
         bootstrap.Modal.getOrCreateInstance(modal).show();
     };
 
@@ -3044,12 +2847,8 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     nextBtn.addEventListener('click', () => show(current + 1));
 
     // Keyboard navigation when modal is open
-    modal.addEventListener('shown.bs.modal', () => {
-        document.addEventListener('keydown', onKey);
-    });
-    modal.addEventListener('hidden.bs.modal', () => {
-        document.removeEventListener('keydown', onKey);
-    });
+    modal.addEventListener('shown.bs.modal', () => document.addEventListener('keydown', onKey));
+    modal.addEventListener('hidden.bs.modal', () => document.removeEventListener('keydown', onKey));
     function onKey(e) {
         if (e.key === 'ArrowLeft')  show(current - 1);
         if (e.key === 'ArrowRight') show(current + 1);
@@ -3491,6 +3290,13 @@ window.gpRescan = async function (btnEl, url, type) {
     }
 
     function renderGpBanner(banner, data, direction, captureFieldId) {
+        // Inject (or clear) the rich verification panel that mirrors the queue path.
+        // On the queue-promote path the panel is already server-rendered (outside the
+        // slot); don't inject a second copy — it would clash on element ids.
+        const slot = document.getElementById(direction === 'out' ? 'gpPanelSlotOut' : 'gpPanelSlot');
+        const existingPanel = document.getElementById(direction === 'out' ? 'gpVerifyPanelOut' : 'gpVerifyPanel');
+        const serverPanelPresent = existingPanel && slot && !slot.contains(existingPanel);
+        if (slot && !serverPanelPresent) slot.innerHTML = (data && data.panel_html) ? data.panel_html : '';
         if (!data || !data.enabled || !data.match) { banner.classList.add('d-none'); banner.innerHTML = ''; return; }
         const c = data.capture;
         let cls, icon, text, btn = '';

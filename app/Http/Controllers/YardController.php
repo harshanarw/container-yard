@@ -1780,10 +1780,20 @@ class YardController extends Controller
             return response()->json(['enabled' => true, 'match' => false]);
         }
 
+        // Relations the verification panel reads (guard/officer names).
+        $capture->loadMissing(['capturedBy', 'clearedBy', 'equipmentType']);
+
         return response()->json([
             'enabled'    => true,
             'match'      => true,
             'actionable' => (bool) $cleared,   // cleared + unlinked + right direction
+            // The full verification panel (photos + driver/vehicle detail), rendered
+            // from the same partial the queue-promote path @includes. No re-scan
+            // buttons here — the officer keyed the number themselves.
+            'panel_html' => view('yard.partials.guard-post-panel', [
+                'guardCapture' => $capture,
+                'rescan'       => false,
+            ])->render(),
             'capture'    => [
                 'id'           => $capture->id,
                 'reference_no' => $capture->reference_no,
