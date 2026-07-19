@@ -22,6 +22,18 @@ abstract class FeatureTestCase extends TestCase
     /** Seed the full baseline once after the fresh migration. */
     protected $seed = true;
 
+    /**
+     * RefreshDatabase resets the rows each test but not the cache. CompanySetting
+     * memoises the current settings under a single cache key for 3600s, so a model
+     * cached by one test (e.g. with enable_guard_post flipped on) would otherwise
+     * leak its flags into the next test's fresh baseline. Flush it per test.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \App\Models\CompanySetting::flushCache();
+    }
+
     /** Log in as a super-user (bypasses RBAC) — for broad smoke coverage. */
     protected function actingAsSystemAdmin(): User
     {
