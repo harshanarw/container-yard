@@ -49,8 +49,10 @@
                 <form method="POST" action="{{ route('yard.gate.in') }}" id="gateInForm" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="movement_type" value="in">
-                    @if(($prefill ?? null) && (!isset($guardCapture) || $guardCapture?->direction === 'gate_in'))
-                    <input type="hidden" name="guard_capture_id" value="{{ $prefill['capture_id'] }}">
+                    @php $gateInCaptureId = (($prefill['capture_id'] ?? null) && (!isset($guardCapture) || $guardCapture?->direction === 'gate_in')) ? $prefill['capture_id'] : ''; @endphp
+                    <input type="hidden" name="guard_capture_id" id="gateInGuardCaptureId" value="{{ $gateInCaptureId }}">
+                    @if($companySetting?->enable_guard_post)
+                    <div id="gpStatusIn" class="mb-2 d-none"></div>
                     @endif
 
                     {{-- ── Guard Post Verification Panel ──────────────────────── --}}
@@ -774,8 +776,10 @@
                 <form method="POST" action="{{ route('yard.gate.out') }}" id="gateOutForm" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="movement_type" value="out">
-                    @if(($prefill ?? null) && isset($guardCapture) && $guardCapture?->direction === 'gate_out')
-                    <input type="hidden" name="guard_capture_id" value="{{ $prefill['capture_id'] }}">
+                    @php $gateOutCaptureId = (($prefill['capture_id'] ?? null) && isset($guardCapture) && $guardCapture?->direction === 'gate_out') ? $prefill['capture_id'] : ''; @endphp
+                    <input type="hidden" name="guard_capture_id" id="gateOutGuardCaptureId" value="{{ $gateOutCaptureId }}">
+                    @if($companySetting?->enable_guard_post)
+                    <div id="gpStatusOut" class="mb-2 d-none"></div>
                     @endif
 
                     <div id="gateOutMissingWarn" class="alert alert-warning py-2 small d-none">
@@ -3467,4 +3471,91 @@ window.gpRescan = async function (btnEl, url, type) {
         </div>
     </div>
 </div>
+
+@if($companySetting?->enable_guard_post)
+{{-- ── Guard Post status in the gate lookup (Phase A) ── --}}
+<script>
+(function () {
+    const CHECK_URL = '{{ route('yard.guard-post-check') }}';
+
+    async function checkGuardPost(no, direction, bannerId, captureFieldId) {
+        const banner = document.getElementById(bannerId);
+        if (!banner) return;
+        no = (no || '').trim().toUpperCase();
+        if (!/^[A-Z]{4}[0-9]{7}$/.test(no)) { banner.classList.add('d-none'); banner.innerHTML = ''; return; }
+        try {
+            const res  = await fetch(CHECK_URL + '?container_no=' + encodeURIComponent(no) + '&direction=' + direction,
+                                     { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            renderGpBanner(banner, await res.json(), direction, captureFieldId);
+        } catch (e) { banner.classList.add('d-none'); }
+    }
+
+    function renderGpBanner(banner, data, direction, captureFieldId) {
+        if (!data || !data.enabled || !data.match) { banner.classList.add('d-none'); banner.innerHTML = ''; return; }
+        const c = data.capture;
+        let cls, icon, text, btn = '';
+        if (data.actionable) {
+            cls = 'alert-success'; icon = 'bi-shield-check';
+            text = 'Guard Post <strong>cleared</strong> — ' + c.reference_no + (c.cleared_at ? ' &middot; ' + c.cleared_at : '');
+            btn  = '<button type="button" class="btn btn-sm btn-success ms-2 flex-shrink-0" id="gpUse_' + direction +
+                   '"><i class="bi bi-link-45deg me-1"></i>Use this capture</button>';
+        } else if (c.linked) {
+            cls = 'alert-secondary'; icon = 'bi-link';
+            text = 'Guard Post capture ' + c.reference_no + ' is already linked to a gate movement.';
+        } else if (c.status === 'pending') {
+            cls = 'alert-warning'; icon = 'bi-hourglass-split';
+            text = 'Guard Post capture ' + c.reference_no + ' is <strong>pending clearance</strong> — clear it in the Review Queue, or proceed without linking.';
+        } else if (c.status === 'hold') {
+            cls = 'alert-warning'; icon = 'bi-pause-circle';
+            text = 'Guard Post capture ' + c.reference_no + ' is <strong>on hold</strong> — verify before proceeding.';
+        } else if (c.status === 'rejected') {
+            cls = 'alert-danger'; icon = 'bi-x-octagon';
+            text = 'Guard Post capture ' + c.reference_no + ' was <strong>rejected</strong> — do not proceed without checking.';
+        } else { banner.classList.add('d-none'); return; }
+
+        banner.className = 'mb-2 alert ' + cls + ' py-2 small d-flex align-items-center';
+        banner.innerHTML = '<i class="bi ' + icon + ' me-2"></i><span class="flex-grow-1">' + text + '</span>' + btn;
+        banner.classList.remove('d-none');
+
+        if (data.actionable && data.prefill) {
+            document.getElementById('gpUse_' + direction)
+                ?.addEventListener('click', function () { applyGpPrefill(data.prefill, direction, captureFieldId, this); });
+        }
+    }
+
+    function applyGpPrefill(pf, direction, captureFieldId, btn) {
+        const field = document.getElementById(captureFieldId);
+        if (field) field.value = pf.guard_capture_id;          // link on submit
+        const form = document.getElementById(direction === 'out' ? 'gateOutForm' : 'gateInForm');
+        const set  = (name, val) => { if (!val) return; const el = form?.querySelector('[name="' + name + '"]'); if (el && !el.value) el.value = val; };
+        set('vehicle_plate', pf.vehicle_plate);
+        set('driver_name',   pf.driver_name);
+        set('driver_ic',     pf.driver_ic);
+        set('driver_phone',  pf.driver_phone);
+        if (direction !== 'out' && pf.equipment_type_id) {
+            const eqtSel = document.getElementById('gateEqtSelect');
+            if (eqtSel) for (const opt of eqtSel.options) {
+                if (String(opt.value) === String(pf.equipment_type_id)) {
+                    if (typeof $ !== 'undefined') $(eqtSel).val(opt.value).trigger('change');
+                    else { eqtSel.value = opt.value; eqtSel.dispatchEvent(new Event('change')); }
+                    break;
+                }
+            }
+        }
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Linked';
+    }
+
+    // Triggers — gate-in on the typed/scanned number; gate-out when a container is picked.
+    const inpIn = document.getElementById('containerNoIn');
+    if (inpIn) inpIn.addEventListener('blur', () => checkGuardPost(inpIn.value, 'in', 'gpStatusIn', 'gateInGuardCaptureId'));
+
+    if (typeof $ !== 'undefined') {
+        $('#containerSearch').on('select2:select change', function () {
+            checkGuardPost($(this).val(), 'out', 'gpStatusOut', 'gateOutGuardCaptureId');
+        });
+    }
+})();
+</script>
+@endif
 @endpush

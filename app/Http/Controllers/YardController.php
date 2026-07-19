@@ -1720,6 +1720,61 @@ class YardController extends Controller
         ]);
     }
 
+    /**
+     * Does a Guard Post capture exist for this container + direction? Lets the
+     * gate officer see the guard's clearance status while typing/scanning, and
+     * link a cleared capture without going through the queue. No-op when the
+     * Guard Post feature is off.
+     */
+    public function guardPostCheck(Request $request): \Illuminate\Http\JsonResponse
+    {
+        if (! CompanySetting::current()->enable_guard_post) {
+            return response()->json(['enabled' => false, 'match' => false]);
+        }
+
+        $no  = strtoupper(trim($request->query('container_no', '')));
+        $dir = $request->query('direction') === 'out' ? 'gate_out' : 'gate_in';
+
+        if ($no === '') {
+            return response()->json(['enabled' => true, 'match' => false]);
+        }
+
+        $base = GuardCapture::where('container_number', $no)->where('direction', $dir);
+
+        // Prefer a cleared, not-yet-linked capture (the actionable one); otherwise
+        // surface the latest capture so pending/hold/rejected are still visible.
+        $cleared = (clone $base)->where('status', 'cleared')
+            ->whereNull('linked_gate_movement_id')->latest('id')->first();
+        $capture = $cleared ?? (clone $base)->latest('id')->first();
+
+        if (! $capture) {
+            return response()->json(['enabled' => true, 'match' => false]);
+        }
+
+        return response()->json([
+            'enabled'    => true,
+            'match'      => true,
+            'actionable' => (bool) $cleared,   // cleared + unlinked + right direction
+            'capture'    => [
+                'id'           => $capture->id,
+                'reference_no' => $capture->reference_no,
+                'status'       => $capture->status,
+                'status_label' => $capture->status_label,
+                'direction'    => $capture->direction,
+                'cleared_at'   => $capture->cleared_at?->format('d M Y H:i'),
+                'linked'       => (bool) $capture->linked_gate_movement_id,
+            ],
+            'prefill'    => $cleared ? [
+                'guard_capture_id'  => $cleared->id,
+                'equipment_type_id' => $cleared->equipment_type_id,
+                'vehicle_plate'     => $cleared->vehicle_number,
+                'driver_name'       => $cleared->driver_name,
+                'driver_ic'         => $cleared->nic_number,
+                'driver_phone'      => $cleared->driver_phone,
+            ] : null,
+        ]);
+    }
+
     // -------------------------------------------------------------------------
     // Gate-Out autocomplete: returns containers currently in yard matching query
     // Used by Select2 on the Gate-Out container number field.
