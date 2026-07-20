@@ -247,7 +247,7 @@ class YardController extends Controller
 
         if ($validator->fails()) {
             \Log::debug('[GateIn-VALIDATION] failed: ' . json_encode($validator->errors()->toArray()));
-            return redirect()->back()->withErrors($validator)->withInput();
+            return $this->validationResponse($request, $validator->errors()->toArray());
         }
 
         $validated = $validator->validated();
@@ -267,9 +267,7 @@ class YardController extends Controller
 
         // Return reason is required for Empty Return job type
         if ($jobType->job_type_code === 'EMPTY_RETURN' && empty($validated['return_reason'])) {
-            return redirect()->back()
-                ->withErrors(['return_reason' => 'Please select a return reason for Empty Return.'])
-                ->withInput();
+            return $this->validationResponse($request, ['return_reason' => ['Please select a return reason for Empty Return.']]);
         }
 
         // ── Duplicate Gate-In guard ──────────────────────────────────────────
@@ -280,12 +278,10 @@ class YardController extends Controller
             $since = $existingContainer->gate_in_date
                 ? ' (since ' . $existingContainer->gate_in_date->format('d M Y') . ')'
                 : '';
-            return redirect()->back()
-                ->withErrors(['container_no' =>
-                    "{$validated['container_no']} is already in the yard{$since}. "
-                    . "Complete the Gate-Out before recording a new Gate-In."
-                ])
-                ->withInput();
+            return $this->validationResponse($request, ['container_no' => [
+                "{$validated['container_no']} is already in the yard{$since}. "
+                . "Complete the Gate-Out before recording a new Gate-In."
+            ]]);
         }
 
         // Check 2: backdated Gate-In overlaps an existing stay (open or closed)
@@ -307,12 +303,10 @@ class YardController extends Controller
                 $to   = $conflict->gate_out_date
                     ? $conflict->gate_out_date->format('d M Y')
                     : 'present';
-                return redirect()->back()
-                    ->withErrors(['gate_in_time' =>
-                        "The Gate-In date conflicts with an existing stay for this container "
-                        . "({$from} → {$to}). Adjust the date or gate out the existing record first."
-                    ])
-                    ->withInput();
+                return $this->validationResponse($request, ['gate_in_time' => [
+                    "The Gate-In date conflicts with an existing stay for this container "
+                    . "({$from} → {$to}). Adjust the date or gate out the existing record first."
+                ]]);
             }
         }
         // ── End duplicate guard ──────────────────────────────────────────────
@@ -323,10 +317,9 @@ class YardController extends Controller
         // operator must choose its billing service type up front — never defaulted.
         $willPlugReefer = $validated['cargo_status'] === 'laden' && $eqt->isReefer();
         if ($willPlugReefer && empty($validated['reefer_service_type'])) {
-            return redirect()->back()
-                ->withErrors(['reefer_service_type' =>
-                    'Please choose the reefer service type (Short-Term PTI or Long-Term Electricity) for this reefer container.'])
-                ->withInput();
+            return $this->validationResponse($request, ['reefer_service_type' => [
+                'Please choose the reefer service type (Short-Term PTI or Long-Term Electricity) for this reefer container.',
+            ]]);
         }
 
         // Seal policy: a laden gate-in must carry a seal, or a documented no-seal
