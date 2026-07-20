@@ -331,6 +331,10 @@ class YardController extends Controller
 
         // Seal policy: a laden gate-in must carry a seal, or a documented no-seal
         // reason, when the company enables the requirement (off by default).
+        \Log::warning('[SealCheck DIAG] cargo=' . var_export($validated['cargo_status'] ?? null, true)
+            . ' require_seal_for_laden=' . var_export((bool) \App\Models\CompanySetting::current()->require_seal_for_laden, true)
+            . ' seal_no=' . var_export($validated['seal_no'] ?? null, true)
+            . ' no_seal_reason=' . var_export($validated['no_seal_reason'] ?? null, true));
         if ($err = $this->sealRequirementError(
             $validated['cargo_status'] === 'laden',
             $validated['seal_no'],
