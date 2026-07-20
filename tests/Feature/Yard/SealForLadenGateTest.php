@@ -187,4 +187,56 @@ class SealForLadenGateTest extends FeatureTestCase
             'movement_type' => 'out',
         ]);
     }
+
+    // ─── End-to-end: enable via the real settings form, then gate-in ───────────
+    // Mirrors the actual operator flow (toggle the setting in Company Settings,
+    // which flushes the settings cache, then record a laden gate-in). If this
+    // passes but the live app still lets a laden box through, the cause is
+    // environmental (stale code cache / wrong deploy), not the rule itself.
+
+    public function test_enabling_via_settings_form_then_blocks_a_laden_gate_in_with_no_seal(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        // Turn the policy ON the way an admin does — through the settings form.
+        $this->from(route('settings.company.index'))
+            ->post(route('settings.company.update'), [
+                'company_name'          => 'Test Yard',
+                'require_seal_for_laden' => '1',
+            ])->assertSessionHasNoErrors();
+
+        $this->assertTrue(
+            (bool) CompanySetting::current()->require_seal_for_laden,
+            'require_seal_for_laden should read ON after saving the settings form.'
+        );
+
+        // Laden gate-in, seal and reason both blank (as the browser posts them:
+        // empty strings, which the framework converts to null) → must be blocked.
+        $this->from(route('yard.gate'))
+            ->post(route('yard.gate.in'), $this->gateInPayload(['seal_no' => '', 'no_seal_reason' => '']))
+            ->assertSessionHasErrors('seal_no');
+
+        $this->assertDatabaseMissing('containers', ['container_no' => 'SEAL1234567', 'status' => 'in_yard']);
+    }
+
+    public function test_enabling_via_settings_form_then_allows_a_laden_gate_in_with_a_reason(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $this->from(route('settings.company.index'))
+            ->post(route('settings.company.update'), [
+                'company_name'          => 'Test Yard',
+                'require_seal_for_laden' => '1',
+            ])->assertSessionHasNoErrors();
+
+        $this->from(route('yard.gate'))
+            ->post(route('yard.gate.in'), $this->gateInPayload(['seal_no' => '', 'no_seal_reason' => 'customs_exam']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('gate_movements', [
+            'container_no'   => 'SEAL1234567',
+            'movement_type'  => 'in',
+            'no_seal_reason' => 'customs_exam',
+        ]);
+    }
 }
