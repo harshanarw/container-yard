@@ -237,14 +237,14 @@
                         <div class="col-4">
                             <label class="form-label fw-semibold">Seal Number
                                 @if($companySetting?->require_seal_for_laden)
-                                <span class="text-danger" id="sealReqStarIn" style="display:none;">*</span>
+                                <span class="badge bg-warning-subtle text-warning-emphasis fw-normal ms-1" style="font-size:.68rem;">Required for laden</span>
                                 @endif
                             </label>
-                            <input type="text" name="seal_no" id="sealNoIn" class="form-control" placeholder="Optional">
+                            <input type="text" name="seal_no" id="sealNoIn" class="form-control" placeholder="{{ $companySetting?->require_seal_for_laden ? 'Seal number' : 'Optional' }}">
                             @if($companySetting?->require_seal_for_laden)
-                            <div class="mt-2 d-none" id="noSealWrapIn">
+                            <div class="mt-2" id="noSealWrapIn">
                                 <label class="form-label fw-semibold small mb-1">No-seal reason
-                                    <span class="text-muted fw-normal">— required for a laden box with no seal</span>
+                                    <span class="text-muted fw-normal">— choose only if a laden box has no seal</span>
                                 </label>
                                 <select name="no_seal_reason" id="noSealReasonIn" class="form-select form-select-sm">
                                     <option value="">— Select reason —</option>
@@ -2890,28 +2890,8 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     }
 })();
 
-// ── Seal requirement (laden) — reveal the no-seal reason on the gate-in form ───
-// Only present when the company enabled require_seal_for_laden. Server-side
-// validation is the source of truth; this just guides the operator.
-(function () {
-    const cargo = document.getElementById('cargoStatusIn');
-    const seal  = document.getElementById('sealNoIn');
-    const wrap  = document.getElementById('noSealWrapIn');
-    const star  = document.getElementById('sealReqStarIn');
-    if (!cargo || !wrap) return; // policy off → elements absent
-
-    function sync() {
-        const laden = cargo.value === 'laden';
-        if (star) star.style.display = laden ? '' : 'none';
-        // Show the reason picker only when it's actually needed: laden + no seal.
-        const needReason = laden && !(seal && seal.value.trim());
-        wrap.classList.toggle('d-none', !needReason);
-        if (!needReason) { const r = document.getElementById('noSealReasonIn'); if (r) r.value = ''; }
-    }
-    cargo.addEventListener('change', sync);
-    if (seal) seal.addEventListener('input', sync);
-    sync();
-})();
+// The seal / no-seal-reason fields render statically when require_seal_for_laden
+// is on (see the Seal Number block above); enforcement is server-side on save.
 
 // ── Driver master typeahead ───────────────────────────────────────────────────
 // Typing in any of the three driver fields (name / NIC / phone) queries the

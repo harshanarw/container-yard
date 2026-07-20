@@ -635,8 +635,9 @@ class YardController extends Controller
             return null; // sealed, or a documented exception was given
         }
 
-        return 'A seal number is required for laden containers. Enter the seal number, '
-             . 'or record a no-seal reason (LCL, customs exam, broken/missing, or special equipment).';
+        return 'Seal Number is required for a laden container. Enter the seal number — '
+             . 'or, if you want to leave it blank, select a No-seal reason '
+             . '(LCL, customs exam, broken/missing, or special equipment).';
     }
 
     public function gateOut(Request $request)
