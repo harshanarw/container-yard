@@ -242,7 +242,7 @@
                             </label>
                             <input type="text" name="seal_no" id="sealNoIn" class="form-control" placeholder="{{ $companySetting?->require_seal_for_laden ? 'Seal number' : 'Optional' }}">
                             @if($companySetting?->require_seal_for_laden)
-                            <div class="mt-2" id="noSealWrapIn">
+                            <div class="mt-2 d-none" id="noSealWrapIn">
                                 <label class="form-label fw-semibold small mb-1">No-seal reason
                                     <span class="text-muted fw-normal">— choose only if a laden box has no seal</span>
                                 </label>
@@ -825,10 +825,9 @@
                                     <label class="form-label fw-semibold">Seal Number</label>
                                     <input type="text" name="seal_no" id="sealNoOut" class="form-control" placeholder="Optional">
                                     @if($companySetting?->require_seal_for_laden)
-                                    <div class="form-text">A laden release needs a seal number, or a no-seal reason below.</div>
-                                    <div class="mt-2" id="noSealWrapOut">
+                                    <div class="mt-2 d-none" id="noSealWrapOut">
                                         <label class="form-label fw-semibold small mb-1">No-seal reason
-                                            <span class="text-muted fw-normal">— only if a laden box has no seal</span>
+                                            <span class="text-muted fw-normal">— required for this laden box if you leave the seal blank</span>
                                         </label>
                                         <select name="no_seal_reason" id="noSealReasonOut" class="form-select form-select-sm">
                                             <option value="">— Select reason —</option>
@@ -2272,6 +2271,8 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
         async function doLookup() {
             const val = ($(inp).val() || '').trim().toUpperCase();
             if (val.length < 11) { setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Select a container from the list first.'); return; }
+            const sealWrapOut = document.getElementById('noSealWrapOut');
+            if (sealWrapOut) sealWrapOut.classList.add('d-none'); // reset until cargo status is known
             try {
                 const res = await fetch('{{ route("yard.container-lookup") }}?container_no=' + encodeURIComponent(val));
                 const data = await res.json();
@@ -2339,6 +2340,12 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                         else gradeSelect.value = gv;
                     }
                     gradeRow.classList.remove('d-none');
+                    // Seal policy: reveal the No-seal reason only for a laden container.
+                    if (sealWrapOut) {
+                        const laden = data.cargo_status === 'laden' || data.cargo_status === 'full';
+                        sealWrapOut.classList.toggle('d-none', !laden);
+                        if (!laden) { const r = document.getElementById('noSealReasonOut'); if (r) r.value = ''; }
+                    }
                 }
             } catch (e) {
                 lookupDone = false;
@@ -2890,8 +2897,22 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     }
 })();
 
-// The seal / no-seal-reason fields render statically when require_seal_for_laden
-// is on (see the Seal Number block above); enforcement is server-side on save.
+// ── Seal / no-seal reason (gate-in) ───────────────────────────────────────────
+// Show the No-seal reason picker only when the box is Laden (hidden for Empty).
+// Enforcement is server-side on save; this just keeps the form uncluttered.
+(function () {
+    const cargo = document.getElementById('cargoStatusIn');
+    const wrap  = document.getElementById('noSealWrapIn');
+    if (!cargo || !wrap) return; // policy off → wrap absent
+
+    function sync() {
+        const laden = cargo.value === 'laden';
+        wrap.classList.toggle('d-none', !laden);
+        if (!laden) { const r = document.getElementById('noSealReasonIn'); if (r) r.value = ''; }
+    }
+    cargo.addEventListener('change', sync);
+    sync(); // reflect the initial cargo-status value on load
+})();
 
 // ── Driver master typeahead ───────────────────────────────────────────────────
 // Typing in any of the three driver fields (name / NIC / phone) queries the
