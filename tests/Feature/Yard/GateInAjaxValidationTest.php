@@ -31,7 +31,7 @@ class GateInAjaxValidationTest extends FeatureTestCase
         // Only a container number — every other required field omitted.
         $this->postJson(route('yard.gate.in'), ['container_no' => 'MISS1234567'])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['job_type_id', 'equipment_type_id', 'customer_id']);
+            ->assertJsonValidationErrors(['job_type_id', 'equipment_type_id', 'customer_id', 'vehicle_plate']);
     }
 
     public function test_ajax_duplicate_gate_in_returns_422_not_silent(): void
@@ -50,6 +50,7 @@ class GateInAjaxValidationTest extends FeatureTestCase
             'customer_id'       => Customer::factory()->create()->id,
             'condition'         => 'sound',
             'cargo_status'      => 'empty',
+            'vehicle_plate'     => 'TRUCK01',
         ])->assertStatus(422)->assertJsonValidationErrors('container_no');
 
         // No second movement recorded for the duplicate.
@@ -57,6 +58,25 @@ class GateInAjaxValidationTest extends FeatureTestCase
             'container_no'  => 'DUPL1234567',
             'movement_type' => 'in',
         ]);
+    }
+
+    public function test_gate_in_without_vehicle_plate_is_blocked(): void
+    {
+        // Vehicle Number is now required on gate-in (matches gate-out).
+        $this->actingAsSystemAdmin();
+        $eqt = EquipmentType::query()->firstOrFail();
+
+        $this->postJson(route('yard.gate.in'), [
+            'job_type_id'       => $this->jobType()->id,
+            'container_no'      => 'NOVE1234567',
+            'equipment_type_id' => $eqt->id,
+            'customer_id'       => Customer::factory()->create()->id,
+            'condition'         => 'sound',
+            'cargo_status'      => 'empty',
+            // vehicle_plate intentionally omitted
+        ])->assertStatus(422)->assertJsonValidationErrors('vehicle_plate');
+
+        $this->assertDatabaseMissing('containers', ['container_no' => 'NOVE1234567', 'status' => 'in_yard']);
     }
 
     public function test_normal_post_still_redirects_back_with_errors(): void

@@ -113,6 +113,7 @@ class DriverMasterTest extends FeatureTestCase
             'customer_id'       => $customer->id,
             'condition'         => 'sound',
             'cargo_status'      => 'empty',
+            'vehicle_plate'     => 'TRUCK01',
             'driver_name'       => 'Kamal Silva',
             'driver_ic'         => '901234567V',
             'driver_phone'      => '+94712223334',

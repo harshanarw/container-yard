@@ -44,6 +44,7 @@ class SealForLadenGateTest extends FeatureTestCase
             'customer_id'       => Customer::factory()->create()->id,
             'condition'         => 'sound',
             'cargo_status'      => 'laden',
+            'vehicle_plate'     => 'TRUCK01',
         ], $overrides);
     }
 

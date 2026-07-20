@@ -43,7 +43,7 @@ class GateInFlowTest extends FeatureTestCase
             // Optional fields the real gate-in form always posts (empty) and the
             // controller reads directly from the validated set.
             'location_zone' => '', 'location_row' => '', 'location_bay' => '', 'location_tier' => '',
-            'seal_no' => '', 'vehicle_plate' => '', 'transporter_id' => '',
+            'seal_no' => '', 'vehicle_plate' => 'TRUCK01', 'transporter_id' => '',
             'driver_name' => '', 'driver_ic' => '', 'driver_phone' => '',
             'vessel_name' => '', 'voyage_no' => '', 'berthing_date' => '', 'bl_number' => '',
             'do_expiry_date' => '', 'fcl_expiry_date' => '', 'consignee' => '',
@@ -95,7 +95,7 @@ class GateInFlowTest extends FeatureTestCase
             'customer_id'       => $customer->id,
             'condition'         => 'sound',
             'cargo_status'      => 'empty',
-            // every nullable field intentionally omitted
+            'vehicle_plate'     => 'TRUCK01', // required; every other nullable field omitted
         ]);
 
         $response->assertSessionHasNoErrors();

@@ -210,7 +210,7 @@ class YardController extends Controller
             'location_tier'     => ['nullable', 'integer', 'min:1', 'max:10'],
             'seal_no'           => ['nullable', 'string', 'max:20'],
             'no_seal_reason'    => ['nullable', 'string', 'in:' . implode(',', self::NO_SEAL_REASONS)],
-            'vehicle_plate'     => ['nullable', 'string', 'max:20'],
+            'vehicle_plate'     => ['required', 'string', 'max:20'],
             'transporter_id'    => ['nullable', 'exists:customers,id'],
             'driver_name'       => ['nullable', 'string', 'max:255'],
             'driver_ic'         => ['nullable', 'string', 'max:30'],

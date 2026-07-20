@@ -444,7 +444,7 @@
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Truck / Vehicle Plate</label>
+                            <label class="form-label fw-semibold">Truck / Vehicle Plate <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <input type="text" name="vehicle_plate" id="vehiclePlateIn"
                                        class="form-control text-uppercase" placeholder="e.g. WQR 1234" autocomplete="off">

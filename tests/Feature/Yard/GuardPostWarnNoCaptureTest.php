@@ -38,6 +38,7 @@ class GuardPostWarnNoCaptureTest extends FeatureTestCase
             'customer_id'       => $customer->id,
             'condition'         => 'sound',
             'cargo_status'      => 'empty',
+            'vehicle_plate'     => 'TRUCK01',
         ];
     }
 
