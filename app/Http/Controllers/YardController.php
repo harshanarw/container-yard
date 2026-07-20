@@ -331,16 +331,12 @@ class YardController extends Controller
 
         // Seal policy: a laden gate-in must carry a seal, or a documented no-seal
         // reason, when the company enables the requirement (off by default).
-        \Log::warning('[SealCheck DIAG] cargo=' . var_export($validated['cargo_status'] ?? null, true)
-            . ' require_seal_for_laden=' . var_export((bool) \App\Models\CompanySetting::current()->require_seal_for_laden, true)
-            . ' seal_no=' . var_export($validated['seal_no'] ?? null, true)
-            . ' no_seal_reason=' . var_export($validated['no_seal_reason'] ?? null, true));
         if ($err = $this->sealRequirementError(
             $validated['cargo_status'] === 'laden',
             $validated['seal_no'],
             $validated['no_seal_reason'] ?? null
         )) {
-            return redirect()->back()->withErrors(['seal_no' => $err])->withInput();
+            return $this->validationResponse($request, ['seal_no' => [$err]]);
         }
 
         // Resolve actual gate-in datetime (admin can override; everyone else uses now())
@@ -618,6 +614,26 @@ class YardController extends Controller
         }
     }
 
+    /**
+     * Return validation errors in the shape the caller expects: a 422 JSON payload
+     * for the gate form's AJAX submit (so it shows the message inline and keeps the
+     * operator on the form), or a redirect-back with the errors flashed for a normal
+     * request. The gate form posts via fetch with X-Requested-With, and its handler
+     * surfaces field messages from a 422 — a plain redirect-back would be silently
+     * followed and the flashed error lost.
+     *
+     * @param  array<string, array<int, string>>  $errors
+     */
+    private function validationResponse(Request $request, array $errors)
+    {
+        if ($request->ajax() || $request->wantsJson()) {
+            $first = collect($errors)->flatten()->first();
+            return response()->json(['message' => $first ?? 'Validation failed.', 'errors' => $errors], 422);
+        }
+
+        return redirect()->back()->withErrors($errors)->withInput();
+    }
+
     /** Documented reasons a laden container may legitimately move without a seal. */
     public const NO_SEAL_REASONS = ['lcl', 'customs_exam', 'broken_missing', 'special_equipment', 'other'];
 
@@ -789,7 +805,7 @@ class YardController extends Controller
             $validated['seal_no'] ?? null,
             $validated['no_seal_reason'] ?? null
         )) {
-            return back()->withErrors(['seal_no' => $err])->withInput();
+            return $this->validationResponse($request, ['seal_no' => [$err]]);
         }
 
         // Resolve actual gate-out datetime — admin can override, others use now()

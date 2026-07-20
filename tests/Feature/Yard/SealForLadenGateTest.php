@@ -277,4 +277,38 @@ class SealForLadenGateTest extends FeatureTestCase
             ->assertDontSee('name="no_seal_reason"', false)
             ->assertDontSee('id="noSealWrapIn"', false);
     }
+
+    // ─── AJAX submit path ─────────────────────────────────────────────────────
+    // The gate form posts via fetch (photo uploader) with the XHR header, and its
+    // handler shows validation errors only from a 422 JSON. A plain redirect-back
+    // was silently followed, so the operator saw no error while the movement was
+    // (correctly) not saved. These assert the seal block returns a 422 for AJAX.
+
+    public function test_ajax_laden_gate_in_without_seal_returns_422_with_seal_error(): void
+    {
+        $this->actingAsSystemAdmin();
+        $this->enableSealPolicy();
+
+        $this->postJson(route('yard.gate.in'), $this->gateInPayload(['seal_no' => '', 'no_seal_reason' => '']))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('seal_no');
+
+        $this->assertDatabaseMissing('containers', ['container_no' => 'SEAL1234567', 'status' => 'in_yard']);
+    }
+
+    public function test_ajax_laden_gate_out_without_seal_returns_422_with_seal_error(): void
+    {
+        $this->actingAsSystemAdmin();
+        $this->enableSealPolicy();
+        $container = $this->containerInYard('laden');
+
+        $this->postJson(route('yard.gate.out'), $this->gateOutPayload($container, ['seal_no' => '', 'no_seal_reason' => '']))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('seal_no');
+
+        $this->assertDatabaseMissing('gate_movements', [
+            'container_id'  => $container->id,
+            'movement_type' => 'out',
+        ]);
+    }
 }
