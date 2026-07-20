@@ -3254,6 +3254,9 @@ window.gpRescan = async function (btnEl, url, type) {
         // ── Auto-set cargo status ────────────────────────────────────────────
         if (cargoHint && cargoSel) {
             cargoSel.value = cargoHint;
+            // Notify listeners (seal no-seal-reason reveal, reefer service toggle) —
+            // a programmatic value change doesn't fire 'change' on its own.
+            cargoSel.dispatchEvent(new Event('change'));
             var label = cargoHint === 'empty' ? 'Empty' : 'Laden';
             alerts.push({ type: 'info', icon: 'bi-arrow-repeat',
                 text: 'Cargo status auto-set to <strong>' + label + '</strong> for <em>' + jobName + '</em>.' });
