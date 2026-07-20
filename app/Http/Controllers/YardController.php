@@ -712,12 +712,10 @@ class YardController extends Controller
 
         // Block gate-out while container is on active hire — the hire must be completed first
         if ($container->activeHire()->exists()) {
-            return redirect()->back()
-                ->withErrors(['container_no' =>
-                    "Container {$container->container_no} is currently on hire. "
-                    . 'Complete or cancel the hire before gating it out.'
-                ])
-                ->withInput();
+            return $this->validationResponse($request, ['container_no' => [
+                "Container {$container->container_no} is currently on hire. "
+                . 'Complete or cancel the hire before gating it out.',
+            ]]);
         }
 
         // ── Booking / export-release context ────────────────────────────────
@@ -748,9 +746,9 @@ class YardController extends Controller
 
         if ($needsBooking && !$gateLine) {
             if ((bool) (\App\Models\CompanySetting::current()->enforce_export_booking ?? false)) {
-                return back()->withErrors(['container_no' =>
-                    "An export release requires a booking, but no matching open booking line was found for {$container->container_no}."
-                ])->withInput();
+                return $this->validationResponse($request, ['container_no' => [
+                    "An export release requires a booking, but no matching open booking line was found for {$container->container_no}.",
+                ]]);
             }
             session()->flash('warning', "Container {$container->container_no} was released for export without a booking reservation.");
         }
@@ -767,10 +765,10 @@ class YardController extends Controller
             if (!$overriding) {
                 $holdList = $container->activeHolds()->pluck('hold_type')
                     ->map(fn ($t) => str_replace('_', ' ', $t))->implode(', ');
-                return back()->withErrors(['container_no' =>
+                return $this->validationResponse($request, ['container_no' => [
                     "Container {$container->container_no} is on hold ({$holdList}) and cannot be gated out. "
-                    . 'Clear the hold, or an authorised user can override with a reason.'
-                ])->withInput();
+                    . 'Clear the hold, or an authorised user can override with a reason.',
+                ]]);
             }
         }
 
@@ -782,10 +780,10 @@ class YardController extends Controller
         $reeferRelease = $needsBooking || (bool) ($purpose?->reefer_applicable);
         if ($container->isReefer() && $reeferRelease && !$container->hasValidPti()) {
             if ((bool) (\App\Models\CompanySetting::current()->enforce_reefer_pti ?? false)) {
-                return back()->withErrors(['container_no' =>
+                return $this->validationResponse($request, ['container_no' => [
                     "Reefer {$container->container_no} has no valid PTI on record and cannot be released. "
-                    . 'Record a passing pre-trip inspection first.'
-                ])->withInput();
+                    . 'Record a passing pre-trip inspection first.',
+                ]]);
             }
             session()->flash('warning', "Reefer {$container->container_no} was released without a valid PTI.");
         }

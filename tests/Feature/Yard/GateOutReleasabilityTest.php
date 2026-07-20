@@ -55,4 +55,28 @@ class GateOutReleasabilityTest extends FeatureTestCase
             'movement_type' => 'out',
         ]);
     }
+
+    /**
+     * The gate form posts via fetch (XHR). Gate-out rejections must return a 422
+     * JSON so the operator sees the message, rather than a redirect-back the fetch
+     * silently follows (the "Save does nothing, no error" class of bug).
+     */
+    public function test_ajax_gate_out_rejection_returns_422_not_silent(): void
+    {
+        $this->actingAsSystemAdmin();
+        $container = Container::factory()->inRepair()->create();
+
+        $this->postJson(route('yard.gate.out'), [
+            'container_no'  => $container->container_no,
+            'vehicle_plate' => 'ABC1234',
+            'driver_name'   => 'Test Driver',
+            'driver_ic'     => '900101015555',
+            'release_order' => 'RO-TEST-1',
+        ])->assertStatus(422)->assertJsonValidationErrors('container_no');
+
+        $this->assertDatabaseMissing('gate_movements', [
+            'container_id'  => $container->id,
+            'movement_type' => 'out',
+        ]);
+    }
 }
