@@ -239,4 +239,42 @@ class SealForLadenGateTest extends FeatureTestCase
             'no_seal_reason' => 'customs_exam',
         ]);
     }
+
+    // ─── Rendered-form (markup) coverage ──────────────────────────────────────
+    // These assert the gate page HTML actually contains the No-seal reason field
+    // (hidden by default; the browser reveals it for laden). They catch the
+    // "field disappeared from the page" class of regression. They do NOT execute
+    // JavaScript — the show/hide-on-laden behaviour itself needs a browser test.
+
+    public function test_gate_form_renders_the_no_seal_reason_field_when_policy_on(): void
+    {
+        $this->actingAsSystemAdmin();
+        DB::table('company_settings')->update(['require_seal_for_laden' => true]);
+        CompanySetting::flushCache();
+
+        $res = $this->get(route('yard.gate'))->assertOk();
+
+        // Both gate-in and gate-out reason pickers render, hidden by default.
+        $res->assertSee('class="mt-2 d-none" id="noSealWrapIn"', false);
+        $res->assertSee('class="mt-2 d-none" id="noSealWrapOut"', false);
+        $res->assertSee('name="no_seal_reason"', false);
+        // The documented reasons are offered.
+        $res->assertSee('LCL / groupage');
+        $res->assertSee('Customs examination');
+        $res->assertSee('Seal broken / missing');
+        // The cargo selector the reveal watches, and the laden badge.
+        $res->assertSee('id="cargoStatusIn"', false);
+        $res->assertSee('Required for laden');
+    }
+
+    public function test_gate_form_omits_the_no_seal_reason_field_when_policy_off(): void
+    {
+        $this->actingAsSystemAdmin();
+        // policy left OFF (default) — the whole block should not render.
+
+        $this->get(route('yard.gate'))
+            ->assertOk()
+            ->assertDontSee('name="no_seal_reason"', false)
+            ->assertDontSee('id="noSealWrapIn"', false);
+    }
 }
