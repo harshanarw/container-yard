@@ -3,44 +3,33 @@
 namespace Tests\Browser;
 
 use App\Models\Container;
-use App\Models\Customer;
-use App\Models\EquipmentType;
 use App\Models\User;
-use App\Models\YardJobType;
 use Laravel\Dusk\Browser;
 
 /**
  * Gate-In end-to-end + the AJAX error surfacing (422 → toast).
  *
  * The three master-data selects (job type, equipment, customer) are Select2, which
- * Dusk can't drive directly, so we set them via jQuery. Submit goes through the
- * confirmation modal, then the form posts via fetch.
+ * Dusk can't drive directly — and picking ids from the DB is fragile because the
+ * dropdowns may filter/omit them. Instead we choose the first real <option> in
+ * each select in the browser. Submit goes through the confirmation modal, driven
+ * via JS to avoid click-interception on the long form.
  */
 class GateInSubmitTest extends BrowserTestCase
 {
-    /** Valid ids for the seeded master data + a fresh customer. */
-    private function masterIds(): array
+    private function fillGateIn(Browser $browser, string $containerNo, ?string $vehicle): void
     {
-        $jobType = YardJobType::where('movement_direction', 'gate_in')
-            ->where('is_active', true)
-            ->where('job_type_code', '!=', 'EMPTY_RETURN')
-            ->firstOrFail();
-
-        return [
-            'job_type_id'       => $jobType->id,
-            'equipment_type_id' => EquipmentType::query()->firstOrFail()->id,
-            'customer_id'       => Customer::factory()->create()->id,
-        ];
-    }
-
-    private function fillGateIn(Browser $browser, array $ids, string $containerNo, ?string $vehicle): void
-    {
-        // Select2 fields — set through jQuery and fire change so the app's handlers run.
-        $browser->script([
-            "\$('#jobTypeSelect').val('{$ids['job_type_id']}').trigger('change');",
-            "\$('#gateEqtSelect').val('{$ids['equipment_type_id']}').trigger('change');",
-            "\$('#gateInForm select[name=customer_id]').val('{$ids['customer_id']}').trigger('change');",
-        ]);
+        // Choose the first selectable option in each master-data dropdown, skipping
+        // an Empty-Return job type (which requires a return reason before submit).
+        $js = '(function(){'
+            . 'function trig(s){ if(window.jQuery) jQuery(s).trigger("change"); else s.dispatchEvent(new Event("change")); }'
+            . 'function pick(sel){ var s=document.querySelector(sel); if(!s) return; for(var i=0;i<s.options.length;i++){ if(s.options[i].value){ s.value=s.options[i].value; break; } } trig(s); }'
+            . 'var js=document.querySelector("#jobTypeSelect");'
+            . 'if(js){ for(var i=0;i<js.options.length;i++){ var o=js.options[i]; if(o.value && o.getAttribute("data-is-empty-return")!=="1"){ js.value=o.value; break; } } trig(js); }'
+            . 'pick("#gateEqtSelect");'
+            . 'pick("#gateInForm select[name=customer_id]");'
+            . '})();';
+        $browser->script($js);
 
         $browser->type('#containerNoIn', $containerNo)
             ->select('condition', 'sound');
@@ -52,9 +41,8 @@ class GateInSubmitTest extends BrowserTestCase
 
     private function submitGateIn(Browser $browser): void
     {
-        // JS clicks avoid "element click intercepted" — the submit button sits far
-        // down a long form and the confirm button is inside a modal. Both handlers
-        // listen for 'click', so a JS .click() drives them correctly.
+        // JS clicks avoid "element click intercepted" (button far down / inside a
+        // modal); the handlers listen for 'click', so this drives them correctly.
         $browser->script("document.getElementById('btnSubmitGateIn').click();");
         $browser->waitFor('#confirmGateInModal')->pause(700);   // Bootstrap fade-in
         $browser->script("document.getElementById('confirmGateInBtn').click();");
@@ -63,11 +51,10 @@ class GateInSubmitTest extends BrowserTestCase
     public function test_happy_path_records_the_container(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        $ids   = $this->masterIds();
 
-        $this->browse(function (Browser $browser) use ($admin, $ids) {
+        $this->browse(function (Browser $browser) use ($admin) {
             $browser->loginAs($admin)->visit('/yard/gate')->waitFor('#containerNoIn');
-            $this->fillGateIn($browser, $ids, 'DUSK1234567', 'TRUCK01');
+            $this->fillGateIn($browser, 'DUSK1234567', 'TRUCK01');
             $this->submitGateIn($browser);
             $browser->pause(4000);       // let the AJAX submit complete
         });
@@ -81,14 +68,13 @@ class GateInSubmitTest extends BrowserTestCase
     public function test_blank_vehicle_shows_an_error(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        $ids   = $this->masterIds();
 
-        $this->browse(function (Browser $browser) use ($admin, $ids) {
+        $this->browse(function (Browser $browser) use ($admin) {
             $browser->loginAs($admin)->visit('/yard/gate')->waitFor('#containerNoIn');
-            $this->fillGateIn($browser, $ids, 'NOVE1234567', null);   // no vehicle plate
+            $this->fillGateIn($browser, 'NOVE1234567', null);   // no vehicle plate
             $this->submitGateIn($browser);
-            $browser->waitFor('.toast-body')
-                ->assertSeeIn('#toastContainer', 'required');          // "... field is required."
+            $browser->waitFor('.toast-body', 12)
+                ->assertSeeIn('#toastContainer', 'required');    // "... field is required."
         });
 
         $this->assertDatabaseMissing('containers', [
@@ -100,14 +86,13 @@ class GateInSubmitTest extends BrowserTestCase
     public function test_duplicate_container_shows_an_error(): void
     {
         $admin = User::factory()->systemAdmin()->create();
-        $ids   = $this->masterIds();
         Container::factory()->create(['container_no' => 'DUPL1234567', 'status' => 'in_yard']);
 
-        $this->browse(function (Browser $browser) use ($admin, $ids) {
+        $this->browse(function (Browser $browser) use ($admin) {
             $browser->loginAs($admin)->visit('/yard/gate')->waitFor('#containerNoIn');
-            $this->fillGateIn($browser, $ids, 'DUPL1234567', 'TRUCK01');
+            $this->fillGateIn($browser, 'DUPL1234567', 'TRUCK01');
             $this->submitGateIn($browser);
-            $browser->waitFor('.toast-body')
+            $browser->waitFor('.toast-body', 12)
                 ->assertSeeIn('#toastContainer', 'already in the yard');
         });
     }
