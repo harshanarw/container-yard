@@ -44,6 +44,10 @@ Browser tests extend **`Tests\Browser\BrowserTestCase`**, which:
   `DatabaseMigrations` trait, because this app has irreversible `down()`
   migrations (a rollback fails with "cannot drop index needed in a foreign key
   constraint"). Fresh + seed also gives pages their master data.
+- **seeds once per run**, not per test (the full seeder is the main start-up
+  cost). Tests in a run share one seeded database, so keep them independent
+  (unique container numbers, per-test users). Set `DUSK_FRESH_PER_TEST=1` in
+  `.env.dusk.local` for full per-test isolation (slower).
 - lets you **watch the browser**: add `DUSK_HEADLESS_DISABLED=true` to
   `.env.dusk.local` to open a visible Chrome window (default is headless).
   Remove that line to go back to headless. Also disables Chrome background

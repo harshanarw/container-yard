@@ -23,12 +23,25 @@ use Tests\DuskTestCase;
  */
 abstract class BrowserTestCase extends DuskTestCase
 {
+    /**
+     * Migrate + seed ONCE per `php artisan dusk` process, not per test — the full
+     * app seeder is the bulk of each test's start-up time. Trade-off: tests in a
+     * run share one seeded database, so write them defensively (unique container
+     * numbers, loginAs a per-test user) and don't assume empty tables. Set
+     * DUSK_FRESH_PER_TEST=1 in .env.dusk.local to restore full per-test isolation.
+     */
+    private static bool $seeded = false;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Fresh schema + baseline data on the (throwaway) Dusk database.
-        Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+        $perTest = isset($_SERVER['DUSK_FRESH_PER_TEST']) || isset($_ENV['DUSK_FRESH_PER_TEST']);
+
+        if ($perTest || ! static::$seeded) {
+            Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+            static::$seeded = true;
+        }
     }
 
     /**
