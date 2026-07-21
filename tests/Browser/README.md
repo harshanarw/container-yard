@@ -44,9 +44,10 @@ Browser tests extend **`Tests\Browser\BrowserTestCase`**, which:
   `DatabaseMigrations` trait, because this app has irreversible `down()`
   migrations (a rollback fails with "cannot drop index needed in a foreign key
   constraint"). Fresh + seed also gives pages their master data.
-- lets you **watch the browser**: set `DUSK_HEADLESS=false` in `.env.dusk.local`
-  to open a visible Chrome window (default headless), and disables Chrome
-  background networking so runs aren't slowed by GCM registration retries.
+- lets you **watch the browser**: add `DUSK_HEADLESS_DISABLED=true` to
+  `.env.dusk.local` to open a visible Chrome window (default is headless).
+  Remove that line to go back to headless. Also disables Chrome background
+  networking to cut down the GCM registration-retry noise.
 
 ## Conventions
 

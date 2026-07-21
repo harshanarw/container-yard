@@ -32,18 +32,16 @@ abstract class BrowserTestCase extends DuskTestCase
     }
 
     /**
-     * Build the Chrome driver. Headless by default; DUSK_HEADLESS=false shows the
-     * window. The extra flags disable Chrome background networking/sync so it
-     * doesn't stall on Google GCM registration retries (the slow, noisy
-     * DEPRECATED_ENDPOINT lines).
+     * Build the Chrome driver. Headless by default; to WATCH the browser, set
+     * DUSK_HEADLESS_DISABLED (to any value) in .env.dusk.local — Dusk's standard
+     * toggle, read from $_SERVER/$_ENV so it works even when config is cached.
+     * The extra flags disable Chrome background networking/sync to reduce the
+     * noisy GCM registration retries.
      */
     protected function driver(): RemoteWebDriver
     {
-        $headless = filter_var(env('DUSK_HEADLESS', true), FILTER_VALIDATE_BOOLEAN);
-
         $args = [
             '--window-size=1400,1000',
-            '--disable-gpu',
             '--disable-dev-shm-usage',
             '--no-sandbox',
             '--disable-background-networking',
@@ -54,8 +52,9 @@ abstract class BrowserTestCase extends DuskTestCase
             '--no-default-browser-check',
         ];
 
-        if ($headless) {
+        if (! $this->hasHeadlessDisabled()) {
             $args[] = '--headless=new';
+            $args[] = '--disable-gpu';
         }
 
         $options = (new ChromeOptions)->addArguments($args);
@@ -64,5 +63,12 @@ abstract class BrowserTestCase extends DuskTestCase
             env('DUSK_DRIVER_URL') ?: 'http://localhost:9515',
             DesiredCapabilities::chrome()->setCapability(ChromeOptions::CAPABILITY, $options)
         );
+    }
+
+    /** True when DUSK_HEADLESS_DISABLED is present, so Chrome opens a visible window. */
+    protected function hasHeadlessDisabled(): bool
+    {
+        return isset($_SERVER['DUSK_HEADLESS_DISABLED']) ||
+               isset($_ENV['DUSK_HEADLESS_DISABLED']);
     }
 }
