@@ -19,6 +19,18 @@ use Laravel\Dusk\Browser;
  */
 class GateOutSubmitTest extends BrowserTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Enable the seal policy for the whole run, BEFORE any page load — the
+        // long-running server caches settings, so flipping it mid-run wouldn't be
+        // picked up. Empty / under-repair containers are unaffected by the policy,
+        // so the other two tests still pass.
+        DB::table('company_settings')->update(['require_seal_for_laden' => true]);
+        CompanySetting::flushCache();
+    }
+
     private function inYardContainer(string $no, array $attrs = []): Container
     {
         return Container::factory()->create(array_merge([
@@ -91,9 +103,8 @@ class GateOutSubmitTest extends BrowserTestCase
 
     public function test_no_seal_reason_reveals_for_a_laden_container(): void
     {
-        DB::table('company_settings')->update(['require_seal_for_laden' => true]);
-        CompanySetting::flushCache();
-
+        // Policy enabled in setUp (before any page load) so the server renders the
+        // reason field for a laden container.
         $admin     = User::factory()->systemAdmin()->create();
         $container = $this->inYardContainer('LADN1234567', ['cargo_status' => 'laden']);
 
