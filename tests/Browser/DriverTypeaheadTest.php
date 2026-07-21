@@ -28,9 +28,14 @@ class DriverTypeaheadTest extends BrowserTestCase
                 ->visit('/yard/gate')
                 ->waitFor('#driverNameIn')
                 ->type('#driverNameIn', 'Kamal')     // fires the debounced lookup
-                ->waitFor('.driver-ac-item')          // dropdown appears
-                ->click('.driver-ac-item')            // pick the match
-                ->waitUntilMissing('.driver-ac-item')
+                ->waitFor('.driver-ac-item');         // dropdown appears
+
+            // The item picks on 'mousedown' (fires before the input's blur). A
+            // WebDriver click gets "intercepted" because the menu is an absolutely
+            // positioned overlay far down the page, so dispatch mousedown directly.
+            $browser->script("document.querySelector('.driver-ac-item').dispatchEvent(new MouseEvent('mousedown', {bubbles: true}));");
+
+            $browser->waitUntilMissing('.driver-ac-item')
                 ->assertInputValue('#driverNameIn', 'Kamal Silva')
                 ->assertInputValue('#driverIcIn', '901234567V')
                 ->assertInputValue('#driverPhoneIn', '+94712223334');

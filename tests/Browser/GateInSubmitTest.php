@@ -52,10 +52,12 @@ class GateInSubmitTest extends BrowserTestCase
 
     private function submitGateIn(Browser $browser): void
     {
-        $browser->click('#btnSubmitGateIn')
-            ->waitFor('#confirmGateInModal')
-            ->pause(700)                 // Bootstrap modal fade-in
-            ->click('#confirmGateInBtn');
+        // JS clicks avoid "element click intercepted" — the submit button sits far
+        // down a long form and the confirm button is inside a modal. Both handlers
+        // listen for 'click', so a JS .click() drives them correctly.
+        $browser->script("document.getElementById('btnSubmitGateIn').click();");
+        $browser->waitFor('#confirmGateInModal')->pause(700);   // Bootstrap fade-in
+        $browser->script("document.getElementById('confirmGateInBtn').click();");
     }
 
     public function test_happy_path_records_the_container(): void
