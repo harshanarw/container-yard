@@ -112,6 +112,18 @@ class GateOutSubmitTest extends BrowserTestCase
             $browser->loginAs($admin)->visit('/yard/gate')->waitFor('#gateInCard');
             $this->openGateOutAndLookup($browser, $container->container_no);
 
+            // DIAGNOSTIC: capture the DOM state so the failure message tells us
+            // whether the wrap is absent (policy off) or present-but-hidden (reveal
+            // didn't fire), plus what the lookup panel actually rendered.
+            $diag = $browser->script(
+                'var w=document.getElementById("noSealWrapOut");' .
+                'var info=document.getElementById("containerInfoBox");' .
+                'return JSON.stringify({wrapPresent:!!w, wrapClass:w?w.className:null, ' .
+                'info:info?info.innerText.replace(/\s+/g," ").slice(0,160):null});'
+            )[0];
+
+            $this->assertStringContainsString('"wrapPresent":true', (string) $diag, 'DOM after lookup → ' . $diag);
+
             // The lookup reveals the no-seal reason picker only for a laden box.
             $browser->waitFor('#noSealWrapOut')
                 ->assertVisible('#noSealWrapOut');
