@@ -43,15 +43,16 @@ class SealReasonRevealTest extends DuskTestCase
             $browser->loginAs($admin)
                 ->visit('/yard/gate')
                 ->waitFor('#cargoStatusIn')
-                // Hidden for the default cargo status (Empty).
-                ->assertNotVisible('#noSealWrapIn')
+                // Hidden for the default cargo status (Empty). assertMissing passes
+                // for an element that is present but not displayed (d-none).
+                ->assertMissing('#noSealWrapIn')
                 // Select Laden → the reveal fires and the field appears.
                 ->select('cargo_status', 'laden')
                 ->waitFor('#noSealWrapIn')
                 ->assertVisible('#noSealWrapIn')
-                // Back to Empty → it hides again (synchronous change handler).
+                // Back to Empty → it hides again.
                 ->select('cargo_status', 'empty')
-                ->assertNotVisible('#noSealWrapIn');
+                ->waitUntilMissing('#noSealWrapIn');
         });
     }
 
@@ -66,7 +67,7 @@ class SealReasonRevealTest extends DuskTestCase
             $browser->loginAs($admin)
                 ->visit('/yard/gate')
                 ->waitFor('#cargoStatusIn')
-                ->assertNotVisible('#noSealWrapIn');
+                ->assertMissing('#noSealWrapIn');
 
             // Pick the first Job Type whose data-cargo-hint is 'laden'; selecting it
             // auto-sets the cargo status, which must trigger the reveal.
