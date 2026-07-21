@@ -78,6 +78,14 @@ class CompanySetting extends Model
 
     public static function current(): static
     {
+        // Under Dusk the app runs as a separate long-lived server process, so a
+        // cached settings value can go stale mid-run (a test changing a setting
+        // can't bust the server's cache). Read fresh in that env only; cache
+        // normally everywhere else (production and the PHPUnit "testing" env).
+        if (app()->environment('dusk.local')) {
+            return static::firstOrCreate([], ['company_name' => 'Container Yard Management']);
+        }
+
         return Cache::remember('company_settings', 3600, fn () => static::firstOrCreate([], ['company_name' => 'Container Yard Management']));
     }
 
