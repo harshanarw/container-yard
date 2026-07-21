@@ -2344,7 +2344,21 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     if (sealWrapOut) {
                         const laden = data.cargo_status === 'laden' || data.cargo_status === 'full';
                         sealWrapOut.classList.toggle('d-none', !laden);
-                        if (!laden) { const r = document.getElementById('noSealReasonOut'); if (r) r.value = ''; }
+                        if (laden) {
+                            // The seal / no-seal reason lives inside the collapsed
+                            // Export Information section — open it so the operator can
+                            // see and complete it for the laden release.
+                            const exp = document.getElementById('outExportSection');
+                            if (exp && !exp.classList.contains('show')) {
+                                if (window.bootstrap && bootstrap.Collapse) {
+                                    bootstrap.Collapse.getOrCreateInstance(exp).show();
+                                } else {
+                                    exp.classList.add('show');
+                                }
+                            }
+                        } else {
+                            const r = document.getElementById('noSealReasonOut'); if (r) r.value = '';
+                        }
                     }
                 }
             } catch (e) {
