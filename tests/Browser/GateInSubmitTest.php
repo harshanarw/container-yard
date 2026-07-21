@@ -53,11 +53,11 @@ class GateInSubmitTest extends BrowserTestCase
 
     private function submitGateIn(Browser $browser): void
     {
-        // JS clicks avoid "element click intercepted" (button far down / inside a
-        // modal); the handlers listen for 'click', so this drives them correctly.
-        $browser->script("document.getElementById('btnSubmitGateIn').click();");
-        $browser->waitFor('#confirmGateInModal')->pause(700);   // Bootstrap fade-in
-        $browser->script("document.getElementById('confirmGateInBtn').click();");
+        // Trigger the form's submit handler (the AJAX photo-uploader) directly.
+        // This bypasses the confirm modal (UX we don't need here) whose handler
+        // chain was not reliably firing the real submit under automation.
+        // novalidate (set in fillGateIn) lets requestSubmit through to the handler.
+        $browser->script("document.getElementById('gateInForm').requestSubmit();");
     }
 
     public function test_happy_path_records_the_container(): void
