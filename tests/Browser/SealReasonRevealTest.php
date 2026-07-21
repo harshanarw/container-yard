@@ -31,7 +31,9 @@ class SealReasonRevealTest extends DuskTestCase
 
     public function test_no_seal_reason_reveals_only_for_laden(): void
     {
-        // Turn the policy on for the served app to read.
+        // Ensure the settings row exists (Dusk migrates a fresh, unseeded DB), then
+        // turn the policy on for the served app to read.
+        CompanySetting::current();                 // firstOrCreate the row
         DB::table('company_settings')->update(['require_seal_for_laden' => true]);
         CompanySetting::flushCache();
 
