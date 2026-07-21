@@ -122,9 +122,10 @@ class GateOutSubmitTest extends BrowserTestCase
                 'info:info?info.innerText.replace(/\s+/g," ").slice(0,160):null});'
             )[0];
 
-            $this->assertStringContainsString('"wrapPresent":true', (string) $diag, 'DOM after lookup → ' . $diag);
+            // Force the full state (incl. the Cargo the panel shows) into the
+            // message: this fails while the wrap is hidden so we can read `info`.
+            $this->assertStringNotContainsString('d-none', (string) $diag, 'Wrap present but hidden — reveal did not fire → ' . $diag);
 
-            // The lookup reveals the no-seal reason picker only for a laden box.
             $browser->waitFor('#noSealWrapOut')
                 ->assertVisible('#noSealWrapOut');
         });
