@@ -37,6 +37,17 @@ php artisan dusk                  # runs everything in tests/Browser
 php artisan dusk --filter=SealReasonRevealTest   # a single test
 ```
 
+## Base class & database reset
+
+Browser tests extend **`Tests\Browser\BrowserTestCase`**, which:
+- resets the DB with **`migrate:fresh --seed`** (up-only) — *not* the
+  `DatabaseMigrations` trait, because this app has irreversible `down()`
+  migrations (a rollback fails with "cannot drop index needed in a foreign key
+  constraint"). Fresh + seed also gives pages their master data.
+- lets you **watch the browser**: set `DUSK_HEADLESS=false` in `.env.dusk.local`
+  to open a visible Chrome window (default headless), and disables Chrome
+  background networking so runs aren't slowed by GCM registration retries.
+
 ## Conventions
 
 - One test class per flow, under `tests/Browser`, extending `Tests\DuskTestCase`.

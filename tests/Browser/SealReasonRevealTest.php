@@ -4,36 +4,26 @@ namespace Tests\Browser;
 
 use App\Models\CompanySetting;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Laravel\Dusk\Browser;
-use Tests\DuskTestCase;
 
 /**
  * Browser test for the JS behaviour PHPUnit can't reach: on the Gate-In form the
  * "No-seal reason" field is hidden by default and appears only when the box is
  * Laden (directly, or via a laden Job Type), then hides again for Empty.
  *
- * Setup (one-time):
- *   composer require --dev laravel/dusk
- *   php artisan dusk:install
- *   php artisan dusk:chrome-driver
- * Run:
- *   php artisan dusk --filter=SealReasonRevealTest
+ * Extends BrowserTestCase (migrate:fresh --seed reset + headless toggle).
+ * Run: php artisan dusk --filter=SealReasonRevealTest
  *
  * Cache note: under Dusk the served app keeps its own settings cache. Use a shared
  * cache driver in .env.dusk.local (CACHE_DRIVER=file or database) so the
  * flushCache() below is visible to the browser's requests.
  */
-class SealReasonRevealTest extends DuskTestCase
+class SealReasonRevealTest extends BrowserTestCase
 {
-    use DatabaseMigrations;
-
     public function test_no_seal_reason_reveals_only_for_laden(): void
     {
-        // Ensure the settings row exists (Dusk migrates a fresh, unseeded DB), then
-        // turn the policy on for the served app to read.
-        CompanySetting::current();                 // firstOrCreate the row
+        // The settings row is seeded; turn the policy on for the served app to read.
         DB::table('company_settings')->update(['require_seal_for_laden' => true]);
         CompanySetting::flushCache();
 
