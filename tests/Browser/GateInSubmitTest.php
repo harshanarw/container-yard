@@ -19,15 +19,27 @@ class GateInSubmitTest extends BrowserTestCase
 {
     private function fillGateIn(Browser $browser, string $containerNo, ?string $vehicle): void
     {
-        // Choose the first selectable option in each master-data dropdown, skipping
-        // an Empty-Return job type (which requires a return reason before submit).
+        $browser->pause(400); // let Select2 finish initialising
+
+        // Choose the first real <option> in each master-data dropdown (job type
+        // skips Empty Return, which needs a return reason), set it via selectedIndex
+        // + jQuery so Select2 syncs, and disable the form's HTML5 blocking so submit
+        // reaches the server (which is what these tests verify).
         $js = '(function(){'
-            . 'function trig(s){ if(window.jQuery) jQuery(s).trigger("change"); else s.dispatchEvent(new Event("change")); }'
-            . 'function pick(sel){ var s=document.querySelector(sel); if(!s) return; for(var i=0;i<s.options.length;i++){ if(s.options[i].value){ s.value=s.options[i].value; break; } } trig(s); }'
-            . 'var js=document.querySelector("#jobTypeSelect");'
-            . 'if(js){ for(var i=0;i<js.options.length;i++){ var o=js.options[i]; if(o.value && o.getAttribute("data-is-empty-return")!=="1"){ js.value=o.value; break; } } trig(js); }'
-            . 'pick("#gateEqtSelect");'
-            . 'pick("#gateInForm select[name=customer_id]");'
+            . 'var f=document.getElementById("gateInForm"); if(f) f.setAttribute("novalidate","novalidate");'
+            . 'function set(sel,skipReturn){'
+            . '  var s=document.querySelector(sel); if(!s) return "";'
+            . '  var val="";'
+            . '  for(var i=0;i<s.options.length;i++){ var o=s.options[i];'
+            . '    if(!o.value) continue;'
+            . '    if(skipReturn && o.getAttribute("data-is-empty-return")==="1") continue;'
+            . '    val=o.value; s.selectedIndex=i; break; }'
+            . '  if(window.jQuery){ window.jQuery(s).val(val).trigger("change"); } else { s.dispatchEvent(new Event("change",{bubbles:true})); }'
+            . '  return val;'
+            . '}'
+            . 'set("#jobTypeSelect", true);'
+            . 'set("#gateEqtSelect", false);'
+            . 'set("#gateInForm select[name=customer_id]", false);'
             . '})();';
         $browser->script($js);
 
