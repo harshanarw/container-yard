@@ -125,11 +125,16 @@
                 <label class="form-label small mb-1">To</label>
                 <input type="date" name="to" value="{{ $to }}" class="form-control form-control-sm">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-5">
+                <label class="form-label small mb-1">Reference / Job No.</label>
+                <input type="search" name="ref" value="{{ $ref }}" class="form-control form-control-sm"
+                       placeholder="Survey, Estimate, Invoice, Container or Job No…">
+            </div>
+            <div class="col-md-3">
                 <label class="form-label small mb-1">Path contains</label>
                 <input type="search" name="q" value="{{ $q }}" class="form-control form-control-sm" placeholder="e.g. guard-captures">
             </div>
-            <div class="col-md-8 text-end">
+            <div class="col-md-4 text-end">
                 <a href="{{ route('storage.report') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
                 <button class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i>Apply</button>
             </div>

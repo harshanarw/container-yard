@@ -70,6 +70,34 @@ class StorageReportTest extends FeatureTestCase
             ->assertSee('Repair Estimates');
     }
 
+    public function test_reference_filter_matches_the_owning_records_number(): void
+    {
+        $this->actingAsSystemAdmin();
+        $wanted = \App\Models\Customer::factory()->create(['code' => 'CUST-WANT']);
+        $other  = \App\Models\Customer::factory()->create(['code' => 'CUST-NOPE']);
+
+        $this->asset([
+            'section' => 'customer', 'path' => 'customers/wanted.png',
+            'owner_type' => \App\Models\Customer::class, 'owner_id' => $wanted->id,
+        ]);
+        $this->asset([
+            'section' => 'customer', 'path' => 'customers/other.png',
+            'owner_type' => \App\Models\Customer::class, 'owner_id' => $other->id,
+        ]);
+
+        // Reference search resolves to the owning record, then filters its files.
+        $this->get(route('storage.report', ['ref' => 'CUST-WANT']))
+            ->assertOk()
+            ->assertSee('wanted.png')
+            ->assertDontSee('other.png');
+
+        // A reference that matches nothing returns an empty list, not everything.
+        $this->get(route('storage.report', ['ref' => 'NO-SUCH-REF']))
+            ->assertOk()
+            ->assertDontSee('wanted.png')
+            ->assertDontSee('other.png');
+    }
+
     public function test_non_admin_is_forbidden(): void
     {
         $this->actingAsRole('gate_officer');
