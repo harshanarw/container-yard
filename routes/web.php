@@ -312,8 +312,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/daily-movements/export/codeco',   [ReportController::class, 'exportMovementsCodeco'])->name('daily-movements.export.codeco');
     });
 
-    // File Storage report (admin) — usage, breakdown, filtered files, signed previews
-    Route::prefix('storage')->name('storage.')->group(function () {
+    // File Storage report (admin) — usage, breakdown, filtered files, signed previews.
+    // NOTE: prefix is "storage-report", not "storage": the latter collides with the
+    // public/storage symlink (artisan storage:link), which the PHP dev server serves
+    // directly, bypassing the router and 404-ing before Laravel is reached.
+    Route::prefix('storage-report')->name('storage.')->group(function () {
         Route::get('/',                [\App\Http\Controllers\StorageReportController::class, 'index'])->name('report');
         Route::get('/preview/{asset}', [\App\Http\Controllers\StorageReportController::class, 'preview'])
             ->name('preview')->middleware('signed');
