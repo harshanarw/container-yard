@@ -186,6 +186,43 @@
 
 </div>
 
+@isset($storageUsage)
+@php
+    $stUsed = $storageUsage['used'] ?? 0; $stLimit = $storageUsage['limit'] ?? 0;
+    $stPct  = $storageUsage['percent'] ?? 0; $stLevel = $storageUsage['level'] ?? 'success';
+    $mb = fn ($b) => $b >= 1073741824 ? number_format($b / 1073741824, 2) . ' GB' : number_format($b / 1048576, 1) . ' MB';
+@endphp
+<!-- ── Row: File Storage usage ── -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card content-card">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <span class="fw-semibold"><i class="bi bi-hdd-stack me-2 text-primary"></i>File Storage</span>
+                    <span class="small text-muted">
+                        <strong class="text-{{ $stLevel }}">{{ $mb($stUsed) }}</strong>
+                        {{ $stLimit > 0 ? ' of ' . $mb($stLimit) . ' · ' . $stPct . '%' : ' used · no limit set' }}
+                    </span>
+                </div>
+                <div class="progress" style="height:10px;">
+                    <div class="progress-bar bg-{{ $stLevel }}" role="progressbar" style="width: {{ $stLimit > 0 ? $stPct : 0 }}%;"></div>
+                </div>
+                @if($stLimit > 0 && $stPct >= 90)
+                <div class="small text-danger mt-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Storage is nearly full — free space or raise the limit.</div>
+                @endif
+                @if(!empty($storageUsage['sections']) && count($storageUsage['sections']))
+                <div class="mt-2 small text-muted d-flex flex-wrap gap-3">
+                    @foreach($storageUsage['sections'] as $sec)
+                        <span>{{ \App\Models\FileAsset::SECTION_LABELS[$sec->section] ?? ucfirst($sec->section) }}: <strong>{{ $mb($sec->bytes) }}</strong></span>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+@endisset
+
 <!-- ── Row: Recent Movements + Zone Occupancy ── -->
 <div class="row g-3 mb-4">
 

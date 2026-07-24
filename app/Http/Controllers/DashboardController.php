@@ -87,6 +87,8 @@ class DashboardController extends Controller
             'yardLocations as reserved_count' => fn($q) => $q->where('status', 'reserved'),
         ])->orderBy('sort_order')->get();
 
+        $storageUsage = app(\App\Services\StorageUsageService::class)->summary();
+
         return view('dashboard.index', compact(
             'stats',
             'recentGateMovements',
@@ -95,7 +97,8 @@ class DashboardController extends Controller
             'zones',
             'approvalEnabled',
             'approvalStats',
-            'recentApprovals'
+            'recentApprovals',
+            'storageUsage'
         ));
     }
 }

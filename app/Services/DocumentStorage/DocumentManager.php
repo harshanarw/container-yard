@@ -73,6 +73,8 @@ class DocumentManager
      */
     public function upload(UploadedFile $file, string $folder, array $extra = []): Document
     {
+        app(\App\Services\StorageService::class)->assertWithinQuota((int) $file->getSize());
+
         $document = $this->driver()->upload($file, $folder);
 
         $document->fill(array_merge([
@@ -89,6 +91,8 @@ class DocumentManager
      */
     public function uploadFor(object $model, UploadedFile $file, string $folder, array $extra = []): Document
     {
+        app(\App\Services\StorageService::class)->assertWithinQuota((int) $file->getSize());
+
         $document = $this->driver()->upload($file, $folder);
 
         $document->fill(array_merge([

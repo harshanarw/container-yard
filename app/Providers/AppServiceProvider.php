@@ -78,6 +78,7 @@ class AppServiceProvider extends ServiceProvider
         ReeferElectricityInvoice::observe(ReeferElectricityInvoiceObserver::class);
         GuardCapture::observe(GuardCaptureObserver::class);
         ApprovalRequest::observe(ApprovalRequestObserver::class);
+        \App\Models\Document::observe(\App\Observers\DocumentObserver::class);
 
         // Register WebSocket channel auth route + channel definitions
         if (config('broadcasting.default') !== 'null') {

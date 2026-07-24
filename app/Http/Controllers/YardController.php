@@ -52,25 +52,17 @@ class YardController extends Controller
     private function saveMovementOcrImages(GateMovement $movement, array $validated): void
     {
         $updates = [];
+        $storage = app(\App\Services\StorageService::class);
+        $folder  = "gate-movements/ocr/{$movement->id}";
 
         if (!empty($validated['container_ocr_image'])) {
             $ext  = $validated['container_ocr_image']->getClientOriginalExtension() ?: 'jpg';
-            $path = $validated['container_ocr_image']->storeAs(
-                "gate-movements/ocr/{$movement->id}",
-                "container.{$ext}",
-                'public'
-            );
-            $updates['container_ocr_image_path'] = $path;
+            $updates['container_ocr_image_path'] = $storage->storeAs($validated['container_ocr_image'], $folder, "container.{$ext}", 'gate_ocr', $movement);
         }
 
         if (!empty($validated['plate_ocr_image'])) {
             $ext  = $validated['plate_ocr_image']->getClientOriginalExtension() ?: 'jpg';
-            $path = $validated['plate_ocr_image']->storeAs(
-                "gate-movements/ocr/{$movement->id}",
-                "plate.{$ext}",
-                'public'
-            );
-            $updates['plate_ocr_image_path'] = $path;
+            $updates['plate_ocr_image_path'] = $storage->storeAs($validated['plate_ocr_image'], $folder, "plate.{$ext}", 'gate_ocr', $movement);
         }
 
         if (!empty($updates)) {

@@ -71,7 +71,7 @@ class UserController extends Controller
         $data['password'] = Hash::make($request->password);
 
         if ($request->hasFile('profile_photo')) {
-            $data['profile_photo'] = $request->file('profile_photo')->store('users/photos', 'public');
+            $data['profile_photo'] = app(\App\Services\StorageService::class)->store($request->file('profile_photo'), 'users/photos', 'user');
         }
 
         $user = User::create($data);
@@ -134,16 +134,18 @@ class UserController extends Controller
             $data['password'] = Hash::make($request->password);
         }
 
+        $storage = app(\App\Services\StorageService::class);
+
         if ($request->boolean('remove_photo') && $user->profile_photo) {
-            Storage::disk('public')->delete($user->profile_photo);
+            $storage->delete('public', $user->profile_photo);
             $data['profile_photo'] = null;
         }
 
         if ($request->hasFile('profile_photo')) {
             if ($user->profile_photo) {
-                Storage::disk('public')->delete($user->profile_photo);
+                $storage->delete('public', $user->profile_photo);
             }
-            $data['profile_photo'] = $request->file('profile_photo')->store('users/photos', 'public');
+            $data['profile_photo'] = $storage->store($request->file('profile_photo'), 'users/photos', 'user', $user);
         }
 
         $oldRole = $user->role;
@@ -189,7 +191,7 @@ class UserController extends Controller
         }
 
         if ($user->profile_photo) {
-            Storage::disk('public')->delete($user->profile_photo);
+            app(\App\Services\StorageService::class)->delete('public', $user->profile_photo);
         }
 
         $user->delete();

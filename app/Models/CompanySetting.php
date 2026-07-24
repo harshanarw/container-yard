@@ -36,6 +36,8 @@ class CompanySetting extends Model
         'software_provider',
         // System Settings
         'yard_capacity',
+        'max_storage_mb',
+        'enforce_storage_limit',
         'free_storage_days',
         'timezone',
         'prefix_invoice',
@@ -74,6 +76,7 @@ class CompanySetting extends Model
         'require_seal_for_laden'   => 'boolean',
         'enable_gatepass_whatsapp' => 'boolean',
         'guardpost_warn_no_capture' => 'boolean',
+        'enforce_storage_limit'    => 'boolean',
     ];
 
     public static function current(): static

@@ -29,7 +29,8 @@ class CompanySettingController extends Controller
         $settings   = CompanySetting::current();
         $currencies = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
         $countries  = Country::forSelect();
-        return view('settings.company.index', compact('settings', 'currencies', 'countries'));
+        $storageUsage = app(\App\Services\StorageUsageService::class)->summary();
+        return view('settings.company.index', compact('settings', 'currencies', 'countries', 'storageUsage'));
     }
 
     public function setDefaultCurrency(Request $request)
@@ -76,6 +77,8 @@ class CompanySettingController extends Controller
             'require_seal_for_laden'   => ['nullable', 'boolean'],
             'enable_gatepass_whatsapp' => ['nullable', 'boolean'],
             'guardpost_warn_no_capture' => ['nullable', 'boolean'],
+            'max_storage_mb'           => ['nullable', 'integer', 'min:0', 'max:10000000'],
+            'enforce_storage_limit'    => ['nullable', 'boolean'],
             'app_base_url'             => ['nullable', 'string', 'max:255'],
             'logo'                     => ['nullable', 'image', 'max:2048'],
             'icon'            => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
@@ -91,6 +94,7 @@ class CompanySettingController extends Controller
         $data['require_seal_for_laden']   = $request->boolean('require_seal_for_laden');
         $data['enable_gatepass_whatsapp'] = $request->boolean('enable_gatepass_whatsapp');
         $data['guardpost_warn_no_capture'] = $request->boolean('guardpost_warn_no_capture');
+        $data['enforce_storage_limit']     = $request->boolean('enforce_storage_limit');
 
         // Normalise the system base URL: blank → null; add https:// if the
         // operator typed a bare host; drop any trailing slash.
@@ -104,25 +108,27 @@ class CompanySettingController extends Controller
             $data['app_base_url'] = rtrim($base, '/');
         }
 
+        $storage = app(\App\Services\StorageService::class);
+
         if ($request->hasFile('logo')) {
             if ($settings->logo_path) {
-                Storage::disk('public')->delete($settings->logo_path);
+                $storage->delete('public', $settings->logo_path);
             }
-            $data['logo_path'] = $request->file('logo')->store('company', 'public');
+            $data['logo_path'] = $storage->store($request->file('logo'), 'company', 'company', $settings);
         }
 
         if ($request->hasFile('icon')) {
             if ($settings->icon_path) {
-                Storage::disk('public')->delete($settings->icon_path);
+                $storage->delete('public', $settings->icon_path);
             }
-            $data['icon_path'] = $request->file('icon')->store('company', 'public');
+            $data['icon_path'] = $storage->store($request->file('icon'), 'company', 'company', $settings);
         }
 
         if ($request->hasFile('product_icon')) {
             if ($settings->product_icon_path) {
-                Storage::disk('public')->delete($settings->product_icon_path);
+                $storage->delete('public', $settings->product_icon_path);
             }
-            $data['product_icon_path'] = $request->file('product_icon')->store('company', 'public');
+            $data['product_icon_path'] = $storage->store($request->file('product_icon'), 'company', 'company', $settings);
         }
 
         $settings->update($data);
@@ -137,7 +143,7 @@ class CompanySettingController extends Controller
 
         $settings = CompanySetting::current();
         if ($settings->logo_path) {
-            Storage::disk('public')->delete($settings->logo_path);
+            app(\App\Services\StorageService::class)->delete('public', $settings->logo_path);
             $settings->update(['logo_path' => null]);
             CompanySetting::flushCache();
         }
@@ -151,7 +157,7 @@ class CompanySettingController extends Controller
 
         $settings = CompanySetting::current();
         if ($settings->icon_path) {
-            Storage::disk('public')->delete($settings->icon_path);
+            app(\App\Services\StorageService::class)->delete('public', $settings->icon_path);
             $settings->update(['icon_path' => null]);
             CompanySetting::flushCache();
         }
@@ -165,7 +171,7 @@ class CompanySettingController extends Controller
 
         $settings = CompanySetting::current();
         if ($settings->product_icon_path) {
-            Storage::disk('public')->delete($settings->product_icon_path);
+            app(\App\Services\StorageService::class)->delete('public', $settings->product_icon_path);
             $settings->update(['product_icon_path' => null]);
             CompanySetting::flushCache();
         }

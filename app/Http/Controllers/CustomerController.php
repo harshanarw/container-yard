@@ -97,7 +97,7 @@ class CustomerController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('logo')) {
-            $data['logo'] = $request->file('logo')->store('customers/logos', 'public');
+            $data['logo'] = app(\App\Services\StorageService::class)->store($request->file('logo'), 'customers/logos', 'customer');
         }
 
         $data['auto_invoice']        = $request->boolean('auto_invoice');
@@ -182,10 +182,11 @@ class CustomerController extends Controller
         $data = $request->validated();
 
         if ($request->hasFile('logo')) {
+            $storage = app(\App\Services\StorageService::class);
             if ($customer->logo) {
-                Storage::disk('public')->delete($customer->logo);
+                $storage->delete('public', $customer->logo);
             }
-            $data['logo'] = $request->file('logo')->store('customers/logos', 'public');
+            $data['logo'] = $storage->store($request->file('logo'), 'customers/logos', 'customer', $customer);
         }
 
         $data['auto_invoice']        = $request->boolean('auto_invoice');
@@ -209,7 +210,7 @@ class CustomerController extends Controller
         }
 
         if ($customer->logo) {
-            Storage::disk('public')->delete($customer->logo);
+            app(\App\Services\StorageService::class)->delete('public', $customer->logo);
         }
 
         $customer->delete();

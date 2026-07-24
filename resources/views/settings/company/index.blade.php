@@ -498,6 +498,68 @@
         </div>
     </div>
 
+    {{-- File Storage --}}
+    @php
+        $stUsed = $storageUsage['used'] ?? 0; $stLimit = $storageUsage['limit'] ?? 0;
+        $stPct  = $storageUsage['percent'] ?? 0; $stLevel = $storageUsage['level'] ?? 'success';
+        $mb = fn ($b) => number_format($b / 1048576, 1) . ' MB';
+    @endphp
+    <div class="card content-card mb-4">
+        <div class="card-header py-2">
+            <i class="bi bi-hdd-stack me-2 text-primary"></i>File Storage
+        </div>
+        <div class="card-body">
+            {{-- Current usage --}}
+            <div class="mb-3">
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="fw-semibold">Current usage</span>
+                    <span class="text-muted">
+                        {{ $mb($stUsed) }}{{ $stLimit > 0 ? ' of ' . $mb($stLimit) . ' (' . $stPct . '%)' : ' used (no limit set)' }}
+                    </span>
+                </div>
+                <div class="progress" style="height:10px;">
+                    <div class="progress-bar bg-{{ $stLevel }}" role="progressbar"
+                         style="width: {{ $stLimit > 0 ? $stPct : 0 }}%;"></div>
+                </div>
+                @if(!empty($storageUsage['sections']) && count($storageUsage['sections']))
+                <div class="mt-2 small text-muted">
+                    @foreach($storageUsage['sections'] as $sec)
+                        <span class="me-3">{{ \App\Models\FileAsset::SECTION_LABELS[$sec->section] ?? ucfirst($sec->section) }}: <strong>{{ $mb($sec->bytes) }}</strong> ({{ $sec->files }})</span>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold" for="maxStorageMb">Maximum storage (MB)</label>
+                    <input type="number" min="0" class="form-control" id="maxStorageMb" name="max_storage_mb"
+                           value="{{ old('max_storage_mb', $settings->max_storage_mb) }}" placeholder="e.g. 5000">
+                    <div class="form-text">Total quota across all uploaded files. Leave blank for no limit.</div>
+                </div>
+                <div class="col-md-8">
+                    <div class="d-flex align-items-start gap-3 mt-1">
+                        <div class="form-check form-switch mt-1">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="enforceStorageLimit" name="enforce_storage_limit" value="1"
+                                   {{ old('enforce_storage_limit', $settings->enforce_storage_limit) ? 'checked' : '' }}>
+                        </div>
+                        <div>
+                            <label class="form-check-label fw-semibold" for="enforceStorageLimit">
+                                Block uploads that exceed the limit
+                            </label>
+                            <div class="form-text mt-1">
+                                When enabled, an upload that would push total storage over the limit is
+                                <strong>rejected</strong> with a message. When disabled, usage is tracked and shown
+                                but uploads are never blocked.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- IRD Tax Invoice Settings --}}
     <div class="card content-card mb-4">
         <div class="card-header py-2">

@@ -79,10 +79,11 @@ class GuardPostController extends Controller
             'captured_at'  => now(),
         ];
 
+        $storage = app(\App\Services\StorageService::class);
+
         // Container
         if ($request->hasFile('container_image')) {
-            $data['container_image_path'] = $request->file('container_image')
-                ->store('guard-captures/containers', 'public');
+            $data['container_image_path'] = $storage->store($request->file('container_image'), 'guard-captures/containers', 'guard_post');
 
             // Run OCR whenever there's an image — a manually-typed number no longer
             // suppresses it, so the ISO type code and weights are still captured.
@@ -114,8 +115,7 @@ class GuardPostController extends Controller
 
         // Vehicle
         if ($request->hasFile('plate_image')) {
-            $data['plate_image_path'] = $request->file('plate_image')
-                ->store('guard-captures/plates', 'public');
+            $data['plate_image_path'] = $storage->store($request->file('plate_image'), 'guard-captures/plates', 'guard_post');
         }
         $data['vehicle_number'] = $request->vehicle_number;
         $data['vehicle_type']   = $request->vehicle_type;
@@ -123,8 +123,7 @@ class GuardPostController extends Controller
         // Driver
         foreach (['nic_front', 'nic_back', 'license_front'] as $field) {
             if ($request->hasFile($field)) {
-                $data["{$field}_path"] = $request->file($field)
-                    ->store('guard-captures/driver-docs', 'public');
+                $data["{$field}_path"] = $storage->store($request->file($field), 'guard-captures/driver-docs', 'guard_post');
             }
         }
         $data['driver_name']  = $request->driver_name;
