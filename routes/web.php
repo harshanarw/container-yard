@@ -312,6 +312,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/daily-movements/export/codeco',   [ReportController::class, 'exportMovementsCodeco'])->name('daily-movements.export.codeco');
     });
 
+    // File Storage report (admin) — usage, breakdown, filtered files, signed previews
+    Route::prefix('storage')->name('storage.')->group(function () {
+        Route::get('/',                [\App\Http\Controllers\StorageReportController::class, 'index'])->name('report');
+        Route::get('/preview/{asset}', [\App\Http\Controllers\StorageReportController::class, 'preview'])
+            ->name('preview')->middleware('signed');
+    });
+
     // Container Inquiry
     Route::prefix('container-inquiry')->name('container-inquiry.')->group(function () {
         Route::get('/',                             [ContainerInquiryController::class, 'index'])->name('index');

@@ -1633,6 +1633,14 @@
                         </a>
                     </li>
                     @endcan
+                    @if(in_array(Auth::user()->role, ['administrator', 'system_administrator'], true))
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('storage.report') }}"
+                           class="nav-link {{ request()->routeIs('storage.*') ? 'active' : '' }}">
+                            <i class="bi bi-hdd-stack"></i><span>Storage Report</span>
+                        </a>
+                    </li>
+                    @endif
                     @if(auth()->user()->isSystemAdmin())
                     <li class="nav-item sub-item">
                         <a href="{{ route('settings.email-config.index') }}"
