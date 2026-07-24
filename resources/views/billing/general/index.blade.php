@@ -128,7 +128,7 @@
     @if($invoices->hasPages())
     <div class="card-footer d-flex justify-content-between align-items-center py-2 small text-muted">
         <span>Showing {{ $invoices->firstItem() }}–{{ $invoices->lastItem() }} of {{ $invoices->total() }}</span>
-        {{ $invoices->links('pagination::bootstrap-5') }}
+        {{ $invoices->links() }}
     </div>
     @endif
 </div>

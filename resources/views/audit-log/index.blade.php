@@ -219,7 +219,7 @@
             Showing {{ $logs->firstItem() }}–{{ $logs->lastItem() }} of {{ number_format($logs->total()) }}
         </div>
         <div>
-            {{ $logs->links('pagination::bootstrap-5') }}
+            {{ $logs->links() }}
         </div>
     </div>
     @endif

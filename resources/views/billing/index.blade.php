@@ -179,7 +179,7 @@
         </div>
 
         <div class="px-3 py-2">
-            {{ $invoices->links('pagination::bootstrap-5') }}
+            {{ $invoices->links() }}
         </div>
         @endif
     </div>

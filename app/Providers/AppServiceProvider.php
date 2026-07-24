@@ -40,6 +40,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 use App\Services\Mail\Microsoft365Token;
 use Symfony\Component\Mailer\Transport\Smtp\Auth\XOAuth2Authenticator;
@@ -55,6 +56,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Render all paginators with the Bootstrap 5 view so bare ->links() calls
+        // match this app's Bootstrap UI (the framework default is Tailwind, which
+        // renders as unstyled oversized SVG arrows here).
+        Paginator::useBootstrapFive();
+
         // Pin every generated absolute URL to the operator-configured public base
         // URL (Company Settings). Covers web, queued jobs and console (emailed
         // links). The ForceBaseUrl middleware additionally normalises the request

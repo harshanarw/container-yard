@@ -202,7 +202,7 @@
 
     @if($rules->hasPages())
     <div class="card-footer bg-light">
-        {{ $rules->links('pagination::bootstrap-5') }}
+        {{ $rules->links() }}
     </div>
     @endif
 </div>

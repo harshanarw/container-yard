@@ -232,7 +232,7 @@
                 No customers found
             @endif
         </span>
-        {{ $customers->links('pagination::bootstrap-5') }}
+        {{ $customers->links() }}
     </div>
 </div>
 

@@ -244,7 +244,7 @@
     @if($containers->hasPages())
     <div class="card-footer d-flex justify-content-between align-items-center py-2 small text-muted">
         <span>Showing {{ $containers->firstItem() }}–{{ $containers->lastItem() }} of {{ $containers->total() }}</span>
-        {{ $containers->links('pagination::bootstrap-5') }}
+        {{ $containers->links() }}
     </div>
     @endif
 </div>

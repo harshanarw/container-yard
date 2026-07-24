@@ -185,7 +185,7 @@
 </div>
 
 @if($files->hasPages())
-<div class="mt-3">{{ $files->withQueryString()->links('pagination::bootstrap-5') }}</div>
+<div class="mt-3">{{ $files->withQueryString()->links() }}</div>
 @endif
 
 @endsection

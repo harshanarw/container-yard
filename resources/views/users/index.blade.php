@@ -236,7 +236,7 @@
         <span class="text-muted small">
             Showing {{ $users->firstItem() }}–{{ $users->lastItem() }} of {{ $users->total() }} users
         </span>
-        {{ $users->withQueryString()->links('pagination::bootstrap-5') }}
+        {{ $users->withQueryString()->links() }}
     </div>
 </div>
 

@@ -242,7 +242,7 @@
             Showing {{ $inquiries->firstItem() ?? 0 }}–{{ $inquiries->lastItem() ?? 0 }}
             of {{ $inquiries->total() }} surveys
         </span>
-        {{ $inquiries->withQueryString()->links('pagination::bootstrap-5') }}
+        {{ $inquiries->withQueryString()->links() }}
     </div>
 </div>
 

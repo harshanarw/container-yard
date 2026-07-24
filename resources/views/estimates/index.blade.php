@@ -212,7 +212,7 @@
             Showing {{ $estimates->firstItem() ?? 0 }}–{{ $estimates->lastItem() ?? 0 }}
             of {{ $estimates->total() }} estimates
         </span>
-        {{ $estimates->withQueryString()->links('pagination::bootstrap-5') }}
+        {{ $estimates->withQueryString()->links() }}
     </div>
 </div>
 

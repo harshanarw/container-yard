@@ -192,7 +192,7 @@
                 No records
             @endif
         </span>
-        {{ $rates->withQueryString()->links('pagination::bootstrap-5') }}
+        {{ $rates->withQueryString()->links() }}
     </div>
 </div>
 
