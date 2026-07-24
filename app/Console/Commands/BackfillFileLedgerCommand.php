@@ -34,14 +34,16 @@ class BackfillFileLedgerCommand extends Command
     public function handle(): int
     {
         $indexed = 0;
+        $reclassified = 0;
 
-        // 1) Documents (already carry size + owner in the documents table).
+        // 1) Documents (already carry size + owner in the documents table). Re-running
+        //    also re-buckets existing rows into their owner-derived section.
         foreach (Document::cursor() as $doc) {
             $asset = FileAsset::updateOrCreate(
                 ['disk' => $doc->disk ?: 'public', 'path' => $doc->path],
                 [
                     'size'        => (int) $doc->size,
-                    'section'     => 'document',
+                    'section'     => FileAsset::sectionForOwner($doc->documentable_type),
                     'mime_type'   => $doc->mime_type,
                     'owner_type'  => $doc->documentable_type,
                     'owner_id'    => $doc->documentable_id,
@@ -49,9 +51,13 @@ class BackfillFileLedgerCommand extends Command
                     'uploaded_by' => $doc->uploaded_by,
                 ]
             );
-            $indexed += $asset->wasRecentlyCreated ? 1 : 0;
+            if ($asset->wasRecentlyCreated) {
+                $indexed++;
+            } elseif ($asset->wasChanged('section')) {
+                $reclassified++;
+            }
         }
-        $this->info('Documents indexed.');
+        $this->info(sprintf('Documents indexed (%d re-classified).', $reclassified));
 
         // 2) Direct uploads on the public disk (skip anything already in the ledger).
         $disk = Storage::disk('public');

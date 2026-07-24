@@ -14,11 +14,7 @@
     $sections = $summary['sections'] ?? collect();
     $mb = fn ($b) => $b >= 1073741824 ? number_format($b / 1073741824, 2) . ' GB' : number_format($b / 1048576, 1) . ' MB';
 
-    $colors = [
-        'guard_post' => '#0d6efd', 'gate_ocr' => '#6610f2', 'gate_photo' => '#6f42c1',
-        'document'   => '#198754', 'company'  => '#fd7e14', 'customer'   => '#20c997',
-        'user'       => '#0dcaf0', 'other'    => '#6c757d',
-    ];
+    $colors = \App\Models\FileAsset::SECTION_COLORS;
     $denom = $limit > 0 ? max($limit, $used) : max($used, 1);
     $segs = []; $cum = 0;
     foreach ($sections as $sec) {
@@ -151,7 +147,7 @@
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
-                    <tr><th></th><th>File</th><th>Section</th><th class="text-end">Size</th><th>Owner</th><th>Uploaded</th><th class="text-end">Actions</th></tr>
+                    <tr><th></th><th>File</th><th>Section</th><th class="text-end">Size</th><th>Source</th><th>Uploaded</th><th class="text-end">Actions</th></tr>
                 </thead>
                 <tbody>
                     @forelse($files as $f)
@@ -168,7 +164,20 @@
                         <td class="font-monospace small text-truncate" style="max-width:280px;">{{ basename($f->path) }}</td>
                         <td><span class="badge bg-secondary-subtle text-secondary border">{{ $label($f->section) }}</span></td>
                         <td class="text-end">{{ $mb($f->size) }}</td>
-                        <td class="small text-muted">{{ $f->owner_type ? class_basename($f->owner_type) . ' #' . $f->owner_id : '—' }}</td>
+                        <td class="small">
+                            @php $ref = $f->ownerReference(); @endphp
+                            @if($ref)
+                                @if($ref['url'])
+                                <a href="{{ $ref['url'] }}" class="text-decoration-none" title="{{ class_basename($f->owner_type) }}"><i class="bi bi-box-arrow-up-right me-1" style="font-size:.7rem;"></i>{{ $ref['number'] }}</a>
+                                @else
+                                <span class="font-monospace">{{ $ref['number'] }}</span>
+                                @endif
+                            @elseif($f->owner_type)
+                                <span class="text-muted">{{ class_basename($f->owner_type) }} #{{ $f->owner_id }}</span>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </td>
                         <td class="small text-muted">{{ $f->created_at?->format('d M Y') }}</td>
                         <td class="text-end">
                             <a href="{{ $f->preview_url }}" target="_blank" class="btn btn-sm btn-outline-secondary py-0" title="Preview"><i class="bi bi-eye"></i></a>

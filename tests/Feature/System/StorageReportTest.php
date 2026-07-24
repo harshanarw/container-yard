@@ -44,6 +44,32 @@ class StorageReportTest extends FeatureTestCase
         $res->assertSee('keep.jpg')->assertDontSee('hide.png');
     }
 
+    public function test_document_owner_maps_to_a_specific_section(): void
+    {
+        // Files uploaded through the Document system are bucketed by their owning
+        // record's class instead of a single "Documents" catch-all.
+        $this->assertSame('survey', FileAsset::sectionForOwner(\App\Models\Inquiry::class));
+        $this->assertSame('repair_estimate', FileAsset::sectionForOwner(\App\Models\Estimate::class));
+        $this->assertSame('gate_photo', FileAsset::sectionForOwner(\App\Models\GateMovement::class));
+        $this->assertSame('supplier_invoice', FileAsset::sectionForOwner(\App\Models\SupplierInvoice::class));
+
+        // Unmapped owners and owner-less files fall back to the generic bucket.
+        $this->assertSame('document', FileAsset::sectionForOwner(\App\Models\User::class));
+        $this->assertSame('document', FileAsset::sectionForOwner(null));
+    }
+
+    public function test_report_labels_split_document_sections(): void
+    {
+        $this->actingAsSystemAdmin();
+        $this->asset(['section' => 'survey', 'path' => 'documents/survey/a.jpg']);
+        $this->asset(['section' => 'repair_estimate', 'path' => 'documents/est/b.pdf']);
+
+        $this->get(route('storage.report'))
+            ->assertOk()
+            ->assertSee('Survey Captures')
+            ->assertSee('Repair Estimates');
+    }
+
     public function test_non_admin_is_forbidden(): void
     {
         $this->actingAsRole('gate_officer');

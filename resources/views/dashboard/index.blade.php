@@ -198,11 +198,7 @@
     $mb = fn ($b) => $b >= 1073741824 ? number_format($b / 1073741824, 2) . ' GB' : number_format($b / 1048576, 1) . ' MB';
 
     // Donut segments: each section as a slice against the limit; remainder = Free.
-    $stColors = [
-        'guard_post' => '#0d6efd', 'gate_ocr' => '#6610f2', 'gate_photo' => '#6f42c1',
-        'document'   => '#198754', 'company'  => '#fd7e14', 'customer'   => '#20c997',
-        'user'       => '#0dcaf0', 'other'    => '#6c757d',
-    ];
+    $stColors = \App\Models\FileAsset::SECTION_COLORS;
     $denom   = $stLimit > 0 ? max($stLimit, $stUsed) : max($stUsed, 1);
     $segs    = []; $cum = 0;
     foreach ($stSections as $sec) {

@@ -19,7 +19,7 @@ class DocumentObserver
             ['disk' => $document->disk ?: 'public', 'path' => $document->path],
             [
                 'size'        => (int) $document->size,
-                'section'     => 'document',
+                'section'     => FileAsset::sectionForOwner($document->documentable_type),
                 'mime_type'   => $document->mime_type,
                 'owner_type'  => $document->documentable_type,
                 'owner_id'    => $document->documentable_id,
