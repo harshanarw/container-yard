@@ -188,35 +188,83 @@
 
 @isset($storageUsage)
 @php
-    $stUsed = $storageUsage['used'] ?? 0; $stLimit = $storageUsage['limit'] ?? 0;
-    $stPct  = $storageUsage['percent'] ?? 0; $stLevel = $storageUsage['level'] ?? 'success';
+    $stUsed  = $storageUsage['used'] ?? 0; $stLimit = $storageUsage['limit'] ?? 0;
+    $stPct   = $storageUsage['percent'] ?? 0; $stLevel = $storageUsage['level'] ?? 'success';
+    $stSections = $storageUsage['sections'] ?? collect();
     $mb = fn ($b) => $b >= 1073741824 ? number_format($b / 1073741824, 2) . ' GB' : number_format($b / 1048576, 1) . ' MB';
+
+    // Donut segments: each section as a slice against the limit; remainder = Free.
+    $stColors = [
+        'guard_post' => '#0d6efd', 'gate_ocr' => '#6610f2', 'gate_photo' => '#6f42c1',
+        'document'   => '#198754', 'company'  => '#fd7e14', 'customer'   => '#20c997',
+        'user'       => '#0dcaf0', 'other'    => '#6c757d',
+    ];
+    $denom   = $stLimit > 0 ? max($stLimit, $stUsed) : max($stUsed, 1);
+    $segs    = []; $cum = 0;
+    foreach ($stSections as $sec) {
+        $p = $sec->bytes / $denom * 100;
+        if ($p <= 0) continue;
+        $segs[] = [
+            'color' => $stColors[$sec->section] ?? '#6c757d',
+            'p'     => $p, 'start' => $cum, 'bytes' => (int) $sec->bytes,
+            'label' => \App\Models\FileAsset::SECTION_LABELS[$sec->section] ?? ucfirst($sec->section),
+        ];
+        $cum += $p;
+    }
+    $freeBytes = $stLimit > 0 ? max(0, $stLimit - $stUsed) : 0;
 @endphp
-<!-- ── Row: File Storage usage ── -->
+<!-- ── Row: File Storage usage (donut) ── -->
 <div class="row g-3 mb-4">
     <div class="col-12">
         <div class="card content-card">
-            <div class="card-body py-3">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                    <span class="fw-semibold"><i class="bi bi-hdd-stack me-2 text-primary"></i>File Storage</span>
-                    <span class="small text-muted">
-                        <strong class="text-{{ $stLevel }}">{{ $mb($stUsed) }}</strong>
-                        {{ $stLimit > 0 ? ' of ' . $mb($stLimit) . ' · ' . $stPct . '%' : ' used · no limit set' }}
-                    </span>
-                </div>
-                <div class="progress" style="height:10px;">
-                    <div class="progress-bar bg-{{ $stLevel }}" role="progressbar" style="width: {{ $stLimit > 0 ? $stPct : 0 }}%;"></div>
-                </div>
+            <div class="card-header py-2 d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-hdd-stack me-2 text-primary"></i>File Storage</span>
                 @if($stLimit > 0 && $stPct >= 90)
-                <div class="small text-danger mt-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Storage is nearly full — free space or raise the limit.</div>
+                <span class="badge bg-danger-subtle text-danger border"><i class="bi bi-exclamation-triangle-fill me-1"></i>Nearly full</span>
                 @endif
-                @if(!empty($storageUsage['sections']) && count($storageUsage['sections']))
-                <div class="mt-2 small text-muted d-flex flex-wrap gap-3">
-                    @foreach($storageUsage['sections'] as $sec)
-                        <span>{{ \App\Models\FileAsset::SECTION_LABELS[$sec->section] ?? ucfirst($sec->section) }}: <strong>{{ $mb($sec->bytes) }}</strong></span>
-                    @endforeach
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center g-3">
+                    {{-- Donut --}}
+                    <div class="col-auto">
+                        <svg viewBox="0 0 42 42" style="width:150px;height:150px;">
+                            <circle cx="21" cy="21" r="15.915" fill="none" stroke="#eef0f2" stroke-width="5"></circle>
+                            @foreach($segs as $s)
+                            <circle cx="21" cy="21" r="15.915" fill="none" stroke="{{ $s['color'] }}" stroke-width="5"
+                                    stroke-dasharray="{{ round($s['p'], 3) }} {{ round(100 - $s['p'], 3) }}"
+                                    transform="rotate({{ round($s['start'] * 3.6 - 90, 3) }} 21 21)"></circle>
+                            @endforeach
+                            <text x="21" y="20" text-anchor="middle" style="font-size:6px;font-weight:700;fill:var(--bs-body-color,#212529);">{{ $stLimit > 0 ? $stPct.'%' : $mb($stUsed) }}</text>
+                            <text x="21" y="25" text-anchor="middle" style="font-size:2.6px;fill:#8a9099;">{{ $stLimit > 0 ? $mb($stUsed).' / '.$mb($stLimit) : 'used · no limit' }}</text>
+                        </svg>
+                    </div>
+                    {{-- Legend --}}
+                    <div class="col">
+                        <div class="row g-2">
+                            @foreach($segs as $s)
+                            <div class="col-sm-6">
+                                <div class="d-flex align-items-center justify-content-between small">
+                                    <span class="text-truncate">
+                                        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:{{ $s['color'] }};" class="me-1"></span>{{ $s['label'] }}
+                                    </span>
+                                    <span class="text-muted ms-2">{{ $mb($s['bytes']) }}</span>
+                                </div>
+                            </div>
+                            @endforeach
+                            @if($freeBytes > 0)
+                            <div class="col-sm-6">
+                                <div class="d-flex align-items-center justify-content-between small">
+                                    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#eef0f2;" class="me-1 border"></span>Free</span>
+                                    <span class="text-muted ms-2">{{ $mb($freeBytes) }}</span>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                        @if(empty($segs))
+                        <div class="text-muted small">No files stored yet.</div>
+                        @endif
+                    </div>
                 </div>
-                @endif
             </div>
         </div>
     </div>
