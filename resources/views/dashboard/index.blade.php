@@ -148,43 +148,47 @@
 
 </div>
 
-<!-- ── Secondary KPIs ── -->
+<!-- ── Secondary KPIs + File Storage ── -->
+@php $hasStorage = isset($storageUsage); @endphp
 <div class="row g-3 mb-4">
 
-    <div class="col-md-3 col-6">
-        <div class="card stat-card stat-card-mini kpi-animate" style="animation-delay:.32s">
-            <div class="card-body py-3">
-                <div class="text-muted small">Gate-In Today</div>
-                <div class="fs-5 fw-bold text-primary count-up" data-target="{{ $stats['gate_in_today'] }}">0</div>
+    {{-- Secondary mini KPIs: 2×2 beside storage, or full-width 4-across without it --}}
+    <div class="{{ $hasStorage ? 'col-xl-5' : 'col-12' }}">
+        <div class="row g-3 h-100">
+            <div class="{{ $hasStorage ? 'col-6' : 'col-6 col-md-3' }}">
+                <div class="card stat-card stat-card-mini h-100 kpi-animate" style="animation-delay:.32s">
+                    <div class="card-body py-3">
+                        <div class="text-muted small">Gate-In Today</div>
+                        <div class="fs-5 fw-bold text-primary count-up" data-target="{{ $stats['gate_in_today'] }}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="{{ $hasStorage ? 'col-6' : 'col-6 col-md-3' }}">
+                <div class="card stat-card stat-card-mini h-100 kpi-animate" style="animation-delay:.38s">
+                    <div class="card-body py-3">
+                        <div class="text-muted small">Gate-Out Today</div>
+                        <div class="fs-5 fw-bold text-success count-up" data-target="{{ $stats['gate_out_today'] }}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="{{ $hasStorage ? 'col-6' : 'col-6 col-md-3' }}">
+                <div class="card stat-card stat-card-mini h-100 kpi-animate" style="animation-delay:.44s">
+                    <div class="card-body py-3">
+                        <div class="text-muted small">Open Inquiries</div>
+                        <div class="fs-5 fw-bold text-warning count-up" data-target="{{ $stats['open_inquiries'] }}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="{{ $hasStorage ? 'col-6' : 'col-6 col-md-3' }}">
+                <div class="card stat-card stat-card-mini h-100 kpi-animate" style="animation-delay:.50s">
+                    <div class="card-body py-3">
+                        <div class="text-muted small">Active Customers</div>
+                        <div class="fs-5 fw-bold text-info count-up" data-target="{{ $stats['customers'] }}">0</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-6">
-        <div class="card stat-card stat-card-mini kpi-animate" style="animation-delay:.38s">
-            <div class="card-body py-3">
-                <div class="text-muted small">Gate-Out Today</div>
-                <div class="fs-5 fw-bold text-success count-up" data-target="{{ $stats['gate_out_today'] }}">0</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 col-6">
-        <div class="card stat-card stat-card-mini kpi-animate" style="animation-delay:.44s">
-            <div class="card-body py-3">
-                <div class="text-muted small">Open Inquiries</div>
-                <div class="fs-5 fw-bold text-warning count-up" data-target="{{ $stats['open_inquiries'] }}">0</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 col-6">
-        <div class="card stat-card stat-card-mini kpi-animate" style="animation-delay:.50s">
-            <div class="card-body py-3">
-                <div class="text-muted small">Active Customers</div>
-                <div class="fs-5 fw-bold text-info count-up" data-target="{{ $stats['customers'] }}">0</div>
-            </div>
-        </div>
-    </div>
-
-</div>
 
 @isset($storageUsage)
 @php
@@ -213,21 +217,20 @@
     }
     $freeBytes = $stLimit > 0 ? max(0, $stLimit - $stUsed) : 0;
 @endphp
-<!-- ── Row: File Storage usage (donut) ── -->
-<div class="row g-3 mb-4">
-    <div class="col-12">
-        <div class="card content-card">
+    {{-- File Storage (half-width, beside the mini KPIs) --}}
+    <div class="col-xl-7">
+        <div class="card content-card h-100">
             <div class="card-header py-2 d-flex align-items-center justify-content-between">
                 <span><i class="bi bi-hdd-stack me-2 text-primary"></i>File Storage</span>
                 @if($stLimit > 0 && $stPct >= 90)
                 <span class="badge bg-danger-subtle text-danger border"><i class="bi bi-exclamation-triangle-fill me-1"></i>Nearly full</span>
                 @endif
             </div>
-            <div class="card-body">
-                <div class="row align-items-center g-3">
+            <div class="card-body d-flex align-items-center">
+                <div class="row align-items-center g-3 w-100">
                     {{-- Donut --}}
                     <div class="col-auto">
-                        <svg viewBox="0 0 42 42" style="width:150px;height:150px;">
+                        <svg viewBox="0 0 42 42" style="width:185px;height:185px;">
                             <circle cx="21" cy="21" r="15.915" fill="none" stroke="#eef0f2" stroke-width="5"></circle>
                             @foreach($segs as $s)
                             <circle cx="21" cy="21" r="15.915" fill="none" stroke="{{ $s['color'] }}" stroke-width="5"
@@ -268,8 +271,9 @@
             </div>
         </div>
     </div>
+    @endisset
+
 </div>
-@endisset
 
 <!-- ── Row: Recent Movements + Zone Occupancy ── -->
 <div class="row g-3 mb-4">
