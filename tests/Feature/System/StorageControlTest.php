@@ -122,9 +122,11 @@ class StorageControlTest extends FeatureTestCase
         $doc->uploaded_by       = auth()->id();
         $doc->save();
 
+        // The observer buckets the file by its owning record's class — a
+        // Customer-owned document lands in 'customer', not the generic 'document'.
         $this->assertDatabaseHas('file_assets', [
             'document_id' => $doc->id,
-            'section'     => 'document',
+            'section'     => 'customer',
             'size'        => 2048,
         ]);
 
