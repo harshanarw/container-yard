@@ -98,6 +98,34 @@ class StorageReportTest extends FeatureTestCase
             ->assertDontSee('other.png');
     }
 
+    public function test_container_filter_finds_files_by_container_number(): void
+    {
+        $this->actingAsSystemAdmin();
+        $customer = \App\Models\Customer::factory()->create();
+
+        $c1 = \App\Models\Container::factory()->create(['customer_id' => $customer->id, 'container_no' => 'TCLU1112223']);
+        $c2 = \App\Models\Container::factory()->create(['customer_id' => $customer->id, 'container_no' => 'MSKU9998887']);
+
+        $m1 = \App\Models\GateMovement::create([
+            'container_id' => $c1->id, 'container_no' => $c1->container_no, 'customer_id' => $customer->id,
+            'movement_type' => 'in', 'size' => $c1->size, 'container_type' => $c1->type_code, 'created_by' => auth()->id(),
+        ]);
+        $m2 = \App\Models\GateMovement::create([
+            'container_id' => $c2->id, 'container_no' => $c2->container_no, 'customer_id' => $customer->id,
+            'movement_type' => 'in', 'size' => $c2->size, 'container_type' => $c2->type_code, 'created_by' => auth()->id(),
+        ]);
+
+        $this->asset(['section' => 'gate_photo', 'path' => 'docs/gm/box1.jpg',
+            'owner_type' => \App\Models\GateMovement::class, 'owner_id' => $m1->id]);
+        $this->asset(['section' => 'gate_photo', 'path' => 'docs/gm/box2.jpg',
+            'owner_type' => \App\Models\GateMovement::class, 'owner_id' => $m2->id]);
+
+        $this->get(route('storage.report', ['container' => 'TCLU1112223']))
+            ->assertOk()
+            ->assertSee('box1.jpg')
+            ->assertDontSee('box2.jpg');
+    }
+
     public function test_non_admin_is_forbidden(): void
     {
         $this->actingAsRole('gate_officer');

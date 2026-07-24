@@ -113,6 +113,16 @@
                     @endforeach
                 </select>
             </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Reference / Job No.</label>
+                <input type="search" name="ref" value="{{ $ref }}" class="form-control form-control-sm"
+                       placeholder="Survey, Estimate, Invoice or Job No…">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Container No.</label>
+                <input type="search" name="container" value="{{ $container }}" class="form-control form-control-sm"
+                       placeholder="e.g. TCLU1234567">
+            </div>
             <div class="col-md-2">
                 <label class="form-label small mb-1">Min size (MB)</label>
                 <input type="number" step="0.1" min="0" name="min_mb" value="{{ $minMb ?: '' }}" class="form-control form-control-sm">
@@ -125,16 +135,11 @@
                 <label class="form-label small mb-1">To</label>
                 <input type="date" name="to" value="{{ $to }}" class="form-control form-control-sm">
             </div>
-            <div class="col-md-5">
-                <label class="form-label small mb-1">Reference / Job No.</label>
-                <input type="search" name="ref" value="{{ $ref }}" class="form-control form-control-sm"
-                       placeholder="Survey, Estimate, Invoice, Container or Job No…">
-            </div>
             <div class="col-md-3">
                 <label class="form-label small mb-1">Path contains</label>
                 <input type="search" name="q" value="{{ $q }}" class="form-control form-control-sm" placeholder="e.g. guard-captures">
             </div>
-            <div class="col-md-4 text-end">
+            <div class="col-md-3 text-end">
                 <a href="{{ route('storage.report') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
                 <button class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i>Apply</button>
             </div>

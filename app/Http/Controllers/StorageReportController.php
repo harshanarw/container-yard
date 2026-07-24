@@ -55,14 +55,16 @@ class StorageReportController extends Controller
         $section  = $request->query('section');
         $uploader = $request->query('uploader');
         $minMb    = (float) $request->query('min_mb', 0);
-        $q        = trim((string) $request->query('q', ''));
-        $ref      = trim((string) $request->query('ref', ''));
-        $from     = $request->query('from');
-        $to       = $request->query('to');
+        $q         = trim((string) $request->query('q', ''));
+        $ref       = trim((string) $request->query('ref', ''));
+        $container = trim((string) $request->query('container', ''));
+        $from      = $request->query('from');
+        $to        = $request->query('to');
 
-        // Resolve a reference/job-number search to the owning records it matches,
+        // Resolve reference/container searches to the owning records they match,
         // then constrain the file list to files owned by those records.
-        $refOwners = $ref !== '' ? $this->ownersMatchingReference($ref) : null;
+        $refOwners       = $ref !== '' ? $this->ownersMatchingReference($ref) : null;
+        $containerOwners = $container !== '' ? $this->ownersMatchingContainer($container) : null;
 
         $files = FileAsset::query()
             ->with('owner')
@@ -70,17 +72,8 @@ class StorageReportController extends Controller
             ->when($uploader, fn ($w) => $w->where('uploaded_by', $uploader))
             ->when($minMb > 0, fn ($w) => $w->where('size', '>=', (int) round($minMb * 1048576)))
             ->when($q !== '', fn ($w) => $w->where('path', 'like', "%{$q}%"))
-            ->when($ref !== '', function ($w) use ($refOwners) {
-                $w->where(function ($q) use ($refOwners) {
-                    if (empty($refOwners)) {
-                        $q->whereRaw('1 = 0'); // reference given but nothing matched
-                        return;
-                    }
-                    foreach ($refOwners as $type => $ids) {
-                        $q->orWhere(fn ($q2) => $q2->where('owner_type', $type)->whereIn('owner_id', $ids));
-                    }
-                });
-            })
+            ->when($ref !== '', fn ($w) => $this->constrainByOwners($w, $refOwners ?? []))
+            ->when($container !== '', fn ($w) => $this->constrainByOwners($w, $containerOwners ?? []))
             ->when($from, fn ($w) => $w->whereDate('created_at', '>=', $from))
             ->when($to, fn ($w) => $w->whereDate('created_at', '<=', $to))
             ->orderByDesc('size')
@@ -96,8 +89,53 @@ class StorageReportController extends Controller
 
         return view('storage.report', compact(
             'summary', 'files', 'largest', 'uploaders',
-            'section', 'uploader', 'minMb', 'q', 'ref', 'from', 'to'
+            'section', 'uploader', 'minMb', 'q', 'ref', 'container', 'from', 'to'
         ));
+    }
+
+    /** Limit a file query to files owned by the given [ownerClass => ids] map. */
+    private function constrainByOwners($query, array $owners): void
+    {
+        $query->where(function ($q) use ($owners) {
+            if (empty($owners)) {
+                $q->whereRaw('1 = 0'); // search given but nothing matched
+                return;
+            }
+            foreach ($owners as $type => $ids) {
+                $q->orWhere(fn ($q2) => $q2->where('owner_type', $type)->whereIn('owner_id', $ids));
+            }
+        });
+    }
+
+    /**
+     * Resolve a container-number search to the owning records it matches. Covers
+     * records that carry container_no directly (survey/estimate/gate movement)
+     * and invoices that reference the container through their line items.
+     */
+    private function ownersMatchingContainer(string $container): array
+    {
+        $like = '%' . $container . '%';
+        $out  = [];
+
+        foreach ([\App\Models\Inquiry::class, \App\Models\Estimate::class, \App\Models\GateMovement::class] as $class) {
+            $ids = $class::where('container_no', 'like', $like)->pluck('id');
+            if ($ids->isNotEmpty()) {
+                $out[$class] = $ids->all();
+            }
+        }
+
+        $viaLines = [
+            \App\Models\StorageInvoice::class         => 'details',
+            \App\Models\StorageHandlingInvoice::class => 'lines',
+        ];
+        foreach ($viaLines as $class => $relation) {
+            $ids = $class::whereHas($relation, fn ($q) => $q->where('container_no', 'like', $like))->pluck('id');
+            if ($ids->isNotEmpty()) {
+                $out[$class] = $ids->all();
+            }
+        }
+
+        return $out;
     }
 
     /**
