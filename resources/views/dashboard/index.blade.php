@@ -153,7 +153,7 @@
 <div class="row g-3 mb-4">
 
     {{-- Secondary mini KPIs: 2×2 beside storage, or full-width 4-across without it --}}
-    <div class="{{ $hasStorage ? 'col-xl-5' : 'col-12' }}">
+    <div class="{{ $hasStorage ? 'col-xl-6' : 'col-12' }}">
         <div class="row g-3 h-100">
             <div class="{{ $hasStorage ? 'col-6' : 'col-6 col-md-3' }}">
                 <div class="card stat-card stat-card-mini h-100 kpi-animate" style="animation-delay:.32s">
@@ -213,8 +213,8 @@
     }
     $freeBytes = $stLimit > 0 ? max(0, $stLimit - $stUsed) : 0;
 @endphp
-    {{-- File Storage (half-width, beside the mini KPIs) --}}
-    <div class="col-xl-7">
+    {{-- File Storage (exactly half-width, beside the mini KPIs) --}}
+    <div class="col-xl-6">
         <div class="card content-card h-100">
             <div class="card-header py-2 d-flex align-items-center justify-content-between">
                 <span><i class="bi bi-hdd-stack me-2 text-primary"></i>File Storage</span>
@@ -223,10 +223,11 @@
                 @endif
             </div>
             <div class="card-body d-flex align-items-center">
-                <div class="row align-items-center g-3 w-100">
-                    {{-- Donut --}}
-                    <div class="col-auto">
-                        <svg viewBox="0 0 42 42" style="width:185px;height:185px;">
+                {{-- align-items-stretch makes the donut column match the legend's height --}}
+                <div class="d-flex align-items-stretch gap-3 w-100">
+                    {{-- Donut — height tracks the single-column legend (clamped so it stays circular) --}}
+                    <div class="d-flex align-items-center justify-content-center flex-shrink-0">
+                        <svg viewBox="0 0 42 42" style="height:100%;width:auto;aspect-ratio:1/1;min-height:150px;max-height:230px;">
                             <circle cx="21" cy="21" r="15.915" fill="none" stroke="#eef0f2" stroke-width="5"></circle>
                             @foreach($segs as $s)
                             <circle cx="21" cy="21" r="15.915" fill="none" stroke="{{ $s['color'] }}" stroke-width="5"
@@ -237,29 +238,23 @@
                             <text x="21" y="25" text-anchor="middle" style="font-size:2.6px;fill:#8a9099;">{{ $stLimit > 0 ? $mb($stUsed).' / '.$mb($stLimit) : 'used · no limit' }}</text>
                         </svg>
                     </div>
-                    {{-- Legend --}}
-                    <div class="col">
-                        <div class="row g-2">
-                            @foreach($segs as $s)
-                            <div class="col-sm-6">
-                                <div class="d-flex align-items-center justify-content-between small">
-                                    <span class="text-truncate">
-                                        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:{{ $s['color'] }};" class="me-1"></span>{{ $s['label'] }}
-                                    </span>
-                                    <span class="text-muted ms-2">{{ $mb($s['bytes']) }}</span>
-                                </div>
-                            </div>
-                            @endforeach
-                            @if($freeBytes > 0)
-                            <div class="col-sm-6">
-                                <div class="d-flex align-items-center justify-content-between small">
-                                    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#eef0f2;" class="me-1 border"></span>Free</span>
-                                    <span class="text-muted ms-2">{{ $mb($freeBytes) }}</span>
-                                </div>
-                            </div>
-                            @endif
+                    {{-- Legend — single vertical column --}}
+                    <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                        @foreach($segs as $s)
+                        <div class="d-flex align-items-center justify-content-between small py-1 border-bottom">
+                            <span class="text-truncate">
+                                <span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:{{ $s['color'] }};" class="me-2"></span>{{ $s['label'] }}
+                            </span>
+                            <span class="text-muted ms-2 fw-semibold text-nowrap">{{ $mb($s['bytes']) }}</span>
                         </div>
-                        @if(empty($segs))
+                        @endforeach
+                        @if($freeBytes > 0)
+                        <div class="d-flex align-items-center justify-content-between small py-1">
+                            <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:#eef0f2;" class="me-2 border"></span>Free</span>
+                            <span class="text-muted ms-2 text-nowrap">{{ $mb($freeBytes) }}</span>
+                        </div>
+                        @endif
+                        @if(empty($segs) && $freeBytes <= 0)
                         <div class="text-muted small">No files stored yet.</div>
                         @endif
                     </div>
