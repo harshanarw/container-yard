@@ -89,7 +89,16 @@
                         </div>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small mb-1">Repair Categories <span class="text-muted">(none = all)</span></label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small mb-0">Repair Categories <span class="text-muted">(none = all)</span></label>
+                            @if($categories->isNotEmpty())
+                            <span class="small">
+                                <a href="#" id="catSelectAll" class="text-decoration-none">Select all</a>
+                                <span class="text-muted">·</span>
+                                <a href="#" id="catClear" class="text-decoration-none">Clear</a>
+                            </span>
+                            @endif
+                        </div>
                         <div class="border rounded p-2" style="max-height:180px;overflow-y:auto;column-count:2;column-gap:1rem;">
                             @forelse($categories as $cat)
                             <div class="form-check" style="break-inside:avoid;">
@@ -232,6 +241,11 @@
         const n = document.querySelectorAll('.line-check:checked').length;
         document.getElementById('selectionLabel').textContent = n + ' line(s) selected';
     }
+
+    // Category quick-select links.
+    const setAllCats = (checked) => document.querySelectorAll('.cat-check').forEach(c => c.checked = checked);
+    document.getElementById('catSelectAll')?.addEventListener('click', (e) => { e.preventDefault(); setAllCats(true); });
+    document.getElementById('catClear')?.addEventListener('click', (e) => { e.preventDefault(); setAllCats(false); });
 
     document.getElementById('previewBtn').addEventListener('click', runPreview);
 
