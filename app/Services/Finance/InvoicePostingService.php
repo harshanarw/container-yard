@@ -181,8 +181,14 @@ class InvoicePostingService
             throw new \InvalidArgumentException('Invoice total must be greater than zero.');
         }
 
-        // Resolve customer id — StorageHandlingInvoice uses shipping_line_id
+        // Resolve customer id — StorageHandlingInvoice uses shipping_line_id.
         $customerId = $invoice->customer_id ?? $invoice->shipping_line_id ?? null;
+
+        // Periodic repair invoices may raise the receivable against a separate
+        // billing party. Scoped to repair so other modules are unaffected.
+        if ($invoiceType === 'repair' && ! empty($invoice->billing_party_id)) {
+            $customerId = $invoice->billing_party_id;
+        }
 
         // Resolve AR control account
         $arAccount = $this->resolveAccount('customer_ar', Customer::class, $customerId)
