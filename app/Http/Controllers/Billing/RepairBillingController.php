@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Billing;
 use App\Http\Controllers\Controller;
 use App\Models\Estimate;
 use App\Models\RepairCategory;
+use App\Models\RepairInvoice;
 use App\Models\RepairInvoiceLine;
 use App\Services\CurrencyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Periodic (consolidated) repair billing — collect a customer's approved,
@@ -158,6 +160,153 @@ class RepairBillingController extends Controller
         ]);
     }
 
+    /**
+     * Persist the selected estimate lines as a draft periodic RepairInvoice.
+     * Re-fetches every line from the DB (never trusts client amounts), re-checks
+     * it is still unbilled and matches the customer/currency, and re-derives all
+     * totals server-side.
+     */
+    public function store(Request $request)
+    {
+        $v = $request->validate([
+            'customer_id'       => 'required|exists:customers,id',
+            'billing_party_id'  => 'nullable|exists:customers,id',
+            'invoice_date'      => 'required|date',
+            'invoice_currency'  => 'required|string|size:3',
+            'exchange_rate'     => 'nullable|numeric|min:0.0001',
+            'period_basis'      => 'nullable|in:wo_completed,approved,estimate',
+            'period_from'       => 'nullable|date',
+            'period_to'         => 'nullable|date',
+            'bill_categories'   => 'nullable|array',
+            'bill_categories.*' => 'integer',
+            'line_item_ids'     => 'required|array|min:1',
+            'line_item_ids.*'   => 'integer',
+        ]);
+
+        $currency = strtoupper($v['invoice_currency']);
+        $billed   = RepairInvoiceLine::billedEstimateLineItemIds()->flip();
+
+        // Re-fetch and re-validate the selected lines. Guards against tampering,
+        // stale selections, and lines billed between preview and save.
+        $lines = \App\Models\EstimateLineItem::with(['estimate', 'taxCode'])
+            ->whereIn('id', $v['line_item_ids'])
+            ->get()
+            ->filter(function ($line) use ($v, $currency, $billed) {
+                $est = $line->estimate;
+                return $est
+                    && $est->status === 'approved'
+                    && (int) $est->customer_id === (int) $v['customer_id']
+                    && strtoupper((string) $est->currency) === $currency
+                    && ! isset($billed[$line->id]);
+            });
+
+        if ($lines->isEmpty()) {
+            return back()->withInput()->with('error',
+                'None of the selected lines are billable (already billed, or not matching the customer/currency).');
+        }
+
+        try {
+            $rate = CurrencyService::resolveRateOrFail($currency, now()->toDateString());
+        } catch (\InvalidArgumentException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        $records = [];
+        $subtotal = $sscl = $vat = 0.0;
+        foreach ($lines as $line) {
+            $taxApplicable = (bool) ($line->estimate->tax_applicable ?? true);
+            $f = $this->lineFinancials($line, $taxApplicable);
+            if ($f['amount'] <= 0) {
+                continue;
+            }
+            $subtotal += $f['amount'];
+            $sscl     += $f['sscl'];
+            $vat      += $f['vat'];
+            $records[] = $this->buildLineRecord($line, $line->estimate, $f);
+        }
+
+        if (empty($records)) {
+            return back()->withInput()->with('error', 'The selected lines have no billable amount.');
+        }
+
+        $subtotal  = round($subtotal, 2);
+        $sscl      = round($sscl, 2);
+        $vat       = round($vat, 2);
+        $taxAmount = round($sscl + $vat, 2);
+        $grand     = round($subtotal + $taxAmount, 2);
+
+        $billedPartyId = $v['billing_party_id'] ?? $v['customer_id'];
+        $terms   = \App\Models\Customer::where('id', $billedPartyId)->value('payment_terms') ?? 'net30';
+        $dueDate = \App\Services\Finance\PaymentTermsHelper::dueDate($terms, Carbon::parse($v['invoice_date']))->toDateString();
+
+        $invoice = DB::transaction(function () use ($v, $currency, $rate, $records, $subtotal, $sscl, $vat, $taxAmount, $grand, $dueDate) {
+            $invoice = RepairInvoice::create([
+                'invoice_no'          => app(\App\Services\NumberSequenceService::class)->generate('repair_invoice'),
+                'billing_mode'        => 'periodic',
+                'estimate_id'         => null,
+                'customer_id'         => $v['customer_id'],
+                'billing_party_id'    => $v['billing_party_id'] ?? null,
+                'invoice_date'        => $v['invoice_date'],
+                'due_date'            => $dueDate,
+                'period_basis'        => $v['period_basis'] ?? null,
+                'billing_period_from' => $v['period_from'] ?? null,
+                'billing_period_to'   => $v['period_to'] ?? null,
+                'bill_categories'     => $v['bill_categories'] ?? null,
+                'currency'            => $currency,
+                'exchange_rate'       => $rate,
+                'tax_applicable'      => ($sscl + $vat) > 0,
+                'status'              => 'draft',
+                'subtotal'            => $subtotal,
+                'sscl_total'          => $sscl,
+                'vat_total'           => $vat,
+                'tax_percentage'      => $subtotal > 0 ? round($taxAmount / $subtotal * 100, 4) : 0,
+                'tax_amount'          => $taxAmount,
+                'grand_total'         => $grand,
+                'balance_due'         => $grand,
+                'created_by'          => auth()->id(),
+            ]);
+
+            foreach ($records as $record) {
+                $invoice->lines()->create($record);
+            }
+
+            return $invoice;
+        });
+
+        return redirect()->route('repair-invoices.show', $invoice)
+            ->with('success', "Periodic repair invoice {$invoice->invoice_no} created with " . count($records) . ' line(s).');
+    }
+
+    /** Build a RepairInvoiceLine attribute array from an estimate line snapshot. */
+    private function buildLineRecord($line, $est, array $f): array
+    {
+        return [
+            'estimate_line_item_id' => $line->id,
+            'container_id'          => $est->container_id,
+            'container_no'          => $est->container_no,
+            'repair_category_id'    => $line->repair_category_id,
+            'location_code_id'      => $line->location_code_id,
+            'component_code_id'     => $line->component_code_id,
+            'damage_code_id'        => $line->damage_code_id,
+            'repair_code_id'        => $line->repair_code_id,
+            'charge_code_id'        => $line->charge_code_id,
+            'tax_code_id'           => $line->tax_code_id,
+            'washing_tariff_id'     => $line->washing_tariff_id,
+            'wash_scope'            => $line->wash_scope,
+            'cedex_code'            => $line->cedex_code,
+            'description'           => $line->component ?: ($line->cedex_code ?: 'Repair work item'),
+            'qty'                   => $line->qty ?? 1,
+            'unit_price'            => $f['amount'],
+            'tax_percentage'        => $f['t1'] + $f['t2'],
+            'line_amount'           => $f['amount'],
+            'tax1_rate'             => $f['t1'],
+            'tax2_rate'             => $f['t2'],
+            'tax1_amount'           => $f['sscl'],
+            'tax2_amount'           => $f['vat'],
+            'gross_amount'          => $f['gross'],
+        ];
+    }
+
     /** The date that places an estimate in the billing period, per the basis. */
     private function basisDate(Estimate $est, string $basis): ?Carbon
     {
@@ -211,6 +360,10 @@ class RepairBillingController extends Controller
         $ssc = round($amount * $t1 / 100, 2);
         $vat = round(($amount + $ssc) * $t2 / 100, 2);
 
-        return ['amount' => $amount, 'sscl' => $ssc, 'vat' => $vat, 'gross' => round($amount + $ssc + $vat, 2)];
+        return [
+            'amount' => $amount, 'sscl' => $ssc, 'vat' => $vat,
+            'gross' => round($amount + $ssc + $vat, 2),
+            't1' => $t1, 't2' => $t2,
+        ];
     }
 }

@@ -614,6 +614,7 @@ Route::middleware(['auth'])->group(function () {
         // Periodic (consolidated) Repair Billing — must come BEFORE the /{invoice} wildcard
         Route::prefix('repair')->name('repair.')->group(function () {
             Route::post('/preview', [\App\Http\Controllers\Billing\RepairBillingController::class, 'preview'])->name('preview');
+            Route::post('/',        [\App\Http\Controllers\Billing\RepairBillingController::class, 'store'])->name('store');
         });
 
         // Wildcard /{invoice} routes — must come AFTER all named sub-paths
