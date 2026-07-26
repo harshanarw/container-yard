@@ -242,13 +242,18 @@
         document.getElementById('selectionLabel').textContent = n + ' line(s) selected';
     }
 
-    // Auto-fill Billing Party from the selected customer's default (overridable).
-    // Both are Select2, so drive the update through jQuery so the widget refreshes.
+    // Auto-fill Billing Party from the selected customer (overridable). Mirrors
+    // the Storage & Handling behaviour: listen to both change and select2:select,
+    // read the option via jQuery, and fall back to the customer itself when no
+    // explicit billing party is configured so a value is always shown.
     if (window.jQuery) {
-        jQuery('#customer_id').on('change', function () {
-            const opt = this.options[this.selectedIndex];
-            const bp = opt ? (opt.getAttribute('data-billing-party') || '') : '';
-            jQuery('#billing_party_id').val(bp).trigger('change.select2');
+        jQuery(function ($) {
+            $('#customer_id').on('change select2:select', function () {
+                const val  = $(this).val();
+                const $opt = $(this).find('option[value="' + val + '"]');
+                const bpId = val ? (($.trim($opt.attr('data-billing-party') || '')) || val) : '';
+                $('#billing_party_id').val(bpId).trigger('change');
+            });
         });
     }
 
