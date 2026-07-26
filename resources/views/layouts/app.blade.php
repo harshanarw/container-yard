@@ -1135,6 +1135,12 @@
                         <i class="bi bi-receipt"></i><span>Repair Invoices</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('billing.repair.index') }}"
+                       class="nav-link {{ request()->routeIs('billing.repair.*') ? 'active' : '' }}">
+                        <i class="bi bi-receipt-cutoff"></i><span>Repair Billing</span>
+                    </a>
+                </li>
                 @endcan
                 @can('billing.general.view')
                 <li class="nav-item">

@@ -32,7 +32,7 @@ $statusColors = [
             <span class="badge bg-{{ $statusColors[$invoice->status] ?? 'secondary' }}">
                 {{ ucfirst(str_replace('_', ' ', $invoice->status)) }}
             </span>
-            &nbsp;·&nbsp; {{ $invoice->container_no }}
+            &nbsp;·&nbsp; {{ $invoice->billing_mode === 'periodic' ? 'Periodic bill' : $invoice->container_no }}
             &nbsp;·&nbsp; {{ $invoice->customer->name ?? '—' }}
             &nbsp;·&nbsp; @include('partials.job-badge', ['job' => $invoice->yardJob, 'mode' => 'inline'])
         </p>
@@ -143,8 +143,16 @@ $statusColors = [
                     <dt class="col-6">Due Date</dt>
                     <dd class="col-6">{{ $invoice->due_date?->format('d M Y') ?? '—' }}</dd>
 
+                    @if($invoice->billing_mode === 'periodic')
+                    <dt class="col-6">Billing Period</dt>
+                    <dd class="col-6 fw-semibold">
+                        {{ $invoice->billing_period_from?->format('d M Y') ?? '—' }}
+                        &ndash; {{ $invoice->billing_period_to?->format('d M Y') ?? '—' }}
+                    </dd>
+                    @else
                     <dt class="col-6">Container</dt>
                     <dd class="col-6 fw-semibold">{{ $invoice->container_no }}</dd>
+                    @endif
 
                     <dt class="col-6">Customer</dt>
                     <dd class="col-6 fw-semibold">{{ $invoice->customer->name ?? '—' }}</dd>

@@ -28,6 +28,37 @@ class RepairBillingController extends Controller
         $this->middleware('can:billing.repair.create')->only(['create', 'store']);
     }
 
+    /** List periodic (consolidated) repair invoices. */
+    public function index(Request $request)
+    {
+        $query = RepairInvoice::periodic()->with('customer', 'billingParty');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(fn ($q) => $q->where('invoice_no', 'like', "%{$s}%")
+                ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$s}%")));
+        }
+
+        return view('billing.repair.index', [
+            'invoices' => $query->orderByDesc('invoice_date')->orderByDesc('id')->paginate(20)->withQueryString(),
+            'statuses' => ['draft', 'issued', 'paid', 'partially_paid', 'overdue', 'cancelled', 'void'],
+        ]);
+    }
+
+    /** The periodic-billing selection form (parameters + AJAX preview). */
+    public function create()
+    {
+        return view('billing.repair.create', [
+            'customers'    => \App\Models\Customer::orderBy('name')->get(['id', 'name', 'code', 'billing_party_id', 'payment_terms']),
+            'categories'   => RepairCategory::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'code']),
+            'currencies'   => CurrencyService::activeCurrencyNames(),
+            'baseCurrency' => CurrencyService::defaultCurrency(),
+        ]);
+    }
+
     /**
      * Resolve the eligible, unbilled repair lines for a customer in a period and
      * return them grouped by estimate (with work-order status) as JSON — the data
