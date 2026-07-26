@@ -54,7 +54,7 @@ $statusColors = [
         @endcan
         @can('billing.repair.edit')
         @if($canEdit)
-        <a href="{{ route('repair-invoices.edit', $invoice) }}" class="btn btn-primary btn-sm">
+        <a href="{{ $invoice->billing_mode === 'periodic' ? route('billing.repair.edit', $invoice) : route('repair-invoices.edit', $invoice) }}" class="btn btn-primary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
         @endif

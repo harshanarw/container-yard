@@ -26,6 +26,7 @@ class RepairBillingController extends Controller
     {
         $this->middleware('can:billing.repair.view')->only(['index', 'preview']);
         $this->middleware('can:billing.repair.create')->only(['create', 'store']);
+        $this->middleware('can:billing.repair.edit')->only(['edit', 'update']);
     }
 
     /** List periodic (consolidated) repair invoices. */
@@ -189,6 +190,128 @@ class RepairBillingController extends Controller
                 'grand_total' => round($gTotal, 2),
             ],
         ]);
+    }
+
+    /** Edit screen for a draft periodic invoice — adjust its lines + header. */
+    public function edit(RepairInvoice $invoice)
+    {
+        abort_unless($invoice->billing_mode === 'periodic', 404);
+        if ($invoice->status !== 'draft') {
+            return redirect()->route('repair-invoices.show', $invoice)->with('error', 'Only draft invoices can be edited.');
+        }
+
+        $invoice->load(['customer', 'billingParty', 'lines.repairCategory', 'lines.estimateLineItem.estimate']);
+
+        return view('billing.repair.edit', [
+            'invoice'    => $invoice,
+            'customers'  => \App\Models\Customer::orderBy('name')->get(['id', 'name', 'code']),
+            'categories' => RepairCategory::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'code']),
+        ]);
+    }
+
+    /**
+     * Rebuild a draft periodic invoice from the final selected line set (kept +
+     * newly added) and update its header. Lines billed on OTHER live invoices are
+     * rejected; this invoice's own lines are re-selectable.
+     */
+    public function update(Request $request, RepairInvoice $invoice)
+    {
+        abort_unless($invoice->billing_mode === 'periodic', 404);
+        if ($invoice->status !== 'draft') {
+            return redirect()->route('repair-invoices.show', $invoice)->with('error', 'Only draft invoices can be edited.');
+        }
+
+        $v = $request->validate([
+            'invoice_date'      => 'required|date',
+            'billing_party_id'  => 'nullable|exists:customers,id',
+            'period_from'       => 'nullable|date',
+            'period_to'         => 'nullable|date',
+            'notes'             => 'nullable|string|max:500',
+            'line_item_ids'     => 'required|array|min:1',
+            'line_item_ids.*'   => 'integer',
+        ]);
+
+        $currency = strtoupper((string) $invoice->currency);
+
+        // Lines committed to OTHER live invoices are off-limits; this invoice's
+        // own current lines stay selectable (they are being rebuilt).
+        $billedElsewhere = RepairInvoiceLine::query()
+            ->whereNotNull('estimate_line_item_id')
+            ->whereHas('invoice', fn ($q) => $q->whereNotIn('status', ['cancelled', 'void']))
+            ->where('repair_invoice_id', '!=', $invoice->id)
+            ->pluck('estimate_line_item_id')
+            ->flip();
+
+        $lines = \App\Models\EstimateLineItem::with(['estimate', 'taxCode'])
+            ->whereIn('id', $v['line_item_ids'])
+            ->get()
+            ->filter(function ($line) use ($invoice, $currency, $billedElsewhere) {
+                $est = $line->estimate;
+                return $est
+                    && $est->status === 'approved'
+                    && (int) $est->customer_id === (int) $invoice->customer_id
+                    && strtoupper((string) $est->currency) === $currency
+                    && ! isset($billedElsewhere[$line->id]);
+            });
+
+        if ($lines->isEmpty()) {
+            return back()->withInput()->with('error', 'No valid billable lines selected.');
+        }
+
+        $records = [];
+        $subtotal = $sscl = $vat = 0.0;
+        foreach ($lines as $line) {
+            $taxApplicable = (bool) ($line->estimate->tax_applicable ?? true);
+            $f = $this->lineFinancials($line, $taxApplicable);
+            if ($f['amount'] <= 0) {
+                continue;
+            }
+            $subtotal += $f['amount'];
+            $sscl     += $f['sscl'];
+            $vat      += $f['vat'];
+            $records[] = $this->buildLineRecord($line, $line->estimate, $f);
+        }
+
+        if (empty($records)) {
+            return back()->withInput()->with('error', 'The selected lines have no billable amount.');
+        }
+
+        $subtotal  = round($subtotal, 2);
+        $sscl      = round($sscl, 2);
+        $vat       = round($vat, 2);
+        $taxAmount = round($sscl + $vat, 2);
+        $grand     = round($subtotal + $taxAmount, 2);
+
+        $billedPartyId = $v['billing_party_id'] ?? $invoice->customer_id;
+        $terms   = \App\Models\Customer::where('id', $billedPartyId)->value('payment_terms') ?? 'net30';
+        $dueDate = \App\Services\Finance\PaymentTermsHelper::dueDate($terms, Carbon::parse($v['invoice_date']))->toDateString();
+
+        DB::transaction(function () use ($invoice, $v, $records, $subtotal, $sscl, $vat, $taxAmount, $grand, $dueDate) {
+            $invoice->lines()->delete();
+            foreach ($records as $record) {
+                $invoice->lines()->create($record);
+            }
+
+            $invoice->update([
+                'invoice_date'        => $v['invoice_date'],
+                'due_date'            => $dueDate,
+                'billing_party_id'    => $v['billing_party_id'] ?? null,
+                'billing_period_from' => $v['period_from'] ?? $invoice->billing_period_from,
+                'billing_period_to'   => $v['period_to'] ?? $invoice->billing_period_to,
+                'notes'               => $v['notes'] ?? null,
+                'tax_applicable'      => ($sscl + $vat) > 0,
+                'subtotal'            => $subtotal,
+                'sscl_total'          => $sscl,
+                'vat_total'           => $vat,
+                'tax_percentage'      => $subtotal > 0 ? round($taxAmount / $subtotal * 100, 4) : 0,
+                'tax_amount'          => $taxAmount,
+                'grand_total'         => $grand,
+                'balance_due'         => $grand,
+            ]);
+        });
+
+        return redirect()->route('repair-invoices.show', $invoice)
+            ->with('success', "Periodic repair invoice {$invoice->invoice_no} updated (" . count($records) . ' line(s)).');
     }
 
     /**

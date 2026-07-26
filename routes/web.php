@@ -613,10 +613,12 @@ Route::middleware(['auth'])->group(function () {
 
         // Periodic (consolidated) Repair Billing — must come BEFORE the /{invoice} wildcard
         Route::prefix('repair')->name('repair.')->group(function () {
-            Route::get('/',         [\App\Http\Controllers\Billing\RepairBillingController::class, 'index'])->name('index');
-            Route::get('/create',   [\App\Http\Controllers\Billing\RepairBillingController::class, 'create'])->name('create');
-            Route::post('/preview', [\App\Http\Controllers\Billing\RepairBillingController::class, 'preview'])->name('preview');
-            Route::post('/',        [\App\Http\Controllers\Billing\RepairBillingController::class, 'store'])->name('store');
+            Route::get('/',                    [\App\Http\Controllers\Billing\RepairBillingController::class, 'index'])->name('index');
+            Route::get('/create',              [\App\Http\Controllers\Billing\RepairBillingController::class, 'create'])->name('create');
+            Route::post('/preview',            [\App\Http\Controllers\Billing\RepairBillingController::class, 'preview'])->name('preview');
+            Route::post('/',                   [\App\Http\Controllers\Billing\RepairBillingController::class, 'store'])->name('store');
+            Route::get('/{invoice}/edit',      [\App\Http\Controllers\Billing\RepairBillingController::class, 'edit'])->name('edit');
+            Route::put('/{invoice}',           [\App\Http\Controllers\Billing\RepairBillingController::class, 'update'])->name('update');
         });
 
         // Wildcard /{invoice} routes — must come AFTER all named sub-paths

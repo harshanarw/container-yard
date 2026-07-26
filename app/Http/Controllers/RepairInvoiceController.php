@@ -247,6 +247,12 @@ class RepairInvoiceController extends Controller
             return redirect()->route('repair-invoices.show', $invoice)->with('error', 'Only draft invoices can be edited.');
         }
 
+        // Periodic (consolidated) invoices span many estimates — they use the
+        // dedicated line-selection editor.
+        if ($invoice->billing_mode === 'periodic') {
+            return redirect()->route('billing.repair.edit', $invoice);
+        }
+
         return view('repair-invoices.edit', ['invoice' => $invoice]);
     }
 
