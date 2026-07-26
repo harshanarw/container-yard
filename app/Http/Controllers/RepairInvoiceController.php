@@ -77,6 +77,11 @@ class RepairInvoiceController extends Controller
         // estimate is tax-exempt, the invoice charges no SSCL/VAT.
         $taxApplicable = (bool) ($estimate->tax_applicable ?? true);
 
+        // Lines already committed to a live invoice (e.g. billed earlier via the
+        // periodic path) must not be billed again. Flip to an id-keyed set for O(1)
+        // lookup.
+        $billedLineIds = \App\Models\RepairInvoiceLine::billedEstimateLineItemIds()->flip();
+
         $subtotal    = 0;
         $ssclTotal   = 0;
         $vatTotal    = 0;
@@ -84,6 +89,10 @@ class RepairInvoiceController extends Controller
         $zeroLines   = [];
 
         foreach ($estimate->lineItems as $line) {
+            if (isset($billedLineIds[$line->id])) {
+                continue; // already billed elsewhere — skip so we never double-bill
+            }
+
             $lineAmount = ($line->labor_amount ?? 0) + ($line->material_amount ?? 0) + ($line->ancillary_amount ?? 0);
             if ($lineAmount == 0) {
                 $lineAmount = ($line->unit_price ?? 0) * ($line->qty ?? 1);
@@ -112,6 +121,9 @@ class RepairInvoiceController extends Controller
 
             $lineRecords[] = [
                 'estimate_line_item_id' => $line->id,
+                'container_id'          => $estimate->container_id,
+                'container_no'          => $estimate->container_no,
+                'repair_category_id'    => $line->repair_category_id,
                 'location_code_id'      => $line->location_code_id,
                 'component_code_id'     => $line->component_code_id,
                 'damage_code_id'        => $line->damage_code_id,
@@ -132,6 +144,11 @@ class RepairInvoiceController extends Controller
                 'tax2_amount'           => $t2Amt,
                 'gross_amount'          => $gross,
             ];
+        }
+
+        if (empty($lineRecords)) {
+            return back()->withInput()->with('error',
+                'All line items on this estimate have already been billed.');
         }
 
         $subtotal   = round($subtotal,   2);

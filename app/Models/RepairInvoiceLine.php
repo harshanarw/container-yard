@@ -8,6 +8,7 @@ class RepairInvoiceLine extends Model
 {
     protected $fillable = [
         'repair_invoice_id', 'estimate_line_item_id', 'work_order_line_id',
+        'container_id', 'container_no', 'repair_category_id',
         'location_code_id', 'component_code_id', 'damage_code_id', 'repair_code_id',
         'charge_code_id', 'tax_code_id',
         'washing_tariff_id', 'wash_scope',
@@ -27,6 +28,19 @@ class RepairInvoiceLine extends Model
         'gross_amount'   => 'decimal:2',
     ];
 
+    /**
+     * Estimate line items already committed to a live (non-cancelled) repair
+     * invoice — the dedup set that prevents an estimate line from being billed
+     * twice (across both the one-shot and the periodic billing paths).
+     */
+    public static function billedEstimateLineItemIds(): \Illuminate\Support\Collection
+    {
+        return static::query()
+            ->whereNotNull('estimate_line_item_id')
+            ->whereHas('invoice', fn ($q) => $q->whereNotIn('status', ['cancelled', 'void']))
+            ->pluck('estimate_line_item_id');
+    }
+
     public function invoice()
     {
         return $this->belongsTo(RepairInvoice::class, 'repair_invoice_id');
@@ -35,6 +49,16 @@ class RepairInvoiceLine extends Model
     public function estimateLineItem()
     {
         return $this->belongsTo(EstimateLineItem::class, 'estimate_line_item_id');
+    }
+
+    public function container()
+    {
+        return $this->belongsTo(Container::class, 'container_id');
+    }
+
+    public function repairCategory()
+    {
+        return $this->belongsTo(RepairCategory::class, 'repair_category_id');
     }
 
     public function workOrderLine()
