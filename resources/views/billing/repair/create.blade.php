@@ -90,14 +90,14 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small mb-1">Repair Categories <span class="text-muted">(none = all)</span></label>
-                        <div class="border rounded p-2" style="max-height:150px;overflow-y:auto;">
+                        <div class="border rounded p-2" style="max-height:180px;overflow-y:auto;column-count:2;column-gap:1rem;">
                             @forelse($categories as $cat)
-                            <div class="form-check">
+                            <div class="form-check" style="break-inside:avoid;">
                                 <input class="form-check-input cat-check" type="checkbox" name="bill_categories[]" value="{{ $cat->id }}" id="cat{{ $cat->id }}">
                                 <label class="form-check-label small" for="cat{{ $cat->id }}">{{ $cat->name }}</label>
                             </div>
                             @empty
-                            <div class="text-muted small">No repair categories configured.</div>
+                            <div class="text-muted small" style="column-span:all;">No repair categories configured.</div>
                             @endforelse
                         </div>
                     </div>
