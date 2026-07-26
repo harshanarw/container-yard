@@ -24,8 +24,11 @@ class RepairBillingBillingPartyTest extends BrowserTestCase
         $solo   = Customer::factory()->create(['billing_party_id' => null]);        // no explicit billing party
 
         $this->browse(function (Browser $browser) use ($admin, $parent, $child, $solo) {
+            // Relative path so Dusk uses its own base URL (matches the other
+            // browser tests); an absolute route() URL can point at the wrong host
+            // when APP_URL differs from the served address.
             $browser->loginAs($admin)
-                ->visit(route('billing.repair.create'))
+                ->visit('/billing/repair/create')
                 ->waitFor('#customer_id')
                 ->pause(500); // let the global Select2 init run
 
