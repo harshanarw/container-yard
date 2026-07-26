@@ -611,6 +611,11 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{storageHandlingInvoice}/ird-print',        [StorageHandlingController::class, 'irdPrint'])->name('ird-print');
         });
 
+        // Periodic (consolidated) Repair Billing — must come BEFORE the /{invoice} wildcard
+        Route::prefix('repair')->name('repair.')->group(function () {
+            Route::post('/preview', [\App\Http\Controllers\Billing\RepairBillingController::class, 'preview'])->name('preview');
+        });
+
         // Wildcard /{invoice} routes — must come AFTER all named sub-paths
         Route::get('/{invoice}',              [StorageBillingController::class, 'show'])->name('show');
         Route::delete('/{invoice}',           [StorageBillingController::class, 'destroy'])->name('destroy');
