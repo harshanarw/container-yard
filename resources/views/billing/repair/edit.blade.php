@@ -43,10 +43,10 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small mb-1">Billing Party <span class="text-muted">(optional)</span></label>
-                        <select name="billing_party_id" class="form-select form-select-sm">
+                        <select name="billing_party_id" class="form-select select2 s2-code" data-s2-sel="name">
                             <option value="">Same as customer</option>
                             @foreach($customers as $c)
-                                <option value="{{ $c->id }}" {{ (int) old('billing_party_id', $invoice->billing_party_id) === $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                                <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ (int) old('billing_party_id', $invoice->billing_party_id) === $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -117,7 +117,7 @@
                     <div class="row g-2 align-items-end mb-2">
                         <div class="col-md-3">
                             <label class="form-label small mb-1">Basis</label>
-                            <select id="add_basis" class="form-select form-select-sm">
+                            <select id="add_basis" class="form-select select2">
                                 <option value="wo_completed">WO completed</option>
                                 <option value="approved">Approved</option>
                                 <option value="estimate" selected>Estimate date</option>

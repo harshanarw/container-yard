@@ -39,7 +39,7 @@ $statusColors = [
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label small mb-1">Status</label>
-                <select name="status" class="form-select form-select-sm">
+                <select name="status" class="form-select select2">
                     <option value="">All</option>
                     @foreach($statuses as $st)
                         <option value="{{ $st }}" {{ request('status') === $st ? 'selected' : '' }}>{{ ucfirst(str_replace('_', ' ', $st)) }}</option>

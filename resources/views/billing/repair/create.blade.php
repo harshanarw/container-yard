@@ -34,19 +34,19 @@
                 <div class="card-body">
                     <div class="mb-2">
                         <label class="form-label small mb-1">Customer <span class="text-danger">*</span></label>
-                        <select name="customer_id" id="customer_id" class="form-select form-select-sm" required>
+                        <select name="customer_id" id="customer_id" class="form-select select2 s2-code" data-s2-sel="name" required>
                             <option value="">Select customer…</option>
                             @foreach($customers as $c)
-                                <option value="{{ $c->id }}" data-billing-party="{{ $c->billing_party_id }}">{{ $c->name }} @if($c->code) ({{ $c->code }}) @endif</option>
+                                <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-billing-party="{{ $c->billing_party_id }}">[{{ $c->code }}] {{ $c->name }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="mb-2">
                         <label class="form-label small mb-1">Billing Party <span class="text-muted">(optional)</span></label>
-                        <select name="billing_party_id" id="billing_party_id" class="form-select form-select-sm">
+                        <select name="billing_party_id" id="billing_party_id" class="form-select select2 s2-code" data-s2-sel="name">
                             <option value="">Same as customer</option>
                             @foreach($customers as $c)
-                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">[{{ $c->code }}] {{ $c->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -57,7 +57,7 @@
                         </div>
                         <div class="col-6 mb-2">
                             <label class="form-label small mb-1">Period Basis</label>
-                            <select name="period_basis" id="period_basis" class="form-select form-select-sm">
+                            <select name="period_basis" id="period_basis" class="form-select select2">
                                 <option value="wo_completed">Work-order completed</option>
                                 <option value="approved">Estimate approved</option>
                                 <option value="estimate">Estimate date</option>
@@ -77,7 +77,7 @@
                     <div class="row g-2">
                         <div class="col-6 mb-2">
                             <label class="form-label small mb-1">Currency</label>
-                            <select name="invoice_currency" id="invoice_currency" class="form-select form-select-sm">
+                            <select name="invoice_currency" id="invoice_currency" class="form-select select2">
                                 @foreach($currencies as $code => $name)
                                     <option value="{{ $code }}" {{ $code === $baseCurrency ? 'selected' : '' }}>{{ $code }}</option>
                                 @endforeach
