@@ -367,8 +367,9 @@ class RepairInvoiceController extends Controller
 
     public function irdPrint(RepairInvoice $invoice)
     {
-        $invoice->load(['customer', 'lines', 'container', 'estimate', 'workOrder', 'createdBy', 'issuedBy']);
+        $invoice->load(['customer', 'lines.estimateLineItem.estimate', 'container', 'estimate', 'workOrder', 'createdBy', 'issuedBy']);
         $company = CompanySetting::current();
+        $isPeriodic = $invoice->billing_mode === 'periodic';
 
         // IRD tax invoices are issued in the local currency (LKR) as standard.
         // Repair invoices store their amounts in the invoice/customer currency
@@ -380,13 +381,22 @@ class RepairInvoiceController extends Controller
         $rate    = (float) ($invoice->exchange_rate ?: 1);
         $toLkr   = $invCur === $default ? 1.0 : $rate;   // invoice currency → LKR
 
-        $lines = $invoice->lines->map(fn ($l) => [
-            'reference'       => $l->cedex_code,
-            'description'     => $l->description ?? 'Repair Work',
-            'quantity'        => $l->qty ?? 1,
-            'unit_price'      => round((float) ($l->unit_price ?? $l->line_amount ?? 0) * $toLkr, 2),
-            'amount_excl_vat' => round((float) ($l->line_amount ?? 0) * $toLkr, 2),
-        ]);
+        // For a periodic (consolidated) invoice the line list doubles as the
+        // repair schedule/annexure: each row is prefixed with its container and
+        // references its EOR (estimate) number.
+        $lines = $invoice->lines->map(function ($l) use ($toLkr, $isPeriodic) {
+            $estimateNo = $l->estimateLineItem?->estimate?->estimate_no;
+
+            return [
+                'reference'       => $isPeriodic ? ($estimateNo ?: $l->container_no) : $l->cedex_code,
+                'description'     => $isPeriodic && $l->container_no
+                    ? $l->container_no . ' · ' . ($l->description ?? 'Repair Work')
+                    : ($l->description ?? 'Repair Work'),
+                'quantity'        => $l->qty ?? 1,
+                'unit_price'      => round((float) ($l->unit_price ?? $l->line_amount ?? 0) * $toLkr, 2),
+                'amount_excl_vat' => round((float) ($l->line_amount ?? 0) * $toLkr, 2),
+            ];
+        });
 
         // Invoice-level totals converted to LKR (kept internally consistent so the
         // shown subtotal + SSCL + VAT add up to the grand total).
@@ -425,13 +435,23 @@ class RepairInvoiceController extends Controller
             'invoice_currency'      => $invoice->currency,
             'exchange_rate'         => $invoice->exchange_rate,
             'invoice_no'            => $invoice->invoice_no,
-            'category_info'         => array_filter([
-                'Category'      => 'Container Repair',
-                'Payment Due'   => $invoice->due_date?->format('d M Y'),
-                'Container No.' => $invoice->container_no,
-                'Work Order'    => $invoice->workOrder?->wo_no ?? ($invoice->work_order_id ? "WO-{$invoice->work_order_id}" : null),
-                'Estimate No.'  => $invoice->estimate?->estimate_no ?? ($invoice->estimate_id ? "EST-{$invoice->estimate_id}" : null),
-            ]),
+            'category_info'         => $isPeriodic
+                ? array_filter([
+                    'Category'       => 'Consolidated Container Repair',
+                    'Payment Due'    => $invoice->due_date?->format('d M Y'),
+                    'Billing Period' => $invoice->billing_period_from && $invoice->billing_period_to
+                        ? $invoice->billing_period_from->format('d M Y') . ' – ' . $invoice->billing_period_to->format('d M Y')
+                        : null,
+                    'Containers'     => $invoice->lines->pluck('container_no')->filter()->unique()->count() ?: null,
+                    'Estimates'      => $invoice->lines->map(fn ($l) => $l->estimateLineItem?->estimate_id)->filter()->unique()->count() ?: null,
+                ])
+                : array_filter([
+                    'Category'      => 'Container Repair',
+                    'Payment Due'   => $invoice->due_date?->format('d M Y'),
+                    'Container No.' => $invoice->container_no,
+                    'Work Order'    => $invoice->workOrder?->wo_no ?? ($invoice->work_order_id ? "WO-{$invoice->work_order_id}" : null),
+                    'Estimate No.'  => $invoice->estimate?->estimate_no ?? ($invoice->estimate_id ? "EST-{$invoice->estimate_id}" : null),
+                ]),
         ];
 
         $filename = 'TAX_INVOICE_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $data['ird_invoice_no']) . '.pdf';
