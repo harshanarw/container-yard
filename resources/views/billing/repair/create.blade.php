@@ -242,6 +242,16 @@
         document.getElementById('selectionLabel').textContent = n + ' line(s) selected';
     }
 
+    // Auto-fill Billing Party from the selected customer's default (overridable).
+    // Both are Select2, so drive the update through jQuery so the widget refreshes.
+    if (window.jQuery) {
+        jQuery('#customer_id').on('change', function () {
+            const opt = this.options[this.selectedIndex];
+            const bp = opt ? (opt.getAttribute('data-billing-party') || '') : '';
+            jQuery('#billing_party_id').val(bp).trigger('change.select2');
+        });
+    }
+
     // Category quick-select links.
     const setAllCats = (checked) => document.querySelectorAll('.cat-check').forEach(c => c.checked = checked);
     document.getElementById('catSelectAll')?.addEventListener('click', (e) => { e.preventDefault(); setAllCats(true); });
