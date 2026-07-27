@@ -87,6 +87,7 @@
                             <label class="form-label small mb-1">Exchange Rate</label>
                             <input type="number" step="0.0001" min="0" name="exchange_rate" id="exchange_rate" value="1" class="form-control form-control-sm">
                         </div>
+                        <div class="col-12"><div class="form-text small mt-0" id="rateNote"></div></div>
                     </div>
                     <div class="mb-2">
                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -256,6 +257,43 @@
             });
         });
     }
+
+    // Auto-load the invoice→base exchange rate when currency or invoice date
+    // changes (from the FX rate master). Base currency locks the field to 1.
+    const fxUrl = @json(route('finance.fx-rate'));
+    const baseCurrency = @json($baseCurrency);
+    async function loadRate() {
+        const cur = (document.getElementById('invoice_currency').value || '').toUpperCase();
+        const rateInput = document.getElementById('exchange_rate');
+        const note = document.getElementById('rateNote');
+        if (!cur || cur === baseCurrency.toUpperCase()) {
+            rateInput.value = '1';
+            rateInput.readOnly = true;
+            if (note) { note.textContent = 'Base currency — rate is 1.'; note.className = 'form-text small text-muted'; }
+            return;
+        }
+        rateInput.readOnly = false;
+        const date = document.getElementById('invoice_date').value;
+        if (note) { note.textContent = 'Looking up rate…'; note.className = 'form-text small text-muted'; }
+        try {
+            const res = await fetch(fxUrl + '?currency=' + encodeURIComponent(cur) + '&date=' + encodeURIComponent(date), {
+                headers: {'Accept': 'application/json'},
+            });
+            const data = await res.json();
+            if (data.found && data.rate != null) {
+                rateInput.value = parseFloat(data.rate).toFixed(4);
+                if (note) { note.innerHTML = '1 ' + cur + ' = ' + rateInput.value + ' ' + baseCurrency + ' (auto-loaded — editable)'; note.className = 'form-text small text-success'; }
+            } else if (note) {
+                note.innerHTML = 'No rate configured for ' + cur + ' on ' + (date || 'that date') + ' — enter manually.';
+                note.className = 'form-text small text-warning';
+            }
+        } catch (e) {
+            if (note) { note.textContent = 'Could not fetch rate — enter manually.'; note.className = 'form-text small text-danger'; }
+        }
+    }
+    if (window.jQuery) { jQuery('#invoice_currency').on('change select2:select', loadRate); }
+    document.getElementById('invoice_date').addEventListener('change', loadRate);
+    loadRate(); // set initial state (base currency → locked at 1)
 
     // Category quick-select links.
     const setAllCats = (checked) => document.querySelectorAll('.cat-check').forEach(c => c.checked = checked);

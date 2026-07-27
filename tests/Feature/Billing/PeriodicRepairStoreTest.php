@@ -106,6 +106,37 @@ class PeriodicRepairStoreTest extends FeatureTestCase
         $this->assertSame($ids->count() - 1, $invoice->lines->count());
     }
 
+    public function test_store_honors_the_supplied_exchange_rate(): void
+    {
+        $this->actingAsSystemAdmin();
+        $est = $this->approvedPricedEstimate();
+        $this->assertNotNull($est);
+        $ids = $this->billableLineIds($est);
+        $this->assertTrue($ids->isNotEmpty());
+
+        $supplied = 275.5;
+        $this->post(route('billing.repair.store'), [
+            'customer_id'      => $est->customer_id,
+            'invoice_currency' => $est->currency,
+            'invoice_date'     => now()->toDateString(),
+            'period_basis'     => 'estimate',
+            'exchange_rate'    => $supplied,
+            'line_item_ids'    => $ids->all(),
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $invoice = RepairInvoice::periodic()->where('customer_id', $est->customer_id)->latest('id')->first();
+        $this->assertNotNull($invoice);
+
+        $base = \App\Services\CurrencyService::defaultCurrency();
+        if (strtoupper((string) $est->currency) === strtoupper((string) $base)) {
+            // Base currency always snapshots rate 1, regardless of what was posted.
+            $this->assertEqualsWithDelta(1.0, (float) $invoice->exchange_rate, 0.0001);
+        } else {
+            // Foreign currency keeps the operator-supplied rate.
+            $this->assertEqualsWithDelta($supplied, (float) $invoice->exchange_rate, 0.0001);
+        }
+    }
+
     public function test_store_rejects_when_no_selected_line_is_billable(): void
     {
         $this->actingAsSystemAdmin();

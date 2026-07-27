@@ -86,13 +86,9 @@ class RepairBillingController extends Controller
         $onlyDone = (bool) ($v['only_completed_wo'] ?? false);
         $currency = strtoupper($v['invoice_currency'] ?? CurrencyService::defaultCurrency());
 
-        // Snapshot the currency→base rate for later posting; tolerate an
-        // unconfigured rate in preview (falls back to any supplied value).
-        try {
-            $rate = CurrencyService::resolveRateOrFail($currency, now()->toDateString());
-        } catch (\InvalidArgumentException $e) {
-            $rate = (float) ($v['exchange_rate'] ?? 0);
-        }
+        // Rate shown in the preview (informational — line amounts are already in
+        // the single invoice currency). Prefers the rate supplied by the form.
+        $rate = $this->resolveExchangeRate($currency, $v['exchange_rate'] ?? null, null) ?? 0.0;
 
         $billed    = RepairInvoiceLine::billedEstimateLineItemIds()->flip();
         $catNames  = RepairCategory::pluck('name', 'id');
@@ -359,10 +355,13 @@ class RepairBillingController extends Controller
                 'None of the selected lines are billable (already billed, or not matching the customer/currency).');
         }
 
-        try {
-            $rate = CurrencyService::resolveRateOrFail($currency, now()->toDateString());
-        } catch (\InvalidArgumentException $e) {
-            return back()->withInput()->with('error', $e->getMessage());
+        // Honor the rate shown/entered on the form (auto-loaded from the FX master,
+        // overridable). Base currency is always 1; a foreign currency needs a
+        // positive rate — fall back to the configured rate at the invoice date.
+        $rate = $this->resolveExchangeRate($currency, $v['exchange_rate'] ?? null, $v['invoice_date']);
+        if ($rate === null) {
+            return back()->withInput()->with('error',
+                "A valid {$currency} → " . CurrencyService::defaultCurrency() . ' exchange rate is required.');
         }
 
         $records = [];
@@ -519,5 +518,28 @@ class RepairBillingController extends Controller
             'gross' => round($amount + $ssc + $vat, 2),
             't1' => $t1, 't2' => $t2,
         ];
+    }
+
+    /**
+     * Resolve the invoice→base exchange rate. Base currency is always 1; a foreign
+     * currency uses the supplied rate when positive, else the configured rate at
+     * the given date. Returns null when a foreign currency has no usable rate.
+     */
+    private function resolveExchangeRate(string $currency, $supplied, ?string $date): ?float
+    {
+        if (strtoupper($currency) === strtoupper((string) CurrencyService::defaultCurrency())) {
+            return 1.0;
+        }
+
+        $rate = (float) ($supplied ?? 0);
+        if ($rate > 0) {
+            return $rate;
+        }
+
+        try {
+            return CurrencyService::resolveRateOrFail($currency, $date ?: now()->toDateString());
+        } catch (\InvalidArgumentException $e) {
+            return null;
+        }
     }
 }
