@@ -1150,6 +1150,14 @@
                     </a>
                 </li>
                 @endcan
+                @can('ot.receipt.view')
+                <li class="nav-item">
+                    <a href="{{ route('overtime.receipts.index') }}"
+                       class="nav-link {{ request()->routeIs('overtime.receipts.*') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i><span>Overtime Receipts</span>
+                    </a>
+                </li>
+                @endcan
             </ul>
         </div>
         @endif

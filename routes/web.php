@@ -322,6 +322,20 @@ Route::middleware(['auth'])->group(function () {
             ->name('preview')->middleware('signed');
     });
 
+    // Overtime (OT) Receipts
+    Route::prefix('overtime/receipts')->name('overtime.receipts.')->group(function () {
+        $ot = \App\Http\Controllers\Overtime\OtReceiptController::class;
+        Route::get('/',                    [$ot, 'index'])->name('index');
+        Route::get('/create',              [$ot, 'create'])->name('create');
+        Route::post('/rules',              [$ot, 'rules'])->name('rules');
+        Route::post('/lookup',             [$ot, 'lookup'])->name('lookup');
+        Route::post('/',                   [$ot, 'store'])->name('store');
+        Route::get('/{otReceipt}',         [$ot, 'show'])->name('show');
+        Route::patch('/{otReceipt}/confirm', [$ot, 'confirm'])->name('confirm');
+        Route::patch('/{otReceipt}/cancel',  [$ot, 'cancel'])->name('cancel');
+        Route::get('/{otReceipt}/pdf',     [$ot, 'pdf'])->name('pdf');
+    });
+
     // Container Inquiry
     Route::prefix('container-inquiry')->name('container-inquiry.')->group(function () {
         Route::get('/',                             [ContainerInquiryController::class, 'index'])->name('index');

@@ -121,6 +121,17 @@ class DocumentVerificationController extends Controller
                 'status'   => $i->status,
             ] : null,
 
+            'ot-receipt' => ($i = \App\Models\OtReceipt::with('customer')->find($id)) ? [
+                'number'   => $i->receipt_no,
+                'date'     => $i->created_at?->format('d M Y'),
+                'party'    => $i->customer?->name,
+                'amount'   => (float) $i->total_amount,
+                'currency' => $i->currency,
+                'status'   => $i->status,
+                'bl'       => $i->bl_number,
+                'valid_to' => $i->valid_to?->format('d M Y H:i'),
+            ] : null,
+
             'voucher' => ($i = PaymentVoucher::with('supplier')->find($id)) ? [
                 'number'   => $i->voucher_no,
                 'date'     => $i->voucher_date?->format('d M Y'),
@@ -162,6 +173,7 @@ class DocumentVerificationController extends Controller
             'general'          => 'General Invoice',
             'estimate'         => 'Repair Estimate',
             'receipt'          => 'Receipt',
+            'ot-receipt'       => 'Overtime Receipt',
             'voucher'          => 'Payment Voucher',
             'ar-credit-note'   => 'Credit Note',
             'ap-credit-note'   => 'Debit Note',
