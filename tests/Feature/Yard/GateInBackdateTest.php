@@ -18,6 +18,7 @@ class GateInBackdateTest extends FeatureTestCase
 {
     public function test_admin_can_backdate_a_gate_in(): void
     {
+        $this->withoutExceptionHandling(); // surface the real exception + stack trace
         $this->actingAsSystemAdmin(); // has yard.backdate (super-user bypass)
 
         $customer  = Customer::factory()->create();
