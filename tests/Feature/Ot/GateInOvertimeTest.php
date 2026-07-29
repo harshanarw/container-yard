@@ -9,6 +9,7 @@ use App\Models\OtReceipt;
 use App\Models\OtTariffRule;
 use App\Models\YardJobType;
 use App\Services\Overtime\OtReceiptService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\FeatureTestCase;
 
@@ -16,9 +17,21 @@ use Tests\Support\FeatureTestCase;
  * Overtime module — Phase 5 (gate-in integration). When require_ot_receipt is on,
  * an out-of-hours gate-in needs a valid OT receipt for its BL; the setting off or
  * a normal-hours gate-in is unaffected. Covers SRS TC-001/002/003/012.
+ *
+ * "Now" is frozen to a specific moment (weekday evening = OT) so the gate-in uses
+ * its normal now()-based path instead of the admin-backdate branch.
  */
 class GateInOvertimeTest extends FeatureTestCase
 {
+    private const OT_MOMENT     = '2026-06-01 18:00:00'; // Monday 18:00 → overtime
+    private const NORMAL_MOMENT = '2026-06-01 10:00:00'; // Monday 10:00 → normal hours
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow(); // reset the frozen clock
+        parent::tearDown();
+    }
+
     private function enableOtPolicy(): void
     {
         DB::table('company_settings')->update(['require_ot_receipt' => true]);
@@ -43,7 +56,6 @@ class GateInOvertimeTest extends FeatureTestCase
             'condition'         => 'sound',
             'cargo_status'      => 'empty',
             'vehicle_plate'     => 'TRUCK01',
-            'gate_in_time'      => '2026-06-01 18:00:00', // Monday weekday, OT
             'bl_number'         => 'CMBOT00001',
         ], $overrides);
     }
@@ -64,6 +76,7 @@ class GateInOvertimeTest extends FeatureTestCase
     public function test_tc003_out_of_hours_gate_in_blocked_without_receipt(): void
     {
         $this->actingAsSystemAdmin();
+        Carbon::setTestNow(self::OT_MOMENT);
         $this->enableOtPolicy();
 
         $this->from(route('yard.gate'))
@@ -76,6 +89,7 @@ class GateInOvertimeTest extends FeatureTestCase
     public function test_tc002_out_of_hours_gate_in_allowed_with_valid_receipt(): void
     {
         $this->actingAsSystemAdmin();
+        Carbon::setTestNow(self::OT_MOMENT);
         $this->openAccountingPeriodForToday();
         $this->enableOtPolicy();
 
@@ -92,13 +106,13 @@ class GateInOvertimeTest extends FeatureTestCase
             'is_overtime'   => true,
         ]);
 
-        // One container consumed off the receipt.
         $this->assertSame(1, $receipt->refresh()->used_container_count);
     }
 
     public function test_tc012_receipt_from_a_different_bl_is_blocked(): void
     {
         $this->actingAsSystemAdmin();
+        Carbon::setTestNow(self::OT_MOMENT);
         $this->openAccountingPeriodForToday();
         $this->enableOtPolicy();
 
@@ -114,10 +128,11 @@ class GateInOvertimeTest extends FeatureTestCase
     public function test_tc001_normal_hours_gate_in_needs_no_receipt(): void
     {
         $this->actingAsSystemAdmin();
+        Carbon::setTestNow(self::NORMAL_MOMENT);
         $this->enableOtPolicy();
 
         $this->from(route('yard.gate'))
-            ->post(route('yard.gate.in'), $this->payload(['gate_in_time' => '2026-06-01 10:00:00'])) // within normal hours
+            ->post(route('yard.gate.in'), $this->payload())
             ->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('gate_movements', ['container_no' => 'OTGT1234567', 'movement_type' => 'in']);
@@ -125,7 +140,8 @@ class GateInOvertimeTest extends FeatureTestCase
 
     public function test_policy_off_allows_out_of_hours_without_receipt(): void
     {
-        $this->actingAsSystemAdmin(); // setting stays off (default)
+        $this->actingAsSystemAdmin();
+        Carbon::setTestNow(self::OT_MOMENT); // setting stays off (default)
 
         $this->from(route('yard.gate'))
             ->post(route('yard.gate.in'), $this->payload())
