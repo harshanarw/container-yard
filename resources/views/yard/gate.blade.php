@@ -430,6 +430,19 @@
                                     <label class="form-label fw-semibold">Consignee</label>
                                     <input type="text" name="consignee" class="form-control" placeholder="Consignee name">
                                 </div>
+                                @if(\App\Models\CompanySetting::current()->require_ot_receipt)
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">OT Receipt No <small class="text-muted">(required if out of working hours)</small></label>
+                                    <input type="text" name="ot_receipt_no" class="form-control text-uppercase" placeholder="OTR-…" data-hint="hint_ot_receipt_no">
+                                    <div id="hint_ot_receipt_no" class="invalid-feedback d-block small text-danger"></div>
+                                </div>
+                                @can('gatein.ot.override')
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">OT Override Reason <small class="text-muted">(supervisor bypass)</small></label>
+                                    <input type="text" name="ot_override_reason" class="form-control" placeholder="Reason to bypass the OT receipt">
+                                </div>
+                                @endcan
+                                @endif
                             </div>
                         </div>
                     </div>

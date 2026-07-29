@@ -218,6 +218,9 @@ class YardController extends Controller
             'remarks'           => ['nullable', 'string'],
             'return_reason'     => ['nullable', 'in:import_consignee,agent_return,shipper_return'],
             'gate_in_time'      => ['nullable', 'string', 'max:20'],
+            // Overtime receipt (required for out-of-hours gate-in when the policy is on)
+            'ot_receipt_no'     => ['nullable', 'string', 'max:30'],
+            'ot_override_reason'=> ['nullable', 'string', 'max:255'],
             'photos'            => ['nullable', 'array', 'max:5'],
             'photos.*'          => ['image', 'max:20480'],
             'container_ocr_image' => ['nullable', 'image', 'max:20480'],
@@ -330,6 +333,21 @@ class YardController extends Controller
             : now();
         $gateInDate = $gateInTime->toDateString(); // date portion used for storage billing
 
+        // Overtime receipt requirement (setting-gated): a gate-in outside normal
+        // working hours needs a valid, paid OT receipt for its BL — unless an
+        // authorized user overrides with a reason.
+        $otEval = app(\App\Services\Overtime\GateInOvertimeValidator::class)->evaluate(
+            $gateInTime,
+            $validated['bl_number'] ?? null,
+            $validated['ot_receipt_no'] ?? null,
+            auth()->user()->can('gatein.ot.override'),
+            $validated['ot_override_reason'] ?? null
+        );
+        if ($otEval['error']) {
+            return $this->validationResponse($request, ['ot_receipt_no' => [$otEval['error']]]);
+        }
+        $otReceipt = $otEval['receipt']; // App\Models\OtReceipt|null
+
         // Create or update container record — preserve existing master profile fields on update
         $existing = Container::where('container_no', $validated['container_no'])->first();
         $containerData = [
@@ -371,7 +389,7 @@ class YardController extends Controller
         );
 
         // Record gate movement
-        $movement = DB::transaction(function () use ($container, $jobType, $eqt, $validated, $gateInTime) {
+        $movement = DB::transaction(function () use ($container, $jobType, $eqt, $validated, $gateInTime, $otEval, $otReceipt) {
             return GateMovement::create([
                 'container_id'     => $container->id,
                 'container_no'     => $container->container_no,
@@ -410,8 +428,17 @@ class YardController extends Controller
                 'do_expiry_date'  => $validated['do_expiry_date'] ?? null,
                 'fcl_expiry_date' => $validated['fcl_expiry_date'] ?? null,
                 'consignee'       => $validated['consignee'] ?? null,
+                // Overtime receipt linkage
+                'ot_receipt_id'      => $otReceipt?->id,
+                'is_overtime'        => (bool) ($otEval['is_overtime'] ?? false),
+                'ot_override_reason' => ! empty($otEval['override']) ? ($validated['ot_override_reason'] ?? null) : null,
             ]);
         });
+
+        // Consume one container off the OT receipt for this out-of-hours gate-in.
+        if ($otReceipt) {
+            app(\App\Services\Overtime\OtReceiptService::class)->markUtilized($otReceipt);
+        }
 
         // Save OCR-captured images
         $this->saveMovementOcrImages($movement, $validated);

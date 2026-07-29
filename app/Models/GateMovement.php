@@ -21,6 +21,8 @@ class GateMovement extends Model
         'movement_status', 'remarks', 'created_by',
         // Gate-In: import shipment information
         'vessel_name', 'voyage_no', 'berthing_date', 'bl_number', 'do_expiry_date', 'fcl_expiry_date', 'consignee',
+        // Gate-In: overtime receipt link
+        'ot_receipt_id', 'is_overtime', 'ot_override_reason',
         // Gate-Out: export information
         'loading_vessel', 'loading_voyage', 'sailing_date', 'shipper',
         'gate_out_purpose', 'container_booking_id',
@@ -120,6 +122,11 @@ class GateMovement extends Model
     public function transporter()
     {
         return $this->belongsTo(Customer::class, 'transporter_id');
+    }
+
+    public function otReceipt()
+    {
+        return $this->belongsTo(\App\Models\OtReceipt::class, 'ot_receipt_id');
     }
 
     public function createdBy()
