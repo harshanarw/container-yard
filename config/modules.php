@@ -396,4 +396,30 @@ return [
         'actions' => ['view'],
     ],
 
+    // ── Overtime (OT) Billing ─────────────────────────────────────────────────
+
+    'ot.settings' => [
+        'label'   => 'OT Working Hours, Holidays & Tariff',
+        'section' => 'Settings',
+        'actions' => ['view', 'edit', 'approve'],
+    ],
+
+    'ot.receipt' => [
+        'label'   => 'Overtime Receipts',
+        'section' => 'Billing',
+        'actions' => ['view', 'generate', 'approve', 'cancel', 'override-amount', 'pdf'],
+    ],
+
+    'gatein.ot' => [
+        'label'   => 'Gate-In Overtime',
+        'section' => 'Yard Operations',
+        'actions' => ['select', 'override'],
+    ],
+
+    'ot.reports' => [
+        'label'   => 'Overtime Reports',
+        'section' => 'Reports',
+        'actions' => ['view'],
+    ],
+
 ];

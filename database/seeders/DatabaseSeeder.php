@@ -61,6 +61,9 @@ class DatabaseSeeder extends Seeder
             MrTariffSeeder::class,          // M&R tariff headers + rules — needs customers, mr codes
             MrTariffItemSeeder::class,      // Slab-based tariff items + slabs — needs mr_tariff_headers
             WashingTariffSeeder::class,     // default internal/external washing rates — needs charge codes
+            WorkingHourSeeder::class,       // default weekly working hours (OT module)
+            HolidaySeeder::class,           // default mercantile holidays (OT module)
+            OtTariffSeeder::class,          // ACDO Revised Depot OT tariff version + rules
 
             // ── Operations ───────────────────────────────────────────────────
             InquirySeeder::class,           // container surveys / inquiries — needs containers, customers
