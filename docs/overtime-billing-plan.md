@@ -180,12 +180,13 @@ Validation, Manual Override, OT Revenue by Rule, BL Pending OT.
 
 Tests trace to the SRS §18 matrix (TC-001…TC-015) plus resolver unit tests.
 
-## 11. Decisions needed before build
+## 11. Decisions (locked)
 
-- **BL model:** lightweight `bl_number` string + count utilization (recommended) vs
-  full `bl_headers`/`bl_containers` master.
-- **Gate-in allowed receipt status:** PAID only (strict, recommended) vs allow
-  APPROVED/GENERATED (credit customers).
-- **Extension billing mode default:** FULL_NEW_CHARGE (recommended) /
-  DIFFERENCE_ONLY / MANUAL.
-- **Receipt title wording** and whether VAT/SSCL applies to the OT charge.
+- **BL model:** lightweight `bl_number` string + count-based utilization (no full
+  BL master).
+- **Gate-in allowed receipt status:** **PAID only** — a receipt is selectable at
+  gate-in only once paid/confirmed.
+- **Extension billing mode default:** **FULL_NEW_CHARGE** — an extension receipt
+  bills the full next-slab amount.
+- **Tax & title:** OT charge is **tax-exempt** (DR bank / CR OT income only);
+  printout titled **"OVERTIME RECEIPT"**.
