@@ -4,6 +4,7 @@ namespace App\Services\Overtime;
 
 use App\Models\CompanySetting;
 use App\Models\OtReceipt;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
 /**
@@ -21,12 +22,17 @@ class GateInOvertimeValidator
      * @return array{is_overtime:bool, required:bool, error:?string, receipt:?OtReceipt, override:bool, unconfigured:bool}
      */
     public function evaluate(
-        Carbon $gateInAt,
+        CarbonInterface $gateInAt,
         ?string $blNumber,
         ?string $receiptNo,
         bool $canOverride = false,
         ?string $overrideReason = null
     ): array {
+        // The backdate path passes a base Carbon\Carbon (from Carbon::parse), while
+        // now() yields an Illuminate\Support\Carbon. Normalize so the resolver — which
+        // type-hints the Illuminate subclass — accepts either.
+        $gateInAt = Carbon::instance($gateInAt);
+
         $base = ['is_overtime' => false, 'required' => false, 'error' => null, 'receipt' => null, 'override' => false, 'unconfigured' => false];
 
         // Policy off → never required.
