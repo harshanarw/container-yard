@@ -75,6 +75,7 @@ class CompanySettingController extends Controller
             'enforce_export_booking'   => ['nullable', 'boolean'],
             'enforce_reefer_pti'       => ['nullable', 'boolean'],
             'require_seal_for_laden'   => ['nullable', 'boolean'],
+            'require_ot_receipt'       => ['nullable', 'boolean'],
             'enable_gatepass_whatsapp' => ['nullable', 'boolean'],
             'guardpost_warn_no_capture' => ['nullable', 'boolean'],
             'max_storage_mb'           => ['nullable', 'integer', 'min:0', 'max:10000000'],
@@ -92,6 +93,7 @@ class CompanySettingController extends Controller
         $data['enforce_export_booking']   = $request->boolean('enforce_export_booking');
         $data['enforce_reefer_pti']       = $request->boolean('enforce_reefer_pti');
         $data['require_seal_for_laden']   = $request->boolean('require_seal_for_laden');
+        $data['require_ot_receipt']       = $request->boolean('require_ot_receipt');
         $data['enable_gatepass_whatsapp'] = $request->boolean('enable_gatepass_whatsapp');
         $data['guardpost_warn_no_capture'] = $request->boolean('guardpost_warn_no_capture');
         $data['enforce_storage_limit']     = $request->boolean('enforce_storage_limit');

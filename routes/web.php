@@ -336,6 +336,51 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{otReceipt}/pdf',     [$ot, 'pdf'])->name('pdf');
     });
 
+    // Overtime (OT) masters — working hours, holiday calendar, effective-dated tariffs
+    Route::prefix('overtime')->name('overtime.')->group(function () {
+        // Setup hub + resolver dry-run
+        Route::get('setup', [\App\Http\Controllers\Overtime\OtSetupController::class, 'index'])->name('setup.index');
+        Route::post('setup/preview', [\App\Http\Controllers\Overtime\OtSetupController::class, 'preview'])->name('setup.preview');
+
+        Route::prefix('working-hours')->name('working-hours.')->group(function () {
+            $wh = \App\Http\Controllers\Overtime\WorkingHourController::class;
+            Route::get('/',                            [$wh, 'index'])->name('index');
+            Route::get('create',                       [$wh, 'create'])->name('create');
+            Route::post('/',                           [$wh, 'store'])->name('store');
+            Route::get('{workingHourSet}/edit',        [$wh, 'edit'])->name('edit');
+            Route::patch('{workingHourSet}',           [$wh, 'update'])->name('update');
+            Route::patch('{workingHourSet}/default',   [$wh, 'setDefault'])->name('default');
+            Route::delete('{workingHourSet}',          [$wh, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('holidays')->name('holidays.')->group(function () {
+            $hd = \App\Http\Controllers\Overtime\HolidayController::class;
+            Route::get('/',                  [$hd, 'index'])->name('index');
+            Route::post('/',                 [$hd, 'store'])->name('store');
+            Route::patch('{holiday}',        [$hd, 'update'])->name('update');
+            Route::patch('{holiday}/toggle', [$hd, 'toggle'])->name('toggle');
+            Route::delete('{holiday}',       [$hd, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('tariffs')->name('tariffs.')->group(function () {
+            $tf = \App\Http\Controllers\Overtime\OtTariffController::class;
+            Route::get('/',                             [$tf, 'index'])->name('index');
+            Route::get('create',                        [$tf, 'create'])->name('create');
+            Route::post('/',                            [$tf, 'store'])->name('store');
+            Route::get('{otTariffVersion}',             [$tf, 'show'])->name('show');
+            Route::patch('{otTariffVersion}',           [$tf, 'update'])->name('update');
+            Route::post('{otTariffVersion}/clone',      [$tf, 'cloneVersion'])->name('clone');
+            Route::patch('{otTariffVersion}/activate',  [$tf, 'activate'])->name('activate');
+            Route::patch('{otTariffVersion}/retire',    [$tf, 'retire'])->name('retire');
+            Route::delete('{otTariffVersion}',          [$tf, 'destroy'])->name('destroy');
+            // Rate rules, nested under their version
+            Route::post('{otTariffVersion}/rules',                [$tf, 'storeRule'])->name('rules.store');
+            Route::patch('{otTariffVersion}/rules/{rule}',        [$tf, 'updateRule'])->name('rules.update');
+            Route::patch('{otTariffVersion}/rules/{rule}/toggle', [$tf, 'toggleRule'])->name('rules.toggle');
+            Route::delete('{otTariffVersion}/rules/{rule}',       [$tf, 'destroyRule'])->name('rules.destroy');
+        });
+    });
+
     // Container Inquiry
     Route::prefix('container-inquiry')->name('container-inquiry.')->group(function () {
         Route::get('/',                             [ContainerInquiryController::class, 'index'])->name('index');

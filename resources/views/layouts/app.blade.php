@@ -1571,8 +1571,10 @@
         @endif
 
         {{-- ── SETTINGS ── --}}
-        @if(Auth::user()->isSuperUser() || Auth::user()->can('access-control.view') || Auth::user()->can('audit-log.view') || Auth::user()->can('settings.company.view') || Auth::user()->can('settings.approval-workflows.view'))
-        @php $settingsOpen = request()->routeIs('settings.*') || request()->routeIs('access-control.*') || request()->routeIs('audit-log.*'); @endphp
+        @if(Auth::user()->isSuperUser() || Auth::user()->can('access-control.view') || Auth::user()->can('audit-log.view') || Auth::user()->can('settings.company.view') || Auth::user()->can('settings.approval-workflows.view') || Auth::user()->can('ot.settings.view'))
+        @php $settingsOpen = request()->routeIs('settings.*') || request()->routeIs('access-control.*') || request()->routeIs('audit-log.*')
+                          || request()->routeIs('overtime.setup.*') || request()->routeIs('overtime.working-hours.*')
+                          || request()->routeIs('overtime.holidays.*') || request()->routeIs('overtime.tariffs.*'); @endphp
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-settings"
                 aria-expanded="{{ $settingsOpen ? 'true' : 'false' }}" aria-controls="nav-section-settings">
@@ -1686,6 +1688,52 @@
                 </ul>
             </div>
             @endif
+
+            {{-- Overtime setup sub-group --}}
+            @can('ot.settings.view')
+            @php
+            $otSubActive = request()->routeIs('overtime.setup.*')
+                        || request()->routeIs('overtime.working-hours.*')
+                        || request()->routeIs('overtime.holidays.*')
+                        || request()->routeIs('overtime.tariffs.*');
+            @endphp
+            <button class="nav-sub-toggle"
+                    data-bs-toggle="collapse" data-bs-target="#nav-sub-settings-ot"
+                    aria-expanded="{{ $otSubActive ? 'true' : 'false' }}"
+                    aria-controls="nav-sub-settings-ot">
+                <i class="bi bi-clock-history nav-sub-icon"></i>
+                <span>Overtime</span>
+                <i class="bi bi-chevron-down sub-chevron"></i>
+            </button>
+            <div class="collapse {{ $otSubActive ? 'show' : '' }}" id="nav-sub-settings-ot">
+                <ul class="nav flex-column">
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('overtime.setup.index') }}"
+                           class="nav-link {{ request()->routeIs('overtime.setup.*') ? 'active' : '' }}">
+                            <i class="bi bi-sliders"></i><span>OT Setup</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('overtime.working-hours.index') }}"
+                           class="nav-link {{ request()->routeIs('overtime.working-hours.*') ? 'active' : '' }}">
+                            <i class="bi bi-clock"></i><span>Working Hours</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('overtime.holidays.index') }}"
+                           class="nav-link {{ request()->routeIs('overtime.holidays.*') ? 'active' : '' }}">
+                            <i class="bi bi-calendar-event"></i><span>Holiday Calendar</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('overtime.tariffs.index') }}"
+                           class="nav-link {{ request()->routeIs('overtime.tariffs.*') ? 'active' : '' }}">
+                            <i class="bi bi-cash-coin"></i><span>OT Tariff</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            @endcan
         </div>
         @endif
 

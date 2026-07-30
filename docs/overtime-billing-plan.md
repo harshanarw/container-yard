@@ -190,3 +190,44 @@ Tests trace to the SRS §18 matrix (TC-001…TC-015) plus resolver unit tests.
   bills the full next-slab amount.
 - **Tax & title:** OT charge is **tax-exempt** (DR bank / CR OT income only);
   printout titled **"OVERTIME RECEIPT"**.
+
+## 12. Masters admin UI (built)
+
+The masters are no longer seed-only — every input to the overtime decision is
+editable in the app, under **Settings → Overtime** (permissions
+`ot.settings.view` / `.edit` / `.approve`).
+
+| Screen | Route | What it controls |
+| --- | --- | --- |
+| OT Setup hub | `overtime.setup.index` | Shows which masters the engine is reading, flags configuration gaps, and dry-runs any date/time through `OvertimeRuleResolver` |
+| Working Hours | `overtime.working-hours.*` | Working-hour sets with a Mon→Sun grid; the default active set defines what counts as overtime |
+| Holiday Calendar | `overtime.holidays.*` | Year-at-a-glance calendar + CRUD; mercantile flag, closed/custom/normal override, OT day-category override |
+| OT Tariff | `overtime.tariffs.*` | Effective-dated versions and their day-category × period rate rules |
+
+### Guards worth knowing
+
+- **Working hours:** a day ticked as working must have both times, and end must
+  follow start; a set with every day closed is rejected (it would make 100% of
+  movements overtime); the set the resolver is using cannot be deleted; exactly
+  one set may be flagged default.
+- **Holidays:** one entry per date; `custom` hours require both times and are
+  discarded when the override is not `custom`.
+- **Tariffs:** a version that has issued receipts (or is retired) is **read-only**
+  — revisions go through **Clone for Revision**, which copies every rule into a new
+  draft with an optional across-the-board % change. Activating a version closes any
+  older open-ended active version the day before the new one starts, so exactly one
+  version covers any date. A version cannot be activated with no active rules, and
+  the only version effective today cannot be retired (that would leave out-of-hours
+  gate-ins unpriced). Promoting a version to `active` needs `ot.settings.approve`.
+- **Rules:** a window whose end is not after its start must carry `ends_next_day`
+  (this is how a 24:00 end is entered: `00:00` + next-day); duplicate
+  `rule_code`, or a duplicate day-category × period × direction slab, is rejected.
+
+### Enforcement toggle
+
+`require_ot_receipt` is now exposed on the **Company Settings** form ("Require an
+overtime receipt for out-of-hours gate-ins"); it was previously settable only
+directly in the database.
+
+Coverage: `tests/Feature/Ot/OtMastersAdminTest.php` — including behavioural tests
+that assert the resolver's verdict actually changes after an admin edit.

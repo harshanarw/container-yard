@@ -495,6 +495,28 @@
                     </div>
                 </div>
             </div>
+            <div class="d-flex align-items-start gap-3 mt-3" id="otPolicy">
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="requireOtReceipt" name="require_ot_receipt" value="1"
+                           {{ old('require_ot_receipt', $settings->require_ot_receipt) ? 'checked' : '' }}>
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="requireOtReceipt">
+                        Require an overtime receipt for out-of-hours gate-ins
+                    </label>
+                    <div class="form-text mt-1">
+                        When enabled, a gate-in outside the configured working hours is <strong>blocked</strong> unless a
+                        valid, paid OT receipt for that BL is selected — and the receipt must still be within its paid
+                        time window with containers remaining. Users with the gate-in override permission can proceed
+                        with a documented reason. When disabled, overtime is still calculated and receipts can still be
+                        issued, but the gate is not blocked.
+                        @can('ot.settings.view')
+                        <a href="{{ route('overtime.setup.index') }}" class="ms-1">Review the OT setup →</a>
+                        @endcan
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
