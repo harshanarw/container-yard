@@ -104,9 +104,7 @@
             text-align: center;
             background: #fff;
             color: #000;
-            border-top: 2.5pt solid #000;
-            border-bottom: 2.5pt solid #000;
-            padding: 5px 12px;
+            padding: 5px 12px 3px;
             font-size: 12.5pt;
             font-weight: 900;
             letter-spacing: .8px;
@@ -132,7 +130,10 @@
         table { width: 100%; border-collapse: collapse; }
         td, th { border: 1pt solid #000; padding: 5px 7px; vertical-align: top; word-break: break-word; }
         .cell-lbl { font-size: 7.5pt; color: #000; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .2px; }
-        .cell-val { font-size: 10pt; font-weight: 700; }
+        /* Every data value on the pass prints upper-case and heavy, so it reads at
+           a glance at the gate and stays legible after a photocopy. Free-text
+           remarks are deliberately excluded (they are not .cell-val). */
+        .cell-val { font-size: 10pt; font-weight: 900; color: #000; text-transform: uppercase; }
 
         /* ── Status text ─────────────────────────────────────────────────── */
         .status-laden { color: #000; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
@@ -164,7 +165,7 @@
         .sig-cell  { text-align: center; height: 90px; vertical-align: bottom; padding-bottom: 6px; }
         .sig-label { font-size: 8.5pt; font-weight: 700; margin-bottom: 44px; }
         .sig-line  { border-bottom: 1px solid #333; width: 78%; margin: 0 auto; }
-        .sig-name  { font-size: 8pt; color: #333; margin-top: 3px; }
+        .sig-name  { font-size: 8pt; color: #000; margin-top: 3px; font-weight: 900; text-transform: uppercase; }
 
         /* ── Digital Approval Block ──────────────────────────────────────── */
         .da-block { border: 2px solid #15803d; border-radius: 4px; margin-top: 7px; overflow: hidden; }
@@ -782,13 +783,13 @@
             <tr>
                 <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">Status</div></td>
                 <td>
-                    <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:9pt;font-weight:700;">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
+                    <div class="cell-val {{ $isLaden ? 'status-laden' : 'status-empty' }}" style="font-size:9pt;">{{ $isLaden ? 'LADEN' : 'EMPTY' }}</div>
                 </td>
             </tr>
             <tr>
                 <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">Condition</div></td>
                 <td>
-                    <div class="cell-val {{ $condTextClass }}" style="font-size:9pt;font-weight:700;">{{ $condShort }}</div>
+                    <div class="cell-val {{ $condTextClass }}" style="font-size:9pt;">{{ $condShort }}</div>
                 </td>
             </tr>
         </table>
@@ -801,14 +802,14 @@
             <tr>
                 <td style="text-align:center;vertical-align:bottom;padding:8px 6px;">
                     <div style="font-size:8.5pt;font-weight:700;margin-bottom:4px;">Received By (Gate Officer)</div>
-                    <div style="font-size:9pt;font-weight:700;margin-bottom:4px;">{{ $movement->createdBy?->name ?? '&nbsp;' }}</div>
+                    <div class="cell-val" style="font-size:9pt;margin-bottom:4px;">{{ $movement->createdBy?->name ?? '&nbsp;' }}</div>
                     <div style="border-bottom:1px solid #333;width:78%;margin:0 auto;"></div>
                 </td>
                 <td style="text-align:center;vertical-align:bottom;padding:8px 6px;">
                     <div style="font-size:8.5pt;font-weight:700;margin-bottom:4px;">Driver / Agent</div>
-                    <div style="font-size:9pt;font-weight:700;margin-bottom:2px;">{{ $movement->driver_name ?: '&nbsp;' }}</div>
+                    <div class="cell-val" style="font-size:9pt;margin-bottom:2px;">{{ $movement->driver_name ?: '&nbsp;' }}</div>
                     @if($movement->driver_ic)
-                    <div style="font-size:7.5pt;color:#000;margin-bottom:4px;">ID: {{ $movement->driver_ic }}</div>
+                    <div class="cell-val" style="font-size:7.5pt;margin-bottom:4px;">ID: {{ $movement->driver_ic }}</div>
                     @else
                     <div style="margin-bottom:4px;">&nbsp;</div>
                     @endif

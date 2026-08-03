@@ -105,9 +105,7 @@
             text-align: center;
             background: #fff;
             color: #000;
-            border-top: 2.5pt solid #000;
-            border-bottom: 2.5pt solid #000;
-            padding: 5px 12px;
+            padding: 5px 12px 3px;
             font-size: 12.5pt;
             font-weight: 900;
             letter-spacing: .8px;
@@ -133,8 +131,11 @@
         table { width: 100%; border-collapse: collapse; }
         td, th { border: 1pt solid #000; padding: 5px 7px; vertical-align: top; word-break: break-word; }
         .cell-lbl { font-size: 7.5pt; color: #000; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .2px; }
-        .cell-val { font-size: 10pt; font-weight: 700; color: #000; }
-        .val-lg   { font-size: 14pt; font-weight: 900; letter-spacing: .5px; }
+        /* Every data value on the pass prints upper-case and heavy, so it reads at
+           a glance at the gate and stays legible after a photocopy. Free-text
+           remarks are deliberately excluded (they are not .cell-val). */
+        .cell-val { font-size: 10pt; font-weight: 900; color: #000; text-transform: uppercase; }
+        .val-lg   { font-size: 14pt; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; }
 
         /* ── Status text (container details table) ───────────────────────── */
         /* Laden/empty is distinguished by weight and the wording itself, not hue —
@@ -174,7 +175,7 @@
         .sig-cell  { text-align: center; height: 90px; vertical-align: bottom; padding-bottom: 6px; }
         .sig-label { font-size: 8.5pt; font-weight: 700; margin-bottom: 44px; }
         .sig-line  { border-bottom: 1px solid #333; width: 78%; margin: 0 auto; }
-        .sig-name  { font-size: 8pt; color: #333; margin-top: 3px; }
+        .sig-name  { font-size: 8pt; color: #000; margin-top: 3px; font-weight: 900; text-transform: uppercase; }
 
         /* ── Digital Approval Block ──────────────────────────────────────── */
         .da-block {
@@ -724,12 +725,12 @@
             <tr>
                 <td style="text-align:center;">
                     <div class="cell-lbl">Issued By</div>
-                    <div style="font-size:8.5pt;font-weight:700;margin-bottom:5px;">{{ $movement->createdBy?->name ?? '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;margin-bottom:5px;">{{ $movement->createdBy?->name ?? '—' }}</div>
                     <div class="sig-line"></div>
                 </td>
                 <td style="text-align:center;">
                     <div class="cell-lbl">Received By (Driver)</div>
-                    <div style="font-size:8.5pt;font-weight:700;margin-bottom:5px;">{{ $movement->driver_name ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;margin-bottom:5px;">{{ $movement->driver_name ?: '—' }}</div>
                     <div class="sig-line"></div>
                 </td>
             </tr>
