@@ -85,7 +85,7 @@
         .gp-company-name  { font-size: 12pt; font-weight: 900; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .gp-address       { font-size: 7.5pt; color: #333; margin-top: 3px; line-height: 1.6; }
         .gp-address-line  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-        .gp-pass-no-label { font-size: 8.5pt; color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+        .gp-pass-no-label { font-size: 8.5pt; color: #000; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
         .gp-pass-no-value { font-size: 16pt; font-weight: 900; color: #1d4ed8; line-height: 1.05; }
 
         /* ── QR Code ─────────────────────────────────────────────────────── */
@@ -93,17 +93,23 @@
         .gp-qr canvas { display: none !important; }
         .gp-qr img { display: inline-block; border: 1px solid #bbb; padding: 2px; background: #fff; width: 88px; height: 88px; }
         .gp-qr-sm img { width: 70px; height: 70px; }
-        .gp-qr-caption { font-size: 6.5pt; color: #666; text-align: center; margin-top: 3px; line-height: 1; width: 88px; }
+        .gp-qr-caption { font-size: 6.5pt; color: #333; text-align: center; margin-top: 3px; line-height: 1; width: 88px; }
 
         /* ── Title bar — blue for inward ─────────────────────────────────── */
+        /* Black on white, banded by rules rather than a filled bar. Browsers drop
+           background colours unless the operator enables "Background graphics", so
+           a reversed (white-on-dark) title printed as white-on-white and vanished
+           from the gate pass entirely. Rules always print. */
         .gp-title {
             text-align: center;
-            background: #1e3a8a;
-            color: #fff;
-            padding: 6px 12px;
+            background: #fff;
+            color: #000;
+            border-top: 2.5pt solid #000;
+            border-bottom: 2.5pt solid #000;
+            padding: 5px 12px;
             font-size: 12.5pt;
-            font-weight: 700;
-            letter-spacing: .5px;
+            font-weight: 900;
+            letter-spacing: .8px;
             margin: 6px 0 0;
             text-transform: uppercase;
         }
@@ -114,7 +120,8 @@
             font-size: 8.5pt;
             font-weight: 700;
             background: #ebebeb;
-            border: 1px solid #333;
+            border: 1pt solid #000;
+            color: #000;
             border-bottom: none;
             padding: 4px 8px;
             text-transform: uppercase;
@@ -123,29 +130,29 @@
 
         /* ── Tables ──────────────────────────────────────────────────────── */
         table { width: 100%; border-collapse: collapse; }
-        td, th { border: 1px solid #333; padding: 5px 7px; vertical-align: top; word-break: break-word; }
-        .cell-lbl { font-size: 7.5pt; color: #444; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .2px; }
+        td, th { border: 1pt solid #000; padding: 5px 7px; vertical-align: top; word-break: break-word; }
+        .cell-lbl { font-size: 7.5pt; color: #000; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .2px; }
         .cell-val { font-size: 10pt; font-weight: 700; }
 
         /* ── Status text ─────────────────────────────────────────────────── */
-        .status-laden { color: #b45309; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
-        .status-empty { color: #059669; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
+        .status-laden { color: #000; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
+        .status-empty { color: #000; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
 
         /* ── Condition text ──────────────────────────────────────────────── */
-        .cond-sound   { color: #059669; font-weight: 900; letter-spacing: .5px; }
+        .cond-sound   { color: #000; font-weight: 900; letter-spacing: .5px; }
         .cond-damaged { color: #dc2626; font-weight: 900; letter-spacing: .5px; }
-        .cond-repair  { color: #b45309; font-weight: 900; letter-spacing: .5px; }
+        .cond-repair  { color: #000; font-weight: 900; letter-spacing: .5px; }
 
         /* ── Status badge (header) ───────────────────────────────────────── */
         .gp-status-badge {
             display: inline-block; padding: 2px 11px; border-radius: 10px;
             font-size: 8pt; font-weight: 900; letter-spacing: .6px; margin-top: 6px; white-space: nowrap;
         }
-        .gp-status-badge-laden   { background: #fef3c7; color: #92400e; border: 1.5px solid #d97706; }
-        .gp-status-badge-empty   { background: #d1fae5; color: #065f46; border: 1.5px solid #059669; }
-        .gp-status-badge-sound   { background: #d1fae5; color: #065f46; border: 1.5px solid #059669; }
+        .gp-status-badge-laden   { background: #fff; color: #000; border: 1.5pt solid #000; }
+        .gp-status-badge-empty   { background: #fff; color: #000; border: 1.5pt solid #000; }
+        .gp-status-badge-sound   { background: #fff; color: #000; border: 1.5pt solid #000; }
         .gp-status-badge-damaged { background: #fee2e2; color: #991b1b; border: 1.5px solid #dc2626; }
-        .gp-status-badge-repair  { background: #fef3c7; color: #92400e; border: 1.5px solid #d97706; }
+        .gp-status-badge-repair  { background: #fff; color: #000; border: 1.5pt solid #000; }
 
         /* ── Declaration box ─────────────────────────────────────────────── */
         .declaration {
@@ -162,21 +169,21 @@
         /* ── Digital Approval Block ──────────────────────────────────────── */
         .da-block { border: 2px solid #15803d; border-radius: 4px; margin-top: 7px; overflow: hidden; }
         .da-header {
-            background: #15803d; color: #fff; padding: 4px 10px; font-size: 9pt;
+            background: #fff; color: #000; border-bottom: 1pt solid #000; padding: 4px 10px; font-size: 9pt;
             font-weight: 900; letter-spacing: .6px; display: flex; align-items: center; justify-content: space-between;
         }
         .da-steps { display: flex; gap: 0; }
-        .da-step { flex: 1; border-right: 1px solid #bbf7d0; padding: 5px 8px; background: #f0fdf4; }
+        .da-step { flex: 1; border-right: 1px solid #666; padding: 5px 8px; background: #fff; }
         .da-step:last-child { border-right: none; }
-        .da-step-lbl  { font-size: 6.5pt; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+        .da-step-lbl  { font-size: 6.5pt; color: #000; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
         .da-step-name { font-size: 8pt; font-weight: 700; margin-top: 1px; }
-        .da-step-time { font-size: 6.5pt; color: #555; margin-top: 1px; }
+        .da-step-time { font-size: 6.5pt; color: #333; margin-top: 1px; }
         .da-req-id    { font-size: 6.5pt; opacity: .8; }
 
         /* ── Footer ──────────────────────────────────────────────────────── */
         .gp-footer {
             display: flex; justify-content: space-between; font-size: 7.5pt;
-            color: #555; border-top: 1px solid #bbb; padding-top: 4px; margin-top: 7px;
+            color: #333; border-top: 1pt solid #000; padding-top: 4px; margin-top: 7px;
         }
 
         /* ── Mobile screen: stack the header so the logo, gate-pass number and
@@ -195,7 +202,16 @@
         @media print {
             .screen-toolbar { display: none !important; }
             body { background: #fff; margin: 0; }
-            .gp-doc { margin: 4mm auto 0; border: 1px solid #000; }
+            .gp-doc { margin: 4mm auto 0; border: 1pt solid #000; }
+
+            /* Ask the browser to print the remaining light fills (section header
+               and declaration tints) rather than dropping them. Nothing on the pass
+               relies on a background to stay legible any more, so this only keeps
+               output consistent between printers -- it is not load-bearing. */
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
@@ -682,8 +698,8 @@
 
     {{-- ── Footer ── --}}
     <div style="margin-top:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <span style="font-size:7pt;color:#555;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
-        <span style="font-size:7pt;color:#555;white-space:nowrap;">{{ $softwareCopyright }}</span>
+        <span style="font-size:7pt;color:#333;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
+        <span style="font-size:7pt;color:#333;white-space:nowrap;">{{ $softwareCopyright }}</span>
     </div>
 
 </div>
@@ -747,7 +763,7 @@
                 <td style="font-family:'Courier New',monospace;font-size:12pt;font-weight:900;letter-spacing:.5px;">
                     <div style="display:flex;justify-content:flex-start;align-items:center;gap:10px;">
                         <span>{{ $movement->container_no }}</span>
-                        <span style="font-family:Arial,sans-serif;font-size:8pt;font-weight:900;letter-spacing:.5px;color:#fff;background:#1e3a8a;padding:2px 7px;border-radius:2px;">{{ $movement->size }}'{{ $movement->container_type }}</span>
+                        <span style="font-family:Arial,sans-serif;font-size:8pt;font-weight:900;letter-spacing:.5px;color:#000;background:#fff;border:1pt solid #000;padding:1px 6px;border-radius:2px;">{{ $movement->size }}'{{ $movement->container_type }}</span>
                     </div>
                 </td>
             </tr>
@@ -792,7 +808,7 @@
                     <div style="font-size:8.5pt;font-weight:700;margin-bottom:4px;">Driver / Agent</div>
                     <div style="font-size:9pt;font-weight:700;margin-bottom:2px;">{{ $movement->driver_name ?: '&nbsp;' }}</div>
                     @if($movement->driver_ic)
-                    <div style="font-size:7.5pt;color:#444;margin-bottom:4px;">ID: {{ $movement->driver_ic }}</div>
+                    <div style="font-size:7.5pt;color:#000;margin-bottom:4px;">ID: {{ $movement->driver_ic }}</div>
                     @else
                     <div style="margin-bottom:4px;">&nbsp;</div>
                     @endif
@@ -823,8 +839,8 @@
 
     {{-- ── Footer ── --}}
     <div style="margin-top:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <span style="font-size:7pt;color:#555;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
-        <span style="font-size:7pt;color:#555;white-space:nowrap;">{{ $softwareCopyright }}</span>
+        <span style="font-size:7pt;color:#333;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
+        <span style="font-size:7pt;color:#333;white-space:nowrap;">{{ $softwareCopyright }}</span>
     </div>
 
 </div>

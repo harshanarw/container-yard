@@ -85,26 +85,32 @@
         .gp-company-name  { font-size: 12pt; font-weight: 900; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .gp-address       { font-size: 7.5pt; color: #333; margin-top: 3px; line-height: 1.6; }
         .gp-address-line  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-        .gp-pass-no-label { font-size: 8.5pt; color: #555; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
-        .gp-pass-no-value { font-size: 16pt; font-weight: 900; color: #c0392b; line-height: 1.05; }
-        .gp-pass-datetime { font-size: 8pt; color: #444; margin-top: 3px; }
+        .gp-pass-no-label { font-size: 8.5pt; color: #000; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+        .gp-pass-no-value { font-size: 16pt; font-weight: 900; color: #000; line-height: 1.05; }
+        .gp-pass-datetime { font-size: 8pt; color: #000; margin-top: 3px; }
 
         /* ── QR Code ─────────────────────────────────────────────────────── */
         .gp-qr { line-height: 0; text-align: right; }
         .gp-qr canvas { display: none !important; }
         .gp-qr img { display: inline-block; border: 1px solid #bbb; padding: 2px; background: #fff; width: 88px; height: 88px; }
         .gp-qr-sm img { width: 70px; height: 70px; }
-        .gp-qr-caption { font-size: 6.5pt; color: #666; text-align: center; margin-top: 3px; line-height: 1; width: 88px; }
+        .gp-qr-caption { font-size: 6.5pt; color: #333; text-align: center; margin-top: 3px; line-height: 1; width: 88px; }
 
         /* ── Title bar ───────────────────────────────────────────────────── */
+        /* Black on white, banded by rules rather than a filled bar. Browsers drop
+           background colours unless the operator enables "Background graphics", so
+           a reversed (white-on-dark) title printed as white-on-white and vanished
+           from the gate pass entirely. Rules always print. */
         .gp-title {
             text-align: center;
-            background: #1e293b;
-            color: #fff;
-            padding: 6px 12px;
+            background: #fff;
+            color: #000;
+            border-top: 2.5pt solid #000;
+            border-bottom: 2.5pt solid #000;
+            padding: 5px 12px;
             font-size: 12.5pt;
-            font-weight: 700;
-            letter-spacing: .5px;
+            font-weight: 900;
+            letter-spacing: .8px;
             margin: 6px 0 0;
             text-transform: uppercase;
         }
@@ -115,7 +121,8 @@
             font-size: 8.5pt;
             font-weight: 700;
             background: #ebebeb;
-            border: 1px solid #333;
+            border: 1pt solid #000;
+            color: #000;
             border-bottom: none;
             padding: 4px 8px;
             text-transform: uppercase;
@@ -124,14 +131,17 @@
 
         /* ── Tables ──────────────────────────────────────────────────────── */
         table { width: 100%; border-collapse: collapse; }
-        td, th { border: 1px solid #333; padding: 5px 7px; vertical-align: top; word-break: break-word; }
-        .cell-lbl { font-size: 7.5pt; color: #444; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .2px; }
-        .cell-val { font-size: 10pt; font-weight: 700; }
+        td, th { border: 1pt solid #000; padding: 5px 7px; vertical-align: top; word-break: break-word; }
+        .cell-lbl { font-size: 7.5pt; color: #000; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .2px; }
+        .cell-val { font-size: 10pt; font-weight: 700; color: #000; }
         .val-lg   { font-size: 14pt; font-weight: 900; letter-spacing: .5px; }
 
         /* ── Status text (container details table) ───────────────────────── */
-        .status-laden { color: #b45309; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
-        .status-empty { color: #059669; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
+        /* Laden/empty is distinguished by weight and the wording itself, not hue —
+           the amber/green pair collapsed into near-identical greys when printed or
+           photocopied in mono. */
+        .status-laden { color: #000; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
+        .status-empty { color: #000; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
 
         /* ── Status badge (header, below pass number) ────────────────────── */
         .gp-status-badge {
@@ -144,8 +154,10 @@
             margin-top: 6px;
             white-space: nowrap;
         }
-        .gp-status-badge-laden { background: #fef3c7; color: #92400e; border: 1.5px solid #d97706; }
-        .gp-status-badge-empty { background: #d1fae5; color: #065f46; border: 1.5px solid #059669; }
+        /* Outlined, not filled: the tinted fills printed as pale grey (or not at
+           all) and swallowed their own low-contrast text. */
+        .gp-status-badge-laden { background: #fff; color: #000; border: 1.5pt solid #000; }
+        .gp-status-badge-empty { background: #fff; color: #000; border: 1.5pt solid #000; }
 
         /* ── Declaration box ─────────────────────────────────────────────── */
         .declaration {
@@ -166,14 +178,17 @@
 
         /* ── Digital Approval Block ──────────────────────────────────────── */
         .da-block {
-            border: 2px solid #15803d;
+            border: 1.5pt solid #000;
             border-radius: 4px;
             margin-top: 7px;
             overflow: hidden;
         }
+        /* Same reversed-text trap as the title: a white-on-green header printed as
+           white-on-white. Black text under a rule instead. */
         .da-header {
-            background: #15803d;
-            color: #fff;
+            background: #fff;
+            color: #000;
+            border-bottom: 1pt solid #000;
             padding: 4px 10px;
             font-size: 9pt;
             font-weight: 900;
@@ -185,14 +200,14 @@
         .da-steps { display: flex; gap: 0; }
         .da-step {
             flex: 1;
-            border-right: 1px solid #bbf7d0;
+            border-right: 1px solid #666;
             padding: 5px 8px;
-            background: #f0fdf4;
+            background: #fff;
         }
         .da-step:last-child { border-right: none; }
-        .da-step-lbl  { font-size: 6.5pt; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
-        .da-step-name { font-size: 8pt; font-weight: 700; margin-top: 1px; }
-        .da-step-time { font-size: 6.5pt; color: #555; margin-top: 1px; }
+        .da-step-lbl  { font-size: 6.5pt; color: #000; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+        .da-step-name { font-size: 8pt; font-weight: 700; margin-top: 1px; color: #000; }
+        .da-step-time { font-size: 6.5pt; color: #333; margin-top: 1px; }
         .da-req-id    { font-size: 6.5pt; opacity: .8; }
 
         /* ── Footer ──────────────────────────────────────────────────────── */
@@ -200,8 +215,8 @@
             display: flex;
             justify-content: space-between;
             font-size: 7.5pt;
-            color: #555;
-            border-top: 1px solid #bbb;
+            color: #333;
+            border-top: 1pt solid #000;
             padding-top: 4px;
             margin-top: 7px;
         }
@@ -229,7 +244,16 @@
         @media print {
             .screen-toolbar { display: none !important; }
             body { background: #fff; margin: 0; }
-            .gp-doc { margin: 4mm auto 0; border: 1px solid #000; }
+            .gp-doc { margin: 4mm auto 0; border: 1pt solid #000; }
+
+            /* Ask the browser to print the remaining light fills (section header
+               and declaration tints) rather than dropping them. Nothing on the pass
+               relies on a background to stay legible any more, so this only keeps
+               output consistent between printers -- it is not load-bearing. */
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
@@ -734,8 +758,8 @@
 
     {{-- ── Footer ── --}}
     <div style="margin-top:4px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <span style="font-size:7pt;color:#555;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
-        <span style="font-size:7pt;color:#555;white-space:nowrap;">{{ $softwareCopyright }}</span>
+        <span style="font-size:7pt;color:#333;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
+        <span style="font-size:7pt;color:#333;white-space:nowrap;">{{ $softwareCopyright }}</span>
     </div>
 
 </div>
@@ -902,8 +926,8 @@
 
     {{-- ── Footer ── --}}
     <div style="margin-top:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <span style="font-size:7pt;color:#555;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
-        <span style="font-size:7pt;color:#555;white-space:nowrap;">{{ $softwareCopyright }}</span>
+        <span style="font-size:7pt;color:#333;white-space:nowrap;">Printed {{ $printedAt }} by {{ $printedBy }}</span>
+        <span style="font-size:7pt;color:#333;white-space:nowrap;">{{ $softwareCopyright }}</span>
     </div>
 
 </div>
