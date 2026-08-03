@@ -123,10 +123,13 @@ class HolidayController extends Controller
             $data['custom_end_time']   = null;
         }
 
-        $data['holiday_date']             = Carbon::parse($data['holiday_date'])->toDateString();
-        $data['is_mercantile']            = $request->boolean('is_mercantile');
-        $data['active']                   = $request->boolean('active');
-        $data['ot_day_category_override'] = $data['ot_day_category_override'] ?: null;
+        $data['holiday_date']  = Carbon::parse($data['holiday_date'])->toDateString();
+        $data['is_mercantile'] = $request->boolean('is_mercantile');
+        $data['active']        = $request->boolean('active');
+        // Nullable fields are absent from the validated set when the form omits
+        // them entirely (an API client, or the "derive from type" blank option),
+        // so read through ?? rather than indexing straight in.
+        $data['ot_day_category_override'] = ($data['ot_day_category_override'] ?? null) ?: null;
 
         return $data;
     }

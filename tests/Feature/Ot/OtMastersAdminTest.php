@@ -174,7 +174,7 @@ class OtMastersAdminTest extends FeatureTestCase
 
         $this->patch(route('overtime.working-hours.update', $set), $this->setPayload([
             'days' => $this->daysPayload(['monday' => ['normal_end_time' => '20:00']]),
-        ]))->assertSessionHasNoErrors();
+        ]))->assertSessionHasNoErrors()->assertRedirect();
 
         $this->assertStringStartsWith('20:00', (string) $set->refresh()->daysByName()['monday']->normal_end_time);
 
@@ -191,7 +191,7 @@ class OtMastersAdminTest extends FeatureTestCase
 
         $this->patch(route('overtime.working-hours.update', $set), $this->setPayload([
             'days' => $this->daysPayload(['monday' => null]), // untick Monday → closed
-        ]))->assertSessionHasNoErrors();
+        ]))->assertSessionHasNoErrors()->assertRedirect();
 
         $monday = $set->refresh()->daysByName()['monday'];
         $this->assertFalse((bool) $monday->is_regular_working_day);
@@ -260,7 +260,7 @@ class OtMastersAdminTest extends FeatureTestCase
         $this->post(route('overtime.working-hours.store'), $this->setPayload([
             'name'       => 'Peak Season Hours',
             'is_default' => '1',
-        ]))->assertSessionHasNoErrors();
+        ]))->assertSessionHasNoErrors()->assertRedirect();
 
         $new = WorkingHourSet::where('name', 'Peak Season Hours')->firstOrFail();
 
@@ -307,7 +307,7 @@ class OtMastersAdminTest extends FeatureTestCase
             'is_mercantile'         => '1',
             'working_hour_override' => 'closed',
             'active'                => '1',
-        ])->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors()->assertRedirect();
 
         $after = $this->preview('2026-06-03', '10:00');
         $this->assertSame('sunday_mercantile_holiday', $after['day_category']);
@@ -328,7 +328,7 @@ class OtMastersAdminTest extends FeatureTestCase
             'custom_start_time'     => '08:00',
             'custom_end_time'       => '12:00',
             'active'                => '1',
-        ])->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors()->assertRedirect();
 
         $this->assertFalse($this->preview('2026-06-03', '10:00')['is_overtime'], 'Inside the custom window.');
         $this->assertTrue($this->preview('2026-06-03', '14:00')['is_overtime'], 'Outside the custom window.');
@@ -404,7 +404,7 @@ class OtMastersAdminTest extends FeatureTestCase
             'currency'        => 'lkr',
             'approval_status' => 'draft',
             'active'          => '1',
-        ])->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors()->assertRedirect();
 
         $version = OtTariffVersion::where('version_code', 'ACDO-OT-2027-01')->firstOrFail();
         $this->assertSame('draft', $version->approval_status);
@@ -428,7 +428,7 @@ class OtMastersAdminTest extends FeatureTestCase
             'billing_mode_on_extension' => 'full_new_charge',
             'priority'                  => '1',
             'active'                    => '1',
-        ])->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors()->assertRedirect();
 
         $rule = OtTariffRule::where('rule_code', 'OT27-WD-A')->firstOrFail();
         $this->assertTrue((bool) $rule->ends_next_day);
@@ -647,14 +647,14 @@ class OtMastersAdminTest extends FeatureTestCase
             ->post(route('settings.company.update'), [
                 'company_name'       => 'Test Yard',
                 'require_ot_receipt' => '1',
-            ])->assertSessionHasNoErrors();
+            ])->assertSessionHasNoErrors()->assertRedirect();
 
         $this->assertTrue((bool) \App\Models\CompanySetting::current()->require_ot_receipt,
             'The OT enforcement switch should be persisted by the company settings form.');
 
         // And off again when the switch is cleared.
         $this->post(route('settings.company.update'), ['company_name' => 'Test Yard'])
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()->assertRedirect();
 
         $this->assertFalse((bool) \App\Models\CompanySetting::current()->require_ot_receipt);
     }
