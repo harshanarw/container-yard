@@ -207,8 +207,8 @@
         }
         .da-step:last-child { border-right: none; }
         .da-step-lbl  { font-size: 6.5pt; color: #000; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
-        .da-step-name { font-size: 8pt; font-weight: 700; margin-top: 1px; color: #000; }
-        .da-step-time { font-size: 6.5pt; color: #333; margin-top: 1px; }
+        .da-step-name { font-size: 8pt; font-weight: 900; margin-top: 1px; color: #000; text-transform: uppercase; }
+        .da-step-time { font-size: 6.5pt; color: #333; margin-top: 1px; font-weight: 700; }
         .da-req-id    { font-size: 6.5pt; opacity: .8; }
 
         /* ── Footer ──────────────────────────────────────────────────────── */
@@ -466,7 +466,7 @@
                         {{ $movement->loading_vessel ?: '—' }}
                         @if($movement->loading_voyage) &nbsp;/&nbsp; {{ $movement->loading_voyage }} @endif
                         @if($movement->sailing_date)
-                            &nbsp;&nbsp;<span style="font-weight:normal;font-size:8.5pt;">Sailing: {{ $movement->sailing_date->format('d M Y') }}</span>
+                            &nbsp;&nbsp;<span style="font-weight:700;font-size:8.5pt;">Sailing: {{ $movement->sailing_date->format('d M Y') }}</span>
                         @endif
                     </div>
                 </td>
@@ -687,7 +687,7 @@
                         {{ $movement->loading_vessel ?: '—' }}
                         @if($movement->loading_voyage) / {{ $movement->loading_voyage }} @endif
                         @if($movement->sailing_date)
-                            &nbsp;<span style="font-weight:normal;font-size:7.5pt;">Sailing: {{ $movement->sailing_date->format('d M Y') }}</span>
+                            &nbsp;<span style="font-weight:700;font-size:7.5pt;">Sailing: {{ $movement->sailing_date->format('d M Y') }}</span>
                         @endif
                     </div>
                 </td>

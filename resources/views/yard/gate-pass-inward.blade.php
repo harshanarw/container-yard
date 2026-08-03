@@ -177,8 +177,8 @@
         .da-step { flex: 1; border-right: 1px solid #666; padding: 5px 8px; background: #fff; }
         .da-step:last-child { border-right: none; }
         .da-step-lbl  { font-size: 6.5pt; color: #000; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
-        .da-step-name { font-size: 8pt; font-weight: 700; margin-top: 1px; }
-        .da-step-time { font-size: 6.5pt; color: #333; margin-top: 1px; }
+        .da-step-name { font-size: 8pt; font-weight: 900; margin-top: 1px; color: #000; text-transform: uppercase; }
+        .da-step-time { font-size: 6.5pt; color: #333; margin-top: 1px; font-weight: 700; }
         .da-req-id    { font-size: 6.5pt; opacity: .8; }
 
         /* ── Footer ──────────────────────────────────────────────────────── */
@@ -761,9 +761,9 @@
                 <td style="background:#f8fafc;vertical-align:middle;">
                     <div class="cell-lbl">Container No. / Type</div>
                 </td>
-                <td style="font-family:'Courier New',monospace;font-size:12pt;font-weight:900;letter-spacing:.5px;">
+                <td>
                     <div style="display:flex;justify-content:flex-start;align-items:center;gap:10px;">
-                        <span>{{ $movement->container_no }}</span>
+                        <span class="cell-val" style="font-size:12pt;letter-spacing:1px;">{{ $movement->container_no }}</span>
                         <span style="font-family:Arial,sans-serif;font-size:8pt;font-weight:900;letter-spacing:.5px;color:#000;background:#fff;border:1pt solid #000;padding:1px 6px;border-radius:2px;">{{ $movement->size }}'{{ $movement->container_type }}</span>
                     </div>
                 </td>
@@ -778,7 +778,7 @@
             </tr>
             <tr>
                 <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">Vehicle No.</div></td>
-                <td style="font-family:'Courier New',monospace;"><div class="cell-val">{{ $movement->vehicle_plate ?: '—' }}</div></td>
+                <td><div class="cell-val" style="letter-spacing:.8px;">{{ $movement->vehicle_plate ?: '—' }}</div></td>
             </tr>
             <tr>
                 <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">Status</div></td>
