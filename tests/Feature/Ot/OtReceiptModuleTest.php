@@ -89,6 +89,56 @@ class OtReceiptModuleTest extends FeatureTestCase
         $this->assertStringContainsString('application/pdf', strtolower($pdf->headers->get('content-type') ?? ''));
     }
 
+    /**
+     * The streamed PDF is a binary blob, so the content-type check above cannot
+     * tell a full receipt from an empty page. Render the Blade view directly and
+     * assert the document standard is actually applied: shared letterhead, shared
+     * running footer, and the fields the receipt is legally required to carry.
+     */
+    public function test_printout_follows_the_shared_document_standard(): void
+    {
+        $this->actingAsSystemAdmin();
+        $this->openAccountingPeriodForToday();
+
+        $receipt = app(OtReceiptService::class)->confirm($this->generate(), null, 'cash');
+        $company = \App\Models\CompanySetting::current();
+
+        $html = view('overtime.receipts.pdf', ['receipt' => $receipt->fresh(), 'company' => $company])->render();
+
+        // Shared letterhead: company block, bordered document title, verify QR.
+        $this->assertStringContainsString('OVERTIME RECEIPT', $html);
+        $this->assertStringContainsString($company->company_name, $html);
+        $this->assertStringContainsString('Scan to verify', $html);
+
+        // Shared running footer.
+        $this->assertStringContainsString('Computer-generated document', $html);
+        $this->assertStringContainsString('pdf-pageof', $html, 'Footer should carry the Page X of Y counter.');
+
+        // Receipt substance.
+        $this->assertStringContainsString($receipt->receipt_no, $html);
+        $this->assertStringContainsString($receipt->bl_number, $html);
+        $this->assertStringContainsString('Overtime Service Window', $html);
+        $this->assertStringContainsString(number_format($receipt->total_amount, 2), $html);
+        $this->assertStringContainsString('Rupees', $html, 'Amount should also be spelled out in words.');
+        $this->assertStringContainsString('Issued by', $html);
+
+        // A paid receipt carries no warning stamp.
+        $this->assertStringNotContainsString('UNPAID', $html);
+    }
+
+    public function test_an_unpaid_printout_is_stamped_and_says_it_is_not_gate_valid(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $receipt = $this->generate(); // status: generated — payment not confirmed
+        $html = view('overtime.receipts.pdf', [
+            'receipt' => $receipt, 'company' => \App\Models\CompanySetting::current(),
+        ])->render();
+
+        $this->assertStringContainsString('UNPAID', $html, 'An unpaid receipt must be watermarked.');
+        $this->assertStringContainsString('not valid for gate use', $html);
+    }
+
     public function test_lookup_returns_usable_receipt_for_a_bl(): void
     {
         $this->actingAsSystemAdmin();

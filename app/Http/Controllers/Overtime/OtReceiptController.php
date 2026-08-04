@@ -152,16 +152,15 @@ class OtReceiptController extends Controller
 
     public function pdf(OtReceipt $otReceipt)
     {
-        $otReceipt->load('customer', 'rule');
+        // rule.version prints the tariff reference; createdBy signs the receipt.
+        $otReceipt->load('customer', 'rule.version', 'bankAccount', 'extensionOf', 'createdBy');
 
-        $verifyUrl = \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'ot-receipt', 'id' => $otReceipt->id]);
-        $qr = \App\Support\Qr::svgDataUri($verifyUrl, 100);
-
+        // A4 like every other document — the shared letterhead and running footer
+        // are sized for it. The verify QR is rendered by the letterhead partial.
         $pdf = Pdf::loadView('overtime.receipts.pdf', [
             'receipt' => $otReceipt,
             'company' => \App\Models\CompanySetting::current(),
-            'qr'      => $qr,
-        ])->setPaper('a5', 'portrait')
+        ])->setPaper('a4', 'portrait')
           ->set_option('defaultFont', 'sans-serif')
           ->set_option('isHtml5ParserEnabled', true)
           ->set_option('isRemoteEnabled', false);

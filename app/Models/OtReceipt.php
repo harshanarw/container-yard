@@ -63,6 +63,16 @@ class OtReceipt extends Model
         return $this->belongsTo(\App\Models\GlJournal::class, 'journal_id');
     }
 
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
     public function remainingCount(): int
     {
         return max(0, (int) $this->expected_container_count - (int) $this->used_container_count);
