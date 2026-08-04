@@ -83,13 +83,17 @@
         .gp-header-qr      { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; padding-left: 8px; }
         .gp-co-row  { display: flex; align-items: center; gap: 10px; }
         .gp-co-text { min-width: 0; }
-        .gp-company-logo    { max-height: 54px; max-width: 170px; display: block; flex: 0 0 auto; }
-        .gp-company-logo-sm { max-height: 40px; max-width: 130px; }
-        .gp-company-name-sm { font-size: 10pt; }
+        .gp-company-logo    { max-height: 54px; max-width: 120px; display: block; flex: 0 0 auto; }
+        .gp-company-logo-sm { max-height: 40px; max-width: 90px; }
+        .gp-company-name-sm { font-size: 9.5pt; }
         .gp-address-sm      { font-size: 7pt; }
-        .gp-company-name  { font-size: 12pt; font-weight: 900; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-        .gp-address       { font-size: 7.5pt; color: #333; margin-top: 3px; line-height: 1.6; }
-        .gp-address-line  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+        /* Wraps rather than truncating. The logo now sits beside this column
+           instead of above it, which roughly halved the width available to the
+           text -- a clamped single line silently hid the end of longer company
+           names and addresses. A gate pass must never print a partial address. */
+        .gp-company-name  { font-size: 11pt; font-weight: 900; line-height: 1.25; }
+        .gp-address       { font-size: 7.5pt; color: #333; margin-top: 3px; line-height: 1.4; }
+        .gp-address-line  { overflow-wrap: anywhere; }   /* long emails/URLs break instead of overflowing */
         .gp-pass-no-label { font-size: 8.5pt; color: #000; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
         .gp-pass-no-value { font-size: 11pt; font-weight: 900; color: #000; line-height: 1.05; }
 
@@ -200,7 +204,6 @@
             .gp-header-company { flex: 1 1 100%; }
             .gp-co-row { flex-wrap: wrap; justify-content: center; }
             .gp-company-logo { max-height: 48px; }
-            .gp-company-name, .gp-address-line { white-space: normal; overflow: visible; }
             .gp-header-mid { flex: 1 1 100%; text-align: center; white-space: normal; padding-left: 0; margin-top: 8px; }
             .gp-header-qr  { flex: 1 1 100%; align-items: center; padding-left: 0; margin-top: 8px; }
             .gp-qr, .gp-qr-caption { text-align: center; width: auto; }
