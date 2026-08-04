@@ -81,12 +81,17 @@
         .gp-header-company { flex: 1; min-width: 0; }
         .gp-header-mid     { flex: 0 0 auto; text-align: right; white-space: nowrap; padding-left: 8px; }
         .gp-header-qr      { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; padding-left: 8px; }
-        .gp-company-logo  { max-height: 60px; margin-bottom: 4px; display: block; }
+        .gp-co-row  { display: flex; align-items: center; gap: 10px; }
+        .gp-co-text { min-width: 0; }
+        .gp-company-logo    { max-height: 54px; max-width: 170px; display: block; flex: 0 0 auto; }
+        .gp-company-logo-sm { max-height: 40px; max-width: 130px; }
+        .gp-company-name-sm { font-size: 10pt; }
+        .gp-address-sm      { font-size: 7pt; }
         .gp-company-name  { font-size: 12pt; font-weight: 900; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .gp-address       { font-size: 7.5pt; color: #333; margin-top: 3px; line-height: 1.6; }
         .gp-address-line  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .gp-pass-no-label { font-size: 8.5pt; color: #000; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
-        .gp-pass-no-value { font-size: 16pt; font-weight: 900; color: #000; line-height: 1.05; }
+        .gp-pass-no-value { font-size: 11pt; font-weight: 900; color: #000; line-height: 1.05; }
         .gp-pass-datetime { font-size: 8pt; color: #000; margin-top: 3px; }
 
         /* ── QR Code ─────────────────────────────────────────────────────── */
@@ -235,7 +240,8 @@
         @media screen and (max-width: 640px) {
             .gp-header { flex-wrap: wrap; text-align: center; }
             .gp-header-company { flex: 1 1 100%; }
-            .gp-company-logo { margin-left: auto; margin-right: auto; max-height: 48px; }
+            .gp-co-row { flex-wrap: wrap; justify-content: center; }
+            .gp-company-logo { max-height: 48px; }
             .gp-company-name, .gp-address-line { white-space: normal; overflow: visible; }
             .gp-header-mid { flex: 1 1 100%; text-align: center; white-space: normal; padding-left: 0; margin-top: 8px; }
             .gp-header-qr  { flex: 1 1 100%; align-items: center; padding-left: 0; margin-top: 8px; }
@@ -348,20 +354,7 @@
     <div class="gp-header">
         {{-- Left: company info --}}
         <div class="gp-header-company">
-            @if($companySetting?->logo_url)
-            <img src="{{ $companySetting->logo_url }}" class="gp-company-logo" alt="Logo">
-            @endif
-            <div class="gp-company-name">{{ $companySetting?->company_name ?? 'Container Yard Management' }}</div>
-            <div class="gp-address">
-                <div class="gp-address-line">{{ $companySetting?->address }}</div>
-                @if($companySetting?->telephone || $companySetting?->email)
-                <div class="gp-address-line">
-                    @if($companySetting?->telephone)Tel: {{ $companySetting->telephone }}@endif
-                    @if($companySetting?->telephone && $companySetting?->email) &nbsp;·&nbsp; @endif
-                    @if($companySetting?->email){{ $companySetting->email }}@endif
-                </div>
-                @endif
-            </div>
+            @include('yard._gate-pass-company', ['companySetting' => $companySetting])
         </div>
         {{-- Centre-right: pass number + cargo status badge --}}
         <div class="gp-header-mid">
@@ -587,24 +580,11 @@
     {{-- ── Header: 3 columns — company | pass number + badge | QR ── --}}
     <div class="gp-header" style="padding-bottom:5px;">
         <div style="flex:1;min-width:0;">
-            @if($companySetting?->logo_url)
-            <img src="{{ $companySetting->logo_url }}" style="max-height:42px;margin-bottom:3px;display:block;" alt="Logo">
-            @endif
-            <div style="font-size:10pt;font-weight:900;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
-            <div style="font-size:7pt;color:#333;margin-top:2px;line-height:1.6;">
-                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $companySetting?->address }}</div>
-                @if($companySetting?->telephone || $companySetting?->email)
-                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">
-                    @if($companySetting?->telephone)Tel: {{ $companySetting->telephone }}@endif
-                    @if($companySetting?->telephone && $companySetting?->email) &nbsp;·&nbsp; @endif
-                    @if($companySetting?->email){{ $companySetting->email }}@endif
-                </div>
-                @endif
-            </div>
+            @include('yard._gate-pass-company', ['companySetting' => $companySetting, 'compact' => true])
         </div>
         <div style="flex:0 0 auto;text-align:right;white-space:nowrap;">
             <div class="gp-pass-no-label">Outward Gate Pass No.</div>
-            <div class="gp-pass-no-value" style="font-size:14pt;">{{ $gpNumber }}</div>
+            <div class="gp-pass-no-value" style="font-size:10pt;">{{ $gpNumber }}</div>
             <div>
                 <span class="gp-status-badge {{ $isLaden ? 'gp-status-badge-laden' : 'gp-status-badge-empty' }}" style="font-size:7.5pt;margin-top:4px;">
                     {{ $isLaden ? 'LADEN' : 'EMPTY' }}
@@ -775,25 +755,12 @@
     <div class="gp-header" style="padding-bottom:5px;">
         {{-- Left: company info --}}
         <div style="flex:1;min-width:0;">
-            @if($companySetting?->logo_url)
-            <img src="{{ $companySetting->logo_url }}" style="max-height:42px;margin-bottom:3px;display:block;" alt="Logo">
-            @endif
-            <div style="font-size:10pt;font-weight:900;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $companySetting?->company_name ?? 'Container Yard' }}</div>
-            <div style="font-size:7pt;color:#333;margin-top:2px;line-height:1.6;">
-                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $companySetting?->address }}</div>
-                @if($companySetting?->telephone || $companySetting?->email)
-                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">
-                    @if($companySetting?->telephone)Tel: {{ $companySetting->telephone }}@endif
-                    @if($companySetting?->telephone && $companySetting?->email) &nbsp;·&nbsp; @endif
-                    @if($companySetting?->email){{ $companySetting->email }}@endif
-                </div>
-                @endif
-            </div>
+            @include('yard._gate-pass-company', ['companySetting' => $companySetting, 'compact' => true])
         </div>
         {{-- Centre-right: pass number + cargo status badge --}}
         <div style="flex:0 0 auto;text-align:right;white-space:nowrap;">
             <div class="gp-pass-no-label">Outward Gate Pass No.</div>
-            <div class="gp-pass-no-value" style="font-size:14pt;">{{ $gpNumber }}</div>
+            <div class="gp-pass-no-value" style="font-size:10pt;">{{ $gpNumber }}</div>
             <div>
                 <span class="gp-status-badge {{ $isLaden ? 'gp-status-badge-laden' : 'gp-status-badge-empty' }}" style="font-size:7.5pt;margin-top:4px;">
                     {{ $isLaden ? 'LADEN' : 'EMPTY' }}
