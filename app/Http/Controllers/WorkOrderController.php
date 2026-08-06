@@ -296,10 +296,22 @@ class WorkOrderController extends Controller
                              ->with('error', 'Only pending work orders can be deleted.');
         }
 
-        $wo_no = $workOrder->wo_no;
+        $wo_no     = $workOrder->wo_no;
+        $container = $workOrder->container;   // capture before the row goes
         $workOrder->delete();
 
-        return redirect()->route('work-orders.index')->with('success', "Work order {$wo_no} deleted.");
+        // Creating the work order moved the container into 'in_repair'. Deleting it
+        // has to move it back, or the container is stranded there with no work order
+        // left to close and gate-out refuses to release it.
+        $freed = $container
+            && app(\App\Services\ContainerStatusService::class)
+                ->releaseFromRepairIfNoOpenWorkOrder($container);
+
+        return redirect()->route('work-orders.index')->with(
+            'success',
+            "Work order {$wo_no} deleted."
+                . ($freed ? " {$container->container_no} returned to In Yard." : '')
+        );
     }
 
     public function updateStatus(Request $request, WorkOrder $workOrder)
@@ -338,6 +350,13 @@ class WorkOrderController extends Controller
         }
 
         $workOrder->update($updateData);
+
+        // Cancelling is the other way out of repair without a QC pass — release the
+        // container the same way a delete does, once no other work order is open.
+        if ($newStatus === 'cancelled' && $workOrder->container) {
+            app(\App\Services\ContainerStatusService::class)
+                ->releaseFromRepairIfNoOpenWorkOrder($workOrder->container);
+        }
 
         $action = match($newStatus) {
             'in_progress' => $oldStatus === 'rejected' ? 'sent back for rework' : 'started',

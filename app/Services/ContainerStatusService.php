@@ -51,6 +51,27 @@ class ContainerStatusService
         $this->setStatus($container, self::IN_REPAIR);
     }
 
+    /**
+     * Leaving repair because a work order was cancelled or deleted.
+     *
+     * 'in_repair' is only justified while an open work order exists; without this
+     * the container stays in_repair with nothing left to close, and gate-out
+     * blocks it forever. Drops back to 'in_yard' rather than 'available' — an
+     * abandoned repair is not a completed one, so the box is not sound stock.
+     *
+     * @return bool true when the status was actually changed.
+     */
+    public function releaseFromRepairIfNoOpenWorkOrder(Container $container): bool
+    {
+        if ($container->status !== self::IN_REPAIR || $this->hasOpenWorkOrder($container)) {
+            return false;
+        }
+
+        $this->setStatus($container, self::IN_YARD);
+
+        return true;
+    }
+
     /** Persist a disposition change with the aging timestamps. */
     public function setStatus(Container $container, string $status): void
     {
