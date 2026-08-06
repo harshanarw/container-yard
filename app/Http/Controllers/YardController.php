@@ -279,29 +279,41 @@ class YardController extends Controller
             ]]);
         }
 
-        // Check 2: backdated Gate-In overlaps an existing stay (open or closed)
+        // Check 2: the proposed Gate-In falls inside a stay the container was still
+        // in. Compared on the movement timestamps, not on yard_storage's DATE
+        // columns: a container legitimately gated out at 09:00 can return at 15:00
+        // the same day, but must not be re-admitted at 09:00 when it did not leave
+        // until 15:00. Dates alone cannot tell those two apart.
         if ($existingContainer) {
-            $proposedDate = (auth()->user()->can('yard.backdate') && !empty($validated['gate_in_time']))
-                ? \Carbon\Carbon::parse($validated['gate_in_time'])->toDateString()
-                : today()->toDateString();
+            $proposedAt = (auth()->user()->can('yard.backdate') && !empty($validated['gate_in_time']))
+                ? \Carbon\Carbon::parse($validated['gate_in_time'])
+                : now();
 
-            $conflict = YardStorage::where('container_id', $existingContainer->id)
-                ->where('gate_in_date', '<=', $proposedDate)
-                ->where(function ($q) use ($proposedDate) {
-                    $q->whereNull('gate_out_date')
-                      ->orWhere('gate_out_date', '>', $proposedDate); // '>' not '>=' — same-day re-entry is valid
-                })
+            $priorIn = GateMovement::where('container_id', $existingContainer->id)
+                ->where('movement_type', 'in')
+                ->where('gate_in_time', '<=', $proposedAt)
+                ->latest('gate_in_time')
                 ->first();
 
-            if ($conflict) {
-                $from = $conflict->gate_in_date->format('d M Y');
-                $to   = $conflict->gate_out_date
-                    ? $conflict->gate_out_date->format('d M Y')
-                    : 'present';
-                return $this->validationResponse($request, ['gate_in_time' => [
-                    "The Gate-In date conflicts with an existing stay for this container "
-                    . "({$from} → {$to}). Adjust the date or gate out the existing record first."
-                ]]);
+            if ($priorIn) {
+                // The gate-out that closed that stay, if it has happened yet.
+                $closingOut = GateMovement::where('container_id', $existingContainer->id)
+                    ->where('movement_type', 'out')
+                    ->whereNotNull('gate_out_time')
+                    ->where('gate_out_time', '>=', $priorIn->gate_in_time)
+                    ->orderBy('gate_out_time')
+                    ->first();
+
+                // Still inside that stay at the proposed moment → overlap.
+                if (! $closingOut || $closingOut->gate_out_time->gt($proposedAt)) {
+                    $from = $priorIn->gate_in_time->format('d M Y H:i');
+                    $to   = $closingOut ? $closingOut->gate_out_time->format('d M Y H:i') : 'present';
+
+                    return $this->validationResponse($request, ['gate_in_time' => [
+                        "The Gate-In time falls inside an existing stay for this container "
+                        . "({$from} → {$to}). Adjust the time or gate out the existing record first."
+                    ]]);
+                }
             }
         }
         // ── End duplicate guard ──────────────────────────────────────────────
@@ -487,11 +499,14 @@ class YardController extends Controller
 
         // Create storage record — use actual gate-in date so billing calculations are correct
         YardStorage::create([
-            'container_id' => $container->id,
-            'customer_id'  => $validated['customer_id'],
-            'gate_in_date' => $gateInDate,
-            'free_days'    => $freeDays,
-            'daily_rate'   => $dailyRate,
+            'container_id'     => $container->id,
+            // Identifies THIS stay. gate_in_date alone cannot: a container gated out
+            // and back in on one date produces two rows sharing the date.
+            'gate_movement_id' => $movement->id,
+            'customer_id'      => $validated['customer_id'],
+            'gate_in_date'     => $gateInDate,
+            'free_days'        => $freeDays,
+            'daily_rate'       => $dailyRate,
         ]);
 
         // Auto-create a Yard Job and link this movement to it
@@ -1043,9 +1058,21 @@ class YardController extends Controller
         // (downgraded from block → warning above; if issued invoice exists it would
         // have remained a hard block and we would not reach this point).
         if ($movement->movement_type === 'in' && $movement->container_id && $movement->gate_in_time) {
-            YardStorage::where('container_id', $movement->container_id)
-                ->whereDate('gate_in_date', $movement->gate_in_time->toDateString())
-                ->delete();
+            $linked = YardStorage::where('gate_movement_id', $movement->id);
+
+            if ($linked->exists()) {
+                $linked->delete();
+            } else {
+                // Row predates the gate_movement_id link. Fall back to the date match,
+                // but only when this container has a single stay starting that date —
+                // otherwise we would delete the other stay's billing row too.
+                $sameDate = YardStorage::where('container_id', $movement->container_id)
+                    ->whereDate('gate_in_date', $movement->gate_in_time->toDateString());
+
+                if ($sameDate->count() === 1) {
+                    $sameDate->delete();
+                }
+            }
         }
 
         $movement->delete();

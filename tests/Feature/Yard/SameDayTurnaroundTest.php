@@ -16,9 +16,10 @@ use Tests\Support\FeatureTestCase;
  * returned the same afternoon), plus the same-date turnaround where a whole stay
  * opens and closes on one date.
  *
- * The yard_storage ledger keys stays by DATE, not datetime, so two stays sharing
- * a date are indistinguishable to any lookup that matches on gate_in_date. These
- * tests pin which operations survive that and which do not.
+ * yard_storage keys a stay by DATE, so two stays sharing a date used to be
+ * indistinguishable: the storage row now carries gate_movement_id, and the
+ * overlap guard compares movement timestamps rather than the DATE columns.
+ * Billing stays day-based — only the identity of a stay is exact.
  */
 class SameDayTurnaroundTest extends FeatureTestCase
 {
@@ -107,10 +108,10 @@ class SameDayTurnaroundTest extends FeatureTestCase
     {
         $this->actingAsSystemAdmin();
 
-        $this->gateIn('DAY01234567', '2026-06-10 06:00:00');
-        $this->gateOut('DAY01234567', '2026-06-10 17:00:00');
+        $this->gateIn('DAYA1234567', '2026-06-10 06:00:00');
+        $this->gateOut('DAYA1234567', '2026-06-10 17:00:00');
 
-        $storage = YardStorage::where('container_id', $this->container('DAY01234567')->id)->firstOrFail();
+        $storage = YardStorage::where('container_id', $this->container('DAYA1234567')->id)->firstOrFail();
 
         $this->assertSame('2026-06-10', $storage->gate_in_date->toDateString());
         $this->assertSame('2026-06-10', $storage->gate_out_date->toDateString());
@@ -118,9 +119,9 @@ class SameDayTurnaroundTest extends FeatureTestCase
     }
 
     /**
-     * Two stays that BOTH start on the same date. destroyMovement() clears the
-     * storage row by matching gate_in_date, which cannot tell the two apart —
-     * deleting one gate-in wipes the other stay's billing row too.
+     * Two stays that BOTH start on the same date. The cascade resolves the storage
+     * row through gate_movement_id, so deleting one gate-in leaves the other stay's
+     * billing row intact.
      */
     public function test_deleting_one_gate_in_must_not_delete_the_other_same_date_stays_storage(): void
     {
@@ -141,15 +142,14 @@ class SameDayTurnaroundTest extends FeatureTestCase
         $this->assertSame(
             1,
             YardStorage::where('container_id', $container->id)->count(),
-            'Deleting the first gate-in also deleted the second stay\'s storage row, '
-            . 'because the cascade matches on gate_in_date rather than the movement.'
+            'Deleting the first gate-in must leave the second stay\'s storage row intact.'
         );
     }
 
     /**
      * A backdated gate-in timed BEFORE the same day's gate-out overlaps a stay the
-     * container was still inside. The overlap guard compares dates only, so the
-     * earlier time slips through.
+     * container was still inside. Comparing timestamps catches it, where comparing
+     * dates could not — the same date carries both the departure and the return.
      */
     public function test_a_gate_in_backdated_before_the_same_day_gate_out_is_rejected(): void
     {

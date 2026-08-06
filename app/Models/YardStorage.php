@@ -12,7 +12,7 @@ class YardStorage extends Model
     protected $table = 'yard_storage';
 
     protected $fillable = [
-        'container_id', 'customer_id', 'yard_job_id', 'gate_in_date', 'gate_out_date',
+        'container_id', 'gate_movement_id', 'customer_id', 'yard_job_id', 'gate_in_date', 'gate_out_date',
         'total_days', 'free_days', 'chargeable_days', 'daily_rate', 'qty',
         'subtotal', 'tax_percentage', 'tax_amount', 'total_charge', 'tariff_tier',
         'hire_type', 'hire_id', 'effective_gate_in_date',
