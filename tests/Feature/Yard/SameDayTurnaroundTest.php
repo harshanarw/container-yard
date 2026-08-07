@@ -119,31 +119,57 @@ class SameDayTurnaroundTest extends FeatureTestCase
     }
 
     /**
-     * Two stays that BOTH start on the same date. The cascade resolves the storage
-     * row through gate_movement_id, so deleting one gate-in leaves the other stay's
-     * billing row intact.
+     * Two stays that BOTH start on the same date, then the still-open second stay
+     * is deleted. Only the open gate-in is deletable — an earlier one is refused
+     * while its paired gate-out exists — so this is the reachable path, and the
+     * one that used to take the first stay's completed billing row with it.
+     *
+     * The cascade resolves the row through gate_movement_id, so the closed stay
+     * survives.
      */
-    public function test_deleting_one_gate_in_must_not_delete_the_other_same_date_stays_storage(): void
+    public function test_deleting_the_open_gate_in_keeps_the_earlier_same_date_stays_storage(): void
     {
         $this->actingAsSystemAdmin();
 
         $this->gateIn('TURN1234567', '2026-06-10 06:00:00');
-        $this->gateOut('TURN1234567', '2026-06-10 09:00:00');
-        $this->gateIn('TURN1234567', '2026-06-10 15:00:00');
+        $this->gateOut('TURN1234567', '2026-06-10 09:00:00');   // closes stay 1
+        $this->gateIn('TURN1234567', '2026-06-10 15:00:00');    // opens stay 2, same date
 
         $container = $this->container('TURN1234567');
         $this->assertCount(2, YardStorage::where('container_id', $container->id)->get());
 
-        $firstIn = GateMovement::where('container_no', 'TURN1234567')
+        $openIn = GateMovement::where('container_no', 'TURN1234567')
+            ->where('movement_type', 'in')->latest('gate_in_time')->firstOrFail();
+
+        $this->delete(route('yard.movements.destroy', $openIn));
+
+        $rows = YardStorage::where('container_id', $container->id)->get();
+
+        $this->assertCount(1, $rows,
+            'Deleting the open gate-in must remove only its own storage row.');
+        $this->assertNotNull($rows->first()->gate_out_date,
+            'The surviving row must be the completed first stay, not the deleted one.');
+        $this->assertSame('2026-06-10', $rows->first()->gate_out_date->toDateString());
+    }
+
+    /** An earlier gate-in cannot be deleted while its paired gate-out still exists. */
+    public function test_a_gate_in_with_a_paired_gate_out_cannot_be_deleted(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $this->gateIn('PAIR1234567', '2026-06-10 06:00:00');
+        $this->gateOut('PAIR1234567', '2026-06-10 09:00:00');
+
+        $container = $this->container('PAIR1234567');
+        $firstIn   = GateMovement::where('container_no', 'PAIR1234567')
             ->where('movement_type', 'in')->orderBy('gate_in_time')->firstOrFail();
 
-        $this->delete(route('yard.movements.destroy', $firstIn));
+        $this->from(route('yard.gate'))
+            ->delete(route('yard.movements.destroy', $firstIn))
+            ->assertSessionHas('error');
 
-        $this->assertSame(
-            1,
-            YardStorage::where('container_id', $container->id)->count(),
-            'Deleting the first gate-in must leave the second stay\'s storage row intact.'
-        );
+        $this->assertDatabaseHas('gate_movements', ['id' => $firstIn->id]);
+        $this->assertSame(1, YardStorage::where('container_id', $container->id)->count());
     }
 
     /**
