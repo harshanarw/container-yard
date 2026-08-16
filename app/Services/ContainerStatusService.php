@@ -34,6 +34,30 @@ class ContainerStatusService
     }
 
     /**
+     * The repair chain has finished — the box is physically sound again.
+     *
+     * `containers.condition` is written at gate-in and, until now, never again:
+     * a container that arrived 'damaged', was repaired and passed QC still read
+     * 'damaged' everywhere the column is shown or filtered on. That is the
+     * arrival snapshot outliving the fact it described.
+     *
+     * Call this only once no work order is left open — a QC pass on one repair
+     * category says nothing about the ones still running.
+     *
+     * @return bool true when the condition was actually changed.
+     */
+    public function markConditionSound(Container $container): bool
+    {
+        if ($container->condition === 'sound') {
+            return false;
+        }
+
+        $container->forceFill(['condition' => 'sound'])->save();
+
+        return true;
+    }
+
+    /**
      * True while the container still has a work order that is not closed/cancelled.
      * Used to avoid marking a container available before ALL its repairs are done
      * (a container/estimate can carry several work orders across repair categories).

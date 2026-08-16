@@ -73,7 +73,7 @@
                 <div>{{ $container->size ? $container->size . 'ft' : '—' }} {{ $container->type_code ?? '' }}</div>
             </div>
             <div class="col-6 col-md-3 col-lg-2">
-                <div class="text-muted small">Condition</div>
+                <div class="text-muted small">Current Condition</div>
                 <div>{{ ucfirst(str_replace('_', ' ', $container->condition ?? '—')) }}</div>
             </div>
             @if($container->owner_code || $container->owner_name)
@@ -590,7 +590,7 @@
                                 <div class="row g-1" style="font-size:.8rem">
                                     <div class="col-6"><span class="text-muted">Customer:</span>
                                         <span class="ms-1">{{ optional($gateIn->customer)->name ?? '—' }}</span></div>
-                                    <div class="col-6"><span class="text-muted">Condition:</span>
+                                    <div class="col-6"><span class="text-muted">On arrival:</span>
                                         <span class="ms-1">{{ ucfirst(str_replace('_',' ', $gateIn->condition ?? '—')) }}</span></div>
                                     <div class="col-6"><span class="text-muted">Cargo:</span>
                                         <span class="ms-1">{{ ucfirst($gateIn->cargo_status ?? '—') }}</span></div>

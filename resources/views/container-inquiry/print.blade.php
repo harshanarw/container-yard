@@ -102,7 +102,7 @@
     </div>
     @if($container->condition)
     <div class="info-item">
-        <label>Condition</label>
+        <label>Current Condition</label>
         <span>{{ ucfirst(str_replace('_', ' ', $container->condition)) }}</span>
     </div>
     @endif
@@ -336,7 +336,7 @@
             <div class="gate-box in">
                 <h4 class="in">Gate In &mdash; {{ $gateIn->gate_in_time?->format('d M Y H:i') ?? '&mdash;' }}</h4>
                 <div class="field-row"><span class="field-label">Customer:</span><span>{{ optional($gateIn->customer)->name ?? '&mdash;' }}</span></div>
-                <div class="field-row"><span class="field-label">Condition:</span><span>{{ ucfirst(str_replace('_', ' ', $gateIn->condition ?? '&mdash;')) }}</span></div>
+                <div class="field-row"><span class="field-label">On arrival:</span><span>{{ ucfirst(str_replace('_', ' ', $gateIn->condition ?? '&mdash;')) }}</span></div>
                 <div class="field-row"><span class="field-label">Cargo:</span><span>{{ ucfirst($gateIn->cargo_status ?? '&mdash;') }}</span></div>
                 <div class="field-row"><span class="field-label">Size:</span><span>{{ $gateIn->size ? $gateIn->size . 'ft' : '&mdash;' }}</span></div>
                 @if($gateIn->seal_no)

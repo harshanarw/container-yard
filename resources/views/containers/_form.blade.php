@@ -406,7 +406,7 @@
                             @else —
                             @endif
                         </dd>
-                        <dt class="col-6 text-muted fw-normal">Condition</dt>
+                        <dt class="col-6 text-muted fw-normal">Current Condition</dt>
                         <dd class="col-6">{{ ucfirst(str_replace('_',' ',$container->condition ?? '')) ?: '—' }}</dd>
                         <dt class="col-6 text-muted fw-normal">Cargo</dt>
                         <dd class="col-6">{{ $container->cargo_status === 'empty' ? 'Empty' : ($container->cargo_status ? 'Laden' : '—') }}</dd>

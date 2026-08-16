@@ -446,6 +446,10 @@ class WorkOrderController extends Controller
             $svc = app(\App\Services\ContainerStatusService::class);
             if (!$svc->hasOpenWorkOrder($workOrder->container)) {
                 $svc->markAvailable($workOrder->container);
+                // The repair is finished, so the arrival condition no longer
+                // describes the box — without this it keeps reading 'damaged'
+                // on every screen and report that shows the column.
+                $svc->markConditionSound($workOrder->container);
             }
         }
 
