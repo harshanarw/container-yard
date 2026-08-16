@@ -160,7 +160,7 @@ preceded it.
  6. work order in_progress ................................... repair_in_progress | wash_in_progress
  7. work order completed ..................................... awaiting_qc
  8. work order pending ....................................... repair_scheduled | wash_scheduled
- 9. estimate approved / partially_approved, no live WO ....... estimate_approved
+ 9. estimate approved/partially_approved, no WO has run ...... estimate_approved
 10. latest estimate rejected ................................. estimate_rejected
 11. estimate sent / under_review, or inquiry estimate_sent ... estimate_sent
 12. estimate draft, or survey recommends repair & no estimate  estimate_pending
@@ -178,6 +178,19 @@ preceded it.
 PTI sits at 18 deliberately. A reefer mid-repair should read *repair in
 progress*, not *PTI due* — but an expired PTI still suppresses export readiness
 and still shows as a chip, so nothing is lost by ranking it low.
+
+Rung 9's guard is "no work order has **run**", not "none is **live**". An
+earlier draft said the latter, which would have left every repaired container
+reading *Approved — awaiting work order* forever, because a closed work order is
+not a live one — rung 14 could never be reached with an approved estimate in the
+cycle, which is the normal case. Work orders that were all *cancelled* still land
+on rung 9: the work was approved and still needs raising.
+
+Rungs 5, 7 and 14 share one stored code across both lanes (`repair_on_hold`,
+`awaiting_qc`, `qc_failed`) so that filters and reports stay simple, and the
+*label* follows the lane — a wash on hold reads "Wash on hold". Rungs 6, 8 and
+14's ready state have distinct codes because the catalogue already gives them
+one.
 
 ### 2.4 Export readiness
 
@@ -329,9 +342,14 @@ nothing in the repair chain ever writes back to `containers.condition`, so a
 repaired container still prints "damaged". Anyone screening for export on that
 column today is being misled — worth fixing whether or not the rest ships.
 
-- `WorkOrderController::qc()` — on QC pass with no remaining open WO, set
+- `WorkOrderController::submitQc()` — on QC pass with no remaining open WO, set
   `containers.condition = sound` via `ContainerStatusService`.
-- Relabel the detail-view field to **Condition on arrival**.
+- Relabel the two readings of "condition" so they stop competing. The write-back
+  makes `containers.condition` **current** state, so it reads *Current
+  Condition*; the field that genuinely is the arrival snapshot is the per-cycle
+  `gate_movements.condition`, which reads *On arrival*. (An earlier draft of this
+  plan said to label the container-level field "Condition on arrival" — that
+  would have been made wrong by the write-back in the bullet above.)
 - Backfill command for the historical rows.
 - **Files:** `WorkOrderController`, `ContainerStatusService`,
   `container-inquiry/show.blade.php`, `containers/show.blade.php`,
