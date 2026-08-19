@@ -130,10 +130,36 @@
                     <option value="released"  {{ request('status')=='released' ?'selected':'' }}>Released</option>
                 </select>
             </div>
+            <div class="col-6 col-md-3">
+                <select name="mr_status" class="form-select form-select-sm">
+                    <option value="">All M&amp;R statuses</option>
+                    @foreach($mrStatusesByLane as $lane => $codes)
+                        <optgroup label="{{ \App\Support\MrStatusCatalogue::laneLabel($lane === 'general' ? null : $lane) }}">
+                            @foreach($codes as $code => $label)
+                                <option value="{{ $code }}" {{ request('mr_status') === $code ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="mr_status_group" class="form-select form-select-sm">
+                    <option value="">Any M&amp;R stage</option>
+                    @foreach($mrStatusGroups as $key => $label)
+                        <option value="{{ $key }}" {{ request('mr_status_group') === $key ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div class="col-auto">
                 <div class="form-check form-check-sm mt-3">
                     <input type="checkbox" class="form-check-input" id="heldChk" name="held" value="1" {{ request()->boolean('held') ? 'checked' : '' }}>
                     <label class="form-check-label small" for="heldChk">On hold only</label>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="form-check form-check-sm mt-3">
+                    <input type="checkbox" class="form-check-input" id="exportReadyChk" name="export_ready" value="1" {{ request()->boolean('export_ready') ? 'checked' : '' }}>
+                    <label class="form-check-label small" for="exportReadyChk">Export ready only</label>
                 </div>
             </div>
             <div class="col-auto d-flex gap-1">
@@ -158,6 +184,7 @@
                         <th>Owner / Lessor</th>
                         <th>Customer</th>
                         <th>Status</th>
+                        <th>M&amp;R Status</th>
                         <th>Location</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -216,6 +243,26 @@
                         <span class="badge bg-danger" title="On hold"><i class="bi bi-hand-index-thumb"></i></span>
                         @endif
                     </td>
+                    <td>
+                        {{-- Two columns, two questions: Status is *where* the box
+                             is, M&R Status is *what it is waiting on*. --}}
+                        @if($c->mr_status)
+                            <span class="badge {{ \App\Support\MrStatusCatalogue::badgeClass($c->mr_status) }}" style="font-size:.7rem">
+                                {{ \App\Support\MrStatusCatalogue::label($c->mr_status, $c->mr_lane) }}
+                            </span>
+                            @if($c->export_ready && ! $c->mrStatusHasExpired())
+                                <span class="badge bg-success-subtle text-success border" style="font-size:.6rem" title="Free to leave on an export booking">
+                                    <i class="bi bi-check2"></i>
+                                </span>
+                            @elseif($c->mrStatusHasExpired())
+                                <span class="badge bg-warning-subtle text-warning border" style="font-size:.6rem" title="The PTI this status relied on has expired">
+                                    PTI
+                                </span>
+                            @endif
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
                     <td class="small text-muted">
                         @if($c->location_zone)
                             {{ $c->location_zone }}-{{ $c->location_row }}{{ $c->location_bay }}-T{{ $c->location_tier }}
@@ -234,7 +281,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="text-center text-muted py-4">No containers found.</td>
+                    <td colspan="10" class="text-center text-muted py-4">No containers found.</td>
                 </tr>
                 @endforelse
                 </tbody>

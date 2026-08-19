@@ -71,7 +71,11 @@ class ContainerHireController extends Controller
             ->whereDoesntHave('activeHire')
             ->with('customer')
             ->orderBy('container_no')
-            ->get(['id', 'container_no', 'customer_id', 'size', 'type_code']);
+            // Shown, not filtered: a box may legitimately go on hire before it
+            // is export ready. The status rides along so the operator picks with
+            // their eyes open.
+            ->get(['id', 'container_no', 'customer_id', 'size', 'type_code',
+                   'mr_status', 'mr_lane', 'export_ready', 'mr_status_expires_at']);
 
         $customers = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name']);
 

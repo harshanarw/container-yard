@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Container;
 use App\Models\ContainerBooking;
 use App\Models\ContainerBookingLine;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -82,6 +83,20 @@ class BookingService
             ->where('size', $line->size)
             ->where('type_code', $line->type_code)
             ->when($line->grade_id, fn ($q) => $q->where('grade_id', $line->grade_id))
+            // Prefer export-ready stock, then FIFO within it.
+            //
+            // Deliberately a preference, not a filter. Excluding non-ready boxes
+            // outright would be a behaviour change that can leave a booking
+            // unfillable — a container marked available whose chain resolves to
+            // something outside the 'ready' group is still legitimately
+            // allocatable today. Ordering can only change *which* containers are
+            // picked, never how many, so this cannot break an existing flow.
+            // ContainerBookingController::allocate warns when the operator ends
+            // up with one that is not releasable.
+            ->orderByRaw(
+                '(export_ready = 1 AND (mr_status_expires_at IS NULL OR mr_status_expires_at >= ?)) DESC',
+                [Carbon::today()->toDateString()]
+            )
             ->orderBy('available_since') // FIFO — clear the oldest stock first
             ->limit($need)
             ->get();

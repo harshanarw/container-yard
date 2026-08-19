@@ -699,9 +699,18 @@ class YardController extends Controller
                     // (available) or booked (reserved). An 'in_repair' box must finish
                     // repair first; 'released' has already left.
                     if ($c && !in_array($c->status, ['in_yard', 'available', 'reserved'], true)) {
-                        $reason = $c->status === 'in_repair'
-                            ? 'it is under repair — complete or close the work order first'
-                            : "its status is '{$c->status}'";
+                        if ($c->status === 'in_repair') {
+                            // Name the work order and the stage it is stuck at —
+                            // "under repair" alone tells someone at the gate
+                            // nothing about what to chase. The rule is unchanged;
+                            // only the message is more specific.
+                            $detail = app(\App\Services\ContainerMrStatusService::class)->repairBlockDetail($c);
+                            $reason = $detail
+                                ? "it is under repair ({$detail}) — complete or close the work order first"
+                                : 'it is under repair — complete or close the work order first';
+                        } else {
+                            $reason = "its status is '{$c->status}'";
+                        }
                         $fail("Container {$val} cannot be gated out: {$reason}.");
                     }
                 },
@@ -1830,9 +1839,14 @@ class YardController extends Controller
         // validation so the form can warn at selection time instead of on save.
         $releaseBlock = null;
         if (! in_array($container->status, ['in_yard', 'available', 'reserved'], true)) {
-            $releaseBlock = $container->status === 'in_repair'
-                ? 'It is under repair — complete or close the work order first.'
-                : "Its status is '{$container->status}'.";
+            if ($container->status === 'in_repair') {
+                $detail = app(\App\Services\ContainerMrStatusService::class)->repairBlockDetail($container);
+                $releaseBlock = $detail
+                    ? "It is under repair ({$detail}) — complete or close the work order first."
+                    : 'It is under repair — complete or close the work order first.';
+            } else {
+                $releaseBlock = "Its status is '{$container->status}'.";
+            }
         } elseif ($container->activeHire) {
             $releaseBlock = 'It is currently on hire — complete or cancel the hire before gating out.';
         } elseif ($container->isHeld()) {
@@ -1853,6 +1867,13 @@ class YardController extends Controller
                 : ($container->size . "' " . $container->type_code),
             'customer'         => $container->customer?->name ?? '—',
             'condition'        => $container->condition,
+            // What the box is waiting on, so the gate form can show it beside
+            // the disposition rather than making the operator infer it.
+            'mr_status'        => $container->mr_status,
+            'mr_status_label'  => $container->mr_status
+                ? \App\Support\MrStatusCatalogue::label($container->mr_status, $container->mr_lane)
+                : null,
+            'export_ready'     => (bool) $container->export_ready && ! $container->mrStatusHasExpired(),
             'cargo_status'     => $container->cargo_status,
             'location'         => implode(' ', array_filter([
                 $container->location_zone ? 'Zone ' . $container->location_zone : null,

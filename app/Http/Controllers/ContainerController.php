@@ -10,6 +10,7 @@ use App\Models\EquipmentType;
 use App\Models\YardLocation;
 use App\Services\ContainerStatusService;
 use App\Services\HoldService;
+use App\Support\MrStatusCatalogue;
 use Illuminate\Http\Request;
 
 class ContainerController extends Controller
@@ -36,11 +37,19 @@ class ContainerController extends Controller
             ->when($request->status,   fn ($q, $v) => $q->where('status', $v))
             ->when($request->size,     fn ($q, $v) => $q->where('size', $v))
             ->when($request->boolean('held'), fn ($q) => $q->held())
+            // M&R status — indexed columns, so these cost no more than the
+            // disposition filter beside them.
+            ->when($request->mr_status,       fn ($q, $v) => $q->where('mr_status', $v))
+            ->when($request->mr_status_group, fn ($q, $v) => $q->where('mr_status_group', $v))
+            ->when($request->boolean('export_ready'), fn ($q) => $q->exportReady())
             ->orderBy('container_no')
             ->paginate(25)
             ->withQueryString();
 
-        return view('containers.index', compact('containers'));
+        $mrStatusesByLane = MrStatusCatalogue::codesByLane();
+        $mrStatusGroups   = MrStatusCatalogue::groups();
+
+        return view('containers.index', compact('containers', 'mrStatusesByLane', 'mrStatusGroups'));
     }
 
     public function create()
@@ -78,27 +87,50 @@ class ContainerController extends Controller
 
         $rows = Container::available()
             ->with(['grade', 'equipmentType'])
+            ->withCount(['holds as active_holds_count' => fn ($q) => $q->whereNull('cleared_at')])
             ->get()
             ->groupBy(fn ($c) => $c->size . ' ' . $c->type_code . ' · ' . ($c->grade->code ?? 'Ungraded'))
             ->map(function ($items, $label) use ($now) {
                 $days = $items->map(fn ($c) => $c->available_since ? (int) $c->available_since->diffInDays($now) : 0);
 
+                // 'available' is a disposition; export-ready is a verdict about
+                // whether the box may actually leave. They come apart — a held
+                // container, or a reefer whose PTI lapsed, sits in available
+                // stock and cannot be shipped. Operators reconcile that gap by
+                // eye today; this counts it.
+                $ready = $items->filter(fn ($c) => $c->export_ready && ! $c->mrStatusHasExpired());
+
                 return [
-                    'label'    => $label,
-                    'count'    => $items->count(),
-                    'fresh'    => $days->filter(fn ($d) => $d <= 7)->count(),
-                    'aging'    => $days->filter(fn ($d) => $d > 7 && $d <= 30)->count(),
-                    'stale'    => $days->filter(fn ($d) => $d > 30)->count(),
-                    'avg_days' => (int) round($days->avg() ?? 0),
-                    'max_days' => (int) ($days->max() ?? 0),
+                    'label'      => $label,
+                    'count'      => $items->count(),
+                    'ready'      => $ready->count(),
+                    'not_ready'  => $items->count() - $ready->count(),
+                    'held'       => $items->filter(fn ($c) => ($c->active_holds_count ?? 0) > 0)->count(),
+                    'pti_lapsed' => $items->filter(fn ($c) => $c->mrStatusHasExpired())->count(),
+                    'fresh'      => $days->filter(fn ($d) => $d <= 7)->count(),
+                    'aging'      => $days->filter(fn ($d) => $d > 7 && $d <= 30)->count(),
+                    'stale'      => $days->filter(fn ($d) => $d > 30)->count(),
+                    'avg_days'   => (int) round($days->avg() ?? 0),
+                    'max_days'   => (int) ($days->max() ?? 0),
                 ];
             })
             ->sortByDesc('count')
             ->values();
 
-        $total = (int) $rows->sum('count');
+        $total      = (int) $rows->sum('count');
+        $totalReady = (int) $rows->sum('ready');
 
-        return view('containers.available-stock', compact('rows', 'total'));
+        // The containers behind the gap, so it can be acted on rather than just
+        // counted. Capped — this is a prompt to go and look, not a work queue.
+        $notReady = Container::available()
+            ->where(fn ($q) => $q->where('export_ready', false)->orWhere(fn ($s) => $s->statusExpired()))
+            ->with('grade')
+            ->withCount(['holds as active_holds_count' => fn ($q) => $q->whereNull('cleared_at')])
+            ->orderBy('container_no')
+            ->limit(50)
+            ->get();
+
+        return view('containers.available-stock', compact('rows', 'total', 'totalReady', 'notReady'));
     }
 
     /** Place a hold on a container (blocks allocation and gate-out until cleared). */

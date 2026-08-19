@@ -93,9 +93,19 @@ class ContainerBookingController extends Controller
         $containerBooking->load(['customer', 'lines.grade', 'lines.containers.equipmentType', 'createdBy']);
 
         // Available stock the operator can allocate, grouped for the pickers.
+        // Export-ready stock first, so the safe choice is the top of the list —
+        // but non-ready boxes stay selectable, with their status shown, rather
+        // than silently disappearing from the picker.
         $available = Container::available()->with('grade')
+            ->orderByRaw(
+                '(export_ready = 1 AND (mr_status_expires_at IS NULL OR mr_status_expires_at >= ?)) DESC',
+                [\Illuminate\Support\Carbon::today()->toDateString()]
+            )
             ->orderBy('available_since')
-            ->get(['id', 'container_no', 'size', 'type_code', 'grade_id', 'available_since']);
+            ->get([
+                'id', 'container_no', 'size', 'type_code', 'grade_id', 'available_since',
+                'mr_status', 'mr_lane', 'export_ready', 'mr_status_expires_at',
+            ]);
 
         return view('container-bookings.show', compact('containerBooking', 'available'));
     }
@@ -110,11 +120,21 @@ class ContainerBookingController extends Controller
 
         $line = $containerBooking->lines()->findOrFail($validated['line_id']);
 
-        $done = 0;
+        $done      = 0;
+        $notReady  = [];
+
         try {
             foreach ($validated['container_ids'] as $cid) {
                 $container = Container::find($cid);
                 if ($container) {
+                    // Recorded before allocating: allocation flips the status to
+                    // 'reserved', which takes the container out of the 'ready'
+                    // group and would make every allocation look like an
+                    // override.
+                    if (! $container->export_ready || $container->mrStatusHasExpired()) {
+                        $notReady[] = $container->container_no;
+                    }
+
                     $this->bookings->allocate($line, $container);
                     $done++;
                 }
@@ -123,7 +143,21 @@ class ContainerBookingController extends Controller
             return back()->with('error', $e->getMessage() . ($done ? " ({$done} allocated before the error.)" : ''));
         }
 
-        return back()->with('success', "{$done} container(s) reserved to {$line->label}.");
+        $message = "{$done} container(s) reserved to {$line->label}.";
+
+        // Warn rather than refuse. An operator may have a good reason to hold a
+        // box against a booking before it is releasable — the point is that they
+        // should know, not be stopped.
+        if ($notReady) {
+            return back()
+                ->with('success', $message)
+                ->with('warning', count($notReady) . ' of these are not export ready ('
+                    . implode(', ', array_slice($notReady, 0, 5))
+                    . (count($notReady) > 5 ? ', …' : '')
+                    . '). They cannot be gated out until that is resolved.');
+        }
+
+        return back()->with('success', $message);
     }
 
     public function autoAllocate(Request $request, ContainerBooking $containerBooking, ContainerBookingLine $line)

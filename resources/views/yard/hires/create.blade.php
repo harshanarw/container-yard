@@ -46,6 +46,8 @@
                             {{ $c->container_no }}
                             ({{ $c->size }}ft {{ $c->type_code }})
                             — {{ $c->customer->name ?? 'No Owner' }}
+                            @if($c->mr_status) · {{ \App\Support\MrStatusCatalogue::label($c->mr_status, $c->mr_lane) }}@endif
+                            @unless($c->export_ready && ! $c->mrStatusHasExpired()) ⚠@endunless
                         </option>
                     @endforeach
                 </select>

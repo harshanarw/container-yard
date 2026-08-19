@@ -89,13 +89,21 @@
                 <input type="hidden" name="line_id" value="{{ $line->id }}">
                 <div class="row g-1 mb-2">
                     @foreach($matching as $c)
+                    @php $ready = $c->export_ready && ! $c->mrStatusHasExpired(); @endphp
                     <div class="col-md-3 col-6">
-                        <label class="d-flex align-items-center gap-1 small border rounded px-2 py-1">
+                        <label class="d-flex align-items-center gap-1 small border rounded px-2 py-1 {{ $ready ? '' : 'border-warning bg-warning-subtle' }}">
                             <input type="checkbox" name="container_ids[]" value="{{ $c->id }}" class="form-check-input mt-0">
                             <span class="font-monospace">{{ $c->container_no }}</span>
                             @if($line->grade_id && $c->grade_id !== $line->grade_id)
                                 <i class="bi bi-exclamation-triangle text-warning" title="Grade differs from the booking line"></i>
                             @endif
+                            {{-- Not filtered out — an operator may have a reason
+                                 to hold a box against a booking before it is
+                                 releasable. They just should not do it unaware. --}}
+                            @unless($ready)
+                                <i class="bi bi-slash-circle text-warning ms-auto"
+                                   title="Not export ready{{ $c->mr_status ? ' — ' . \App\Support\MrStatusCatalogue::label($c->mr_status, $c->mr_lane) : '' }}{{ $c->mrStatusHasExpired() ? ' (PTI expired)' : '' }}"></i>
+                            @endunless
                         </label>
                     </div>
                     @endforeach

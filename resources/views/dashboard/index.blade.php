@@ -148,6 +148,39 @@
 
 </div>
 
+<!-- ── M&R status roll-up ──────────────────────────────────────────────────
+     "Pending Repairs" above counts the in_repair disposition: it says a work
+     order is open, not what it is waiting on. Twelve boxes stuck awaiting QC
+     and twelve mid-repair are the same number there, and very different
+     problems. This breaks the yard down by what each stage is blocked on. -->
+<div class="card content-card mb-4">
+    <div class="card-body py-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <div class="fw-semibold small text-muted">
+                <i class="bi bi-clipboard-pulse me-1"></i>M&amp;R Status — containers in the yard
+            </div>
+            <a href="{{ route('containers.index', ['export_ready' => 1]) }}"
+               class="badge bg-success-subtle text-success border text-decoration-none">
+                <i class="bi bi-check2-circle me-1"></i>{{ number_format($exportReadyCount) }} export ready
+            </a>
+        </div>
+        <div class="row g-2">
+            @foreach($mrRollup as $key => $group)
+            <div class="col-6 col-md-4 col-xl-2">
+                <a href="{{ route('containers.index', ['mr_status_group' => $key]) }}"
+                   class="d-block text-decoration-none border rounded-3 py-2 px-3 h-100 {{ $group['count'] > 0 ? '' : 'opacity-50' }}">
+                    <div class="text-muted" style="font-size:.72rem">{{ $group['label'] }}</div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge {{ $group['badge'] }}" style="width:.6rem;height:.6rem;padding:0"></span>
+                        <span class="fs-5 fw-bold font-monospace">{{ number_format($group['count']) }}</span>
+                    </div>
+                </a>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
 <!-- ── Secondary KPIs + File Storage ── -->
 @php $hasStorage = isset($storageUsage); @endphp
 <div class="row g-3 mb-4">

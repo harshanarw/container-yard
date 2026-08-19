@@ -27,7 +27,10 @@ class LessorOnHireController extends Controller
         $this->authorize('yard.lessor-hire.create');
 
         $containers = Container::whereIn('status', ['in_yard', 'available'])
-            ->orderBy('container_no')->get(['id', 'container_no', 'size', 'type_code']);
+            ->orderBy('container_no')
+            // Shown, not filtered — see ContainerHireController::create.
+            ->get(['id', 'container_no', 'size', 'type_code',
+                   'mr_status', 'mr_lane', 'export_ready', 'mr_status_expires_at']);
         // Lessors are AP contacts (the yard pays them for the hire).
         $lessors = Customer::apContacts()->get(['id', 'code', 'name']);
 

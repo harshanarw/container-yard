@@ -449,6 +449,36 @@ class ContainerMrStatusService
         return false;
     }
 
+    /**
+     * Why repair is holding this container, in terms an operator can act on.
+     *
+     * The gate-out block used to say only "it is under repair — complete or
+     * close the work order first", which tells someone standing at the gate
+     * nothing about *what* to chase. This names the work order and the stage it
+     * is stuck at.
+     *
+     * Returns null when no open work order explains it — the container is then
+     * stranded at in_repair with nothing to close, which is what
+     * containers:fix-repair-status exists for, and the caller should keep its
+     * existing wording.
+     */
+    public function repairBlockDetail(Container $container): ?string
+    {
+        $wo = WorkOrder::where('container_id', $container->id)
+            ->whereNotIn('status', ['closed', 'cancelled'])
+            ->orderByRaw("FIELD(status, 'rejected', 'on_hold', 'in_progress', 'completed', 'pending')")
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $wo) {
+            return null;
+        }
+
+        $status = $this->forContainer($container);
+
+        return "{$wo->wo_no} — {$status->label()}";
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Query predicates — so filters and the resolver never drift apart
     // ─────────────────────────────────────────────────────────────────────────

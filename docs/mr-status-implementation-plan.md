@@ -530,8 +530,47 @@ cycle row (§3.2) or every wash would have read as a repair on the list.
 | `containers/available-stock` | Export-ready badge; flag rows that are `available` but not export-ready (the reconciliation operators currently do by eye) |
 | Dashboard | Replace `pending_repairs` (a raw `in_repair` count) with a group roll-up: pending / in progress / blocked / ready |
 | Gate-out releasability (`YardController`) | Include the M&R status in the existing block reason — "in repair" becomes "awaiting QC on WO-00123" |
-| Booking allocation (`BookingService`, `ContainerBookingController`) | Filter on `export_ready`; warn when overridden |
-| Hire / lessor on-hire / cargo-transfer pickers | Same `export_ready` filter |
+| Booking allocation (`BookingService`, `ContainerBookingController`) | **Prefer** `export_ready`, warn when overridden — see below |
+| Hire / lessor on-hire pickers | Status shown on each option; **not** filtered |
+
+**The allocation change is a preference, not a filter — deliberately.**
+
+The plan said "filter on `export_ready`". Building it, that turned out to be
+unsafe. `export_ready` requires the status to be in the `ready` group, and a
+container can sit legitimately at `available` while its chain resolves to
+something else — `awaiting_disposition`, for instance, when it was marked
+available by hand or arrived on a plain handling job type. Excluding those
+outright would have been a silent behaviour change that can leave a booking
+unfillable with stock physically sitting in the yard.
+
+So instead:
+
+- `BookingService::autoAllocate` **orders** by export-ready first, then FIFO.
+  Ordering can change *which* containers are picked, never *how many*, so it
+  cannot break an existing flow.
+- The manual picker keeps every candidate selectable, marks the non-ready ones,
+  and puts the releasable stock at the top.
+- `ContainerBookingController::allocate` raises a `warning` flash naming the
+  containers that are not releasable. An operator may have a good reason to hold
+  a box against a booking early; the point is that they know, not that they are
+  stopped. (Checked that the layout renders `session('warning')` — a warning
+  nobody sees would be worse than none.)
+- The hire and lessor pickers show the status on each option rather than
+  filtering: a box may legitimately go on hire before it is export ready.
+
+Cargo transfer was left alone — its substitute-container flow has its own
+guards, and readiness is not the constraint there.
+
+**Gate-out is a wording change only.** The rule is untouched: an `in_repair`
+container is still blocked. The message now names the work order and the stage
+it is stuck at — *"under repair (WO-00123 — Awaiting QC)"* — because "under
+repair" alone tells someone standing at the gate nothing to chase. A container
+stranded at `in_repair` with no open work order keeps the old wording, since
+there is nothing to name.
+
+**The dashboard keeps `pending_repairs`.** The existing tile is unchanged; the
+roll-up is added beside it. Replacing the tile outright would have been a
+gratuitous change to a screen people read every morning.
 
 ### Phase 5 — Reports
 

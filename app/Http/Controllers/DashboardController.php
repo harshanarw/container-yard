@@ -12,6 +12,7 @@ use App\Models\GateMovement;
 use App\Models\Inquiry;
 use App\Models\StorageZone;
 use App\Models\YardLocation;
+use App\Support\MrStatusCatalogue;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -29,6 +30,8 @@ class DashboardController extends Controller
             'available_empties' => Container::where('status', 'available')->count(),
             'available_slots'   => YardLocation::where('status', 'empty')->count(),
             'total_capacity'    => YardLocation::count(),
+            // Kept for the existing tile; the roll-up below is what actually
+            // answers "what is the yard waiting on".
             'pending_repairs'   => Container::where('status', 'in_repair')->count(),
             'open_inquiries'    => Inquiry::whereIn('status', ['open', 'in_progress'])->count(),
             'customers'         => Customer::where('status', 'active')->count(),
@@ -41,6 +44,35 @@ class DashboardController extends Controller
             'pending_estimates' => Estimate::where('status', 'draft')->count(),
             'unallocated'       => Container::whereIn('status', ['in_yard', 'available'])->whereNull('location_row')->count(),
         ];
+
+        // M&R roll-up — one grouped query over the projection, for containers
+        // physically in the yard.
+        //
+        // 'pending_repairs' above counts the in_repair disposition, which says a
+        // work order is open but not what it is waiting on. Twelve boxes stuck
+        // awaiting QC and twelve mid-repair are the same number there and very
+        // different problems.
+        $mrCounts = Container::whereIn('status', Container::IN_YARD_STATUSES)
+            ->whereNotNull('mr_status_group')
+            ->groupBy('mr_status_group')
+            ->selectRaw('mr_status_group, COUNT(*) as total')
+            ->pluck('total', 'mr_status_group');
+
+        $mrRollup = collect(MrStatusCatalogue::groups())
+            ->map(fn ($label, $key) => [
+                'label' => $label,
+                'count' => (int) ($mrCounts[$key] ?? 0),
+                'badge' => MrStatusCatalogue::badgeClass(
+                    // Any code in the group carries the group's colour.
+                    collect(MrStatusCatalogue::CATALOGUE)
+                        ->search(fn ($meta) => $meta[1] === $key) ?: MrStatusCatalogue::AWAITING_DISPOSITION
+                ),
+            ])
+            // Closed statuses describe boxes that have left; they are not part
+            // of "what is in the yard right now".
+            ->except([MrStatusCatalogue::GROUP_CLOSED]);
+
+        $exportReadyCount = Container::available()->exportReady()->count();
 
         $approvalEnabled = CompanySetting::current()->enable_digital_approvals ?? false;
 
@@ -98,7 +130,9 @@ class DashboardController extends Controller
             'approvalEnabled',
             'approvalStats',
             'recentApprovals',
-            'storageUsage'
+            'storageUsage',
+            'mrRollup',
+            'exportReadyCount'
         ));
     }
 }

@@ -28,7 +28,7 @@
                 <select name="container_id" class="form-select select2" required>
                     <option value="">— Select container —</option>
                     @foreach($containers as $c)
-                        <option value="{{ $c->id }}" @selected(old('container_id') == $c->id)>{{ $c->container_no }} — {{ $c->size }}' {{ $c->type_code }}</option>
+                        <option value="{{ $c->id }}" @selected(old('container_id') == $c->id)>{{ $c->container_no }} — {{ $c->size }}' {{ $c->type_code }}@if($c->mr_status) · {{ \App\Support\MrStatusCatalogue::label($c->mr_status, $c->mr_lane) }}@endif</option>
                     @endforeach
                 </select>
             </div>
