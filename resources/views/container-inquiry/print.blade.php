@@ -106,6 +106,16 @@
         <span>{{ ucfirst(str_replace('_', ' ', $container->condition)) }}</span>
     </div>
     @endif
+    @if($mrStatus)
+    <div class="info-item">
+        <label>M&amp;R Status</label>
+        <span>
+            {{ $mrStatus->label() }}
+            @if($mrStatus->ageDays() !== null)({{ $mrStatus->ageDays() }} days)@endif
+            @if($mrStatus->isHeld()) &mdash; ON HOLD @endif
+        </span>
+    </div>
+    @endif
     @if($container->owner_code || $container->owner_name)
     <div class="info-item">
         <label>Owner</label>
@@ -337,6 +347,9 @@
                 <h4 class="in">Gate In &mdash; {{ $gateIn->gate_in_time?->format('d M Y H:i') ?? '&mdash;' }}</h4>
                 <div class="field-row"><span class="field-label">Customer:</span><span>{{ optional($gateIn->customer)->name ?? '&mdash;' }}</span></div>
                 <div class="field-row"><span class="field-label">On arrival:</span><span>{{ ucfirst(str_replace('_', ' ', $gateIn->condition ?? '&mdash;')) }}</span></div>
+                @if($gateIn->mr_status)
+                <div class="field-row"><span class="field-label">M&amp;R:</span><span>{{ \App\Support\MrStatusCatalogue::label($gateIn->mr_status, $gateIn->mr_lane) }}</span></div>
+                @endif
                 <div class="field-row"><span class="field-label">Cargo:</span><span>{{ ucfirst($gateIn->cargo_status ?? '&mdash;') }}</span></div>
                 <div class="field-row"><span class="field-label">Size:</span><span>{{ $gateIn->size ? $gateIn->size . 'ft' : '&mdash;' }}</span></div>
                 @if($gateIn->seal_no)

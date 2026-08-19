@@ -190,6 +190,20 @@ final class MrStatusCatalogue
         return $out;
     }
 
+    /** Display name for a lane — the optgroup headings in the status filter. */
+    public static function laneLabel(?string $lane): string
+    {
+        return match ($lane) {
+            self::LANE_REPAIR   => 'Repair',
+            self::LANE_WASH     => 'Wash / Cleaning',
+            self::LANE_REEFER   => 'Reefer',
+            self::LANE_TRANSFER => 'Cargo Transfer',
+            self::LANE_STORAGE  => 'Storage',
+            self::LANE_HANDLING => 'Handling',
+            default             => 'General',
+        };
+    }
+
     public static function groups(): array
     {
         return [

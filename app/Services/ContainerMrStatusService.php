@@ -325,6 +325,24 @@ class ContainerMrStatusService
      */
     public function refresh(Container $container): bool
     {
+        $this->resolveAndSync($container, $changed);
+
+        return (bool) $changed;
+    }
+
+    /**
+     * Resolve for display *and* correct the stored projection, in one pass.
+     *
+     * For callers that need the result as well as the write — the inquiry
+     * detail view re-derives live so the screen an operator opens to check a
+     * specific box is never stale, and it wants the MrStatus to render. Doing
+     * both from a single resolution keeps that page at one derivation rather
+     * than two.
+     *
+     * @param bool|null $changed set to whether anything was actually written
+     */
+    public function resolveAndSync(Container $container, ?bool &$changed = null): MrStatus
+    {
         $ctx    = $this->contextForContainer($container);
         $status = $this->resolve($ctx);
 
@@ -336,7 +354,7 @@ class ContainerMrStatusService
             $changed = true;
         }
 
-        return $changed;
+        return $status;
     }
 
     /**
@@ -383,6 +401,9 @@ class ContainerMrStatusService
         $new = [
             'mr_status'       => $status->code,
             'mr_status_group' => $status->group(),
+            // Carried so the list can word a shared code by its lane — without
+            // it, a wash on hold reads "Repair on hold".
+            'mr_lane'         => $status->lane,
             'mr_status_at'    => $status->since,
         ];
 

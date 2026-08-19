@@ -7,6 +7,8 @@ use App\Models\Customer;
 use App\Models\GateMovement;
 use App\Models\YardJobType;
 use App\Services\ContainerInquiryService;
+use App\Services\ContainerMrStatusService;
+use App\Support\MrStatusCatalogue;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -24,6 +26,7 @@ class ContainerInquiryController extends Controller
             'container_no', 'customer_id', 'job_type_code', 'job_no',
             'date_from', 'date_to', 'status',
             'vessel_name', 'voyage_no', 'bl_number', 'seal_no', 'eir_ref',
+            'mr_status', 'mr_status_group', 'export_ready', 'on_hold',
         ]);
 
         $movements  = null;
@@ -38,10 +41,18 @@ class ContainerInquiryController extends Controller
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $jobTypes  = YardJobType::active()->orderBy('sort_order')->get();
 
-        return view('container-inquiry.index', compact('movements', 'filters', 'searched', 'customers', 'jobTypes', 'gateOutMap'));
+        // Grouped by lane so the dropdown reads as the workflow it describes,
+        // rather than 25 flat options.
+        $mrStatusesByLane = MrStatusCatalogue::codesByLane();
+        $mrStatusGroups   = MrStatusCatalogue::groups();
+
+        return view('container-inquiry.index', compact(
+            'movements', 'filters', 'searched', 'customers', 'jobTypes', 'gateOutMap',
+            'mrStatusesByLane', 'mrStatusGroups'
+        ));
     }
 
-    public function show(string $containerNo)
+    public function show(string $containerNo, ContainerMrStatusService $mrStatus)
     {
         $data = $this->service->getContainerHistory($containerNo);
 
@@ -49,11 +60,20 @@ class ContainerInquiryController extends Controller
             return redirect()->route('container-inquiry.index')
                 ->with('warning', "No records found for container number: {$containerNo}");
         }
+
+        // Self-healing read: one container, already loaded, so re-deriving costs
+        // little — and it guarantees that the screen an operator opens to check
+        // a specific box is never showing a stale badge. One pass both corrects
+        // the stored projection and gives us the value to render; it writes only
+        // when something actually differs.
+        $data['mrStatus'] = $data['container']
+            ? $mrStatus->resolveAndSync($data['container'])
+            : null;
 
         return view('container-inquiry.show', $data);
     }
 
-    public function print(string $containerNo)
+    public function print(string $containerNo, ContainerMrStatusService $mrStatus)
     {
         $data = $this->service->getContainerHistory($containerNo);
 
@@ -61,6 +81,11 @@ class ContainerInquiryController extends Controller
             return redirect()->route('container-inquiry.index')
                 ->with('warning', "No records found for container number: {$containerNo}");
         }
+
+        // Derived, not corrected: a print view should not have side effects.
+        $data['mrStatus'] = $data['container']
+            ? $mrStatus->forContainer($data['container'])
+            : null;
 
         return view('container-inquiry.print', $data);
     }
@@ -95,6 +120,7 @@ class ContainerInquiryController extends Controller
             'container_no', 'customer_id', 'job_type_code', 'job_no',
             'date_from', 'date_to', 'status',
             'vessel_name', 'voyage_no', 'bl_number', 'seal_no', 'eir_ref',
+            'mr_status', 'mr_status_group', 'export_ready', 'on_hold',
         ]);
         $filename = 'container-inquiry-' . now()->format('Ymd-His') . '.csv';
 
@@ -103,11 +129,15 @@ class ContainerInquiryController extends Controller
             fputcsv($output, [
                 'EIR Ref', 'Container No', 'Customer', 'Job No', 'Job Type',
                 'Gate In', 'Gate Out', 'Days In Yard',
-                'Job Status', 'Condition', 'Size', 'Cargo Status',
+                'Job Status',
+                'M&R Status', 'M&R Stage Age (days)', 'Export Ready', 'On Hold',
+                'Condition On Arrival', 'Size', 'Cargo Status',
                 'Vessel', 'Voyage No', 'BL Number', 'Seal No',
             ]);
 
-            GateMovement::with(['yardJob.jobType', 'customer'])
+            GateMovement::with(['yardJob.jobType', 'customer',
+                                'container:id,export_ready,mr_status_expires_at',
+                                'container.activeHolds:id,container_id,hold_type'])
                 ->where('movement_type', 'in')
                 ->when(!empty($filters['container_no']), fn ($q) => $q->where('container_no', 'LIKE', strtoupper(trim($filters['container_no'])) . '%'))
                 ->when(!empty($filters['customer_id']),  fn ($q) => $q->where('customer_id', $filters['customer_id']))
@@ -121,6 +151,10 @@ class ContainerInquiryController extends Controller
                 ->when(!empty($filters['bl_number']),    fn ($q) => $q->where('bl_number',   'LIKE', '%' . trim($filters['bl_number'])   . '%'))
                 ->when(!empty($filters['seal_no']),      fn ($q) => $q->where('seal_no',     'LIKE', '%' . trim($filters['seal_no'])     . '%'))
                 ->when(!empty($filters['eir_ref']),      fn ($q) => $q->where('id', (int) $filters['eir_ref']))
+                ->when(!empty($filters['mr_status']),       fn ($q) => $q->where('mr_status', $filters['mr_status']))
+                ->when(!empty($filters['mr_status_group']), fn ($q) => $q->where('mr_status_group', $filters['mr_status_group']))
+                ->when(!empty($filters['export_ready']), fn ($q) => $q->whereHas('container', fn ($s) => $s->exportReady()))
+                ->when(!empty($filters['on_hold']),      fn ($q) => $q->whereHas('container', fn ($s) => $s->held()))
                 ->orderBy('gate_in_time', 'desc')
                 ->chunk(200, function ($items) use ($output) {
                     // Batch-fetch gate-outs for this chunk
@@ -155,6 +189,13 @@ class ContainerInquiryController extends Controller
                             ? (int) $m->gate_in_time->diffInDays($gateOut?->gate_out_time ?? now())
                             : '-';
 
+                        // Days in the current M&R stage — distinct from days in
+                        // yard: a box can sit five days in the yard and four of
+                        // them waiting on QC.
+                        $stageAge = $m->mr_status_at
+                            ? (int) $m->mr_status_at->diffInDays(now())
+                            : '-';
+
                         fputcsv($output, [
                             $m->id,
                             $m->container_no,
@@ -165,6 +206,10 @@ class ContainerInquiryController extends Controller
                             $gateOutTime,
                             $daysInYard,
                             optional($m->yardJob)->status ?? '-',
+                            $m->mr_status ? MrStatusCatalogue::label($m->mr_status) : '-',
+                            $stageAge,
+                            $m->container ? ($m->container->export_ready && ! $m->container->mrStatusHasExpired() ? 'Yes' : 'No') : '-',
+                            $m->container?->activeHolds->isNotEmpty() ? 'Yes' : 'No',
                             $m->condition ?? '-',
                             $m->size ?? '-',
                             $m->cargo_status ?? '-',

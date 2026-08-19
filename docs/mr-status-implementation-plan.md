@@ -258,8 +258,19 @@ as a table-driven unit test rather than a fixture marathon.
 
 | Column | Table | Meaning | Drives |
 | --- | --- | --- | --- |
-| `mr_status`, `mr_status_group`, `mr_status_at`, `mr_lane`, `export_ready` | `containers` | current state | master list, stock, dashboard, gate-out, booking, reports |
-| `mr_status`, `mr_status_group`, `mr_status_at` | `gate_movements` (gate-in rows) | that cycle's state — live if open, terminal if closed | Container Inquiry list, its CSV, movement reports |
+| `mr_status`, `mr_status_group`, `mr_lane`, `mr_status_at`, `export_ready`, `mr_status_expires_at` | `containers` | current state | master list, stock, dashboard, gate-out, booking, reports |
+| `mr_status`, `mr_status_group`, `mr_lane`, `mr_status_at` | `gate_movements` (gate-in rows) | that cycle's state — live if open, terminal if closed | Container Inquiry list, its CSV, movement reports |
+
+`mr_lane` on the cycle row was added in Phase 3 (migration 297). It is not
+decoration: wash and repair share one stored code for the stages that exist in
+both lanes, so the label cannot be derived from the code alone — without it, a
+container being washed reads *"Repair on hold"* on the inquiry list, which is
+the confusion the lane split exists to prevent.
+
+`export_ready` and `mr_status_expires_at` are deliberately **not** on the cycle
+row: they describe the container as it stands now, and a closed 2024 visit has
+no meaningful export readiness. The inquiry list's two toggles scope through the
+container instead, and are labelled *(now)* to say so.
 
 For an open cycle the two agree by construction: the open gate-in row *is* the
 current cycle. The refresh writes both in one pass.
@@ -385,6 +396,8 @@ Schema::table('gate_movements', function (Blueprint $t) {
 
 // 2024_01_01_000295_backfill_mr_status.php  — chunked, calls refresh()
 
+// 2024_01_01_000297_add_mr_lane_to_gate_movements.php  — Phase 3; see §3.2
+
 // 2024_01_01_000296_add_mr_status_expiry_to_containers.php
 Schema::table('containers', function (Blueprint $t) {
     // The date this verdict stops being true on its own — a reefer's PTI
@@ -486,13 +499,28 @@ notes does not trigger a recompute.
 - **Filters:** M&R status dropdown (grouped by lane), status-group quick chips,
   "Export ready only" toggle, "On hold only" toggle. All plain `WHERE`s on
   `gate_movements` thanks to §3.2.
-- **Detail:** status badge in the header + a progress trail rendering the chain
-  stage by stage, driven off the existing per-cycle grouping.
-- **CSV export:** add `M&R Status`, `M&R Stage Age (days)`, `Export Ready`.
-- **Print view:** badge in the header.
+- **Detail:** status badge in the header with modifier chips, plus each visit's
+  own terminal status on its accordion header.
+- **CSV export:** add `M&R Status`, `M&R Stage Age (days)`, `Export Ready`,
+  `On Hold`; `Condition` becomes `Condition On Arrival`.
+- **Print view:** status in the header and per visit.
 - **Files:** `ContainerInquiryController` (both filter lists),
-  `ContainerInquiryService::search()` + `getContainerHistory()`,
+  `ContainerInquiryService::search()`,
   `container-inquiry/{index,show,print}.blade.php`.
+
+**Not built — the stage-by-stage progress trail.** The plan called for one on the
+detail view. It was left out because the page already renders the chain: each
+visit's accordion lists its inquiries, estimates and work orders in order, and
+there is a per-visit event timeline above them. A third rendering of the same
+sequence would compete with those rather than add to them. Worth revisiting only
+if operators say the existing two are hard to read.
+
+**Correction found while building.** The status filters are indexed columns on
+`gate_movements`, but "export ready" and "on hold" describe the container *now*,
+not that visit — a closed 2024 cycle has no export readiness. Those two scope
+through the container (`whereHas`) and are labelled *(now)* in the UI so the
+distinction is visible rather than implied. And `mr_lane` had to be added to the
+cycle row (§3.2) or every wash would have read as a repair on the list.
 
 ### Phase 4 — The other operational screens
 

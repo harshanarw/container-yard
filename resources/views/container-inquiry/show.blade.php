@@ -76,6 +76,38 @@
                 <div class="text-muted small">Current Condition</div>
                 <div>{{ ucfirst(str_replace('_', ' ', $container->condition ?? '—')) }}</div>
             </div>
+            @if($mrStatus)
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="text-muted small">M&amp;R Status</div>
+                <div>
+                    <span class="badge {{ $mrStatus->badgeClass() }}">{{ $mrStatus->label() }}</span>
+                    @if($mrStatus->ageDays() !== null)
+                        <span class="text-muted small ms-1">{{ $mrStatus->ageDays() }}d</span>
+                    @endif
+                </div>
+                <div class="mt-1">
+                    {{-- Modifiers are true alongside the status, not instead of
+                         it: a box can be under repair AND under customs hold. --}}
+                    @foreach($container->activeHolds as $hold)
+                        <span class="badge bg-dark-subtle text-dark border" style="font-size:.65rem">
+                            <i class="bi bi-lock-fill"></i>
+                            {{ \App\Models\ContainerHold::TYPES[$hold->hold_type] ?? ucfirst($hold->hold_type) }}
+                        </span>
+                    @endforeach
+                    @if($mrStatus->isOverdue())
+                        <span class="badge bg-danger-subtle text-danger border" style="font-size:.65rem">Overdue</span>
+                    @endif
+                    @if($mrStatus->hasModifier(\App\Support\MrStatusCatalogue::MODIFIER_PTI_EXPIRED))
+                        <span class="badge bg-warning-subtle text-warning border" style="font-size:.65rem">PTI expired</span>
+                    @endif
+                    @if($mrStatus->exportReady)
+                        <span class="badge bg-success-subtle text-success border" style="font-size:.65rem">
+                            <i class="bi bi-check2"></i> Export ready
+                        </span>
+                    @endif
+                </div>
+            </div>
+            @endif
             @if($container->owner_code || $container->owner_name)
             <div class="col-6 col-md-3 col-lg-2">
                 <div class="text-muted small">Owner</div>
@@ -448,6 +480,16 @@
                 @if($yardJob)
                 <span class="font-monospace fw-semibold" style="font-size:.82rem">
                     {{ $yardJob->job_no }}
+                </span>
+                @endif
+
+                {{-- What this visit ended as. A closed cycle keeps its terminal
+                     status, so an old visit shows what happened then rather than
+                     what the box is doing today. --}}
+                @if($gateIn->mr_status)
+                <span class="badge {{ \App\Support\MrStatusCatalogue::badgeClass($gateIn->mr_status) }}"
+                      style="font-size:.7rem">
+                    {{ \App\Support\MrStatusCatalogue::label($gateIn->mr_status, $gateIn->mr_lane) }}
                 </span>
                 @endif
 

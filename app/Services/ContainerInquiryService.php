@@ -26,7 +26,15 @@ class ContainerInquiryService
      */
     public function search(array $filters, int $perPage = 20): LengthAwarePaginator
     {
-        return GateMovement::with(['yardJob.jobType', 'customer', 'createdBy'])
+        return GateMovement::with([
+                'yardJob.jobType', 'customer', 'createdBy',
+                // The M&R status itself is a column on this row, so the badge
+                // costs nothing. The container is loaded for the hold chip and
+                // export-ready marker — two queries for the whole page, not per
+                // row.
+                'container:id,container_no,status,export_ready,mr_status_expires_at',
+                'container.activeHolds:id,container_id,hold_type',
+            ])
             ->where('movement_type', 'in')
             // Basic filters
             ->when(!empty($filters['container_no']), function ($q) use ($filters) {
@@ -48,6 +56,19 @@ class ContainerInquiryService
             ->when(!empty($filters['bl_number']),   fn ($q) => $q->where('bl_number',   'LIKE', '%' . trim($filters['bl_number'])   . '%'))
             ->when(!empty($filters['seal_no']),     fn ($q) => $q->where('seal_no',     'LIKE', '%' . trim($filters['seal_no'])     . '%'))
             ->when(!empty($filters['eir_ref']),     fn ($q) => $q->where('id', (int) $filters['eir_ref']))
+            // ── M&R status ───────────────────────────────────────────────────
+            // Plain indexed WHEREs on the table already being paginated. This is
+            // what the second projection bought: deriving the status live would
+            // have needed a whereHas chain across four tables, per status, on
+            // every page.
+            ->when(!empty($filters['mr_status']),       fn ($q) => $q->where('mr_status', $filters['mr_status']))
+            ->when(!empty($filters['mr_status_group']), fn ($q) => $q->where('mr_status_group', $filters['mr_status_group']))
+            // These two describe the container as it stands *now*, not what that
+            // visit was doing, so they cannot live on the movement row — a 2024
+            // cycle has no meaningful export readiness. Scoped through the
+            // container instead.
+            ->when(!empty($filters['export_ready']), fn ($q) => $q->whereHas('container', fn ($sub) => $sub->exportReady()))
+            ->when(!empty($filters['on_hold']),      fn ($q) => $q->whereHas('container', fn ($sub) => $sub->held()))
             ->orderBy('gate_in_time', 'desc')
             ->paginate($perPage);
     }

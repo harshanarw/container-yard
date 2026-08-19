@@ -86,6 +86,59 @@
 
             </div>
 
+            {{-- M&R status filters — plain indexed columns on gate_movements,
+                 so these cost no more than the date range does. --}}
+            <div class="row g-2 mt-1">
+                <div class="col-12 col-md-4">
+                    <label class="form-label form-label-sm mb-1">M&amp;R Status</label>
+                    <select name="mr_status" class="form-select form-select-sm select2">
+                        <option value="">All statuses</option>
+                        @foreach($mrStatusesByLane as $lane => $codes)
+                            <optgroup label="{{ \App\Support\MrStatusCatalogue::laneLabel($lane === 'general' ? null : $lane) }}">
+                                @foreach($codes as $code => $label)
+                                    <option value="{{ $code }}"
+                                        {{ ($filters['mr_status'] ?? '') === $code ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label form-label-sm mb-1">Stage</label>
+                    <select name="mr_status_group" class="form-select form-select-sm select2">
+                        <option value="">Any stage</option>
+                        @foreach($mrStatusGroups as $key => $label)
+                            <option value="{{ $key }}"
+                                {{ ($filters['mr_status_group'] ?? '') === $key ? 'selected' : '' }}>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-12 col-md-5 d-flex align-items-end">
+                    <div class="form-check form-switch me-3">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               id="filterExportReady" name="export_ready" value="1"
+                               {{ !empty($filters['export_ready']) ? 'checked' : '' }}>
+                        <label class="form-check-label small" for="filterExportReady"
+                               title="Filters on the container's state today, not on what that visit was doing.">
+                            Export ready <span class="text-muted">(now)</span>
+                        </label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               id="filterOnHold" name="on_hold" value="1"
+                               {{ !empty($filters['on_hold']) ? 'checked' : '' }}>
+                        <label class="form-check-label small" for="filterOnHold"
+                               title="Filters on the container's state today, not on what that visit was doing.">
+                            On hold <span class="text-muted">(now)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             {{-- Advanced filters toggle --}}
             @php
                 $hasAdvanced = !empty($filters['vessel_name']) || !empty($filters['voyage_no'])
@@ -191,7 +244,7 @@
                     <th>Gate In</th>
                     <th>Gate Out</th>
                     <th>Job Status</th>
-                    <th>Condition</th>
+                    <th>M&amp;R Status</th>
                     <th class="text-center">Size</th>
                     <th></th>
                 </tr>
@@ -206,12 +259,14 @@
                         'cancelled' => 'bg-danger-subtle text-danger',
                         default     => 'bg-light text-muted',
                     };
-                    $condClass = match($m->condition) {
-                        'sound'          => 'text-success',
-                        'damaged'        => 'text-danger',
-                        'require_repair' => 'text-warning',
-                        default          => 'text-muted',
-                    };
+                    // The status is a column on this row, so the badge costs no
+                    // query. Lane-aware wording: a wash never reads as a repair.
+                    $mrCode  = $m->mr_status;
+                    $mrLabel = $mrCode ? \App\Support\MrStatusCatalogue::label($mrCode, $m->mr_lane) : null;
+                    $mrBadge = $mrCode ? \App\Support\MrStatusCatalogue::badgeClass($mrCode) : '';
+
+                    $holds       = $m->container?->activeHolds ?? collect();
+                    $ptiLapsed   = (bool) $m->container?->mrStatusHasExpired();
                 @endphp
                 <tr>
                     <td class="ps-3 fw-semibold font-monospace">
@@ -254,8 +309,30 @@
                             <span class="text-muted">—</span>
                         @endif
                     </td>
-                    <td class="{{ $condClass }}">
-                        {{ ucfirst(str_replace('_', ' ', $m->condition ?? '—')) }}
+                    <td>
+                        @if($mrCode)
+                            <span class="badge {{ $mrBadge }}" style="font-size:.7rem">{{ $mrLabel }}</span>
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+
+                        {{-- Modifiers: true alongside the status, not instead of
+                             it. A box can be under repair AND under customs hold,
+                             and the second half is what matters at the gate. --}}
+                        @foreach($holds as $hold)
+                            <span class="badge bg-dark-subtle text-dark border ms-1" style="font-size:.65rem"
+                                  title="{{ \App\Models\ContainerHold::TYPES[$hold->hold_type] ?? 'Hold' }}">
+                                <i class="bi bi-lock-fill"></i>
+                                {{ \App\Models\ContainerHold::TYPES[$hold->hold_type] ?? ucfirst($hold->hold_type) }}
+                            </span>
+                        @endforeach
+
+                        @if($ptiLapsed)
+                            <span class="badge bg-warning-subtle text-warning border ms-1" style="font-size:.65rem"
+                                  title="The PTI this status relied on has since expired.">
+                                PTI expired
+                            </span>
+                        @endif
                     </td>
                     <td class="text-center">{{ $m->size ? $m->size . 'ft' : '—' }}</td>
                     <td class="pe-3 text-center">
