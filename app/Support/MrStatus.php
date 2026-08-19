@@ -18,6 +18,7 @@ final class MrStatus
      * @param Carbon|null      $since      when the container entered this stage
      * @param array<int,string> $modifiers  MrStatusCatalogue::MODIFIER_* — orthogonal to the code
      * @param array<int,string> $otherLanes lanes active alongside the headline one
+     * @param Carbon|null      $expiresAt  date this verdict stops being true by itself; null = never
      */
     public function __construct(
         public readonly string $code,
@@ -26,6 +27,7 @@ final class MrStatus
         public readonly array $modifiers = [],
         public readonly bool $exportReady = false,
         public readonly array $otherLanes = [],
+        public readonly ?Carbon $expiresAt = null,
     ) {
     }
 
@@ -71,15 +73,28 @@ final class MrStatus
         return $this->group() === MrStatusCatalogue::GROUP_CLOSED;
     }
 
+    /**
+     * Has the stored verdict aged out?
+     *
+     * Only ever true for a container resting on something dated — today, a
+     * reefer's PTI. Everything else in the ladder changes because a row was
+     * saved, which an observer catches.
+     */
+    public function hasExpired(): bool
+    {
+        return $this->expiresAt !== null && $this->expiresAt->lt(Carbon::today());
+    }
+
     /** The shape written to the projection columns. */
     public function toProjection(): array
     {
         return [
-            'mr_status'       => $this->code,
-            'mr_status_group' => $this->group(),
-            'mr_lane'         => $this->lane,
-            'mr_status_at'    => $this->since,
-            'export_ready'    => $this->exportReady,
+            'mr_status'            => $this->code,
+            'mr_status_group'      => $this->group(),
+            'mr_lane'              => $this->lane,
+            'mr_status_at'         => $this->since,
+            'export_ready'         => $this->exportReady,
+            'mr_status_expires_at' => $this->expiresAt,
         ];
     }
 
@@ -96,6 +111,7 @@ final class MrStatus
             'modifiers'    => $this->modifiers,
             'other_lanes'  => $this->otherLanes,
             'export_ready' => $this->exportReady,
+            'expires_at'   => $this->expiresAt?->toDateString(),
         ];
     }
 }

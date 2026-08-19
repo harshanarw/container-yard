@@ -59,7 +59,30 @@ class ContainerMrStatusService
             modifiers:   $this->modifiersFor($ctx, $code, $since),
             exportReady: $this->isExportReady($ctx, $code),
             otherLanes:  $otherLanes,
+            expiresAt:   $this->expiresAt($ctx),
         );
+    }
+
+    /**
+     * The date this verdict stops being true on its own.
+     *
+     * Every other rung of the ladder moves because a row was saved, so an
+     * observer catches it. A reefer's PTI is the exception: it lapses because a
+     * date passed, and nothing saves. Recording the boundary lets a query ask
+     * "is this still true?" at read time — which is exact — instead of a
+     * nightly job re-deciding it, which is stale for up to a day.
+     *
+     * Null means the stored verdict cannot age out by itself.
+     */
+    private function expiresAt(MrStatusContext $ctx): ?Carbon
+    {
+        if (! $ctx->isReefer() || ! $ctx->ptiValidUntil) {
+            return null;
+        }
+
+        // Normalised to the start of the day so an unchanged PTI never looks
+        // like a change and churns the row on every refresh.
+        return $ctx->ptiValidUntil->copy()->startOfDay();
     }
 
     /**
@@ -344,13 +367,7 @@ class ContainerMrStatusService
 
     private function writeContainerProjection(Container $container, MrStatus $status): bool
     {
-        $new = [
-            'mr_status'       => $status->code,
-            'mr_status_group' => $status->group(),
-            'mr_lane'         => $status->lane,
-            'mr_status_at'    => $status->since,
-            'export_ready'    => $status->exportReady,
-        ];
+        $new = $status->toProjection();
 
         if (! $this->differs($container, $new)) {
             return false;
@@ -430,10 +447,25 @@ class ContainerMrStatusService
         return $query->where('mr_status_group', $group);
     }
 
-    /** Containers free to leave on an export booking. Containers query only. */
+    /**
+     * Containers free to leave on an export booking. Containers query only.
+     *
+     * Delegates to Container::scopeExportReady rather than restating the
+     * predicate: two copies of "what counts as ready" is precisely the drift
+     * this projection exists to avoid.
+     */
     public function scopeExportReady($query)
     {
-        return $query->where('export_ready', true);
+        return $query->exportReady();
+    }
+
+    /**
+     * Containers whose stored status rested on something dated that has since
+     * passed — today, a reefer with a lapsed PTI. Containers query only.
+     */
+    public function scopeStatusExpired($query)
+    {
+        return $query->statusExpired();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -474,6 +506,10 @@ class ContainerMrStatusService
         $from  = $gateIn?->gate_in_time;
         $until = $gateOut?->gate_out_time;
 
+        // Both PTI facts from one lookup — the same path the batch loader uses,
+        // so a single container and a whole page cannot disagree.
+        $pti = $this->ptiStateFor(collect([$container->id => $container]))[$container->id] ?? null;
+
         return new MrStatusContext(
             container:       $container,
             gateIn:          $gateIn,
@@ -485,8 +521,9 @@ class ContainerMrStatusService
             activeHolds:     ContainerHold::where('container_id', $container->id)->whereNull('cleared_at')->get(),
             activeHire:      ContainerHire::where('container_id', $container->id)->where('status', 'active')->first(),
             activeTransfer:  $this->activeTransferFor($container),
-            ptiValid:        $container->hasValidPti(),
+            ptiValid:        $pti['valid'] ?? false,
             washCategoryIds: $this->washCategoryIds(),
+            ptiValidUntil:   $pti['until'] ?? null,
         );
     }
 
@@ -541,7 +578,7 @@ class ContainerMrStatusService
                                  ->orWhereIn('substitute_container_id', $containerIds))
             ->get();
 
-        $ptiValid = $this->ptiValidityFor($containers);
+        $ptiState = $this->ptiStateFor($containers);
         $washIds  = $this->washCategoryIds();
 
         $out = [];
@@ -569,8 +606,9 @@ class ContainerMrStatusService
                 activeHire:      $hires->get($container->id),
                 activeTransfer:  $transfers->first(fn ($t) => (int) $t->source_container_id === (int) $container->id
                                                           || (int) $t->substitute_container_id === (int) $container->id),
-                ptiValid:        $ptiValid[$container->id] ?? false,
+                ptiValid:        $ptiState[$container->id]['valid'] ?? false,
                 washCategoryIds: $washIds,
+                ptiValidUntil:   $ptiState[$container->id]['until'] ?? null,
             ));
         }
 
@@ -692,11 +730,15 @@ class ContainerMrStatusService
     }
 
     /**
-     * PTI validity for a set of containers, in one query rather than one each.
+     * PTI state for a set of containers, in one query rather than one each.
      *
-     * @return array<int,bool> keyed by container id
+     * Returns both facts together because they are read together: whether the
+     * PTI is live *now*, and the date it lapses. The second is what gets stored
+     * so a query can re-decide the first at read time.
+     *
+     * @return array<int,array{valid:bool,until:?Carbon}> keyed by container id
      */
-    private function ptiValidityFor(Collection $containers): array
+    private function ptiStateFor(Collection $containers): array
     {
         $reefers = $containers->filter(fn (Container $c) => $c->isReefer());
 
@@ -714,9 +756,14 @@ class ContainerMrStatusService
         foreach ($reefers as $id => $container) {
             $pti = $latest->get($id)?->first();
 
-            $out[$id] = $container->pti_status === 'passed'
-                && $pti
-                && (! $pti->valid_until || ! $pti->valid_until->lt(Carbon::today()));
+            // valid_until is inclusive — the PTI stays valid through that whole
+            // day, matching Container::hasValidPti().
+            $out[$id] = [
+                'valid' => $container->pti_status === 'passed'
+                    && $pti
+                    && (! $pti->valid_until || ! $pti->valid_until->lt(Carbon::today())),
+                'until' => $pti?->valid_until,
+            ];
         }
 
         return $out;

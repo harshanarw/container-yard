@@ -223,6 +223,7 @@ class MrStatusResolutionTest extends TestCase
             activeTransfer:  $parts['transfer'] ?? null,
             ptiValid:        $parts['ptiValid'] ?? false,
             washCategoryIds: [self::WASH_CATEGORY_ID],
+            ptiValidUntil:   $parts['ptiValidUntil'] ?? null,
         );
     }
 
@@ -635,6 +636,91 @@ class MrStatusResolutionTest extends TestCase
         $this->assertSame(Cat::RESERVED, $status->code);
         $this->assertFalse($status->exportReady,
             'Allocated stock is committed, not free — the booking screens ask for it separately.');
+    }
+
+    // ── The expiry boundary ──────────────────────────────────────────────────
+    //
+    // Every rung of the ladder moves because a row was saved, except one: a
+    // reefer's PTI lapses because a date passed, and nothing saves. Rather than
+    // recomputing the world nightly, the verdict records the date it stops
+    // being true, and queries compare it at read time.
+
+    public function test_a_dry_container_records_no_expiry(): void
+    {
+        $status = $this->resolve([
+            'container'  => $this->container(['status' => 'available']),
+            'workOrders' => [$this->wo('closed', ['qc_at' => Carbon::now()->subDay()])],
+        ]);
+
+        $this->assertTrue($status->exportReady);
+        $this->assertNull($status->expiresAt,
+            'Nothing about a dry container can go stale on its own.');
+        $this->assertFalse($status->hasExpired());
+    }
+
+    public function test_a_reefer_records_the_date_its_readiness_lapses(): void
+    {
+        $until = Carbon::today()->addDays(30);
+
+        $status = $this->resolve([
+            'container'     => $this->container(['status' => 'available', 'type_code' => 'RF', 'pti_status' => 'passed']),
+            'workOrders'    => [$this->wo('closed', ['qc_at' => Carbon::now()->subDay()])],
+            'ptiValid'      => true,
+            'ptiValidUntil' => $until,
+        ]);
+
+        $this->assertTrue($status->exportReady);
+        $this->assertSame($until->toDateString(), $status->expiresAt?->toDateString(),
+            'The boundary is what lets a query re-decide readiness without a scheduled job.');
+        $this->assertFalse($status->hasExpired());
+    }
+
+    public function test_the_boundary_is_normalised_to_midnight(): void
+    {
+        $status = $this->resolve([
+            'container'     => $this->container(['type_code' => 'RF', 'pti_status' => 'passed']),
+            'ptiValid'      => true,
+            'ptiValidUntil' => Carbon::today()->addDays(10)->setTime(14, 30),
+        ]);
+
+        $this->assertSame('00:00:00', $status->expiresAt?->format('H:i:s'),
+            'An unchanged PTI must not look like a change and churn the row on every refresh.');
+    }
+
+    public function test_a_reefer_whose_pti_has_lapsed_reports_expired(): void
+    {
+        $status = $this->resolve([
+            'container'     => $this->container(['status' => 'available', 'type_code' => 'RF', 'pti_status' => 'passed']),
+            'workOrders'    => [$this->wo('closed', ['qc_at' => Carbon::now()->subDay()])],
+            'ptiValid'      => false,
+            'ptiValidUntil' => Carbon::today()->subDays(3),
+        ]);
+
+        $this->assertFalse($status->exportReady);
+        $this->assertTrue($status->hasExpired());
+    }
+
+    public function test_a_reefer_with_no_pti_at_all_has_no_boundary(): void
+    {
+        $status = $this->resolve(['container' => $this->container(['type_code' => 'RF'])]);
+
+        $this->assertSame(Cat::PTI_DUE, $status->code);
+        $this->assertNull($status->expiresAt, 'There is no date to compare against.');
+    }
+
+    public function test_the_projection_carries_the_expiry(): void
+    {
+        $until = Carbon::today()->addDays(14);
+
+        $projection = $this->resolve([
+            'container'     => $this->container(['status' => 'available', 'type_code' => 'RF', 'pti_status' => 'passed']),
+            'workOrders'    => [$this->wo('closed', ['qc_at' => Carbon::now()->subDay()])],
+            'ptiValid'      => true,
+            'ptiValidUntil' => $until,
+        ])->toProjection();
+
+        $this->assertArrayHasKey('mr_status_expires_at', $projection);
+        $this->assertSame($until->toDateString(), $projection['mr_status_expires_at']?->toDateString());
     }
 
     // ── Catalogue integrity ──────────────────────────────────────────────────

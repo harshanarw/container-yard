@@ -8,6 +8,7 @@ use App\Models\ContainerHire;
 use App\Models\GateMovement;
 use App\Models\WorkOrder;
 use App\Models\YardJobType;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -50,6 +51,10 @@ final class MrStatusContext
         public readonly ?CargoTransfer $activeTransfer = null,
         public readonly bool $ptiValid = false,
         public readonly array $washCategoryIds = [],
+        // The date the current PTI lapses. Carried alongside $ptiValid because
+        // a verdict that rests on it has to record *when* it stops being true —
+        // that boundary is what replaces a nightly recompute.
+        public readonly ?Carbon $ptiValidUntil = null,
     ) {
         // Sorted here rather than trusted from the caller, so "latest" means the
         // same thing to every call site and the unit tests can pass unordered

@@ -10,20 +10,27 @@ use Illuminate\Console\Command;
 /**
  * Recompute the M&R status projection, report what drifted, and repair it.
  *
- * This is not a safety net — it is required for correctness. Some transitions
- * have no event to hook: a reefer's PTI lapses because a date passed, and a
- * stage becomes overdue because time went by. Nothing saves, so no observer
- * fires, and without a scheduled recompute the projection is wrong by
- * construction.
+ * ── This does NOT need to be scheduled ───────────────────────────────────────
+ * An earlier design made this a nightly job, on the reasoning that some
+ * transitions have no event to hook. That reasoning was mostly wrong, and the
+ * two parts of it are worth separating:
  *
- * ── DEPLOYMENT: this must be scheduled daily ─────────────────────────────────
- * This repository is a code-only mirror and carries no scheduler entry point
- * (no bootstrap/app.php, routes/console.php or Console/Kernel.php), so the
- * schedule cannot be registered here. Add it in the deployment repository:
+ *   Stage ageing / "overdue" — never needed a job. Modifiers are not stored;
+ *   they are computed at read time, and mr_status_at is stored, so ageing is a
+ *   DATEDIFF in SQL.
  *
- *     Schedule::command('containers:reconcile-mr-status --fix')->dailyAt('02:00');
+ *   Reefer PTI expiry — genuinely clock-driven, and now handled by storing the
+ *   boundary (containers.mr_status_expires_at) and comparing it at read time.
+ *   See scopeExportReady(). That is exact at the instant the date rolls over,
+ *   where a nightly job would leave readiness wrong for up to a day.
  *
- * Until that line exists, PTI expiry and stage ageing will not be reflected.
+ * So this command is an AUDIT, not a correctness requirement. Run it:
+ *
+ *   - after a bulk import, a data fix, or ResetTransactions;
+ *   - after deploying a change to the resolution ladder;
+ *   - whenever you want a drift number.
+ *
+ * Scheduling it weekly is reasonable insurance. Daily buys nothing.
  * ─────────────────────────────────────────────────────────────────────────────
  *
  * It doubles as the drift check that containers.status never had. resolve() is

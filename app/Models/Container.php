@@ -78,8 +78,9 @@ class Container extends Model
         'reserved_at'       => 'datetime',
         'pti_at'            => 'datetime',
         // M&R status projection — written only by ContainerMrStatusService.
-        'mr_status_at'      => 'datetime',
-        'export_ready'      => 'boolean',
+        'mr_status_at'         => 'datetime',
+        'export_ready'         => 'boolean',
+        'mr_status_expires_at' => 'date',
     ];
 
     /**
@@ -92,13 +93,42 @@ class Container extends Model
      * one branch forgot.
      */
     public const MR_STATUS_FIELDS = [
-        'mr_status', 'mr_status_group', 'mr_lane', 'mr_status_at', 'export_ready',
+        'mr_status', 'mr_status_group', 'mr_lane', 'mr_status_at',
+        'export_ready', 'mr_status_expires_at',
     ];
 
-    /** Containers free to leave on an export booking. */
+    /**
+     * Containers free to leave on an export booking.
+     *
+     * export_ready alone is not the answer: a reefer stored as ready stops
+     * being ready the day its PTI lapses, and no row changes when that happens.
+     * Comparing the stored expiry against today makes the answer exact at every
+     * instant, with no scheduled recompute and no join.
+     */
     public function scopeExportReady($query)
     {
-        return $query->where('export_ready', true);
+        return $query->where('export_ready', true)
+            ->where(fn ($q) => $q->whereNull('mr_status_expires_at')
+                                 ->orWhere('mr_status_expires_at', '>=', \Illuminate\Support\Carbon::today()->toDateString()));
+    }
+
+    /**
+     * Containers whose stored status rested on a date that has since passed —
+     * today, a reefer with a lapsed PTI. The stored code still reads as it did
+     * when the PTI was live, so lists overlay a chip off this rather than
+     * re-deriving per row.
+     */
+    public function scopeStatusExpired($query)
+    {
+        return $query->whereNotNull('mr_status_expires_at')
+            ->where('mr_status_expires_at', '<', \Illuminate\Support\Carbon::today()->toDateString());
+    }
+
+    /** Has this container's stored M&R status aged out? */
+    public function mrStatusHasExpired(): bool
+    {
+        return $this->mr_status_expires_at !== null
+            && $this->mr_status_expires_at->lt(\Illuminate\Support\Carbon::today());
     }
 
     /** Dispositions where the container is physically present in the yard. */

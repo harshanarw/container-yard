@@ -29,9 +29,13 @@ the build order.
 4. **Holds are a modifier, not a status.** A container can be *under repair* and
    *under customs hold* simultaneously; collapsing them loses information that
    matters at the gate.
-5. **A daily reconcile is mandatory, not a safety net.** Some transitions have no
-   event to hook — a PTI lapses because a date passed, not because anyone saved a
-   record. Without a scheduled recompute the projection is wrong by construction.
+5. **Store the boundary, not a schedule.** ~~A daily reconcile is mandatory.~~
+   **Superseded during Phase 2 — see §3.6.** Exactly one transition has no event
+   to hook: a reefer's PTI lapses because a date passed. That is handled by
+   storing the date the verdict expires and comparing it at read time, which is
+   exact at the instant the date rolls over. Stage ageing never needed a job at
+   all — it is computed live and was never stored. The reconcile command remains
+   as an **audit** tool, not a correctness requirement.
 
 ---
 
@@ -202,6 +206,16 @@ export_ready = group == 'ready'
              AND (not a reefer OR hasValidPti())
 ```
 
+Stored alongside it is `mr_status_expires_at` — the date this verdict stops
+being true on its own, which for a reefer is its PTI's `valid_until` and for
+everything else is null. The readable predicate is therefore:
+
+```sql
+export_ready = 1 AND (mr_status_expires_at IS NULL OR mr_status_expires_at >= CURDATE())
+```
+
+That comparison is the whole reason no nightly job is needed (§3.6).
+
 `reserved` is deliberately excluded — allocated stock is committed, not free.
 The booking screens want *allocatable* stock, which is `export_ready` **or**
 `reserved`-to-this-booking; that stays a screen-level concern.
@@ -264,8 +278,9 @@ differs on all three counts:
 - **A definition to check against.** `resolve()` is authoritative, so drift is
   *detectable*: `containers:reconcile-mr-status` recomputes and diffs. There was
   never a way to ask whether `containers.status` was right.
-- **A schedule that self-heals.** The daily reconcile fixes drift without anyone
-  noticing it, and is required anyway for the time-driven transitions.
+- **A reconcile that can repair it.** `containers:reconcile-mr-status --fix`
+  recomputes and corrects, on demand. It is an audit rather than a scheduled
+  necessity (§3.6).
 
 If a hook is ever missed, the failure mode is a stale badge corrected within a
 day, not a container permanently unable to leave the yard.
@@ -282,9 +297,15 @@ day, not a container permanently unable to leave the yard.
 | Disposition change | `ContainerStatusService::setStatus()` |
 | PTI recorded | `ReeferPtiInspection` saved |
 | Hire start / end | `ContainerHire` saved |
-| Booking allocation / release | `ContainerBookingLine` saved |
+| Booking allocation / release | *(none needed — see below)* |
 | Cargo transfer start / complete | `CargoTransfer` saved |
-| **Time passing** (PTI expiry, stage ageing) | **daily reconcile — no event exists** |
+| **Time passing** (PTI expiry) | **stored boundary, compared at read time (§3.6)** |
+| **Time passing** (stage ageing) | **never stored — computed live from `mr_status_at`** |
+
+`ContainerBookingLine` needs no hook: that table has no `container_id` (the link
+is `containers.container_booking_line_id`), and `BookingService` saves the
+container row itself, so the `Container` hook already covers allocation and
+release.
 
 All model hooks land in one `MrStatusProjectionObserver` registered against each
 model in `AppServiceProvider`, alongside — not inside — the audit observers.
@@ -295,6 +316,50 @@ model in `AppServiceProvider`, alongside — not inside — the audit observers.
 stored value, writes the correction before rendering. One container, already
 loaded — negligible cost, and it guarantees the screen an operator opens to
 check a specific box is never stale.
+
+### 3.6 Why there is no scheduled job
+
+The original design called for a nightly `containers:reconcile-mr-status --fix`,
+justified as "some transitions have no event to hook". Checked against the code,
+that justification held for exactly one thing, and even that one has a better
+answer.
+
+**What actually depends on the clock.** The resolver has three references to
+"now":
+
+| Reference | Feeds | Stored? |
+| --- | --- | --- |
+| `overdue` threshold | a modifier chip | **No** — modifiers are absent from `toProjection()` |
+| `ageDays()` | display | **No** — computed on read |
+| PTI `valid_until < today` | `mr_status`, `export_ready` | **Yes** |
+
+So stage ageing never needed a job: modifiers are computed live, and because
+`mr_status_at` *is* stored, ageing buckets and "overdue" filters are a `DATEDIFF`
+in SQL.
+
+**The one real case, and the fix.** A reefer's PTI lapses because a date passed.
+Rather than recompute the world nightly, the resolver records
+`mr_status_expires_at` — the date the verdict stops being true — and queries
+compare it at read time (§2.4). This is the same shape
+`reefer_pti_inspections.valid_until` already uses: a stored boundary, not a flag
+someone flips overnight. It is also *more* correct than a job, which would leave
+readiness wrong for up to 24 hours between runs.
+
+**The residual, stated plainly.** A reefer idling with a lapsed PTI still
+*displays* its pre-lapse status (`sound_available`, say) rather than `pti_due`,
+until something touches it. Two things bound that: PTI is rung 18, so it is only
+the headline when nothing else is happening; and `Container::scopeStatusExpired`
+finds exactly those rows, so a list can overlay a "PTI expired" chip off the same
+comparison. The consequential half — *may this box leave?* — is exact.
+
+**The missed-hook argument was weak too.** Writes that bypass model events would
+drift silently. There are three in the codebase: two update only **location**
+columns (not status triggers), and the third is `ResetTransactions`, a
+deliberate whole-yard wipe. So the risk is currently theoretical.
+
+**What the command is for.** An audit: run it after a bulk import, a data fix,
+`ResetTransactions`, or a change to the resolution ladder. Weekly scheduling is
+reasonable insurance. Daily buys nothing.
 
 ---
 
@@ -319,6 +384,15 @@ Schema::table('gate_movements', function (Blueprint $t) {
 });
 
 // 2024_01_01_000295_backfill_mr_status.php  — chunked, calls refresh()
+
+// 2024_01_01_000296_add_mr_status_expiry_to_containers.php
+Schema::table('containers', function (Blueprint $t) {
+    // The date this verdict stops being true on its own — a reefer's PTI
+    // valid_until, null for everything else. This is what replaces a nightly
+    // recompute (§3.6). Its own migration because 295 backfilled without it,
+    // so it re-runs refresh() for reefers.
+    $t->date('mr_status_expires_at')->nullable()->index()->after('export_ready');
+});
 ```
 
 Deliberately `string`, not `enum`: the catalogue will grow, and the codebase
@@ -373,11 +447,11 @@ column today is being misled — worth fixing whether or not the rest ships.
 - `containers:reconcile-mr-status [--fix] [--container=]` — recompute, diff,
   report. Same shape as the existing `FixStrandedRepairStatusCommand` and
   `ReconcileStorageCommand`.
-- Schedule it daily. **Note:** the scheduler entry point
-  (`bootstrap/app.php` / `Console/Kernel.php` / `routes/console.php`) is not
-  tracked in this repo — this one line lands in the deployment repo:
-  `Schedule::command('containers:reconcile-mr-status --fix')->dailyAt('02:00');`
-  Until it exists, PTI expiry and stage ageing are not reflected.
+- **No scheduling required.** An earlier draft made the reconcile a nightly job.
+  Checked against the code, only PTI expiry genuinely needed it, and storing the
+  boundary (§3.6) handles that exactly — and better than a job, which would
+  leave readiness wrong for up to a day between runs. The command stays as an
+  audit tool; weekly is reasonable insurance, daily buys nothing.
 
 **Decided:** `containers.status` and `mr_status` stay separate fields
 permanently. They answer different questions — *where is it* vs *what is it
@@ -491,7 +565,8 @@ Existing tests to re-run: `tests/Feature/Repair/WorkOrderFlowTest`,
 
 | Risk | Mitigation |
 | --- | --- |
-| Projection drifts from reality | One writer, daily reconcile, self-healing detail read, `--fix` command |
+| Projection drifts from reality | One writer, self-healing detail read, `--fix` reconcile on demand |
+| A stored verdict silently ages out | `mr_status_expires_at` compared at read time — exact, no job (§3.6) |
 | 21-branch order encodes the wrong priorities | The order is the reviewable artefact — §2.3 is written to be argued with before it is coded |
 | Historical rows have incomplete chains | Backfill tolerates gaps; missing chain → `awaiting_disposition`, never a wrong-but-confident status |
 | Operators read "available" as "exportable" | They are separate columns with separate filters; the stock screen flags the difference explicitly |
