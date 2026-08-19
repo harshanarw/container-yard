@@ -374,8 +374,36 @@ column today is being misled — worth fixing whether or not the rest ships.
   report. Same shape as the existing `FixStrandedRepairStatusCommand` and
   `ReconcileStorageCommand`.
 - Schedule it daily. **Note:** the scheduler entry point
-  (`bootstrap/app.php` / `Console/Kernel.php`) is not tracked in this repo — this
-  one line lands in the deployment repo.
+  (`bootstrap/app.php` / `Console/Kernel.php` / `routes/console.php`) is not
+  tracked in this repo — this one line lands in the deployment repo:
+  `Schedule::command('containers:reconcile-mr-status --fix')->dailyAt('02:00');`
+  Until it exists, PTI expiry and stage ageing are not reflected.
+
+**Decided:** `containers.status` and `mr_status` stay separate fields
+permanently. They answer different questions — *where is it* vs *what is it
+waiting on* — and neither is derived from the other.
+
+**Two corrections made while building this phase:**
+
+1. **Gate-out pairing must match `buildGateOutMap()`.** The obvious rule — "the
+   first gate-out at or after this gate-in closes the cycle" — mispairs exactly
+   the case this yard sees: two visits opened at the same instant, closed out of
+   order, where only the shared `yard_job_id` still separates them. It also
+   double-uses a single gate-out across two visits. `pairGateOuts()` now mirrors
+   `ContainerInquiryService::buildGateOutMap()` precedence (explicit job link
+   first, then the time window up to the next gate-in), so the projection and
+   the inquiry screen cannot disagree about which visit a status belongs to.
+   Pairing needs *all* of a container's movements, not just the ones on the
+   current page, or the first and last rows of every page mis-pair.
+2. **`container_booking_lines` needs no hook.** §3.4 listed it, but that table
+   has no `container_id` — the link is `containers.container_booking_line_id`,
+   and `BookingService` saves the container row itself, so the `Container` hook
+   already covers allocation and release.
+
+The `Container` hook is narrowed to the attributes that can actually move the
+status (`status`, `condition`, `pti_status`, `pti_at`,
+`container_booking_line_id`, `reserved_at`), so editing a master field like
+notes does not trigger a recompute.
 
 ### Phase 3 — Container Inquiry
 

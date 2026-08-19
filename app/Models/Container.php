@@ -77,7 +77,29 @@ class Container extends Model
         'available_since'   => 'datetime',
         'reserved_at'       => 'datetime',
         'pti_at'            => 'datetime',
+        // M&R status projection — written only by ContainerMrStatusService.
+        'mr_status_at'      => 'datetime',
+        'export_ready'      => 'boolean',
     ];
+
+    /**
+     * The derived M&R status columns.
+     *
+     * Deliberately absent from $fillable: ContainerMrStatusService::refresh()
+     * is the only writer, and it uses forceFill. Nothing else may set them —
+     * that single-writer rule is what keeps this projection from repeating the
+     * containers.status stranding, where many controllers wrote the column and
+     * one branch forgot.
+     */
+    public const MR_STATUS_FIELDS = [
+        'mr_status', 'mr_status_group', 'mr_lane', 'mr_status_at', 'export_ready',
+    ];
+
+    /** Containers free to leave on an export booking. */
+    public function scopeExportReady($query)
+    {
+        return $query->where('export_ready', true);
+    }
 
     /** Dispositions where the container is physically present in the yard. */
     public const IN_YARD_STATUSES = ['in_yard', 'in_repair', 'reserved', 'available'];

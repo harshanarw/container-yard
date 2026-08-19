@@ -85,6 +85,9 @@ class GateMovement extends Model
         'sailing_date'       => 'date',
         'codeco_exported_at' => 'datetime',
         'csv_exported_at'    => 'datetime',
+        // This cycle's M&R status — written only by ContainerMrStatusService,
+        // on gate-IN rows. Live while the cycle is open, terminal once it closes.
+        'mr_status_at'       => 'datetime',
     ];
 
     // Relationships

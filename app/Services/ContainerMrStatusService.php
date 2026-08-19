@@ -285,6 +285,158 @@ class ContainerMrStatusService
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Projection — the ONLY writer of the mr_status columns
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Recompute a container's status and write both projections.
+     *
+     * Idempotent: writes nothing when the stored values already match, so hooks
+     * can call it freely and the reconcile can run daily without churn.
+     *
+     * Saves quietly on purpose. These columns are derived, not user actions —
+     * auditing them would bury the real edits, and firing model events here
+     * would have the projection observer re-enter this method.
+     *
+     * @return bool true when something actually changed.
+     */
+    public function refresh(Container $container): bool
+    {
+        $ctx    = $this->contextForContainer($container);
+        $status = $this->resolve($ctx);
+
+        $changed = $this->writeContainerProjection($container, $status);
+
+        // While a cycle is open the two projections agree by construction: the
+        // open gate-in row IS the current cycle.
+        if ($ctx->gateIn && $this->writeGateInProjection($ctx->gateIn, $status)) {
+            $changed = true;
+        }
+
+        return $changed;
+    }
+
+    /**
+     * Write the cycle projection for a batch of gate-in rows, history included.
+     *
+     * refresh() only covers a container's *current* cycle. Container Inquiry
+     * lists closed cycles too, and each must show what that visit ended as — so
+     * the backfill and the reconcile drive historical rows through here.
+     *
+     * @param  Collection<int,GateMovement> $gateIns
+     * @return int number of rows changed
+     */
+    public function refreshGateIns(Collection $gateIns): int
+    {
+        $resolved = $this->forGateIns($gateIns);
+        $changed  = 0;
+
+        foreach ($gateIns as $gateIn) {
+            $status = $resolved[$gateIn->id] ?? null;
+
+            if ($status && $this->writeGateInProjection($gateIn, $status)) {
+                $changed++;
+            }
+        }
+
+        return $changed;
+    }
+
+    private function writeContainerProjection(Container $container, MrStatus $status): bool
+    {
+        $new = [
+            'mr_status'       => $status->code,
+            'mr_status_group' => $status->group(),
+            'mr_lane'         => $status->lane,
+            'mr_status_at'    => $status->since,
+            'export_ready'    => $status->exportReady,
+        ];
+
+        if (! $this->differs($container, $new)) {
+            return false;
+        }
+
+        $container->forceFill($new)->saveQuietly();
+
+        return true;
+    }
+
+    private function writeGateInProjection(GateMovement $gateIn, MrStatus $status): bool
+    {
+        $new = [
+            'mr_status'       => $status->code,
+            'mr_status_group' => $status->group(),
+            'mr_status_at'    => $status->since,
+        ];
+
+        if (! $this->differs($gateIn, $new)) {
+            return false;
+        }
+
+        $gateIn->forceFill($new)->saveQuietly();
+
+        return true;
+    }
+
+    /** Would writing $new change anything? Keeps refresh() idempotent. */
+    private function differs($model, array $new): bool
+    {
+        foreach ($new as $key => $value) {
+            $current = $model->getAttribute($key);
+
+            if ($value instanceof Carbon || $current instanceof Carbon) {
+                $a = $current instanceof Carbon ? $current->toDateTimeString() : (string) $current;
+                $b = $value instanceof Carbon ? $value->toDateTimeString() : (string) $value;
+
+                if ($a !== $b) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (is_bool($value)) {
+                if ((bool) $current !== $value) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if ($current !== $value) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Query predicates — so filters and the resolver never drift apart
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Filter by status code. Works on either projection, because both columns
+     * are named the same — pass a containers query or a gate_movements one.
+     */
+    public function scopeFor($query, string $code)
+    {
+        return $query->where('mr_status', $code);
+    }
+
+    /** Filter by status group (pending / in_progress / ready / blocked / …). */
+    public function scopeForGroup($query, string $group)
+    {
+        return $query->where('mr_status_group', $group);
+    }
+
+    /** Containers free to leave on an export booking. Containers query only. */
+    public function scopeExportReady($query)
+    {
+        return $query->where('export_ready', true);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Loading
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -303,22 +455,20 @@ class ContainerMrStatusService
      */
     public function contextForContainer(Container $container): MrStatusContext
     {
-        $gateIn = GateMovement::where('container_id', $container->id)
-            ->where('movement_type', 'in')
+        $movements = GateMovement::where('container_id', $container->id)
             ->with('yardJob.jobType')
-            ->orderByDesc('gate_in_time')
-            ->orderByDesc('id')
-            ->first();
+            ->get();
+
+        $gateIns  = $movements->where('movement_type', 'in')->values();
+        $gateOuts = $movements->where('movement_type', 'out')->values();
+
+        // The current cycle is the newest gate-in; pairing needs all of them,
+        // because which gate-out belongs to which visit depends on the ones
+        // around it.
+        $gateIn = $gateIns->sortByDesc(fn ($g) => [$g->gate_in_time?->timestamp ?? 0, $g->id])->first();
 
         $gateOut = $gateIn
-            ? GateMovement::where('container_id', $container->id)
-                ->where('movement_type', 'out')
-                ->when(
-                    $gateIn->gate_in_time,
-                    fn ($q) => $q->where('gate_out_time', '>=', $gateIn->gate_in_time)
-                )
-                ->orderBy('gate_out_time')
-                ->first()
+            ? ($this->pairGateOuts($gateIns, $gateOuts)[$gateIn->id] ?? null)
             : null;
 
         $from  = $gateIn?->gate_in_time;
@@ -361,11 +511,20 @@ class ContainerMrStatusService
 
         $containers = Container::whereIn('id', $containerIds)->get()->keyBy('id');
 
-        $gateOuts = GateMovement::whereIn('container_no', $containerNos)
-            ->where('movement_type', 'out')
-            ->orderBy('gate_out_time')
+        // Every movement for these containers, not just the page's gate-ins:
+        // which gate-out closed a visit depends on the visits around it, so a
+        // page-local view would mis-pair the first and last rows on the page.
+        $movements = GateMovement::whereIn('container_no', $containerNos)
             ->get()
             ->groupBy('container_no');
+
+        $gateOutMap = [];
+        foreach ($movements as $perContainer) {
+            $gateOutMap += $this->pairGateOuts(
+                $perContainer->where('movement_type', 'in')->values(),
+                $perContainer->where('movement_type', 'out')->values(),
+            );
+        }
 
         $inquiries  = Inquiry::whereIn('container_no', $containerNos)->get()->groupBy('container_no');
         $estimates  = Estimate::whereIn('container_no', $containerNos)->get()->groupBy('container_no');
@@ -393,14 +552,10 @@ class ContainerMrStatusService
                 continue;
             }
 
-            $cno   = $gateIn->container_no;
-            $from  = $gateIn->gate_in_time;
-
-            // The first gate-out at or after this gate-in closes the cycle.
-            $gateOut = ($gateOuts->get($cno) ?? collect())
-                ->first(fn ($go) => $from && $go->gate_out_time && $go->gate_out_time->gte($from));
-
-            $until = $gateOut?->gate_out_time;
+            $cno     = $gateIn->container_no;
+            $from    = $gateIn->gate_in_time;
+            $gateOut = $gateOutMap[$gateIn->id] ?? null;
+            $until   = $gateOut?->gate_out_time;
 
             $out[$gateIn->id] = $this->resolve(new MrStatusContext(
                 container:       $container,
@@ -425,6 +580,69 @@ class ContainerMrStatusService
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Pair each gate-in with the gate-out that closed its visit.
+     *
+     * Mirrors ContainerInquiryService::buildGateOutMap() on purpose, including
+     * its precedence: an explicit shared yard_job_id wins, and only unpaired
+     * gate-outs fall back to the time window running up to the next gate-in.
+     *
+     * The naive "first gate-out after this gate-in" is wrong here, and wrong in
+     * a way this yard actually sees: a box that goes out and back in on the
+     * same day gives two visits whose time windows collapse, and the job link
+     * is the only thing that still separates them. Getting this different from
+     * the inquiry screen would put a cycle's status on the wrong row.
+     *
+     * @param  Collection<int,GateMovement> $gateIns
+     * @param  Collection<int,GateMovement> $gateOuts
+     * @return array<int,GateMovement>      keyed by gate-in id
+     */
+    private function pairGateOuts(Collection $gateIns, Collection $gateOuts): array
+    {
+        $map     = [];
+        $usedIds = [];
+
+        $byJobId = $gateOuts
+            ->filter(fn ($go) => ! is_null($go->yard_job_id))
+            ->keyBy('yard_job_id');
+
+        $orphans = $gateOuts
+            ->filter(fn ($go) => is_null($go->yard_job_id))
+            ->sortBy('gate_out_time')
+            ->values();
+
+        $sorted = $gateIns->sortBy('gate_in_time')->values();
+
+        foreach ($sorted as $i => $gateIn) {
+            if (! is_null($gateIn->yard_job_id) && $byJobId->has($gateIn->yard_job_id)) {
+                $go = $byJobId->get($gateIn->yard_job_id);
+                $map[$gateIn->id] = $go;
+                $usedIds[$go->id] = true;
+
+                continue;
+            }
+
+            $from  = $gateIn->gate_in_time?->timestamp ?? 0;
+            $until = $sorted->get($i + 1)?->gate_in_time?->timestamp ?? PHP_INT_MAX;
+
+            foreach ($orphans as $go) {
+                if (isset($usedIds[$go->id])) {
+                    continue;
+                }
+
+                $ts = $go->gate_out_time?->timestamp ?? 0;
+
+                if ($ts >= $from && $ts < $until) {
+                    $map[$gateIn->id] = $go;
+                    $usedIds[$go->id] = true;
+                    break;
+                }
+            }
+        }
+
+        return $map;
+    }
 
     /** The job type behind a gate-in, without lazy-loading during resolution. */
     private function jobTypeFor(?GateMovement $gateIn)

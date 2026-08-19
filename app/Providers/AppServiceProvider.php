@@ -52,6 +52,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(DocumentManager::class);
+
+        // Singleton so the repair-category lookup behind the wash/repair lane
+        // split is resolved once per request rather than per observer event.
+        $this->app->singleton(\App\Services\ContainerMrStatusService::class);
     }
 
     public function boot(): void
@@ -85,6 +89,29 @@ class AppServiceProvider extends ServiceProvider
         GuardCapture::observe(GuardCaptureObserver::class);
         ApprovalRequest::observe(ApprovalRequestObserver::class);
         \App\Models\Document::observe(\App\Observers\DocumentObserver::class);
+
+        // ── M&R status projection ────────────────────────────────────────────
+        // Alongside the audit observers, not inside them: those write the audit
+        // log, this keeps containers.mr_status and the gate-in row's cycle
+        // status in step with the workflow. Every model here can change what a
+        // container is waiting on.
+        //
+        // Time-driven transitions (a PTI lapsing, a stage ageing past its
+        // threshold) have no save to hook, so they are not covered here —
+        // containers:reconcile-mr-status exists for exactly those.
+        foreach ([
+            Container::class,
+            GateMovement::class,
+            Inquiry::class,
+            Estimate::class,
+            WorkOrder::class,
+            \App\Models\ContainerHold::class,
+            \App\Models\ContainerHire::class,
+            \App\Models\CargoTransfer::class,
+            \App\Models\ReeferPtiInspection::class,
+        ] as $model) {
+            $model::observe(\App\Observers\MrStatusProjectionObserver::class);
+        }
 
         // Register WebSocket channel auth route + channel definitions
         if (config('broadcasting.default') !== 'null') {
