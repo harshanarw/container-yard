@@ -114,6 +114,29 @@
     </div>
 </div>
 
+{{-- M&R stage roll-up — beside the disposition tiles above, not instead of
+     them: those say where each box is, these say what it is waiting on. --}}
+<div class="card content-card mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <span class="small fw-semibold text-muted"><i class="bi bi-clipboard-pulse me-1"></i>M&amp;R Stage</span>
+            <a href="{{ route('reports.mr-status') }}" class="small text-decoration-none no-print">
+                Full M&amp;R report <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        <div class="row g-2">
+            @foreach($mrSummary as $key => $group)
+            <div class="col-4 col-md-2">
+                <div class="border rounded-3 py-2 px-2 text-center h-100 {{ $group['count'] > 0 ? '' : 'opacity-50' }}">
+                    <div class="text-muted" style="font-size:.7rem">{{ $group['label'] }}</div>
+                    <div class="fw-bold font-monospace">{{ number_format($group['count']) }}</div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
 {{-- Filters --}}
 <div class="card content-card mb-3 no-print">
     <div class="card-header py-2 fw-semibold small"><i class="bi bi-funnel me-1"></i>Filter Report</div>
@@ -160,6 +183,15 @@
                         <option value="require_repair" {{ request('condition') === 'require_repair' ? 'selected' : '' }}>Require Repair</option>
                     </select>
                 </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label form-label-sm mb-1">M&amp;R Stage</label>
+                    <select name="mr_status_group" class="form-select form-select-sm">
+                        <option value="">Any M&amp;R stage</option>
+                        @foreach($mrStatusGroups as $key => $label)
+                            <option value="{{ $key }}" {{ request('mr_status_group') === $key ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="col-6 col-md-1">
                     <label class="form-label form-label-sm mb-1">From</label>
                     <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}">
@@ -202,6 +234,7 @@
                         <th>Gate In Date</th>
                         <th>Days in Yard</th>
                         <th>Status</th>
+                        <th>M&amp;R Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -286,10 +319,19 @@
                             @endphp
                             <span class="badge rounded-pill bg-{{ $stColor }}">{{ $stLabel }}</span>
                         </td>
+                        <td>
+                            @if($container->mr_status)
+                                <span class="badge {{ \App\Support\MrStatusCatalogue::badgeClass($container->mr_status) }}" style="font-size:.7rem">
+                                    {{ \App\Support\MrStatusCatalogue::label($container->mr_status, $container->mr_lane) }}
+                                </span>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="text-center py-5 text-muted">
+                        <td colspan="11" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                             No containers found matching your filters.
                         </td>

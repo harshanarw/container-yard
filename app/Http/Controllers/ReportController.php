@@ -6,6 +6,8 @@ use App\Models\Container;
 use App\Models\Customer;
 use App\Models\GateMovement;
 use App\Models\YardStorage;
+use App\Services\ContainerMrStatusService;
+use App\Support\MrStatusCatalogue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -24,6 +26,7 @@ class ReportController extends Controller
             ->when($request->status,      fn ($q, $v) => $q->where('status', $v))
             ->when($request->size,        fn ($q, $v) => $q->where('size', $v))
             ->when($request->condition,   fn ($q, $v) => $q->where('condition', $v))
+            ->when($request->mr_status_group, fn ($q, $v) => $q->where('mr_status_group', $v))
             ->when($request->date_from,   fn ($q, $v) => $q->whereDate('gate_in_date', '>=', $v))
             ->when($request->date_to,     fn ($q, $v) => $q->whereDate('gate_in_date', '<=', $v))
             ->orderBy('gate_in_date', 'desc')
@@ -41,9 +44,222 @@ class ReportController extends Controller
             'by_size_45'   => $containers->where('size', '45')->count(),
         ];
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        // Beside the disposition tiles, not instead of them: the two answer
+        // different questions — where each box is, versus what it is waiting on.
+        $mrSummary = collect(MrStatusCatalogue::groups())
+            ->map(fn ($label, $key) => [
+                'label' => $label,
+                'count' => $containers->where('mr_status_group', $key)->count(),
+            ])
+            ->except([MrStatusCatalogue::GROUP_CLOSED]);
 
-        return view('reports.inventory', compact('containers', 'summary', 'customers'));
+        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $mrStatusGroups = MrStatusCatalogue::groups();
+
+        return view('reports.inventory', compact('containers', 'summary', 'customers', 'mrSummary', 'mrStatusGroups'));
+    }
+
+    /**
+     * M&R Status — what is in the yard and what each container is waiting on.
+     *
+     * Reads the stored projection, so the whole report is indexed-column work:
+     * the summary and breakdown are grouped aggregates that do not care how big
+     * the yard is, and only the detail list is paginated. Nothing is derived
+     * per row.
+     *
+     * There is no job-type filter here on purpose. Job type is the axis the
+     * *lane* is derived from, and lane is stored on the container, so filtering
+     * by lane asks the same question in an indexed way. Filtering by the exact
+     * job type of a particular visit is a movement-level question, and
+     * Container Inquiry already answers it — it filters by job type and M&R
+     * status together.
+     */
+    public function mrStatus(Request $request, ContainerMrStatusService $mrStatus)
+    {
+        $filters = $request->only(['customer_id', 'size', 'mr_lane', 'mr_status', 'mr_status_group', 'overdue']);
+
+        $thresholds = $mrStatus->ageThresholds();
+
+        // Containers physically present. A released box is not "in the yard
+        // waiting on" anything.
+        $base = fn () => Container::whereIn('status', Container::IN_YARD_STATUSES)
+            ->whereNotNull('mr_status')
+            ->when($filters['customer_id'] ?? null, fn ($q, $v) => $q->where('customer_id', $v))
+            ->when($filters['size'] ?? null,        fn ($q, $v) => $q->where('size', $v))
+            ->when($filters['mr_lane'] ?? null,     fn ($q, $v) => $q->where('mr_lane', $v))
+            ->when($filters['mr_status'] ?? null,   fn ($q, $v) => $q->where('mr_status', $v))
+            ->when($filters['mr_status_group'] ?? null, fn ($q, $v) => $q->where('mr_status_group', $v));
+
+        // ── Group roll-up ────────────────────────────────────────────────────
+        $groupCounts = $base()->groupBy('mr_status_group')
+            ->selectRaw('mr_status_group, COUNT(*) as total')
+            ->pluck('total', 'mr_status_group');
+
+        $summary = collect(MrStatusCatalogue::groups())
+            ->map(fn ($label, $key) => [
+                'label' => $label,
+                'count' => (int) ($groupCounts[$key] ?? 0),
+            ])
+            ->except([MrStatusCatalogue::GROUP_CLOSED]);
+
+        // ── Per-status breakdown, with ageing ────────────────────────────────
+        //
+        // Two different questions, both worth answering: the absolute shape of
+        // the ageing (how long things sit), and the policy breach (how many are
+        // past the threshold for *their* stage). A status with a ten-day
+        // threshold and one with three are not comparable on days alone.
+        $rows = $base()
+            ->groupBy('mr_status', 'mr_lane')
+            ->selectRaw('mr_status, mr_lane, COUNT(*) as total')
+            ->selectRaw('AVG(DATEDIFF(?, mr_status_at)) as avg_days', [now()->toDateString()])
+            ->selectRaw('MAX(DATEDIFF(?, mr_status_at)) as max_days', [now()->toDateString()])
+            ->selectRaw('SUM(DATEDIFF(?, mr_status_at) <= 7) as band_week',      [now()->toDateString()])
+            ->selectRaw('SUM(DATEDIFF(?, mr_status_at) BETWEEN 8 AND 14) as band_fortnight', [now()->toDateString()])
+            ->selectRaw('SUM(DATEDIFF(?, mr_status_at) BETWEEN 15 AND 30) as band_month', [now()->toDateString()])
+            ->selectRaw('SUM(DATEDIFF(?, mr_status_at) > 30) as band_over',      [now()->toDateString()])
+            ->get()
+            ->map(function ($row) use ($thresholds) {
+                $threshold = $thresholds[$row->mr_status] ?? null;
+
+                return [
+                    'code'       => $row->mr_status,
+                    'lane'       => $row->mr_lane,
+                    'label'      => MrStatusCatalogue::label($row->mr_status, $row->mr_lane),
+                    'group'      => MrStatusCatalogue::group($row->mr_status),
+                    'badge'      => MrStatusCatalogue::badgeClass($row->mr_status),
+                    'count'      => (int) $row->total,
+                    'avg_days'   => (int) round((float) $row->avg_days),
+                    'max_days'   => (int) $row->max_days,
+                    'threshold'  => $threshold,
+                    'bands'      => [
+                        '≤7d'    => (int) $row->band_week,
+                        '8–14d'  => (int) $row->band_fortnight,
+                        '15–30d' => (int) $row->band_month,
+                        '>30d'   => (int) $row->band_over,
+                    ],
+                ];
+            })
+            ->sortByDesc('count')
+            ->values();
+
+        // Overdue is per-stage, so it cannot be one SQL predicate across all
+        // statuses — one OR-group per configured threshold.
+        //
+        // The guard matters: an empty group compiles to no constraint at all,
+        // which would report the entire yard as overdue rather than none of it.
+        $overdueQuery = $base()->where(function ($q) use ($thresholds) {
+            if (empty($thresholds)) {
+                $q->whereRaw('1 = 0');
+
+                return;
+            }
+
+            foreach ($thresholds as $code => $days) {
+                $q->orWhere(fn ($s) => $s->where('mr_status', $code)
+                    ->whereRaw('DATEDIFF(?, mr_status_at) > ?', [now()->toDateString(), $days]));
+            }
+        });
+
+        $overdueByStatus = (clone $overdueQuery)->groupBy('mr_status')
+            ->selectRaw('mr_status, COUNT(*) as total')
+            ->pluck('total', 'mr_status');
+
+        $rows = $rows->map(function ($row) use ($overdueByStatus) {
+            $row['overdue'] = (int) ($overdueByStatus[$row['code']] ?? 0);
+
+            return $row;
+        });
+
+        $overdueTotal = (int) $overdueByStatus->sum();
+
+        // ── Detail ───────────────────────────────────────────────────────────
+        $detail = (! empty($filters['overdue']) ? $overdueQuery : $base())
+            ->with('customer')
+            ->withCount(['holds as active_holds_count' => fn ($q) => $q->whereNull('cleared_at')])
+            ->orderBy('mr_status_at')     // longest-stuck first — the point of the report
+            ->paginate(50)
+            ->withQueryString();
+
+        $customers        = Customer::where('status', 'active')->orderBy('name')->get();
+        $mrStatusesByLane = MrStatusCatalogue::codesByLane();
+        $mrStatusGroups   = MrStatusCatalogue::groups();
+
+        return view('reports.mr-status', compact(
+            'summary', 'rows', 'detail', 'filters', 'customers',
+            'mrStatusesByLane', 'mrStatusGroups', 'thresholds', 'overdueTotal'
+        ));
+    }
+
+    /**
+     * The same rows as the report, streamed and unpaginated.
+     *
+     * Chunked rather than ->get(): a report the whole yard fits in is exactly
+     * the one someone exports on the day the yard is full.
+     */
+    public function exportMrStatusCsv(Request $request, ContainerMrStatusService $mrStatus)
+    {
+        $thresholds = $mrStatus->ageThresholds();
+        $today      = now()->toDateString();
+        $filename   = 'mr-status-' . now()->format('Ymd-His') . '.csv';
+
+        $query = Container::whereIn('status', Container::IN_YARD_STATUSES)
+            ->whereNotNull('mr_status')
+            ->when($request->customer_id, fn ($q, $v) => $q->where('customer_id', $v))
+            ->when($request->size,        fn ($q, $v) => $q->where('size', $v))
+            ->when($request->mr_lane,     fn ($q, $v) => $q->where('mr_lane', $v))
+            ->when($request->mr_status,   fn ($q, $v) => $q->where('mr_status', $v))
+            ->when($request->mr_status_group, fn ($q, $v) => $q->where('mr_status_group', $v))
+            ->when($request->boolean('overdue'), fn ($q) => $q->where(function ($s) use ($thresholds, $today) {
+                if (empty($thresholds)) {
+                    $s->whereRaw('1 = 0');   // no thresholds means nothing is overdue
+
+                    return;
+                }
+
+                foreach ($thresholds as $code => $days) {
+                    $s->orWhere(fn ($w) => $w->where('mr_status', $code)
+                        ->whereRaw('DATEDIFF(?, mr_status_at) > ?', [$today, $days]));
+                }
+            }))
+            ->with('customer')
+            ->withCount(['holds as active_holds_count' => fn ($q) => $q->whereNull('cleared_at')])
+            ->orderBy('mr_status_at');
+
+        return response()->streamDownload(function () use ($query, $thresholds) {
+            $output = fopen('php://output', 'w');
+            fputcsv($output, [
+                'Container No', 'Customer', 'Size', 'Type',
+                'Disposition', 'M&R Status', 'Stage', 'Lane',
+                'In Stage Since', 'Days In Stage', 'Threshold (days)', 'Overdue',
+                'On Hold', 'Export Ready',
+            ]);
+
+            $query->chunk(200, function ($containers) use ($output, $thresholds) {
+                foreach ($containers as $c) {
+                    $days      = $c->mr_status_at ? (int) $c->mr_status_at->diffInDays(now()) : null;
+                    $threshold = $thresholds[$c->mr_status] ?? null;
+
+                    fputcsv($output, [
+                        $c->container_no,
+                        $c->customer->name ?? '-',
+                        $c->size ?? '-',
+                        $c->type_code ?? '-',
+                        $c->status,
+                        MrStatusCatalogue::label($c->mr_status, $c->mr_lane),
+                        MrStatusCatalogue::groups()[$c->mr_status_group] ?? $c->mr_status_group,
+                        MrStatusCatalogue::laneLabel($c->mr_lane),
+                        $c->mr_status_at?->format('Y-m-d H:i') ?? '-',
+                        $days ?? '-',
+                        $threshold ?? '-',
+                        ($threshold !== null && $days !== null && $days > $threshold) ? 'Yes' : 'No',
+                        ($c->active_holds_count ?? 0) > 0 ? 'Yes' : 'No',
+                        ($c->export_ready && ! $c->mrStatusHasExpired()) ? 'Yes' : 'No',
+                    ]);
+                }
+            });
+
+            fclose($output);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 
     public function billing(Request $request)
@@ -157,7 +373,7 @@ class ReportController extends Controller
             $out = fopen('php://output', 'w');
             fputcsv($out, [
                 'Batch Ref', 'Movement Type', 'Container No', 'Size', 'Equipment Type',
-                'Container Operator', 'Condition', 'Cargo Status', 'Seal No',
+                'Container Operator', 'Condition', 'M&R Status', 'Cargo Status', 'Seal No',
                 'Vehicle Plate', 'Driver Name', 'Driver IC', 'Release Order',
                 'Gate In Date/Time', 'Gate Out Date/Time',
                 'Location Row', 'Location Bay', 'Location Tier',
@@ -172,6 +388,9 @@ class ReportController extends Controller
                     $m->container_type,
                     $m->customer->name ?? '—',
                     $m->condition,
+                    // That cycle's status, from the movement row itself — a
+                    // gate-out row carries none, since only gate-ins own a cycle.
+                    $m->mr_status ? MrStatusCatalogue::label($m->mr_status, $m->mr_lane) : '',
                     $m->cargo_status,
                     $m->seal_no,
                     $m->vehicle_plate,

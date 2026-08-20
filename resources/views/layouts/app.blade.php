@@ -1546,6 +1546,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('reports.mr-status') }}"
+                       class="nav-link {{ request()->routeIs('reports.mr-status') ? 'active' : '' }}">
+                        <i class="bi bi-clipboard-pulse"></i><span>M&amp;R Status</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('reports.daily-movements') }}"
                        class="nav-link {{ request()->routeIs('reports.daily-movements') ? 'active' : '' }}">
                         <i class="bi bi-calendar-week"></i><span>Daily Movements</span>

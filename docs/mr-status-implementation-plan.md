@@ -574,15 +574,35 @@ gratuitous change to a screen people read every morning.
 
 ### Phase 5 — Reports
 
-- **New: M&R Status Report** (`reports.mr-status`) — containers by status and
-  group, with stage ageing buckets, filterable by lane / job type / customer /
-  size, CSV export. This is the report that answers "what is in the yard and
-  what is it waiting on".
-- **Inventory report** — M&R status column, filter, and summary tiles by group
-  next to the existing disposition tiles.
+- **New: M&R Status Report** (`reports.mr-status`) — stage roll-up, a per-status
+  breakdown with ageing bands (≤7 / 8–14 / 15–30 / >30 days) and an overdue
+  count, and a paginated detail list ordered longest-stuck first. Filterable by
+  customer / lane / status / stage / size / overdue-only, with CSV export.
+- **Inventory report** — M&R status column, stage filter, and a stage roll-up
+  beside the existing disposition tiles.
 - **Daily movements CSV** — M&R status per movement row.
-- **Ageing view** — days in current stage, with per-stage thresholds, so
-  "awaiting QC for 11 days" is visible without a query.
+- **Ageing** — days in the *current stage*, compared against that stage's
+  threshold, so "awaiting QC for 11 days" is visible without a query.
+
+**Overdue cannot be one predicate.** Thresholds are per stage, so a status with
+a ten-day threshold and one with three are not comparable on days alone: the
+query builds an OR-group per configured threshold. An empty threshold map is
+guarded explicitly — an empty nested `where` compiles to *no constraint*, which
+would report the whole yard as overdue rather than none of it.
+
+**No job-type filter, deliberately.** The plan listed one. Job type is the axis
+`mr_lane` is derived from, and the lane is stored on the container, so filtering
+by lane asks the same question against an index. Filtering by the job type of a
+*particular visit* is a movement-level question, and Container Inquiry already
+answers it — it filters by job type and M&R status together. Adding a
+container-level job-type filter would have meant either an approximation ("any
+visit on this job type") or a correlated subquery for the current cycle; the
+first is subtly wrong and the second duplicates a screen that already exists.
+
+**Aggregates, not collections.** The existing reports `->get()` everything and
+count in PHP. This one groups in SQL for the summary and breakdown and paginates
+the detail, so it stays flat as the yard grows; the CSV chunks for the same
+reason — the day someone exports the whole yard is the day the yard is full.
 
 ---
 

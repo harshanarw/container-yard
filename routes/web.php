@@ -306,6 +306,8 @@ Route::middleware(['auth'])->group(function () {
     // Reports
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/inventory',                        [ReportController::class, 'inventory'])->name('inventory');
+        Route::get('/mr-status',                        [ReportController::class, 'mrStatus'])->name('mr-status');
+        Route::get('/mr-status/export/csv',             [ReportController::class, 'exportMrStatusCsv'])->name('mr-status.export.csv');
         Route::get('/billing',                          [ReportController::class, 'billing'])->name('billing');
         Route::get('/daily-movements',                  [ReportController::class, 'dailyMovements'])->name('daily-movements');
         Route::post('/daily-movements/export/csv',      [ReportController::class, 'exportMovementsCsv'])->name('daily-movements.export.csv');
