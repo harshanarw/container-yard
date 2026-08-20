@@ -30,7 +30,14 @@ class CompanySettingController extends Controller
         $currencies = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
         $countries  = Country::forSelect();
         $storageUsage = app(\App\Services\StorageUsageService::class)->summary();
-        return view('settings.company.index', compact('settings', 'currencies', 'countries', 'storageUsage'));
+
+        // Effective thresholds (settings merged over the shipped defaults), so
+        // the screen shows what is actually in force rather than blanks.
+        $mrThresholds = app(\App\Services\ContainerMrStatusService::class)->ageThresholds();
+
+        return view('settings.company.index', compact(
+            'settings', 'currencies', 'countries', 'storageUsage', 'mrThresholds'
+        ));
     }
 
     public function setDefaultCurrency(Request $request)
@@ -81,6 +88,11 @@ class CompanySettingController extends Controller
             'max_storage_mb'           => ['nullable', 'integer', 'min:0', 'max:10000000'],
             'enforce_storage_limit'    => ['nullable', 'boolean'],
             'app_base_url'             => ['nullable', 'string', 'max:255'],
+            // Overdue thresholds, status code => days. Blank means "don't flag
+            // this stage"; 1..365 keeps a typo from flagging the whole yard or
+            // nothing at all.
+            'mr_age_thresholds'        => ['nullable', 'array'],
+            'mr_age_thresholds.*'      => ['nullable', 'integer', 'min:1', 'max:365'],
             'logo'                     => ['nullable', 'image', 'max:2048'],
             'icon'            => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
             'product_icon'    => ['nullable', 'mimes:jpg,jpeg,png,ico,svg,webp', 'max:512'],
@@ -108,6 +120,25 @@ class CompanySettingController extends Controller
                 $base = 'https://' . $base;
             }
             $data['app_base_url'] = rtrim($base, '/');
+        }
+
+        // Only touched when the form that owns it was the one submitted.
+        //
+        // Several forms on this page post to this same action — the logo, icon
+        // and product-icon uploads each send just company_name and their file.
+        // Writing this key unconditionally would wipe every configured
+        // threshold the next time someone uploaded a logo.
+        if ($request->has('mr_age_thresholds')) {
+            // Store only what the operator actually set, and only for stages
+            // that exist. Blanks are dropped rather than saved, so a stage left
+            // empty keeps falling back to the shipped default, and a status
+            // added to the catalogue later works without anyone revisiting this
+            // screen.
+            $data['mr_age_thresholds'] = collect($request->input('mr_age_thresholds', []))
+                ->filter(fn ($days, $code) => $days !== null && $days !== ''
+                    && array_key_exists($code, \App\Support\MrStatusCatalogue::CATALOGUE))
+                ->map(fn ($days) => (int) $days)
+                ->all() ?: null;
         }
 
         $storage = app(\App\Services\StorageService::class);

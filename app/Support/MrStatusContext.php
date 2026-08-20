@@ -55,6 +55,11 @@ final class MrStatusContext
         // a verdict that rests on it has to record *when* it stops being true —
         // that boundary is what replaces a nightly recompute.
         public readonly ?Carbon $ptiValidUntil = null,
+        // Effective "overdue" thresholds, status code => days. Passed in for the
+        // same reason as $washCategoryIds: they are operator-configurable, so
+        // reading them is a query, and resolve() must not run queries. Defaults
+        // to the shipped map when the caller does not supply one.
+        public readonly array $ageThresholds = MrStatusCatalogue::AGE_THRESHOLD_DAYS,
     ) {
         // Sorted here rather than trusted from the caller, so "latest" means the
         // same thing to every call site and the unit tests can pass unordered

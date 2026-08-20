@@ -520,6 +520,51 @@
         </div>
     </div>
 
+    {{-- M&R Overdue Thresholds --}}
+    <div class="card content-card mb-4">
+        <div class="card-header py-2">
+            <i class="bi bi-hourglass-split me-2 text-warning"></i>M&amp;R Overdue Thresholds
+        </div>
+        <div class="card-body">
+            <p class="small text-muted mb-3">
+                Days a container may sit in a stage before it is flagged
+                <span class="badge bg-danger-subtle text-danger border">Overdue</span>.
+                The clock runs <strong>per stage, not per visit</strong> — a container can be in the
+                yard for weeks without being overdue if it only reached its current stage yesterday.
+                Flagging is advisory: it never blocks a gate-out or an allocation.
+                Leave a box empty to stop flagging that stage. Stages not listed here —
+                in storage, on hire, reserved, available, gated out — are never flagged,
+                because sitting in them is not a stall.
+            </p>
+            <div class="row g-2">
+                @foreach(\App\Support\MrStatusCatalogue::AGE_THRESHOLD_DAYS as $code => $default)
+                <div class="col-6 col-md-4 col-lg-3">
+                    <label class="form-label form-label-sm mb-1 small" for="mrAge{{ $code }}">
+                        {{ \App\Support\MrStatusCatalogue::label($code) }}
+                    </label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" min="1" max="365"
+                               class="form-control @error('mr_age_thresholds.' . $code) is-invalid @enderror"
+                               id="mrAge{{ $code }}"
+                               name="mr_age_thresholds[{{ $code }}]"
+                               value="{{ old('mr_age_thresholds.' . $code, $mrThresholds[$code] ?? '') }}"
+                               placeholder="{{ $default }}">
+                        <span class="input-group-text">days</span>
+                    </div>
+                    @error('mr_age_thresholds.' . $code)
+                        <div class="small text-danger">{{ $message }}</div>
+                    @enderror
+                </div>
+                @endforeach
+            </div>
+            <p class="small text-muted mb-0 mt-3">
+                Shipped defaults appear as placeholders. These are starting points, not
+                measurements of your yard — expect to tune them once you see which
+                containers get flagged.
+            </p>
+        </div>
+    </div>
+
     {{-- File Storage --}}
     @php
         $stUsed = $storageUsage['used'] ?? 0; $stLimit = $storageUsage['limit'] ?? 0;

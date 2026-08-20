@@ -117,27 +117,40 @@ final class MrStatusCatalogue
     public const WASH_CATEGORY_CODES = ['CLN'];
 
     /**
-     * Days in a stage before it is flagged overdue.
+     * Days in a stage before it is flagged overdue — the shipped defaults.
      *
-     * Placeholder defaults pending a decision on where these belong (company
-     * setting vs job-type setting) — see §9 of the implementation plan. Kept in
-     * one map so moving them to configuration later is a single change.
+     * These are the baseline, not the last word: the effective values come from
+     * Company Settings, which merges over this map
+     * (ContainerMrStatusService::ageThresholds). A yard that has never touched
+     * the setting runs on exactly these numbers.
+     *
+     * The clock is per *stage*, not per visit. A container can be in the yard
+     * forty days without being overdue if it only entered its current stage
+     * yesterday — the flag measures the stall, not the stay.
+     *
+     * Stages absent from this map are never flagged, deliberately: sitting in
+     * storage, on hire, reserved or available is not a stall. The two that look
+     * like stalls but have no natural owner — a rejected estimate nobody
+     * actioned, and a container in the yard with no chain attached — do carry
+     * one.
      */
     public const AGE_THRESHOLD_DAYS = [
-        self::AWAITING_SURVEY    => 2,
-        self::SURVEY_IN_PROGRESS => 3,
-        self::ESTIMATE_PENDING   => 3,
-        self::ESTIMATE_SENT      => 7,
-        self::ESTIMATE_APPROVED  => 3,
-        self::REPAIR_SCHEDULED   => 5,
-        self::REPAIR_IN_PROGRESS => 10,
-        self::REPAIR_ON_HOLD     => 5,
-        self::AWAITING_QC        => 3,
-        self::QC_FAILED          => 5,
-        self::WASH_SCHEDULED     => 3,
-        self::WASH_IN_PROGRESS   => 3,
-        self::PTI_DUE            => 7,
-        self::PTI_FAILED         => 5,
+        self::AWAITING_SURVEY      => 2,
+        self::SURVEY_IN_PROGRESS   => 3,
+        self::ESTIMATE_PENDING     => 3,
+        self::ESTIMATE_SENT        => 7,
+        self::ESTIMATE_REJECTED    => 5,
+        self::ESTIMATE_APPROVED    => 3,
+        self::REPAIR_SCHEDULED     => 5,
+        self::REPAIR_IN_PROGRESS   => 10,
+        self::REPAIR_ON_HOLD       => 5,
+        self::AWAITING_QC          => 3,
+        self::QC_FAILED            => 5,
+        self::WASH_SCHEDULED       => 3,
+        self::WASH_IN_PROGRESS     => 3,
+        self::PTI_DUE              => 7,
+        self::PTI_FAILED           => 5,
+        self::AWAITING_DISPOSITION => 14,
     ];
 
     /**

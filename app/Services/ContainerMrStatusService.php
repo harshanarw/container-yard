@@ -35,6 +35,9 @@ class ContainerMrStatusService
     /** Memoised for the request — repair categories are small, static master data. */
     private ?array $washCategoryIds = null;
 
+    /** Memoised likewise — the thresholds are one settings row. */
+    private ?array $ageThresholds = null;
+
     // ─────────────────────────────────────────────────────────────────────────
     // Resolution
     // ─────────────────────────────────────────────────────────────────────────
@@ -273,7 +276,7 @@ class ContainerMrStatusService
             $modifiers[] = Cat::MODIFIER_PTI_EXPIRED;
         }
 
-        $threshold = Cat::AGE_THRESHOLD_DAYS[$code] ?? null;
+        $threshold = $ctx->ageThresholds[$code] ?? null;
         if ($threshold !== null && $since) {
             if ((int) Carbon::parse($since)->diffInDays(Carbon::now()) > $threshold) {
                 $modifiers[] = Cat::MODIFIER_OVERDUE;
@@ -575,6 +578,7 @@ class ContainerMrStatusService
             ptiValid:        $pti['valid'] ?? false,
             washCategoryIds: $this->washCategoryIds(),
             ptiValidUntil:   $pti['until'] ?? null,
+            ageThresholds:   $this->ageThresholds(),
         );
     }
 
@@ -629,8 +633,9 @@ class ContainerMrStatusService
                                  ->orWhereIn('substitute_container_id', $containerIds))
             ->get();
 
-        $ptiState = $this->ptiStateFor($containers);
-        $washIds  = $this->washCategoryIds();
+        $ptiState   = $this->ptiStateFor($containers);
+        $washIds    = $this->washCategoryIds();
+        $thresholds = $this->ageThresholds();
 
         $out = [];
 
@@ -660,6 +665,7 @@ class ContainerMrStatusService
                 ptiValid:        $ptiState[$container->id]['valid'] ?? false,
                 washCategoryIds: $washIds,
                 ptiValidUntil:   $ptiState[$container->id]['until'] ?? null,
+                ageThresholds:   $thresholds,
             ));
         }
 
@@ -826,6 +832,31 @@ class ContainerMrStatusService
             ->where(fn ($q) => $q->where('source_container_id', $container->id)
                                  ->orWhere('substitute_container_id', $container->id))
             ->first();
+    }
+
+    /**
+     * The effective overdue thresholds: operator settings over shipped defaults.
+     *
+     * Merged key by key, so a yard that tunes two stages keeps the defaults for
+     * the rest, and a stage added to the catalogue later works immediately
+     * without anyone revisiting the settings screen.
+     *
+     * Non-positive values are dropped rather than stored as zero — "0 days"
+     * would flag everything the moment it entered the stage, which is never
+     * what an operator means. Clearing the box means "don't flag this stage".
+     *
+     * @return array<string,int>
+     */
+    public function ageThresholds(): array
+    {
+        return $this->ageThresholds ??= array_merge(
+            Cat::AGE_THRESHOLD_DAYS,
+            collect(\App\Models\CompanySetting::current()->mr_age_thresholds ?? [])
+                ->filter(fn ($days, $code) => is_numeric($days) && (int) $days > 0
+                    && array_key_exists($code, Cat::CATALOGUE))
+                ->map(fn ($days) => (int) $days)
+                ->all()
+        );
     }
 
     /** Repair categories that mean wash rather than structural repair. */

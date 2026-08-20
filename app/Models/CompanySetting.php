@@ -59,6 +59,7 @@ class CompanySetting extends Model
         'guardpost_warn_no_capture',
         'app_base_url',
         'mr_dimension_uom',
+        'mr_age_thresholds',
         // Gate Pass Defaults
         'default_gate_in_format',
         'default_gate_out_format',
@@ -79,6 +80,9 @@ class CompanySetting extends Model
         'enable_gatepass_whatsapp' => 'boolean',
         'guardpost_warn_no_capture' => 'boolean',
         'enforce_storage_limit'    => 'boolean',
+        // status code => days. Overrides MrStatusCatalogue::AGE_THRESHOLD_DAYS
+        // key by key; null or missing keys fall back to the shipped defaults.
+        'mr_age_thresholds'        => 'array',
     ];
 
     public static function current(): static

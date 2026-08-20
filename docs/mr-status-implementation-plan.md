@@ -648,9 +648,14 @@ Existing tests to re-run: `tests/Feature/Repair/WorkOrderFlowTest`,
    in scope — too much of the app reads it — but if `mr_status` proves itself,
    `status` could become a derived view of it rather than a parallel truth. Worth
    deciding the direction now so Phase 2 does not paint into a corner.
-2. **Stage ageing thresholds.** "Overdue" needs a number per stage (awaiting QC >
-   N days, estimate sent > N days). Company setting, job-type setting, or
-   hardcoded defaults to start?
+2. ~~**Stage ageing thresholds.**~~ **Decided.** They live in Company Settings as
+   a JSON map that merges over `MrStatusCatalogue::AGE_THRESHOLD_DAYS` key by
+   key, so tuning one stage keeps the defaults for the rest and a status added
+   later works without revisiting the screen. The shipped numbers ship as-is and
+   get tuned once real containers start being flagged. `Estimate rejected` (5)
+   and `In yard — awaiting disposition` (14) were added — both are genuine
+   stalls that had no threshold. The clock is per *stage*, not per visit, and
+   the flag is advisory: it never blocks a gate-out or an allocation.
 3. **Do the 25 codes match how operators actually speak?** The catalogue is
    derived from the schema, not from the yard. Worth one pass with an operator
    before Phase 3 fixes the vocabulary in the UI — renaming after that means
