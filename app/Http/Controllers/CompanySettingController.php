@@ -100,26 +100,46 @@ class CompanySettingController extends Controller
 
         $settings = CompanySetting::current();
         $data = collect($validated)->except(['logo', 'icon', 'product_icon'])->toArray();
-        $data['enable_digital_approvals'] = $request->boolean('enable_digital_approvals');
-        $data['enable_guard_post']        = $request->boolean('enable_guard_post');
-        $data['enforce_export_booking']   = $request->boolean('enforce_export_booking');
-        $data['enforce_reefer_pti']       = $request->boolean('enforce_reefer_pti');
-        $data['require_seal_for_laden']   = $request->boolean('require_seal_for_laden');
-        $data['require_ot_receipt']       = $request->boolean('require_ot_receipt');
-        $data['enable_gatepass_whatsapp'] = $request->boolean('enable_gatepass_whatsapp');
-        $data['guardpost_warn_no_capture'] = $request->boolean('guardpost_warn_no_capture');
-        $data['enforce_storage_limit']     = $request->boolean('enforce_storage_limit');
+        // Absence means "the submitted form does not own this field", not "off".
+        //
+        // Three forms on this page post to this action — the logo, icon and
+        // product-icon uploads each send only company_name and their file.
+        // Assigning these unconditionally meant uploading a logo read nine
+        // absent checkboxes as false, silently switching off guard post, seal
+        // enforcement, reefer PTI and export-booking enforcement, and blanking
+        // the base URL that emailed gate-pass links are built from.
+        //
+        // The main form now submits a hidden 0 alongside every checkbox, so an
+        // unchecked box is still *present* and can still be turned off.
+        foreach ([
+            'enable_digital_approvals',
+            'enable_guard_post',
+            'enforce_export_booking',
+            'enforce_reefer_pti',
+            'require_seal_for_laden',
+            'require_ot_receipt',
+            'enable_gatepass_whatsapp',
+            'guardpost_warn_no_capture',
+            'enforce_storage_limit',
+        ] as $flag) {
+            if ($request->has($flag)) {
+                $data[$flag] = $request->boolean($flag);
+            }
+        }
 
         // Normalise the system base URL: blank → null; add https:// if the
         // operator typed a bare host; drop any trailing slash.
-        $base = trim((string) $request->input('app_base_url'));
-        if ($base === '') {
-            $data['app_base_url'] = null;
-        } else {
-            if (! preg_match('~^https?://~i', $base)) {
-                $base = 'https://' . $base;
+        if ($request->has('app_base_url')) {
+            $base = trim((string) $request->input('app_base_url'));
+
+            if ($base === '') {
+                $data['app_base_url'] = null;
+            } else {
+                if (! preg_match('~^https?://~i', $base)) {
+                    $base = 'https://' . $base;
+                }
+                $data['app_base_url'] = rtrim($base, '/');
             }
-            $data['app_base_url'] = rtrim($base, '/');
         }
 
         // Only touched when the form that owns it was the one submitted.

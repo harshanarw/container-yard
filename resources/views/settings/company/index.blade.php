@@ -349,6 +349,8 @@
         <div class="card-body">
             <div class="d-flex align-items-start gap-3">
                 <div class="form-check form-switch mt-1">
+                    {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
+                    <input type="hidden" name="enable_guard_post" value="0">
                     <input class="form-check-input" type="checkbox" role="switch"
                            id="enableGuardPost" name="enable_guard_post" value="1"
                            {{ old('enable_guard_post', $settings->enable_guard_post) ? 'checked' : '' }}>
@@ -372,6 +374,8 @@
 
             <div class="d-flex align-items-start gap-3">
                 <div class="form-check form-switch mt-1">
+                    {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
+                    <input type="hidden" name="guardpost_warn_no_capture" value="0">
                     <input class="form-check-input" type="checkbox" role="switch"
                            id="guardpostWarnNoCapture" name="guardpost_warn_no_capture" value="1"
                            {{ old('guardpost_warn_no_capture', $settings->guardpost_warn_no_capture) ? 'checked' : '' }}>
@@ -399,6 +403,8 @@
         <div class="card-body">
             <div class="d-flex align-items-start gap-3">
                 <div class="form-check form-switch mt-1">
+                    {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
+                    <input type="hidden" name="enable_gatepass_whatsapp" value="0">
                     <input class="form-check-input" type="checkbox" role="switch"
                            id="enableGatepassWhatsapp" name="enable_gatepass_whatsapp" value="1"
                            {{ old('enable_gatepass_whatsapp', $settings->enable_gatepass_whatsapp) ? 'checked' : '' }}>
@@ -444,6 +450,8 @@
         <div class="card-body">
             <div class="d-flex align-items-start gap-3 mb-3">
                 <div class="form-check form-switch mt-1">
+                    {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
+                    <input type="hidden" name="enforce_export_booking" value="0">
                     <input class="form-check-input" type="checkbox" role="switch"
                            id="enforceExportBooking" name="enforce_export_booking" value="1"
                            {{ old('enforce_export_booking', $settings->enforce_export_booking) ? 'checked' : '' }}>
@@ -461,6 +469,8 @@
             </div>
             <div class="d-flex align-items-start gap-3">
                 <div class="form-check form-switch mt-1">
+                    {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
+                    <input type="hidden" name="enforce_reefer_pti" value="0">
                     <input class="form-check-input" type="checkbox" role="switch"
                            id="enforceReeferPti" name="enforce_reefer_pti" value="1"
                            {{ old('enforce_reefer_pti', $settings->enforce_reefer_pti) ? 'checked' : '' }}>
@@ -479,6 +489,8 @@
             </div>
             <div class="d-flex align-items-start gap-3 mt-3">
                 <div class="form-check form-switch mt-1">
+                    {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
+                    <input type="hidden" name="require_seal_for_laden" value="0">
                     <input class="form-check-input" type="checkbox" role="switch"
                            id="requireSealForLaden" name="require_seal_for_laden" value="1"
                            {{ old('require_seal_for_laden', $settings->require_seal_for_laden) ? 'checked' : '' }}>
@@ -497,6 +509,8 @@
             </div>
             <div class="d-flex align-items-start gap-3 mt-3" id="otPolicy">
                 <div class="form-check form-switch mt-1">
+                    {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
+                    <input type="hidden" name="require_ot_receipt" value="0">
                     <input class="form-check-input" type="checkbox" role="switch"
                            id="requireOtReceipt" name="require_ot_receipt" value="1"
                            {{ old('require_ot_receipt', $settings->require_ot_receipt) ? 'checked' : '' }}>
@@ -607,6 +621,8 @@
                 <div class="col-md-8">
                     <div class="d-flex align-items-start gap-3 mt-1">
                         <div class="form-check form-switch mt-1">
+                            {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
+                            <input type="hidden" name="enforce_storage_limit" value="0">
                             <input class="form-check-input" type="checkbox" role="switch"
                                    id="enforceStorageLimit" name="enforce_storage_limit" value="1"
                                    {{ old('enforce_storage_limit', $settings->enforce_storage_limit) ? 'checked' : '' }}>
@@ -678,6 +694,8 @@
         <div class="card-body">
             <div class="d-flex align-items-start gap-3">
                 <div class="form-check form-switch mt-1">
+                    {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
+                    <input type="hidden" name="enable_digital_approvals" value="0">
                     <input class="form-check-input" type="checkbox" role="switch"
                            id="enableDigitalApprovals" name="enable_digital_approvals" value="1"
                            {{ old('enable_digital_approvals', $settings->enable_digital_approvals) ? 'checked' : '' }}>
