@@ -248,7 +248,10 @@ class CargoTransferService
         $movement = GateMovement::create([
             'container_id'     => $container->id,
             'container_no'     => $container->container_no,
-            'customer_id'      => $container->customer_id,
+            // From the job, not the box. A yard-owned substitute carries
+            // whatever customer it was last gated in under, which has nothing
+            // to do with the transfer this movement belongs to.
+            'customer_id'      => $job?->customer_id ?? $container->customer_id,
             'yard_job_id'      => $job?->id,
             'movement_type'    => 'out',
             'eir_no'           => app(NumberSequenceService::class)->generate('gate_out'),

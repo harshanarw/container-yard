@@ -848,12 +848,26 @@ class YardController extends Controller
             : now();
         $gateOutDate = $gateOutTime->toDateString();
 
+        // The customer belongs to the visit, not to the box. Gate-out used to
+        // read $container->customer_id — which gate-in overwrites every visit
+        // and the master edit screen can change at any time — so a container
+        // could leave under a different party than it arrived under.
+        //
+        // Linking the gate-out to the gate-in's job also makes visit pairing
+        // exact rather than the chronological guess it falls back to when a
+        // gate-out has no job (see ContainerInquiryService::buildGateOutMap).
+        $custody      = app(\App\Services\ContainerCustodyService::class);
+        $visitGateIn  = $custody->latestGateIn($container);
+        $visitJobId   = $visitGateIn?->yard_job_id;
+        $visitCustomer = $custody->visitCustomerId($container);
+
         // Record gate movement
-        $movement = DB::transaction(function () use ($container, $validated, $gateOutTime, $purposeCode, $gateLine) {
+        $movement = DB::transaction(function () use ($container, $validated, $gateOutTime, $purposeCode, $gateLine, $visitJobId, $visitCustomer) {
             return GateMovement::create([
                 'container_id'     => $container->id,
                 'container_no'     => $container->container_no,
-                'customer_id'      => $container->customer_id,
+                'yard_job_id'      => $visitJobId,
+                'customer_id'      => $visitCustomer,
                 'transporter_id'   => $validated['transporter_id'] ?? null,
                 'movement_type'    => 'out',
                 'eir_no'           => app(NumberSequenceService::class)->generate('gate_out'),
@@ -1409,10 +1423,14 @@ class YardController extends Controller
                 $updateData['size']            = $eqt->size;
                 $updateData['container_type']  = $eqt->type_code;
             }
-            foreach (['customer_id'] as $field) {
-                if (!empty($validated[$field])) {
-                    $updateData[$field] = $validated[$field];
-                }
+            // Correcting the customer moves the whole visit — the job and both
+            // gate movements — not just this row. Editing one end is how the
+            // gate-in and gate-out parties drifted apart in the first place.
+            if (!empty($validated['customer_id'])) {
+                app(\App\Services\ContainerCustodyService::class)
+                    ->reassignVisit($movement, (int) $validated['customer_id']);
+
+                unset($updateData['customer_id']);
             }
             // transporter and driver fields (allow clearing via empty string → null)
             foreach (['transporter_id', 'driver_name', 'driver_ic', 'driver_phone'] as $field) {

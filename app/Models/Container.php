@@ -23,9 +23,9 @@ class Container extends Model
     const MASTER_FIELDS = [
         'container_no', 'category', 'equipment_type_id', 'grade_id', 'size', 'type_code',
         'ventilation_type', 'vent_count',
-        'manufacture_year', 'manufacturer', 'owner_code', 'owner_name',
+        'manufacture_year', 'manufacturer', 'owner_code', 'owner_name', 'owner_customer_id',
         'gross_weight_kg', 'tare_weight_kg', 'max_payload_kg',
-        'csc_plate_no', 'csc_expiry_date', 'notes', 'customer_id',
+        'csc_plate_no', 'csc_expiry_date', 'notes',
         // leasing
         'lessor_name', 'lessor_code', 'lease_reference',
         'lease_start_date', 'lease_end_date',
@@ -35,6 +35,13 @@ class Container extends Model
     //    Full per-cycle history lives in gate_movements table (1 row per event).
     //    These fields reflect the *current* state of the container in the yard.
     const OPERATIONAL_FIELDS = [
+        // customer_id sits here, not in MASTER_FIELDS: it is the *current
+        // visit's* customer, set by gate-in, and has nothing to do with who
+        // owns the box (see $ownerCustomer). It was declared a master field
+        // while gate-in overwrote it every visit and gate-out read it as the
+        // release party — which is how a container could leave under a
+        // different customer than it arrived under.
+        'customer_id',
         'status', 'condition', 'cargo_status',
         'location_zone', 'location_row', 'location_bay', 'location_tier',
         'seal_no', 'gate_in_date', 'gate_out_date', 'csc_plate_valid',
@@ -44,7 +51,7 @@ class Container extends Model
         // master
         'container_no', 'category', 'equipment_type_id', 'grade_id', 'size', 'type_code',
         'ventilation_type', 'vent_count',
-        'manufacture_year', 'manufacturer', 'owner_code', 'owner_name',
+        'manufacture_year', 'manufacturer', 'owner_code', 'owner_name', 'owner_customer_id',
         'gross_weight_kg', 'tare_weight_kg', 'max_payload_kg',
         'csc_plate_no', 'csc_expiry_date', 'notes',
         // leasing
@@ -237,9 +244,34 @@ class Container extends Model
         return $this->belongsTo(EquipmentType::class);
     }
 
+    /**
+     * The customer of the container's *current* visit.
+     *
+     * Maintained by gate-in. It is a convenience cache of "who has the box
+     * right now", not a property of the box — the authoritative per-visit value
+     * lives on the YardJob, and gate-out reads it from there
+     * (ContainerCustodyService). Do not treat this as the owner.
+     */
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    /**
+     * Who owns the box. A property of the asset, unrelated to who is at the
+     * gate today. Null when the owner is a party the yard has no customer
+     * record for — `owner_code` / `owner_name` remain the fallback.
+     */
+    public function ownerCustomer()
+    {
+        return $this->belongsTo(Customer::class, 'owner_customer_id');
+    }
+
+    /** Owner as a display string: the linked party, else the recorded text. */
+    public function ownerLabel(): ?string
+    {
+        return $this->ownerCustomer?->name
+            ?: ($this->owner_name ?: $this->owner_code);
     }
 
     public function inquiries()

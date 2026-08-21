@@ -277,7 +277,7 @@ class ContainerController extends Controller
     {
         $uniqueRule = 'unique:containers,container_no' . ($exceptId ? ",{$exceptId}" : '');
 
-        return [
+        $rules = [
             // ── Identity ─────────────────────────────────────────────────
             'container_no'      => ['required', 'string', 'max:12', $uniqueRule, 'regex:/^[A-Z]{4}[0-9]{7}$/'],
             'category'          => ['required', 'in:consignee,owned,leased'],
@@ -288,7 +288,8 @@ class ContainerController extends Controller
             // ── Ownership ────────────────────────────────────────────────
             'owner_code'        => ['nullable', 'string', 'max:20'],
             'owner_name'        => ['nullable', 'string', 'max:100'],
-            'customer_id'       => ['nullable', 'exists:customers,id'],
+            'owner_customer_id' => ['nullable', 'exists:customers,id'],
+            // customer_id is accepted on create only — see below.
             // ── Leasing (only relevant when category = 'leased') ─────────
             'lessor_name'       => ['nullable', 'string', 'max:150'],
             'lessor_code'       => ['nullable', 'string', 'max:30'],
@@ -308,6 +309,21 @@ class ContainerController extends Controller
             'ventilation_type'  => ['nullable', 'in:none,passive,cross,mechanical,reefer,controlled_atm'],
             'vent_count'        => ['nullable', 'integer', 'min:0', 'max:99'],
         ];
+
+        // The customer belongs to the *visit*, not to the box: gate-in sets it
+        // and gate-out reads it from the visit's job. Editing it here used to
+        // silently re-point the current visit, which is how the gate-in and
+        // gate-out parties drifted apart.
+        //
+        // It is still accepted on create, because containers.customer_id is
+        // NOT NULL and a hand-registered container has no visit to inherit
+        // from. On edit it is omitted, so the master screen can no longer
+        // change it — that screen edits the owner.
+        if ($exceptId === null) {
+            $rules['customer_id'] = ['required', 'exists:customers,id'];
+        }
+
+        return $rules;
     }
 
     private function deriveEquipmentFields(array $data): array

@@ -188,21 +188,60 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">
-                                Linked Customer
-                                <span class="text-muted fw-normal" style="font-size:.75rem;">(default)</span>
+                                Owner
+                                <span class="text-muted fw-normal" style="font-size:.75rem;">(linked party)</span>
                             </label>
-                            <select name="customer_id" class="form-select s2-code @error('customer_id') is-invalid @enderror" data-s2-sel="name">
-                                <option value="">— None —</option>
+                            <select name="owner_customer_id" class="form-select s2-code @error('owner_customer_id') is-invalid @enderror" data-s2-sel="name">
+                                <option value="">— Not a registered party —</option>
                                 @foreach($customers as $cust)
                                     <option value="{{ $cust->id }}"
                                         data-code="{{ $cust->code }}" data-name="{{ $cust->name }}"
-                                        {{ old('customer_id', $container?->customer_id) == $cust->id ? 'selected' : '' }}>
+                                        {{ old('owner_customer_id', $container?->owner_customer_id) == $cust->id ? 'selected' : '' }}>
                                         {{ $cust->code }} — {{ $cust->name }}
                                     </option>
                                 @endforeach
                             </select>
-                            @error('customer_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                            <div class="form-text">For consignee boxes this is overridden at each Gate-In.</div>
+                            @error('owner_customer_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">
+                                Who owns the box. Leave blank if the owner is not one of your registered
+                                parties — the Owner Code / Name above still apply.
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Customer belongs to the visit, not the box. On create it seeds the
+                         record; after that gate-in maintains it and gate-out reads it from
+                         the visit's job, so it is shown here read-only rather than editable. --}}
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-4">
+                            @if($container)
+                                <label class="form-label fw-semibold">
+                                    Current Customer
+                                    <span class="text-muted fw-normal" style="font-size:.75rem;">(from current visit)</span>
+                                </label>
+                                <input type="text" class="form-control" disabled
+                                       value="{{ $container->customer?->name ?? '—' }}">
+                                <div class="form-text">
+                                    Set at Gate-In and carried through to Gate-Out. To correct it,
+                                    edit the gate-in movement — that moves the whole visit.
+                                </div>
+                            @else
+                                <label class="form-label fw-semibold">
+                                    Customer <span class="text-danger">*</span>
+                                </label>
+                                <select name="customer_id" class="form-select s2-code @error('customer_id') is-invalid @enderror" data-s2-sel="name">
+                                    <option value="">— Select —</option>
+                                    @foreach($customers as $cust)
+                                        <option value="{{ $cust->id }}"
+                                            data-code="{{ $cust->code }}" data-name="{{ $cust->name }}"
+                                            {{ old('customer_id') == $cust->id ? 'selected' : '' }}>
+                                            {{ $cust->code }} — {{ $cust->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('customer_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="form-text">Initial customer for this record; each Gate-In sets it thereafter.</div>
+                            @endif
                         </div>
                     </div>
                 </div>
