@@ -653,8 +653,18 @@ class OtMastersAdminTest extends FeatureTestCase
             'The OT enforcement switch should be persisted by the company settings form.');
 
         // And off again when the switch is cleared.
-        $this->post(route('settings.company.update'), ['company_name' => 'Test Yard'])
-            ->assertSessionHasNoErrors()->assertRedirect();
+        //
+        // The form submits a hidden 0 alongside every toggle, so clearing the
+        // switch sends '0' rather than omitting the field. It used to omit it,
+        // and the action read any absent flag as "off" — which meant the logo,
+        // icon and product-icon upload forms, which post to this same action
+        // with only company_name, silently switched off OT enforcement, seal
+        // enforcement, reefer PTI and guard post. Absence now means "this form
+        // does not own that field"; only an explicit 0 turns a toggle off.
+        $this->post(route('settings.company.update'), [
+            'company_name'       => 'Test Yard',
+            'require_ot_receipt' => '0',
+        ])->assertSessionHasNoErrors()->assertRedirect();
 
         $this->assertFalse((bool) \App\Models\CompanySetting::current()->require_ot_receipt);
     }
