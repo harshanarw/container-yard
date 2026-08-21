@@ -32,11 +32,18 @@ use Illuminate\Support\Collection;
  */
 class ContainerMrStatusService
 {
-    /** Memoised for the request — repair categories are small, static master data. */
+    /**
+     * Memoised — unlike the age thresholds, this is a query rather than a
+     * cached settings read, and the backfill resolves it once per container.
+     *
+     * The same singleton caveat applies: editing a repair category will not be
+     * seen until the container is rebuilt (every request under PHP-FPM; a
+     * worker restart under Octane). Accepted because repair categories are
+     * master data that changes about never, where thresholds are a setting
+     * operators are expected to tune.
+     */
     private ?array $washCategoryIds = null;
 
-    /** Memoised likewise — the thresholds are one settings row. */
-    private ?array $ageThresholds = null;
 
     // ─────────────────────────────────────────────────────────────────────────
     // Resolution
@@ -849,7 +856,16 @@ class ContainerMrStatusService
      */
     public function ageThresholds(): array
     {
-        return $this->ageThresholds ??= array_merge(
+        // Deliberately not memoised on the instance. This service is bound as a
+        // singleton, so an instance memo would freeze the thresholds for the
+        // life of the container — an operator saving new ones would not see
+        // them apply, and under Octane, where singletons outlive a request,
+        // that would persist until the worker restarted.
+        //
+        // Re-reading is cheap: CompanySetting::current() is itself cached, so
+        // this costs a cache hit and a merge of a sixteen-key array. forGateIns
+        // resolves it once per batch rather than once per row.
+        return array_merge(
             Cat::AGE_THRESHOLD_DAYS,
             collect(\App\Models\CompanySetting::current()->mr_age_thresholds ?? [])
                 ->filter(fn ($days, $code) => is_numeric($days) && (int) $days > 0
