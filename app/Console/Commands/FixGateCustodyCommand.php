@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Container;
 use App\Models\GateMovement;
 use App\Models\YardJob;
+use App\Services\ContainerCustodyService;
 use App\Services\ContainerMrStatusService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -170,15 +171,18 @@ class FixGateCustodyCommand extends Command
      */
     private function visitCustomerFor(GateMovement $gateIn): ?int
     {
-        if ($gateIn->yard_job_id) {
-            $fromJob = YardJob::whereKey($gateIn->yard_job_id)->value('customer_id');
+        $fromJob = $gateIn->yard_job_id
+            ? YardJob::whereKey($gateIn->yard_job_id)->value('customer_id')
+            : null;
 
-            if ($fromJob) {
-                return (int) $fromJob;
-            }
-        }
-
-        return $gateIn->customer_id ? (int) $gateIn->customer_id : null;
+        // Shared precedence, deliberately passing null for the container: that
+        // is the value this command exists to stop trusting, so it must not be
+        // able to leak back in as a "repair".
+        return ContainerCustodyService::resolveCustomerId(
+            $fromJob !== null ? (int) $fromJob : null,
+            $gateIn->customer_id !== null ? (int) $gateIn->customer_id : null,
+            null,
+        );
     }
 
     /**

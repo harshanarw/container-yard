@@ -58,19 +58,44 @@ class ContainerCustodyService
     {
         $gateIn = $this->latestGateIn($container);
 
-        if ($gateIn?->yard_job_id) {
-            $fromJob = YardJob::whereKey($gateIn->yard_job_id)->value('customer_id');
+        $fromJob = $gateIn?->yard_job_id
+            ? YardJob::whereKey($gateIn->yard_job_id)->value('customer_id')
+            : null;
 
-            if ($fromJob) {
-                return (int) $fromJob;
+        return self::resolveCustomerId(
+            $fromJob !== null ? (int) $fromJob : null,
+            $gateIn?->customer_id !== null ? (int) $gateIn->customer_id : null,
+            $container->customer_id !== null ? (int) $container->customer_id : null,
+        );
+    }
+
+    /**
+     * The precedence rule, on its own so it can be argued with and tested.
+     *
+     * This ordering *is* the design: most authoritative first, and the
+     * container last precisely because trusting it is what let a box leave
+     * under a different party than it arrived under. Anyone tempted to
+     * reorder these should have to change a test that says why.
+     *
+     *   1. The visit's job — one stored value, shared by both gates.
+     *   2. The gate-in movement — for visits whose job creation failed (gate-in
+     *      creates it in a try/catch that only logs) or predates the feature.
+     *      Still a per-visit snapshot, so still correct.
+     *   3. The container — last resort. Kept only so a container with no
+     *      movement history can still be gated out rather than blocking the
+     *      gate; it is not evidence of who this visit belongs to.
+     */
+    public static function resolveCustomerId(?int $fromJob, ?int $fromGateIn, ?int $fromContainer): ?int
+    {
+        foreach ([$fromJob, $fromGateIn, $fromContainer] as $candidate) {
+            // Guard against 0: not a valid key, and it would otherwise read as
+            // "set" and stop the chain on a bad row.
+            if ($candidate !== null && $candidate > 0) {
+                return $candidate;
             }
         }
 
-        if ($gateIn?->customer_id) {
-            return (int) $gateIn->customer_id;
-        }
-
-        return $container->customer_id ? (int) $container->customer_id : null;
+        return null;
     }
 
     /**
