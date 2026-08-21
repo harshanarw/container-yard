@@ -32,7 +32,9 @@ class GateCustodyCustomerTest extends FeatureTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Carbon::setTestNow('2026-12-01 12:00:00');
+        // Comfortably after every gate time the helpers use, so a second visit
+        // can be recorded without back- or future-dating.
+        Carbon::setTestNow('2026-12-10 12:00:00');
         $this->bringer = Customer::factory()->create(['name' => 'Bringer Lines']);
         $this->other   = Customer::factory()->create(['name' => 'Someone Else Ltd']);
         $this->actingAsSystemAdmin();
@@ -44,7 +46,13 @@ class GateCustodyCustomerTest extends FeatureTestCase
         parent::tearDown();
     }
 
-    private function gateIn(string $no, ?Customer $customer = null): Container
+    /**
+     * @param string $at Gate-in time. Parameterised because a container cannot
+     *                   be gated in while an earlier stay is still open — the
+     *                   overlap guard rejects it — so a second visit needs
+     *                   times after the first one's gate-out.
+     */
+    private function gateIn(string $no, ?Customer $customer = null, string $at = '2026-12-01 08:00:00'): Container
     {
         $jobType = YardJobType::where('movement_direction', 'gate_in')
             ->where('is_active', true)
@@ -62,13 +70,13 @@ class GateCustodyCustomerTest extends FeatureTestCase
             'condition'         => 'sound',
             'cargo_status'      => 'empty',
             'vehicle_plate'     => 'TRUCK01',
-            'gate_in_time'      => '2026-12-01 08:00:00',
+            'gate_in_time'      => $at,
         ])->assertSessionHasNoErrors();
 
         return Container::where('container_no', $no)->firstOrFail();
     }
 
-    private function gateOut(string $no, string $ro): void
+    private function gateOut(string $no, string $ro, string $at = '2026-12-02 09:00:00'): void
     {
         $this->from(route('yard.gate'))->post(route('yard.gate.out'), [
             'container_no'  => $no,
@@ -76,7 +84,7 @@ class GateCustodyCustomerTest extends FeatureTestCase
             'driver_name'   => 'Test Driver',
             'driver_ic'     => '900101015555',
             'release_order' => $ro,
-            'gate_out_time' => '2026-12-02 09:00:00',
+            'gate_out_time' => $at,
         ])->assertSessionHasNoErrors();
     }
 
@@ -132,11 +140,13 @@ class GateCustodyCustomerTest extends FeatureTestCase
     /** Two visits by different parties keep their own customer. */
     public function test_a_later_visit_by_another_party_does_not_rewrite_the_earlier_one(): void
     {
-        $this->gateIn('CUST0000003');
-        $this->gateOut('CUST0000003', 'RO-CUST-3A');
+        // The second stay must start after the first one closes; a container
+        // cannot be gated in while an earlier stay is still open.
+        $this->gateIn('CUST0000003', null, '2026-12-01 08:00:00');
+        $this->gateOut('CUST0000003', 'RO-CUST-3A', '2026-12-02 09:00:00');
 
-        $this->gateIn('CUST0000003', $this->other);
-        $this->gateOut('CUST0000003', 'RO-CUST-3B');
+        $this->gateIn('CUST0000003', $this->other, '2026-12-05 08:00:00');
+        $this->gateOut('CUST0000003', 'RO-CUST-3B', '2026-12-06 09:00:00');
 
         $ins  = GateMovement::where('container_no', 'CUST0000003')->where('movement_type', 'in')->orderBy('id')->get();
         $outs = GateMovement::where('container_no', 'CUST0000003')->where('movement_type', 'out')->orderBy('id')->get();
