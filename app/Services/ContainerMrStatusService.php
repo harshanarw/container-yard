@@ -700,7 +700,7 @@ class ContainerMrStatusService
      * @param  Collection<int,GateMovement> $gateOuts
      * @return array<int,GateMovement>      keyed by gate-in id
      */
-    private function pairGateOuts(Collection $gateIns, Collection $gateOuts): array
+    public function pairGateOuts(Collection $gateIns, Collection $gateOuts): array
     {
         $map     = [];
         $usedIds = [];
