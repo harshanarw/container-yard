@@ -1,7 +1,5 @@
 <?php
 
-use App\Models\Container;
-use App\Services\ContainerMrStatusService;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -35,19 +33,8 @@ return new class extends Migration
             $table->date('mr_status_expires_at')->nullable()->after('export_ready')->index();
         });
 
-        // The backfill in migration 295 ran before this column existed, so the
-        // reefers it stamped as export-ready carry no expiry and would stay
-        // ready for ever. Only reefers can have one, so only reefers need
-        // revisiting — refresh() is idempotent, so this is safe to repeat.
-        $svc = app(ContainerMrStatusService::class);
-
-        Container::whereIn('type_code', ['RF', 'RH'])
-            ->orderBy('id')
-            ->chunkById(200, function ($containers) use ($svc) {
-                foreach ($containers as $container) {
-                    $svc->refresh($container);
-                }
-            });
+        // No backfill here on purpose — see 299, which populates every M&R
+        // column once, after all of them exist.
     }
 
     public function down(): void

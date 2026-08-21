@@ -8,6 +8,21 @@ use Illuminate\Database\Migrations\Migration;
 /**
  * Populate the M&R status projection for everything already in the yard.
  *
+ * ── THIS MUST REMAIN THE LAST M&R MIGRATION ─────────────────────────────────
+ * It backfills by calling ContainerMrStatusService::refresh(), so it writes
+ * whatever columns the *current* service writes — not the ones that existed
+ * when it was authored. It was originally numbered 295, ahead of the
+ * migrations adding `containers.mr_status_expires_at` (296) and
+ * `gate_movements.mr_lane` (297), and broke the moment the service learned to
+ * write the lane:
+ *
+ *     SQLSTATE[42S22]: Unknown column 'mr_lane' in 'field list'
+ *
+ * Anything that adds another M&R column must be numbered *below* this file, or
+ * must carry its own backfill after it. Do not put a data backfill in the same
+ * migration as a schema change — the two have opposite ordering needs.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
  * Two passes, because the two projections cover different ground:
  *
  *   1. Every gate-in row, history included — Container Inquiry lists closed

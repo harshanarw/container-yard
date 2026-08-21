@@ -1,7 +1,5 @@
 <?php
 
-use App\Models\GateMovement;
-use App\Services\ContainerMrStatusService;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -28,16 +26,8 @@ return new class extends Migration
             $table->string('mr_lane', 16)->nullable()->after('mr_status_group');
         });
 
-        // The backfill in 295 ran before this column existed, so every gate-in
-        // row has a status but no lane. refresh()/refreshGateIns() are
-        // idempotent, so re-running them only writes the lane.
-        $svc = app(ContainerMrStatusService::class);
-
-        GateMovement::where('movement_type', 'in')
-            ->orderBy('id')
-            ->chunkById(200, function ($gateIns) use ($svc) {
-                $svc->refreshGateIns($gateIns);
-            });
+        // No backfill here on purpose — see 299, which populates every M&R
+        // column once, after all of them exist.
     }
 
     public function down(): void
