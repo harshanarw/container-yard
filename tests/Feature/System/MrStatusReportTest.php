@@ -96,7 +96,7 @@ class MrStatusReportTest extends FeatureTestCase
 
     public function test_the_report_renders_and_rolls_up_by_stage(): void
     {
-        $c = $this->gateIn('RPT00000001');
+        $c = $this->gateIn('RPTA0000001');
         $this->workOrderFor($c, 'in_progress');
 
         $response = $this->get(route('reports.mr-status'))->assertOk();
@@ -110,7 +110,7 @@ class MrStatusReportTest extends FeatureTestCase
 
     public function test_the_breakdown_carries_ageing_bands_and_thresholds(): void
     {
-        $c = $this->gateIn('RPT00000002');
+        $c = $this->gateIn('RPTA0000002');
         $this->workOrderFor($c, 'completed');           // awaiting QC
         $this->ageStageBy($c, 20);                      // lands in the 15-30d band
 
@@ -128,12 +128,12 @@ class MrStatusReportTest extends FeatureTestCase
     public function test_overdue_is_measured_against_each_stage_not_a_flat_number(): void
     {
         // Awaiting QC: threshold 3 days. Eight days in — overdue.
-        $stuck = $this->gateIn('RPT00000003');
+        $stuck = $this->gateIn('RPTA0000003');
         $this->workOrderFor($stuck, 'completed');
         $this->ageStageBy($stuck, 8);
 
         // Repair in progress: threshold 10 days. Eight days in — NOT overdue.
-        $working = $this->gateIn('RPT00000004');
+        $working = $this->gateIn('RPTA0000004');
         $this->workOrderFor($working, 'in_progress');
         $this->ageStageBy($working, 8);
 
@@ -150,24 +150,24 @@ class MrStatusReportTest extends FeatureTestCase
 
     public function test_the_overdue_filter_narrows_the_detail_list(): void
     {
-        $stuck = $this->gateIn('RPT00000005');
+        $stuck = $this->gateIn('RPTA0000005');
         $this->workOrderFor($stuck, 'completed');
         $this->ageStageBy($stuck, 30);
 
-        $fresh = $this->gateIn('RPT00000006');
+        $fresh = $this->gateIn('RPTA0000006');
         $this->workOrderFor($fresh, 'completed');
 
         $numbers = $this->get(route('reports.mr-status', ['overdue' => 1]))
             ->assertOk()
             ->viewData('detail')->pluck('container_no')->all();
 
-        $this->assertContains('RPT00000005', $numbers);
-        $this->assertNotContains('RPT00000006', $numbers);
+        $this->assertContains('RPTA0000005', $numbers);
+        $this->assertNotContains('RPTA0000006', $numbers);
     }
 
     public function test_a_configured_threshold_overrides_the_shipped_default(): void
     {
-        $c = $this->gateIn('RPT00000007');
+        $c = $this->gateIn('RPTA0000007');
         $this->workOrderFor($c, 'completed');
         $this->ageStageBy($c, 5);   // over the shipped 3, under a configured 30
 
@@ -186,23 +186,23 @@ class MrStatusReportTest extends FeatureTestCase
 
     public function test_the_status_filter_narrows_the_report(): void
     {
-        $busy = $this->gateIn('RPT00000008');
+        $busy = $this->gateIn('RPTA0000008');
         $this->workOrderFor($busy, 'in_progress');
 
-        $waiting = $this->gateIn('RPT00000009');
+        $waiting = $this->gateIn('RPTA0000009');
         $this->workOrderFor($waiting, 'completed');
 
         $numbers = $this->get(route('reports.mr-status', ['mr_status' => Cat::REPAIR_IN_PROGRESS]))
             ->assertOk()
             ->viewData('detail')->pluck('container_no')->all();
 
-        $this->assertContains('RPT00000008', $numbers);
-        $this->assertNotContains('RPT00000009', $numbers);
+        $this->assertContains('RPTA0000008', $numbers);
+        $this->assertNotContains('RPTA0000009', $numbers);
     }
 
     public function test_the_csv_carries_the_stage_and_ageing_columns(): void
     {
-        $c = $this->gateIn('RPT00000010');
+        $c = $this->gateIn('RPTA0000010');
         $this->workOrderFor($c, 'completed');
         $this->ageStageBy($c, 9);
 
@@ -210,13 +210,13 @@ class MrStatusReportTest extends FeatureTestCase
 
         $this->assertStringContainsString('Days In Stage', $csv);
         $this->assertStringContainsString('Threshold (days)', $csv);
-        $this->assertStringContainsString('RPT00000010', $csv);
+        $this->assertStringContainsString('RPTA0000010', $csv);
         $this->assertStringContainsString(Cat::label(Cat::AWAITING_QC), $csv);
     }
 
     public function test_the_inventory_report_gains_the_stage_roll_up(): void
     {
-        $c = $this->gateIn('RPT00000011');
+        $c = $this->gateIn('RPTA0000011');
         $this->workOrderFor($c, 'in_progress');
 
         $mrSummary = $this->get(route('reports.inventory'))->assertOk()->viewData('mrSummary');
@@ -227,26 +227,26 @@ class MrStatusReportTest extends FeatureTestCase
 
     public function test_the_inventory_report_filters_by_stage(): void
     {
-        $busy = $this->gateIn('RPT00000012');
+        $busy = $this->gateIn('RPTA0000012');
         $this->workOrderFor($busy, 'in_progress');
 
         $numbers = $this->get(route('reports.inventory', ['mr_status_group' => Cat::GROUP_IN_PROGRESS]))
             ->assertOk()
             ->viewData('containers')->pluck('container_no')->all();
 
-        $this->assertContains('RPT00000012', $numbers);
+        $this->assertContains('RPTA0000012', $numbers);
     }
 
     /** Released containers are not part of "what is in the yard". */
     public function test_gated_out_containers_are_excluded(): void
     {
-        $c = $this->gateIn('RPT00000013');
+        $c = $this->gateIn('RPTA0000013');
         Container::where('id', $c->id)->update(['status' => 'released']);
 
         $numbers = $this->get(route('reports.mr-status'))
             ->assertOk()
             ->viewData('detail')->pluck('container_no')->all();
 
-        $this->assertNotContains('RPT00000013', $numbers);
+        $this->assertNotContains('RPTA0000013', $numbers);
     }
 }

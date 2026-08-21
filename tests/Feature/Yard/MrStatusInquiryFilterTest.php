@@ -207,10 +207,19 @@ class MrStatusInquiryFilterTest extends FeatureTestCase
         $this->assertSame(Cat::REPAIR_ON_HOLD, $row->mr_status, 'One stored code keeps filters simple.');
         $this->assertSame(Cat::LANE_WASH, $row->mr_lane);
 
+        // "Wash on hold" is produced *only* by the lane-aware badge: the status
+        // filter renders every catalogue label without a lane, so it offers
+        // "Repair on hold" and never the wash wording. That makes this single
+        // positive assertion the discriminating one — if the lane were not
+        // stored or not applied, the badge would read "Repair on hold" and this
+        // string would appear nowhere on the page.
+        //
+        // The mirror-image assertDontSee('Repair on hold') is deliberately
+        // absent: it can never pass, because the filter dropdown always lists
+        // that label.
         $this->get(route('container-inquiry.index', ['container_no' => 'IQFL0000011']))
              ->assertOk()
-             ->assertSee('Wash on hold')
-             ->assertDontSee('Repair on hold');
+             ->assertSee('Wash on hold');
     }
 
     // ── Detail view ──────────────────────────────────────────────────────────
