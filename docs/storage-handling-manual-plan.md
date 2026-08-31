@@ -22,6 +22,12 @@ fields, structure, printing, posting — stays as it is today.
 4. **Charge codes are fixed, not chosen.** Storage lines take `STC`, handling
    lines take `LOLO` — the same defaults the tariff screens pre-select. Tax
    follows the charge code, exactly as the tariff flow already does.
+5. **The customer-facing PDF says nothing about pricing mode.** The customer
+   sees agreed numbers; how they were arrived at is internal.
+6. **A manual bill may be raised even where a valid tariff exists.** Sometimes
+   the tariff is right for the customer and wrong for one container. The badge
+   records what happened rather than forcing an operator to invent a reason.
+7. **Draft invoices are editable; issued or posted ones are not.** See §7.
 
 ---
 
@@ -194,10 +200,18 @@ until Phase 4 (which only adds a badge).
 - **Manual** badge on the invoice list and detail.
 - `pricing_mode` filter on the list.
 - Revenue reports can group by it.
-- The customer-facing PDF says nothing — how a rate was decided is internal.
-  (Worth confirming; see §8.)
+- The customer-facing PDF is unchanged — it says nothing about pricing mode.
 
-### Phase 5 — Tests
+### Phase 5 — Edit a draft *(both modes)*
+
+- `edit` / `update`, gated on `isDraft()` in the controller, not only in the UI.
+- Re-uses the create screen with the invoice's saved values loaded, including
+  the rate matrix reconstructed from the stored line rates.
+- Lines replaced wholesale inside the existing transaction (§7.4).
+- `pricing_mode` and `invoice_no` immutable.
+- Same guard branch as `store()`.
+
+### Phase 6 — Tests
 
 **Unit** (no database — the arithmetic is the design):
 
@@ -215,6 +229,15 @@ until Phase 4 (which only adds a badge).
 - charge codes land as `STC` / `LOLO` with tax from their tax codes
 - a missing or deactivated charge code blocks the save
 - the manual permission is enforced
+
+**Feature — editing:**
+
+- a draft invoice can be edited and its totals move accordingly
+- an **issued** invoice cannot be edited, by route as well as by button
+- editing does not change `invoice_no`, and cannot change `pricing_mode`
+- an edited invoice's lines are replaced, leaving none orphaned
+- editing a tariff invoice still runs the tariff guard — edit does not become a
+  back door to unguarded rates
 
 ---
 
@@ -237,11 +260,88 @@ reviewer can tell a deliberate exception from a typo.
 
 ---
 
-## 7. Risks
+## 7. Editing a saved invoice
+
+Editing is allowed, and the boundary is **status, not pricing mode**.
+
+### 7.1 Draft only — never once issued or posted to accounts
+
+`markIssued()` does both things at once: it mints an IRD invoice number from the
+statutory sequence and posts the invoice to the ledger. After that the document
+has been numbered and the money has moved, so an edit would falsify a tax record
+and leave the GL disagreeing with the invoice it came from.
+
+```
+draft      → editable
+issued     → not editable — correct via credit note
+paid       → not editable
+cancelled  → not editable
+```
+
+`StorageHandlingInvoice::isDraft()` already exists and is the gate.
+
+**One edge worth naming.** Issuing can succeed while GL posting fails — the
+existing flow warns *"Issued, but not yet posted to the ledger"* and offers a
+retry. That invoice is `issued` but **not** posted. It is still not editable:
+the IRD number has been minted, which is the half that cannot be taken back.
+Gating on `isDraft()` rather than on posting status handles this correctly,
+which is the reason to gate on status rather than on whether a GL entry exists.
+
+The UI must not offer an Edit button outside draft, **and** the controller must
+enforce it independently — a hidden button is not a rule, and the route is
+reachable by hand.
+
+This is the same boundary `destroy()` already uses, so it reads as consistent
+rather than as a special case for manual bills.
+
+### 7.2 Applies to both modes
+
+The existing module has no edit at all today: a wrong invoice is deleted and
+raised again. Adding edit for manual bills only would be arbitrary — a
+mis-keyed tariff invoice is just as worth correcting, and the delete-and-retype
+workaround is what operators do now.
+
+So `edit` / `update` are added for **both** modes. Tariff mode re-runs
+`guardHandlingRates()` on save; manual mode re-runs `guardManualRates()`. Same
+branch as `store()`.
+
+### 7.3 What an edit may change
+
+| Editable | Fixed |
+| --- | --- |
+| Free time, rates, notes, invoice date, currency, tax percentages | `invoice_no` |
+| Which containers are on the bill (re-run the period load) | `pricing_mode` |
+| | `ird_invoice_no` (null while draft anyway) |
+
+`pricing_mode` is deliberately immutable. Switching a saved invoice between
+tariff and manual would mean re-deriving every rate from a different source
+mid-edit, and the resulting document would be hard to explain later. Delete and
+re-raise instead — that is a rare, deliberate act.
+
+### 7.4 Lines are replaced, not patched
+
+An update deletes the invoice's lines and re-inserts them from the posted
+payload, inside the existing transaction. The alternative — diffing lines by
+container and patching — buys nothing here: a draft invoice has no external
+references to its line ids, and patching would add a class of bug (orphaned or
+duplicated lines) for no benefit.
+
+### 7.5 Audit
+
+`AuditObserver` already covers this model, so an update is recorded with its
+diff. Worth confirming the diff is legible for a lines-replaced update rather
+than a wall of noise — if it is not, log a summary (line count, totals before
+and after) rather than every column of every line.
+
+---
+
+## 8. Risks
 
 | Risk | Mitigation |
 | --- | --- |
 | Manual pricing bypasses agreed commercial terms | Its own permission; `pricing_mode` stamped on the header permanently; badge on list and detail |
+| Edit becomes a route around the tariff guard | Edit re-runs the same guard as `store()`, per mode; `pricing_mode` cannot be changed by an edit |
+| An issued or posted invoice is altered | Gated on `isDraft()` in the controller, not only in the UI; covers the issued-but-posting-failed case |
 | A zero rate slips through as a typo | Allowed but requires explicit confirmation, never silent |
 | Free days granted per period instead of cumulatively | Same arithmetic as the tariff flow, shared between preview and store |
 | Charge code deleted or deactivated in the master | Save blocked, naming what to fix — never post with no revenue account |
@@ -250,16 +350,21 @@ reviewer can tell a deliberate exception from a typo.
 
 ---
 
-## 8. Open questions
+## 9. Resolved
 
-1. **Should the customer-facing PDF indicate manual pricing?** My instinct is
-   no — the customer sees agreed numbers, and how they were decided is internal.
-   Easy to add if Finance wants it.
-2. **Should a manual invoice be raisable for a customer who *has* a valid
-   tariff?** Sometimes the tariff is right and one container is an exception. I
-   would allow it and let the badge record what happened, rather than forcing
-   the operator to invent a reason to bypass.
-3. **Editing after save.** The existing module has no edit — an invoice is
-   deleted and re-raised. Manual pricing makes an edit path more tempting
-   (a wrong rate is easier to make than a wrong tariff). Out of scope here, but
-   worth deciding before operators ask.
+Nothing is outstanding. The three questions this plan opened were answered
+before any code was written:
+
+| Question | Answer |
+| --- | --- |
+| Should the customer PDF show pricing mode? | **No.** The customer sees agreed numbers; the method is internal. |
+| Raise a manual bill where a valid tariff exists? | **Yes.** The tariff can be right for the customer and wrong for one container; the badge records it. |
+| Edit after save? | **Yes, while draft.** Never once issued or posted to accounts — §7. |
+
+Two things deliberately left out of scope, to be raised only if operators ask:
+
+- **Changing `pricing_mode` on a saved invoice.** Delete and re-raise instead
+  (§7.3) — switching mid-edit would re-derive every rate from a different source
+  and produce a document nobody could explain later.
+- **Editing an issued invoice.** That is what credit notes are for, and the
+  system already has them.
