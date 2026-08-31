@@ -277,6 +277,64 @@ class StorageHandlingManualPricingTest extends FeatureTestCase
         $this->assertSame(1, StorageHandlingInvoice::count());
     }
 
+    // ── Only the selected containers reach the invoice ───────────────────────
+
+    /**
+     * The period load returns every container the customer had in the yard, and
+     * the operator unticks the ones that do not belong on this bill. Selection is
+     * screen state: an excluded container is simply not posted, which is why
+     * nothing on the server — or on the view, print and posting paths — needs to
+     * know the selection ever existed.
+     */
+    public function test_only_the_posted_containers_become_lines(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $second = Container::factory()->create([
+            'container_no' => 'PICK0000002',
+            'customer_id'  => $this->shippingLine->id,
+        ]);
+
+        // Two containers previewed; the operator unticked the second, so only
+        // the first is posted.
+        $this->post(route('billing.storage-handling.store'), $this->payload([
+            'pricing_mode'     => StorageHandlingInvoice::PRICING_MANUAL,
+            'manual_free_days' => 0,
+        ], [$this->line()]))->assertSessionHasNoErrors();
+
+        $invoice = StorageHandlingInvoice::latest('id')->first();
+
+        $this->assertSame(1, $invoice->lines()->count());
+        $this->assertSame($this->container->container_no, $invoice->lines()->first()->container_no);
+        $this->assertSame(0, $invoice->lines()->where('container_id', $second->id)->count(),
+            'A container that was not posted has no line, so it cannot appear on the invoice later.');
+    }
+
+    /** The totals are the posted lines' totals — not the period's. */
+    public function test_the_totals_cover_only_the_posted_containers(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $one = $this->line(['container_no' => $this->container->container_no]);
+
+        $this->post(route('billing.storage-handling.store'), $this->payload([
+            'pricing_mode'     => StorageHandlingInvoice::PRICING_MANUAL,
+            'manual_free_days' => 0,
+        ], [$one, $one]))->assertSessionHasNoErrors();
+
+        $two = StorageHandlingInvoice::latest('id')->first();
+        $this->assertEqualsWithDelta(200.0, (float) $two->total_amount, 0.01,
+            'Precondition: two lines of 100 total 200.');
+
+        $this->post(route('billing.storage-handling.store'), $this->payload([
+            'pricing_mode'     => StorageHandlingInvoice::PRICING_MANUAL,
+            'manual_free_days' => 0,
+        ], [$one]))->assertSessionHasNoErrors();
+
+        $this->assertEqualsWithDelta(100.0, (float) StorageHandlingInvoice::latest('id')->first()->total_amount, 0.01,
+            'Dropping one container drops its money with it.');
+    }
+
     // ── The charge codes manual pricing depends on ───────────────────────────
 
     /**

@@ -49,6 +49,12 @@
     .rate-input.overridden { border-color: #fd7e14; background: #fff8f0; font-weight: 600; }
     .rate-input.blank      { border-color: #dc3545; background: #fff5f5; }
     #matrixTable th, #matrixTable td { font-size: .78rem; padding: .3rem .5rem; vertical-align: middle; }
+
+    /* Excluded from this invoice — visible so it can be put back, faded so it
+       reads as "not on the bill" rather than as a zero-value line. */
+    tr.line-excluded > td { opacity: .45; }
+    tr.line-excluded > td:first-child { opacity: 1; }
+    tr.line-excluded .rate-input { text-decoration: line-through; }
 </style>
 @endpush
 
@@ -378,7 +384,13 @@
                                      types the rate in the invoice's own currency, so the
                                      four-column breakdown has nothing to break down. --}}
                                 <tr>
-                                    <th class="ps-2">#</th>
+                                    {{-- Unticking drops a container from the bill. It stays on
+                                         screen, greyed, so it can be put back. --}}
+                                    <th class="ps-2 text-center" style="width:2.2rem;">
+                                        <input type="checkbox" class="form-check-input select-all" id="selAllStorage"
+                                               data-table="storage" checked title="Select / clear all">
+                                    </th>
+                                    <th>#</th>
                                     <th>Container</th>
                                     <th class="text-center">Size</th>
                                     <th>Equipment</th>
@@ -682,6 +694,40 @@ function headerFreeDays() {
     return el ? Math.max(0, parseInt(el.value, 10) || 0) : 0;
 }
 
+// ── Which containers are on this bill ────────────────────────────────────────
+// The period load returns every container the customer had in the yard; some do
+// not belong on this invoice. Selection is screen state, never invoice data — an
+// unticked container simply has no line, which is why the view and print screens
+// need to know nothing about it.
+
+/** Lines default to on: the common case is billing everything that came back. */
+const selected = l => l._selected !== false;
+
+const selectedLines = () => previewLines.filter(selected);
+
+/**
+ * One checkbox cell. A container shown in two tables gets two of these, and they
+ * are not two switches — they are two pictures of one flag, kept in step by the
+ * repaint in recalcAll().
+ */
+function pickCell(prefix, idx, table) {
+    return `<td class="text-center">
+        <input type="checkbox" class="form-check-input line-pick" id="${prefix}-${idx}"
+               data-line="${idx}" data-table="${table}" checked>
+    </td>`;
+}
+
+/** Tick or untick every line drawn in one table. */
+function setTableSelection(table, on) {
+    const applies = l =>
+        table === 'storage'  ? true :
+        table === 'lift_off' ? !!l.has_lift_off :
+                               !!l.has_lift_on;
+
+    previewLines.forEach(l => { if (applies(l)) l._selected = on; });
+    recalcAll();
+}
+
 // Free time is spent from the container's original gate-in, not granted afresh
 // each period. Mirrors ManualPricing::freeDaysInPeriod().
 function freeDaysInPeriod(headerFree, daysBefore, totalDays) {
@@ -748,7 +794,9 @@ function manualBlockers() {
         (groups[key] = groups[key] || { operation: op, equipment: line.eqt_code, size: line.container_size, containers: [] })
             .containers.push(line.container_no);
     };
-    previewLines.forEach(l => {
+    // Only lines that will actually be saved. An excluded container with a blank
+    // rate must not block a save it is not part of.
+    selectedLines().forEach(l => {
         if (l.storage_chargeable_days > 0 && rateFor(l, 'storage')  === null) add('storage',  l);
         if (l.has_lift_off            && rateFor(l, 'lift_off') === null) add('lift-off', l);
         if (l.has_lift_on             && rateFor(l, 'lift_on')  === null) add('lift-on',  l);
@@ -756,8 +804,19 @@ function manualBlockers() {
     return Object.values(groups);
 }
 
+/** An invoice with no containers on it is not an invoice. */
+const nothingSelected = () => previewLines.length > 0 && selectedLines().length === 0;
+
 function renderManualBlockers() {
     const panel = document.getElementById('missingRatesPanel');
+
+    if (nothingSelected()) {
+        panel.className = 'alert alert-danger d-flex align-items-center gap-2 mb-3';
+        panel.innerHTML = '<i class="bi bi-exclamation-octagon-fill"></i> '
+            + '<div><strong>No containers selected.</strong> Tick at least one container to bill.</div>';
+        return true;
+    }
+
     const blockers = manualBlockers();
 
     if (!blockers.length) {
@@ -804,14 +863,14 @@ function renderMatrix() {
                   value="${matrixRates[key] && matrixRates[key][kind] !== undefined ? matrixRates[key][kind] : ''}"
                   placeholder="0.00">`;
 
-    body.innerHTML = rateMatrix.map(m => `
-        <tr>
+    body.innerHTML = rateMatrix.map((m, n) => `
+        <tr id="matrixRow-${n}" data-key="${m.key}">
             <td class="ps-2">${fmtEqt(m)}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${m.container_size || '—'}'</span></td>
             <td class="text-end">${box(m.key, 'storage',  m.storage_lines)}</td>
             <td class="text-end">${box(m.key, 'lift_off', m.lift_off_lines)}</td>
             <td class="text-end">${box(m.key, 'lift_on',  m.lift_on_lines)}</td>
-            <td class="text-end pe-2 text-muted small">${m.lines}</td>
+            <td class="text-end pe-2 text-muted small" id="matrixCount-${n}">${m.lines}</td>
         </tr>
     `).join('');
 
@@ -822,6 +881,20 @@ function renderMatrix() {
             matrixRates[key][kind] = this.value;
             recalcAll();
         });
+    });
+}
+
+/**
+ * Matrix rows count the lines they actually feed, so excluding containers is
+ * visible here too — a row down to zero has nothing left to price.
+ */
+function updateMatrixCounts(onBill) {
+    rateMatrix.forEach((m, n) => {
+        const mine = onBill.filter(l => l.matrix_key === m.key).length;
+        const cell = document.getElementById('matrixCount-' + n);
+        const row  = document.getElementById('matrixRow-' + n);
+        if (cell) cell.textContent = mine === m.lines ? m.lines : `${mine} of ${m.lines}`;
+        if (row)  row.classList.toggle('line-excluded', mine === 0);
     });
 }
 
@@ -842,14 +915,28 @@ function recalcAll() {
     const set    = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
 
     previewLines.forEach((l, i) => {
+        const on = selected(l);
+
         set('sFree-' + i, l.storage_free_days + 'd');
         set('sChg-'  + i, l.storage_chargeable_days + 'd');
-        set('sAmt-'  + i, fmtAmt(l.storage_subtotal));
-        set('sVal-'  + i, fmtVal(l.storage_subtotal));
-        set('loAmt-' + i, fmtAmt(l.lift_off_rate || 0));
-        set('loVal-' + i, fmtVal(l.lift_off_rate || 0));
-        set('lnAmt-' + i, fmtAmt(l.lift_on_rate  || 0));
-        set('lnVal-' + i, fmtVal(l.lift_on_rate  || 0));
+        // An excluded line shows a dash rather than a zero: it is not on this
+        // bill, which is a different statement from costing nothing.
+        set('sAmt-'  + i, on ? fmtAmt(l.storage_subtotal)   : '—');
+        set('sVal-'  + i, on ? fmtVal(l.storage_subtotal)   : '—');
+        set('loAmt-' + i, on ? fmtAmt(l.lift_off_rate || 0) : '—');
+        set('loVal-' + i, on ? fmtVal(l.lift_off_rate || 0) : '—');
+        set('lnAmt-' + i, on ? fmtAmt(l.lift_on_rate  || 0) : '—');
+        set('lnVal-' + i, on ? fmtVal(l.lift_on_rate  || 0) : '—');
+
+        // Every picture of the flag, in whichever tables this line is drawn.
+        ['selS-', 'selLo-', 'selLn-'].forEach(prefix => {
+            const box = document.getElementById(prefix + i);
+            if (box) box.checked = on;
+        });
+        ['sRow-', 'loRow-', 'lnRow-'].forEach(prefix => {
+            const row = document.getElementById(prefix + i);
+            if (row) row.classList.toggle('line-excluded', !on);
+        });
 
         // Boxes the operator is not currently editing follow the matrix; the
         // styling says at a glance which lines are exceptions and which are blank.
@@ -866,8 +953,9 @@ function recalcAll() {
         });
     });
 
-    // Totals
-    const sum = key => r2(previewLines.reduce((s, l) => s + (parseFloat(l[key]) || 0), 0));
+    // Totals — over the lines that will actually be saved.
+    const onBill = selectedLines();
+    const sum = key => r2(onBill.reduce((s, l) => s + (parseFloat(l[key]) || 0), 0));
     const storageTotal  = sum('storage_subtotal');
     const handlingTotal = sum('handling_subtotal');
     const subtotal      = r2(storageTotal + handlingTotal);
@@ -884,16 +972,28 @@ function recalcAll() {
 
     document.getElementById('storageFoot').innerHTML = `
         <tr>
-            <td colspan="12" class="text-end">Storage Subtotal</td>
+            <td colspan="13" class="text-end">Storage Subtotal</td>
             <td class="text-end">${fmtAmt(storageTotal)}</td>
             <td class="text-end pe-2 small text-muted">${fmtVal(storageTotal)}</td>
         </tr>`;
 
-    const liftOffTotal = r2(previewLines.filter(l => l.has_lift_off).reduce((s, l) => s + (parseFloat(l.lift_off_rate) || 0), 0));
-    const liftOnTotal  = r2(previewLines.filter(l => l.has_lift_on ).reduce((s, l) => s + (parseFloat(l.lift_on_rate)  || 0), 0));
+    const liftOffTotal = r2(onBill.filter(l => l.has_lift_off).reduce((s, l) => s + (parseFloat(l.lift_off_rate) || 0), 0));
+    const liftOnTotal  = r2(onBill.filter(l => l.has_lift_on ).reduce((s, l) => s + (parseFloat(l.lift_on_rate)  || 0), 0));
     set('liftOffSubtotal', fmtAmt(liftOffTotal));
     set('liftOnSubtotal',  fmtAmt(liftOnTotal));
     set('handlingSubtotalFooter', fmtAmt(handlingTotal));
+
+    // Counts follow the selection too — the operator should never have to count
+    // rows to know what they are about to save.
+    const total = previewLines.length, picked = onBill.length;
+    const ofTotal = picked === total ? `${total}` : `${picked} of ${total}`;
+    set('sumContainers', ofTotal);
+    set('lineCount',     ofTotal + ' containers');
+    set('handlingCount',
+        `${onBill.filter(l => l.has_lift_off).length} lift-off · ${onBill.filter(l => l.has_lift_on).length} lift-on`);
+
+    // A matrix row whose lines are all excluded feeds nothing.
+    updateMatrixCounts(onBill);
 
     renderTotalTable({
         storage_subtotal: storageTotal, handling_subtotal: handlingTotal, subtotal: subtotal,
@@ -1054,7 +1154,8 @@ function renderPreview(data) {
             <td class="text-center">${l.storage_total_days}d</td>`;
 
     document.getElementById('storageBody').innerHTML = previewLines.map((l, i) => MANUAL ? `
-        <tr>
+        <tr id="sRow-${i}">
+            ${pickCell('selS', i, 'storage')}
             ${storageHead(l, i)}
             <td class="text-center text-success" id="sFree-${i}">${l.storage_free_days}d</td>
             <td class="text-center" id="sChg-${i}">${l.storage_chargeable_days}d</td>
@@ -1081,7 +1182,7 @@ function renderPreview(data) {
 
     document.getElementById('storageFoot').innerHTML = `
         <tr>
-            <td colspan="${MANUAL ? 12 : 15}" class="text-end">Storage Subtotal</td>
+            <td colspan="${MANUAL ? 13 : 15}" class="text-end">Storage Subtotal</td>
             <td class="text-end">${fmtAmt(data.storage_subtotal)}</td>
             <td class="text-end pe-2 small text-muted">${fmtVal(data.storage_subtotal)}</td>
         </tr>`;
@@ -1104,8 +1205,11 @@ function renderPreview(data) {
 
     // One builder for both directions — they differ only in which date they show
     // and which colour the rate columns carry.
-    const liftCols = (tone, dateLabel) => MANUAL ? `
-        <th class="ps-2">#</th><th>Container</th><th class="text-center">Size</th>
+    const liftCols = (tone, dateLabel, kind) => MANUAL ? `
+        <th class="ps-2 text-center" style="width:2.2rem;">
+            <input type="checkbox" class="form-check-input select-all" data-table="${kind}" checked title="Select / clear all">
+        </th>
+        <th>#</th><th>Container</th><th class="text-center">Size</th>
         <th>Equipment</th><th>Status</th><th>${dateLabel}</th>
         <th class="text-end bg-${tone}-subtle" style="font-size:.7rem;">Rate</th>
         <th class="text-end">Amount</th>
@@ -1137,7 +1241,8 @@ function renderPreview(data) {
             <td class="text-end pe-2 small text-muted">${fmtVal(l[kind + '_rate'])}</td>`;
 
         return `
-        <tr>
+        <tr id="${p}Row-${idx}">
+            ${MANUAL ? pickCell(p === 'lo' ? 'selLo' : 'selLn', idx, kind) : ''}
             <td class="ps-2 text-muted">${n + 1}</td>
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
@@ -1156,12 +1261,12 @@ function renderPreview(data) {
 
     document.getElementById('liftOffSection').innerHTML =
         handlingTableTpl(liftRows(liftOffLines, 'lift_off', 'success', l => fmtDate(l.gate_in_date)),
-                         liftCols('success', 'Gate In Date'), liftOffLines.length)
+                         liftCols('success', 'Gate In Date', 'lift_off'), liftOffLines.length)
         + (liftOffLines.length ? liftSubtotal('liftOffSubtotal', liftOffLines, 'lift_off') : '');
 
     document.getElementById('liftOnSection').innerHTML =
         handlingTableTpl(liftRows(liftOnLines, 'lift_on', 'primary', l => l.gate_out_date ? fmtDate(l.gate_out_date) : '—'),
-                         liftCols('primary', 'Gate Out Date'), liftOnLines.length)
+                         liftCols('primary', 'Gate Out Date', 'lift_on'), liftOnLines.length)
         + (liftOnLines.length ? liftSubtotal('liftOnSubtotal', liftOnLines, 'lift_on') : '');
 
     document.getElementById('handlingSubtotalFooter').textContent = fmtAmt(data.handling_subtotal);
@@ -1170,6 +1275,11 @@ function renderPreview(data) {
     renderTotalTable(data, fmtAmt, fmtVal, invCur);
 
     if (MANUAL) {
+        // Everything the period returned is on the bill until the operator says
+        // otherwise. A fresh preview starts from that default: the containers are
+        // newly loaded, so a stale selection would be about different lines.
+        previewLines.forEach(l => { l._selected = true; });
+
         rateMatrix = data.rate_matrix || [];
         renderMatrix();
         wireLineRateInputs();
@@ -1218,12 +1328,27 @@ function renderTotalTable(data, fmtAmt, fmtVal, invCur) {
  * only; clearing it hands the line back to the matrix rather than blanking it.
  */
 function wireLineRateInputs() {
-    document.querySelectorAll('input[data-line]').forEach(inp => {
+    document.querySelectorAll('input.rate-input[data-line]').forEach(inp => {
         inp.addEventListener('input', function () {
             const line = previewLines[parseInt(this.dataset.line, 10)];
             if (!line) return;
             line['_ovr_' + this.dataset.kind] = this.value === '' ? null : this.value;
             recalcAll();
+        });
+    });
+
+    document.querySelectorAll('input.line-pick').forEach(box => {
+        box.addEventListener('change', function () {
+            const line = previewLines[parseInt(this.dataset.line, 10)];
+            if (!line) return;
+            line._selected = this.checked;
+            recalcAll();
+        });
+    });
+
+    document.querySelectorAll('input.select-all').forEach(box => {
+        box.addEventListener('change', function () {
+            setTableSelection(this.dataset.table, this.checked);
         });
     });
 }
@@ -1286,6 +1411,12 @@ $(document).ready(function () {
             return;
         }
 
+        if (MANUAL && nothingSelected()) {
+            e.preventDefault();
+            showToast('Cannot save — tick at least one container to bill.', 'danger');
+            return;
+        }
+
         if (MANUAL && manualBlockers().length > 0) {
             e.preventDefault();
             showToast('Cannot save — every chargeable line needs a rate.', 'danger');
@@ -1306,9 +1437,15 @@ $(document).ready(function () {
         mkHidden('invoice_currency', invoiceCurrency);
         mkHidden('exchange_rate', exchangeRate);
 
-        // `_`-prefixed keys are screen state (which lines the operator overrode),
-        // not invoice data — they have no business in the request.
-        previewLines.forEach((line, i) => {
+        // Only the containers on the bill, re-indexed so lines[0..n] is
+        // contiguous. An unticked container simply has no line — which is why
+        // nothing downstream needs to know the selection existed.
+        //
+        // `_`-prefixed keys are screen state (which lines were overridden, which
+        // are on the bill) and have no business in the request.
+        const toPost = MANUAL ? previewLines.filter(selected) : previewLines;
+
+        toPost.forEach((line, i) => {
             Object.entries(line).forEach(([key, val]) => {
                 if (key.startsWith('_')) return;
                 mkHidden(`lines[${i}][${key}]`, val);

@@ -121,7 +121,8 @@ class StorageHandlingManualScreenTest extends FeatureTestCase
             ->assertSee('MANUAL PRICING')
             ->assertSee('name="manual_free_days"', false)
             ->assertSee('id="rateMatrixCard"', false)
-            ->assertSee('name="pricing_mode" value="manual"', false);
+            ->assertSee('name="pricing_mode" value="manual"', false)
+            ->assertSee('id="selAllStorage"', false);
     }
 
     public function test_the_ordinary_screen_offers_none_of_it(): void
@@ -132,7 +133,8 @@ class StorageHandlingManualScreenTest extends FeatureTestCase
             ->assertOk()
             ->assertDontSee('name="manual_free_days"', false)
             ->assertDontSee('id="rateMatrixCard"', false)
-            ->assertDontSee('name="pricing_mode"', false);
+            ->assertDontSee('name="pricing_mode"', false)
+            ->assertDontSee('id="selAllStorage"', false);
     }
 
     public function test_the_screen_and_its_preview_need_the_manual_permission(): void

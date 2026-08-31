@@ -404,7 +404,7 @@ Two things deliberately left out of scope, to be raised only if operators ask:
 
 ---
 
-## 10. Container selection *(new requirement — plan only, not yet built)*
+## 10. Container selection — **done**
 
 **Requirement.** The period load brings back every container the customer had in
 the yard. Some of them do not belong on this bill. The operator needs to
