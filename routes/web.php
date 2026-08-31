@@ -662,6 +662,10 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/',                [StorageHandlingController::class, 'index'])->name('index');
             Route::get('/create',          [StorageHandlingController::class, 'create'])->name('create');
             Route::post('/preview',        [StorageHandlingController::class, 'preview'])->name('preview');
+            // Manual pricing — its own URL and menu entry, but the same controller,
+            // table, numbering sequence and GL path. Must precede /{invoice}.
+            Route::get('/manual/create',   [StorageHandlingController::class, 'createManual'])->name('manual.create');
+            Route::post('/manual/preview', [StorageHandlingController::class, 'previewManual'])->name('manual.preview');
             Route::post('/',               [StorageHandlingController::class, 'store'])->name('store');
             Route::get('/{storageHandlingInvoice}',                  [StorageHandlingController::class, 'show'])->name('show');
             Route::delete('/{storageHandlingInvoice}',               [StorageHandlingController::class, 'destroy'])->name('destroy');

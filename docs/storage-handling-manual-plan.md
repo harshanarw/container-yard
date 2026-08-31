@@ -183,20 +183,40 @@ terms. So: `administrator` and `billing_manager` receive it automatically
 through their existing wildcards, and `billing_clerk` does not. Granting it to
 clerks is one line in `RolePermissionSeeder`, commented in place.
 
-### Phase 2 — The manual screen
+### Phase 2 — The manual screen — **done**
 
-- Route `manual/create` + `manual/preview`, same controller, `mode` default.
-- Header adds: **Free Time (days)**, default 0.
-- `preview()` in manual mode skips tariff resolution entirely and returns lines
-  with rate `0`, charge codes already resolved, and the day arithmetic done
-  against the header free days.
-- **Rate matrix** above the lines: one row per equipment type × size present in
-  the period, with storage / lift-off / lift-on inputs. Typing a rate fills
-  every matching line.
-- Per-line boxes seeded from the matrix, individually overridable; an overridden
-  line is marked so it is visibly not following the matrix.
-- Changing free time recalculates every line **and** the totals — each line
-  against its own remaining balance, not a flat number.
+- Routes `manual/create` + `manual/preview`, same controller, `manual: true`
+  passed through. Both carry the `.manual` permission on top of view/create, so
+  the screen is gated as well as the save. Own menu entry under Billing.
+- Header adds **Free Time (days)**, default 0.
+- `preview()` in manual mode resolves no tariff at all — not "resolves one and
+  ignores it" — and returns lines with rate `0`, the `STC` / `LOLO` charge codes
+  and their tax rates already resolved, and no missing-rate flags.
+- **Rate matrix** above the lines: one row per equipment type × size the period
+  actually contains, with storage / lift-off / lift-on inputs. Typing a rate
+  fills every matching line.
+- Per-line boxes follow the matrix and are individually overridable; an
+  overridden line is outlined so it is visibly an exception, and a blank one on a
+  chargeable position is outlined in red. Clearing an override hands the line
+  back to the matrix rather than blanking it.
+- Changing free time recalculates every line **and** the totals, each line
+  against its own remaining balance.
+- Save is blocked, naming the containers, while any chargeable position has no
+  rate — the same rule `guardManualRates()` enforces on the server.
+
+**The arithmetic now lives in `App\Services\Billing\ManualPricing`** — free-day
+consumption, per-portion tax, and the matrix key. Three parties compute these
+numbers (preview, the browser as the operator types, and `store()` on save) and
+they must agree, so the rules are in one class and the screen's JavaScript
+mirrors it deliberately and says so. A cross-language harness checks the PHP and
+the JavaScript against the same cases.
+
+**Still trusted from the browser until Phase 3.** `store()` accepts the posted
+free days and subtotals in manual mode. Recomputing them server-side means
+re-deriving each container's elapsed days from its yard-storage record rather
+than from the posted `days_before_period`, which is Phase 3's job; doing it
+half-way — recomputing from a number the browser also supplied — would look like
+a check without being one.
 
 ### Phase 3 — Store
 

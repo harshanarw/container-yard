@@ -1115,8 +1115,16 @@
                 @can('billing.storage-handling.view')
                 <li class="nav-item">
                     <a href="{{ route('billing.storage-handling.index') }}"
-                       class="nav-link {{ request()->routeIs('billing.storage-handling.*') ? 'active' : '' }}">
+                       class="nav-link {{ request()->routeIs('billing.storage-handling.*') && !request()->routeIs('billing.storage-handling.manual.*') ? 'active' : '' }}">
                         <i class="bi bi-file-earmark-richtext"></i><span>Storage &amp; Handling</span>
+                    </a>
+                </li>
+                @endcan
+                @can('billing.storage-handling.manual')
+                <li class="nav-item">
+                    <a href="{{ route('billing.storage-handling.manual.create') }}"
+                       class="nav-link {{ request()->routeIs('billing.storage-handling.manual.*') ? 'active' : '' }}">
+                        <i class="bi bi-pencil-square"></i><span>Storage &amp; Handling — Manual</span>
                     </a>
                 </li>
                 @endcan

@@ -1,12 +1,27 @@
 @extends('layouts.app')
 
-@section('title', 'Generate Storage & Handling Invoice')
+{{--
+    One screen, two pricing modes.
+
+    Tariff mode resolves every rate from the customer's agreed tariff and refuses
+    to save when one is missing. Manual mode resolves none of them: the operator
+    types the free time and the rates, and the charge codes are fixed so the tax
+    treatment and the accounts are still not up for negotiation.
+
+    They share this file rather than forking it because almost everything is the
+    same — the parameters, the container load, the tax arithmetic, the totals, the
+    save. Only the rate columns and what blocks the save differ, so those are the
+    only places `manual` appears.
+--}}
+@php($manual = $manual ?? false)
+
+@section('title', $manual ? 'Generate Storage & Handling Invoice — Manual' : 'Generate Storage & Handling Invoice')
 
 @section('breadcrumb')
     <li class="breadcrumb-item">
         <a href="{{ route('billing.storage-handling.index') }}" class="text-decoration-none">Storage &amp; Handling</a>
     </li>
-    <li class="breadcrumb-item active">Generate Invoice</li>
+    <li class="breadcrumb-item active">{{ $manual ? 'Generate Invoice — Manual' : 'Generate Invoice' }}</li>
 @endsection
 
 @push('styles')
@@ -22,6 +37,18 @@
     .handling-yes  { color: #0d6efd; font-weight: 600; }
     .handling-no   { color: #adb5bd; }
     #billingPartyBox { border-left: 3px solid #0d6efd; }
+
+    /* Manual pricing: rate boxes and the matrix that fills them */
+    .rate-input {
+        width: 6.5rem; text-align: right; font-size: .78rem;
+        padding: .15rem .35rem; border: 1px solid #ced4da; border-radius: .25rem;
+    }
+    .rate-input:focus { outline: 0; border-color: #0d6efd; box-shadow: 0 0 0 .15rem rgba(13,110,253,.2); }
+    /* An overridden line is visibly not following the matrix, so a later reviewer
+       can tell a deliberate exception from a typo. */
+    .rate-input.overridden { border-color: #fd7e14; background: #fff8f0; font-weight: 600; }
+    .rate-input.blank      { border-color: #dc3545; background: #fff5f5; }
+    #matrixTable th, #matrixTable td { font-size: .78rem; padding: .3rem .5rem; vertical-align: middle; }
 </style>
 @endpush
 
@@ -29,9 +56,21 @@
 
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
-        <h4><i class="bi bi-file-earmark-plus me-2 text-primary"></i>Generate Storage &amp; Handling Invoice</h4>
+        <h4>
+            <i class="bi {{ $manual ? 'bi-pencil-square me-2 text-warning' : 'bi-file-earmark-plus me-2 text-primary' }}"></i>
+            Generate Storage &amp; Handling Invoice
+            @if($manual)
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle align-middle ms-1"
+                      style="font-size:.7rem;letter-spacing:.04em;">MANUAL PRICING</span>
+            @endif
+        </h4>
         <p class="text-muted mb-0 small">
-            Calculates storage charges plus Lift Off (Gate In) and Lift On (Gate Out) handling for the selected period
+            @if($manual)
+                Free time and all rates are entered by hand — the customer's tariff is not consulted.
+                Charge codes, tax and posting are unchanged.
+            @else
+                Calculates storage charges plus Lift Off (Gate In) and Lift On (Gate Out) handling for the selected period
+            @endif
         </p>
     </div>
     <a href="{{ route('billing.storage-handling.index') }}" class="btn btn-outline-secondary btn-sm">
@@ -41,6 +80,10 @@
 
 <form id="billingForm" method="POST" action="{{ route('billing.storage-handling.store') }}">
 @csrf
+@if($manual)
+    {{-- store() reads this to pick its guard; it also re-checks the permission. --}}
+    <input type="hidden" name="pricing_mode" value="manual">
+@endif
 
 <div class="row g-3">
 
@@ -183,6 +226,24 @@
                     </div>
                 </div>
 
+                @if($manual)
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        Free Time (days) <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="number" name="manual_free_days" id="manualFreeDays" class="form-control"
+                               value="0" min="0" max="9999" step="1" required>
+                        <span class="input-group-text small">days</span>
+                    </div>
+                    <div class="form-text small">
+                        Applies to every line. Free time is spent from each container's original gate-in,
+                        not granted again each period — a box that used its allowance in an earlier period
+                        gets none here.
+                    </div>
+                </div>
+                @endif
+
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Notes</label>
                     <textarea name="notes" class="form-control" rows="2"
@@ -266,6 +327,39 @@
                 </div>
             </div>
 
+            @if($manual)
+            {{-- Rate matrix — one row per equipment type × size the period actually
+                 contains, so nobody is asked for a rate that will not be used.
+                 Typing here fills every matching line below. --}}
+            <div class="card content-card mb-3" id="rateMatrixCard">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-grid-3x3-gap me-2 text-warning"></i>
+                        <strong>Rate Matrix</strong>
+                        <span class="text-muted small ms-2">— fills every matching line; individual lines can still be overridden</span>
+                    </span>
+                    <span id="matrixCount" class="badge bg-warning-subtle text-warning border border-warning-subtle"></span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0" id="matrixTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-2">Equipment</th>
+                                    <th class="text-center">Size</th>
+                                    <th class="text-end">Storage / Day</th>
+                                    <th class="text-end">Lift Off</th>
+                                    <th class="text-end">Lift On</th>
+                                    <th class="text-end pe-2 text-muted" style="font-size:.7rem;">Lines</th>
+                                </tr>
+                            </thead>
+                            <tbody id="matrixBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             {{-- Section 1: Storage Charges --}}
             <div class="card content-card mb-3" id="storageCard">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -279,6 +373,27 @@
                     <div class="table-responsive">
                         <table class="table table-sm table-hover mb-0" id="storageTable">
                             <thead class="table-light">
+                                @if($manual)
+                                {{-- No tariff rate, no currency conversion: the operator
+                                     types the rate in the invoice's own currency, so the
+                                     four-column breakdown has nothing to break down. --}}
+                                <tr>
+                                    <th class="ps-2">#</th>
+                                    <th>Container</th>
+                                    <th class="text-center">Size</th>
+                                    <th>Equipment</th>
+                                    <th>Status</th>
+                                    <th>Gate In</th>
+                                    <th class="text-center">From</th>
+                                    <th class="text-center">To</th>
+                                    <th class="text-center">Days</th>
+                                    <th class="text-center">Free</th>
+                                    <th class="text-center">Chgbl</th>
+                                    <th class="text-end bg-warning-subtle">Rate / Day</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end pe-2 text-muted" style="font-size:.7rem;white-space:nowrap;">Value<br>(LKR)</th>
+                                </tr>
+                                @else
                                 <tr>
                                     <th class="ps-2" rowspan="2" style="vertical-align:middle;">#</th>
                                     <th rowspan="2" style="vertical-align:middle;">Container</th>
@@ -303,6 +418,7 @@
                                     <th class="text-end bg-warning-subtle" style="font-size:.7rem;">× Exch. Rate</th>
                                     <th class="text-end bg-warning-subtle" style="font-size:.7rem;">Rate / Day</th>
                                 </tr>
+                                @endif
                             </thead>
                             <tbody id="storageBody"></tbody>
                             <tfoot id="storageFoot" class="table-light fw-semibold"></tfoot>
@@ -400,11 +516,19 @@
 @push('scripts')
 <script>
 const csrfToken   = '{{ csrf_token() }}';
-const previewUrl  = '{{ route("billing.storage-handling.preview") }}';
+const MANUAL      = @json($manual);
+const previewUrl  = MANUAL
+    ? '{{ route("billing.storage-handling.manual.preview") }}'
+    : '{{ route("billing.storage-handling.preview") }}';
 const exchRateUrl = @json(route('finance.fx-rate'));
 
 let previewLines = [];
 let previewMissing = [];
+// Rate matrix rows, and the rates typed into them, keyed by matrix_key.
+let rateMatrix   = [];
+let matrixRates  = {};
+// Currency context of the current preview, used by every recalculation.
+let previewCur   = { inv: 'LKR', def: 'LKR', ex: 1 };
 
 function fmtEqt(l) {
     if (!l.eqt_code) return l.equipment_type || '—';
@@ -521,6 +645,7 @@ async function runPreview() {
                 period_to:        periodTo,
                 invoice_currency: invoiceCurrency,
                 exchange_rate:    exchangeRate,
+                manual_free_days: MANUAL ? headerFreeDays() : null,
             }),
         });
 
@@ -541,6 +666,256 @@ async function runPreview() {
     }
 }
 
+// ── Manual pricing ───────────────────────────────────────────────────────────
+// Everything below mirrors App\Services\Billing\ManualPricing deliberately. The
+// operator has to see the total move as they type, and the server recomputes the
+// same numbers on save because nothing posted from a browser is trusted — so the
+// two must agree. If you change a rule here, change it there.
+
+const r2  = n => Math.round((parseFloat(n) || 0) * 100) / 100;
+// A rate the operator actually typed. Blank is "not entered"; an explicit 0 is a
+// value — occasionally a deliberate goodwill line.
+const typed = v => (v !== null && v !== undefined && v !== '' && !isNaN(parseFloat(v))) ? parseFloat(v) : null;
+
+function headerFreeDays() {
+    const el = document.getElementById('manualFreeDays');
+    return el ? Math.max(0, parseInt(el.value, 10) || 0) : 0;
+}
+
+// Free time is spent from the container's original gate-in, not granted afresh
+// each period. Mirrors ManualPricing::freeDaysInPeriod().
+function freeDaysInPeriod(headerFree, daysBefore, totalDays) {
+    const remaining = Math.max(0, headerFree - Math.max(0, daysBefore));
+    return Math.min(Math.max(0, totalDays), remaining);
+}
+
+// The rate a line follows: its own override if one was typed, otherwise the
+// matrix row for its equipment type × size.
+function rateFor(line, kind) {
+    const own = typed(line['_ovr_' + kind]);
+    if (own !== null) return own;
+    return typed((matrixRates[line.matrix_key] || {})[kind]);
+}
+
+function isOverridden(line, kind) {
+    return typed(line['_ovr_' + kind]) !== null;
+}
+
+// Recompute one line end to end: free days, rates, subtotals, tax, totals.
+function recalcLine(line) {
+    const free  = headerFreeDays();
+    const total = parseInt(line.storage_total_days, 10) || 0;
+
+    const freeIn = freeDaysInPeriod(free, parseInt(line.days_before_period, 10) || 0, total);
+    line.storage_free_days       = freeIn;
+    line.storage_chargeable_days = Math.max(0, total - freeIn);
+
+    const sRate  = rateFor(line, 'storage');
+    const loRate = rateFor(line, 'lift_off');
+    const lnRate = rateFor(line, 'lift_on');
+
+    // Blank stays blank so the save guard can name the container rather than
+    // silently billing zero.
+    line.storage_daily_rate = sRate === null ? '' : sRate;
+    line.lift_off_rate      = loRate === null ? '' : loRate;
+    line.lift_on_rate       = lnRate === null ? '' : lnRate;
+
+    line.storage_subtotal  = r2(line.storage_chargeable_days * (sRate || 0));
+    line.handling_subtotal = r2((line.has_lift_off ? (loRate || 0) : 0) + (line.has_lift_on ? (lnRate || 0) : 0));
+
+    // Storage and handling are taxed separately — they carry different charge
+    // codes, so one code's rates must not touch the other's money.
+    const sSscl = r2(line.storage_subtotal * (parseFloat(line.tax1_rate) || 0) / 100);
+    const sVat  = r2((line.storage_subtotal + sSscl) * (parseFloat(line.tax2_rate) || 0) / 100);
+    const hSscl = r2(line.handling_subtotal * (parseFloat(line.handling_tax1_rate) || 0) / 100);
+    const hVat  = r2((line.handling_subtotal + hSscl) * (parseFloat(line.handling_tax2_rate) || 0) / 100);
+
+    line.line_total        = r2(line.storage_subtotal + line.handling_subtotal);
+    line.line_sscl         = r2(sSscl + hSscl);
+    line.line_vat          = r2(sVat + hVat);
+    line.line_grand_total  = r2(line.line_total + line.line_sscl + line.line_vat);
+    line.line_value        = line.line_grand_total;
+
+    const disp = previewCur.inv === previewCur.def ? 1 : (previewCur.ex > 0 ? 1 / previewCur.ex : 1);
+    line.line_amount = r2(line.line_grand_total * disp);
+}
+
+/** Chargeable positions with no rate typed. Blocks the save, naming containers. */
+function manualBlockers() {
+    const groups = {};
+    const add = (op, line) => {
+        const key = op + '|' + line.matrix_key;
+        (groups[key] = groups[key] || { operation: op, equipment: line.eqt_code, size: line.container_size, containers: [] })
+            .containers.push(line.container_no);
+    };
+    previewLines.forEach(l => {
+        if (l.storage_chargeable_days > 0 && rateFor(l, 'storage')  === null) add('storage',  l);
+        if (l.has_lift_off            && rateFor(l, 'lift_off') === null) add('lift-off', l);
+        if (l.has_lift_on             && rateFor(l, 'lift_on')  === null) add('lift-on',  l);
+    });
+    return Object.values(groups);
+}
+
+function renderManualBlockers() {
+    const panel = document.getElementById('missingRatesPanel');
+    const blockers = manualBlockers();
+
+    if (!blockers.length) {
+        panel.className = 'd-none';
+        panel.innerHTML = '';
+        return false;
+    }
+
+    const label = { 'storage': 'Storage', 'lift-off': 'Lift Off', 'lift-on': 'Lift On' };
+    const rows = blockers.map(b => {
+        const shown = b.containers.slice(0, 6).join(', ')
+            + (b.containers.length > 6 ? ' +' + (b.containers.length - 6) + ' more' : '');
+        return `<tr>
+            <td class="fw-semibold">${label[b.operation] || b.operation}</td>
+            <td>${(b.equipment || '—')}${b.size ? " · " + b.size + "'" : ''}</td>
+            <td class="small text-muted">${shown}</td>
+            <td class="text-end">${b.containers.length}</td>
+        </tr>`;
+    }).join('');
+
+    panel.className = 'alert alert-danger mb-3';
+    panel.innerHTML = `
+        <div class="d-flex align-items-start gap-2 mb-2">
+            <i class="bi bi-exclamation-octagon-fill mt-1"></i>
+            <div><strong>Cannot save — rates missing.</strong>
+            Fill the rate matrix above, or type a rate on each line listed.</div>
+        </div>
+        <div class="table-responsive"><table class="table table-sm mb-0 align-middle small">
+            <thead><tr><th>Charge</th><th>Combination</th><th>Containers</th><th class="text-end">Count</th></tr></thead>
+            <tbody>${rows}</tbody></table></div>`;
+    return true;
+}
+
+function renderMatrix() {
+    const body = document.getElementById('matrixBody');
+    if (!body) return;
+
+    document.getElementById('matrixCount').textContent =
+        rateMatrix.length + (rateMatrix.length === 1 ? ' combination' : ' combinations');
+
+    const box = (key, kind, count) => count === 0
+        ? '<span class="text-muted small">—</span>'
+        : `<input type="number" class="rate-input" min="0" step="0.01" data-matrix="${key}" data-kind="${kind}"
+                  value="${matrixRates[key] && matrixRates[key][kind] !== undefined ? matrixRates[key][kind] : ''}"
+                  placeholder="0.00">`;
+
+    body.innerHTML = rateMatrix.map(m => `
+        <tr>
+            <td class="ps-2">${fmtEqt(m)}</td>
+            <td class="text-center"><span class="badge bg-dark badge-size">${m.container_size || '—'}'</span></td>
+            <td class="text-end">${box(m.key, 'storage',  m.storage_lines)}</td>
+            <td class="text-end">${box(m.key, 'lift_off', m.lift_off_lines)}</td>
+            <td class="text-end">${box(m.key, 'lift_on',  m.lift_on_lines)}</td>
+            <td class="text-end pe-2 text-muted small">${m.lines}</td>
+        </tr>
+    `).join('');
+
+    body.querySelectorAll('input[data-matrix]').forEach(inp => {
+        inp.addEventListener('input', function () {
+            const key = this.dataset.matrix, kind = this.dataset.kind;
+            matrixRates[key] = matrixRates[key] || {};
+            matrixRates[key][kind] = this.value;
+            recalcAll();
+        });
+    });
+}
+
+/**
+ * Recompute every line and repaint the cells that changed.
+ *
+ * Cells rather than whole tables: re-rendering would take the focus out of the
+ * box the operator is typing in.
+ */
+function recalcAll() {
+    previewLines.forEach(recalcLine);
+
+    const invCur = previewCur.inv, defCur = previewCur.def, exRate = previewCur.ex;
+    const fmt    = n => parseFloat(n || 0).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const toAmt  = lkr => invCur === defCur ? parseFloat(lkr || 0) : parseFloat(lkr || 0) / exRate;
+    const fmtAmt = lkr => invCur + '\xa0' + fmt(toAmt(lkr));
+    const fmtVal = lkr => 'LKR\xa0' + fmt(lkr);
+    const set    = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+
+    previewLines.forEach((l, i) => {
+        set('sFree-' + i, l.storage_free_days + 'd');
+        set('sChg-'  + i, l.storage_chargeable_days + 'd');
+        set('sAmt-'  + i, fmtAmt(l.storage_subtotal));
+        set('sVal-'  + i, fmtVal(l.storage_subtotal));
+        set('loAmt-' + i, fmtAmt(l.lift_off_rate || 0));
+        set('loVal-' + i, fmtVal(l.lift_off_rate || 0));
+        set('lnAmt-' + i, fmtAmt(l.lift_on_rate  || 0));
+        set('lnVal-' + i, fmtVal(l.lift_on_rate  || 0));
+
+        // Boxes the operator is not currently editing follow the matrix; the
+        // styling says at a glance which lines are exceptions and which are blank.
+        [['storage', 'sRate-'], ['lift_off', 'loRate-'], ['lift_on', 'lnRate-']].forEach(([kind, prefix]) => {
+            const el = document.getElementById(prefix + i);
+            if (!el) return;
+            const override = isOverridden(l, kind);
+            if (!override && document.activeElement !== el) {
+                const v = rateFor(l, kind);
+                el.value = v === null ? '' : v;
+            }
+            el.classList.toggle('overridden', override);
+            el.classList.toggle('blank', rateFor(l, kind) === null && needsRate(l, kind));
+        });
+    });
+
+    // Totals
+    const sum = key => r2(previewLines.reduce((s, l) => s + (parseFloat(l[key]) || 0), 0));
+    const storageTotal  = sum('storage_subtotal');
+    const handlingTotal = sum('handling_subtotal');
+    const subtotal      = r2(storageTotal + handlingTotal);
+    const ssclAmount    = sum('line_sscl');
+    const vatAmount     = sum('line_vat');
+    const totalAmount   = r2(subtotal + ssclAmount + vatAmount);
+
+    set('sumStorage',  fmtAmt(storageTotal));
+    set('sumHandling', fmtAmt(handlingTotal));
+    set('sumSubtotal', fmtAmt(subtotal));
+    set('sumSscl',     fmtAmt(ssclAmount));
+    set('sumVat',      fmtAmt(vatAmount));
+    set('sumTotal',    fmtAmt(totalAmount));
+
+    document.getElementById('storageFoot').innerHTML = `
+        <tr>
+            <td colspan="12" class="text-end">Storage Subtotal</td>
+            <td class="text-end">${fmtAmt(storageTotal)}</td>
+            <td class="text-end pe-2 small text-muted">${fmtVal(storageTotal)}</td>
+        </tr>`;
+
+    const liftOffTotal = r2(previewLines.filter(l => l.has_lift_off).reduce((s, l) => s + (parseFloat(l.lift_off_rate) || 0), 0));
+    const liftOnTotal  = r2(previewLines.filter(l => l.has_lift_on ).reduce((s, l) => s + (parseFloat(l.lift_on_rate)  || 0), 0));
+    set('liftOffSubtotal', fmtAmt(liftOffTotal));
+    set('liftOnSubtotal',  fmtAmt(liftOnTotal));
+    set('handlingSubtotalFooter', fmtAmt(handlingTotal));
+
+    renderTotalTable({
+        storage_subtotal: storageTotal, handling_subtotal: handlingTotal, subtotal: subtotal,
+        sscl_amount: ssclAmount, vat_amount: vatAmount,
+        total_amount: totalAmount, total_value: totalAmount,
+    }, fmtAmt, fmtVal, invCur);
+
+    const blocked = renderManualBlockers();
+    const saveBtn = document.getElementById('saveBtn');
+    if (saveBtn) {
+        saveBtn.disabled = blocked;
+        saveBtn.title = blocked ? 'Enter a rate for every chargeable line before saving' : '';
+    }
+}
+
+/** Whether this line has something to price in this position at all. */
+function needsRate(line, kind) {
+    if (kind === 'storage')  return line.storage_chargeable_days > 0;
+    if (kind === 'lift_off') return !!line.has_lift_off;
+    return !!line.has_lift_on;
+}
+
 function renderPreview(data) {
     previewLines = data.lines || [];
     previewMissing = data.missing_rates || [];
@@ -549,17 +924,22 @@ function renderPreview(data) {
     const billType     = data.bill_type || 'storage_handling';
     const showStorage  = billType !== 'handling_only';
     const showHandling = billType !== 'storage_only';
+    totalSections = { storage: showStorage, handling: showHandling };
     document.getElementById('storageTile').classList.toggle('d-none', !showStorage);
     document.getElementById('handlingTile').classList.toggle('d-none', !showHandling);
     document.getElementById('storageCard').classList.toggle('d-none', !showStorage);
     document.getElementById('handlingCard').classList.toggle('d-none', !showHandling);
 
-    // Missing tariff rates → render the detail panel and block saving
-    const hasMissing = window.renderTariffMissing(document.getElementById('missingRatesPanel'), previewMissing);
-    const saveBtn = document.getElementById('saveBtn');
-    if (saveBtn) {
-        saveBtn.disabled = hasMissing;
-        saveBtn.title = hasMissing ? 'Resolve the missing tariff rates before saving' : '';
+    // Missing tariff rates → render the detail panel and block saving. Manual
+    // mode has no tariff to be missing; recalcAll() blocks on blank rate boxes
+    // instead, once the lines are on screen.
+    if (!MANUAL) {
+        const hasMissing = window.renderTariffMissing(document.getElementById('missingRatesPanel'), previewMissing);
+        const saveBtn = document.getElementById('saveBtn');
+        if (saveBtn) {
+            saveBtn.disabled = hasMissing;
+            saveBtn.title = hasMissing ? 'Resolve the missing tariff rates before saving' : '';
+        }
     }
 
     // Tax exempt alert
@@ -570,27 +950,52 @@ function renderPreview(data) {
     // section's tariff is never looked up (so its *_tariff_found flag is false by
     // design); warning about it would be misleading.
     const alertBox = document.getElementById('tariffAlert');
-    const msgs = [];
-    if (showStorage && !data.storage_tariff_found) {
-        msgs.push('<i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i> No active <strong>storage tariff</strong> found for this shipping line. Rates from stored gate-in values will be used. <a href="{{ route("masters.storage-tariff.index") }}">Set up tariff &rarr;</a>');
-    }
-    if (showHandling && !data.handling_tariff_found) {
-        msgs.push('<i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i> No active <strong>handling tariff</strong> found for this shipping line — Lift On / Lift Off rates will be zero. <a href="{{ route("masters.handling-tariff.index") }}">Set up tariff &rarr;</a>');
-    }
 
-    if (msgs.length) {
-        alertBox.className = 'alert alert-warning mb-3';
-        alertBox.innerHTML = msgs.join('<hr class="my-2">');
+    if (MANUAL) {
+        // No tariff was consulted, so there is nothing to report about one. What
+        // does matter is the charge codes: without them a line has no tax
+        // treatment and no account to post to, and saying so now beats
+        // discovering it at save.
+        const missingCodes = [];
+        if (showStorage  && !data.storage_charge_code)  missingCodes.push('storage');
+        if (showHandling && !data.handling_charge_code) missingCodes.push('handling');
+
+        if (missingCodes.length) {
+            alertBox.className = 'alert alert-danger mb-3';
+            alertBox.innerHTML = '<i class="bi bi-exclamation-octagon-fill me-1"></i> The default <strong>'
+                + missingCodes.join(' and ') + '</strong> charge code is missing or inactive in the Charge Code master. '
+                + 'Manual pricing takes its tax codes and accounts from there, so the invoice cannot be saved until it exists.';
+        } else {
+            const codes = [];
+            if (showStorage)  codes.push('storage &rarr; <strong>' + data.storage_charge_code + '</strong>');
+            if (showHandling) codes.push('handling &rarr; <strong>' + data.handling_charge_code + '</strong>');
+            alertBox.className = 'alert alert-warning d-flex align-items-start gap-2 mb-3';
+            alertBox.innerHTML = '<i class="bi bi-pencil-square mt-1"></i><div><strong>Manual pricing.</strong> '
+                + 'No tariff was consulted — enter the rates below. Charge codes: ' + codes.join(', ') + '.</div>';
+        }
         alertBox.classList.remove('d-none');
     } else {
-        const loaded = [];
-        if (showStorage)  loaded.push('storage');
-        if (showHandling) loaded.push('handling');
-        const label = loaded.length === 2
-            ? 'Both storage and handling tariffs'
-            : (loaded[0].charAt(0).toUpperCase() + loaded[0].slice(1) + ' tariff');
-        alertBox.className = 'alert alert-success d-flex align-items-center gap-2 mb-3';
-        alertBox.innerHTML = '<i class="bi bi-check-circle-fill"></i> ' + label + ' loaded successfully.';
+        const msgs = [];
+        if (showStorage && !data.storage_tariff_found) {
+            msgs.push('<i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i> No active <strong>storage tariff</strong> found for this shipping line. Rates from stored gate-in values will be used. <a href="{{ route("masters.storage-tariff.index") }}">Set up tariff &rarr;</a>');
+        }
+        if (showHandling && !data.handling_tariff_found) {
+            msgs.push('<i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i> No active <strong>handling tariff</strong> found for this shipping line — Lift On / Lift Off rates will be zero. <a href="{{ route("masters.handling-tariff.index") }}">Set up tariff &rarr;</a>');
+        }
+
+        if (msgs.length) {
+            alertBox.className = 'alert alert-warning mb-3';
+            alertBox.innerHTML = msgs.join('<hr class="my-2">');
+        } else {
+            const loaded = [];
+            if (showStorage)  loaded.push('storage');
+            if (showHandling) loaded.push('handling');
+            const label = loaded.length === 2
+                ? 'Both storage and handling tariffs'
+                : (loaded[0].charAt(0).toUpperCase() + loaded[0].slice(1) + ' tariff');
+            alertBox.className = 'alert alert-success d-flex align-items-center gap-2 mb-3';
+            alertBox.innerHTML = '<i class="bi bi-check-circle-fill"></i> ' + label + ' loaded successfully.';
+        }
         alertBox.classList.remove('d-none');
     }
 
@@ -605,6 +1010,14 @@ function renderPreview(data) {
 
     document.getElementById('previewPlaceholder').classList.add('d-none');
     document.getElementById('summarySection').classList.remove('d-none');
+
+    // Currency context every later recalculation reads. Set before the tables so
+    // the first recalcAll() formats against the same numbers they were drawn with.
+    previewCur = {
+        inv: data.invoice_currency || 'LKR',
+        def: data.default_currency || 'LKR',
+        ex:  parseFloat(data.exchange_rate) || 1,
+    };
 
     const fmt    = n => parseFloat(n).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtCur = n => 'LKR\xa0' + fmt(n);
@@ -628,8 +1041,8 @@ function renderPreview(data) {
     document.getElementById('lineCount').textContent     = previewLines.length + ' containers';
 
     // ── Storage table ──────────────────────────────────────────────────────
-    document.getElementById('storageBody').innerHTML = previewLines.map((l, i) => `
-        <tr class="${l.storage_chargeable_days == 0 ? 'text-muted' : ''}">
+    // Shared columns first; the rate columns are where the two modes differ.
+    const storageHead = (l, i) => `
             <td class="ps-2 text-muted">${i + 1}</td>
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
@@ -638,7 +1051,23 @@ function renderPreview(data) {
             <td class="small">${fmtDate(l.gate_in_date)}</td>
             <td class="text-center small">${fmtDate(l.storage_from)}</td>
             <td class="text-center small">${fmtDate(l.storage_to)}</td>
-            <td class="text-center">${l.storage_total_days}d</td>
+            <td class="text-center">${l.storage_total_days}d</td>`;
+
+    document.getElementById('storageBody').innerHTML = previewLines.map((l, i) => MANUAL ? `
+        <tr>
+            ${storageHead(l, i)}
+            <td class="text-center text-success" id="sFree-${i}">${l.storage_free_days}d</td>
+            <td class="text-center" id="sChg-${i}">${l.storage_chargeable_days}d</td>
+            <td class="text-end bg-warning-subtle">
+                <input type="number" class="rate-input" id="sRate-${i}" min="0" step="0.01"
+                       data-line="${i}" data-kind="storage" placeholder="0.00">
+            </td>
+            <td class="text-end fw-semibold" id="sAmt-${i}">—</td>
+            <td class="text-end pe-2 small text-muted" id="sVal-${i}">—</td>
+        </tr>
+    ` : `
+        <tr class="${l.storage_chargeable_days == 0 ? 'text-muted' : ''}">
+            ${storageHead(l, i)}
             <td class="text-center text-success">${l.storage_free_days}d</td>
             <td class="text-center ${l.storage_chargeable_days > 0 ? 'text-danger fw-semibold' : 'text-success'}">${l.storage_chargeable_days}d</td>
             <td class="text-end bg-warning-subtle small">${fmt(l.storage_daily_rate_usd ?? 0)}</td>
@@ -649,16 +1078,20 @@ function renderPreview(data) {
             <td class="text-end pe-2 small text-muted">${fmtVal(l.storage_subtotal)}</td>
         </tr>
     `).join('');
+
     document.getElementById('storageFoot').innerHTML = `
         <tr>
-            <td colspan="15" class="text-end">Storage Subtotal</td>
+            <td colspan="${MANUAL ? 12 : 15}" class="text-end">Storage Subtotal</td>
             <td class="text-end">${fmtAmt(data.storage_subtotal)}</td>
             <td class="text-end pe-2 small text-muted">${fmtVal(data.storage_subtotal)}</td>
         </tr>`;
 
     // ── Handling: Lift Off ─────────────────────────────────────────────────
-    const liftOffLines = previewLines.filter(l => l.has_lift_off);
-    const liftOnLines  = previewLines.filter(l => l.has_lift_on);
+    // Carry each line's index in previewLines: recalculation addresses cells by
+    // line, and a filtered table's own ordering is not that index.
+    const withIdx      = pred => previewLines.map((line, idx) => ({ line, idx })).filter(r => pred(r.line));
+    const liftOffLines = withIdx(l => l.has_lift_off);
+    const liftOnLines  = withIdx(l => l.has_lift_on);
     document.getElementById('handlingCount').textContent =
         `${liftOffLines.length} lift-off · ${liftOnLines.length} lift-on`;
 
@@ -669,61 +1102,93 @@ function renderPreview(data) {
             <tbody>${rowsHtml}</tbody>
            </table></div>`;
 
-    const liftOffCols = `
+    // One builder for both directions — they differ only in which date they show
+    // and which colour the rate columns carry.
+    const liftCols = (tone, dateLabel) => MANUAL ? `
         <th class="ps-2">#</th><th>Container</th><th class="text-center">Size</th>
-        <th>Equipment</th><th>Status</th><th>Gate In Date</th>
-        <th class="text-end bg-success-subtle" style="font-size:.7rem;">Tariff Rate</th>
-        <th class="text-center bg-success-subtle" style="font-size:.7rem;">Cur</th>
-        <th class="text-end bg-success-subtle" style="font-size:.7rem;">× Exch. Rate</th>
+        <th>Equipment</th><th>Status</th><th>${dateLabel}</th>
+        <th class="text-end bg-${tone}-subtle" style="font-size:.7rem;">Rate</th>
+        <th class="text-end">Amount</th>
+        <th class="text-end pe-2 text-muted" style="font-size:.7rem;white-space:nowrap;">Value (LKR)</th>` : `
+        <th class="ps-2">#</th><th>Container</th><th class="text-center">Size</th>
+        <th>Equipment</th><th>Status</th><th>${dateLabel}</th>
+        <th class="text-end bg-${tone}-subtle" style="font-size:.7rem;">Tariff Rate</th>
+        <th class="text-center bg-${tone}-subtle" style="font-size:.7rem;">Cur</th>
+        <th class="text-end bg-${tone}-subtle" style="font-size:.7rem;">× Exch. Rate</th>
         <th class="text-end">Amount</th>
         <th class="text-end pe-2 text-muted" style="font-size:.7rem;white-space:nowrap;">Value (LKR)</th>`;
-    const liftOffRows = liftOffLines.map((l, i) => `
-        <tr>
-            <td class="ps-2 text-muted">${i + 1}</td>
-            <td class="font-monospace fw-semibold">${l.container_no}</td>
-            <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
-            <td class="small">${fmtEqt(l)}</td>
-            <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
-            <td class="small">${fmtDate(l.gate_in_date)}</td>
-            <td class="text-end bg-success-subtle small">${fmt(l.lift_off_rate_usd ?? 0)}</td>
-            <td class="text-center bg-success-subtle small text-muted">${l.handling_tariff_currency || 'USD'}</td>
-            <td class="text-end bg-success-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
-            <td class="text-end fw-semibold">${fmtAmt(l.lift_off_rate)}</td>
-            <td class="text-end pe-2 small text-muted">${fmtVal(l.lift_off_rate)}</td>
-        </tr>`).join('');
-    document.getElementById('liftOffSection').innerHTML = handlingTableTpl(liftOffRows, liftOffCols, liftOffLines.length)
-        + (liftOffLines.length ? `<div class="d-flex justify-content-end px-3 py-1 bg-light border-top small fw-semibold text-muted">
-            Lift Off Subtotal: <span class="ms-2 text-dark">${fmtAmt(liftOffLines.reduce((s, l) => s + parseFloat(l.lift_off_rate), 0))}</span></div>` : '');
 
-    const liftOnCols = `
-        <th class="ps-2">#</th><th>Container</th><th class="text-center">Size</th>
-        <th>Equipment</th><th>Status</th><th>Gate Out Date</th>
-        <th class="text-end bg-primary-subtle" style="font-size:.7rem;">Tariff Rate</th>
-        <th class="text-center bg-primary-subtle" style="font-size:.7rem;">Cur</th>
-        <th class="text-end bg-primary-subtle" style="font-size:.7rem;">× Exch. Rate</th>
-        <th class="text-end">Amount</th>
-        <th class="text-end pe-2 text-muted" style="font-size:.7rem;white-space:nowrap;">Value (LKR)</th>`;
-    const liftOnRows = liftOnLines.map((l, i) => `
+    // `idx` is the line's index in previewLines, not its position in this table —
+    // recalculation addresses cells by line, and the two orderings are different.
+    const liftRows = (rows, kind, tone, dateOf) => rows.map((r, n) => {
+        const l = r.line, idx = r.idx;
+        const p = kind === 'lift_off' ? 'lo' : 'ln';
+        const rateCells = MANUAL ? `
+            <td class="text-end bg-${tone}-subtle">
+                <input type="number" class="rate-input" id="${p}Rate-${idx}" min="0" step="0.01"
+                       data-line="${idx}" data-kind="${kind}" placeholder="0.00">
+            </td>
+            <td class="text-end fw-semibold" id="${p}Amt-${idx}">—</td>
+            <td class="text-end pe-2 small text-muted" id="${p}Val-${idx}">—</td>` : `
+            <td class="text-end bg-${tone}-subtle small">${fmt(l[kind + '_rate_usd'] ?? 0)}</td>
+            <td class="text-center bg-${tone}-subtle small text-muted">${l.handling_tariff_currency || 'USD'}</td>
+            <td class="text-end bg-${tone}-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
+            <td class="text-end fw-semibold">${fmtAmt(l[kind + '_rate'])}</td>
+            <td class="text-end pe-2 small text-muted">${fmtVal(l[kind + '_rate'])}</td>`;
+
+        return `
         <tr>
-            <td class="ps-2 text-muted">${i + 1}</td>
+            <td class="ps-2 text-muted">${n + 1}</td>
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
             <td class="small">${fmtEqt(l)}</td>
             <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
-            <td class="small">${l.gate_out_date ? fmtDate(l.gate_out_date) : '—'}</td>
-            <td class="text-end bg-primary-subtle small">${fmt(l.lift_on_rate_usd ?? 0)}</td>
-            <td class="text-center bg-primary-subtle small text-muted">${l.handling_tariff_currency || 'USD'}</td>
-            <td class="text-end bg-primary-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
-            <td class="text-end fw-semibold">${fmtAmt(l.lift_on_rate)}</td>
-            <td class="text-end pe-2 small text-muted">${fmtVal(l.lift_on_rate)}</td>
-        </tr>`).join('');
-    document.getElementById('liftOnSection').innerHTML = handlingTableTpl(liftOnRows, liftOnCols, liftOnLines.length)
-        + (liftOnLines.length ? `<div class="d-flex justify-content-end px-3 py-1 bg-light border-top small fw-semibold text-muted">
-            Lift On Subtotal: <span class="ms-2 text-dark">${fmtAmt(liftOnLines.reduce((s, l) => s + parseFloat(l.lift_on_rate), 0))}</span></div>` : '');
+            <td class="small">${dateOf(l)}</td>
+            ${rateCells}
+        </tr>`;
+    }).join('');
+
+    const liftSubtotal = (id, rows, kind) =>
+        `<div class="d-flex justify-content-end px-3 py-1 bg-light border-top small fw-semibold text-muted">
+            Lift ${kind === 'lift_off' ? 'Off' : 'On'} Subtotal:
+            <span class="ms-2 text-dark" id="${id}">${fmtAmt(rows.reduce((s, r) => s + (parseFloat(r.line[kind + '_rate']) || 0), 0))}</span>
+         </div>`;
+
+    document.getElementById('liftOffSection').innerHTML =
+        handlingTableTpl(liftRows(liftOffLines, 'lift_off', 'success', l => fmtDate(l.gate_in_date)),
+                         liftCols('success', 'Gate In Date'), liftOffLines.length)
+        + (liftOffLines.length ? liftSubtotal('liftOffSubtotal', liftOffLines, 'lift_off') : '');
+
+    document.getElementById('liftOnSection').innerHTML =
+        handlingTableTpl(liftRows(liftOnLines, 'lift_on', 'primary', l => l.gate_out_date ? fmtDate(l.gate_out_date) : '—'),
+                         liftCols('primary', 'Gate Out Date'), liftOnLines.length)
+        + (liftOnLines.length ? liftSubtotal('liftOnSubtotal', liftOnLines, 'lift_on') : '');
 
     document.getElementById('handlingSubtotalFooter').textContent = fmtAmt(data.handling_subtotal);
 
     // ── Invoice Total table ────────────────────────────────────────────────
+    renderTotalTable(data, fmtAmt, fmtVal, invCur);
+
+    if (MANUAL) {
+        rateMatrix = data.rate_matrix || [];
+        renderMatrix();
+        wireLineRateInputs();
+        // Draws every derived cell from the rates typed so far — none, on a fresh
+        // preview — and blocks the save until they are filled in.
+        recalcAll();
+    }
+}
+
+/**
+ * Which sections the current bill type shows. Set by renderPreview and read by
+ * renderTotalTable, which runs again on every manual recalculation.
+ */
+let totalSections = { storage: true, handling: true };
+
+function renderTotalTable(data, fmtAmt, fmtVal, invCur) {
+    const showStorage  = totalSections.storage;
+    const showHandling = totalSections.handling;
+
     const ssclRow = parseFloat(data.sscl_amount) > 0
         ? `<tr><td class="ps-3 text-muted">SSCL</td><td class="text-end">${fmtAmt(data.sscl_amount)}</td><td class="text-end pe-3 small text-muted">${fmtVal(data.sscl_amount)}</td></tr>` : '';
     const vatRow  = parseFloat(data.vat_amount) > 0
@@ -735,6 +1200,7 @@ function renderPreview(data) {
     // Combined line only adds value when both sections are present.
     const combinedRow = (showStorage && showHandling)
         ? `<tr class="table-light"><td class="ps-3 fw-semibold">Combined Subtotal</td><td class="text-end fw-semibold">${fmtAmt(data.subtotal)}</td><td class="text-end pe-3 small text-muted">${fmtVal(data.subtotal)}</td></tr>` : '';
+
     document.getElementById('totalTable').innerHTML = `
         <tbody>
             ${storageRow}${handlingRow}${combinedRow}
@@ -745,6 +1211,21 @@ function renderPreview(data) {
                 <td class="text-end pe-3 small">${fmtVal(data.total_value ?? data.total_amount)}</td>
             </tr>
         </tbody>`;
+}
+
+/**
+ * Per-line rate boxes. A value typed here overrides the matrix for that line
+ * only; clearing it hands the line back to the matrix rather than blanking it.
+ */
+function wireLineRateInputs() {
+    document.querySelectorAll('input[data-line]').forEach(inp => {
+        inp.addEventListener('input', function () {
+            const line = previewLines[parseInt(this.dataset.line, 10)];
+            if (!line) return;
+            line['_ovr_' + this.dataset.kind] = this.value === '' ? null : this.value;
+            recalcAll();
+        });
+    });
 }
 
 function fmtDate(d) {
@@ -781,6 +1262,16 @@ $(document).ready(function () {
         })
     );
 
+    // Free time changes every line's free/chargeable split — each against its own
+    // remaining balance, not a flat number — so it recalculates in place rather
+    // than needing another preview.
+    const freeDaysEl = document.getElementById('manualFreeDays');
+    if (freeDaysEl) {
+        freeDaysEl.addEventListener('input', () => {
+            if (previewLines.length) recalcAll();
+        });
+    }
+
     // Inject hidden inputs from preview before save
     document.getElementById('billingForm').addEventListener('submit', function (e) {
         if (previewLines.length === 0) {
@@ -789,9 +1280,15 @@ $(document).ready(function () {
             return;
         }
 
-        if (previewMissing.length > 0) {
+        if (!MANUAL && previewMissing.length > 0) {
             e.preventDefault();
             showToast('Cannot save — missing tariff rates. Update the tariff and preview again.', 'danger');
+            return;
+        }
+
+        if (MANUAL && manualBlockers().length > 0) {
+            e.preventDefault();
+            showToast('Cannot save — every chargeable line needs a rate.', 'danger');
             return;
         }
 
@@ -809,8 +1306,11 @@ $(document).ready(function () {
         mkHidden('invoice_currency', invoiceCurrency);
         mkHidden('exchange_rate', exchangeRate);
 
+        // `_`-prefixed keys are screen state (which lines the operator overrode),
+        // not invoice data — they have no business in the request.
         previewLines.forEach((line, i) => {
             Object.entries(line).forEach(([key, val]) => {
+                if (key.startsWith('_')) return;
                 mkHidden(`lines[${i}][${key}]`, val);
             });
         });

@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\GateMovement;
 use App\Models\HandlingTariff;
 use App\Models\StorageHandlingInvoice;
+use App\Services\Billing\ManualPricing;
 use App\Services\CurrencyService;
 use App\Services\IrdInvoiceNumberService;
 use App\Services\NotificationService;
@@ -24,8 +25,12 @@ class StorageHandlingController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('can:billing.storage-handling.view')->only(['index', 'show', 'preview']);
-        $this->middleware('can:billing.storage-handling.create')->only(['create', 'store']);
+        $this->middleware('can:billing.storage-handling.view')->only(['index', 'show', 'preview', 'previewManual']);
+        $this->middleware('can:billing.storage-handling.create')->only(['create', 'store', 'createManual']);
+        // Pricing outside the agreed tariff needs its own grant, on the screen as
+        // well as on the save — a form nobody is allowed to submit is not a
+        // feature, and store() re-checks it regardless.
+        $this->middleware('can:billing.storage-handling.manual')->only(['createManual', 'previewManual']);
         $this->middleware('can:billing.storage-handling.delete')->only(['destroy', 'cancel']);
         $this->middleware('can:billing.storage-handling.approve')->only(['markIssued', 'markPaid']);
         $this->middleware('can:billing.storage-handling.pdf')->only(['pdf', 'irdPrint']);
@@ -64,7 +69,7 @@ class StorageHandlingController extends Controller
 
     // ── Generate form ─────────────────────────────────────────────────────────
 
-    public function create(Request $request)
+    public function create(Request $request, bool $manual = false)
     {
         $shippingLines = Customer::with('billingParty')
             ->where('status', 'active')
@@ -79,12 +84,31 @@ class StorageHandlingController extends Controller
             StorageHandlingInvoice::BILL_HANDLING_ONLY,
         ], true) ? $request->query('bill_type') : StorageHandlingInvoice::BILL_STORAGE_HANDLING;
 
-        return view('billing.storage-handling.create', compact('shippingLines', 'allCustomers', 'billType'));
+        return view('billing.storage-handling.create', compact('shippingLines', 'allCustomers', 'billType', 'manual'));
+    }
+
+    /**
+     * The manual-pricing entry point.
+     *
+     * Its own route and its own menu item, because that is how operators think
+     * about it — but the same controller, the same table, the same numbering
+     * sequence and the same GL path behind it. Forking the module would fork
+     * the IRD sequence, which is a statutory record, and the posting, credit
+     * notes and reports along with it.
+     */
+    public function createManual(Request $request)
+    {
+        return $this->create($request, manual: true);
     }
 
     // ── AJAX preview ──────────────────────────────────────────────────────────
 
-    public function preview(Request $request)
+    public function previewManual(Request $request)
+    {
+        return $this->preview($request, manual: true);
+    }
+
+    public function preview(Request $request, bool $manual = false)
     {
         $v = $request->validate([
             'bill_type'        => 'nullable|in:storage_handling,storage_only,handling_only',
@@ -95,7 +119,13 @@ class StorageHandlingController extends Controller
             'exchange_rate'    => 'nullable|numeric|min:0.0001',
             'sscl_pct'         => 'nullable|numeric|min:0|max:100',
             'vat_pct'          => 'nullable|numeric|min:0|max:100',
+            'manual_free_days' => 'nullable|integer|min:0|max:9999',
         ]);
+
+        // Manual mode: the operator's free time replaces the tariff's, and the
+        // charge codes come from the master rather than from a tariff row.
+        $manualFreeDays = $manual ? (int) ($v['manual_free_days'] ?? 0) : 0;
+        [$manualStorageCode, $manualHandlingCode] = $manual ? $this->defaultChargeCodes() : [null, null];
 
         // Bill type gates what is computed: storage records, handling (lift) events, or both.
         $billType      = $v['bill_type'] ?? StorageHandlingInvoice::BILL_STORAGE_HANDLING;
@@ -167,11 +197,21 @@ class StorageHandlingController extends Controller
                 'storage_tariff_found'   => false,
                 'handling_tariff_found'  => false,
                 'no_data'                => true,
+                'pricing_mode'           => $manual
+                    ? StorageHandlingInvoice::PRICING_MANUAL
+                    : StorageHandlingInvoice::PRICING_TARIFF,
+                'manual_free_days'       => $manualFreeDays,
+                'rate_matrix'            => [],
+                'storage_charge_code'    => $manualStorageCode?->code,
+                'handling_charge_code'   => $manualHandlingCode?->code,
             ]);
         }
 
         // ── Active storage tariff (only when storage is billed) ───────────────
-        $storageTariff = $wantsStorage
+        // Manual mode resolves no tariff at all — not "resolves one and ignores
+        // it". There is nothing to fall back to and nothing to flag as missing,
+        // which is the whole point of the mode.
+        $storageTariff = $wantsStorage && ! $manual
             ? StorageMasterHeader::with('details.equipmentType', 'details.chargeCode.taxCode')
                 ->where('customer_id', $shippingLine->id)
                 ->where('is_active', true)
@@ -182,7 +222,7 @@ class StorageHandlingController extends Controller
             : null;
 
         // ── Active handling tariff (only when handling is billed) ─────────────
-        $handlingTariff = $wantsHandling
+        $handlingTariff = $wantsHandling && ! $manual
             ? HandlingTariff::with('rates.chargeCode.taxCode')
                 ->where('shipping_line_id', $shippingLine->id)
                 ->where('is_active', true)
@@ -231,7 +271,7 @@ class StorageHandlingController extends Controller
 
             // Storage totals default to zero (handling-only leaves them zero); the
             // NOT-NULL date columns get period placeholders when there is no storage.
-            $totalDays = 0; $freeDaysInPeriod = 0; $chargeableDays = 0;
+            $totalDays = 0; $freeDaysInPeriod = 0; $chargeableDays = 0; $daysBeforePeriod = 0;
             $storageRate = 0.0; $storageCur = $defaultCurrency; $storageDailyConverted = 0.0; $storageSubtotal = 0.0;
             $chargeCodeId = null; $taxCodeId = null; $tax1Rate = 0.0; $tax2Rate = 0.0;
             $detail = null;
@@ -264,7 +304,21 @@ class StorageHandlingController extends Controller
                 $tax1Rate   = $taxExempt ? 0.0 : $ssclPct;  // storage fallback
                 $tax2Rate   = $taxExempt ? 0.0 : $vatPct;   // storage fallback
 
-                if ($storageTariff) {
+                if ($manual) {
+                    // No rate: the operator types it. The charge code is still
+                    // fixed — it carries the tax treatment and the account to
+                    // post to, and neither of those is the operator's to choose.
+                    $storageRate  = 0.0;
+                    $storageCur   = $defaultCurrency;   // typed in the invoice's own currency, so no conversion
+                    $freeDays     = $manualFreeDays;
+                    $chargeCodeId = $manualStorageCode?->id;
+                    $taxCodeId    = $manualStorageCode?->tax_code_id;
+
+                    if (! $taxExempt && $manualStorageCode?->taxCode) {
+                        $tax1Rate = (float) $manualStorageCode->taxCode->tax1_rate;
+                        $tax2Rate = (float) $manualStorageCode->taxCode->tax2_rate;
+                    }
+                } elseif ($storageTariff) {
                     $detail = $storageTariff->details
                         ->where('equipment_type_id', $eqtId)
                         ->where('cargo_status', $cargoStatus)
@@ -285,9 +339,11 @@ class StorageHandlingController extends Controller
                     $freeDays    = (int)   ($storage->free_days ?? 0);
                 }
 
-                $freeDaysRemaining = max(0, $freeDays - $daysBeforePeriod);
-                $freeDaysInPeriod  = min($totalDays, $freeDaysRemaining);
-                $chargeableDays    = max(0, $totalDays - $freeDaysInPeriod);
+                // Free time is spent from the original gate-in, not granted afresh
+                // each period — same rule in both modes, only the source of the
+                // allowance differs.
+                $freeDaysInPeriod = ManualPricing::freeDaysInPeriod((int) $freeDays, $daysBeforePeriod, $totalDays);
+                $chargeableDays   = ManualPricing::chargeableDays((int) $freeDays, $daysBeforePeriod, $totalDays);
 
                 // Convert tariff rate to default currency: only multiply by exchangeRate when tariff is USD
                 $storageMult           = CurrencyService::tariffMultiplier($storageCur, $exchangeRate);
@@ -319,7 +375,20 @@ class StorageHandlingController extends Controller
             $handlingCur    = 'USD';
 
             $hRate = null;
-            if ($handlingTariff && $containerSize) {
+            if ($manual) {
+                // Same shape as storage: rates blank, charge code fixed. LOLO
+                // covers both directions, which is why the line needs only one
+                // handling charge code.
+                $handlingCur          = $defaultCurrency;
+                $handlingChargeCodeId = $manualHandlingCode?->id;
+                $handlingTaxCodeId    = $manualHandlingCode?->tax_code_id;
+
+                // A tax-exempt customer keeps the 0.0 the defaults already set.
+                if (! $taxExempt && $manualHandlingCode?->taxCode) {
+                    $handlingTax1Rate = (float) $manualHandlingCode->taxCode->tax1_rate;
+                    $handlingTax2Rate = (float) $manualHandlingCode->taxCode->tax2_rate;
+                }
+            } elseif ($handlingTariff && $containerSize) {
                 $hRate = $handlingTariff->rates
                     ->where('container_size', $containerSize)
                     ->where('cargo_status', $cargoStatus)
@@ -346,16 +415,17 @@ class StorageHandlingController extends Controller
                 ($hasLiftOff ? $liftOffRate : 0.0) + ($hasLiftOn ? $liftOnRate : 0.0),
                 2
             );
-            $lineTotal = round($storageSubtotal + $handlingSubtotal, 2);
-
-            // Calculate taxes separately so each portion uses its own charge code's rates
-            $storageSscl  = round($storageSubtotal  * $tax1Rate         / 100, 2);
-            $storageVat   = round(($storageSubtotal  + $storageSscl)  * $tax2Rate         / 100, 2);
-            $handlingSscl = round($handlingSubtotal * $handlingTax1Rate / 100, 2);
-            $handlingVat  = round(($handlingSubtotal + $handlingSscl) * $handlingTax2Rate / 100, 2);
-            $lineSscl       = round($storageSscl  + $handlingSscl, 2);
-            $lineVat        = round($storageVat   + $handlingVat,  2);
-            $lineGrandTotal = round($lineTotal + $lineSscl + $lineVat, 2);
+            // Taxes are computed per portion so each uses its own charge code's
+            // rates — summing first and taxing once would apply one code's rates
+            // to the other's money.
+            $amounts = ManualPricing::lineAmounts(
+                $storageSubtotal, $handlingSubtotal,
+                $tax1Rate, $tax2Rate, $handlingTax1Rate, $handlingTax2Rate
+            );
+            $lineTotal      = $amounts['line_total'];
+            $lineSscl       = $amounts['line_sscl'];
+            $lineVat        = $amounts['line_vat'];
+            $lineGrandTotal = $amounts['line_grand_total'];
             // Value = default-currency (LKR) amount; Amount = invoice-currency amount
             $lineValue  = $lineGrandTotal;
             $dispFactor = CurrencyService::invoiceDisplayFactor($invoiceCurrency, $exchangeRate);
@@ -370,17 +440,21 @@ class StorageHandlingController extends Controller
 
             // Flag missing/zero tariff rates only where they affect a billable
             // amount: storage with chargeable days, or an actual lift event.
-            $storageReason = TariffRateGuard::storageReason($chargeableDays > 0, $storageRate, (bool) $storageTariff, (bool) $detail);
-            if ($storageReason) {
-                $guard->flag('storage', $eqtCode, $cargoStatus, $storageReason, $container->container_no, $storageFixUrl, $storageFixLabel);
-            }
-            $liftOffReason = TariffRateGuard::handlingReason($hasLiftOff, $liftOffRateUsd, (bool) $handlingTariff, (bool) $hRate, 'off');
-            if ($liftOffReason) {
-                $guard->flag('lift-off', $containerSize ? $containerSize . "'" : null, $cargoStatus, $liftOffReason, $container->container_no, $handlingFixUrl, $handlingFixLabel);
-            }
-            $liftOnReason = TariffRateGuard::handlingReason($hasLiftOn, $liftOnRateUsd, (bool) $handlingTariff, (bool) $hRate, 'on');
-            if ($liftOnReason) {
-                $guard->flag('lift-on', $containerSize ? $containerSize . "'" : null, $cargoStatus, $liftOnReason, $container->container_no, $handlingFixUrl, $handlingFixLabel);
+            // Manual mode has no tariff to be missing — a blank rate there is the
+            // operator's still-empty box, and the screen chases it instead.
+            if (! $manual) {
+                $storageReason = TariffRateGuard::storageReason($chargeableDays > 0, $storageRate, (bool) $storageTariff, (bool) $detail);
+                if ($storageReason) {
+                    $guard->flag('storage', $eqtCode, $cargoStatus, $storageReason, $container->container_no, $storageFixUrl, $storageFixLabel);
+                }
+                $liftOffReason = TariffRateGuard::handlingReason($hasLiftOff, $liftOffRateUsd, (bool) $handlingTariff, (bool) $hRate, 'off');
+                if ($liftOffReason) {
+                    $guard->flag('lift-off', $containerSize ? $containerSize . "'" : null, $cargoStatus, $liftOffReason, $container->container_no, $handlingFixUrl, $handlingFixLabel);
+                }
+                $liftOnReason = TariffRateGuard::handlingReason($hasLiftOn, $liftOnRateUsd, (bool) $handlingTariff, (bool) $hRate, 'on');
+                if ($liftOnReason) {
+                    $guard->flag('lift-on', $containerSize ? $containerSize . "'" : null, $cargoStatus, $liftOnReason, $container->container_no, $handlingFixUrl, $handlingFixLabel);
+                }
             }
 
             $lines[] = [
@@ -429,7 +503,47 @@ class StorageHandlingController extends Controller
                 'line_grand_total'         => $lineGrandTotal,
                 'line_value'               => $lineValue,   // default-currency (LKR) amount
                 'line_amount'              => $lineAmount,  // invoice-currency amount (for display)
+
+                // Manual mode only. The browser recalculates a line whenever the
+                // operator changes the header free time, and it needs the two
+                // facts that make the free-day rule cumulative rather than flat:
+                // how many days were already elapsed at the start of the period,
+                // and which matrix row this line follows.
+                'days_before_period'       => $daysBeforePeriod,
+                'matrix_key'               => ManualPricing::matrixKey($eqtCode, $containerSize),
             ];
+        }
+
+        // ── Rate matrix (manual mode) ─────────────────────────────────────────
+        // One row per equipment type × size the period actually contains, so the
+        // operator is never asked for a rate nobody will use. Typing in a row
+        // fills every line that follows it; the per-line boxes stay for the
+        // exceptions. Derived from the lines rather than from the yard, because
+        // the lines are what will be billed.
+        $rateMatrix = [];
+        if ($manual) {
+            foreach ($lines as $line) {
+                $key = $line['matrix_key'];
+                if (! isset($rateMatrix[$key])) {
+                    $rateMatrix[$key] = [
+                        'key'            => $key,
+                        'eqt_code'       => $line['eqt_code'],
+                        'equipment_type' => $line['equipment_type'],
+                        'iso_code'       => $line['iso_code'],
+                        'type_code'      => $line['type_code'],
+                        'container_size' => $line['container_size'],
+                        'lines'          => 0,
+                        'storage_lines'  => 0,
+                        'lift_off_lines' => 0,
+                        'lift_on_lines'  => 0,
+                    ];
+                }
+                $rateMatrix[$key]['lines']++;
+                $rateMatrix[$key]['storage_lines']  += $line['storage_chargeable_days'] > 0 ? 1 : 0;
+                $rateMatrix[$key]['lift_off_lines'] += $line['has_lift_off'] ? 1 : 0;
+                $rateMatrix[$key]['lift_on_lines']  += $line['has_lift_on'] ? 1 : 0;
+            }
+            $rateMatrix = array_values($rateMatrix);
         }
 
         $storageTotalAmt  = round(array_sum(array_column($lines, 'storage_subtotal')), 2);
@@ -464,6 +578,13 @@ class StorageHandlingController extends Controller
             'handling_tariff_found'  => (bool) $handlingTariff,
             'no_data'                => false,
             'missing_rates'          => $guard->toArray(),
+            'pricing_mode'           => $manual
+                ? StorageHandlingInvoice::PRICING_MANUAL
+                : StorageHandlingInvoice::PRICING_TARIFF,
+            'manual_free_days'       => $manualFreeDays,
+            'rate_matrix'            => $rateMatrix,
+            'storage_charge_code'    => $manualStorageCode?->code,
+            'handling_charge_code'   => $manualHandlingCode?->code,
         ]);
     }
 
