@@ -8,26 +8,6 @@ use Illuminate\Support\Facades\Cache;
 
 class PermissionSeeder extends Seeder
 {
-    private array $actionLabels = [
-        'view'             => 'View',
-        'create'           => 'Create',
-        'edit'             => 'Edit',
-        'delete'           => 'Delete',
-        'approve'          => 'Approve',
-        'manual'           => 'Price Manually',
-        'reject'           => 'Reject',
-        'pdf'              => 'Generate PDF',
-        'email'            => 'Send by Email',
-        'toggle'           => 'Activate / Deactivate',
-        'gate-in'          => 'Record Gate In',
-        'gate-out'         => 'Record Gate Out',
-        'plug-in'          => 'Record Plug-In',
-        'plug-out'         => 'Record Plug-Out',
-        'temp-log'         => 'Record Temperature Log',
-        'movement-edit'    => 'Edit Movement',
-        'movement-delete'  => 'Delete Movement',
-    ];
-
     public function run(): void
     {
         $modules = config('modules', []);
@@ -38,8 +18,7 @@ class PermissionSeeder extends Seeder
 
             foreach ($moduleConfig['actions'] as $sortIdx => $action) {
                 $permName    = "{$moduleKey}.{$action}";
-                $actionLabel = $this->actionLabels[$action]
-                    ?? ucwords(str_replace('-', ' ', $action));
+                $actionLabel = Permission::actionLabel($action);
 
                 $perm = Permission::firstOrCreate(
                     ['name' => $permName],
