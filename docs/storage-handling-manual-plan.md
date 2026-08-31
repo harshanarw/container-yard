@@ -528,7 +528,7 @@ verbatim):
 
 ---
 
-## 11. Never bill the same days twice *(new requirement — plan only, not yet built)*
+## 11. Never bill the same days twice — **done**
 
 **Requirement.** A container dropped from one invoice must come back on the next
 one for the same period, and a container already billed must not. A new invoice
@@ -629,7 +629,7 @@ and less allowance left. The existing rule gets this right by construction.
 | --- | --- |
 | `preview()` | Trim each line's window and drop already-billed lift events. A line with nothing left is not returned. |
 | `store()` | **Re-resolve at save.** A preview opened before another operator saved is stale, and the browser's numbers are not evidence. Overlap found at save is rejected, naming the containers — the same shape as the repair module's save-time re-check. |
-| Migration | `storage_handling_invoice_lines` currently has **no indexes at all**. The overlap lookup needs `['container_id', 'storage_from', 'storage_to']`. |
+| Migration | `storage_handling_invoice_lines` had **no indexes at all**. Migration 302 adds `['container_id', 'storage_from', 'storage_to']`. |
 | Screen | Per line, "N of M days already billed" when trimmed. |
 
 **Editing a draft (Phase 5) must exclude the invoice's own lines** from the
@@ -646,7 +646,17 @@ The one workflow this changes: deliberately re-invoicing days that were already
 billed. The correct paths for that both still work — cancel and re-raise (a
 cancelled invoice releases its days), or a credit note.
 
-### 11.7 Cover
+### 11.7 Still trusted from the browser
+
+The save-time guard compares the **posted** `storage_from` / `storage_to`, which
+catches the case it exists for — a preview taken before another operator saved.
+It is not yet proof against a hand-crafted request narrowing its own window,
+because re-deriving each container's window server-side is the same work as
+Phase 3's free-day recomputation and belongs with it. Lift events are already
+compared by invoice period rather than by any posted date, so those are proof
+against it today.
+
+### 11.8 Cover
 
 **Unit** (`DateWindow`, no database):
 

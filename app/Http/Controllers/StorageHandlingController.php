@@ -9,7 +9,9 @@ use App\Models\Customer;
 use App\Models\GateMovement;
 use App\Models\HandlingTariff;
 use App\Models\StorageHandlingInvoice;
+use App\Services\Billing\DateWindow;
 use App\Services\Billing\ManualPricing;
+use App\Services\Billing\PriorBilling;
 use App\Services\CurrencyService;
 use App\Services\IrdInvoiceNumberService;
 use App\Services\NotificationService;
@@ -108,7 +110,12 @@ class StorageHandlingController extends Controller
         return $this->preview($request, manual: true);
     }
 
-    public function preview(Request $request, bool $manual = false)
+    /**
+     * @param ?int $excludeInvoiceId the invoice being edited, whose own lines must
+     *                               not count as prior billing — otherwise an edit
+     *                               would trim its own days away and leave nothing
+     */
+    public function preview(Request $request, bool $manual = false, ?int $excludeInvoiceId = null)
     {
         $v = $request->validate([
             'bill_type'        => 'nullable|in:storage_handling,storage_only,handling_only',
@@ -256,6 +263,17 @@ class StorageHandlingController extends Controller
                                     ->filter(fn ($u) => $u['container']);
         }
 
+        // ── What has already been invoiced ────────────────────────────────────
+        // Storage is billed by the day, so this is not a yes/no question: a
+        // container invoiced for 1–15 March and re-billed for 1–31 comes back
+        // with a 16–31 window rather than being dropped. Dropping it would leave
+        // those days invoiced by nobody — March's bill skipped them and April's
+        // covers April.
+        $prior = PriorBilling::for(
+            $spine->map(fn ($u) => (int) $u['container']->id)->all(),
+            $excludeInvoiceId
+        );
+
         foreach ($spine as $unit) {
             $container = $unit['container'];
             $storage   = $unit['storage'];
@@ -272,6 +290,7 @@ class StorageHandlingController extends Controller
             // Storage totals default to zero (handling-only leaves them zero); the
             // NOT-NULL date columns get period placeholders when there is no storage.
             $totalDays = 0; $freeDaysInPeriod = 0; $chargeableDays = 0; $daysBeforePeriod = 0;
+            $alreadyBilledDays = 0;
             $storageRate = 0.0; $storageCur = $defaultCurrency; $storageDailyConverted = 0.0; $storageSubtotal = 0.0;
             $chargeCodeId = null; $taxCodeId = null; $tax1Rate = 0.0; $tax2Rate = 0.0;
             $detail = null;
@@ -296,7 +315,31 @@ class StorageHandlingController extends Controller
 
                 // Empty window (gate_out before gate_in, e.g. a same-day hire's
                 // original record closed at gate_in − 1) accrues zero storage.
-                $totalDays        = $toDate->lt($fromDate) ? 0 : max(1, (int) $fromDate->diffInDays($toDate) + 1);
+                $windowDays = $toDate->lt($fromDate) ? 0 : max(1, (int) $fromDate->diffInDays($toDate) + 1);
+
+                // Take out the days a live invoice already covers. What is left
+                // is what is owed; the window narrows to it, and the count comes
+                // from the remainder rather than from the span, because a
+                // correction billed mid-period leaves a hole and a line has only
+                // one from/to to record.
+                $unbilled = $windowDays === 0
+                    ? []
+                    : $prior->unbilledStorage($container->id, $fromDate->toDateString(), $toDate->toDateString());
+
+                $alreadyBilledDays = $windowDays - DateWindow::days($unbilled);
+
+                if ($unbilled) {
+                    [$unbilledFrom, $unbilledTo] = DateWindow::span($unbilled);
+                    $fromDate = now()->parse($unbilledFrom)->startOfDay();
+                    $toDate   = now()->parse($unbilledTo)->startOfDay();
+                }
+
+                $totalDays = DateWindow::days($unbilled);
+
+                // Measured to the new start: a window that begins later has more
+                // elapsed days behind it, so less free allowance remains. The
+                // cumulative rule gets this right without knowing why the window
+                // moved.
                 $daysBeforePeriod = max(0, (int) $gateIn->diffInDays($fromDate));
 
                 $freeDays   = $storageTariff?->default_free_days ?? $storage->free_days ?? 0;
@@ -365,8 +408,29 @@ class StorageHandlingController extends Controller
 
             // ── Handling calculation ──────────────────────────────────────────
             $containerSize = $this->normalizeSize($container->size ?? '');
-            $hasLiftOff    = isset($liftOffByContainer[$container->id]);
-            $hasLiftOn     = isset($liftOnByContainer[$container->id]);
+
+            // A lift is one event: billed or not, with no partial case. It counts
+            // as billed when a live invoice covering the date it happened on
+            // already carried that direction for this container.
+            $liftOffMove = $liftOffByContainer[$container->id] ?? null;
+            $liftOnMove  = $liftOnByContainer[$container->id] ?? null;
+            $liftOffDate = $liftOffMove?->gate_in_time?->toDateString();
+            $liftOnDate  = $liftOnMove?->gate_out_time?->toDateString();
+
+            $hasLiftOff = $liftOffMove !== null && ! $prior->liftOffBilled($container->id, $liftOffDate);
+            $hasLiftOn  = $liftOnMove  !== null && ! $prior->liftOnBilled($container->id, $liftOnDate);
+
+            // A container with nothing left — every day invoiced and every lift
+            // already charged — is dropped rather than shown as an empty line.
+            // Only when something really was billed before: a container that has
+            // simply never accrued anything keeps behaving as it always did.
+            $billedBefore = $alreadyBilledDays > 0
+                || ($liftOffMove !== null && ! $hasLiftOff)
+                || ($liftOnMove !== null && ! $hasLiftOn);
+
+            if ($billedBefore && $totalDays === 0 && ! $hasLiftOff && ! $hasLiftOn) {
+                continue;
+            }
 
             $liftOffRate    = 0.0;
             $liftOnRate     = 0.0;
@@ -511,6 +575,11 @@ class StorageHandlingController extends Controller
                 // and which matrix row this line follows.
                 'days_before_period'       => $daysBeforePeriod,
                 'matrix_key'               => ManualPricing::matrixKey($eqtCode, $containerSize),
+
+                // Days in the requested window that a live invoice already
+                // covers. Shown on the screen so a short window reads as
+                // "already billed" rather than as the system losing days.
+                'already_billed_days'      => $alreadyBilledDays,
             ];
         }
 
@@ -674,6 +743,14 @@ class StorageHandlingController extends Controller
             return $guardError;
         }
 
+        // Both modes. Billing the same days twice is wrong regardless of where
+        // the rates came from, and a preview is a snapshot — another operator can
+        // save between the preview and this request.
+        $overlapError = $this->guardPriorBilling($v);
+        if ($overlapError) {
+            return $overlapError;
+        }
+
         if ($manual) {
             // The blanks that survive the guard are on lines with nothing to
             // price — a box still inside its free time, never lifted. They are
@@ -810,6 +887,71 @@ class StorageHandlingController extends Controller
      * values are not trusted) and return a redirect-back response if any
      * chargeable storage line or lift event has no usable rate; null otherwise.
      */
+    /**
+     * Nothing on this bill may cover days another invoice already covers.
+     *
+     * The preview trimmed the windows, but a preview is a snapshot: another
+     * operator can save between the two requests, and the browser's numbers are
+     * not evidence in any case. Re-resolving here is the same shape as the repair
+     * module's save-time re-check, and it is what makes the guarantee real rather
+     * than cosmetic.
+     *
+     * @param ?int $excludeInvoiceId the invoice being edited, whose own lines are
+     *                               not a conflict with itself
+     */
+    private function guardPriorBilling(array $v, ?int $excludeInvoiceId = null)
+    {
+        $prior = PriorBilling::for(
+            array_map(fn ($l) => (int) ($l['container_id'] ?? 0), $v['lines']),
+            $excludeInvoiceId
+        );
+
+        $conflicts = [];
+
+        foreach ($v['lines'] as $line) {
+            $containerId = (int) ($line['container_id'] ?? 0) ?: null;
+            $containerNo = $line['container_no'] ?? '—';
+            $reasons     = [];
+
+            if ((int) ($line['storage_total_days'] ?? 0) > 0 && ! empty($line['storage_from']) && ! empty($line['storage_to'])) {
+                $unbilled = $prior->unbilledStorage($containerId, $line['storage_from'], $line['storage_to']);
+                $asked    = DateWindow::days([[$line['storage_from'], $line['storage_to']]]);
+                $overlap  = $asked - DateWindow::days($unbilled);
+
+                if ($overlap > 0) {
+                    $reasons[] = $overlap . ' storage ' . ($overlap === 1 ? 'day' : 'days');
+                }
+            }
+
+            // Compared by invoice period, not by the line's dates: `gate_in_date`
+            // is the free-day anchor, which on a resumed hire is the original
+            // entry rather than the movement being billed.
+            if (! empty($line['has_lift_off']) && $prior->liftOffBilledInPeriod($containerId, $v['period_from'], $v['period_to'])) {
+                $reasons[] = 'lift-off';
+            }
+
+            if (! empty($line['has_lift_on']) && $prior->liftOnBilledInPeriod($containerId, $v['period_from'], $v['period_to'])) {
+                $reasons[] = 'lift-on';
+            }
+
+            if ($reasons) {
+                $conflicts[] = $containerNo . ' (' . implode(', ', $reasons) . ')';
+            }
+        }
+
+        if (! $conflicts) {
+            return null;
+        }
+
+        $shown = array_slice($conflicts, 0, 6);
+        $more  = count($conflicts) - count($shown);
+
+        return redirect()->back()->withInput()->with('error',
+            'Invoice not saved — already invoiced: ' . implode('; ', $shown)
+            . ($more > 0 ? " and {$more} more" : '')
+            . '. Another invoice was raised for these days. Preview again to pick up what is still owed.');
+    }
+
     /**
      * The charge codes a manual bill posts against.
      *

@@ -1151,7 +1151,12 @@ function renderPreview(data) {
             <td class="small">${fmtDate(l.gate_in_date)}</td>
             <td class="text-center small">${fmtDate(l.storage_from)}</td>
             <td class="text-center small">${fmtDate(l.storage_to)}</td>
-            <td class="text-center">${l.storage_total_days}d</td>`;
+            <td class="text-center">
+                ${l.storage_total_days}d
+                ${l.already_billed_days > 0 ? `<span class="badge bg-secondary-subtle text-secondary border ms-1"
+                       style="font-size:.62rem;" title="Already invoiced by another bill for this period">
+                       +${l.already_billed_days}d billed</span>` : ''}
+            </td>`;
 
     document.getElementById('storageBody').innerHTML = previewLines.map((l, i) => MANUAL ? `
         <tr id="sRow-${i}">
