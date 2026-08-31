@@ -338,7 +338,7 @@
                         <select name="charge_code_id" class="form-select form-select-sm select2 s2-code">
                             <option value="">— None —</option>
                             @foreach($chargeCodes as $cc)
-                                <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}" {{ $cc->code === 'STC' ? 'selected' : '' }}>
+                                <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}" {{ $cc->code === \App\Models\ChargeCode::DEFAULT_STORAGE ? 'selected' : '' }}>
                                     {{ $cc->code }} — {{ $cc->description }}
                                     @if($cc->taxCode) ({{ $cc->taxCode->code }}) @endif
                                 </option>

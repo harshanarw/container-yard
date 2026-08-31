@@ -30,7 +30,10 @@ return [
     'billing.storage-handling' => [
         'label'   => 'Storage & Handling Billing',
         'section' => 'Billing',
-        'actions' => ['view', 'create', 'edit', 'delete', 'approve', 'pdf'],
+        // 'manual' is deliberately separate from 'create': it prices a bill
+        // outside the customer's agreed tariff, so holding it is a decision
+        // rather than a consequence of being allowed to raise invoices.
+        'actions' => ['view', 'create', 'manual', 'edit', 'delete', 'approve', 'pdf'],
     ],
 
     'billing.reefer' => [

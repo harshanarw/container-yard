@@ -6,6 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class ChargeCode extends Model
 {
+    /**
+     * The charge codes the tariff screens pre-select.
+     *
+     * When an operator adds a rate line to a storage tariff the Charge Code
+     * dropdown already has STC chosen; the handling tariff pre-selects LOLO.
+     * Manual pricing has no tariff row to inherit from, so it resolves the same
+     * two codes directly — which is only correct as long as all three places
+     * agree, and three literals in three files is exactly how they stop
+     * agreeing when someone renames a code.
+     */
+    public const DEFAULT_STORAGE  = 'STC';
+    public const DEFAULT_HANDLING = 'LOLO';
+
     const CATEGORIES = [
         'storage'       => 'Storage',
         'handling'      => 'Handling & Gate',

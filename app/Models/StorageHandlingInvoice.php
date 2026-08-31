@@ -11,8 +11,20 @@ class StorageHandlingInvoice extends Model
     public const BILL_STORAGE_ONLY     = 'storage_only';
     public const BILL_HANDLING_ONLY    = 'handling_only';
 
+    // How the amounts on this invoice were arrived at. Stamped once at save and
+    // never changed afterwards: an invoice that was priced by hand stays priced
+    // by hand, because that is what happened.
+    public const PRICING_TARIFF = 'tariff';
+    public const PRICING_MANUAL = 'manual';
+
+    public const PRICING_MODES = [
+        self::PRICING_TARIFF => 'Tariff',
+        self::PRICING_MANUAL => 'Manual',
+    ];
+
     protected $fillable = [
-        'invoice_no', 'invoice_type', 'bill_type', 'shipping_line_id', 'billing_party_id', 'invoice_date', 'due_date',
+        'invoice_no', 'invoice_type', 'bill_type', 'pricing_mode', 'manual_free_days',
+        'shipping_line_id', 'billing_party_id', 'invoice_date', 'due_date',
         'invoice_currency', 'exchange_rate',
         'billing_period_from', 'billing_period_to',
         'storage_subtotal', 'handling_subtotal', 'subtotal',
@@ -27,6 +39,7 @@ class StorageHandlingInvoice extends Model
         'due_date'            => 'date',
         'billing_period_from' => 'date',
         'billing_period_to'   => 'date',
+        'manual_free_days'    => 'integer',
         'exchange_rate'       => 'decimal:4',
         'storage_subtotal'    => 'decimal:2',
         'handling_subtotal'   => 'decimal:2',
@@ -88,6 +101,22 @@ class StorageHandlingInvoice extends Model
     public function isDraft(): bool
     {
         return $this->status === 'draft';
+    }
+
+    // ── Pricing mode ────────────────────────────────────────────────────────────
+
+    /**
+     * Rows written before the column existed have no mode; they were all priced
+     * from the tariff, so the absence reads as `tariff` rather than as unknown.
+     */
+    public function isManualPricing(): bool
+    {
+        return $this->pricing_mode === self::PRICING_MANUAL;
+    }
+
+    public function getPricingModeLabelAttribute(): string
+    {
+        return self::PRICING_MODES[$this->pricing_mode ?? self::PRICING_TARIFF] ?? 'Tariff';
     }
 
     // ── Bill type ───────────────────────────────────────────────────────────────

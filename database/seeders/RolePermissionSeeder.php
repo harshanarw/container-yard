@@ -32,6 +32,11 @@ class RolePermissionSeeder extends Seeder
             'billing.*.pdf',
             'customers.view',
             'containers.view',
+            // Note: 'billing.storage-handling.manual' is intentionally absent.
+            // Pricing a bill outside the agreed tariff is a manager's call, and
+            // a permission every invoice-raiser holds by default controls
+            // nothing. Administrators and billing managers get it through their
+            // existing wildcards; add the line here to grant it to clerks.
         ],
 
         'yard_supervisor' => [

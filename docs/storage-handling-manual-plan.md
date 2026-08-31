@@ -159,16 +159,29 @@ a business fact is how it silently drifts when someone renames a code.
 Each phase is independently shippable, and the existing tariff flow is untouched
 until Phase 4 (which only adds a badge).
 
-### Phase 1 — Mode, permission, guard branch *(no UI)*
+### Phase 1 — Mode, permission, guard branch *(no UI)* — **done**
 
 - The migration above; `ChargeCode` constants; both tariff views read them.
-- `pricing_mode` and `manual_free_days` on the model, cast and fillable.
+  `TariffChargeCodeBackfillSeeder` reads them too — it was the third copy.
+- `pricing_mode` and `manual_free_days` on the model, cast and fillable, plus
+  `isManualPricing()` and a mode label.
 - `store()` branches: tariff mode keeps `guardHandlingRates()`; manual mode
-  calls a new `guardManualRates()` — every chargeable line has a rate, and both
-  charge codes resolved.
-- New permission, seeded and added to the roles that already hold
-  `billing.storage-handling.create`.
-- **Nothing user-visible.** Existing behaviour byte-identical.
+  calls a new `guardManualRates()` — every chargeable line has a rate, and the
+  charge codes the bill actually needs resolve. A blank on a line with nothing
+  chargeable is stored as 0, since the columns are decimals.
+- New permission `billing.storage-handling.manual`, added to `config/modules.php`
+  so `PermissionSeeder` creates it.
+- **Nothing user-visible.** Existing behaviour byte-identical: manual mode is
+  opt-in on a field the current screen does not post.
+
+**One deviation from the plan as written.** The plan said to grant the new
+permission to every role that already holds `billing.storage-handling.create`.
+That would include `billing_clerk`, and a permission every invoice-raiser holds
+by default is not a control — it would mitigate nothing, while §9 lists "its own
+permission" as the mitigation for manual pricing bypassing agreed commercial
+terms. So: `administrator` and `billing_manager` receive it automatically
+through their existing wildcards, and `billing_clerk` does not. Granting it to
+clerks is one line in `RolePermissionSeeder`, commented in place.
 
 ### Phase 2 — The manual screen
 

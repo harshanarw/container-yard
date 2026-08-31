@@ -14,6 +14,7 @@ class PermissionSeeder extends Seeder
         'edit'             => 'Edit',
         'delete'           => 'Delete',
         'approve'          => 'Approve',
+        'manual'           => 'Price Manually',
         'reject'           => 'Reject',
         'pdf'              => 'Generate PDF',
         'email'            => 'Send by Email',

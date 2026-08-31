@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CompanySetting;
+use App\Models\ChargeCode;
 use App\Models\Container;
 use App\Models\Customer;
 use App\Models\GateMovement;
@@ -470,7 +471,18 @@ class StorageHandlingController extends Controller
 
     public function store(Request $request)
     {
-        $v = $request->validate([
+        // Manual pricing bypasses the customer's agreed tariff, so the mode is
+        // decided before validation and gates on its own permission rather than
+        // on 'create'. An absent mode is the tariff flow, unchanged.
+        $manual = $request->input('pricing_mode') === StorageHandlingInvoice::PRICING_MANUAL;
+
+        if ($manual && ! auth()->user()?->can('billing.storage-handling.manual')) {
+            abort(403, 'You are not permitted to price a storage & handling invoice manually.');
+        }
+
+        $rules = [
+            'pricing_mode'                       => 'nullable|in:tariff,manual',
+            'manual_free_days'                   => 'nullable|integer|min:0|max:9999',
             'bill_type'                          => 'nullable|in:storage_handling,storage_only,handling_only',
             'shipping_line_id'                   => 'required|exists:customers,id',
             'billing_party_id'                   => 'nullable|exists:customers,id',
@@ -517,14 +529,42 @@ class StorageHandlingController extends Controller
             'lines.*.line_vat'                    => 'required|numeric|min:0',
             'lines.*.line_grand_total'            => 'required|numeric|min:0',
             'lines.*.line_value'                  => 'nullable|numeric|min:0',
-        ]);
+        ];
 
-        // ── Authoritative tariff guard ─────────────────────────────────────────
-        // Re-resolve rates from the tariffs (posted line values are not trusted)
-        // and block the save if any chargeable line / lift event has no usable rate.
-        $guardError = $this->guardHandlingRates($v);
+        if ($manual) {
+            // A blank rate box is the operator forgetting a line, not a malformed
+            // request. `required` would answer with "The field is required" against
+            // an index the operator cannot see; the manual guard below names the
+            // containers instead. Rules stay identical in tariff mode.
+            foreach (['storage_daily_rate', 'lift_off_rate', 'lift_on_rate'] as $rate) {
+                $rules["lines.*.{$rate}"] = 'present|nullable|numeric|min:0';
+            }
+        }
+
+        $v = $request->validate($rules);
+
+        // ── Authoritative rate guard ───────────────────────────────────────────
+        // Tariff mode re-resolves rates from the tariffs (posted line values are
+        // not trusted). Manual mode has no tariff to check against, so it checks
+        // the only things that can still be wrong: a chargeable line with no rate
+        // typed, and charge codes that will not resolve.
+        $guardError = $manual ? $this->guardManualRates($v) : $this->guardHandlingRates($v);
         if ($guardError) {
             return $guardError;
+        }
+
+        if ($manual) {
+            // The blanks that survive the guard are on lines with nothing to
+            // price — a box still inside its free time, never lifted. They are
+            // stored as 0 because the columns are decimals and '' is not a
+            // number; the guard, not this, is what stops a blank that mattered.
+            foreach ($v['lines'] as $i => $line) {
+                foreach (['storage_daily_rate', 'lift_off_rate', 'lift_on_rate'] as $rate) {
+                    $v['lines'][$i][$rate] = $this->hasManualRate($line[$rate] ?? null)
+                        ? (float) $line[$rate]
+                        : 0;
+                }
+            }
         }
 
         $invoiceCurrency  = strtoupper($v['invoice_currency'] ?? CurrencyService::defaultCurrency());
@@ -556,7 +596,7 @@ class StorageHandlingController extends Controller
             default                                    => 'storage_handling_invoice',
         };
 
-        DB::transaction(function () use ($v, $billType, $seqKey, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $ssclAmount, $vatAmount, $totalAmount, $totalValue, &$invoice) {
+        DB::transaction(function () use ($v, $manual, $billType, $seqKey, $invoiceCurrency, $exchangeRate, $ssclPct, $vatPct, $storageTotalAmt, $handlingTotalAmt, $subtotal, $ssclAmount, $vatAmount, $totalAmount, $totalValue, &$invoice) {
             $invoiceNo = app(\App\Services\NumberSequenceService::class)->generate($seqKey);
             // Due date follows the debtor's (shipping line's) AR payment terms.
             $debtorTerms = \App\Models\Customer::where('id', $v['shipping_line_id'])->value('payment_terms') ?? 'net30';
@@ -568,6 +608,13 @@ class StorageHandlingController extends Controller
                 'invoice_no'          => $invoiceNo,
                 'invoice_type'        => $v['invoice_type'] ?? 'invoice',
                 'bill_type'           => $billType,
+                // Stamped once. An invoice priced by hand stays priced by hand,
+                // because that is what happened; the free time is kept as typed,
+                // separately from what each line actually consumed.
+                'pricing_mode'        => $manual
+                    ? StorageHandlingInvoice::PRICING_MANUAL
+                    : StorageHandlingInvoice::PRICING_TARIFF,
+                'manual_free_days'    => $manual ? (int) ($v['manual_free_days'] ?? 0) : null,
                 'shipping_line_id'    => $v['shipping_line_id'],
                 'billing_party_id'    => $v['billing_party_id'] ?? $v['shipping_line_id'],
                 'invoice_date'        => $v['invoice_date'],
@@ -642,6 +689,116 @@ class StorageHandlingController extends Controller
      * values are not trusted) and return a redirect-back response if any
      * chargeable storage line or lift event has no usable rate; null otherwise.
      */
+    /**
+     * The charge codes a manual bill posts against.
+     *
+     * A tariff line carries its own `charge_code_id`, and with it the tax codes
+     * and the GL mapping. Manual pricing has no tariff line to inherit from, so
+     * it resolves the same two codes the tariff screens pre-select — which is
+     * what keeps a manual bill posting to the same accounts as every other one.
+     *
+     * @return array{0: ?ChargeCode, 1: ?ChargeCode} storage, handling
+     */
+    private function defaultChargeCodes(): array
+    {
+        $codes = ChargeCode::with('taxCode')
+            ->whereIn('code', [ChargeCode::DEFAULT_STORAGE, ChargeCode::DEFAULT_HANDLING])
+            ->where('is_active', true)
+            ->get()
+            ->keyBy('code');
+
+        return [
+            $codes->get(ChargeCode::DEFAULT_STORAGE),
+            $codes->get(ChargeCode::DEFAULT_HANDLING),
+        ];
+    }
+
+    /**
+     * The manual-pricing counterpart of guardHandlingRates().
+     *
+     * There is no tariff to re-resolve against — the operator's numbers *are*
+     * the authority, which is the whole point of the mode — so the guard checks
+     * the two things that can still make a manual bill wrong: a chargeable line
+     * nobody typed a rate for, and a charge code that will not resolve (without
+     * one the line has no tax treatment and no account to post to).
+     *
+     * A zero rate is deliberately not blocked here; Phase 3 asks for it to be
+     * confirmed rather than rejected, because zero is occasionally intended.
+     */
+    private function guardManualRates(array $v)
+    {
+        [$storageCode, $handlingCode] = $this->defaultChargeCodes();
+
+        $missingCodes = [];
+        $needsStorage  = false;
+        $needsHandling = false;
+
+        $guard   = new TariffRateGuard();
+        $fixUrl  = route('billing.storage-handling.index');
+        $missing = 'No rate entered for this line.';
+
+        foreach ($v['lines'] as $line) {
+            $cargo       = $line['cargo_status'] ?? null;
+            $containerNo = $line['container_no'] ?? null;
+            $size        = $line['container_size'] ?? null;
+
+            if ((int) ($line['storage_chargeable_days'] ?? 0) > 0) {
+                $needsStorage = true;
+                if (! $this->hasManualRate($line['storage_daily_rate'] ?? null)) {
+                    $guard->flag('storage', $line['equipment_type'] ?? null, $cargo, $missing, $containerNo, $fixUrl, 'Back to the invoice');
+                }
+            }
+
+            if (! empty($line['has_lift_off'])) {
+                $needsHandling = true;
+                if (! $this->hasManualRate($line['lift_off_rate'] ?? null)) {
+                    $guard->flag('lift-off', $size ? $size . "'" : null, $cargo, $missing, $containerNo, $fixUrl, 'Back to the invoice');
+                }
+            }
+
+            if (! empty($line['has_lift_on'])) {
+                $needsHandling = true;
+                if (! $this->hasManualRate($line['lift_on_rate'] ?? null)) {
+                    $guard->flag('lift-on', $size ? $size . "'" : null, $cargo, $missing, $containerNo, $fixUrl, 'Back to the invoice');
+                }
+            }
+        }
+
+        // Only complain about a code the bill actually needs — a handling-only
+        // bill has no business being blocked by a missing storage code.
+        if ($needsStorage && ! $storageCode) {
+            $missingCodes[] = ChargeCode::DEFAULT_STORAGE;
+        }
+        if ($needsHandling && ! $handlingCode) {
+            $missingCodes[] = ChargeCode::DEFAULT_HANDLING;
+        }
+
+        if ($missingCodes) {
+            return redirect()->back()->withInput()->with('error',
+                'Invoice not saved — charge code ' . implode(' and ', $missingCodes)
+                . ' is missing or inactive. Manual pricing takes its tax codes and accounts from there,'
+                . ' so it must exist in the Charge Code master before a manual bill can be raised.');
+        }
+
+        if ($guard->isEmpty()) {
+            return null;
+        }
+
+        return redirect()->back()->withInput()
+            ->with('tariff_block', $guard->toArray())
+            ->with('error', 'Invoice not saved — no rate entered for: ' . $guard->summary()
+                . '. Please fill in every chargeable line.');
+    }
+
+    /**
+     * A rate the operator actually typed. Blank and null are "not entered";
+     * an explicit 0 is a value, and is handled separately.
+     */
+    private function hasManualRate($value): bool
+    {
+        return $value !== null && $value !== '' && is_numeric($value);
+    }
+
     private function guardHandlingRates(array $v)
     {
         $storageTariff = StorageMasterHeader::with('details')
