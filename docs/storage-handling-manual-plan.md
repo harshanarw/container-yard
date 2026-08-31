@@ -401,3 +401,127 @@ Two things deliberately left out of scope, to be raised only if operators ask:
   and produce a document nobody could explain later.
 - **Editing an issued invoice.** That is what credit notes are for, and the
   system already has them.
+
+---
+
+## 10. Container selection *(new requirement — plan only, not yet built)*
+
+**Requirement.** The period load brings back every container the customer had in
+the yard. Some of them do not belong on this bill. The operator needs to
+uncheck them: excluded containers drop out of the totals immediately, are not
+saved, and never appear on the invoice afterwards.
+
+Selection is **screen state, not invoice data**. An invoice is its lines — a
+container that was excluded simply has no line, which is why the view and print
+screens need no change at all: they already read `$invoice->lines`.
+
+### 10.1 Where the checkbox lives
+
+Not in one table. Bill type decides which tables are drawn, and on a
+**handling-only** bill the storage card is hidden entirely — a checkbox that
+lived only there would be unreachable for exactly the bill type where the
+operator most often wants to drop a stray movement.
+
+So the checkbox appears in **every table where the line is drawn**, and all of
+them are views of one flag on the line:
+
+| Bill type | Storage table | Lift-off table | Lift-on table |
+| --- | --- | --- | --- |
+| Storage & Handling | every line | lines with a lift-off | lines with a lift-on |
+| Storage only | every line | — | — |
+| Handling only | *hidden* | lines with a lift-off | lines with a lift-on |
+
+A container that appears in two tables has two checkboxes, and unticking either
+unticks both — they are not two switches, they are two pictures of one switch.
+The existing repaint loop already addresses cells by line index, so keeping them
+in step is the same mechanism the rate boxes use.
+
+Each table header carries a **select-all** box that toggles the lines in that
+table. The count badge becomes `12 of 15 containers`, and the summary card's
+Containers tile shows the selected count — the operator should never have to
+count rows to know what they are about to save.
+
+### 10.2 Excluded lines stay visible
+
+Greyed, not hidden. Hiding a row would make it impossible to put back, and the
+operator needs to see what they left off before they save. The row keeps its
+rate boxes but shows its amount as `—`, so it reads as *not on this bill* rather
+than as *zero*.
+
+### 10.3 What changes
+
+Entirely in `create.blade.php`, plus one line in the submit handler:
+
+| Piece | Change |
+| --- | --- |
+| Line model | `_selected` on each line, defaulting to `true`. `_`-prefixed, so the existing strip already keeps it out of the request. |
+| `recalcLine()` | Untouched. A line's own arithmetic does not depend on whether it is on the bill. |
+| `recalcAll()` | Totals, subtotals and the storage/lift footers sum **selected** lines only. Checkbox states repainted alongside the rate boxes. |
+| `manualBlockers()` | Skips deselected lines — an excluded container with no rate must not block a save it is not part of. |
+| New blocker | Zero selected containers blocks the save: *"Select at least one container."* |
+| Rate matrix | Row counts recomputed from selected lines; a combination with nothing selected greys out, since its rate boxes now feed nothing. |
+| Submit | `previewLines.filter(selected)` and re-index, so `lines[0..n]` is contiguous. |
+| Counts | `sumContainers`, `lineCount`, `handlingCount` all report selected-of-total. |
+
+**Nothing changes on the server.** `store()` only ever sees the lines it is
+posted, and `guardManualRates()` only guards those. The invoice, its GL posting,
+its PDF and its IRD print are identical to one where those containers were never
+in the yard.
+
+### 10.4 Interaction with Phase 5 (edit a draft)
+
+This is the part that needs stating now, because it is easy to get wrong later.
+
+Editing a draft **re-runs the period load**, which brings back the excluded
+containers. They must come back **unticked** — the invoice's saved lines are the
+selection. Restoring them ticked would silently re-add containers the operator
+deliberately dropped, on an edit made for an unrelated reason.
+
+So Phase 5's edit screen seeds `_selected` from whether a container has a saved
+line, not from the default. An operator can then tick one back on, which is the
+behaviour they will want.
+
+### 10.5 Consequence worth knowing
+
+A container dropped from March's invoice is not deferred — it is **not billed
+for March at all**. April's invoice covers April, so those days are never
+invoiced by anyone. That is the correct behaviour for the requirement as stated
+(the operator is deciding this container should not be charged), but it is a
+silent revenue leak if the exclusion was a mistake or a "bill it next month"
+intention.
+
+Two optional mitigations, neither required and neither assumed:
+
+- **A note on the header.** The operator types why containers were excluded.
+  Cheapest possible answer to "why wasn't ABC1234567 billed for March?" — and
+  the header already has a `notes` field, so this costs nothing but a hint in
+  the placeholder text.
+- **An unbilled-containers report.** Containers in the yard during a period with
+  no invoice line covering it. This is the real answer, and it is useful well
+  beyond manual pricing — but it is its own piece of work, not part of this one.
+
+### 10.6 Scope
+
+**Manual mode only**, as asked. The same control would work unchanged in tariff
+mode — it is one flag and one filter, and none of the logic is manual-specific —
+so if operators want it there too it is a small follow-up rather than a rewrite.
+It is not enabled there now because nobody asked for it, and a tariff invoice
+that silently omits containers is a different conversation with an auditor than
+a manual one that does.
+
+### 10.7 Cover
+
+**Client logic** (the existing node harness, which runs the shipped functions
+verbatim):
+
+- a deselected line contributes nothing to any total or subtotal
+- a deselected line with a blank rate does not block the save
+- a selected line with a blank rate still does
+- deselecting every container blocks the save
+- selecting a container back restores its contribution exactly
+
+**Feature:**
+
+- posting a subset saves only those lines, and the totals match the subset
+- the saved invoice's detail view lists only the selected containers
+- an invoice whose lines are a subset still posts to the ledger correctly
