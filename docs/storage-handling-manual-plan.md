@@ -468,7 +468,7 @@ posted, and `guardManualRates()` only guards those. The invoice, its GL posting,
 its PDF and its IRD print are identical to one where those containers were never
 in the yard.
 
-### 10.4 Interaction with Phase 5 (edit a draft)
+### 10.4 Interaction with Phase 5 (edit a draft) — **confirmed**
 
 This is the part that needs stating now, because it is easy to get wrong later.
 
