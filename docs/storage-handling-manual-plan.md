@@ -525,3 +525,147 @@ verbatim):
 - posting a subset saves only those lines, and the totals match the subset
 - the saved invoice's detail view lists only the selected containers
 - an invoice whose lines are a subset still posts to the ledger correctly
+
+---
+
+## 11. Never bill the same days twice *(new requirement — plan only, not yet built)*
+
+**Requirement.** A container dropped from one invoice must come back on the next
+one for the same period, and a container already billed must not. A new invoice
+shows only what has not been invoiced yet.
+
+### 11.1 What exists today: nothing
+
+Raising a second invoice for the same customer and period produces a **complete
+duplicate**. Every container returns, every lift event returns, and nothing
+objects. Verified rather than assumed:
+
+| Possible guard | Exists? |
+| --- | --- |
+| Filter in `preview()` / `store()` against existing invoice lines | **No** — customer + date overlap only |
+| `is_billed` / `invoiced_at` / `billed_up_to` on `yard_storage` or `gate_movements` | **No** — no such column anywhere |
+| Unique or overlap constraint on `storage_handling_invoices` | **No** — only `invoice_no` is unique |
+| Duplicate-period warning in the controller or the screen | **No** |
+| A test covering it | **No** |
+
+`StorageHandlingInvoiceLine` appears in the controller exactly twice: the `use`
+statement, and the `create()` inside `store()`. It is never read back.
+
+**This is pre-existing in the tariff flow**, not something manual pricing
+introduced. Two sibling modules already solve it — repair billing keeps a dedup
+set of billed estimate line items and re-checks at save; reefer flips
+`reefer_plug_sessions.status` to `'billed'` and back on cancel. So there is
+precedent to follow rather than a pattern to invent.
+
+The data needed is already stored. `storage_handling_invoice_lines` holds
+`container_id`, `storage_from`, `storage_to`, `has_lift_off`, `has_lift_on`, and
+the parent carries `status`. `YardController.php:1249` already runs this exact
+shape of query to block deleting an invoiced gate movement.
+
+### 11.2 It is two rules, not one
+
+- **Lift events** are single events on a date — billed or not, a clean exclusion.
+- **Storage is billed by day range**, and ranges overlap partially. If 1–15
+  March was invoiced and the operator now raises 1–31 March, the container is
+  neither billed nor unbilled.
+
+**Decision (confirmed): bill the remaining days.** The container appears with a
+16–31 March window, flagged so the operator can see why the window is short.
+Excluding it outright would match the wording of the requirement but would leave
+16–31 March invoiced by nobody — March's bill skipped them and April's covers
+April.
+
+A container whose entire window is already billed, with no unbilled lift event,
+does not appear at all. That is the "show only un-billed containers" case.
+
+### 11.3 Two sources, not one
+
+The legacy `storage_invoice_details` table also carries `container_id`,
+`from_date` and `to_date`, and `ContainerHireService::storageHasInvoices()`
+already reads it. A customer billed through the old module before the switch
+would otherwise be re-billed by the new one, so **both** tables are subtracted.
+Both use the same status enum, so both count `draft`, `issued` and `paid`, and
+neither counts `cancelled`.
+
+Counting **draft** matters: two operators previewing the same period at once
+must not both bill it. Cancelling an invoice releases its days again, which is
+what makes cancel-and-re-raise still work.
+
+### 11.4 Shape
+
+```
+App\Services\Billing\PriorBilling      — the queries: given a customer, a period
+                                          and a set of containers, returns each
+                                          container's already-billed intervals
+                                          and lift events
+
+App\Services\Billing\DateWindow        — pure interval arithmetic:
+                                          merge(intervals)
+                                          subtract(window, intervals) → remaining
+```
+
+`DateWindow` takes plain dates and returns plain dates — no model, no query — so
+the arithmetic that decides what a customer is charged is testable as
+arithmetic. Same split as `ManualPricing`, and for the same reason.
+
+Intervals rather than a set of dates: a container in the yard for a year is one
+pair, not 365 entries.
+
+**Non-contiguous remainders are real.** Bill 10–20 March as a correction, then
+raise 1–31 March, and what is left is 1–9 plus 21–31. A line has one
+`storage_from` and one `storage_to`, so it cannot express two ranges. The line
+therefore records the outer bounds it covers and `storage_total_days` as the
+**count of unbilled days** — which is what is actually being charged for, and
+already a different number from the span. The screen shows "9 of 31 days already
+billed" so the arithmetic is visible rather than mysterious.
+
+**Free days need no special handling.** They are consumed from the original
+gate-in, so a window starting 16 March simply has more elapsed days behind it
+and less allowance left. The existing rule gets this right by construction.
+
+### 11.5 Where it plugs in
+
+| Place | Change |
+| --- | --- |
+| `preview()` | Trim each line's window and drop already-billed lift events. A line with nothing left is not returned. |
+| `store()` | **Re-resolve at save.** A preview opened before another operator saved is stale, and the browser's numbers are not evidence. Overlap found at save is rejected, naming the containers — the same shape as the repair module's save-time re-check. |
+| Migration | `storage_handling_invoice_lines` currently has **no indexes at all**. The overlap lookup needs `['container_id', 'storage_from', 'storage_to']`. |
+| Screen | Per line, "N of M days already billed" when trimmed. |
+
+**Editing a draft (Phase 5) must exclude the invoice's own lines** from the
+prior-billing set, or an edit would trim its own days away and leave nothing.
+`RepairBillingController::update()` already does exactly this.
+
+### 11.6 Scope: both modes
+
+This is a correctness fix, not a manual-mode feature, and it is shared code.
+Leaving the tariff flow — the one in daily use — able to bill the same days
+twice, while closing the hole only in the newer module, is not defensible.
+
+The one workflow this changes: deliberately re-invoicing days that were already
+billed. The correct paths for that both still work — cancel and re-raise (a
+cancelled invoice releases its days), or a credit note.
+
+### 11.7 Cover
+
+**Unit** (`DateWindow`, no database):
+
+- a window with nothing billed comes back whole
+- a fully billed window comes back empty
+- a billed prefix advances the start; a billed suffix pulls the end back
+- a billed middle leaves two ranges, and the day count reflects both
+- touching and overlapping prior intervals merge rather than double-subtract
+- a prior interval extending beyond the window on either side is clipped
+
+**Feature:**
+
+- billing the same customer and period twice returns nothing the second time
+- billing 1–31 March after 1–15 March bills 16 days, not 31
+- a cancelled invoice releases its days — the container comes back in full
+- a **draft** invoice still reserves its days
+- an already-billed lift-off is not billed again, while an unbilled lift-on on
+  the same container still is
+- a container dropped via the §10 checkbox returns in full on the next invoice
+  for that period *(the requirement that started this)*
+- a stale preview is rejected at save rather than double-billing
+- editing a draft does not trim its own days away
