@@ -13,7 +13,27 @@
     save. Only the rate columns and what blocks the save differ, so those are the
     only places `manual` appears.
 --}}
-@php($manual = $manual ?? false)
+{{--
+    Written as a raw-PHP block, deliberately, and not as the one-line
+    parenthesised directive.
+
+    Blade lifts raw PHP out with a regex that pairs the first opening token it
+    finds with the first closing one, and it does not care which of the two forms
+    either was written in. This file already contains a block further down (the
+    exchange-rate lookup), so a one-line directive up here paired with *that*
+    block's closing token and swallowed 158 lines of template — every section,
+    the styles, and half the form — into a single raw PHP block. The symptom was
+    an undefined variable a hundred lines away, which points nowhere near the
+    cause. Two properly opened and closed blocks match non-greedily and pair up
+    correctly.
+
+    The same reasoning is why this note spells the tokens out in words: the regex
+    runs before comments are stripped, so writing them here literally would put
+    the bug straight back.
+--}}
+@php
+    $manual = $manual ?? false;
+@endphp
 
 @section('title', $manual ? 'Generate Storage & Handling Invoice — Manual' : 'Generate Storage & Handling Invoice')
 
