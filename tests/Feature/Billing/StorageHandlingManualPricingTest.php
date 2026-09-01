@@ -310,29 +310,50 @@ class StorageHandlingManualPricingTest extends FeatureTestCase
             'A container that was not posted has no line, so it cannot appear on the invoice later.');
     }
 
-    /** The totals are the posted lines' totals — not the period's. */
+    /**
+     * The totals are the posted lines' totals — not the period's.
+     *
+     * Each bill uses containers of its own. Re-billing the same container for
+     * the same period is refused by the prior-billing guard, and rightly so, but
+     * that is a different claim from this one and has its own test.
+     */
     public function test_the_totals_cover_only_the_posted_containers(): void
     {
         $this->actingAsSystemAdmin();
 
-        $one = $this->line(['container_no' => $this->container->container_no]);
+        $lineFor = fn (Container $c) => $this->line([
+            'container_id' => $c->id,
+            'container_no' => $c->container_no,
+        ]);
+
+        $second = Container::factory()->create([
+            'container_no' => 'PICK0000003',
+            'customer_id'  => $this->shippingLine->id,
+        ]);
+
+        // Two containers on one bill.
+        $this->post(route('billing.storage-handling.store'), $this->payload([
+            'pricing_mode'     => StorageHandlingInvoice::PRICING_MANUAL,
+            'manual_free_days' => 0,
+        ], [$lineFor($this->container), $lineFor($second)]))->assertSessionHasNoErrors();
+
+        $this->assertEqualsWithDelta(200.0, (float) StorageHandlingInvoice::latest('id')->first()->total_amount, 0.01,
+            'Two lines of 100 total 200.');
+
+        // One container on the next — the same period, but its own box, so this
+        // is a legitimate second bill rather than a re-billing of the first.
+        $third = Container::factory()->create([
+            'container_no' => 'PICK0000004',
+            'customer_id'  => $this->shippingLine->id,
+        ]);
 
         $this->post(route('billing.storage-handling.store'), $this->payload([
             'pricing_mode'     => StorageHandlingInvoice::PRICING_MANUAL,
             'manual_free_days' => 0,
-        ], [$one, $one]))->assertSessionHasNoErrors();
-
-        $two = StorageHandlingInvoice::latest('id')->first();
-        $this->assertEqualsWithDelta(200.0, (float) $two->total_amount, 0.01,
-            'Precondition: two lines of 100 total 200.');
-
-        $this->post(route('billing.storage-handling.store'), $this->payload([
-            'pricing_mode'     => StorageHandlingInvoice::PRICING_MANUAL,
-            'manual_free_days' => 0,
-        ], [$one]))->assertSessionHasNoErrors();
+        ], [$lineFor($third)]))->assertSessionHasNoErrors();
 
         $this->assertEqualsWithDelta(100.0, (float) StorageHandlingInvoice::latest('id')->first()->total_amount, 0.01,
-            'Dropping one container drops its money with it.');
+            'One line, one line\'s worth of money — the header totals what was posted and nothing else.');
     }
 
     // ── The charge codes manual pricing depends on ───────────────────────────

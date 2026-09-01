@@ -43,10 +43,28 @@ abstract class FeatureTestCase extends TestCase
         return $admin;
     }
 
-    /** Log in as a user whose primary role is $role (RBAC applies). */
+    /**
+     * Log in as a user whose primary role is $role (RBAC applies).
+     *
+     * The factory's `role()` state sets the `users.role` label column, but
+     * permissions are resolved from the `user_roles` pivot — `HasRoles` reads
+     * `$this->roles()`, not the column. Without the pivot row the user has a role
+     * name and **no permissions at all**, which quietly ruins tests in both
+     * directions: "is this forbidden?" passes for the wrong reason, and "can they
+     * still do their job?" fails for one.
+     *
+     * `firstOrFail()` on purpose — a typo'd role name would otherwise reproduce
+     * exactly the permission-less user this exists to prevent.
+     */
     protected function actingAsRole(string $role): User
     {
         $user = User::factory()->role($role)->create();
+
+        $user->roles()->syncWithoutDetaching([
+            \App\Models\Role::where('name', $role)->firstOrFail()->id,
+        ]);
+        $user->flushPermissionCache();
+
         $this->actingAs($user);
 
         return $user;
