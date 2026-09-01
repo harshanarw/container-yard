@@ -80,7 +80,7 @@ mixes storage days with lift events cannot be divided back into a rate.
 
 ---
 
-## 4. The decision this turns on
+## 4. The decision this turns on — **settled: A**
 
 **Does the description carry quantities?**
 
@@ -94,7 +94,7 @@ hide. Three options, and they trade transparency against opacity:
 | **B** | `Storage & handling, 31 days` | Yes, on any storage-only container |
 | **C** | `Services rendered` | No — but the customer cannot check anything either |
 
-**A is the recommendation.** It says what was charged for and over what period,
+**A, confirmed.** It says what was charged for and over what period,
 which is what a customer needs to accept an invoice, while a combined
 storage-plus-handling figure resists being turned back into a rate. B gives the
 rate away on the commonest case. C tends to generate the phone call the invoice
