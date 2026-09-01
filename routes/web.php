@@ -673,6 +673,8 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('/{storageHandlingInvoice}/pay',            [StorageHandlingController::class, 'markPaid'])->name('pay');
             Route::patch('/{storageHandlingInvoice}/cancel',         [StorageHandlingController::class, 'cancel'])->name('cancel');
             Route::get('/{storageHandlingInvoice}/pdf',              [StorageHandlingController::class, 'pdf'])->name('pdf');
+            // Customer copy: amounts tax-inclusive, no rates, no tax breakdown.
+            Route::get('/{storageHandlingInvoice}/summary-pdf',      [StorageHandlingController::class, 'summaryPdf'])->name('summary-pdf');
             Route::get('/{storageHandlingInvoice}/ird-print',        [StorageHandlingController::class, 'irdPrint'])->name('ird-print');
         });
 

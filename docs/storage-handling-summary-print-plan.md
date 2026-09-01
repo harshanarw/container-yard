@@ -42,7 +42,7 @@ A **tax invoice must show the tax charged** — that is what lets the customer
 reclaim it. A document that hides VAT must therefore not present itself as one.
 So the summary format:
 
-- is titled distinctly (**Invoice Summary**, not "Tax Invoice"),
+- is titled **INVOICE** — never "Tax Invoice", whatever `invoice_type` says,
 - **omits the IRD invoice number**, which belongs to the statutory document,
 - carries a one-line note that a tax invoice is available on request.
 
@@ -102,14 +102,14 @@ was supposed to prevent.
 
 ---
 
-## 5. Build
+## 5. Build — **done**
 
 | Piece | Change |
 | --- | --- |
-| Route | `GET /billing/storage-handling/{invoice}/summary-pdf` → `summaryPdf()` |
+| Route | `GET /billing/storage-handling/{invoice}/summary-pdf` → `summaryPdf()`, 404 for a tariff invoice |
 | Controller | New method, same `billing.storage-handling.pdf` permission — the format reveals *less*, so it needs no new grant |
 | Template | New `billing/storage-handling/summary-pdf.blade.php` |
-| Screen | A third button on the detail screen, beside Download PDF and IRD Tax Invoice |
+| Screen | "Invoice (Summary)" button on the detail screen, shown only for manual invoices |
 | Schema | **None** |
 
 **Scope: manual invoices only, initially, and enforced in the controller rather
@@ -153,3 +153,23 @@ expose it.
   customer who should not see rates. Genuinely useful, and a small change; left
   out until asked for.
 - **Extending to tariff invoices.** One condition, as above.
+
+---
+
+## 8. As built
+
+Full document furniture, reusing the shared partials so it matches every other
+document in the system: `partials.pdf-letterhead` supplies the logo, company
+details, verification QR and the bordered title; `partials.pdf-footer` supplies
+the running footer with page numbers. The letterhead is fixed-position, so it
+repeats on every page of a long invoice.
+
+The title is passed as **INVOICE** unconditionally. The fixture in the test suite
+deliberately has `invoice_type = 'tax_invoice'` and an `ird_invoice_no`, because
+those are the cases the format has to ignore.
+
+**One thing worth remembering.** A CSS comment is rendered output — it sits
+inside `<style>` and reaches the page. A comment in the stylesheet explaining
+which rows were left out named them, which would have put "SSCL" into a document
+whose whole purpose is not to contain it. Blade comments are stripped at compile
+time and are safe; CSS comments are not.

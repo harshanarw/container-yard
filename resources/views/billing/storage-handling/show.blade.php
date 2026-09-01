@@ -74,6 +74,16 @@
            class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
         </a>
+        @if($invoice->isManualPricing())
+        {{-- Customer copy: tax-inclusive amounts, no rates, no tax breakdown.
+             The controller enforces the manual-only scope as well — hiding a
+             button is not a rule. --}}
+        <a href="{{ route('billing.storage-handling.summary-pdf', $invoice) }}" target="_blank"
+           class="btn btn-outline-primary btn-sm"
+           title="Customer copy — amounts include tax, no rates shown">
+            <i class="bi bi-file-earmark-richtext me-1"></i>Invoice (Summary)
+        </a>
+        @endif
         <a href="{{ route('billing.storage-handling.ird-print', $invoice) }}" target="_blank"
            class="btn btn-outline-danger btn-sm">
             <i class="bi bi-file-earmark-text me-1"></i>IRD Tax Invoice

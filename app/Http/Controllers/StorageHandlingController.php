@@ -35,7 +35,9 @@ class StorageHandlingController extends Controller
         $this->middleware('can:billing.storage-handling.manual')->only(['createManual', 'previewManual']);
         $this->middleware('can:billing.storage-handling.delete')->only(['destroy', 'cancel']);
         $this->middleware('can:billing.storage-handling.approve')->only(['markIssued', 'markPaid']);
-        $this->middleware('can:billing.storage-handling.pdf')->only(['pdf', 'irdPrint']);
+        // The summary format reveals strictly less than the default one, so it
+        // rides on the same grant rather than inventing another.
+        $this->middleware('can:billing.storage-handling.pdf')->only(['pdf', 'irdPrint', 'summaryPdf']);
     }
 
     // ── Invoice list ──────────────────────────────────────────────────────────
@@ -1339,6 +1341,39 @@ class StorageHandlingController extends Controller
     }
 
     // ── Print / PDF ───────────────────────────────────────────────────────────
+
+    /**
+     * The customer copy: one tax-inclusive amount per container, one total, and
+     * no rate or tax figure anywhere.
+     *
+     * Some customers should not see the yard's rate card, and a document that
+     * shows quantities beside amounts hands the rate straight back. So the lines
+     * carry what was charged for and over what period, and nothing divisible.
+     *
+     * It is titled **Invoice**, never "Tax Invoice", and carries no IRD number
+     * even when the invoice type is `tax_invoice`. A tax invoice has to show the
+     * tax charged — that is what lets the customer reclaim it — so a document
+     * that hides VAT must not present itself as one. This supplements the
+     * statutory document rather than replacing it, and says so in its footnote.
+     */
+    public function summaryPdf(StorageHandlingInvoice $storageHandlingInvoice)
+    {
+        // Manual invoices only for now, enforced here and not merely by hiding
+        // the button: a hidden button is not a rule, and the route is reachable
+        // by hand. Nothing about the format is manual-specific — this is a scope
+        // choice, and widening it later is deleting this guard.
+        abort_unless($storageHandlingInvoice->isManualPricing(), 404);
+
+        $storageHandlingInvoice->load(['shippingLine', 'billingParty', 'lines']);
+
+        $pdf = Pdf::loadView('billing.storage-handling.summary-pdf', ['invoice' => $storageHandlingInvoice])
+            ->setPaper('a4', 'portrait')
+            ->set_option('defaultFont', 'sans-serif')
+            ->set_option('isHtml5ParserEnabled', true)
+            ->set_option('isRemoteEnabled', false);
+
+        return $pdf->stream('Invoice-' . $storageHandlingInvoice->invoice_no . '.pdf');
+    }
 
     public function pdf(StorageHandlingInvoice $storageHandlingInvoice)
     {
