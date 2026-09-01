@@ -283,4 +283,51 @@ class MrStatusProjectionTest extends FeatureTestCase
         $this->assertSame($before, $container->mr_status);
         $this->assertEquals($beforeAt, $container->mr_status_at);
     }
+
+    // ── Imported and legacy rows ─────────────────────────────────────────────
+
+    /**
+     * A container the master calls released, with no gate movements at all.
+     *
+     * This is what an imported or legacy row looks like: someone knows the box
+     * left, but nothing was ever written at the gate. The ladder decides "has it
+     * gone?" by looking for a gate-out row, so these used to fall past every
+     * rung to the catch-all and read "In yard — awaiting disposition" — wrong
+     * twice over, and, because that status carries a 14-day ageing threshold,
+     * they eventually reported as overdue work nobody could action. On the live
+     * data that was 263 containers out of 930, which is enough to make the
+     * overdue figure untrustworthy.
+     */
+    public function test_a_released_container_with_no_movements_reads_as_closed(): void
+    {
+        $container = Container::factory()->create([
+            'container_no' => 'MRSA0000009',
+            'status'       => 'released',
+        ]);
+
+        app(\App\Services\ContainerMrStatusService::class)->refresh($container->refresh());
+        $container->refresh();
+
+        $this->assertSame(Cat::RELEASED_NO_MOVEMENT, $container->mr_status,
+            'It reads as gone, and keeps its own code so these rows stay countable and fixable.');
+        $this->assertSame(Cat::GROUP_CLOSED, $container->mr_status_group,
+            'Closed, so it drops out of the idle counts and the dashboard roll-up.');
+        $this->assertFalse((bool) $container->export_ready,
+            'A box that has left is not available stock.');
+    }
+
+    /** The yard's own gate records still outrank the master field. */
+    public function test_a_released_container_that_did_gate_in_is_not_closed_by_the_master_field(): void
+    {
+        $this->gateIn('MRSA0000010', '2026-06-20 08:00:00');
+        $container = $this->container('MRSA0000010');
+
+        $container->forceFill(['status' => 'released'])->save();
+
+        app(\App\Services\ContainerMrStatusService::class)->refresh($container->refresh());
+
+        $this->assertNotSame(Cat::RELEASED_NO_MOVEMENT, $container->refresh()->mr_status,
+            'The movements say it came in and never left; a field any screen can edit does not '
+            . 'get to overrule them. The contradiction stays visible rather than being tidied away.');
+    }
 }

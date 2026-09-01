@@ -69,6 +69,18 @@ final class MrStatusCatalogue
     public const GATED_OUT            = 'gated_out';
 
     /**
+     * The master says the box was released, and there is no movement history.
+     *
+     * Its own code rather than plain GATED_OUT, because the two are different
+     * facts: one is a gate-out the yard recorded, the other is an imported or
+     * legacy row where someone knows the container left but nothing was ever
+     * written at the gate. Both mean "not here", so both sit in the closed
+     * group — but keeping them apart means the second is countable, filterable
+     * and therefore fixable, instead of quietly merging into the first.
+     */
+    public const RELEASED_NO_MOVEMENT = 'released_no_movement';
+
+    /**
      * code => [label, group, lane]
      *
      * A null lane means the status is lane-independent — it describes the box
@@ -100,6 +112,7 @@ final class MrStatusCatalogue
         self::RESERVED             => ['Reserved to booking',            'committed',   null],
         self::AWAITING_DISPOSITION => ['In yard — awaiting disposition', 'idle',        self::LANE_HANDLING],
         self::GATED_OUT            => ['Gated out',                      'closed',      null],
+        self::RELEASED_NO_MOVEMENT => ['Released — no movement record',  'closed',      null],
     ];
 
     // ── Modifiers (independent of the status, rendered as chips) ──────────────

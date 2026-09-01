@@ -84,6 +84,29 @@ final class MrStatusContext
         return $this->gateOut !== null;
     }
 
+    /**
+     * The container master says the box was released, and there is no movement
+     * history to contradict it.
+     *
+     * Imported and legacy rows arrive exactly this way: someone knows the
+     * container left, but no gate-out was ever recorded. The ladder decides
+     * "has it gone?" by looking for a gate-out row, so without this such a
+     * container falls past all 21 rungs to the catch-all and reads "In yard —
+     * awaiting disposition" — wrong twice over, and, because that status
+     * carries a 14-day ageing threshold, it eventually reports as overdue work
+     * nobody can action.
+     *
+     * **Both** movements must be absent. A recorded gate-in with no gate-out is
+     * the yard's own evidence that the box is still here, and that beats a
+     * master field any screen can edit.
+     */
+    public function isReleasedWithoutMovements(): bool
+    {
+        return $this->container->status === 'released'
+            && $this->gateIn === null
+            && $this->gateOut === null;
+    }
+
     // ── Survey ───────────────────────────────────────────────────────────────
 
     public function latestInquiry()

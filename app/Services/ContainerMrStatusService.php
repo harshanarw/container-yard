@@ -103,8 +103,19 @@ class ContainerMrStatusService
     private function ladder(MrStatusContext $ctx): array
     {
         // 1 — The cycle is over. Whatever happened during it is now history.
+        //     Two ways to be over. A recorded gate-out is the ordinary one. The
+        //     other is a container the master calls released with no movement
+        //     history at all — an imported or legacy row — which otherwise falls
+        //     past every rung below and reads "In yard — awaiting disposition".
+        //     It keeps its own code so those rows stay countable and fixable
+        //     rather than merging into real gate-outs; `since` is deliberately
+        //     null, because nothing here knows when the box actually left.
         if ($ctx->isClosed()) {
             return [Cat::GATED_OUT, null, $ctx->gateOut?->gate_out_time];
+        }
+
+        if ($ctx->isReleasedWithoutMovements()) {
+            return [Cat::RELEASED_NO_MOVEMENT, null, null];
         }
 
         // 2 — Written off. Beats any repair still nominally in flight, because

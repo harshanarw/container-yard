@@ -168,6 +168,11 @@ class MrStatusResolutionTest extends TestCase
         if (isset($spec['container'])) {
             $parts['container'] = $this->container($spec['container']);
         }
+        // array_key_exists, not isset: a case that says "no gate-in at all" has
+        // to be able to pass an explicit null past ctx()'s default.
+        if (array_key_exists('gateIn', $spec)) {
+            $parts['gateIn'] = $spec['gateIn'];
+        }
         if (! empty($spec['gateOut'])) {
             $parts['gateOut'] = $this->gateOut();
         }
@@ -253,6 +258,14 @@ class MrStatusResolutionTest extends TestCase
                 Cat::GATED_OUT,
                 ['gateOut' => true, 'workOrders' => [['in_progress', []]]],
                 'A closed cycle is history — nothing in it can still be in progress.',
+            ],
+
+            'rung 1 — released with no movement history at all' => [
+                Cat::RELEASED_NO_MOVEMENT,
+                ['container' => ['status' => 'released'], 'gateIn' => null],
+                'An imported or legacy row: someone knows the box left, but nothing was ever '
+                . 'written at the gate. Without this it falls past every rung to the catch-all '
+                . 'and reads "In yard — awaiting disposition".',
             ],
 
             'rung 2 — survey recommends scrap' => [
@@ -505,6 +518,54 @@ class MrStatusResolutionTest extends TestCase
             'PTI is ranked below repair on purpose.');
         $this->assertTrue($status->hasModifier(Cat::MODIFIER_PTI_EXPIRED),
             'The lapsed PTI is still surfaced as a modifier, so ranking it low loses nothing.');
+    }
+
+    // ── Released without a movement history ──────────────────────────────────
+
+    /**
+     * The yard's own gate records outrank a field any screen can edit.
+     *
+     * A container marked released that *does* have a gate-in and no gate-out is
+     * a contradiction: the movements say it came in and never left. That is a
+     * data problem worth surfacing, not one to paper over by trusting the master
+     * field — so it keeps falling to the catch-all rather than being quietly
+     * closed.
+     */
+    public function test_a_recorded_gate_in_beats_a_released_master_field(): void
+    {
+        $status = $this->resolveSpec(['container' => ['status' => 'released']]);
+
+        $this->assertNotSame(Cat::RELEASED_NO_MOVEMENT, $status->code,
+            'There is movement history here, so the master field does not get to close the cycle.');
+        $this->assertSame(Cat::AWAITING_DISPOSITION, $status->code,
+            'It stays in the catch-all, which is where a contradiction belongs.');
+    }
+
+    /** A real gate-out is still a real gate-out, not the imported-row code. */
+    public function test_a_matched_gate_out_still_reads_as_gated_out(): void
+    {
+        $status = $this->resolveSpec(['container' => ['status' => 'released'], 'gateOut' => true]);
+
+        $this->assertSame(Cat::GATED_OUT, $status->code,
+            'The two codes must stay distinct, or the rows worth cleaning up become uncountable.');
+    }
+
+    /**
+     * The whole point: it lands in the closed group, so it drops out of the idle
+     * counts, and it carries no ageing threshold, so it can never report as
+     * overdue work nobody can action.
+     */
+    public function test_released_without_movements_is_closed_and_never_overdue(): void
+    {
+        $status = $this->resolveSpec(['container' => ['status' => 'released'], 'gateIn' => null]);
+
+        $this->assertSame(Cat::RELEASED_NO_MOVEMENT, $status->code);
+        $this->assertSame(Cat::GROUP_CLOSED, $status->group());
+        $this->assertFalse($status->isOverdue(),
+            'The catch-all it used to land in carries a 14-day threshold; this deliberately carries none.');
+        $this->assertFalse($status->exportReady, 'A box that has left is not available stock.');
+        $this->assertNull($status->since,
+            'Nothing here knows when it actually left, and inventing a date would be worse than leaving it blank.');
     }
 
     // ── Lanes ────────────────────────────────────────────────────────────────
