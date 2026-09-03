@@ -143,8 +143,19 @@ RSL           │ Demount │  1  5    │           │          │           
 ABANS AUTO    │ Demount │          │    12     │          │           │          │    12
               │ Mount   │          │    49     │          │           │          │    49
 ──────────────┴─────────┼──────────┼───────────┼──────────┼───────────┼──────────┼─────────
-TOTAL                   │ 40 15    │   109     │          │           │ 40 15    │   109
+TOTAL DEMOUNTING        │  1  5    │    12     │          │           │  1  5    │    12
+TOTAL MOUNTING          │  9  2    │    49     │          │           │  9  2    │    49
+GRAND TOTAL             │ 10  7    │    61     │          │           │ 10  7    │    61
 ```
+
+**Three footer rows, not the sample's one.** The sample's single `TOTAL` row is
+the grand total — total lifts, both directions added together, which is what
+its own arithmetic shows. Splitting it into Demounting and Mounting above the
+grand total answers "how much did we lift" and "which way" separately, without
+losing the figure the sheet already carried.
+
+Demounting leads, matching the order of the pair under every customer above. A
+footer that reversed them would invite reading the wrong line.
 
 Four header rows, matching the sample's four: week number, date range,
 `EMPTY`/`LADEN`, then the sizes. `TOTAL` spans the first two.
