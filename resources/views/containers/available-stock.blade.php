@@ -19,6 +19,14 @@
             <i class="bi bi-list-ul me-1"></i>List view
         </a>
         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
+        <a href="{{ route('containers.available-stock.export') }}" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-filetype-csv me-1"></i>Export CSV
+        </a>
+        @if(\App\Support\Export\TabularExport::supports('xlsx'))
+        <a href="{{ route('containers.available-stock.export', ['format' => 'xlsx']) }}" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+        </a>
+        @endif
     </div>
 </div>
 

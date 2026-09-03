@@ -131,6 +131,7 @@ Route::middleware(['auth'])->group(function () {
     // Container Master
     Route::get('containers/master-lookup', [ContainerController::class, 'masterLookup'])->name('containers.master-lookup');
     Route::get('containers/available-stock', [ContainerController::class, 'availableStock'])->name('containers.available-stock');
+    Route::get('containers/available-stock/export', [ContainerController::class, 'exportAvailableStock'])->name('containers.available-stock.export');
     Route::post('containers/{container}/mark-available', [ContainerController::class, 'markAvailable'])->name('containers.mark-available');
     Route::post('containers/{container}/hold', [ContainerController::class, 'placeHold'])->name('containers.hold');
     Route::post('containers/{container}/holds/{hold}/clear', [ContainerController::class, 'clearHold'])->name('containers.hold.clear');
@@ -306,9 +307,11 @@ Route::middleware(['auth'])->group(function () {
     // Reports
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/inventory',                        [ReportController::class, 'inventory'])->name('inventory');
+        Route::get('/inventory/export',                 [ReportController::class, 'exportInventory'])->name('inventory.export');
         Route::get('/mr-status',                        [ReportController::class, 'mrStatus'])->name('mr-status');
         Route::get('/mr-status/export/csv',             [ReportController::class, 'exportMrStatusCsv'])->name('mr-status.export.csv');
         Route::get('/billing',                          [ReportController::class, 'billing'])->name('billing');
+        Route::get('/billing/export',                   [ReportController::class, 'exportBilling'])->name('billing.export');
         Route::get('/daily-movements',                  [ReportController::class, 'dailyMovements'])->name('daily-movements');
         Route::post('/daily-movements/export/csv',      [ReportController::class, 'exportMovementsCsv'])->name('daily-movements.export.csv');
         Route::post('/daily-movements/export/codeco',   [ReportController::class, 'exportMovementsCodeco'])->name('daily-movements.export.codeco');

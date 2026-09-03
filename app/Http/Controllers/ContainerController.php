@@ -10,6 +10,7 @@ use App\Models\EquipmentType;
 use App\Models\YardLocation;
 use App\Services\ContainerStatusService;
 use App\Services\HoldService;
+use App\Support\Export\TabularExport;
 use App\Support\MrStatusCatalogue;
 use Illuminate\Http\Request;
 
@@ -17,7 +18,10 @@ class ContainerController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('can:containers.view')->only(['index', 'show', 'masterLookup', 'availableStock']);
+        // The export shows exactly what the screen shows, so it rides on the
+        // same grant — a route that is reachable without one is not protected
+        // by the screen's button being hidden.
+        $this->middleware('can:containers.view')->only(['index', 'show', 'masterLookup', 'availableStock', 'exportAvailableStock']);
         $this->middleware('can:containers.create')->only(['create', 'store']);
         $this->middleware('can:containers.edit')->only(['edit', 'update', 'markAvailable']);
         $this->middleware('can:containers.hold')->only(['placeHold', 'clearHold']);
@@ -81,11 +85,17 @@ class ContainerController extends Controller
      * Available empties stock — sound/repaired containers ready for allocation,
      * grouped by size / type / grade, with dwell-aging buckets from available_since.
      */
-    public function availableStock()
+    /**
+     * The available-stock roll-up, defined once so the screen and the export
+     * cannot come apart.
+     *
+     * @return \Illuminate\Support\Collection
+     */
+    private function availableStockRows()
     {
         $now = now();
 
-        $rows = Container::available()
+        return Container::available()
             ->with(['grade', 'equipmentType'])
             ->withCount(['holds as active_holds_count' => fn ($q) => $q->whereNull('cleared_at')])
             ->get()
@@ -116,6 +126,11 @@ class ContainerController extends Controller
             })
             ->sortByDesc('count')
             ->values();
+    }
+
+    public function availableStock()
+    {
+        $rows = $this->availableStockRows();
 
         $total      = (int) $rows->sum('count');
         $totalReady = (int) $rows->sum('ready');
@@ -336,5 +351,42 @@ class ContainerController extends Controller
             }
         }
         return $data;
+    }
+
+    /**
+     * Available stock, as a file.
+     *
+     * The screen is a roll-up rather than a list — one row per size · type ·
+     * grade — so that is what the file carries. Held and PTI-lapsed counts ride
+     * along: they are computed for the screen already but only surface there in
+     * a tooltip, and they are exactly what somebody planning allocations needs
+     * beside the not-ready total.
+     */
+    public function exportAvailableStock(Request $request)
+    {
+        $rows = $this->availableStockRows();
+
+        return TabularExport::stream($request->input('format'), 'available-stock', [
+            'Size · Type · Grade', 'Available', 'Ready', 'Not Ready',
+            'On Hold', 'PTI Lapsed',
+            'Fresh (≤7d)', 'Aging (8–30d)', 'Stale (>30d)',
+            'Avg Days', 'Oldest (days)',
+        ], function () use ($rows) {
+            foreach ($rows as $r) {
+                yield [
+                    $r['label'],
+                    $r['count'],
+                    $r['ready'],
+                    $r['not_ready'],
+                    $r['held'],
+                    $r['pti_lapsed'],
+                    $r['fresh'],
+                    $r['aging'],
+                    $r['stale'],
+                    $r['avg_days'],
+                    $r['max_days'],
+                ];
+            }
+        });
     }
 }

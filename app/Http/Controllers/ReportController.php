@@ -20,9 +20,16 @@ class ReportController extends Controller
         $this->middleware('can:reports.view');
     }
 
-    public function inventory(Request $request)
+    /**
+     * The inventory query, defined once.
+     *
+     * The screen and the export read it, so an operator who filters the screen
+     * and then exports cannot be handed the unfiltered set — the commonest bug
+     * in this kind of feature, and a silent one.
+     */
+    private function inventoryQuery(Request $request)
     {
-        $containers = Container::with('customer')
+        return Container::with('customer')
             ->when($request->customer_id, fn ($q, $v) => $q->where('customer_id', $v))
             ->when($request->status,      fn ($q, $v) => $q->where('status', $v))
             ->when($request->size,        fn ($q, $v) => $q->where('size', $v))
@@ -30,8 +37,12 @@ class ReportController extends Controller
             ->when($request->mr_status_group, fn ($q, $v) => $q->where('mr_status_group', $v))
             ->when($request->date_from,   fn ($q, $v) => $q->whereDate('gate_in_date', '>=', $v))
             ->when($request->date_to,     fn ($q, $v) => $q->whereDate('gate_in_date', '<=', $v))
-            ->orderBy('gate_in_date', 'desc')
-            ->get();
+            ->orderBy('gate_in_date', 'desc');
+    }
+
+    public function inventory(Request $request)
+    {
+        $containers = $this->inventoryQuery($request)->get();
 
         $summary = [
             'total'        => $containers->count(),
@@ -58,6 +69,93 @@ class ReportController extends Controller
         $mrStatusGroups = MrStatusCatalogue::groups();
 
         return view('reports.inventory', compact('containers', 'summary', 'customers', 'mrSummary', 'mrStatusGroups'));
+    }
+
+    /**
+     * Inventory, as a file.
+     *
+     * Mirrors the columns on screen, with the badges resolved to the words they
+     * stand for — a spreadsheet cannot show a colour, and "Require Repair" is
+     * what the operator reading the file needs.
+     */
+    public function exportInventory(Request $request)
+    {
+        $query = $this->inventoryQuery($request);
+
+        return TabularExport::stream($request->input('format'), 'inventory', [
+            'Container No', 'Size', 'Type', 'Customer Code', 'Customer',
+            'Condition', 'Cargo', 'Location', 'Gate In Date', 'Days In Yard',
+            'Status', 'M&R Status', 'Stage',
+        ], function () use ($query) {
+            foreach ($query->lazy(200) as $c) {
+                // The screen counts to today while a box is still here, and to
+                // the gate-out once it has left.
+                $days = match (true) {
+                    $c->gate_in_date && ! $c->gate_out_date => (int) $c->gate_in_date->diffInDays(now()),
+                    (bool) $c->gate_out_date                => (int) $c->gate_in_date?->diffInDays($c->gate_out_date),
+                    default                                 => null,
+                };
+
+                $location = $c->location_row
+                    ? $c->location_row . $c->location_bay . '-T' . $c->location_tier
+                    : '-';
+
+                yield [
+                    $c->container_no,
+                    $c->size ?? '-',
+                    $c->type_code ?? '-',
+                    $c->customer->code ?? '-',
+                    $c->customer->name ?? '-',
+                    match ($c->condition) {
+                        'sound'          => 'Sound',
+                        'damaged'        => 'Damaged',
+                        'require_repair' => 'Require Repair',
+                        default          => ucfirst((string) $c->condition),
+                    },
+                    $c->cargo_status === 'empty' ? 'Empty' : 'Laden',
+                    $location,
+                    $c->gate_in_date?->format('Y-m-d') ?? '-',
+                    $days ?? '-',
+                    $c->status,
+                    $c->mr_status ? MrStatusCatalogue::label($c->mr_status, $c->mr_lane) : '-',
+                    MrStatusCatalogue::groups()[$c->mr_status_group] ?? ($c->mr_status_group ?? '-'),
+                ];
+            }
+        });
+    }
+
+    /**
+     * The billing report, as a file.
+     *
+     * Amounts are written unformatted — no thousands separators — so they arrive
+     * in the spreadsheet as numbers that can be summed rather than as text that
+     * looks like numbers.
+     */
+    public function exportBilling(Request $request)
+    {
+        $query = $this->billingQuery($request);
+
+        return TabularExport::stream($request->input('format'), 'billing-report', [
+            'Container No', 'Customer', 'Gate In', 'Gate Out',
+            'Total Days', 'Free Days', 'Chargeable Days',
+            'Daily Rate', 'Subtotal', 'Tax', 'Total Charge',
+        ], function () use ($query) {
+            foreach ($query->lazy(200) as $r) {
+                yield [
+                    $r->container->container_no ?? '-',
+                    $r->customer->name ?? '-',
+                    $r->gate_in_date?->format('Y-m-d') ?? '-',
+                    $r->gate_out_date?->format('Y-m-d') ?? '-',
+                    (int) $r->total_days,
+                    (int) $r->free_days,
+                    (int) $r->chargeable_days,
+                    number_format((float) $r->daily_rate, 2, '.', ''),
+                    number_format((float) $r->subtotal, 2, '.', ''),
+                    number_format((float) $r->tax_amount, 2, '.', ''),
+                    number_format((float) $r->total_charge, 2, '.', ''),
+                ];
+            }
+        });
     }
 
     /**
@@ -257,16 +355,21 @@ class ReportController extends Controller
         });
     }
 
-    public function billing(Request $request)
+    /** Defined once, for the same reason as the inventory query above. */
+    private function billingQuery(Request $request)
     {
-        $storageRecords = YardStorage::with(['container', 'customer'])
+        return YardStorage::with(['container', 'customer'])
             ->nonHire()  // exclude on_hire records (zero-rated, hire customer billed separately)
             ->when($request->customer_id, fn ($q, $v) => $q->where('customer_id', $v))
             ->when($request->date_from,   fn ($q, $v) => $q->whereDate('gate_in_date', '>=', $v))
             ->when($request->date_to,     fn ($q, $v) => $q->whereDate('gate_out_date', '<=', $v))
             ->whereNotNull('gate_out_date')
-            ->orderBy('gate_out_date', 'desc')
-            ->get();
+            ->orderBy('gate_out_date', 'desc');
+    }
+
+    public function billing(Request $request)
+    {
+        $storageRecords = $this->billingQuery($request)->get();
 
         $summary = [
             'total_records'    => $storageRecords->count(),

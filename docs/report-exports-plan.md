@@ -14,7 +14,6 @@ I went through every route whose screen renders a table of report data.
 | --- | --- | --- |
 | Inventory | `reports.inventory` | **none** |
 | Stock (Available Stock) | `containers.available-stock` | **none** |
-| Storage report | `storage.report` | **none** |
 | Billing report | `reports.billing` | **none** |
 | M&R Status | `reports.mr-status` | CSV |
 | Daily Movements | `reports.daily-movements` | CSV + CODECO |
@@ -36,7 +35,12 @@ I went through every route whose screen renders a table of report data.
 | AP Aging | **none** |
 | Job Margin | CSV |
 
-**Four of eighteen report screens export anything. None exports Excel.**
+**Four of seventeen report screens export anything. None exports Excel.**
+
+**One correction to an earlier draft of this table.** `storage.report` was listed
+here as an operational report. It is not: `StorageReportController` reports *disk
+usage* over uploaded files — sizes, uploaders, paths — which is a sysadmin screen
+and not part of this family. It is out of scope, and available on request.
 
 Two facts shape everything below.
 
@@ -110,8 +114,8 @@ which is exactly the guarantee that makes the rest safe.
 **Phase 2 — Excel on those same four. — done (dormant until openspout lands)**
 One format flag. Phase 1 being right is what made it small.
 
-**Phase 3 — the four operational reports that have nothing:** Inventory, Stock,
-Storage, Billing. These are the ones named in the request.
+**Phase 3 — the operational reports that have nothing: Inventory, Stock,
+Billing. — done** These are the ones named in the request.
 
 **Phase 4 — the eleven finance reports.** A bigger family and a separate
 conversation: several of them (Balance Sheet, Income Statement) are hierarchical
@@ -302,3 +306,39 @@ unknown-format list included `xlsx`, written when xlsx genuinely was unknown;
 once the package landed it became a supported format and correctly produced a
 spreadsheet. Asking for Excel where it *cannot* be produced is a different claim
 and now has its own test, which skips when the writer is present.
+
+---
+
+## 9. Phase 3 as built
+
+Exports added to **Inventory**, **Available Stock** and the **Billing report** —
+CSV and, where the writer is installed, Excel. Three rather than four: the
+"Storage report" turned out to be a disk-usage screen, as noted in §1.
+
+**Two of them already had an Export CSV button that did nothing.** Inventory and
+Billing both linked to `?export=csv` on their own URL — a parameter neither
+controller has ever read, so the page simply reloaded. Operators have had a
+button that quietly failed. This phase is less "add an export" than "make the
+existing one real".
+
+**The query is defined once per report** and read by both the screen and the
+export, so filtering the screen and then exporting cannot hand over the
+unfiltered set. That is the bug this kind of feature always has and nobody
+notices until a customer receives somebody else's containers, so each report has
+a test for it.
+
+**Available Stock exports the roll-up, not a container list**, because that is
+what the screen is: one row per size · type · grade. Held and PTI-lapsed counts
+ride along — they are computed for the screen already but only surface there in a
+tooltip, and they are what somebody planning allocations wants beside the
+not-ready total.
+
+**One security gap closed on the way.** The new stock export needed adding to
+`ContainerController`'s `can:containers.view` list. Without it the route was
+reachable by anyone authenticated, since the middleware there is per-action —
+and a hidden button is not a permission.
+
+Values are written as the screen reads them rather than as the database stores
+them: condition badges resolve to "Require Repair", cargo to "Empty"/"Laden",
+M&R codes to their labels. Amounts are written unformatted so a spreadsheet sums
+them as numbers instead of reading them as text.

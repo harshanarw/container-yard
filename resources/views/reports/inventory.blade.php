@@ -27,9 +27,15 @@
         <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-printer me-1"></i>Print
         </button>
-        <a href="{{ request()->fullUrlWithQuery(['export' => 'csv']) }}" class="btn btn-outline-success btn-sm">
-            <i class="bi bi-download me-1"></i>Export CSV
+        <a href="{{ route('reports.inventory.export', request()->query()) }}" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-filetype-csv me-1"></i>Export CSV
         </a>
+        @if(\App\Support\Export\TabularExport::supports('xlsx'))
+        <a href="{{ route('reports.inventory.export', array_merge(request()->query(), ['format' => 'xlsx'])) }}"
+           class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+        </a>
+        @endif
     </div>
 </div>
 
