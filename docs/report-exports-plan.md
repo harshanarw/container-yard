@@ -432,7 +432,7 @@ one that keeps CSV and Excel honest about being the same report.
 Gain/Loss, FX Revaluation, WHT, AR Aging, AP Aging. Extract each query or service
 call, export it. Directly analogous to Phase 3.
 
-**4b — the two statements.** Flat lines, but opening and closing balances are
+**4b — the two statements. — done** Flat lines, but opening and closing balances are
 context rather than rows. They become labelled rows at the top and bottom, which
 is how a printed statement already reads.
 
@@ -500,3 +500,29 @@ across sheets a CSV could not hold. That is the same shape §10.3 proposes for
 The missing-rate rows on FX Revaluation are worth their own mention: a balance
 that could not be revalued is omitted from the net, so dropping those rows would
 make the total look complete when it is not.
+
+---
+
+## 12. Phase 4b as built
+
+CSV and Excel on the **Customer** and **Supplier** statements.
+
+Both screens already delegate to one `_statement` partial, so the buttons went in
+once rather than twice — and only once a party is chosen, since the export
+requires one and offering it on the empty filter screen would hand back a 404.
+
+Opening balance, totals and closing balance bracket the rows as labelled lines,
+the same treatment the account ledger got in 4a. They are context rather than
+transactions, but a statement cannot be reconciled without them, which is exactly
+why a printed one carries them too.
+
+**Nothing is recomputed.** `StatementService` already tracks a running balance
+per line, so the file reports what it computed rather than adding the columns up
+again and risking a different answer. A test compares the exported closing
+balance with the screen's.
+
+**Ten of thirteen finance reports now export**, all routed and all repeating
+their screen's authorization — verified rather than assumed, since these
+controllers authorize per-action and an export that forgets is simply open.
+
+Remaining: the three structured ones in 4c.

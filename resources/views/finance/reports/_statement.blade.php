@@ -10,9 +10,14 @@
         <p class="text-muted small mb-0">Statement of account — all amounts in {{ $base }} (base currency).</p>
     </div>
     @if($data)
-    <button type="button" class="btn btn-outline-secondary btn-sm d-print-none" onclick="window.print()">
-        <i class="bi bi-printer me-1"></i>Print
-    </button>
+    <div class="d-flex gap-2 flex-wrap d-print-none">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i>Print
+        </button>
+        {{-- Only once a party is chosen: the export requires one, so offering it
+             on the empty filter screen would hand back a 404. --}}
+        @include('partials.export-buttons', ['route' => $routeName . '.export'])
+    </div>
     @endif
 </div>
 

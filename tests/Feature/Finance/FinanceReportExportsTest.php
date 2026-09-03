@@ -7,7 +7,7 @@ use Illuminate\Support\Carbon;
 use Tests\Support\FeatureTestCase;
 
 /**
- * Exports for the eight flat finance reports (Phase 4a).
+ * Exports for the flat finance reports (Phase 4a) and the two statements (4b).
  *
  * Two things are worth testing harder here than on the operational reports.
  *
@@ -242,6 +242,99 @@ class FinanceReportExportsTest extends FeatureTestCase
             $screen->viewData('journals')->total() + 1,   // + the heading row
             $rows,
             'The file carries the whole filtered set, not the page being viewed.'
+        );
+    }
+
+    // ── Statements (Phase 4b) ────────────────────────────────────────────────
+
+    /** @return array<string,array{0:string,1:string}> */
+    public static function statements(): array
+    {
+        return [
+            'customer statement' => ['finance.reports.customer-statement.export', 'finance.ar.view'],
+            'supplier statement' => ['finance.reports.supplier-statement.export', 'finance.ap.view'],
+        ];
+    }
+
+    /**
+     * A statement is about one party, so the export insists on one rather than
+     * quietly returning everybody's or nobody's.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('statements')]
+    public function test_a_statement_export_requires_a_party(string $route, string $permission): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $this->get(route($route))->assertSessionHasErrors('party_id');
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('statements')]
+    public function test_a_statement_export_is_refused_without_the_permission(string $route, string $permission): void
+    {
+        $this->actingAsRole('gate_officer');
+
+        $party = \App\Models\Customer::factory()->create();
+
+        $this->get(route($route, ['party_id' => $party->id]))->assertForbidden();
+    }
+
+    /**
+     * Opening and closing bracket the rows.
+     *
+     * They are context rather than transactions, but a statement cannot be
+     * reconciled without them — which is exactly why a printed one carries them
+     * too.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('statements')]
+    public function test_a_statement_export_brackets_its_rows_with_balances(string $route, string $permission): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $party = \App\Models\Customer::factory()->create(['name' => 'Statement Party', 'code' => 'STP']);
+
+        $rows = $this->parse(
+            $this->get(route($route, ['party_id' => $party->id]))->assertOk()->streamedContent()
+        );
+
+        $labels = collect($rows)->pluck(1);
+
+        $this->assertContains('Opening balance', $labels->all());
+        $this->assertContains('Totals', $labels->all());
+        $this->assertContains('Closing balance', $labels->all());
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('statements')]
+    public function test_a_statement_filename_names_the_party(string $route, string $permission): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $party    = \App\Models\Customer::factory()->create(['code' => 'ACME']);
+        $response = $this->get(route($route, ['party_id' => $party->id]))->assertOk();
+
+        $this->assertStringContainsString('ACME', $response->headers->get('content-disposition'),
+            'Several statements in a downloads folder are otherwise indistinguishable.');
+    }
+
+    /** The file's closing balance is the service's, not a recomputation. */
+    public function test_the_customer_statement_closing_balance_matches_the_screen(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $party = \App\Models\Customer::factory()->create();
+        $query = ['party_id' => $party->id];
+
+        $screen = $this->get(route('finance.reports.customer-statement', $query))->assertOk();
+        $rows   = $this->parse(
+            $this->get(route('finance.reports.customer-statement.export', $query))->assertOk()->streamedContent()
+        );
+
+        $closing = collect($rows)->first(fn ($r) => ($r[1] ?? null) === 'Closing balance');
+
+        $this->assertEqualsWithDelta(
+            (float) $screen->viewData('data')['closing'],
+            (float) $closing[9],
+            0.01,
+            'The statement a customer reconciles against must agree with the one on screen.'
         );
     }
 
