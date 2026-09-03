@@ -342,3 +342,117 @@ Values are written as the screen reads them rather than as the database stores
 them: condition badges resolve to "Require Repair", cargo to "Empty"/"Laden",
 M&R codes to their labels. Amounts are written unformatted so a spreadsheet sums
 them as numbers instead of reading them as text.
+
+---
+
+## 10. Phase 4 — the finance reports
+
+### 10.1 The real inventory
+
+My earlier count of eleven was low. Searching route *names* for "report" missed
+three screens that are reports by any reasonable reading, and one more lives
+outside the `reports.` prefix:
+
+| Report | Route | Shape |
+| --- | --- | --- |
+| Journals list | `finance.gl.journals.index` | flat, paginated |
+| Account Ledger | `finance.gl.account-ledger` | flat entries + running balance |
+| Trial Balance | `finance.gl.trial-balance` | flat rows, grouped by classification |
+| FX Gain/Loss | `finance.reports.fx-gain-loss` | flat entries + per-source summary |
+| FX Revaluation | `finance.reports.fx-revaluation` | flat |
+| WHT Report | `finance.reports.wht-report` | flat |
+| AR Aging | `finance.ar.aging` | one row per customer, bucket columns |
+| AP Aging | `finance.ap.aging` | one row per supplier, bucket columns |
+| Customer Statement | `finance.reports.customer-statement` | flat lines, **plus opening and closing balances** |
+| Supplier Statement | `finance.reports.supplier-statement` | same |
+| **Income Statement** | `finance.reports.income-statement` | **hierarchical** — groups → accounts, subtotals, totals |
+| **Balance Sheet** | `finance.reports.balance-sheet` | **hierarchical** — three sections → groups → accounts |
+| **VAT / SSCL Return** | `finance.reports.vat-sscl-return` | **two tables plus a computed box set** |
+| Job Margin | `finance.reports.job-margin` | done in Phases 1–2 |
+
+**Thirteen to do.** Ten are flat and are the same job as Phase 3. Three are not,
+and they are what this section is really about.
+
+### 10.2 The rule that matters more here than anywhere else
+
+A financial figure that disagrees with the screen is worse than no export at all.
+So no export may **re-derive** anything: each one reads the same computed data the
+view is handed. For most of these the computation already lives in a service
+(`StatementService`, `VatSsclReturnService`, `WhtReportService`,
+`FxRevaluationService`) and is trivially shared.
+
+Income Statement and Balance Sheet are the exceptions — each does roughly eighty
+lines of grouping and balance arithmetic *inline in the controller*. Those have to
+be extracted before they can be exported, or the file becomes a second
+implementation of the accounts, free to drift from the screen. Extracting them is
+most of the work in this phase, and it is worth doing on its own merits.
+
+Every one of these methods calls `$this->authorize(...)` inline rather than
+relying on constructor middleware, so each export repeats its screen's
+authorization — the same gap Phase 3 turned up on the stock export.
+
+### 10.3 The shape problem
+
+A CSV is one flat table. Three of these reports are not.
+
+- **Income Statement / Balance Sheet** are trees: section, group, account,
+  subtotal, total.
+- **VAT / SSCL Return** is a form: an output table, an input table, and a set of
+  computed boxes (net VAT payable, SSCL payable).
+
+Excel could hold each part on its own sheet. CSV cannot. Taking that route would
+make the two formats carry genuinely different documents — and the entire point of
+`TabularExport` is that they cannot diverge.
+
+**The alternative is to flatten, with the structure carried in columns:**
+
+```
+Section    Level  Row Type   Code   Account / Label              Amount
+────────────────────────────────────────────────────────────────────────
+Income     1      Group      4000   Operating Revenue
+Income     2      Account    4001   Storage Revenue           1,240,500.00
+Income     2      Account    4002   Handling Revenue            318,900.00
+Income     1      Subtotal   4000   Operating Revenue         1,559,400.00
+…
+           0      Total             TOTAL REVENUE             1,559,400.00
+           0      Total             NET PROFIT                  412,880.00
+```
+
+Every row is a row, so both formats carry the same file; the reader can filter
+`Row Type = Account` to get just the postings, or read it top to bottom as the
+statement it is. The same three columns turn the VAT return into one sheet with
+`Section` of `Output`, `Input` or `Summary`.
+
+This is the standard shape for exported financial statements, and it is the only
+one that keeps CSV and Excel honest about being the same report.
+
+### 10.4 Order
+
+**4a — the eight flat ones.** Trial Balance, Account Ledger, Journals, FX
+Gain/Loss, FX Revaluation, WHT, AR Aging, AP Aging. Extract each query or service
+call, export it. Directly analogous to Phase 3.
+
+**4b — the two statements.** Flat lines, but opening and closing balances are
+context rather than rows. They become labelled rows at the top and bottom, which
+is how a printed statement already reads.
+
+**4c — the three structured ones.** Income Statement and Balance Sheet need their
+computation extracted from the controller first; the VAT return needs its three
+parts stacked under a `Section` column.
+
+4a and 4b are mechanical. 4c is where the judgement is, and it is last so the
+first ten are shipping while it is discussed.
+
+### 10.5 Cover
+
+Per report, as in Phase 3: both formats download, the filters reach the file, an
+unknown format falls back, and the export carries the screen's authorization.
+
+Two additional checks that only matter here:
+
+- **The export totals equal the screen's totals.** Asserted directly, because
+  these are the numbers someone files a return with.
+- **A hierarchical export's `Account` rows sum to its `Subtotal` rows, and those
+  to its `Total`.** That is what makes the flattening trustworthy rather than
+  merely tidy — if the tree were flattened wrongly, this is the assertion that
+  catches it.
