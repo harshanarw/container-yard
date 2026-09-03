@@ -231,16 +231,39 @@ class TabularExportTest extends TestCase
 
     /**
      * A stale bookmark or a hand-edited URL should still produce the report.
+     *
+     * `xlsx` is deliberately not in this list: it is a format this class knows
+     * about, and whether it is *available* is a separate question with its own
+     * test below. Listing it here would make the test pass or fail depending on
+     * whether the spreadsheet writer happens to be installed.
      */
     public function test_an_unknown_format_falls_back_to_csv_rather_than_failing(): void
     {
-        foreach ([null, '', 'xlsx', 'ods', 'nonsense'] as $format) {
+        foreach ([null, '', 'ods', 'nonsense', ['array'], 42] as $format) {
             $response = TabularExport::stream($format, 'demo', ['A'], fn () => yield ['1']);
 
             $this->assertSame(200, $response->getStatusCode());
             $this->assertStringContainsString('text/csv', $response->headers->get('content-type'));
             $this->assertStringContainsString('.csv', $response->headers->get('content-disposition'));
         }
+    }
+
+    /**
+     * Asking for Excel where it cannot be produced yields CSV, not an error.
+     *
+     * This is what lets the feature ship before its dependency: the buttons are
+     * hidden, but a direct `?format=xlsx` still has to return the report.
+     */
+    public function test_excel_falls_back_to_csv_when_the_writer_is_absent(): void
+    {
+        if (TabularExport::supports('xlsx')) {
+            $this->markTestSkipped('openspout is installed, so xlsx is produced rather than falling back.');
+        }
+
+        $response = TabularExport::stream('xlsx', 'demo', ['A'], fn () => yield ['1']);
+
+        $this->assertStringContainsString('text/csv', $response->headers->get('content-type'));
+        $this->assertStringContainsString('.csv', $response->headers->get('content-disposition'));
     }
 
     // ── The file itself ──────────────────────────────────────────────────────

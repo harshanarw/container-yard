@@ -288,11 +288,17 @@ string, so `?format[]=x` hands the code an array. Casting that to a string would
 raise, which is the opposite of what an unrecognised format should do — it now
 normalises to empty and falls back to CSV.
 
-### Not verified here
+### Verified
 
-openspout cannot be installed in the environment this was written in, so the
-xlsx path has never been executed. Its tests are written and skip themselves
-until the package is present, at which point they run for real: the response
-headers, that the bytes are a genuine zip containing a worksheet, that an empty
-report still opens, that the temp file is cleaned up, and that cells are not
-apostrophe-guarded. The CSV path is unaffected either way and is fully covered.
+openspout could not be installed in the environment this was written in, so the
+xlsx path shipped unexecuted. Installing it turned all six of those tests
+green on the first run — the response headers, the bytes being a genuine zip
+containing a worksheet, an empty report still opening, the temp-file cleanup, and
+the absence of the CSV apostrophe. openspout 4's API is exactly `new Writer()`,
+`openToFile()`, `Row::fromValues()` as written.
+
+One test had to change, and it was the test rather than the code. The
+unknown-format list included `xlsx`, written when xlsx genuinely was unknown;
+once the package landed it became a supported format and correctly produced a
+spreadsheet. Asking for Excel where it *cannot* be produced is a different claim
+and now has its own test, which skips when the writer is present.
