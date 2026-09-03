@@ -107,10 +107,126 @@ class TabularExportTest extends TestCase
 
     public function test_an_unavailable_format_is_not_claimed(): void
     {
-        $this->assertFalse(TabularExport::supports('xlsx'),
-            'Excel arrives with the spreadsheet writer; until then the option must not be offered.');
         $this->assertFalse(TabularExport::supports('pdf'));
         $this->assertFalse(TabularExport::supports(null));
+    }
+
+    /**
+     * Excel is offered exactly when it can be produced.
+     *
+     * The screens ask this before drawing the button, so a wrong answer either
+     * hides a working feature or offers one that fails on click.
+     */
+    public function test_excel_is_offered_only_when_the_writer_is_installed(): void
+    {
+        $installed = class_exists(\OpenSpout\Writer\XLSX\Writer::class);
+
+        $this->assertSame($installed, TabularExport::supports('xlsx'),
+            $installed
+                ? 'openspout is installed, so Excel must be on offer.'
+                : 'openspout is not installed, so Excel must not be on offer.');
+    }
+
+    // ── Excel ────────────────────────────────────────────────────────────────
+    // Skipped until openspout lands, rather than deleted: these are the tests
+    // that prove the writer works, and they should run the moment it arrives.
+
+    private function requireExcel(): void
+    {
+        if (! TabularExport::supports('xlsx')) {
+            $this->markTestSkipped('openspout/openspout is not installed — Excel output is not available.');
+        }
+    }
+
+    public function test_an_xlsx_downloads_with_the_spreadsheet_content_type(): void
+    {
+        $this->requireExcel();
+
+        $response = TabularExport::stream('xlsx', 'mr-status', ['A'], fn () => yield ['1']);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertStringContainsString(
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            $response->headers->get('content-type')
+        );
+        $this->assertMatchesRegularExpression(
+            '/filename=.?mr-status-\d{8}-\d{6}\.xlsx/',
+            $response->headers->get('content-disposition')
+        );
+    }
+
+    public function test_an_xlsx_is_a_real_zip_a_spreadsheet_can_open(): void
+    {
+        $this->requireExcel();
+
+        $bytes = $this->send(TabularExport::stream('xlsx', 'demo', ['Container No'], fn () => yield ['TCLU1234567']));
+
+        $this->assertStringStartsWith("PK\x03\x04", $bytes,
+            'An xlsx is a zip archive — this is what distinguishes it from an HTML table '
+            . 'renamed .xlsx, which Excel warns about on every open.');
+
+        $path = tempnam(sys_get_temp_dir(), 'assert-');
+        file_put_contents($path, $bytes);
+
+        $zip = new \ZipArchive();
+        $this->assertTrue($zip->open($path) === true, 'The archive opens.');
+        $this->assertNotFalse($zip->locateName('xl/worksheets/sheet1.xml'), 'It contains a worksheet.');
+        $sheet = $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->close();
+        @unlink($path);
+
+        $this->assertNotEmpty($sheet);
+    }
+
+    public function test_a_report_with_no_rows_still_produces_a_valid_xlsx(): void
+    {
+        $this->requireExcel();
+
+        $bytes = $this->send(TabularExport::stream('xlsx', 'demo', ['A', 'B'], fn () => yield from []));
+
+        $this->assertStringStartsWith("PK\x03\x04", $bytes,
+            'An empty result is a valid answer, and the file still has to open.');
+    }
+
+    /**
+     * The temp file the writer builds must not survive the response.
+     *
+     * Reports are exported often; a leaked file per export fills a disk quietly.
+     */
+    public function test_the_temporary_file_is_cleaned_up_after_sending(): void
+    {
+        $this->requireExcel();
+
+        $before = glob(sys_get_temp_dir() . '/export-*') ?: [];
+        $this->send(TabularExport::stream('xlsx', 'demo', ['A'], fn () => yield ['1']));
+        $after = glob(sys_get_temp_dir() . '/export-*') ?: [];
+
+        $this->assertSame(count($before), count($after),
+            'The export temp file is deleted once the response has been streamed.');
+    }
+
+    /**
+     * A spreadsheet records the cell type, so a string stays a string and cannot
+     * be reinterpreted as a formula. The CSV apostrophe would just be noise here.
+     */
+    public function test_xlsx_cells_are_not_apostrophe_guarded(): void
+    {
+        $this->requireExcel();
+
+        $bytes = $this->send(TabularExport::stream('xlsx', 'demo', ['Remarks'], fn () => yield ['=1+1']));
+
+        $path = tempnam(sys_get_temp_dir(), 'assert-');
+        file_put_contents($path, $bytes);
+
+        $zip = new \ZipArchive();
+        $zip->open($path);
+        $strings = (string) $zip->getFromName('xl/sharedStrings.xml') . (string) $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->close();
+        @unlink($path);
+
+        $this->assertStringNotContainsString("'=1+1", $strings,
+            'The writer types the cell as text, so it needs no escaping — adding one would '
+            . 'put a stray apostrophe in front of legitimate content.');
     }
 
     /**
@@ -208,8 +324,12 @@ class TabularExportTest extends TestCase
 
     private function render(array $headings, callable $rows): string
     {
-        $response = TabularExport::stream('csv', 'demo', $headings, $rows);
+        return $this->send(TabularExport::stream('csv', 'demo', $headings, $rows));
+    }
 
+    /** Run a streamed response to completion and capture what it wrote. */
+    private function send(\Symfony\Component\HttpFoundation\StreamedResponse $response): string
+    {
         ob_start();
         $response->sendContent();
 

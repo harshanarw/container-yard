@@ -19,6 +19,12 @@
         <a href="{{ route('container-inquiry.export', request()->query()) }}" class="btn btn-outline-success btn-sm">
             <i class="bi bi-download me-1"></i>Export CSV
         </a>
+        @if(\App\Support\Export\TabularExport::supports('xlsx'))
+        <a href="{{ route('container-inquiry.export', array_merge(request()->query(), ['format' => 'xlsx'])) }}"
+           class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+        </a>
+        @endif
     </div>
     @endif
 </div>

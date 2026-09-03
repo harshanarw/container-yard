@@ -107,8 +107,8 @@ No new report gains an export yet, and no output changes. This is the phase that
 proves the exporter produces byte-identical CSV to what those four already emit,
 which is exactly the guarantee that makes the rest safe.
 
-**Phase 2 — Excel on those same four.** One format flag. If Phase 1 is right,
-this is small.
+**Phase 2 — Excel on those same four. — done (dormant until openspout lands)**
+One format flag. Phase 1 being right is what made it small.
 
 **Phase 3 — the four operational reports that have nothing:** Inventory, Stock,
 Storage, Billing. These are the ones named in the request.
@@ -248,3 +248,51 @@ exports still emit the same bytes:
   stay a number rather than becoming `'-1250.00`.
 - **Single characters pass through** — three of these reports use a lone `-` as
   their "no value" placeholder, and one character cannot be a formula.
+
+---
+
+## 8. Phase 2 as built
+
+`TabularExport::xlsx()` writes through openspout, and `stream()` dispatches to it
+when the format asks for Excel. All four screens gained an **Export Excel**
+control beside their CSV one.
+
+**The code ships before the dependency, and lies dormant until it arrives.**
+`availableFormats()` reports Excel only when the writer is actually installed;
+the four screens ask before drawing the button, and an explicit `format=xlsx`
+falls back to CSV rather than failing. So this deploys now and lights up on
+`composer require openspout/openspout` with no further application change.
+
+**Availability is checked more precisely than "is the class there".** openspout 3
+also has an `XLSX\Writer`, but it is not directly constructible — you had to go
+through a factory that version 4 removed. The check therefore requires the
+constructor to take no required argument, which identifies the exact API this
+class was written against. An unexpected version means Excel is quietly not
+offered rather than fatal on first click. Install with `composer require
+openspout/openspout:^4.0`.
+
+**Excel is written to a temp file, then streamed.** A spreadsheet is a zip and a
+zip writes its index last, so it cannot go straight down the wire. Rows are still
+pulled from the generator one at a time, so memory stays flat — it is disk that
+is touched, and the temp file is deleted as the response finishes. There is a
+test for that cleanup, because a leaked file per export fills a disk quietly.
+
+**Excel cells are deliberately not formula-guarded.** The CSV apostrophe exists
+because a CSV carries no types and the spreadsheet has to guess. An xlsx records
+the type, so a string stays a string and cannot be reinterpreted as a formula;
+adding the apostrophe there would put a stray character in front of legitimate
+text. There is a test asserting its absence.
+
+**One hardening found while wiring it:** the format arrives straight off a query
+string, so `?format[]=x` hands the code an array. Casting that to a string would
+raise, which is the opposite of what an unrecognised format should do — it now
+normalises to empty and falls back to CSV.
+
+### Not verified here
+
+openspout cannot be installed in the environment this was written in, so the
+xlsx path has never been executed. Its tests are written and skip themselves
+until the package is present, at which point they run for real: the response
+headers, that the bytes are a genuine zip containing a worksheet, that an empty
+report still opens, that the temp file is cleaned up, and that cells are not
+apostrophe-guarded. The CSV path is unaffected either way and is fully covered.

@@ -39,6 +39,12 @@
            class="btn btn-sm btn-outline-success">
             <i class="bi bi-filetype-csv me-1"></i>Export CSV
         </a>
+        @if(\App\Support\Export\TabularExport::supports('xlsx'))
+        <a href="{{ route('finance.reports.job-margin', array_merge($qs, ['export' => 'csv', 'format' => 'xlsx'])) }}"
+           class="btn btn-sm btn-outline-success">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+        </a>
+        @endif
         <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-printer me-1"></i>Print
         </button>

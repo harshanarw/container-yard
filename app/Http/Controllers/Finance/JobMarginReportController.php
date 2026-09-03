@@ -49,7 +49,7 @@ class JobMarginReportController extends Controller
         ]);
     }
 
-    private function exportCsv($rows, ?string $format = null)
+    private function exportCsv($rows, mixed $format = null)
     {
         return TabularExport::stream($format, 'job-margin', [
             'Job No', 'Job Type', 'Customer', 'Status',

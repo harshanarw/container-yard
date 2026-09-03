@@ -197,6 +197,11 @@
                 <button type="button" class="btn btn-outline-success btn-sm" onclick="submitExport('csv')">
                     <i class="bi bi-filetype-csv me-1"></i>Export CSV
                 </button>
+                @if(\App\Support\Export\TabularExport::supports('xlsx'))
+                <button type="button" class="btn btn-outline-success btn-sm" onclick="submitExport('xlsx')">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+                </button>
+                @endif
                 <button type="button" class="btn btn-outline-primary btn-sm" onclick="submitExport('codeco')">
                     <i class="bi bi-file-earmark-code me-1"></i>Export UN/EDIFACT CODECO
                 </button>
@@ -365,10 +370,19 @@ function submitExport(type) {
         return;
     }
     const form = document.getElementById('exportForm');
+    // CSV and Excel are the same export in two formats, so they share a route
+    // and the format rides as a field. CODECO is a different document entirely.
     const routes = {
         csv:    '{{ route('reports.daily-movements.export.csv') }}',
+        xlsx:   '{{ route('reports.daily-movements.export.csv') }}',
         codeco: '{{ route('reports.daily-movements.export.codeco') }}',
     };
+    form.querySelectorAll('input[name="format"]').forEach(el => el.remove());
+    if (type === 'xlsx') {
+        const fmt = document.createElement('input');
+        fmt.type = 'hidden'; fmt.name = 'format'; fmt.value = 'xlsx';
+        form.appendChild(fmt);
+    }
     confirmAction(
         `Export ${checked.length} movement(s) as ${type.toUpperCase()}? This will mark them as exported.`,
         () => {

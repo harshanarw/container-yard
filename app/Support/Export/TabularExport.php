@@ -32,36 +32,77 @@ class TabularExport
     /**
      * The formats this installation can actually produce.
      *
-     * Excel joins the list when a spreadsheet writer is installed; until then
-     * asking for it quietly yields CSV rather than an error, and callers can ask
+     * Excel joins the list when the spreadsheet writer is installed; until then
+     * asking for it quietly yields CSV rather than an error, and callers ask
      * this before offering the option at all. Same shape as {@see \App\Support\Qr},
      * which returns null when its QR package is absent so the document still
-     * renders.
+     * renders without one.
      *
      * @return array<int,string>
      */
     public static function availableFormats(): array
     {
-        return [self::CSV];
-    }
-
-    public static function supports(?string $format): bool
-    {
-        return in_array(strtolower(trim((string) $format)), self::availableFormats(), true);
+        return array_values(array_filter([
+            self::CSV,
+            self::excelWriterAvailable() ? self::XLSX : null,
+        ]));
     }
 
     /**
-     * @param ?string  $format   'csv', or anything unrecognised, which becomes CSV
+     * Whether openspout is installed *and* exposes the API this class was
+     * written against.
+     *
+     * The class name alone is not enough: openspout 3 has the same
+     * `XLSX\Writer`, but it is not directly constructible — you had to go
+     * through a writer factory that version 4 removed. Checking that the
+     * constructor takes no required argument identifies the shape used below
+     * exactly, so an unexpected version means Excel is quietly not offered
+     * rather than fatal on the first click.
+     */
+    private static function excelWriterAvailable(): bool
+    {
+        if (! class_exists(\OpenSpout\Writer\XLSX\Writer::class)
+            || ! class_exists(\OpenSpout\Common\Entity\Row::class)) {
+            return false;
+        }
+
+        try {
+            $constructor = (new \ReflectionClass(\OpenSpout\Writer\XLSX\Writer::class))->getConstructor();
+
+            return $constructor === null || $constructor->getNumberOfRequiredParameters() === 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public static function supports(mixed $format): bool
+    {
+        return in_array(self::normalise($format), self::availableFormats(), true);
+    }
+
+    /**
+     * `mixed`, not `?string`: the format arrives straight off a query string, so
+     * `?format[]=x` hands us an array. Casting that would raise rather than fall
+     * back, which is the opposite of what an unrecognised format should do.
+     */
+    private static function normalise(mixed $format): string
+    {
+        return is_string($format) ? strtolower(trim($format)) : '';
+    }
+
+    /**
+     * @param mixed    $format   'csv', 'xlsx', or anything unrecognised, which becomes CSV
      * @param string   $basename filename stem; the timestamp and extension are added here
      * @param array    $headings the header row
      * @param callable $rows     returns an iterable of arrays — a generator, ideally
      */
-    public static function stream(?string $format, string $basename, array $headings, callable $rows): StreamedResponse
+    public static function stream(mixed $format, string $basename, array $headings, callable $rows): StreamedResponse
     {
         // An unknown or unavailable format falls back rather than failing: a
         // stale bookmark or a hand-edited URL should still produce the report.
-        return match (self::supports($format) ? strtolower(trim((string) $format)) : self::CSV) {
-            default => self::csv($basename, $headings, $rows),
+        return match (self::supports($format) ? self::normalise($format) : self::CSV) {
+            self::XLSX => self::xlsx($basename, $headings, $rows),
+            default    => self::csv($basename, $headings, $rows),
         };
     }
 
@@ -78,6 +119,55 @@ class TabularExport
 
             fclose($out);
         }, self::filename($basename, self::CSV), ['Content-Type' => 'text/csv']);
+    }
+
+    /**
+     * The same report as a real `.xlsx`.
+     *
+     * Written to a temp file first, then streamed. A spreadsheet is a zip and a
+     * zip writes its index last, so unlike CSV it cannot go straight down the
+     * wire. Memory still stays flat, because the rows are pulled from the
+     * generator one at a time as they are written — it is disk that is touched,
+     * not RAM, and the temp file goes as soon as the response is sent.
+     *
+     * Cells are not formula-guarded here. That escaping exists because a CSV
+     * carries no types and a spreadsheet has to guess; here the writer records
+     * the type explicitly, so a string stays a string and cannot be reinterpreted
+     * as a formula on open. Guarding anyway would put a stray apostrophe in front
+     * of legitimate text.
+     */
+    public static function xlsx(string $basename, array $headings, callable $rows): StreamedResponse
+    {
+        $path = tempnam(sys_get_temp_dir(), 'export-') ?: throw new \RuntimeException('Could not open a temporary file for the export.');
+
+        $writer = new \OpenSpout\Writer\XLSX\Writer();
+        $writer->openToFile($path);
+
+        try {
+            $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues($headings));
+
+            foreach ($rows() as $row) {
+                $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(array_map(
+                    // Objects and nulls confuse the cell-type detection; every
+                    // report already emits scalars, so this is a guard rail
+                    // rather than a conversion.
+                    static fn ($value) => is_scalar($value) || $value === null ? $value : (string) $value,
+                    $row
+                )));
+            }
+        } finally {
+            $writer->close();
+        }
+
+        return response()->streamDownload(function () use ($path) {
+            try {
+                readfile($path);
+            } finally {
+                @unlink($path);
+            }
+        }, self::filename($basename, self::XLSX), [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     /** `mr-status-20260405-101500.csv` — the shape all four exports already used. */
