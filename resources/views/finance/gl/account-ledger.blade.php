@@ -12,6 +12,7 @@
 <div class="page-header">
     <h4><i class="bi bi-list-columns-reverse me-2 text-primary"></i>Account Ledger</h4>
     <p class="text-muted mb-0 small">View all posted entries for a selected account with running balance</p>
+    @include('partials.export-buttons', ['route' => 'finance.gl.account-ledger.export'])
 </div>
 
 {{-- Filter Form --}}

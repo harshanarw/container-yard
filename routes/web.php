@@ -795,12 +795,17 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('gl')->name('gl.')->group(function () {
             Route::get('journals',                    [GeneralLedgerController::class, 'journals'])->name('journals.index');
             Route::get('journals/create',             [GeneralLedgerController::class, 'createJournal'])->name('journals.create');
+            // Before journals/{journal}: the wildcard would otherwise match
+            // "export" and try to resolve it as a journal id.
+            Route::get('journals/export',             [GeneralLedgerController::class, 'exportJournals'])->name('journals.export');
             Route::post('journals',                   [GeneralLedgerController::class, 'storeJournal'])->name('journals.store');
             Route::get('journals/{journal}',          [GeneralLedgerController::class, 'showJournal'])->name('journals.show');
             Route::post('journals/{journal}/post',    [GeneralLedgerController::class, 'postJournal'])->name('journals.post');
             Route::post('journals/{journal}/void',    [GeneralLedgerController::class, 'voidJournal'])->name('journals.void');
             Route::get('account-ledger',              [GeneralLedgerController::class, 'accountLedger'])->name('account-ledger');
+            Route::get('account-ledger/export',       [GeneralLedgerController::class, 'exportAccountLedger'])->name('account-ledger.export');
             Route::get('trial-balance',               [GeneralLedgerController::class, 'trialBalance'])->name('trial-balance');
+            Route::get('trial-balance/export',        [GeneralLedgerController::class, 'exportTrialBalance'])->name('trial-balance.export');
         });
 
         // Financial Reports
@@ -808,13 +813,16 @@ Route::middleware(['auth'])->group(function () {
             Route::get('income-statement', [GeneralLedgerController::class, 'incomeStatement'])->name('income-statement');
             Route::get('balance-sheet',    [GeneralLedgerController::class, 'balanceSheet'])->name('balance-sheet');
             Route::get('fx-gain-loss',      [GeneralLedgerController::class, 'fxGainLoss'])->name('fx-gain-loss');
+            Route::get('fx-gain-loss/export', [GeneralLedgerController::class, 'exportFxGainLoss'])->name('fx-gain-loss.export');
             Route::get('fx-revaluation',    [GeneralLedgerController::class, 'fxRevaluation'])->name('fx-revaluation');
+            Route::get('fx-revaluation/export', [GeneralLedgerController::class, 'exportFxRevaluation'])->name('fx-revaluation.export');
             Route::post('fx-revaluation',   [GeneralLedgerController::class, 'postFxRevaluation'])->name('fx-revaluation.post');
             Route::post('fx-revaluation/void', [GeneralLedgerController::class, 'voidFxRevaluation'])->name('fx-revaluation.void');
             Route::get('customer-statement', [\App\Http\Controllers\Finance\StatementController::class, 'customer'])->name('customer-statement');
             Route::get('supplier-statement', [\App\Http\Controllers\Finance\StatementController::class, 'supplier'])->name('supplier-statement');
             Route::get('vat-sscl-return',    [\App\Http\Controllers\Finance\TaxReturnController::class, 'vatSscl'])->name('vat-sscl-return');
             Route::get('wht-report',         [\App\Http\Controllers\Finance\TaxReturnController::class, 'wht'])->name('wht-report');
+            Route::get('wht-report/export',  [\App\Http\Controllers\Finance\TaxReturnController::class, 'exportWht'])->name('wht-report.export');
             Route::get('job-margin',         [\App\Http\Controllers\Finance\JobMarginReportController::class, 'index'])->name('job-margin');
         });
 
@@ -824,6 +832,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('postings',                 [InvoicePostingController::class, 'store'])->name('postings.store');
             Route::post('postings/{posting}/void',  [InvoicePostingController::class, 'void'])->name('postings.void');
             Route::get('aging',                     [GeneralLedgerController::class, 'arAging'])->name('aging');
+            Route::get('aging/export',              [GeneralLedgerController::class, 'exportArAging'])->name('aging.export');
         });
 
         // AP / Supplier Invoices — the supplier/contact master is the unified
@@ -841,6 +850,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('invoices/{supplierInvoice}/retry-post', [SupplierInvoiceController::class, 'retryPost'])->name('invoices.retry-post');
             Route::post('invoices/{supplierInvoice}/cancel',     [SupplierInvoiceController::class, 'cancel'])->name('invoices.cancel');
             Route::get('aging',                             [GeneralLedgerController::class, 'apAging'])->name('aging');
+            Route::get('aging/export',                      [GeneralLedgerController::class, 'exportApAging'])->name('aging.export');
         });
 
         // Bank Accounts

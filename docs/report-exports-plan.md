@@ -428,7 +428,7 @@ one that keeps CSV and Excel honest about being the same report.
 
 ### 10.4 Order
 
-**4a — the eight flat ones.** Trial Balance, Account Ledger, Journals, FX
+**4a — the eight flat ones. — done** Trial Balance, Account Ledger, Journals, FX
 Gain/Loss, FX Revaluation, WHT, AR Aging, AP Aging. Extract each query or service
 call, export it. Directly analogous to Phase 3.
 
@@ -456,3 +456,47 @@ Two additional checks that only matter here:
   to its `Total`.** That is what makes the flattening trustworthy rather than
   merely tidy — if the tree were flattened wrongly, this is the assertion that
   catches it.
+
+---
+
+## 11. Phase 4a as built
+
+CSV and Excel on **GL Journals, Account Ledger, Trial Balance, FX Gain/Loss,
+FX Revaluation, WHT, AR Aging and AP Aging**.
+
+Each screen's computation moved into a private method that both the view action
+and the export read, so no file re-derives a financial figure. The trial-balance
+test asserts that directly — the file's total row against the view's own totals —
+and would catch anyone later "optimising" the export into a second query.
+
+The buttons come from a new `partials.export-buttons`: eight screens with eight
+different header layouts, so one partial beats eight bespoke edits, and Excel is
+offered only where the writer is installed.
+
+### Four things worth recording
+
+**Route ordering.** `journals/export` was first registered after
+`journals/{journal}`, where the wildcard swallows it and tries to resolve
+"export" as a journal id. It now sits before it, with a note saying why.
+
+**A misleading variable.** `accountLedger` passes `$runningBalance` to the view,
+but it holds the *opening* figure — the view does its own running arithmetic and
+never reads it. The export's closing-balance row initially used it and was
+therefore wrong; it now accumulates its own, with the same sign rule the view
+applies.
+
+**Pagination.** The journals screen shows thirty at a time. A file containing
+only the first thirty would be a quiet trap, so the export ignores pagination and
+carries the whole filtered set, paged lazily. There is a test comparing its row
+count to the paginator's `total()`.
+
+**Structure in columns, not sheets.** Three of these eight carry more than one
+table — FX Gain/Loss has a per-source roll-up, FX Revaluation a per-side summary
+and a missing-rate list, WHT is grouped by party across two sections. Each is
+flattened under a `Section` (and for WHT a `Row Type`) column rather than split
+across sheets a CSV could not hold. That is the same shape §10.3 proposes for
+4c, now proven on three real reports before the two statements need it.
+
+The missing-rate rows on FX Revaluation are worth their own mention: a balance
+that could not be revalued is omitted from the net, so dropping those rows would
+make the total look complete when it is not.

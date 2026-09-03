@@ -28,6 +28,7 @@
         </div>
         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
     </form>
+    @include('partials.export-buttons', ['route' => 'finance.reports.fx-gain-loss.export'])
 </div>
 
 @if(!$gainAcc && !$lossAcc)

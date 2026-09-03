@@ -48,6 +48,7 @@
         @endcan
         @endif
     </div>
+    @include('partials.export-buttons', ['route' => 'finance.reports.fx-revaluation.export'])
 </div>
 
 @if(session('success'))

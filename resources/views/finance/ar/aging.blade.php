@@ -31,6 +31,7 @@
         <input type="date" name="as_of" class="form-control form-control-sm" value="{{ $asOf }}" style="width:160px">
         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
     </form>
+    @include('partials.export-buttons', ['route' => 'finance.ar.aging.export'])
 </div>
 
 @if(session('success'))

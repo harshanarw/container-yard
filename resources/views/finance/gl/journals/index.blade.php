@@ -19,6 +19,7 @@
         <i class="bi bi-plus-lg me-1"></i>New Journal
     </a>
     @endcan
+    @include('partials.export-buttons', ['route' => 'finance.gl.journals.export'])
 </div>
 
 @if(session('success'))

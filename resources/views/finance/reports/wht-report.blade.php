@@ -32,6 +32,7 @@
         </form>
         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
     </div>
+    @include('partials.export-buttons', ['route' => 'finance.reports.wht-report.export'])
 </div>
 
 {{-- Summary --}}

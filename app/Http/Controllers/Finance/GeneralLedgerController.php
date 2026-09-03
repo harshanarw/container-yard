@@ -15,6 +15,7 @@ use App\Models\StorageHandlingInvoice;
 use App\Models\StorageInvoice;
 use App\Models\SupplierInvoice;
 use App\Services\Finance\PostingEngine;
+use App\Support\Export\TabularExport;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,14 @@ class GeneralLedgerController extends Controller
     {
         $this->authorize('finance.gl.view');
 
+        $journals = $this->journalsQuery($request)->paginate(30)->withQueryString();
+
+        return view('finance.gl.journals.index', compact('journals'));
+    }
+
+    /** The journal list's filters, defined once for the screen and the export. */
+    private function journalsQuery(Request $request)
+    {
         $query = GlJournal::with(['period', 'createdBy', 'postedBy'])
             ->latest('journal_date')
             ->latest('id');
@@ -45,9 +54,37 @@ class GeneralLedgerController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        $journals = $query->paginate(30)->withQueryString();
+        return $query;
+    }
 
-        return view('finance.gl.journals.index', compact('journals'));
+    public function exportJournals(Request $request)
+    {
+        $this->authorize('finance.gl.view');
+
+        $query = $this->journalsQuery($request);
+
+        return TabularExport::stream($request->input('format'), 'gl-journals', [
+            'Journal No', 'Date', 'Type', 'Status', 'Period',
+            'Narration', 'Debit', 'Credit', 'Created By', 'Posted By',
+        ], function () use ($query) {
+            // The screen paginates; the file does not. An export of "page 1 of
+            // 30" would be a trap, so it carries the whole filtered set — paged
+            // through lazily so the ledger's size does not become memory.
+            foreach ($query->lazy(200) as $j) {
+                yield [
+                    $j->journal_no,
+                    $j->journal_date?->format('Y-m-d') ?? '-',
+                    $j->journal_type,
+                    $j->status,
+                    $j->period->name ?? '-',
+                    $j->narration,
+                    number_format((float) ($j->total_debit ?? 0), 2, '.', ''),
+                    number_format((float) ($j->total_credit ?? 0), 2, '.', ''),
+                    $j->createdBy->name ?? '-',
+                    $j->postedBy->name ?? '-',
+                ];
+            }
+        });
     }
 
     // Show single journal with entries
@@ -207,6 +244,12 @@ class GeneralLedgerController extends Controller
     {
         $this->authorize('finance.gl.view');
 
+        return view('finance.gl.account-ledger', $this->accountLedgerData($request));
+    }
+
+    /** Computed once; the screen and the export read the same numbers. */
+    private function accountLedgerData(Request $request): array
+    {
         $accounts       = Account::where('is_posting', true)->where('is_active', true)->orderBy('code')->get();
         $account        = null;
         $entries        = collect();
@@ -254,10 +297,65 @@ class GeneralLedgerController extends Controller
             $runningBalance = $openingBalance;
         }
 
-        return view('finance.gl.account-ledger', compact(
+        return compact(
             'accounts', 'account', 'entries', 'runningBalance', 'openingBalance',
             'base', 'currencies', 'currencyFilter'
-        ));
+        );
+    }
+
+    public function exportAccountLedger(Request $request)
+    {
+        $this->authorize('finance.gl.view');
+
+        $data = $this->accountLedgerData($request);
+
+        // No account chosen means no ledger. Sending the filter screen's empty
+        // state as a file would be a download that explains nothing.
+        abort_unless($data['account'], 404, 'Choose an account before exporting its ledger.');
+
+        $basename = 'account-ledger-' . preg_replace('/[^A-Za-z0-9]+/', '-', (string) $data['account']->code);
+
+        return TabularExport::stream($request->input('format'), $basename, [
+            'Date', 'Journal No', 'Narration', 'Currency',
+            'Debit', 'Credit', 'Balance',
+        ], function () use ($data) {
+            $account = $data['account'];
+            $running = (float) $data['openingBalance'];
+
+            // Opening and closing are context rather than transactions, but a
+            // ledger cannot be reconciled without them, so they bracket the
+            // rows as labelled lines — which is how a printed ledger reads.
+            yield ['', '', 'Opening balance', $data['base'], '', '',
+                number_format($running, 2, '.', '')];
+
+            foreach ($data['entries'] as $e) {
+                $debit  = (float) $e->debit;
+                $credit = (float) $e->credit;
+
+                // Signed the way the account runs: a debit-normal account grows
+                // on debits, a credit-normal one on credits.
+                $running += $account->normal_balance === 'debit'
+                    ? $debit - $credit
+                    : $credit - $debit;
+
+                yield [
+                    $e->journal->journal_date?->format('Y-m-d') ?? '-',
+                    $e->journal->journal_no ?? '-',
+                    $e->narration ?: ($e->journal->narration ?? ''),
+                    strtoupper((string) ($e->currency ?: $data['base'])),
+                    number_format($debit, 2, '.', ''),
+                    number_format($credit, 2, '.', ''),
+                    number_format($running, 2, '.', ''),
+                ];
+            }
+
+            // From the accumulator above, not from the controller's
+            // $runningBalance: that is set to the *opening* figure and the view
+            // does its own running arithmetic, so it is not the closing balance
+            // despite the name.
+            yield ['', '', 'Closing balance', $data['base'], '', '',
+                number_format($running, 2, '.', '')];
+        });
     }
 
     // Trial Balance: sum of all posted entries per account
@@ -265,6 +363,18 @@ class GeneralLedgerController extends Controller
     {
         $this->authorize('finance.gl.view');
 
+        return view('finance.gl.trial-balance', $this->trialBalanceData($request));
+    }
+
+    /**
+     * Computed once, read by the screen and by the export.
+     *
+     * A financial figure that disagrees with the screen is worse than no export
+     * at all, so the file never re-derives anything — it reads what the view was
+     * handed.
+     */
+    private function trialBalanceData(Request $request): array
+    {
         $from = $request->input('from', Carbon::now()->startOfYear()->toDateString());
         $to   = $request->input('to', Carbon::now()->toDateString());
 
@@ -285,7 +395,38 @@ class GeneralLedgerController extends Controller
         $totalCredit = $rows->sum('total_credit');
         $grouped     = $rows->groupBy('classification');
 
-        return view('finance.gl.trial-balance', compact('rows', 'grouped', 'from', 'to', 'totalDebit', 'totalCredit'));
+        return compact('rows', 'grouped', 'from', 'to', 'totalDebit', 'totalCredit');
+    }
+
+    public function exportTrialBalance(Request $request)
+    {
+        // Repeated, not inherited: authorization here is per-action rather than
+        // constructor middleware, so an export that omits it is simply open.
+        $this->authorize('finance.gl.view');
+
+        $data = $this->trialBalanceData($request);
+
+        return TabularExport::stream($request->input('format'), 'trial-balance', [
+            'Code', 'Account', 'Classification', 'Debit', 'Credit',
+        ], function () use ($data) {
+            foreach ($data['rows'] as $a) {
+                yield [
+                    $a->code,
+                    $a->name,
+                    $a->classification,
+                    number_format((float) ($a->total_debit ?? 0), 2, '.', ''),
+                    number_format((float) ($a->total_credit ?? 0), 2, '.', ''),
+                ];
+            }
+
+            // The screen shows these under the table; a trial balance is not
+            // worth reading without them, since the whole point is that they
+            // agree.
+            yield ['', 'TOTAL', '',
+                number_format((float) $data['totalDebit'], 2, '.', ''),
+                number_format((float) $data['totalCredit'], 2, '.', ''),
+            ];
+        });
     }
 
     /**
@@ -495,6 +636,13 @@ class GeneralLedgerController extends Controller
     {
         $this->authorize('finance.gl.view');
 
+        return view('finance.reports.fx-gain-loss', $this->fxGainLossData($request));
+    }
+
+    /** Computed once; the screen and the export read the same numbers. */
+    private function fxGainLossData(Request $request): array
+    {
+
         $from = $request->input('from', Carbon::now()->startOfYear()->toDateString());
         $to   = $request->input('to', Carbon::now()->toDateString());
         $base = \App\Services\CurrencyService::defaultCurrency();
@@ -553,10 +701,57 @@ class GeneralLedgerController extends Controller
             'net'    => round($r->sum('gain') - $r->sum('loss'), 2),
         ])->sortByDesc(fn ($r) => abs($r['net']))->values();
 
-        return view('finance.reports.fx-gain-loss', compact(
+        return compact(
             'from', 'to', 'base', 'rows', 'bySource',
             'totalGain', 'totalLoss', 'net', 'gainAcc', 'lossAcc'
-        ));
+        );
+    }
+
+    public function exportFxGainLoss(Request $request)
+    {
+        $this->authorize('finance.gl.view');
+
+        $data = $this->fxGainLossData($request);
+
+        // The screen carries two tables — the entries and a per-source roll-up.
+        // Both go in one file under a Section column rather than one being
+        // dropped or split onto a second sheet that CSV could not hold.
+        return TabularExport::stream($request->input('format'), 'fx-gain-loss', [
+            'Section', 'Date', 'Journal No', 'Source', 'Narration', 'Gain', 'Loss', 'Net',
+        ], function () use ($data) {
+            foreach ($data['rows'] as $r) {
+                $date = $r['date'] instanceof \DateTimeInterface
+                    ? $r['date']->format('Y-m-d')
+                    : (string) $r['date'];
+
+                yield [
+                    'Entry',
+                    $date,
+                    $r['journal_no'],
+                    $r['source'],
+                    $r['narration'],
+                    number_format((float) $r['gain'], 2, '.', ''),
+                    number_format((float) $r['loss'], 2, '.', ''),
+                    number_format((float) $r['gain'] - (float) $r['loss'], 2, '.', ''),
+                ];
+            }
+
+            foreach ($data['bySource'] as $r) {
+                yield [
+                    'By source', '', '', $r['source'], '',
+                    number_format((float) $r['gain'], 2, '.', ''),
+                    number_format((float) $r['loss'], 2, '.', ''),
+                    number_format((float) $r['net'], 2, '.', ''),
+                ];
+            }
+
+            yield [
+                'Total', '', '', '', '',
+                number_format((float) $data['totalGain'], 2, '.', ''),
+                number_format((float) $data['totalLoss'], 2, '.', ''),
+                number_format((float) $data['net'], 2, '.', ''),
+            ];
+        });
     }
 
     /**
@@ -575,6 +770,58 @@ class GeneralLedgerController extends Controller
         $data['canPost']       = auth()->user()->can('finance.gl.create');
 
         return view('finance.reports.fx-revaluation', $data);
+    }
+
+    public function exportFxRevaluation(Request $request, \App\Services\Finance\FxRevaluationService $service)
+    {
+        $this->authorize('finance.gl.view');
+
+        $asOf = $request->input('as_of', Carbon::now()->endOfMonth()->toDateString());
+        $data = $service->preview($asOf);
+
+        return TabularExport::stream($request->input('format'), 'fx-revaluation-' . $asOf, [
+            'Section', 'Side', 'Type', 'Reference', 'Currency',
+            'Doc Outstanding', 'Booked Rate', 'As-Of Rate',
+            'Booked (Base)', 'Revalued (Base)', 'Delta',
+        ], function () use ($data) {
+            foreach ($data['items'] as $i) {
+                yield [
+                    'Balance',
+                    $i['side'],
+                    $i['type'],
+                    $i['no'],
+                    strtoupper((string) $i['currency']),
+                    number_format((float) $i['doc_outstanding'], 2, '.', ''),
+                    number_format((float) $i['booked_rate'], 6, '.', ''),
+                    number_format((float) $i['asof_rate'], 6, '.', ''),
+                    number_format((float) $i['booked_base'], 2, '.', ''),
+                    number_format((float) $i['revalued_base'], 2, '.', ''),
+                    number_format((float) $i['delta'], 2, '.', ''),
+                ];
+            }
+
+            // The per-side roll-up and the net, which is the figure the posting
+            // is made from — the report is not usable without it.
+            $sum = $data['summary'];
+            foreach (['AR' => 'ar', 'AP' => 'ap', 'BANK' => 'bank'] as $label => $key) {
+                yield [
+                    'Summary', $label, '', '', '', '', '', '',
+                    number_format((float) $sum[$key . '_booked'], 2, '.', ''),
+                    number_format((float) $sum[$key . '_revalued'], 2, '.', ''),
+                    number_format((float) $sum[$key . '_delta'], 2, '.', ''),
+                ];
+            }
+
+            yield ['Summary', 'NET UNREALIZED', '', '', '', '', '', '', '', '',
+                number_format((float) $sum['net_gain'], 2, '.', '')];
+
+            // A missing rate means a balance could not be revalued. Silently
+            // omitting those would make the net look complete when it is not.
+            foreach ($data['missing'] ?? [] as $m) {
+                yield ['Missing rate', '', '', is_array($m) ? implode(' ', $m) : (string) $m,
+                    '', '', '', '', '', '', ''];
+            }
+        });
     }
 
     /**
@@ -624,6 +871,16 @@ class GeneralLedgerController extends Controller
     public function arAging(Request $request)
     {
         $this->authorize('finance.ar.view');
+
+        return view('finance.ar.aging', $this->arAgingData($request));
+    }
+
+    /**
+     * Computed once. Aging drives collections, so an export that disagreed with
+     * the screen would have somebody chasing the wrong customer.
+     */
+    private function arAgingData(Request $request): array
+    {
 
         $asOf = $request->input('as_of', Carbon::today()->toDateString());
         $asOfDate = Carbon::parse($asOf);
@@ -853,15 +1110,62 @@ class GeneralLedgerController extends Controller
             'rate_max'         => (float) $r->max('rate'),
         ])->sortKeys()->values();
 
-        return view('finance.ar.aging', compact(
+        return compact(
             'byCustomer', 'grandTotals', 'asOf', 'ageBy', 'base', 'currencies', 'currencyFilter', 'currencySummary'
-        ));
+        );
+    }
+
+    public function exportArAging(Request $request)
+    {
+        $this->authorize('finance.ar.view');
+
+        $data = $this->arAgingData($request);
+
+        return TabularExport::stream($request->input('format'), 'ar-aging', [
+            'Section', 'Customer', 'Code', 'Current', '1-30', '31-60', '61-90', '90+',
+            'Total', 'Credit Limit', 'Over Limit',
+        ], function () use ($data) {
+            foreach ($data['byCustomer'] as $r) {
+                yield [
+                    'Customer',
+                    $r['customer']->name ?? '-',
+                    $r['customer']->code ?? '-',
+                    number_format((float) $r['current'], 2, '.', ''),
+                    number_format((float) $r['1-30'], 2, '.', ''),
+                    number_format((float) $r['31-60'], 2, '.', ''),
+                    number_format((float) $r['61-90'], 2, '.', ''),
+                    number_format((float) $r['90+'], 2, '.', ''),
+                    number_format((float) $r['total'], 2, '.', ''),
+                    number_format((float) $r['credit_limit'], 2, '.', ''),
+                    number_format((float) $r['over_limit'], 2, '.', ''),
+                ];
+            }
+
+            $g = $data['grandTotals'];
+            yield [
+                'Total', 'ALL CUSTOMERS', '',
+                number_format((float) $g['current'], 2, '.', ''),
+                number_format((float) $g['1-30'], 2, '.', ''),
+                number_format((float) $g['31-60'], 2, '.', ''),
+                number_format((float) $g['61-90'], 2, '.', ''),
+                number_format((float) $g['90+'], 2, '.', ''),
+                number_format((float) $g['total'], 2, '.', ''),
+                '', '',
+            ];
+        });
     }
 
     // AP Aging: outstanding payables by supplier and age bucket
     public function apAging(Request $request)
     {
         $this->authorize('finance.ap.view');
+
+        return view('finance.ap.aging', $this->apAgingData($request));
+    }
+
+    /** Computed once, for the same reason as AR aging above. */
+    private function apAgingData(Request $request): array
+    {
 
         $asOf     = $request->input('as_of', Carbon::today()->toDateString());
         $asOfDate = Carbon::parse($asOf);
@@ -1032,8 +1336,44 @@ class GeneralLedgerController extends Controller
             'rate_max'         => (float) $r->max('rate'),
         ])->sortKeys()->values();
 
-        return view('finance.ap.aging', compact(
+        return compact(
             'bySupplier', 'grandTotals', 'asOf', 'ageBy', 'base', 'currencies', 'currencyFilter', 'currencySummary'
-        ));
+        );
+    }
+
+    public function exportApAging(Request $request)
+    {
+        $this->authorize('finance.ap.view');
+
+        $data = $this->apAgingData($request);
+
+        return TabularExport::stream($request->input('format'), 'ap-aging', [
+            'Section', 'Supplier', 'Code', 'Current', '1-30', '31-60', '61-90', '90+', 'Total',
+        ], function () use ($data) {
+            foreach ($data['bySupplier'] as $r) {
+                yield [
+                    'Supplier',
+                    $r['supplier']->name ?? '-',
+                    $r['supplier']->code ?? '-',
+                    number_format((float) $r['current'], 2, '.', ''),
+                    number_format((float) $r['1-30'], 2, '.', ''),
+                    number_format((float) $r['31-60'], 2, '.', ''),
+                    number_format((float) $r['61-90'], 2, '.', ''),
+                    number_format((float) $r['90+'], 2, '.', ''),
+                    number_format((float) $r['total'], 2, '.', ''),
+                ];
+            }
+
+            $g = $data['grandTotals'];
+            yield [
+                'Total', 'ALL SUPPLIERS', '',
+                number_format((float) $g['current'], 2, '.', ''),
+                number_format((float) $g['1-30'], 2, '.', ''),
+                number_format((float) $g['31-60'], 2, '.', ''),
+                number_format((float) $g['61-90'], 2, '.', ''),
+                number_format((float) $g['90+'], 2, '.', ''),
+                number_format((float) $g['total'], 2, '.', ''),
+            ];
+        });
     }
 }
