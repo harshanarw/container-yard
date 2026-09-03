@@ -1566,6 +1566,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('reports.weekly-performance') }}"
+                       class="nav-link {{ request()->routeIs('reports.weekly-performance') ? 'active' : '' }}">
+                        <i class="bi bi-graph-up"></i><span>Weekly Performance</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('reports.billing') }}"
                        class="nav-link {{ request()->routeIs('reports.billing') ? 'active' : '' }}">
                         <i class="bi bi-receipt"></i><span>Billing</span>

@@ -7,18 +7,19 @@ use DateTimeImmutable;
 /**
  * Cuts a date range into the week bands a weekly report is laid out in.
  *
- * Two rules, because the yard's existing sheet and the stated preference
- * disagree and both are defensible:
+ * Two kinds of rule, because they answer different questions:
  *
+ *  - **Blocks** (the default) — the first seven days from whatever date was
+ *    picked, then the next seven. The bands follow the range the operator
+ *    actually gave, and every one is a full week except possibly the last.
  *  - **Calendar** — weeks run Monday to Sunday (or Sunday to Saturday), and the
  *    first and last band are clipped to the range. Week boundaries never move,
  *    so two reports over different ranges line up band for band.
- *  - **Blocks** — the first seven days from whatever date was picked, then the
- *    next seven. Every band is a full week except possibly the last.
  *
- * The difference is not cosmetic. August 2026 opens on a Saturday: clipped
- * Monday-Sunday gives six bands, seven-day blocks give five. The sample
- * workbook has five, which is why both rules exist here rather than one.
+ * The difference is not cosmetic. August 2026 opens on a Saturday: seven-day
+ * blocks give five bands, clipped Monday-Sunday gives six. The sample workbook
+ * has five, which is why blocks is the default and why the calendar rules are
+ * here at all rather than being assumed away.
  *
  * Date strings in, date strings out (`Y-m-d`): no model, no query, no Carbon, no
  * framework. Which week a lift falls in is arithmetic, and this is the whole of
@@ -36,6 +37,16 @@ class WeekBreakdown
     public const BLOCKS = 'blocks';
 
     /**
+     * Blocks, because the weeks should follow the range the operator gave
+     * rather than a calendar they did not ask about.
+     *
+     * It is also what the yard's existing sheet does: its August 2026 edition
+     * has five bands, which is 1-7, 8-14, 15-21, 22-28, 29-31. Monday-Sunday
+     * would have produced six, because that August opens on a Saturday.
+     */
+    public const DEFAULT = self::BLOCKS;
+
+    /**
      * The rules a screen may offer, and what to call them.
      *
      * @return array<string,string>
@@ -43,9 +54,9 @@ class WeekBreakdown
     public static function rules(): array
     {
         return [
+            self::BLOCKS          => '7-day blocks from the start date',
             self::CALENDAR        => 'Calendar weeks (Mon–Sun)',
             self::CALENDAR_SUNDAY => 'Calendar weeks (Sun–Sat)',
-            self::BLOCKS          => '7-day blocks from the start date',
         ];
     }
 
@@ -59,7 +70,7 @@ class WeekBreakdown
      *
      * @return array<int,array{no:int,from:string,to:string,days:int,label:string,partial:bool}>
      */
-    public static function for(string $from, string $to, string $rule = self::CALENDAR): array
+    public static function for(string $from, string $to, string $rule = self::DEFAULT): array
     {
         $start = self::parse($from);
         $end   = self::parse($to);

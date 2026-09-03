@@ -7,6 +7,8 @@ use App\Models\Customer;
 use App\Models\GateMovement;
 use App\Models\YardStorage;
 use App\Services\ContainerMrStatusService;
+use App\Services\Reporting\WeekBreakdown;
+use App\Services\Reporting\WeeklyPerformanceReport;
 use App\Support\Export\TabularExport;
 use App\Support\MrStatusCatalogue;
 use Illuminate\Http\Request;
@@ -381,6 +383,60 @@ class ReportController extends Controller
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
 
         return view('reports.billing', compact('storageRecords', 'summary', 'customers'));
+    }
+
+    /**
+     * Weekly Performance — lifts per customer, per week, by size and cargo
+     * status, with Mounting and Demounting on separate rows.
+     *
+     * Authorization is the constructor's `can:reports.view` and is not repeated
+     * here. That is the opposite of the finance controllers, which authorize
+     * per action; the check belongs in exactly one of the two places and this
+     * controller has chosen the constructor.
+     */
+    public function weeklyPerformance(Request $request, WeeklyPerformanceReport $report)
+    {
+        $filters = $this->weeklyPerformanceFilters($request);
+
+        // One call. The grid, and later the workbook, read the same array —
+        // there is no second query that could drift from what the operator
+        // filtered the screen to.
+        $data = $report->build($filters['from'], $filters['to'], $filters);
+
+        return view('reports.weekly-performance', [
+            'data'      => $data,
+            'filters'   => $filters,
+            'weekRules' => WeekBreakdown::rules(),
+            'customers' => Customer::orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
+    /**
+     * The filters, read once and normalised.
+     *
+     * Defaults to the current month, which is the period this sheet is
+     * circulated for. `validate()` rather than trust: `week_rule` reaches an
+     * array lookup and `customer_id` a query, and a report screen's query
+     * string is as reachable as any other.
+     *
+     * @return array{from:string,to:string,week_rule:string,customer_id:?int,only_with_movements:bool}
+     */
+    private function weeklyPerformanceFilters(Request $request): array
+    {
+        $request->validate([
+            'from'        => 'nullable|date',
+            'to'          => 'nullable|date|after_or_equal:from',
+            'week_rule'   => 'nullable|string|in:' . implode(',', array_keys(WeekBreakdown::rules())),
+            'customer_id' => 'nullable|integer|exists:customers,id',
+        ]);
+
+        return [
+            'from'                => $request->input('from', now()->startOfMonth()->toDateString()),
+            'to'                  => $request->input('to', now()->endOfMonth()->toDateString()),
+            'week_rule'           => $request->input('week_rule', WeekBreakdown::DEFAULT),
+            'customer_id'         => $request->filled('customer_id') ? (int) $request->input('customer_id') : null,
+            'only_with_movements' => $request->boolean('only_with_movements'),
+        ];
     }
 
     public function dailyMovements(Request $request)

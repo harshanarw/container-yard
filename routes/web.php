@@ -312,6 +312,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/mr-status/export/csv',             [ReportController::class, 'exportMrStatusCsv'])->name('mr-status.export.csv');
         Route::get('/billing',                          [ReportController::class, 'billing'])->name('billing');
         Route::get('/billing/export',                   [ReportController::class, 'exportBilling'])->name('billing.export');
+        Route::get('/weekly-performance',               [ReportController::class, 'weeklyPerformance'])->name('weekly-performance');
         Route::get('/daily-movements',                  [ReportController::class, 'dailyMovements'])->name('daily-movements');
         Route::post('/daily-movements/export/csv',      [ReportController::class, 'exportMovementsCsv'])->name('daily-movements.export.csv');
         Route::post('/daily-movements/export/codeco',   [ReportController::class, 'exportMovementsCodeco'])->name('daily-movements.export.codeco');

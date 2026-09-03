@@ -96,17 +96,18 @@ class WeeklyPerformanceReportTest extends FeatureTestCase
 
     // ── Week bucketing ──────────────────────────────────────────────────────
 
+    /** Bands under the default rule: 01–07, 08–14, 15–21, 22–28, 29–31. */
     public function test_lifts_land_in_the_week_they_happened(): void
     {
         $customer = $this->customer('ACME');
-        $this->lift($customer, 'in', '2026-08-03', '20', 'empty');   // band 2, Mon
-        $this->lift($customer, 'in', '2026-08-09', '20', 'empty');   // band 2, Sun
-        $this->lift($customer, 'in', '2026-08-10', '20', 'empty');   // band 3
+        $this->lift($customer, 'in', '2026-08-02', '20', 'empty');   // band 1, opening
+        $this->lift($customer, 'in', '2026-08-07', '20', 'empty');   // band 1, closing
+        $this->lift($customer, 'in', '2026-08-08', '20', 'empty');   // band 2, the next day
 
         $row = $this->rowFor($this->build(), $customer->id);
 
-        $this->assertSame(2, $row['demounting']['weeks'][1]['empty_20']);
-        $this->assertSame(1, $row['demounting']['weeks'][2]['empty_20']);
+        $this->assertSame(2, $row['demounting']['weeks'][0]['empty_20']);
+        $this->assertSame(1, $row['demounting']['weeks'][1]['empty_20'], 'One day later is the next band.');
         $this->assertSame(3, $row['demounting']['total']['empty_20']);
     }
 
@@ -131,19 +132,30 @@ class WeeklyPerformanceReportTest extends FeatureTestCase
         $this->assertSame(0, $this->build()['movement_count']);
     }
 
+    /**
+     * The default follows the range the operator gave: seven-day blocks from
+     * its first day, which is five bands for August. Asking for calendar weeks
+     * instead gives six, because that August opens on a Saturday.
+     */
     public function test_the_week_rule_changes_the_bands(): void
     {
-        $data = $this->build(['week_rule' => WeekBreakdown::BLOCKS]);
+        $this->assertCount(5, $this->build()['weeks']);
+        $this->assertCount(6, $this->build(['week_rule' => WeekBreakdown::CALENDAR])['weeks']);
+    }
 
-        $this->assertCount(5, $data['weeks']);
-        $this->assertCount(6, $this->build()['weeks'], 'The default is Mon–Sun, which August 2026 splits into six.');
+    public function test_the_default_bands_start_on_the_first_day_of_the_range(): void
+    {
+        $weeks = $this->build()['weeks'];
+
+        $this->assertSame(['2026-08-01', '2026-08-07'], [$weeks[0]['from'], $weeks[0]['to']]);
+        $this->assertSame(['2026-08-29', '2026-08-31'], [$weeks[4]['from'], $weeks[4]['to']]);
     }
 
     public function test_an_unknown_week_rule_falls_back_rather_than_failing(): void
     {
         $data = $this->build(['week_rule' => 'fortnightly']);
 
-        $this->assertSame(WeekBreakdown::CALENDAR, $data['week_rule']);
+        $this->assertSame(WeekBreakdown::DEFAULT, $data['week_rule']);
     }
 
     // ── Totals: the invariant the grid rests on ─────────────────────────────
@@ -221,15 +233,15 @@ class WeeklyPerformanceReportTest extends FeatureTestCase
     public function test_each_weeks_grand_total_matches_the_lifts_in_that_week(): void
     {
         $a = $this->customer('ALPHA');
-        $this->lift($a, 'in',  '2026-08-04', '20', 'laden');   // band 2
-        $this->lift($a, 'out', '2026-08-05', '40', 'empty');   // band 2
-        $this->lift($a, 'in',  '2026-08-12', '45', 'empty');   // band 3
+        $this->lift($a, 'in',  '2026-08-04', '20', 'laden');   // band 1
+        $this->lift($a, 'out', '2026-08-05', '40', 'empty');   // band 1
+        $this->lift($a, 'in',  '2026-08-12', '45', 'empty');   // band 2
 
         $data = $this->build();
 
-        $this->assertSame(2, array_sum($data['totals']['grand']['weeks'][1]));
-        $this->assertSame(1, array_sum($data['totals']['grand']['weeks'][2]));
-        $this->assertSame(0, array_sum($data['totals']['grand']['weeks'][0]), 'The 1st–2nd stub saw nothing.');
+        $this->assertSame(2, array_sum($data['totals']['grand']['weeks'][0]));
+        $this->assertSame(1, array_sum($data['totals']['grand']['weeks'][1]));
+        $this->assertSame(0, array_sum($data['totals']['grand']['weeks'][4]), 'The closing band saw nothing.');
     }
 
     // ── Which customers appear ──────────────────────────────────────────────

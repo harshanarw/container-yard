@@ -111,11 +111,12 @@ band 6  31 Aug – 31 Aug   (part week)
 Five bands is what **7-day blocks from the start date** produces: 1–7, 8–14,
 15–21, 22–28, 29–31. So the yard's existing sheet appears to use 7-day blocks.
 
-**Resolution: build both, expose the rule as a selector on the screen.** The
-difference is about ten lines of code and the report is unusable if the weeks
-don't match what the yard already circulates. Default to Monday–Sunday as
-chosen; flipping the default is a one-word change once someone confirms against
-a real August sheet.
+**Settled: seven-day blocks is the default**, with the two calendar rules on a
+selector beside the date range. The weeks should follow the range the operator
+gave rather than a calendar they did not ask about — and that is also what the
+yard's sheet does, as the five August bands show. Both calendar rules stay
+because week boundaries that never move are the right answer for comparing one
+report against another, which is a different question.
 
 Either way the band count is **variable**, driven by the range. The sample's
 five is a fact about August, not a fixed width — a two-week range renders two

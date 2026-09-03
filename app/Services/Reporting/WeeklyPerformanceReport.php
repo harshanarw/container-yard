@@ -46,9 +46,9 @@ class WeeklyPerformanceReport
      */
     public function build(string $from, string $to, array $options = []): array
     {
-        $rule = $options['week_rule'] ?? WeekBreakdown::CALENDAR;
+        $rule = $options['week_rule'] ?? WeekBreakdown::DEFAULT;
         if (! WeekBreakdown::isRule($rule)) {
-            $rule = WeekBreakdown::CALENDAR;
+            $rule = WeekBreakdown::DEFAULT;
         }
 
         $weeks      = WeekBreakdown::for($from, $to, $rule);
