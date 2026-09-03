@@ -253,8 +253,12 @@ class WeeklyPerformanceExportTest extends FeatureTestCase
 
     private function skipWithoutWriter(): void
     {
-        if (! TabularExport::supports(TabularExport::XLSX)) {
-            $this->markTestSkipped('openspout/openspout is not installed.');
+        if (! \App\Support\Export\WeeklyPerformanceWorkbook::available()) {
+            $this->markTestSkipped(
+                'This openspout cannot produce the banded workbook — it needs the borders, '
+                . 'merges, column widths and frozen panes that arrived across 4.x. '
+                . 'Run `composer update openspout/openspout`. The flat CSV is covered below either way.'
+            );
         }
     }
 

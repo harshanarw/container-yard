@@ -54,7 +54,7 @@
         <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-printer me-1"></i>Print
         </button>
-        @if(\App\Support\Export\TabularExport::supports('xlsx'))
+        @if(\App\Support\Export\WeeklyPerformanceWorkbook::available())
         <a href="{{ route('reports.weekly-performance.export', request()->query()) }}"
            class="btn btn-outline-success btn-sm" title="The sheet as an Excel workbook">
             <i class="bi bi-file-earmark-excel me-1"></i>Excel

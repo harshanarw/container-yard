@@ -421,10 +421,12 @@ class ReportController extends Controller
         $filters = $this->weeklyPerformanceFilters($request);
         $data    = $report->build($filters['from'], $filters['to'], $filters);
 
-        // No writer, no workbook. Falling back to the flat CSV beats a 500 on a
-        // server where openspout was never installed, and the buttons already
-        // hide themselves in that case.
-        if (! TabularExport::supports(TabularExport::XLSX)) {
+        // No writer, or one too old for the banded layout: fall back to the
+        // flat CSV rather than 500, or than hand back an unstyled sheet that
+        // would look nothing like the one the yard circulates. The button on
+        // the screen asks the same question, so this is the second line of
+        // defence rather than the first.
+        if (! WeeklyPerformanceWorkbook::available()) {
             return $this->weeklyPerformanceCsv($data);
         }
 
