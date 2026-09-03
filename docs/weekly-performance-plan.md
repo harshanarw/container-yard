@@ -297,6 +297,16 @@ and a merged workbook is unparseable to a script.
 **Phase 4 — print / PDF.** The same layout again for the printed page, where
 Blade and CSS do `colspan`/`rowspan` natively.
 
+### 4c as built
+
+The workbook is verified by opening it back up rather than by trusting it was
+written: cells by A1 reference, and the merge ranges that turn four rows of text
+into banded headers. Two reader options had to be turned on for that to mean
+anything — `SHOULD_LOAD_MERGE_CELLS`, obviously, and `SHOULD_PRESERVE_EMPTY_ROWS`,
+because without it the reader resequences its row indices past the two blanks in
+the title block and every reference lands two rows out, silently, on cells that
+still hold plausible values.
+
 ---
 
 ## 8. Tests

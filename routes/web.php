@@ -313,6 +313,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/billing',                          [ReportController::class, 'billing'])->name('billing');
         Route::get('/billing/export',                   [ReportController::class, 'exportBilling'])->name('billing.export');
         Route::get('/weekly-performance',               [ReportController::class, 'weeklyPerformance'])->name('weekly-performance');
+        Route::get('/weekly-performance/export',        [ReportController::class, 'exportWeeklyPerformance'])->name('weekly-performance.export');
+        Route::get('/weekly-performance/export/csv',    [ReportController::class, 'exportWeeklyPerformanceCsv'])->name('weekly-performance.export.csv');
         Route::get('/daily-movements',                  [ReportController::class, 'dailyMovements'])->name('daily-movements');
         Route::post('/daily-movements/export/csv',      [ReportController::class, 'exportMovementsCsv'])->name('daily-movements.export.csv');
         Route::post('/daily-movements/export/codeco',   [ReportController::class, 'exportMovementsCodeco'])->name('daily-movements.export.codeco');

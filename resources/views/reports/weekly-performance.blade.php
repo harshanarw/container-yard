@@ -49,10 +49,21 @@
         <h4><i class="bi bi-graph-up me-2 text-primary"></i>Weekly Performance</h4>
         <p class="text-muted mb-0 small">Lifts per customer, week by week, by size and cargo status</p>
     </div>
+    {{-- Both carry the current filters, so what downloads is what is on screen. --}}
     <div class="d-flex flex-wrap gap-2 no-print">
         <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-printer me-1"></i>Print
         </button>
+        @if(\App\Support\Export\TabularExport::supports('xlsx'))
+        <a href="{{ route('reports.weekly-performance.export', request()->query()) }}"
+           class="btn btn-outline-success btn-sm" title="The sheet as an Excel workbook">
+            <i class="bi bi-file-earmark-excel me-1"></i>Excel
+        </a>
+        @endif
+        <a href="{{ route('reports.weekly-performance.export.csv', request()->query()) }}"
+           class="btn btn-outline-success btn-sm" title="One heading row per column, for scripts and formulas">
+            <i class="bi bi-filetype-csv me-1"></i>CSV
+        </a>
     </div>
 </div>
 

@@ -10,6 +10,7 @@ use App\Services\ContainerMrStatusService;
 use App\Services\Reporting\WeekBreakdown;
 use App\Services\Reporting\WeeklyPerformanceReport;
 use App\Support\Export\TabularExport;
+use App\Support\Export\WeeklyPerformanceWorkbook;
 use App\Support\MrStatusCatalogue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -409,6 +410,77 @@ class ReportController extends Controller
             'weekRules' => WeekBreakdown::rules(),
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
         ]);
+    }
+
+    /**
+     * The sheet as the workbook the yard already circulates — merged week
+     * bands, the date range under each, blank zeros.
+     */
+    public function exportWeeklyPerformance(Request $request, WeeklyPerformanceReport $report)
+    {
+        $filters = $this->weeklyPerformanceFilters($request);
+        $data    = $report->build($filters['from'], $filters['to'], $filters);
+
+        // No writer, no workbook. Falling back to the flat CSV beats a 500 on a
+        // server where openspout was never installed, and the buttons already
+        // hide themselves in that case.
+        if (! TabularExport::supports(TabularExport::XLSX)) {
+            return $this->weeklyPerformanceCsv($data);
+        }
+
+        return WeeklyPerformanceWorkbook::stream($data);
+    }
+
+    /**
+     * The same figures flattened to one heading row per column.
+     *
+     * A merged workbook is unreadable to a script, and not everything that
+     * consumes this report is Excel. Zero is written as `0` here rather than
+     * left blank: this file exists to be parsed, and a blank cell is not a
+     * number.
+     */
+    public function exportWeeklyPerformanceCsv(Request $request, WeeklyPerformanceReport $report)
+    {
+        $filters = $this->weeklyPerformanceFilters($request);
+
+        return $this->weeklyPerformanceCsv($report->build($filters['from'], $filters['to'], $filters));
+    }
+
+    private function weeklyPerformanceCsv(array $data)
+    {
+        $headings = ['Customer', 'Code', 'Direction'];
+        foreach (array_merge($data['weeks'], [['no' => 'Total', 'label' => '']]) as $week) {
+            foreach ($data['columns'] as $key) {
+                [$status, $size] = explode('_', $key);
+                $band = is_int($week['no']) ? "W{$week['no']} {$week['label']}" : 'Total';
+                $headings[] = $band . ' · ' . ucfirst($status) . ' ' . $size;
+            }
+        }
+
+        return TabularExport::csv('weekly-performance', $headings, function () use ($data) {
+            $line = function (string $label, string $code, string $direction, array $side) use ($data) {
+                $row = [$label, $code, $direction];
+                foreach (array_keys($data['weeks']) as $w) {
+                    foreach ($data['columns'] as $key) {
+                        $row[] = (int) ($side['weeks'][$w][$key] ?? 0);
+                    }
+                }
+                foreach ($data['columns'] as $key) {
+                    $row[] = (int) ($side['total'][$key] ?? 0);
+                }
+
+                return $row;
+            };
+
+            foreach ($data['rows'] as $entry) {
+                yield $line($entry['customer'], (string) $entry['code'], 'Demounting', $entry['demounting']);
+                yield $line($entry['customer'], (string) $entry['code'], 'Mounting', $entry['mounting']);
+            }
+
+            yield $line('TOTAL DEMOUNTING', '', 'Demounting', $data['totals']['demounting']);
+            yield $line('TOTAL MOUNTING', '', 'Mounting', $data['totals']['mounting']);
+            yield $line('GRAND TOTAL', '', 'Both', $data['totals']['grand']);
+        });
     }
 
     /**
