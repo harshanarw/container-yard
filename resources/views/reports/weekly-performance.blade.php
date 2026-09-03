@@ -32,12 +32,50 @@
     .wp-quiet .wp-name, .wp-quiet .wp-label { color: var(--bs-secondary-color); font-weight: 400; }
     .wp-total-band { background: var(--bs-secondary-bg); }
 
+    /* Print-only masthead: the screen carries this in its filter bar and card
+       header, neither of which survives printing. A sheet passed round the yard
+       has to say what period it covers and what it was filtered to. */
+    .wp-print-head { display: none; }
+
     @media print {
+        /* Landscape, or thirty-eight columns cannot be read at any font size. */
+        @page { size: landscape; margin: 10mm; }
+
         #sidebar, #topbar, .no-print { display: none !important; }
         #main-content { margin: 0 !important; padding: 0 !important; }
+        .page-header, .content-card > .card-header { display: none !important; }
+        .card, .content-card { border: 0 !important; box-shadow: none !important; }
+        .card-body { padding: 0 !important; }
+
+        .wp-print-head { display: block; margin-bottom: 6px; }
+        .wp-print-head h5 { font-size: 11pt; font-weight: 700; margin: 0 0 2px; }
+        .wp-print-head .wp-print-meta { font-size: 7pt; color: #444; }
+
         .wp-scroll { overflow: visible !important; }
-        .wp-grid { font-size: .62rem; }
-        .wp-grid .wp-name, .wp-grid .wp-label { position: static; }
+        .wp-grid { font-size: .58rem; width: 100% !important; table-layout: fixed; }
+        .wp-grid th, .wp-grid td { padding: 1px 2px; }
+        .wp-grid .wp-name, .wp-grid .wp-label { position: static; min-width: 0; }
+        .wp-grid .wp-name { width: 13%; white-space: normal; word-break: break-word; }
+        .wp-grid .wp-label { width: 7%; }
+
+        /* The header block repeats at the top of every printed page. Without
+           this, page two is a grid of numbers with nothing naming the columns. */
+        .wp-grid thead { display: table-header-group; }
+        .wp-grid tfoot { display: table-footer-group; }
+        /* A customer's Demounting and Mounting rows are one reading unit, and
+           the name is merged across them — splitting the pair across a page
+           leaves the second row anonymous. */
+        .wp-grid tbody tr { page-break-inside: avoid; }
+
+        /* Fills carry the total band and the header; browsers drop backgrounds
+           when printing unless asked. Where a printer still refuses, the borders
+           and weights below keep the structure readable. */
+        .wp-grid thead th, .wp-grid tfoot td, .wp-total-band {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .wp-grid .wp-band-start { border-left-width: 1.5px; border-left-color: #000; }
+        .wp-grid tfoot tr.wp-grand td { border-top-width: 1.5px; border-top-color: #000; }
     }
 </style>
 @endpush
@@ -132,6 +170,27 @@
     </div>
 
     <div class="card-body p-0">
+        {{-- Printed only. On screen this is the card header and the filter bar
+             above it; on paper neither exists, and a sheet handed round the yard
+             that does not say what it was filtered to is a sheet nobody can
+             check. --}}
+        <div class="wp-print-head">
+            <h5>{{ $data['title'] }}</h5>
+            <div class="wp-print-meta">
+                {{ \Carbon\Carbon::parse($data['from'])->format('d M Y') }}
+                to {{ \Carbon\Carbon::parse($data['to'])->format('d M Y') }}
+                · {{ $weekRules[$data['week_rule']] ?? $data['week_rule'] }}
+                · {{ number_format($data['movement_count']) }} lifts
+                @if($filters['customer_id'])
+                    · Customer: {{ $customers->firstWhere('id', $filters['customer_id'])?->name }}
+                @endif
+                @if($filters['only_with_movements'])
+                    · Customers with movements only
+                @endif
+                · Printed {{ now()->format('d M Y H:i') }}
+            </div>
+        </div>
+
         <div class="wp-scroll">
             <table class="wp-grid mb-0 w-100">
                 <thead>

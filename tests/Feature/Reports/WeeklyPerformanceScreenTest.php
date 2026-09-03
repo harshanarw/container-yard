@@ -213,6 +213,48 @@ class WeeklyPerformanceScreenTest extends FeatureTestCase
         $response->assertSee('GRAND TOTAL');
     }
 
+    // ── The printed page ────────────────────────────────────────────────────
+
+    /**
+     * A printed sheet has no filter bar and no card header, so everything the
+     * reader needs to know it is looking at the right report has to be in the
+     * page itself. A grid of counts that does not say which period or which
+     * customer it covers cannot be checked by the person handed it.
+     */
+    public function test_the_printed_sheet_states_its_period_and_filters(): void
+    {
+        $this->actingAsSystemAdmin();
+        $customer = $this->customerWithLift('NAMED');
+
+        $response = $this->get(route('reports.weekly-performance', [
+            'customer_id'         => $customer->id,
+            'only_with_movements' => 1,
+        ]))->assertOk();
+
+        $response->assertSee('PERFORMANCE UPDATE [NO. OF UNITS] — AUGUST 2026', false);
+        $response->assertSee('01 Aug 2026', false);
+        $response->assertSee('31 Aug 2026', false);
+        $response->assertSee('7-day blocks from the start date', false);
+        $response->assertSee('Customer: NAMED', false);
+        $response->assertSee('Customers with movements only', false);
+    }
+
+    /**
+     * The rules that make a multi-page print readable, asserted because they
+     * are invisible until someone prints a quarter and finds page two is a grid
+     * of numbers with nothing naming its columns.
+     */
+    public function test_the_print_rules_repeat_the_header_and_keep_pairs_whole(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $html = $this->get(route('reports.weekly-performance'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('@page { size: landscape;', $html, 'Thirty-eight columns need the long edge.');
+        $this->assertStringContainsString('.wp-grid thead { display: table-header-group; }', $html);
+        $this->assertStringContainsString('page-break-inside: avoid', $html);
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────
 
     private function customerWithLift(string $name): Customer

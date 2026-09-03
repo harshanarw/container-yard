@@ -294,8 +294,31 @@ for the timestamped name so downloads stay consistent across the app.
 (`W1 03–09 Aug · Empty · 20`). Not everything that reads this report is Excel,
 and a merged workbook is unparseable to a script.
 
-**Phase 4 — print / PDF.** The same layout again for the printed page, where
-Blade and CSS do `colspan`/`rowspan` natively.
+**Phase 4 — the printed page.**
+
+Browser print rather than a DomPDF route, deliberately. Every report screen in
+this app prints that way and none of them has a PDF endpoint; inventing one here
+would add a convention for a single report. It is also the wrong tool for the
+job — DomPDF handles a thirty-eight-column table poorly, and the browser already
+renders this exact grid correctly.
+
+What the printed page needs beyond the screen's:
+
+- **Landscape.** Thirty-eight columns cannot be read on the short edge at any
+  font size.
+- **A masthead.** On screen the period, the week rule and the active filters
+  live in the filter bar and the card header, and neither survives printing. A
+  sheet handed round the yard that does not say what it was filtered to cannot
+  be checked by the person holding it, so the print-only block states the
+  period, the rule, the lift count, the customer filter and when it was printed.
+- **A repeating header.** `thead { display: table-header-group }`, or page two
+  of a quarterly print is a grid of numbers with nothing naming its columns.
+- **Unsplit pairs.** `page-break-inside: avoid` on each row, because a
+  customer's name is merged across their Demounting and Mounting rows and a
+  break between them leaves the second row anonymous.
+- **Explicit colour adjust.** Browsers drop backgrounds when printing unless
+  asked; the total band and header fills carry structure. Where a printer still
+  refuses them, heavier borders on the band starts keep it readable.
 
 ### 4c as built
 
