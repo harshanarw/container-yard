@@ -1,0 +1,305 @@
+# Weekly Performance — container count summary
+
+A per-customer count of yard lifts, broken into weeks across a date range, split
+by size and by laden/empty, with Mounting and Demounting as separate rows.
+
+---
+
+## 1. What the sample actually specifies
+
+The attached workbook is one sheet, 26 columns wide, and the structure lives in
+its merged ranges rather than in its text. Decoded:
+
+| Rows | Columns | Holds |
+| --- | --- | --- |
+| 4–7 | `A` | `CUSTOMER` (merged down four header rows) |
+| 4–7 | `B` | unlabelled — the Mounting / Demounting row label |
+| 5 | `C:F`, `G:J`, `K:N`, `O:R`, `S:V` | five week bands, **each merged and each empty** |
+| 6 | `C:D`, `E:F` (per band) | `EMPTY`, `LADEN` |
+| 7 | per column | `20`, `40` |
+| 4–5 | `W:Z` | `TOTAL` |
+| 6 | `W:X`, `Y:Z` | `EMPTY`, `LADEN` |
+| 38 | `A:B` merged | `TOTAL` row |
+
+So each week band is four columns — `Empty 20`, `Empty 40`, `Laden 20`,
+`Laden 40` — and the row-end `TOTAL` band repeats the same four.
+
+**The week bands in row 5 are blank in the sample.** That is precisely the slot
+the requirement asks us to fill: "indicate the date range under each week
+segment". Nothing needs inventing; the layout already reserves the space.
+
+Three further things the sample establishes that a written spec would probably
+have missed:
+
+- **Zero renders as blank, not `0`.** Look at LUXMI, DELTA, CCD, NOORANI and
+  LAL & SONS — both their rows are entirely empty cells.
+- **Every customer is listed whether or not they moved anything.** Those five
+  customers have no movements at all in the period and still occupy two rows
+  each. In a performance report a zero week is itself the finding, so this is
+  deliberate, not an artefact.
+- **The bottom `TOTAL` row combines Mounting and Demounting.** Verified against
+  the sample's own arithmetic: column C sums to 40 across *both* row types
+  (`1+9+6+3+1+3+6+2+2+1+6`), and cell `C38` reads 40. So that row is total lifts
+  — the yard's handling workload — not a per-direction total.
+
+Title, row 2: `PERFORMANCE UPDATE [NO. OF UNITS]- AUGUST 2026`.
+
+Customer and label columns are yellow-filled (`FFFFFF00`) and bold; header rows
+are bold, centred and bordered; data cells are centred and bordered.
+
+---
+
+## 2. The data supports this without a single join
+
+`gate_movements` carries every dimension on the row itself:
+
+| Column | Values | Serves |
+| --- | --- | --- |
+| `customer_id` | FK to `customers` | the customer grouping |
+| `movement_type` | `in` / `out` | Demounting / Mounting |
+| `size` | `20`, `40`, `45` | the size breakdown |
+| `cargo_status` | `empty`, `laden` | the laden/empty split |
+| `gate_in_time`, `gate_out_time` | timestamps | which week the lift falls in |
+
+That the movement row records size and cargo status **as they were at the gate**
+matters more than it looks. A box that arrives laden and leaves empty is counted
+laden on its Demounting row and empty on its Mounting row, which is what the
+yard actually did. Reading those attributes off `containers` instead would
+report the box's state today and quietly misstate history.
+
+### Mounting and Demounting
+
+The mapping matches the convention already in the billing code
+(`StorageHandlingController.php:167-181`):
+
+| Report row | Lift | Query | Dated by |
+| --- | --- | --- | --- |
+| **Demounting** | Lift Off — box comes off the truck into the yard | `movement_type = 'in'` | `gate_in_time` |
+| **Mounting** | Lift On — box goes onto the truck | `movement_type = 'out'` | `gate_out_time` |
+
+Reusing the billing definition is the point: the count on this report and the
+handling lines on a Storage & Handling invoice will reconcile, because both
+are counting the same events by the same rule. If they ever diverge, that is a
+bug in one of them rather than two defensible answers.
+
+### What is excluded
+
+A movement whose relevant timestamp is `NULL` has not happened yet — a gate pass
+raised but not completed. Those are excluded. `movement_status = 'pending'` with
+a timestamp already set is still a real lift and is counted; the timestamp, not
+the status flag, is the evidence that the crane moved.
+
+---
+
+## 3. Week bucketing — and a conflict worth settling first
+
+The chosen rule is **calendar weeks, Monday–Sunday, clipped to the range**.
+
+**The sample contradicts that, and it is worth knowing before we build.** The
+sample covers August 2026 and has exactly **five** week bands. August 2026
+begins on a Saturday, so Monday–Sunday clipped would produce **six**:
+
+```
+band 1  01 Aug – 02 Aug   (Sat–Sun, part week)
+band 2  03 Aug – 09 Aug
+band 3  10 Aug – 16 Aug
+band 4  17 Aug – 23 Aug
+band 5  24 Aug – 30 Aug
+band 6  31 Aug – 31 Aug   (part week)
+```
+
+Five bands is what **7-day blocks from the start date** produces: 1–7, 8–14,
+15–21, 22–28, 29–31. So the yard's existing sheet appears to use 7-day blocks.
+
+**Resolution: build both, expose the rule as a selector on the screen.** The
+difference is about ten lines of code and the report is unusable if the weeks
+don't match what the yard already circulates. Default to Monday–Sunday as
+chosen; flipping the default is a one-word change once someone confirms against
+a real August sheet.
+
+Either way the band count is **variable**, driven by the range. The sample's
+five is a fact about August, not a fixed width — a two-week range renders two
+bands, a quarter renders thirteen or fourteen.
+
+Week bucketing runs against the **application timezone**, not UTC. A lift at
+23:30 local on a Sunday belongs to that Sunday's week, and would fall into the
+next one if the timestamp were bucketed raw.
+
+---
+
+## 4. Layout
+
+Per the decision to give 45' its own column pair, each week band is **six**
+columns rather than the sample's four:
+
+```
+                        │  WEEK 1              │  WEEK 2              │  TOTAL
+                        │  03–09 Aug 2026      │  10–16 Aug 2026      │
+                        │  EMPTY   │  LADEN    │  EMPTY   │  LADEN    │  EMPTY   │  LADEN
+CUSTOMER      │         │ 20 40 45 │ 20 40 45  │ 20 40 45 │ 20 40 45  │ 20 40 45 │ 20 40 45
+──────────────┼─────────┼──────────┼───────────┼──────────┼───────────┼──────────┼─────────
+RSL           │ Demount │  1  5    │           │          │           │  1  5    │
+              │ Mount   │  9  2    │           │          │           │  9  2    │
+ABANS AUTO    │ Demount │          │    12     │          │           │          │    12
+              │ Mount   │          │    49     │          │           │          │    49
+──────────────┴─────────┼──────────┼───────────┼──────────┼───────────┼──────────┼─────────
+TOTAL                   │ 40 15    │   109     │          │           │ 40 15    │   109
+```
+
+Four header rows, matching the sample's four: week number, date range,
+`EMPTY`/`LADEN`, then the sizes. `TOTAL` spans the first two.
+
+For a five-week range that is `2 + 5×6 + 6 = 38` columns. Wide, so the grid
+scrolls inside its own container rather than making the page scroll — the same
+treatment the other wide reports already use.
+
+**Zero renders blank on screen and in print**, matching the sample. The CSV and
+Excel write `0` instead: a data file is read by formulas and scripts, and a
+blank cell is not a number. That difference is deliberate and will be stated in
+the report's footnote so nobody reports it as a bug.
+
+**Title** follows the sample: `PERFORMANCE UPDATE [NO. OF UNITS] — AUGUST 2026`
+when the range is exactly one calendar month, and
+`— 04 AUG 2026 TO 19 SEP 2026` otherwise.
+
+### Which customers appear
+
+Default: **all active customers, ordered by name**, matching the sample —
+including the ones with nothing to show. A "only customers with movements"
+toggle handles the case where the list has grown long enough that the blanks
+are noise, and a single-customer filter narrows it to one.
+
+There is no `OTHER` bucket in `customers`; the sample's `OTHER` row is a
+customer record by that name. Nothing to build — but worth confirming that
+un-attributed movements really do get filed against it rather than against
+whatever customer happens to be first.
+
+---
+
+## 5. Computation
+
+One grouped query per direction, bucketed into weeks in PHP:
+
+```sql
+SELECT customer_id, size, cargo_status, DATE(gate_in_time) AS d, COUNT(*) AS n
+  FROM gate_movements
+ WHERE movement_type = 'in'
+   AND gate_in_time >= ? AND gate_in_time < ?     -- half-open, so 23:59:59 is not lost
+ GROUP BY customer_id, size, cargo_status, d
+```
+
+…and the same for `'out'` on `gate_out_time`.
+
+**Grouping by date and bucketing in PHP, rather than computing the week index in
+SQL.** A `FLOOR(DATEDIFF(...)/7)` would be one query tighter, but it only works
+for uniform 7-day blocks — the Monday–Sunday rule has a short first band, so the
+index is not a division. Keeping the week logic in one PHP class means both
+rules share the same tested code and neither is expressed in SQL where it cannot
+be unit-tested.
+
+The grouped result is bounded by distinct (customer × date × size × status)
+combinations that actually have movements — a busy month is low thousands of
+rows, which pivots in memory without concern.
+
+**Index required.** `gate_movements` has no index supporting this; the only
+composite one is `(movement_type, mr_status)`. Both queries filter on
+`movement_type` plus a timestamp range:
+
+```php
+$table->index(['movement_type', 'gate_in_time'],  'gm_type_in_idx');
+$table->index(['movement_type', 'gate_out_time'], 'gm_type_out_idx');
+```
+
+Without them this is a full scan of every movement the yard has ever recorded,
+every time someone opens the report.
+
+---
+
+## 6. Where it lives
+
+- **`App\Services\Reporting\WeeklyPerformanceReport`** — the whole computation.
+  `build(string $from, string $to, string $weekRule, array $filters): array`
+  returning `['weeks' => …, 'rows' => …, 'totals' => …, 'sizes' => …]`.
+- **`App\Services\Reporting\WeekBreakdown`** — the two week rules, alone and
+  testable, with no knowledge of containers.
+- **`ReportController::weeklyPerformance()`** and `exportWeeklyPerformance()` —
+  thin, reading the service.
+
+`ReportController` applies `can:reports.view` as **constructor middleware**
+(`ReportController.php:18-21`), so a new action inherits the check. That is the
+opposite of the finance controllers, where authorization is per-action and every
+export has to repeat it. Worth stating explicitly so nobody "helpfully" adds a
+redundant `authorize()` here, or omits a required one there.
+
+---
+
+## 7. Phases
+
+**Phase 1 — the computation.** `WeekBreakdown` and `WeeklyPerformanceReport`,
+plus their tests. No UI. The arithmetic is the part that has to be right, and it
+can be proven before a single Blade file exists.
+
+**Phase 2 — the screen.** Route, nav entry, the filter form (date range, week
+rule, customer, "only with movements"), and the grid. Matches the sample's
+layout and colouring.
+
+**Phase 3 — CSV and Excel.** Through `TabularExport`, the same path every other
+report now uses. One flattened heading row — `W1 03–09 Aug · Empty · 20` — so
+the file parses. A three-row stacked header would look more like the sample and
+break every consumer that reads line one as the header.
+
+**Phase 4 — print / PDF.** This is where the sample is reproduced exactly:
+merged bands, four header rows, yellow customer column, blank zeros. Blade and
+CSS do `colspan`/`rowspan` natively, so the printed sheet can match the
+workbook the yard already circulates.
+
+**Phase 5 (optional) — a pixel-exact `.xlsx`.** openspout is a streaming writer
+and does not merge cells, so a workbook that opens looking like the sample needs
+PhpSpreadsheet. That is a real dependency with real memory behaviour, and it is
+only worth adding if the yard needs to *edit* the file rather than read or print
+it. Phases 3 and 4 together cover reading, filing and printing.
+
+---
+
+## 8. Tests
+
+**Week bucketing** — both rules; a range shorter than one week; a range starting
+mid-week; a single-day range; a range spanning a year boundary; the timezone
+case above.
+
+**Mapping** — an `in` movement lands on Demounting, an `out` on Mounting, and
+never both. A movement with a null timestamp is excluded.
+
+**Cells** — size and cargo status come from the movement row, proven by a
+container whose current size or status differs from the one recorded at the gate.
+
+**Totals, the invariant that makes the grid trustworthy** — each row's `TOTAL`
+band equals the sum of its week bands; the bottom `TOTAL` row equals the sum of
+the customer rows; and the grand total equals the raw count of movements in the
+range. That last one is what catches a bucketing bug: if a lift lands in no week
+at all, every subtotal still agrees with itself and only the raw count disagrees.
+
+**Presentation** — a customer with no movements still renders two rows; zero
+renders blank on screen and `0` in the export.
+
+**Permission** — a role without `reports.view` is refused, on the screen and on
+the export.
+
+---
+
+## 9. Deployment
+
+One migration (the two indexes). **No seeders** — `reports.view` already exists
+and every role that should see this already holds it. **No data fix** — the
+report only reads.
+
+---
+
+## 10. To confirm
+
+1. **The week rule.** The sample implies 7-day blocks; the stated choice is
+   Monday–Sunday. Both get built; only the default is in question.
+2. **45' columns.** Chosen as their own pair, which widens each band from the
+   sample's four columns to six. Worth one look at the rendered sheet before
+   Phase 2 is signed off.
+3. **`OTHER`** — a real customer record, or a bucket that needs building?
