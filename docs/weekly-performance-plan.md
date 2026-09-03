@@ -153,10 +153,11 @@ For a five-week range that is `2 + 5×6 + 6 = 38` columns. Wide, so the grid
 scrolls inside its own container rather than making the page scroll — the same
 treatment the other wide reports already use.
 
-**Zero renders blank on screen and in print**, matching the sample. The CSV and
-Excel write `0` instead: a data file is read by formulas and scripts, and a
-blank cell is not a number. That difference is deliberate and will be stated in
-the report's footnote so nobody reports it as a bug.
+**Zero renders blank** on screen, in print and in the Excel — matching the
+sample, which leaves LUXMI and the other quiet customers entirely empty. The
+flat CSV writes `0` instead: it exists to be parsed, and a blank cell is not a
+number. That one difference is deliberate and gets a line in the report footnote
+so nobody files it as a bug.
 
 **Title** follows the sample: `PERFORMANCE UPDATE [NO. OF UNITS] — AUGUST 2026`
 when the range is exactly one calendar month, and
@@ -222,8 +223,11 @@ every time someone opens the report.
   returning `['weeks' => …, 'rows' => …, 'totals' => …, 'sizes' => …]`.
 - **`App\Services\Reporting\WeekBreakdown`** — the two week rules, alone and
   testable, with no knowledge of containers.
-- **`ReportController::weeklyPerformance()`** and `exportWeeklyPerformance()` —
-  thin, reading the service.
+- **`App\Support\Export\WeeklyPerformanceWorkbook`** — the sample-shaped xlsx:
+  merges, styles, widths, frozen panes. Separate from `TabularExport` because
+  the shape is genuinely different, not because the code is.
+- **`ReportController::weeklyPerformance()`**, `exportWeeklyPerformance()` and
+  `exportWeeklyPerformanceCsv()` — thin, all reading the one service call.
 
 `ReportController` applies `can:reports.view` as **constructor middleware**
 (`ReportController.php:18-21`), so a new action inherits the check. That is the
@@ -239,25 +243,47 @@ redundant `authorize()` here, or omits a required one there.
 plus their tests. No UI. The arithmetic is the part that has to be right, and it
 can be proven before a single Blade file exists.
 
-**Phase 2 — the screen.** Route, nav entry, the filter form (date range, week
-rule, customer, "only with movements"), and the grid. Matches the sample's
-layout and colouring.
+**Phase 2 — the screen.** Route, nav entry, and a filter bar in the same shape
+as the other reports: date range, week rule, customer, and "only customers with
+movements". The grid below it is a live preview of the workbook — same headers,
+same bands, same blank zeros — so what the operator sees is what downloads.
 
-**Phase 3 — CSV and Excel.** Through `TabularExport`, the same path every other
-report now uses. One flattened heading row — `W1 03–09 Aug · Empty · 20` — so
-the file parses. A three-row stacked header would look more like the sample and
-break every consumer that reads line one as the header.
+The download buttons sit beside Print, from the shared `export-buttons` partial,
+and **carry the current filters** — `request()->query()` by default, exactly as
+the finance reports do.
 
-**Phase 4 — print / PDF.** This is where the sample is reproduced exactly:
-merged bands, four header rows, yellow customer column, blank zeros. Blade and
-CSS do `colspan`/`rowspan` natively, so the printed sheet can match the
-workbook the yard already circulates.
+That last point is the one worth guarding. `ReportController`'s own docblock
+calls it "the commonest bug in this kind of feature, and a silent one": an
+operator filters the screen, hits export, and is handed the unfiltered set.
+The screen and every download read one service call with one set of arguments,
+so there is no second query to drift.
 
-**Phase 5 (optional) — a pixel-exact `.xlsx`.** openspout is a streaming writer
-and does not merge cells, so a workbook that opens looking like the sample needs
-PhpSpreadsheet. That is a real dependency with real memory behaviour, and it is
-only worth adding if the yard needs to *edit* the file rather than read or print
-it. Phases 3 and 4 together cover reading, filing and printing.
+**Phase 3 — the Excel download, shaped like the sample.** Not a flattened
+approximation: merged week bands with the date range under each, four stacked
+header rows, the yellow customer columns, borders, frozen panes, and zeros left
+blank. The file the yard opens is the file it already circulates.
+
+This is possible with the dependency already installed. **An earlier draft of
+this plan said openspout could not merge cells and that a sample-shaped workbook
+would need PhpSpreadsheet. That was wrong** — openspout 4 supports
+`Options::mergeCells()`, background colour, borders, bold, alignment, column
+widths and freeze panes, and a proof of concept reproducing this exact layout
+has been generated and verified. No new dependency, and no reason to settle for
+a flat sheet.
+
+`TabularExport` is not the right vehicle here and will not be forced to be one.
+It owns a deliberately narrow contract — one heading row, one row per record,
+escaping and filenames — which is what makes it safe for the seventeen reports
+that fit it. A four-row merged header is a different shape, so this report gets
+its own writer, `WeeklyPerformanceWorkbook`, reusing `TabularExport::filename()`
+for the timestamped name so downloads stay consistent across the app.
+
+**A CSV also stays on offer**, flattened to one heading row per column
+(`W1 03–09 Aug · Empty · 20`). Not everything that reads this report is Excel,
+and a merged workbook is unparseable to a script.
+
+**Phase 4 — print / PDF.** The same layout again for the printed page, where
+Blade and CSS do `colspan`/`rowspan` natively.
 
 ---
 
@@ -280,7 +306,13 @@ range. That last one is what catches a bucketing bug: if a lift lands in no week
 at all, every subtotal still agrees with itself and only the raw count disagrees.
 
 **Presentation** — a customer with no movements still renders two rows; zero
-renders blank on screen and `0` in the export.
+renders blank on screen, in print and in the Excel, and `0` in the flat CSV.
+
+**The workbook itself** — the generated xlsx is opened back up and asserted
+against: the merge ranges are where they should be, the date range sits under
+its week number, and a cell's value lands in the column its header claims. A
+merged-header file is easy to get subtly wrong by one column, and impossible to
+notice by reading the code.
 
 **Permission** — a role without `reports.view` is refused, on the screen and on
 the export.
