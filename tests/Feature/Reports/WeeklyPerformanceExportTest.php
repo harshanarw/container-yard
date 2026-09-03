@@ -132,9 +132,15 @@ class WeeklyPerformanceExportTest extends FeatureTestCase
         $this->assertSame('20', (string) ($sheet['cells']['F7'] ?? ''), 'F is the laden 20 column.');
         $this->assertSame('LADEN', $sheet['cells']['F6'] ?? null);
         $this->assertSame(1, $sheet['cells']['F8'] ?? null, 'And the lift is in it.');
+        $this->assertArrayNotHasKey('C8', $sheet['cells'], 'Not in the empty 20 column beside it.');
 
-        // Five week bands means the TOTAL band opens at column AG.
-        $this->assertSame(1, $sheet['cells']['AG8'] ?? null, 'Repeated in the row total.');
+        // Five week bands puts the TOTAL band at AG..AL — and the value belongs
+        // at the same offset within it, not at the band's first column. AG is
+        // the total band's *empty* 20; laden 20 is three along, at AJ.
+        $this->assertSame('LADEN', $sheet['cells']['AJ6'] ?? null, 'AJ opens the total band\'s laden half.');
+        $this->assertSame('20', (string) ($sheet['cells']['AJ7'] ?? ''));
+        $this->assertSame(1, $sheet['cells']['AJ8'] ?? null, 'Repeated in the row total.');
+        $this->assertArrayNotHasKey('AG8', $sheet['cells'], 'The total band\'s empty 20 stays blank.');
     }
 
     /** Zero is blank, as the yard's sheet has it — not a page of noughts. */
