@@ -87,20 +87,9 @@ class WeeklyPerformanceWorkbook
             $options->setColumnWidth(5.5, $c);
         }
 
-        // Frozen below the headers and to the right of the labels: a five-week
-        // range is thirty-eight columns, and by week three a reader has lost
-        // both which customer they are on and which column they are in.
-        //
-        // `setFreezeRow` names the first *scrolling* row, not the last frozen
-        // one, so this is the row after the header block: three title rows plus
-        // four header rows, then one more.
-        $view = new SheetView();
-        $view->setFreezeRow(self::HEADER_ROWS + 4);
-        $view->setFreezeColumn('C');
-
         $writer = new Writer($options);
         $writer->openToFile($path);
-        $writer->getCurrentSheet()->setSheetView($view);
+        self::freezeHeader($writer);
         $sheet = $writer->getCurrentSheet()->getIndex();
 
         $header = self::style()->setFontBold()->setBackgroundColor(self::FILL_HEADER)
@@ -202,6 +191,37 @@ class WeeklyPerformanceWorkbook
         } finally {
             $writer->close();
         }
+    }
+
+    /**
+     * Hold the headers and the two label columns while the weeks scroll past.
+     *
+     * A five-week range is thirty-eight columns, and by week three a reader has
+     * lost both which customer they are on and which size column they are in.
+     *
+     * Applied only where the installed writer supports it. `SheetView::setFreezeRow()`
+     * arrived partway through openspout 4.x, and the app requires `^4.0`, so an
+     * older-but-permitted version has no such method — as one machine here had
+     * while another had v4.32.0. A frozen pane is a convenience; it must not be
+     * the reason a download fails on a server whose lock file resolved a month
+     * earlier.
+     *
+     * `setFreezeRow` names the first *scrolling* row rather than the last frozen
+     * one, so this is the row after the header block: three title rows, four
+     * header rows, then one more.
+     */
+    private static function freezeHeader(Writer $writer): void
+    {
+        $view = new SheetView();
+
+        if (! method_exists($view, 'setFreezeRow') || ! method_exists($view, 'setFreezeColumn')) {
+            return;
+        }
+
+        $view->setFreezeRow(self::HEADER_ROWS + 4);
+        $view->setFreezeColumn('C');
+
+        $writer->getCurrentSheet()->setSheetView($view);
     }
 
     /**

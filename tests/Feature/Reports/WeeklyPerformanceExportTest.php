@@ -79,6 +79,13 @@ class WeeklyPerformanceExportTest extends FeatureTestCase
         $this->assertSame('45', (string) ($sheet['cells']['E7'] ?? ''));
 
         // The merges are what turn four rows of text into banded headers.
+        if ($sheet['merges'] === null) {
+            $this->markTestIncomplete(
+                'This openspout cannot read merge ranges back; the cell assertions above still ran. '
+                . 'Run `composer update openspout/openspout` to check the merges too.'
+            );
+        }
+
         foreach (['A4:A7', 'B4:B7', 'C4:H4', 'C5:H5', 'C6:E6', 'F6:H6'] as $range) {
             $this->assertContains($range, $sheet['merges'], "The sheet should merge {$range}.");
         }
@@ -255,7 +262,7 @@ class WeeklyPerformanceExportTest extends FeatureTestCase
      * Writes the workbook to a temp file and reads it back with the same
      * library, returning its cells by A1 reference plus its merge ranges.
      *
-     * @return array{cells:array<string,mixed>,merges:array<int,string>,max_col:int}
+     * @return array{cells:array<string,mixed>,merges:?array<int,string>,max_col:int}
      */
     private function openWorkbook(array $data): array
     {
@@ -266,9 +273,19 @@ class WeeklyPerformanceExportTest extends FeatureTestCase
         // preserved empty rows the reader resequences its indices past the two
         // blanks in the title block, so every A1 reference below would be two
         // rows out — and silently, since the cells still hold plausible values.
+        //
+        // Set through `property_exists` because merge reading arrived partway
+        // through openspout 4.x and the app requires `^4.0`. On a version
+        // without it, assigning would create a dynamic property that does
+        // nothing, and the merge assertions would fail for a reason that has
+        // nothing to do with the workbook.
         $options = new \OpenSpout\Reader\XLSX\Options();
         $options->SHOULD_PRESERVE_EMPTY_ROWS = true;
-        $options->SHOULD_LOAD_MERGE_CELLS    = true;
+
+        $canReadMerges = property_exists($options, 'SHOULD_LOAD_MERGE_CELLS');
+        if ($canReadMerges) {
+            $options->SHOULD_LOAD_MERGE_CELLS = true;
+        }
 
         $reader = new \OpenSpout\Reader\XLSX\Reader($options);
         $reader->open($path);
@@ -278,7 +295,9 @@ class WeeklyPerformanceExportTest extends FeatureTestCase
         $maxCol = 0;
 
         foreach ($reader->getSheetIterator() as $sheet) {
-            $merges = $sheet->getMergeCells();
+            $merges = $canReadMerges && method_exists($sheet, 'getMergeCells')
+                ? $sheet->getMergeCells()
+                : null;   // null means "could not read", as against "none"
 
             foreach ($sheet->getRowIterator() as $r => $row) {
                 $values = $row->toArray();
