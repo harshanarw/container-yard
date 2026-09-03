@@ -86,11 +86,22 @@ class WeekBreakdownTest extends TestCase
         $this->assertSame($days, array_sum(array_column($weeks, 'days')), 'Band lengths must sum to the range.');
     }
 
-    /** And the bands are contiguous — no gap, no overlap. */
+    /**
+     * The bands are contiguous — no gap, no overlap — and they span exactly the
+     * range asked for.
+     *
+     * The span assertions are not padding. The contiguity loop starts at the
+     * second band, so a range short enough to produce only one would otherwise
+     * assert nothing at all and pass no matter what the rule returned.
+     */
     #[\PHPUnit\Framework\Attributes\DataProvider('rulesAndRanges')]
-    public function test_each_band_starts_the_day_after_the_last_one_ended(string $rule, string $from, string $to): void
+    public function test_the_bands_join_end_to_end_and_span_the_range(string $rule, string $from, string $to): void
     {
         $weeks = WeekBreakdown::for($from, $to, $rule);
+
+        $this->assertNotEmpty($weeks, "A usable range must produce bands under {$rule}.");
+        $this->assertSame($from, $weeks[0]['from'], "The first band must open on the range's first day.");
+        $this->assertSame($to, end($weeks)['to'], "The last must close on its last.");
 
         for ($i = 1; $i < count($weeks); $i++) {
             $this->assertSame(
