@@ -120,7 +120,7 @@ them without deciding how to flatten the tree.
 
 ---
 
-## 4. The decision: how to write xlsx
+## 4. The decision: how to write xlsx — **settled: A, with the composer files tracked**
 
 | | What it means | Deployment |
 | --- | --- | --- |
@@ -165,3 +165,41 @@ it removes this whole class of problem.
 
 **Phase 1 specifically:** the four migrated exports produce byte-identical output
 to what they produced before.
+
+---
+
+## 6. Settled, and what it forces
+
+**openspout, with `composer.json` and `composer.lock` brought into the
+repository.** Tracking them is worth doing on its own account: without the lock
+file the live server and CI can silently run different package versions, and this
+plan is simply the first time that has actually blocked something.
+
+**One catch.** Those two files do not exist in the working checkout at all — it
+is a partial mirror, and `.gitignore` excludes only `.claude/`, so they were
+never committed rather than deliberately ignored. They cannot be added from here,
+and writing a `composer.json` from scratch would risk overwriting the real one.
+That step belongs on the developer machine:
+
+```bash
+composer require openspout/openspout
+git add composer.json composer.lock
+git commit -m "Track composer files; add openspout for Excel exports"
+git push
+```
+
+### So the build splits on the dependency, not around it
+
+**Phase 1 needs nothing** — the shared exporter and moving the four existing CSVs
+onto it. It ships as ordinary files and improves things immediately, whether or
+not openspout ever arrives.
+
+**Phase 2 degrades gracefully.** The xlsx writer checks for openspout and, when
+it is absent, the Excel option is simply not offered — the same pattern
+`App\Support\Qr` already uses for `simplesoftwareio/simple-qrcode`, which
+returns null and lets the document render without a QR rather than failing. So
+the code can ship before the dependency does, and Excel appears the moment the
+package lands. No second deployment of application code.
+
+This is the ordering that keeps a dependency the repository cannot yet carry off
+the critical path.
