@@ -102,7 +102,7 @@ because it is the one way the two formats genuinely differ.
 
 ## 3. Order of work
 
-**Phase 1 — the exporter, and the four existing CSVs moved onto it.**
+**Phase 1 — the exporter, and the four existing CSVs moved onto it. — done**
 No new report gains an export yet, and no output changes. This is the phase that
 proves the exporter produces byte-identical CSV to what those four already emit,
 which is exactly the guarantee that makes the rest safe.
@@ -203,3 +203,48 @@ package lands. No second deployment of application code.
 
 This is the ordering that keeps a dependency the repository cannot yet carry off
 the critical path.
+
+---
+
+## 7. Phase 1 as built
+
+`App\Support\Export\TabularExport` owns the framing — response, filename,
+content type, escaping — and nothing else. Reports keep their own headings and
+row values verbatim, which is what makes a migration a move rather than a data
+change.
+
+**Four report exports moved onto it:** M&R Status, Daily Movements, Container
+Inquiry, Job Margin. All four already produced `name-Ymd-His.csv`, so nobody's
+downloads were renamed.
+
+**`BankController::export` was deliberately left alone.** It is not a report: its
+columns are the ones `import()` reads back, so it is a round-trip template, and
+changing its framing or escaping risks breaking the import.
+
+### Two things the rewrite had to preserve
+
+**Chunking.** The exports page their queries so a year of movements need not fit
+in memory. Rows are supplied as a callable returning a generator rather than an
+array, so that survives — `chunk()` became `lazy()`, which pages identically.
+
+**Container Inquiry's batching.** It chunks gate-ins and then batch-fetches that
+chunk's gate-outs to avoid an N+1. A generator cannot yield from inside
+`chunk()`'s callback, so the loop became `lazy()->chunk()`. That keeps both the
+paging and the batching, but it is a real rewrite rather than a move — hence a
+feature test pinning the headings, the gate-out pairing, the day count, and that
+the screen's filters reach the file.
+
+### One intended difference
+
+A spreadsheet executes a cell beginning `=`, `+`, `-` or `@` as a formula, so
+`=cmd|'/c calc'!A0` typed into a container remark is a working command injection
+against whoever opens the export. Those cells are now prefixed with an
+apostrophe, which makes the spreadsheet read them as text.
+
+Two exclusions keep it from touching ordinary data, and they are why the migrated
+exports still emit the same bytes:
+
+- **Numbers pass through** — Job Margin prints negatives, and `-1250.00` has to
+  stay a number rather than becoming `'-1250.00`.
+- **Single characters pass through** — three of these reports use a lone `-` as
+  their "no value" placeholder, and one character cannot be a formula.

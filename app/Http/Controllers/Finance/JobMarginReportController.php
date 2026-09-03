@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\YardJobType;
 use App\Services\JobPnlService;
+use App\Support\Export\TabularExport;
 use Illuminate\Http\Request;
 
 /**
@@ -32,7 +33,7 @@ class JobMarginReportController extends Controller
         $data = $pnl->summary($filters);
 
         if ($request->input('export') === 'csv') {
-            return $this->exportCsv($data['rows']);
+            return $this->exportCsv($data['rows'], $request->input('format'));
         }
 
         $customers = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name']);
@@ -48,24 +49,16 @@ class JobMarginReportController extends Controller
         ]);
     }
 
-    private function exportCsv($rows)
+    private function exportCsv($rows, ?string $format = null)
     {
-        $filename = 'job-margin-' . now()->format('Ymd-His') . '.csv';
-        $headers  = [
-            'Content-Type'        => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
-
-        $callback = function () use ($rows) {
-            $out = fopen('php://output', 'w');
-            fputcsv($out, [
-                'Job No', 'Job Type', 'Customer', 'Status',
-                'Realized Revenue', 'Realized Cost', 'Realized Margin', 'Margin %',
-                'Pending Revenue', 'Pending Cost', 'Accrued Cost',
-            ]);
+        return TabularExport::stream($format, 'job-margin', [
+            'Job No', 'Job Type', 'Customer', 'Status',
+            'Realized Revenue', 'Realized Cost', 'Realized Margin', 'Margin %',
+            'Pending Revenue', 'Pending Cost', 'Accrued Cost',
+        ], function () use ($rows) {
             foreach ($rows as $r) {
                 $j = $r['job'];
-                fputcsv($out, [
+                yield [
                     $j->job_no,
                     $j->jobType->job_type_name ?? $j->job_type_code,
                     $j->customer->name ?? '—',
@@ -77,11 +70,8 @@ class JobMarginReportController extends Controller
                     number_format($r['pending_revenue'], 2, '.', ''),
                     number_format($r['pending_cost'], 2, '.', ''),
                     number_format($r['accrued_cost'] ?? 0, 2, '.', ''),
-                ]);
+                ];
             }
-            fclose($out);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        });
     }
 }

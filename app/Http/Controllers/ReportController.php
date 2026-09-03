@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\GateMovement;
 use App\Models\YardStorage;
 use App\Services\ContainerMrStatusService;
+use App\Support\Export\TabularExport;
 use App\Support\MrStatusCatalogue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -200,7 +201,6 @@ class ReportController extends Controller
     {
         $thresholds = $mrStatus->ageThresholds();
         $today      = now()->toDateString();
-        $filename   = 'mr-status-' . now()->format('Ymd-His') . '.csv';
 
         $query = Container::whereIn('status', Container::IN_YARD_STATUSES)
             ->whereNotNull('mr_status')
@@ -225,41 +225,36 @@ class ReportController extends Controller
             ->withCount(['holds as active_holds_count' => fn ($q) => $q->whereNull('cleared_at')])
             ->orderBy('mr_status_at');
 
-        return response()->streamDownload(function () use ($query, $thresholds) {
-            $output = fopen('php://output', 'w');
-            fputcsv($output, [
-                'Container No', 'Customer', 'Size', 'Type',
-                'Disposition', 'M&R Status', 'Stage', 'Lane',
-                'In Stage Since', 'Days In Stage', 'Threshold (days)', 'Overdue',
-                'On Hold', 'Export Ready',
-            ]);
+        return TabularExport::stream($request->input('format'), 'mr-status', [
+            'Container No', 'Customer', 'Size', 'Type',
+            'Disposition', 'M&R Status', 'Stage', 'Lane',
+            'In Stage Since', 'Days In Stage', 'Threshold (days)', 'Overdue',
+            'On Hold', 'Export Ready',
+        ], function () use ($query, $thresholds) {
+            // lazy() pages the query exactly as chunk() did — the yard is not
+            // held in memory to write a file about it.
+            foreach ($query->lazy(200) as $c) {
+                $days      = $c->mr_status_at ? (int) $c->mr_status_at->diffInDays(now()) : null;
+                $threshold = $thresholds[$c->mr_status] ?? null;
 
-            $query->chunk(200, function ($containers) use ($output, $thresholds) {
-                foreach ($containers as $c) {
-                    $days      = $c->mr_status_at ? (int) $c->mr_status_at->diffInDays(now()) : null;
-                    $threshold = $thresholds[$c->mr_status] ?? null;
-
-                    fputcsv($output, [
-                        $c->container_no,
-                        $c->customer->name ?? '-',
-                        $c->size ?? '-',
-                        $c->type_code ?? '-',
-                        $c->status,
-                        MrStatusCatalogue::label($c->mr_status, $c->mr_lane),
-                        MrStatusCatalogue::groups()[$c->mr_status_group] ?? $c->mr_status_group,
-                        MrStatusCatalogue::laneLabel($c->mr_lane),
-                        $c->mr_status_at?->format('Y-m-d H:i') ?? '-',
-                        $days ?? '-',
-                        $threshold ?? '-',
-                        ($threshold !== null && $days !== null && $days > $threshold) ? 'Yes' : 'No',
-                        ($c->active_holds_count ?? 0) > 0 ? 'Yes' : 'No',
-                        ($c->export_ready && ! $c->mrStatusHasExpired()) ? 'Yes' : 'No',
-                    ]);
-                }
-            });
-
-            fclose($output);
-        }, $filename, ['Content-Type' => 'text/csv']);
+                yield [
+                    $c->container_no,
+                    $c->customer->name ?? '-',
+                    $c->size ?? '-',
+                    $c->type_code ?? '-',
+                    $c->status,
+                    MrStatusCatalogue::label($c->mr_status, $c->mr_lane),
+                    MrStatusCatalogue::groups()[$c->mr_status_group] ?? $c->mr_status_group,
+                    MrStatusCatalogue::laneLabel($c->mr_lane),
+                    $c->mr_status_at?->format('Y-m-d H:i') ?? '-',
+                    $days ?? '-',
+                    $threshold ?? '-',
+                    ($threshold !== null && $days !== null && $days > $threshold) ? 'Yes' : 'No',
+                    ($c->active_holds_count ?? 0) > 0 ? 'Yes' : 'No',
+                    ($c->export_ready && ! $c->mrStatusHasExpired()) ? 'Yes' : 'No',
+                ];
+            }
+        });
     }
 
     public function billing(Request $request)
@@ -363,24 +358,18 @@ class ReportController extends Controller
             'csv_batch_ref'    => $batchRef,
         ]);
 
-        // Build CSV
-        $headers = [
-            'Content-Type'        => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="daily-movements-' . now()->format('Ymd-His') . '.csv"',
-        ];
-
-        $callback = function () use ($movements) {
-            $out = fopen('php://output', 'w');
-            fputcsv($out, [
-                'Batch Ref', 'Movement Type', 'Container No', 'Size', 'Equipment Type',
-                'Container Operator', 'Condition', 'M&R Status', 'Cargo Status', 'Seal No',
-                'Vehicle Plate', 'Driver Name', 'Driver IC', 'Release Order',
-                'Gate In Date/Time', 'Gate Out Date/Time',
-                'Location Row', 'Location Bay', 'Location Tier',
-                'Remarks', 'Recorded By',
-            ]);
+        return TabularExport::stream($request->input('format'), 'daily-movements', [
+            'Batch Ref', 'Movement Type', 'Container No', 'Size', 'Equipment Type',
+            'Container Operator', 'Condition', 'M&R Status', 'Cargo Status', 'Seal No',
+            'Vehicle Plate', 'Driver Name', 'Driver IC', 'Release Order',
+            'Gate In Date/Time', 'Gate Out Date/Time',
+            'Location Row', 'Location Bay', 'Location Tier',
+            'Remarks', 'Recorded By',
+        ], function () use ($movements) {
+            // Already loaded: this export covers the rows the operator ticked,
+            // so it is bounded by the selection rather than by the table.
             foreach ($movements as $m) {
-                fputcsv($out, [
+                yield [
                     $m->csv_batch_ref,
                     strtoupper($m->movement_type),
                     $m->container_no,
@@ -404,12 +393,9 @@ class ReportController extends Controller
                     $m->location_tier,
                     $m->remarks,
                     $m->createdBy->name ?? '—',
-                ]);
+                ];
             }
-            fclose($out);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        });
     }
 
     public function exportMovementsCodeco(Request $request)

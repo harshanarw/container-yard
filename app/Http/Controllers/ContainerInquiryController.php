@@ -8,6 +8,7 @@ use App\Models\GateMovement;
 use App\Models\YardJobType;
 use App\Services\ContainerInquiryService;
 use App\Services\ContainerMrStatusService;
+use App\Support\Export\TabularExport;
 use App\Support\MrStatusCatalogue;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -122,20 +123,15 @@ class ContainerInquiryController extends Controller
             'vessel_name', 'voyage_no', 'bl_number', 'seal_no', 'eir_ref',
             'mr_status', 'mr_status_group', 'export_ready', 'on_hold',
         ]);
-        $filename = 'container-inquiry-' . now()->format('Ymd-His') . '.csv';
-
-        return response()->streamDownload(function () use ($filters) {
-            $output = fopen('php://output', 'w');
-            fputcsv($output, [
-                'EIR Ref', 'Container No', 'Customer', 'Job No', 'Job Type',
-                'Gate In', 'Gate Out', 'Days In Yard',
-                'Job Status',
-                'M&R Status', 'M&R Stage Age (days)', 'Export Ready', 'On Hold',
-                'Condition On Arrival', 'Size', 'Cargo Status',
-                'Vessel', 'Voyage No', 'BL Number', 'Seal No',
-            ]);
-
-            GateMovement::with(['yardJob.jobType', 'customer',
+        return TabularExport::stream($request->input('format'), 'container-inquiry', [
+            'EIR Ref', 'Container No', 'Customer', 'Job No', 'Job Type',
+            'Gate In', 'Gate Out', 'Days In Yard',
+            'Job Status',
+            'M&R Status', 'M&R Stage Age (days)', 'Export Ready', 'On Hold',
+            'Condition On Arrival', 'Size', 'Cargo Status',
+            'Vessel', 'Voyage No', 'BL Number', 'Seal No',
+        ], function () use ($filters) {
+            $query = GateMovement::with(['yardJob.jobType', 'customer',
                                 'container:id,export_ready,mr_status_expires_at',
                                 'container.activeHolds:id,container_id,hold_type'])
                 ->where('movement_type', 'in')
@@ -155,73 +151,75 @@ class ContainerInquiryController extends Controller
                 ->when(!empty($filters['mr_status_group']), fn ($q) => $q->where('mr_status_group', $filters['mr_status_group']))
                 ->when(!empty($filters['export_ready']), fn ($q) => $q->whereHas('container', fn ($s) => $s->exportReady()))
                 ->when(!empty($filters['on_hold']),      fn ($q) => $q->whereHas('container', fn ($s) => $s->held()))
-                ->orderBy('gate_in_time', 'desc')
-                ->chunk(200, function ($items) use ($output) {
-                    // Batch-fetch gate-outs for this chunk
-                    $containerNos = $items->pluck('container_no')->unique()->values()->all();
-                    $gateOuts = GateMovement::where('movement_type', 'out')
-                        ->whereIn('container_no', $containerNos)
-                        ->orderBy('gate_out_time', 'asc')
-                        ->get()
-                        ->groupBy('container_no');
+                ->orderBy('gate_in_time', 'desc');
 
-                    foreach ($items as $m) {
-                        // Find the matching gate-out by yard_job_id or closest chronological
-                        $cGateOuts = $gateOuts->get($m->container_no, collect());
-                        $gateOut   = null;
+            // A chunk at a time, not a row at a time: the gate-out lookup below
+            // is batched per chunk, and flattening this to one row per query
+            // would turn the export into an N+1.
+            foreach ($query->lazy(200)->chunk(200) as $items) {
+                // Batch-fetch gate-outs for this chunk
+                $containerNos = $items->pluck('container_no')->unique()->values()->all();
+                $gateOuts = GateMovement::where('movement_type', 'out')
+                    ->whereIn('container_no', $containerNos)
+                    ->orderBy('gate_out_time', 'asc')
+                    ->get()
+                    ->groupBy('container_no');
 
-                        if (!is_null($m->yard_job_id)) {
-                            $gateOut = $cGateOuts->firstWhere('yard_job_id', $m->yard_job_id);
-                        }
-                        if (!$gateOut) {
-                            $from = $m->gate_in_time?->timestamp ?? 0;
-                            foreach ($cGateOuts as $go) {
-                                if (is_null($go->yard_job_id) && ($go->gate_out_time?->timestamp ?? 0) >= $from) {
-                                    $gateOut = $go;
-                                    break;
-                                }
+                foreach ($items as $m) {
+                    // Find the matching gate-out by yard_job_id or closest chronological
+                    $cGateOuts = $gateOuts->get($m->container_no, collect());
+                    $gateOut   = null;
+
+                    if (!is_null($m->yard_job_id)) {
+                        $gateOut = $cGateOuts->firstWhere('yard_job_id', $m->yard_job_id);
+                    }
+                    if (!$gateOut) {
+                        $from = $m->gate_in_time?->timestamp ?? 0;
+                        foreach ($cGateOuts as $go) {
+                            if (is_null($go->yard_job_id) && ($go->gate_out_time?->timestamp ?? 0) >= $from) {
+                                $gateOut = $go;
+                                break;
                             }
                         }
-
-                        $gateInTime  = $m->gate_in_time?->format('Y-m-d H:i') ?? '-';
-                        $gateOutTime = $gateOut?->gate_out_time?->format('Y-m-d H:i') ?? '-';
-                        $daysInYard  = $m->gate_in_time
-                            ? (int) $m->gate_in_time->diffInDays($gateOut?->gate_out_time ?? now())
-                            : '-';
-
-                        // Days in the current M&R stage — distinct from days in
-                        // yard: a box can sit five days in the yard and four of
-                        // them waiting on QC.
-                        $stageAge = $m->mr_status_at
-                            ? (int) $m->mr_status_at->diffInDays(now())
-                            : '-';
-
-                        fputcsv($output, [
-                            $m->id,
-                            $m->container_no,
-                            optional($m->customer)->name ?? '-',
-                            optional($m->yardJob)->job_no ?? '-',
-                            optional(optional($m->yardJob)->jobType)->job_type_name ?? $m->job_type_code ?? '-',
-                            $gateInTime,
-                            $gateOutTime,
-                            $daysInYard,
-                            optional($m->yardJob)->status ?? '-',
-                            $m->mr_status ? MrStatusCatalogue::label($m->mr_status) : '-',
-                            $stageAge,
-                            $m->container ? ($m->container->export_ready && ! $m->container->mrStatusHasExpired() ? 'Yes' : 'No') : '-',
-                            $m->container?->activeHolds->isNotEmpty() ? 'Yes' : 'No',
-                            $m->condition ?? '-',
-                            $m->size ?? '-',
-                            $m->cargo_status ?? '-',
-                            $m->vessel_name ?? '-',
-                            $m->voyage_no ?? '-',
-                            $m->bl_number ?? '-',
-                            $m->seal_no ?? '-',
-                        ]);
                     }
-                });
 
-            fclose($output);
-        }, $filename, ['Content-Type' => 'text/csv']);
+                    $gateInTime  = $m->gate_in_time?->format('Y-m-d H:i') ?? '-';
+                    $gateOutTime = $gateOut?->gate_out_time?->format('Y-m-d H:i') ?? '-';
+                    $daysInYard  = $m->gate_in_time
+                        ? (int) $m->gate_in_time->diffInDays($gateOut?->gate_out_time ?? now())
+                        : '-';
+
+                    // Days in the current M&R stage — distinct from days in
+                    // yard: a box can sit five days in the yard and four of
+                    // them waiting on QC.
+                    $stageAge = $m->mr_status_at
+                        ? (int) $m->mr_status_at->diffInDays(now())
+                        : '-';
+
+                    yield [
+                        $m->id,
+                        $m->container_no,
+                        optional($m->customer)->name ?? '-',
+                        optional($m->yardJob)->job_no ?? '-',
+                        optional(optional($m->yardJob)->jobType)->job_type_name ?? $m->job_type_code ?? '-',
+                        $gateInTime,
+                        $gateOutTime,
+                        $daysInYard,
+                        optional($m->yardJob)->status ?? '-',
+                        $m->mr_status ? MrStatusCatalogue::label($m->mr_status) : '-',
+                        $stageAge,
+                        $m->container ? ($m->container->export_ready && ! $m->container->mrStatusHasExpired() ? 'Yes' : 'No') : '-',
+                        $m->container?->activeHolds->isNotEmpty() ? 'Yes' : 'No',
+                        $m->condition ?? '-',
+                        $m->size ?? '-',
+                        $m->cargo_status ?? '-',
+                        $m->vessel_name ?? '-',
+                        $m->voyage_no ?? '-',
+                        $m->bl_number ?? '-',
+                        $m->seal_no ?? '-',
+                    ];
+                }
+            }
+        });
     }
 }
