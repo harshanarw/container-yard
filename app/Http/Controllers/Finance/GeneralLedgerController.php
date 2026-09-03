@@ -440,6 +440,19 @@ class GeneralLedgerController extends Controller
     {
         $this->authorize('finance.gl.view');
 
+        return view('finance.reports.income-statement', $this->incomeStatementData($request));
+    }
+
+    /**
+     * Computed once, read by the screen and the export.
+     *
+     * Extracted specifically so the file cannot become a second implementation
+     * of the accounts. Eighty lines of grouping and balance arithmetic
+     * duplicated into an export is a statement free to drift from the one on
+     * screen, and nobody would notice until the two were compared.
+     */
+    private function incomeStatementData(Request $request): array
+    {
         $from = $request->input('from', Carbon::now()->startOfYear()->toDateString());
         $to   = $request->input('to',   Carbon::now()->toDateString());
 
@@ -512,11 +525,101 @@ class GeneralLedgerController extends Controller
         $totalExpense = $balances->where('classification', 'expense')->sum('balance');
         $netProfit    = $totalRevenue - $totalExpense;
 
-        return view('finance.reports.income-statement', compact(
+        return compact(
             'incomeGroups', 'expenseGroups',
             'totalRevenue', 'totalExpense', 'netProfit',
             'from', 'to'
-        ));
+        );
+    }
+
+    public function exportIncomeStatement(Request $request)
+    {
+        // Repeated, not inherited: authorization here is per-action rather than
+        // constructor middleware, so an export that omits it is simply open.
+        $this->authorize('finance.gl.view');
+
+        $data = $this->incomeStatementData($request);
+
+        return TabularExport::stream($request->input('format'), 'income-statement',
+            self::HIERARCHY_HEADINGS, function () use ($data) {
+                yield from $this->hierarchySection('Income', $data['incomeGroups'],
+                    'TOTAL REVENUE', $data['totalRevenue']);
+
+                yield from $this->hierarchySection('Expenses', $data['expenseGroups'],
+                    'TOTAL EXPENSES', $data['totalExpense']);
+
+                yield ['Summary', 0, 'Total', '',
+                    $data['netProfit'] >= 0 ? 'NET PROFIT' : 'NET LOSS',
+                    number_format((float) $data['netProfit'], 2, '.', ''),
+                ];
+            });
+    }
+
+    /**
+     * Headings shared by the two statements.
+     *
+     * A statement on screen is a tree: group, its accounts, its subtotal, the
+     * section total. A spreadsheet is not, and indenting a label to suggest
+     * depth leaves the depth unreadable to anything but an eye. So the shape
+     * travels in columns — Section, Level and Row Type — and every row is a
+     * row. A reader who wants only the account detail filters Row Type to
+     * Account; one who wants the shape sorts by Section and Level.
+     */
+    private const HIERARCHY_HEADINGS = [
+        'Section', 'Level', 'Row Type', 'Code', 'Account / Label', 'Amount',
+    ];
+
+    /**
+     * Flattens one section — its groups, their accounts, their subtotals and
+     * the section total — into HIERARCHY_HEADINGS rows.
+     *
+     * Every group gets a Subtotal row even where the screen suppresses it (a
+     * lone group needs no subtotal to be readable). On paper that is tidiness;
+     * in a file it would break the arithmetic, because a reader summing the
+     * Subtotal rows would come up short by whatever the suppressed group held.
+     *
+     * @param  iterable<int,array{parent:?object,rows:iterable,subtotal:float}>  $groups
+     * @return \Generator<int,array<int,string|int>>
+     */
+    private function hierarchySection(string $section, iterable $groups, string $totalLabel, float $total): \Generator
+    {
+        foreach ($groups as $group) {
+            $parent = $group['parent'] ?? null;
+            $label  = $parent?->name ?? '(ungrouped)';
+            $code   = $parent?->code ?? '';
+
+            $accounts = [];
+            foreach ($group['rows'] as $row) {
+                // The income statement carries its balance beside the account;
+                // the balance sheet hangs it on the account itself.
+                $account = is_array($row) ? $row['account'] : $row;
+                $balance = is_array($row) ? (float) $row['balance'] : (float) $account->balance;
+
+                // Both screens hide untouched accounts, and a chart of accounts
+                // is mostly untouched in any one period. Dropping them here
+                // costs the file nothing arithmetically — a zero adds zero to
+                // every subtotal above it.
+                if (round($balance, 2) == 0.0) {
+                    continue;
+                }
+
+                $accounts[] = [$section, 2, 'Account', $account->code, $account->name,
+                    number_format($balance, 2, '.', ''),
+                ];
+            }
+
+            if ($accounts === []) {
+                continue;
+            }
+
+            yield [$section, 1, 'Group', $code, $label, ''];
+            yield from $accounts;
+            yield [$section, 1, 'Subtotal', $code, $label,
+                number_format((float) $group['subtotal'], 2, '.', ''),
+            ];
+        }
+
+        yield [$section, 0, 'Total', '', $totalLabel, number_format($total, 2, '.', '')];
     }
 
     /**
@@ -531,6 +634,12 @@ class GeneralLedgerController extends Controller
     {
         $this->authorize('finance.gl.view');
 
+        return view('finance.reports.balance-sheet', $this->balanceSheetData($request));
+    }
+
+    /** Computed once, for the same reason as the income statement above. */
+    private function balanceSheetData(Request $request): array
+    {
         $asOf = $request->input('as_of', Carbon::today()->toDateString());
 
         // Helper: compute cumulative posted entry sums up to $asOf for given classifications
@@ -617,13 +726,62 @@ class GeneralLedgerController extends Controller
         $balanceDiff = round(abs($totalAssets - ($totalLiabilities + $totalEquity)), 2);
         $balanced    = $balanceDiff < 0.01;
 
-        return view('finance.reports.balance-sheet', compact(
+        return compact(
             'assetGroups', 'liabilityGroups', 'equityGroups',
             'totalAssets', 'totalLiabilities', 'totalEquity',
             'currentYearPL', 'ytdRevenue', 'ytdExpense',
             'closedToCYP', 'residualPL',
             'asOf', 'balanced', 'balanceDiff'
-        ));
+        );
+    }
+
+    public function exportBalanceSheet(Request $request)
+    {
+        // Repeated, not inherited: authorization here is per-action rather than
+        // constructor middleware, so an export that omits it is simply open.
+        $this->authorize('finance.gl.view');
+
+        $data = $this->balanceSheetData($request);
+
+        // Current Year Earnings is not an account on the equity ladder — it is
+        // the live P&L, part of it already closed into 3003 and the rest still
+        // sitting in income and expense. The screen prints it as its own line
+        // between the equity groups and the total; the file gives it its own
+        // one-row group so the equity accounts still add up to TOTAL EQUITY.
+        $earnings = (object) ['code' => 'YTD', 'name' => 'Current Year Earnings'];
+        $equityGroups = collect($data['equityGroups'])->push([
+            'parent'   => $earnings,
+            'rows'     => [(object) [
+                'code'    => 'YTD',
+                'name'    => 'Current Year Earnings',
+                'balance' => $data['currentYearPL'],
+            ]],
+            'subtotal' => $data['currentYearPL'],
+        ]);
+
+        return TabularExport::stream($request->input('format'), 'balance-sheet',
+            self::HIERARCHY_HEADINGS, function () use ($data, $equityGroups) {
+                yield from $this->hierarchySection('Assets', $data['assetGroups'],
+                    'TOTAL ASSETS', (float) $data['totalAssets']);
+
+                yield from $this->hierarchySection('Liabilities', $data['liabilityGroups'],
+                    'TOTAL LIABILITIES', (float) $data['totalLiabilities']);
+
+                yield from $this->hierarchySection('Equity', $equityGroups,
+                    'TOTAL EQUITY', (float) $data['totalEquity']);
+
+                yield ['Summary', 0, 'Total', '', 'TOTAL LIABILITIES + EQUITY',
+                    number_format((float) $data['totalLiabilities'] + (float) $data['totalEquity'], 2, '.', ''),
+                ];
+
+                // The screen shows a tick or a warning triangle here. A file has
+                // no room for either, and a difference the reader cannot see is
+                // worse than one they can, so it is stated as a figure.
+                yield ['Summary', 0, 'Check', '',
+                    $data['balanced'] ? 'Balanced' : 'OUT OF BALANCE — difference',
+                    number_format((float) $data['balanceDiff'], 2, '.', ''),
+                ];
+            });
     }
 
     /**

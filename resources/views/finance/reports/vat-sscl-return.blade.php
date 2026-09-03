@@ -36,6 +36,7 @@
             <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
         </form>
         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
+        @include('partials.export-buttons', ['route' => 'finance.reports.vat-sscl-return.export'])
     </div>
 </div>
 

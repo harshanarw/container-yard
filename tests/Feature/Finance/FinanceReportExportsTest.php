@@ -38,7 +38,7 @@ class FinanceReportExportsTest extends FeatureTestCase
     }
 
     /**
-     * Seven of the eight. The account ledger is absent on purpose: it refuses
+     * All but the account ledger, which is absent on purpose: it refuses
      * without an `account_id`, so it cannot share the "just hit the route"
      * cases and has its own below.
      *
@@ -50,6 +50,9 @@ class FinanceReportExportsTest extends FeatureTestCase
             // route name                              permission            extra query
             'GL journals'      => ['finance.gl.journals.export',            'finance.gl.view', []],
             'trial balance'    => ['finance.gl.trial-balance.export',       'finance.gl.view', []],
+            'income statement' => ['finance.reports.income-statement.export', 'finance.gl.view', []],
+            'balance sheet'    => ['finance.reports.balance-sheet.export',  'finance.gl.view', []],
+            'VAT/SSCL return'  => ['finance.reports.vat-sscl-return.export', 'finance.gl.view', []],
             'FX gain/loss'     => ['finance.reports.fx-gain-loss.export',   'finance.gl.view', []],
             'FX revaluation'   => ['finance.reports.fx-revaluation.export', 'finance.gl.view', []],
             'WHT report'       => ['finance.reports.wht-report.export',     'finance.gl.view', []],
@@ -338,7 +341,234 @@ class FinanceReportExportsTest extends FeatureTestCase
         );
     }
 
+    // ── The two statements (Phase 4c) ────────────────────────────────────────
+
+    /**
+     * The invariant that makes the flattening trustworthy rather than merely
+     * tidy: within a section, the Account rows sum to the Subtotal rows, and
+     * those sum to the Total.
+     *
+     * A statement on screen is a tree, and a spreadsheet is not. Carrying the
+     * shape in a Row Type column only helps if the arithmetic survives the
+     * flattening — a reader who filters to Account rows and sums them must land
+     * on the same figure as the reader who reads the Total row. If a group is
+     * ever emitted without its subtotal, or a subtotal without its accounts,
+     * this is what notices.
+     */
+    public function test_the_income_statement_export_sums_accounts_to_subtotals_to_totals(): void
+    {
+        $this->actingAsSystemAdmin();
+        $this->openAccountingPeriodForToday();
+        $this->postSomeRevenueAndExpense();
+
+        $rows = $this->parse(
+            $this->get(route('finance.reports.income-statement.export'))->assertOk()->streamedContent()
+        );
+
+        foreach (['Income', 'Expenses'] as $section) {
+            $this->assertHierarchyBalances($rows, $section);
+        }
+    }
+
+    public function test_the_balance_sheet_export_sums_accounts_to_subtotals_to_totals(): void
+    {
+        $this->actingAsSystemAdmin();
+        $this->openAccountingPeriodForToday();
+        $this->postSomeRevenueAndExpense();
+
+        $rows = $this->parse(
+            $this->get(route('finance.reports.balance-sheet.export'))->assertOk()->streamedContent()
+        );
+
+        foreach (['Assets', 'Liabilities', 'Equity'] as $section) {
+            $this->assertHierarchyBalances($rows, $section);
+        }
+    }
+
+    /** The bottom line in the file is the bottom line on the screen. */
+    public function test_the_income_statement_export_matches_the_screens_net_profit(): void
+    {
+        $this->actingAsSystemAdmin();
+        $this->openAccountingPeriodForToday();
+        $this->postSomeRevenueAndExpense();
+
+        $screen = $this->get(route('finance.reports.income-statement'))->assertOk();
+        $rows   = $this->parse(
+            $this->get(route('finance.reports.income-statement.export'))->assertOk()->streamedContent()
+        );
+
+        $net = collect($rows)->first(fn ($r) => ($r[0] ?? null) === 'Summary' && ($r[2] ?? null) === 'Total');
+
+        $this->assertNotNull($net, 'A P&L without its net line is not a P&L.');
+        $this->assertEqualsWithDelta(
+            (float) $screen->viewData('netProfit'),
+            (float) $net[5],
+            0.01
+        );
+        $this->assertSame(
+            $screen->viewData('netProfit') >= 0 ? 'NET PROFIT' : 'NET LOSS',
+            $net[4],
+            'Profit and loss are not the same word, and the file must not call one the other.'
+        );
+    }
+
+    /**
+     * Current Year Earnings is not an account, so it would be easy to leave out
+     * of a file that walks the equity accounts. Leaving it out would make the
+     * sheet not balance — silently, since a file has no warning triangle.
+     */
+    public function test_the_balance_sheet_export_carries_current_year_earnings(): void
+    {
+        $this->actingAsSystemAdmin();
+        $this->openAccountingPeriodForToday();
+        $this->postSomeRevenueAndExpense();
+
+        $screen = $this->get(route('finance.reports.balance-sheet'))->assertOk();
+        $rows   = $this->parse(
+            $this->get(route('finance.reports.balance-sheet.export'))->assertOk()->streamedContent()
+        );
+
+        $earnings = collect($rows)->first(
+            fn ($r) => ($r[2] ?? null) === 'Account' && ($r[4] ?? null) === 'Current Year Earnings'
+        );
+
+        $this->assertNotNull($earnings, 'The live P&L belongs on the sheet, as it does on screen.');
+        $this->assertEqualsWithDelta((float) $screen->viewData('currentYearPL'), (float) $earnings[5], 0.01);
+
+        // And the difference the screen shows as a tick or a triangle, stated.
+        $check = collect($rows)->first(fn ($r) => ($r[2] ?? null) === 'Check');
+        $this->assertNotNull($check);
+        $this->assertEqualsWithDelta((float) $screen->viewData('balanceDiff'), (float) $check[5], 0.01);
+    }
+
+    /** The settlement figures are the service's, not a second subtraction. */
+    public function test_the_vat_return_export_matches_the_screens_settlement(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $screen = $this->get(route('finance.reports.vat-sscl-return'))->assertOk();
+        $rows   = $this->parse(
+            $this->get(route('finance.reports.vat-sscl-return.export'))->assertOk()->streamedContent()
+        );
+
+        $summary = $screen->viewData('data')['summary'];
+
+        $net = collect($rows)->first(
+            fn ($r) => ($r[0] ?? null) === 'Summary' && str_starts_with((string) ($r[2] ?? ''), 'Net VAT')
+        );
+        $this->assertNotNull($net, 'A return is filed on its net figure.');
+        $this->assertEqualsWithDelta((float) $summary['net_vat_payable'], (float) $net[6], 0.01);
+
+        $sscl = collect($rows)->first(fn ($r) => ($r[2] ?? null) === 'SSCL Payable');
+        $this->assertNotNull($sscl);
+        $this->assertEqualsWithDelta((float) $summary['sscl_payable'], (float) $sscl[5], 0.01);
+
+        // Input SSCL is carried but never netted — it sits in the SSCL column as
+        // its own line and leaves the payable alone.
+        $inputSscl = collect($rows)->first(fn ($r) => str_starts_with((string) ($r[2] ?? ''), 'Input SSCL'));
+        $this->assertNotNull($inputSscl, 'Dropping it would hide a real cost from the filer.');
+        $this->assertEqualsWithDelta((float) $summary['input_sscl'], (float) $inputSscl[5], 0.01);
+        $this->assertEqualsWithDelta(
+            (float) $summary['output_sscl'],
+            (float) $sscl[5],
+            0.01,
+            'SSCL payable is the output figure alone; input SSCL must not have been netted off it.'
+        );
+    }
+
+    /** Section totals in the file are the ones on screen. */
+    public function test_the_vat_return_export_totals_its_two_sections(): void
+    {
+        $this->actingAsSystemAdmin();
+
+        $screen = $this->get(route('finance.reports.vat-sscl-return'))->assertOk();
+        $rows   = $this->parse(
+            $this->get(route('finance.reports.vat-sscl-return.export'))->assertOk()->streamedContent()
+        );
+        $data = $screen->viewData('data');
+
+        foreach (['Output' => 'output', 'Input' => 'input'] as $section => $key) {
+            $total = collect($rows)->first(
+                fn ($r) => ($r[0] ?? null) === $section && ($r[1] ?? null) === 'Section total'
+            );
+
+            $this->assertNotNull($total, "The {$section} section must carry its total.");
+            $this->assertEqualsWithDelta((float) $data[$key]['taxable'], (float) $total[4], 0.01);
+            $this->assertEqualsWithDelta((float) $data[$key]['sscl'], (float) $total[5], 0.01);
+            $this->assertEqualsWithDelta((float) $data[$key]['vat'], (float) $total[6], 0.01);
+
+            // Every source line on screen is a line in the file.
+            $lines = collect($rows)->filter(
+                fn ($r) => ($r[0] ?? null) === $section && ($r[1] ?? null) === 'Line'
+            );
+            $this->assertCount(count($data[$key]['rows']), $lines);
+        }
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Asserts the Account → Subtotal → Total arithmetic for one section of a
+     * flattened statement.
+     */
+    private function assertHierarchyBalances(array $rows, string $section): void
+    {
+        $of = fn (string $type) => collect($rows)
+            ->filter(fn ($r) => ($r[0] ?? null) === $section && ($r[2] ?? null) === $type);
+
+        $accounts  = $of('Account');
+        $subtotals = $of('Subtotal');
+        $total     = $of('Total')->first();
+
+        $this->assertNotNull($total, "Section {$section} must carry a total row.");
+        $this->assertSame(
+            $subtotals->count(),
+            $of('Group')->count(),
+            "Every group in {$section} carries a subtotal, including the ones the screen suppresses."
+        );
+
+        $this->assertEqualsWithDelta(
+            $accounts->sum(fn ($r) => (float) $r[5]),
+            $subtotals->sum(fn ($r) => (float) $r[5]),
+            0.01,
+            "The {$section} account rows must sum to its subtotals."
+        );
+        $this->assertEqualsWithDelta(
+            $subtotals->sum(fn ($r) => (float) $r[5]),
+            (float) $total[5],
+            0.01,
+            "The {$section} subtotals must sum to its total."
+        );
+    }
+
+    /**
+     * Enough posted activity for the statements to have something to add up.
+     * Revenue and expense both move, so the net line is a real subtraction
+     * rather than a zero that would pass any arithmetic.
+     */
+    private function postSomeRevenueAndExpense(): void
+    {
+        $engine  = app(\App\Services\Finance\PostingEngine::class);
+        $revenue = \App\Models\Account::where('classification', 'income')->where('is_posting', true)
+            ->where('is_active', true)->orderBy('code')->firstOrFail();
+        $expense = \App\Models\Account::where('classification', 'expense')->where('is_posting', true)
+            ->where('is_active', true)->orderBy('code')->firstOrFail();
+        $cash    = \App\Models\Account::where('code', '1011')->firstOrFail();
+
+        foreach ([
+            [['account_id' => $cash->id, 'debit' => 1500, 'credit' => 0],
+             ['account_id' => $revenue->id, 'debit' => 0, 'credit' => 1500]],
+            [['account_id' => $expense->id, 'debit' => 400, 'credit' => 0],
+             ['account_id' => $cash->id, 'debit' => 0, 'credit' => 400]],
+        ] as $lines) {
+            $journal = $engine->createJournal([
+                'journal_date' => now()->toDateString(),
+                'journal_type' => 'journal',
+                'narration'    => 'Statement export test',
+            ], $lines);
+            $engine->postJournal($journal, auth()->id());
+        }
+    }
 
     /** @return array<int,array<int,string>> */
     private function parse(string $csv): array

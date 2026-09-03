@@ -811,7 +811,9 @@ Route::middleware(['auth'])->group(function () {
         // Financial Reports
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('income-statement', [GeneralLedgerController::class, 'incomeStatement'])->name('income-statement');
+            Route::get('income-statement/export', [GeneralLedgerController::class, 'exportIncomeStatement'])->name('income-statement.export');
             Route::get('balance-sheet',    [GeneralLedgerController::class, 'balanceSheet'])->name('balance-sheet');
+            Route::get('balance-sheet/export', [GeneralLedgerController::class, 'exportBalanceSheet'])->name('balance-sheet.export');
             Route::get('fx-gain-loss',      [GeneralLedgerController::class, 'fxGainLoss'])->name('fx-gain-loss');
             Route::get('fx-gain-loss/export', [GeneralLedgerController::class, 'exportFxGainLoss'])->name('fx-gain-loss.export');
             Route::get('fx-revaluation',    [GeneralLedgerController::class, 'fxRevaluation'])->name('fx-revaluation');
@@ -823,6 +825,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('supplier-statement', [\App\Http\Controllers\Finance\StatementController::class, 'supplier'])->name('supplier-statement');
             Route::get('supplier-statement/export', [\App\Http\Controllers\Finance\StatementController::class, 'exportSupplier'])->name('supplier-statement.export');
             Route::get('vat-sscl-return',    [\App\Http\Controllers\Finance\TaxReturnController::class, 'vatSscl'])->name('vat-sscl-return');
+            Route::get('vat-sscl-return/export', [\App\Http\Controllers\Finance\TaxReturnController::class, 'exportVatSscl'])->name('vat-sscl-return.export');
             Route::get('wht-report',         [\App\Http\Controllers\Finance\TaxReturnController::class, 'wht'])->name('wht-report');
             Route::get('wht-report/export',  [\App\Http\Controllers\Finance\TaxReturnController::class, 'exportWht'])->name('wht-report.export');
             Route::get('job-margin',         [\App\Http\Controllers\Finance\JobMarginReportController::class, 'index'])->name('job-margin');

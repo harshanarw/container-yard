@@ -526,3 +526,54 @@ their screen's authorization — verified rather than assumed, since these
 controllers authorize per-action and an export that forgets is simply open.
 
 Remaining: the three structured ones in 4c.
+
+---
+
+## 13. Phase 4c as built
+
+CSV and Excel on the **Income Statement**, the **Balance Sheet** and the
+**VAT / SSCL Return** — the three that could not simply be walked row by row.
+
+**The two statements share one flattening.** `Section, Level, Row Type, Code,
+Account / Label, Amount`, exactly as §10.3 proposed, produced by a single
+private `hierarchySection()` that both exports call. A reader who wants the
+account detail filters `Row Type` to `Account`; one who wants the shape sorts by
+`Section` and `Level`. Nothing about the tree is expressed by indenting a label,
+because indentation is invisible to everything but an eye.
+
+**Both computations came out of their actions first.** `incomeStatementData()`
+and `balanceSheetData()` now hold the grouping and balance arithmetic, and the
+action is one line that hands it to the view. Eighty lines of accounts
+duplicated into an export is a statement free to drift from the one on screen,
+and nobody would notice until someone compared the two.
+
+**Every group carries a subtotal, even where the screen suppresses it.** Both
+screens hide the subtotal when there is only one group — on paper that is
+tidiness, but in a file it breaks the arithmetic, because a reader summing the
+`Subtotal` rows would come up short by whatever the suppressed group held.
+Untouched accounts are dropped, matching the screens, which costs nothing: a
+zero adds zero to every subtotal above it.
+
+**Current Year Earnings is not an account**, so an export that walked the equity
+ladder would leave it out and the sheet would silently fail to balance — a file
+has no warning triangle. It is emitted as its own one-row group, so the equity
+accounts still add up to `TOTAL EQUITY`. The balance difference the screen shows
+as a tick or a triangle is stated as a figure on a `Check` row.
+
+**The VAT return is one sheet**, with `Section` of `Output`, `Input` or
+`Summary` carrying what the two tables and two settlement panels carried on
+screen. Each settlement figure stays in its own column, so a reader summing a
+column is reading one quantity throughout. Input SSCL is carried and labelled
+*not creditable*: dropping it would hide a real cost from the filer, and leaving
+it unlabelled in a column of SSCL figures would read as an offset, which it is
+not.
+
+**The invariant is tested, not asserted.** Within each section, the `Account`
+rows sum to the `Subtotal` rows and those to the `Total` — the property that
+makes the flattening trustworthy rather than merely tidy. That, plus agreement
+with the screen on net profit, current-year earnings, the balance difference and
+both VAT settlements.
+
+**Thirteen of thirteen finance reports now export**, all in both formats, all
+repeating their screen's `authorize()`.
+

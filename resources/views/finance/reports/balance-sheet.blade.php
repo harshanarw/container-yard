@@ -25,6 +25,7 @@
         <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-printer me-1"></i>Print
         </button>
+        @include('partials.export-buttons', ['route' => 'finance.reports.balance-sheet.export'])
     </div>
 </div>
 
