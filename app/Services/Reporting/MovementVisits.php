@@ -4,6 +4,7 @@ namespace App\Services\Reporting;
 
 use App\Models\GateMovement;
 use App\Services\ContainerMrStatusService;
+use App\Support\DaysInYard;
 use Illuminate\Support\Collection;
 
 /**
@@ -109,34 +110,12 @@ class MovementVisits
     }
 
     /**
-     * Whole days from gate to gate, or to today while the box is still here.
-     *
-     * **This is elapsed time, not billable days.** Storage billing counts
-     * inclusive days across a period and nets off free days, so a container in
-     * and out on the same day is `0` here and `1` chargeable day on the invoice.
-     * Both are right for their purpose; the report says which one it is showing,
-     * because a column of numbers in an exported spreadsheet loses whatever the
-     * screen said about it.
-     *
-     * Null where there is no arrival to count from, and floored at zero for a
-     * gate-out timestamped before its gate-in — a data-entry error, and the
-     * report should not dress it up as time in the yard.
-     *
-     * **`$absolute: false` is doing real work here.** Carbon's `diffInDays()`
-     * returns the *distance* between two moments by default, unsigned, so a
-     * container recorded as leaving three days before it arrived comes back as
-     * a confident "3 days in yard" rather than as something a clamp could
-     * catch. Passing it explicitly also makes this identical under Carbon 2 and
-     * Carbon 3, which disagree on the default.
+     * Elapsed days, through the one rule the whole app uses — see `DaysInYard`
+     * for why the sign and the clamp matter, and for why this is not the same
+     * quantity as chargeable days.
      */
     private function days(?GateMovement $gateIn, ?GateMovement $gateOut): ?int
     {
-        if (! $gateIn?->gate_in_time) {
-            return null;
-        }
-
-        $until = $gateOut?->gate_out_time ?? now();
-
-        return max(0, (int) $gateIn->gate_in_time->diffInDays($until, false));
+        return DaysInYard::between($gateIn?->gate_in_time, $gateOut?->gate_out_time);
     }
 }

@@ -203,10 +203,9 @@ class ContainerInquiryService
         $cycleDays = $cycles->map(function ($cycle) {
             $gi = $cycle['gate_in'];
             $go = $cycle['gate_out'];
-            if (!$gi->gate_in_time) {
-                return 0;
-            }
-            return (int) $gi->gate_in_time->diffInDays($go?->gate_out_time ?? now());
+            // Summed and averaged below, so a phantom figure from a reversed
+            // pair would inflate a container's whole history rather than one row.
+            return \App\Support\DaysInYard::between($gi->gate_in_time, $go?->gate_out_time) ?? 0;
         });
 
         $stats = [

@@ -307,11 +307,7 @@
     $storage    = $cycle['storage'];
     $reefer     = $cycle['reefer'];
     $visitNo    = $cycles->count() - $idx;
-    $daysInYard = null;
-    if ($gateIn->gate_in_time) {
-        $end = $gateOut?->gate_out_time ?? now();
-        $daysInYard = (int) $gateIn->gate_in_time->diffInDays($end);
-    }
+    $daysInYard = \App\Support\DaysInYard::between($gateIn->gate_in_time, $gateOut?->gate_out_time);
     $gateInFmt  = $gateIn->gate_in_time?->format('d M Y') ?? '&mdash;';
     $gateOutFmt = $gateOut?->gate_out_time?->format('d M Y');
     $jobTypeShort = optional(optional($yardJob)->jobType)->type_short_code;

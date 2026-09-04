@@ -441,11 +441,7 @@
     $collapseId = 'cycle-' . $idx;
 
     // Days in yard: gate_in to gate_out (or today if still in)
-    $daysInYard = null;
-    if ($gateIn->gate_in_time) {
-        $end = $gateOut?->gate_out_time ?? now();
-        $daysInYard = (int) $gateIn->gate_in_time->diffInDays($end);
-    }
+    $daysInYard = \App\Support\DaysInYard::between($gateIn->gate_in_time, $gateOut?->gate_out_time);
 
     $jobBadgeClass = match(optional($yardJob)->status) {
         'open'      => 'bg-success',

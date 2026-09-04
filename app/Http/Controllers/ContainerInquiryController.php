@@ -185,9 +185,9 @@ class ContainerInquiryController extends Controller
 
                     $gateInTime  = $m->gate_in_time?->format('Y-m-d H:i') ?? '-';
                     $gateOutTime = $gateOut?->gate_out_time?->format('Y-m-d H:i') ?? '-';
-                    $daysInYard  = $m->gate_in_time
-                        ? (int) $m->gate_in_time->diffInDays($gateOut?->gate_out_time ?? now())
-                        : '-';
+                    $daysInYard  = \App\Support\DaysInYard::between(
+                        $m->gate_in_time, $gateOut?->gate_out_time
+                    ) ?? '-';
 
                     // Days in the current M&R stage — distinct from days in
                     // yard: a box can sit five days in the yard and four of
