@@ -1537,7 +1537,7 @@
         @endif
 
         {{-- ── REPORTS ── --}}
-        @if(Auth::user()->can('reports.view') || Auth::user()->can('container-inquiry.view'))
+        @if(Auth::user()->can('reports.view') || Auth::user()->can('container-inquiry.view') || Auth::user()->can('gate-check.view'))
         @php $reportsOpen = request()->routeIs('reports.*') || request()->routeIs('container-inquiry.*'); @endphp
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-reports"
@@ -1575,6 +1575,14 @@
                     <a href="{{ route('reports.billing') }}"
                        class="nav-link {{ request()->routeIs('reports.billing') ? 'active' : '' }}">
                         <i class="bi bi-receipt"></i><span>Billing</span>
+                    </a>
+                </li>
+                @endcan
+                @can('gate-check.view')
+                <li class="nav-item">
+                    <a href="{{ route('reports.gate-data-check') }}"
+                       class="nav-link {{ request()->routeIs('reports.gate-data-check*') ? 'active' : '' }}">
+                        <i class="bi bi-shield-exclamation"></i><span>Gate Data Check</span>
                     </a>
                 </li>
                 @endcan

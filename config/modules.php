@@ -353,6 +353,15 @@ return [
         'actions' => ['view'],
     ],
 
+    // Separate from reports.view on purpose: the people who correct gate data
+    // are a smaller group than the people who read reports, and this screen
+    // links straight to the movement edit form.
+    'gate-check' => [
+        'label'   => 'Gate Data Check',
+        'section' => 'Reports',
+        'actions' => ['view', 'review'],
+    ],
+
     'container-inquiry' => [
         'label'   => 'Container Inquiry',
         'section' => 'Reports',
