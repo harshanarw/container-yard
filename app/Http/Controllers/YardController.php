@@ -345,6 +345,10 @@ class YardController extends Controller
             : now();
         $gateInDate = $gateInTime->toDateString(); // date portion used for storage billing
 
+        if ($err = $this->futureGateInError($gateInTime)) {
+            return $this->validationResponse($request, ['gate_in_time' => [$err]]);
+        }
+
         // Overtime receipt requirement (setting-gated): a gate-in outside normal
         // working hours needs a valid, paid OT receipt for its BL — unless an
         // authorized user overrides with a reason.
@@ -670,6 +674,102 @@ class YardController extends Controller
      * (LCL, customs exam, broken/missing, special equipment). Returns the
      * validation message to raise on `seal_no`, or null when the move is allowed.
      */
+    /**
+     * How far ahead of the server a typed gate time may sit before it counts as
+     * the future.
+     *
+     * The operator types this on a workstation whose clock is its own. A minute
+     * or two ahead is a clock, not an intention, and rejecting a value that
+     * plainly means "now" would teach people to distrust the rule. Anything
+     * beyond this is a mistyped date.
+     */
+    private const GATE_TIME_FUTURE_GRACE_MINUTES = 5;
+
+    /**
+     * Rule A — a gate-in may not be in the future.
+     *
+     * Expected arrivals belong in `container_bookings`; `gate_movements` records
+     * what happened at the gate, so a future timestamp there is always an error.
+     * This only ever fires for a `yard.backdate` holder who typed a value —
+     * everyone else gets `now()`, which cannot be ahead of itself.
+     */
+    private function futureGateInError(?\Carbon\Carbon $gateInTime): ?string
+    {
+        if (! $gateInTime || $gateInTime->lte(now()->addMinutes(self::GATE_TIME_FUTURE_GRACE_MINUTES))) {
+            return null;
+        }
+
+        return "The Gate-In time ({$gateInTime->format('d M Y H:i')}) is in the future. "
+            . "A gate movement records what has already happened — check the date, "
+            . "and use a booking if you are recording an expected arrival.";
+    }
+
+    /**
+     * Rule B — a gate-out may not be earlier than the gate-in it closes.
+     *
+     * **Same-day turnarounds stay legal, and the comparison is `>=` for two
+     * separate reasons.** In at 08:00 and out at 17:00 obviously passes. The
+     * case that would break under a stricter rule is a same-day pair recorded
+     * date-only: both ends land on 00:00:00 and are exactly equal, so "strictly
+     * after" would reject precisely the movement this rule is meant to allow.
+     *
+     * What is still rejected on one date is in at 14:00 and out at 09:00. That
+     * is not a turnaround, it is a contradiction — and the live database had one
+     * (`TRHU4193252`, in 14:43 and out 13:09 on the same afternoon).
+     *
+     * The message names the same-day case on purpose. Someone reading it has a
+     * container in front of them and a queue behind, and the wrong correction to
+     * reach for is the date.
+     */
+    private function gateOutOrderError(?\Carbon\Carbon $gateOutTime, ?\Carbon\Carbon $gateInTime): ?string
+    {
+        // No arrival on record is a different defect — a container released with
+        // no gate-in, which the M&R ladder carries as `released_no_movement`.
+        // There is nothing to compare against, so this rule stays silent.
+        if (! $gateOutTime || ! $gateInTime || $gateOutTime->gte($gateInTime)) {
+            return null;
+        }
+
+        return "The Gate-Out time ({$gateOutTime->format('d M Y H:i')}) is before this "
+            . "container's Gate-In ({$gateInTime->format('d M Y H:i')}). "
+            . "A same-day turnaround is fine — check the time, not the date.";
+    }
+
+    /**
+     * Whether a typed timestamp actually differs from the one on record.
+     *
+     * The edit form re-submits every field, so "the operator supplied a gate
+     * time" is not the same question as "the operator changed it". Only the
+     * second one should be validated — see the call site for why that matters
+     * with imperfect historic data.
+     */
+    private function gateTimeChanged(?\Carbon\Carbon $current, ?\Carbon\Carbon $proposed): bool
+    {
+        if (! $proposed) {
+            return false;
+        }
+
+        return ! $current || ! $proposed->eq($current);
+    }
+
+    /**
+     * The other half of this movement's visit, through the one pairing rule the
+     * app uses — job link first, chronological fallback.
+     *
+     * `MovementVisits` lives under Reporting because that is what asked for it
+     * first, but the question it answers is not a reporting question, and the
+     * alternative here would be a fourth place that decides which movements
+     * belong together.
+     *
+     * @return array{gate_in:?GateMovement,gate_out:?GateMovement,days:?int,open:bool}
+     */
+    private function visitCounterpart(GateMovement $movement): array
+    {
+        return app(\App\Services\Reporting\MovementVisits::class)
+            ->for(collect([$movement]))[$movement->id]
+            ?? ['gate_in' => null, 'gate_out' => null, 'days' => null, 'open' => false];
+    }
+
     private function sealRequirementError(bool $isLaden, ?string $sealNo, ?string $reason): ?string
     {
         if (! $isLaden) {
@@ -860,6 +960,12 @@ class YardController extends Controller
         $visitGateIn  = $custody->latestGateIn($container);
         $visitJobId   = $visitGateIn?->yard_job_id;
         $visitCustomer = $custody->visitCustomerId($container);
+
+        // Rule B, using the gate-in the custody lookup just resolved — no extra
+        // query, and the same gate-in the movement is about to be linked to.
+        if ($err = $this->gateOutOrderError($gateOutTime, $visitGateIn?->gate_in_time)) {
+            return $this->validationResponse($request, ['gate_out_time' => [$err]]);
+        }
 
         // Record gate movement
         $movement = DB::transaction(function () use ($container, $validated, $gateOutTime, $purposeCode, $gateLine, $visitJobId, $visitCustomer) {
@@ -1503,6 +1609,27 @@ class YardController extends Controller
 
             if ($isAdmin && !empty($validated['gate_in_time'])) {
                 $newGateInTime = \Carbon\Carbon::parse($validated['gate_in_time']);
+
+                // Only a *changed* timestamp is validated. The live database
+                // holds movements that already break these rules, and someone
+                // will open one to fix a seal number long before anyone corrects
+                // the date. Being blocked by an error about a field you did not
+                // touch is the wrong first meeting with a new rule.
+                if ($this->gateTimeChanged($movement->gate_in_time, $newGateInTime)) {
+                    if ($err = $this->futureGateInError($newGateInTime)) {
+                        return back()->withInput()->withErrors(['gate_in_time' => $err]);
+                    }
+
+                    // Moving an arrival later can push it past the gate-out that
+                    // closed the visit, which is the same contradiction seen from
+                    // the other end.
+                    $pairedOut = $this->visitCounterpart($movement)['gate_out'] ?? null;
+
+                    if ($err = $this->gateOutOrderError($pairedOut?->gate_out_time, $newGateInTime)) {
+                        return back()->withInput()->withErrors(['gate_in_time' => $err]);
+                    }
+                }
+
                 $updateData['gate_in_time'] = $newGateInTime;
 
                 // Sync the date-only fields on Container and YardStorage so billing stays accurate
@@ -1534,7 +1661,17 @@ class YardController extends Controller
             }
 
             if ($isAdmin && !empty($validated['gate_out_time'])) {
-                $updateData['gate_out_time'] = \Carbon\Carbon::parse($validated['gate_out_time']);
+                $newGateOutTime = \Carbon\Carbon::parse($validated['gate_out_time']);
+
+                if ($this->gateTimeChanged($movement->gate_out_time, $newGateOutTime)) {
+                    $pairedIn = $this->visitCounterpart($movement)['gate_in'] ?? null;
+
+                    if ($err = $this->gateOutOrderError($newGateOutTime, $pairedIn?->gate_in_time)) {
+                        return back()->withInput()->withErrors(['gate_out_time' => $err]);
+                    }
+                }
+
+                $updateData['gate_out_time'] = $newGateOutTime;
             }
         }
 

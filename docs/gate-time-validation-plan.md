@@ -282,3 +282,32 @@ and it is a small amount of extra care in the edit path.
 3. Correct or accept the existing rows.
 4. Add the rules, the guard, and the tests.
 5. Deploy. No migration, no seeder, no data fix — validation only.
+
+---
+
+## 9. As built
+
+Two guards on `YardController`, called from all three paths, with a single
+`GATE_TIME_FUTURE_GRACE_MINUTES = 5`.
+
+`gateOutOrderError()` compares with `>=` and returns null when either side is
+missing — a departure with no arrival on record is a *missing* record, not a
+contradictory one, and the rule stays silent rather than inventing an objection.
+Both live containers in that state pass.
+
+The gate-out path needed no extra query: `$custody->latestGateIn($container)`
+already resolves the visit's arrival a dozen lines below the timestamp, and it is
+the same gate-in the movement is about to be linked to.
+
+The edit path validates **only a changed timestamp**, through `gateTimeChanged()`.
+The form re-submits every field, so "supplied a gate time" is not the same
+question as "changed it" — and with four known-bad rows on the live system,
+someone will open one to fix a seal number long before anyone corrects a date.
+It resolves the movement's counterpart through `MovementVisits`, which already
+owns the one pairing rule; a fourth place deciding which movements belong
+together would defeat the point.
+
+Verified against the live rows: `MEDU8724659`'s 7 September arrival and
+`TRHU4193252`'s 13:09-after-14:43 departure are both rejected, and the two
+containers with a missing arrival are not.
+
