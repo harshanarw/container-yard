@@ -118,9 +118,16 @@ class MovementVisits
      * because a column of numbers in an exported spreadsheet loses whatever the
      * screen said about it.
      *
-     * Null where there is no arrival to count from, and floored at zero rather
-     * than allowed to go negative — a gate-out timestamped before its gate-in is
-     * a data-entry error, and "-3 days" helps nobody diagnose it.
+     * Null where there is no arrival to count from, and floored at zero for a
+     * gate-out timestamped before its gate-in — a data-entry error, and the
+     * report should not dress it up as time in the yard.
+     *
+     * **`$absolute: false` is doing real work here.** Carbon's `diffInDays()`
+     * returns the *distance* between two moments by default, unsigned, so a
+     * container recorded as leaving three days before it arrived comes back as
+     * a confident "3 days in yard" rather than as something a clamp could
+     * catch. Passing it explicitly also makes this identical under Carbon 2 and
+     * Carbon 3, which disagree on the default.
      */
     private function days(?GateMovement $gateIn, ?GateMovement $gateOut): ?int
     {
@@ -130,6 +137,6 @@ class MovementVisits
 
         $until = $gateOut?->gate_out_time ?? now();
 
-        return max(0, (int) $gateIn->gate_in_time->diffInDays($until));
+        return max(0, (int) $gateIn->gate_in_time->diffInDays($until, false));
     }
 }
