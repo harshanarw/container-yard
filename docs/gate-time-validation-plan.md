@@ -182,6 +182,41 @@ land, because validation on write does not touch them — they will sit there
 failing rules nothing re-checks, and the first person to edit one for an
 unrelated reason will be blocked by an error about a field they did not touch.
 
+### What the live database actually returned
+
+Counts: **1**, **1**, **3**. Small enough that this is a validation change, not a
+cleanup exercise. The rows, and what each one is:
+
+**A future gate-in — movement 1467, `MEDU8724659`, REGENT OCEAN.**
+Recorded 28 Aug 05:52 with a gate-in time of **7 September 11:41**. Its gate-out
+(movement 1468) is dated 28 Aug 11:23 — *before* the arrival. So one typo
+produced both defects at once, and **Rule A would have stopped it at entry**.
+The intended date is the yard's to say; `2026-08-07 11:41` fits (a month typed as
+09 for 08, giving a 21-day stay), while `2026-08-28` does not, since 11:41 would
+still fall after the 11:23 gate-out.
+
+**A reversed same-day pair — `TRHU4193252`, ABANS LOGISTICS, job 910.**
+Gate-in 1 Sep **14:43**, gate-out 1 Sep **13:09**: out an hour and a half before
+in, on the same date. This is exactly the case §3 distinguishes from a
+turnaround, and **Rule B catches it**. The gate-in row was created first, so the
+gate-out inherited job 910 from `latestGateIn()` and then recorded an earlier
+time — one of the two clocks is wrong, and the yard knows which.
+
+**Two containers missing an arrival, not reversed — `GESU6455892` and
+`ONEU2681189`.** Each has a gate-out with no gate-in before it at all
+(14 Jul 10:50 and 27 Jul 10:15). **Neither rule rejects these, correctly**: there
+is nothing to compare a gate-out against, and this is the `released_no_movement`
+case the M&R ladder already models. A missing record is a different defect from a
+contradictory one.
+
+Both of those containers also carry **two consecutive gate-ins with no gate-out
+between them**, which the overlap guard at `YardController:287` would reject
+today. They almost certainly predate it. Worth knowing that the shape cannot
+recur, and worth not confusing it with what these rules address.
+
+**So: two rows the new rules would have prevented, two containers with an
+unrelated defect, and nothing that would block the change.**
+
 ---
 
 ## 6. What to do about existing bad rows
