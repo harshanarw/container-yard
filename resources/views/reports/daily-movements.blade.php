@@ -252,6 +252,7 @@
                             <th>Vehicle Plate</th>
                             <th>Gate In</th>
                             <th>Gate Out</th>
+                            <th class="text-center">Days in Yard</th>
                             <th>Location</th>
                             <th class="no-print">CSV Export</th>
                             <th class="no-print">CODECO Export</th>
@@ -288,18 +289,48 @@
                             </td>
                             <td class="small font-monospace">{{ $m->seal_no ?: '—' }}</td>
                             <td class="small">{{ $m->vehicle_plate ?: '—' }}</td>
+                            {{-- Each row shows both ends of the visit it belongs to. The
+                                 movement's own event is solid; the paired one is muted and
+                                 marked, so the report still reads as a list of movements
+                                 rather than a list of visits. --}}
                             <td class="small">
-                                @if($m->gate_in_time)
-                                <div>{{ $m->gate_in_time->format('d M Y') }}</div>
-                                <div class="text-muted">{{ $m->gate_in_time->format('H:i') }}</div>
+                                @if($visitContext[$m->id]['gate_in']?->gate_in_time)
+                                <div class="{{ $m->movement_type === 'in' ? '' : 'text-muted' }}">
+                                    {{ $visitContext[$m->id]['gate_in']->gate_in_time->format('d M Y') }}
+                                </div>
+                                <div class="text-muted">
+                                    {{ $visitContext[$m->id]['gate_in']->gate_in_time->format('H:i') }}
+                                    @if($m->movement_type === 'out')
+                                    <i class="bi bi-link-45deg" title="From this container's matching gate-in"></i>
+                                    @endif
+                                </div>
+                                @else
+                                <span class="text-muted" title="No gate-in recorded for this container">—</span>
+                                @endif
+                            </td>
+                            <td class="small">
+                                @if($visitContext[$m->id]['gate_out']?->gate_out_time)
+                                <div class="{{ $m->movement_type === 'out' ? '' : 'text-muted' }}">
+                                    {{ $visitContext[$m->id]['gate_out']->gate_out_time->format('d M Y') }}
+                                </div>
+                                <div class="text-muted">
+                                    {{ $visitContext[$m->id]['gate_out']->gate_out_time->format('H:i') }}
+                                    @if($m->movement_type === 'in')
+                                    <i class="bi bi-link-45deg" title="From this container's matching gate-out"></i>
+                                    @endif
+                                </div>
+                                @elseif($visitContext[$m->id]['open'])
+                                <span class="badge bg-info-subtle text-info border border-info-subtle small">In yard</span>
                                 @else
                                 <span class="text-muted">—</span>
                                 @endif
                             </td>
-                            <td class="small">
-                                @if($m->gate_out_time)
-                                <div>{{ $m->gate_out_time->format('d M Y') }}</div>
-                                <div class="text-muted">{{ $m->gate_out_time->format('H:i') }}</div>
+                            <td class="small text-center font-monospace">
+                                @if(!is_null($visitContext[$m->id]['days']))
+                                    {{ $visitContext[$m->id]['days'] }}
+                                    @if($visitContext[$m->id]['open'])
+                                    <span class="text-muted" title="Still counting">+</span>
+                                    @endif
                                 @else
                                 <span class="text-muted">—</span>
                                 @endif
@@ -335,6 +366,24 @@
         </div>
     </div>
     @endforeach
+
+    {{-- Stated once under the table, and repeated in the export's column name,
+         because a column of numbers in a spreadsheet loses whatever the screen
+         said about it. --}}
+    <div class="alert alert-light border small d-flex align-items-start gap-2 mt-2">
+        <i class="bi bi-info-circle mt-1"></i>
+        <div>
+            A gate-out row shows the matching <strong>gate-in</strong> for that container's visit,
+            and a gate-in row shows its <strong>gate-out</strong> once the box has left
+            (<i class="bi bi-link-45deg"></i> marks the paired half). Movements are still listed
+            separately, one row each.
+            <strong>Days in Yard</strong> is elapsed gate-to-gate days &mdash; it is
+            <strong>not</strong> chargeable days: Storage &amp; Handling counts inclusively and nets
+            off free days, so a container in and out on the same day reads 0 here and 1 day on the
+            invoice. A <span class="font-monospace">+</span> means the container is still in the
+            yard and the count is still rising.
+        </div>
+    </div>
 
 </form>
 @endif

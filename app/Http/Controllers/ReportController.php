@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\GateMovement;
 use App\Models\YardStorage;
 use App\Services\ContainerMrStatusService;
+use App\Services\Reporting\MovementVisits;
 use App\Services\Reporting\WeekBreakdown;
 use App\Services\Reporting\WeeklyPerformanceReport;
 use App\Support\Export\TabularExport;
@@ -513,7 +514,7 @@ class ReportController extends Controller
         ];
     }
 
-    public function dailyMovements(Request $request)
+    public function dailyMovements(Request $request, MovementVisits $visits)
     {
         $exportFilter = $request->input('export_status', 'pending');
 
@@ -564,10 +565,16 @@ class ReportController extends Controller
 
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
 
-        return view('reports.daily-movements', compact('movements', 'grouped', 'customers', 'exportFilter'));
+        // The other half of each movement. One query for the whole page, and
+        // deliberately not restricted to the filtered rows — see MovementVisits.
+        $visitContext = $visits->for($movements);
+
+        return view('reports.daily-movements', compact(
+            'movements', 'grouped', 'customers', 'exportFilter', 'visitContext'
+        ));
     }
 
-    public function exportMovementsCsv(Request $request)
+    public function exportMovementsCsv(Request $request, MovementVisits $visits)
     {
         $ids = $request->input('movement_ids', []);
         if (empty($ids)) {
@@ -579,6 +586,11 @@ class ReportController extends Controller
             ->orderBy('customer_id')
             ->orderBy('gate_in_time')
             ->get();
+
+        // Before the rows are marked exported, since the lookup reads movements
+        // rather than export flags and the order should not matter — but a
+        // reader should not have to check that it does not.
+        $visitContext = $visits->for($movements);
 
         $batchRef = 'CSV-' . now()->format('Ymd-His') . '-' . strtoupper(Str::random(4));
         $userId   = Auth::id();
@@ -598,7 +610,12 @@ class ReportController extends Controller
             'Gate In Date/Time', 'Gate Out Date/Time',
             'Location Row', 'Location Bay', 'Location Tier',
             'Remarks', 'Recorded By',
-        ], function () use ($movements) {
+            // Appended, never inserted. Anything downstream reading this file by
+            // column position keeps working, and the two columns above keep
+            // their existing meaning: the row's own event, blank on the other
+            // half. These three describe the visit the movement belongs to.
+            'Visit Gate In', 'Visit Gate Out', 'Days In Yard',
+        ], function () use ($movements, $visitContext) {
             // Already loaded: this export covers the rows the operator ticked,
             // so it is bounded by the selection rather than by the table.
             foreach ($movements as $m) {
@@ -626,6 +643,12 @@ class ReportController extends Controller
                     $m->location_tier,
                     $m->remarks,
                     $m->createdBy->name ?? '—',
+                    $visitContext[$m->id]['gate_in']?->gate_in_time?->format('Y-m-d H:i:s'),
+                    $visitContext[$m->id]['gate_out']?->gate_out_time?->format('Y-m-d H:i:s'),
+                    // Elapsed gate-to-gate days, not chargeable days: billing
+                    // counts inclusively and nets off free days, so a same-day
+                    // turnaround is 0 here and 1 on the invoice.
+                    $visitContext[$m->id]['days'] ?? '',
                 ];
             }
         });

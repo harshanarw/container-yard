@@ -194,3 +194,37 @@ to fix, and it should be its own change with its own decision about what
 2. **Should the screen offer a "show only closed visits" filter?** Cheap to add
    once the map exists, and probably what someone wants after a week of using it
    — but not part of this change unless asked.
+
+---
+
+## 10. As built
+
+`App\Services\Reporting\MovementVisits` delegates every pairing decision to
+`ContainerMrStatusService::pairGateOuts()` and adds only the inverse map and the
+day count. It loads all movements for the containers in the result, not the
+filtered rows — the test that pairs an August gate-out with a July gate-in is
+what holds that in place.
+
+Both halves of a visit point at the same context object, so a gate-in row and
+its gate-out row cannot disagree about when the box arrived or how long it
+stayed. Every movement handed in gets an entry, so callers index the map
+directly rather than guarding each read.
+
+**One test had to be rewritten to test what it claimed.** The backwards-pair case
+(a gate-out timestamped before its gate-in) cannot arise through the
+chronological fallback at all: that path requires the gate-out to be at or after
+the gate-in, so an early orphan is simply never matched and the visit stays open.
+The assertion "days are not negative" therefore passed on an open visit counting
+to today, without reaching the arithmetic it was written for. It now forces the
+pair through the `yard_job_id` link, which is the only route to it.
+
+Screen: the row's own event prints solid, the paired half muted with a link icon,
+and a `Days in Yard` column with a `+` while the count is still rising. A note
+under the table states that this is elapsed gate-to-gate time and not chargeable
+days.
+
+Export: `Visit Gate In`, `Visit Gate Out` and `Days In Yard` appended after
+`Recorded By`. The existing `Gate In Date/Time` and `Gate Out Date/Time` keep
+both their position and their meaning, asserted by column index because that is
+what a downstream consumer relies on.
+
