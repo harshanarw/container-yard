@@ -286,6 +286,14 @@
                                 <span class="badge {{ strtolower($m->cargo_status) !== 'empty' ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-light border text-secondary' }} small">
                                     {{ strtolower($m->cargo_status) === 'empty' ? 'Empty' : 'Laden' }}
                                 </span>
+                                {{-- A laden NOR only. An empty reefer with its machinery
+                                     off is the ordinary state of an empty reefer; a loaded
+                                     one is the exception, and the reason this row carries
+                                     no plug session and no PTI demand. --}}
+                                @if($m->isLadenNor())
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small"
+                                          title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>
+                                @endif
                             </td>
                             <td class="small font-monospace">{{ $m->seal_no ?: '—' }}</td>
                             <td class="small">{{ $m->vehicle_plate ?: '—' }}</td>

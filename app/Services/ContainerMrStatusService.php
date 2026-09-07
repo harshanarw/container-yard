@@ -252,7 +252,9 @@ class ContainerMrStatusService
         //      reefer mid-repair should read "repair in progress", not "PTI due".
         //      An expired PTI still suppresses export readiness and still shows
         //      as a chip, so ranking it low loses nothing.
-        if (($ctx->isReefer() || $ctx->jobTypeAllows('reefer_applicable')) && ! $ctx->ptiValid) {
+        if (($ctx->isReefer() || $ctx->jobTypeAllows('reefer_applicable'))
+            && $ctx->ptiApplies()
+            && ! $ctx->ptiValid) {
             return $ctx->container->pti_status === 'failed'
                 ? [Cat::PTI_FAILED, Cat::LANE_REEFER, $ctx->container->pti_at]
                 : [Cat::PTI_DUE, Cat::LANE_REEFER, $ctx->container->pti_at ?? $ctx->gateIn?->gate_in_time];
@@ -290,7 +292,8 @@ class ContainerMrStatusService
             }
         }
 
-        if ($ctx->isReefer() && ! $ctx->ptiValid && ! in_array($code, [Cat::PTI_DUE, Cat::PTI_FAILED], true)) {
+        if ($ctx->isReefer() && $ctx->ptiApplies() && ! $ctx->ptiValid
+            && ! in_array($code, [Cat::PTI_DUE, Cat::PTI_FAILED], true)) {
             $modifiers[] = Cat::MODIFIER_PTI_EXPIRED;
         }
 

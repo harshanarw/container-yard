@@ -230,6 +230,40 @@ final class MrStatusContext
         return $this->container->isReefer();
     }
 
+    /**
+     * Whether this visit is a Non-Operating Reefer: a reefer box carrying dry
+     * cargo with the machinery off.
+     *
+     * Read from the gate-in, because that is the visit the M&R board is looking
+     * at. A container with no open visit — already released, or never recorded —
+     * is not a NOR for these purposes; there is no live visit to describe.
+     *
+     * Null on the movement means operating, matching
+     * `GateMovement::isOperatingReefer()`: every reefer recorded before the
+     * column existed behaved that way.
+     */
+    public function isNonOperatingReefer(): bool
+    {
+        return $this->isReefer() && $this->gateIn?->reefer_mode === 'non_operating';
+    }
+
+    /**
+     * Whether a pre-trip inspection is relevant to this visit at all.
+     *
+     * A PTI tests refrigeration that is about to be used. A NOR is leaving as
+     * dry cargo, so demanding one is asking the yard to service equipment nobody
+     * will run — and a board that says "PTI due" against every NOR is a board
+     * people stop reading.
+     *
+     * The container's PTI record is untouched by this: the moment the box comes
+     * back as an operating reefer, the status reappears without anyone
+     * re-entering anything.
+     */
+    public function ptiApplies(): bool
+    {
+        return ! $this->isNonOperatingReefer();
+    }
+
     public function isHeld(): bool
     {
         return $this->activeHolds->isNotEmpty();

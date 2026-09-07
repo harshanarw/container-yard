@@ -264,3 +264,43 @@ to run them.
 3. **The gate pass prints a NOR label** beside Container Size/Type, and only for
    a **laden** NOR. An empty NOR is the ordinary state of an empty reefer and
    needs no flag; a laden one is the exception worth pointing at.
+
+---
+
+## 9. As built
+
+**Phase 1** — `gate_movements.reefer_mode`, the gate-in selector with both
+defaults, the service-type and plug-session conditions unified into one, and the
+NOR label on all five gate-pass layouts.
+
+**Phase 2** — `storage_master_details.reefer_mode` with the unique index grown to
+match, a backfill migration turning existing reefer rows into operating/NOR
+pairs at the same rate, `StorageMasterDetail::resolve()` shared by both billing
+paths, the tariff screen, and the NOR chip on the billing preview.
+
+A standalone harness caught a defect in the resolver before it shipped: a reefer
+gated in before Phase 1 carries no mode, and on a backfilled tariff there is no
+null row left to fall back to, so it resolved to nothing and would have billed at
+**zero** — silently, for exactly the boxes that had been in the yard longest.
+`resolve()` now reads a missing mode as operating, the third step in its
+fallback chain.
+
+**Phase 3** — the gate-out PTI gate, the M&R rung, and NOR on Daily Movements.
+
+The gate-out reads `$departingReeferMode`, defaulting to the arrival and then to
+operating, which closes the `$needsBooking` gap in §3 item 3 while keeping the
+distinction that matters: a box that arrived as a NOR and is leaving loaded with
+reefer cargo is still blocked without a PTI, and one that arrived operating and
+is leaving as a NOR is not. Resolving that meant moving the custody lookup above
+the PTI gate — `$visitGateIn` was previously resolved forty lines *after* the
+point that now needs it.
+
+`MrStatusContext::ptiApplies()` states the rung rule in one place, read by both
+the rung and the expired-PTI chip. The container's own PTI record is untouched,
+so a NOR that returns as an operating reefer shows its status again with nothing
+re-entered.
+
+Daily Movements marks a laden NOR beside the cargo badge and appends `Reefer
+Mode` to the CSV — appended, after the visit columns, for the same reason those
+were: anything reading the file by position keeps working.
+

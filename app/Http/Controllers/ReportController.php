@@ -614,7 +614,7 @@ class ReportController extends Controller
             // column position keeps working, and the two columns above keep
             // their existing meaning: the row's own event, blank on the other
             // half. These three describe the visit the movement belongs to.
-            'Visit Gate In', 'Visit Gate Out', 'Days In Yard',
+            'Visit Gate In', 'Visit Gate Out', 'Days In Yard', 'Reefer Mode',
         ], function () use ($movements, $visitContext) {
             // Already loaded: this export covers the rows the operator ticked,
             // so it is bounded by the selection rather than by the table.
@@ -649,6 +649,10 @@ class ReportController extends Controller
                     // counts inclusively and nets off free days, so a same-day
                     // turnaround is 0 here and 1 on the invoice.
                     $visitContext[$m->id]['days'] ?? '',
+                    // Blank on a dry box, and on a reefer recorded before the
+                    // column existed — reading a blank as "operating" is a rule
+                    // the app applies, not a fact to assert in an export.
+                    $m->reefer_mode,
                 ];
             }
         });

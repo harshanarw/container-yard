@@ -837,6 +837,7 @@ class YardController extends Controller
             ],
             'vehicle_plate'  => ['required', 'string', 'max:20'],
             'transporter_id' => ['nullable', 'exists:customers,id'],
+            'reefer_mode'    => ['nullable', 'in:operating,non_operating'],
             'driver_name'    => ['required', 'string', 'max:255'],
             'driver_ic'      => ['required', 'string', 'max:30'],
             'driver_phone'   => ['nullable', 'string', 'max:20'],
@@ -935,13 +936,40 @@ class YardController extends Controller
             }
         }
 
+        // The customer belongs to the visit, not to the box. Gate-out used to
+        // read $container->customer_id — which gate-in overwrites every visit
+        // and the master edit screen can change at any time — so a container
+        // could leave under a different party than it arrived under.
+        //
+        // Linking the gate-out to the gate-in's job also makes visit pairing
+        // exact rather than the chronological guess it falls back to when a
+        // gate-out has no job (see ContainerInquiryService::buildGateOutMap).
+        $custody      = app(\App\Services\ContainerCustodyService::class);
+        $visitGateIn  = $custody->latestGateIn($container);
+        $visitJobId   = $visitGateIn?->yard_job_id;
+        $visitCustomer = $custody->visitCustomerId($container);
+
         // ── Reefer PTI gate ──────────────────────────────────────────────────
         // A reefer released for export must carry a valid (passing, unexpired) PTI.
         // The gate fires on an export-booking release (EXPORT_RELEASE) or any
         // reefer-applicable purpose (REEFER_OUT) — driven by the job-type flags,
         // not hard-coded codes. enforce_reefer_pti makes it a hard block; else warn.
+        //
+        // **Read from the departure, not the arrival.** A PTI tests refrigeration
+        // that is about to be used, so what matters is how the box is leaving. A
+        // container that arrived as a NOR may be going out loaded with reefer
+        // cargo and genuinely needs one; one that arrived operating may be
+        // leaving as a NOR and does not. Defaulting to the arrival keeps
+        // today's behaviour for the ordinary case, where nobody changes it.
+        $departingReeferMode = $container->isReefer()
+            ? ($validated['reefer_mode'] ?? $visitGateIn?->reefer_mode ?? 'operating')
+            : null;
+
         $reeferRelease = $needsBooking || (bool) ($purpose?->reefer_applicable);
-        if ($container->isReefer() && $reeferRelease && !$container->hasValidPti()) {
+        if ($container->isReefer()
+            && $departingReeferMode === 'operating'
+            && $reeferRelease
+            && !$container->hasValidPti()) {
             if ((bool) (\App\Models\CompanySetting::current()->enforce_reefer_pti ?? false)) {
                 return $this->validationResponse($request, ['container_no' => [
                     "Reefer {$container->container_no} has no valid PTI on record and cannot be released. "
@@ -968,19 +996,6 @@ class YardController extends Controller
             : now();
         $gateOutDate = $gateOutTime->toDateString();
 
-        // The customer belongs to the visit, not to the box. Gate-out used to
-        // read $container->customer_id — which gate-in overwrites every visit
-        // and the master edit screen can change at any time — so a container
-        // could leave under a different party than it arrived under.
-        //
-        // Linking the gate-out to the gate-in's job also makes visit pairing
-        // exact rather than the chronological guess it falls back to when a
-        // gate-out has no job (see ContainerInquiryService::buildGateOutMap).
-        $custody      = app(\App\Services\ContainerCustodyService::class);
-        $visitGateIn  = $custody->latestGateIn($container);
-        $visitJobId   = $visitGateIn?->yard_job_id;
-        $visitCustomer = $custody->visitCustomerId($container);
-
         // Rule B, using the gate-in the custody lookup just resolved — no extra
         // query, and the same gate-in the movement is about to be linked to.
         if ($err = $this->gateOutOrderError($gateOutTime, $visitGateIn?->gate_in_time)) {
@@ -988,7 +1003,7 @@ class YardController extends Controller
         }
 
         // Record gate movement
-        $movement = DB::transaction(function () use ($container, $validated, $gateOutTime, $purposeCode, $gateLine, $visitJobId, $visitCustomer) {
+        $movement = DB::transaction(function () use ($container, $validated, $gateOutTime, $purposeCode, $gateLine, $visitJobId, $visitCustomer, $departingReeferMode) {
             return GateMovement::create([
                 'container_id'     => $container->id,
                 'container_no'     => $container->container_no,
@@ -1008,6 +1023,10 @@ class YardController extends Controller
                 'condition'       => $container->condition,
                 'grade_id'        => $validated['grade_id'] ?? $container->grade_id,
                 'cargo_status'    => $container->cargo_status,
+                // How the box is leaving. The PTI gate above read this, and the
+                // Daily Movements screen shows it, so a departure that differs
+                // from its arrival is visible rather than inferred.
+                'reefer_mode'     => $departingReeferMode,
                 'vehicle_plate'   => $validated['vehicle_plate'],
                 'driver_name'     => $validated['driver_name'],
                 'driver_ic'       => $validated['driver_ic'],
