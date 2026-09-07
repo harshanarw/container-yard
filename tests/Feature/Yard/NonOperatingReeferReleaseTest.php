@@ -104,7 +104,10 @@ class NonOperatingReeferReleaseTest extends FeatureTestCase
             'type_code'         => $type->type_code,
             'cargo_status'      => 'laden',
             'status'            => 'in_yard',
-            'pti_status'        => null,
+            // 'none', not null — the column is a non-null enum, and "never
+            // inspected" is what it means. `hasValidPti()` reads anything but
+            // 'passed' as no valid PTI, which is the state under test.
+            'pti_status'        => 'none',
             'pti_at'            => null,
         ]);
 
