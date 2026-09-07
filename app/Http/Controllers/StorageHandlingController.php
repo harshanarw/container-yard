@@ -733,7 +733,10 @@ class StorageHandlingController extends Controller
             }
         }
 
-        $v = $request->validate($rules);
+        // Attribute names carry the container number, so a rejection reads
+        // "The storage daily rate for TRHU4193252 field is required" rather than
+        // naming `lines.3`, which is an index the operator cannot see.
+        $v = $request->validate($rules, [], $this->lineAttributeNames($request));
 
         // ── Authoritative rate guard ───────────────────────────────────────────
         // Tariff mode re-resolves rates from the tariffs (posted line values are
@@ -901,6 +904,34 @@ class StorageHandlingController extends Controller
      * @param ?int $excludeInvoiceId the invoice being edited, whose own lines are
      *                               not a conflict with itself
      */
+    /**
+     * Friendly names for the per-line rules.
+     *
+     * Built from the posted lines rather than declared statically, because the
+     * number of lines is whatever the operator selected and the useful half of
+     * the name — the container — is only in the request.
+     *
+     * @return array<string,string>
+     */
+    private function lineAttributeNames(Request $request): array
+    {
+        $names = [];
+
+        foreach ((array) $request->input('lines', []) as $i => $line) {
+            if (! is_array($line)) {
+                continue;
+            }
+
+            $container = $line['container_no'] ?? ('line ' . ((int) $i + 1));
+
+            foreach (array_keys($line) as $field) {
+                $names["lines.{$i}.{$field}"] = str_replace('_', ' ', (string) $field) . " for {$container}";
+            }
+        }
+
+        return $names;
+    }
+
     private function guardPriorBilling(array $v, ?int $excludeInvoiceId = null)
     {
         $prior = PriorBilling::for(

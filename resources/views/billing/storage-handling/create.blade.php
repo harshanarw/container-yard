@@ -104,6 +104,32 @@
     </a>
 </div>
 
+{{--
+    Validation failures used to land here invisibly.
+
+    `store()` calls `$request->validate()`, which redirects back with the messages
+    in `$errors` — but neither this screen nor the layout rendered them, so a
+    rejected save looked exactly like a save that did nothing: the preview still
+    on screen, no message, no invoice. The layout shows `session('error')`, which
+    is why the billing guards were visible and this was not.
+
+    `store()` names the per-line attributes after their container, so a message
+    reads "The storage daily rate for TRHU4193252 field is required" rather than
+    naming `lines.3` -- an index the operator has no way to see.
+--}}
+@if($errors->any())
+<div class="alert alert-danger py-2 small">
+    <div class="fw-semibold mb-1">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>The invoice was not saved.
+    </div>
+    <ul class="mb-0 ps-3">
+        @foreach($errors->all() as $message)
+            <li>{{ $message }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+
 <form id="billingForm" method="POST" action="{{ route('billing.storage-handling.store') }}">
 @csrf
 @if($manual)
