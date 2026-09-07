@@ -180,13 +180,22 @@ class StorageHandlingController extends Controller
                 ->keyBy('container_id')
             : collect();
 
-        // ── Cargo status per container from most recent gate-in movement ──────
-        $cargoStatusByContainer = GateMovement::where('customer_id', $shippingLine->id)
+        // ── Cargo status and reefer mode per container, from the most recent
+        //    gate-in movement ────────────────────────────────────────────────
+        // Both come off the same movement deliberately: they describe one
+        // visit, and reading them from different places is how a container ends
+        // up priced as a laden box on one axis and an empty one on the other.
+        $gateInByContainer = GateMovement::where('customer_id', $shippingLine->id)
             ->where('movement_type', 'in')
             ->orderByDesc('gate_in_time')
             ->get()
-            ->keyBy('container_id')
-            ->map(fn ($m) => $m->cargo_status);
+            ->keyBy('container_id');
+
+        $cargoStatusByContainer = $gateInByContainer->map(fn ($m) => $m->cargo_status);
+        // Null for a dry box, and for a reefer recorded before the column
+        // existed — which resolve() then matches against the tariff's own null
+        // row, exactly as they did before this dimension was added.
+        $reeferModeByContainer  = $gateInByContainer->map(fn ($m) => $m->reefer_mode);
 
         if ($storageRecords->isEmpty() && $liftOffByContainer->isEmpty() && $liftOnByContainer->isEmpty()) {
             return response()->json([
@@ -364,10 +373,12 @@ class StorageHandlingController extends Controller
                         $tax2Rate = (float) $manualStorageCode->taxCode->tax2_rate;
                     }
                 } elseif ($storageTariff) {
-                    $detail = $storageTariff->details
-                        ->where('equipment_type_id', $eqtId)
-                        ->where('cargo_status', $cargoStatus)
-                        ->first();
+                    $detail = \App\Models\StorageMasterDetail::resolve(
+                        $storageTariff->details,
+                        $eqtId,
+                        $cargoStatus,
+                        $reeferModeByContainer[$container->id] ?? null,
+                    );
                     if ($detail) {
                         $storageRate  = (float) $detail->storage_rate;
                         $storageCur   = $detail->currency;
@@ -533,6 +544,11 @@ class StorageHandlingController extends Controller
                 'iso_code'                 => $isoCode,
                 'type_code'                => $eqt ? $eqt->type_code : $container->type_code,
                 'cargo_status'             => $cargoStatus,
+                // Shown on the preview beside the cargo badge. A NOR is priced
+                // from a different tariff row, and an operator comparing two
+                // reefers at different rates needs to see why without opening
+                // the tariff.
+                'reefer_mode'              => $reeferModeByContainer[$container->id] ?? null,
                 'gate_in_date'             => $gateInStr,
                 'gate_out_date'            => $gateOutStr,
                 'storage_from'             => $fromStr,

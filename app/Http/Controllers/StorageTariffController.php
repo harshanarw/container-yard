@@ -119,6 +119,22 @@ class StorageTariffController extends Controller
             ->with('success', "Storage tariff for \"{$customer}\" deleted.");
     }
 
+    /**
+     * The reefer mode a rate row should carry.
+     *
+     * Forced to null on a dry equipment type whatever the form sent. A dry box
+     * never has a mode to match against, so a row claiming one would be
+     * unreachable — a rate that exists, looks configured, and prices nothing.
+     *
+     * @param  array<string,mixed>  $data
+     */
+    private function reeferModeFor(array $data): ?string
+    {
+        $isReefer = \App\Models\EquipmentType::find($data['equipment_type_id'] ?? null)?->isReefer();
+
+        return $isReefer ? ($data['reefer_mode'] ?? null) : null;
+    }
+
     // ── Store detail line ────────────────────────────────────────────────────
 
     public function storeDetail(Request $request, StorageMasterHeader $storageTariff)
@@ -126,17 +142,23 @@ class StorageTariffController extends Controller
         $data = $request->validate([
             'equipment_type_id' => ['required', 'exists:equipment_types,id'],
             'cargo_status'      => ['required', 'in:laden,empty'],
+            // Null on a dry equipment type — the question does not arise — and
+            // on a reefer row that is meant to price both modes alike.
+            'reefer_mode'       => ['nullable', 'in:operating,non_operating'],
             'storage_rate'      => 'required|numeric|min:0|max:99999.99',
             'currency'          => 'required|string|size:3',
             'charge_code_id'    => 'nullable|exists:charge_codes,id',
         ]);
 
+        $data['reefer_mode'] = $this->reeferModeFor($data);
+
         if ($storageTariff->details()
             ->where('equipment_type_id', $data['equipment_type_id'])
             ->where('cargo_status', $data['cargo_status'])
+            ->where('reefer_mode', $data['reefer_mode'])
             ->exists()
         ) {
-            return back()->withErrors(['equipment_type_id' => 'A rate line for this equipment type and cargo status already exists on this tariff.']);
+            return back()->withErrors(['equipment_type_id' => 'A rate line for this equipment type, cargo status and reefer mode already exists on this tariff.']);
         }
 
         $data['storage_master_header_id'] = $storageTariff->id;
@@ -153,19 +175,25 @@ class StorageTariffController extends Controller
 
         $data = $request->validate([
             'cargo_status'   => ['required', 'in:laden,empty'],
+            'reefer_mode'    => ['nullable', 'in:operating,non_operating'],
             'storage_rate'   => 'required|numeric|min:0|max:99999.99',
             'currency'       => 'required|string|size:3',
             'charge_code_id' => 'nullable|exists:charge_codes,id',
         ]);
 
+        $data['reefer_mode'] = $this->reeferModeFor(
+            $data + ['equipment_type_id' => $detail->equipment_type_id]
+        );
+
         $duplicate = $storageTariff->details()
             ->where('equipment_type_id', $detail->equipment_type_id)
             ->where('cargo_status', $data['cargo_status'])
+            ->where('reefer_mode', $data['reefer_mode'])
             ->where('id', '!=', $detail->id)
             ->exists();
 
         if ($duplicate) {
-            return back()->withErrors(['cargo_status' => 'A rate for this equipment type and cargo status already exists on this tariff.']);
+            return back()->withErrors(['cargo_status' => 'A rate for this equipment type, cargo status and reefer mode already exists on this tariff.']);
         }
 
         $detail->update($data);

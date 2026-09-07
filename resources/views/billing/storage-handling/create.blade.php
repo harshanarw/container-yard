@@ -588,6 +588,15 @@ let matrixRates  = {};
 // Currency context of the current preview, used by every recalculation.
 let previewCur   = { inv: 'LKR', def: 'LKR', ex: 1 };
 
+// A NOR prices from a different tariff row than an operating reefer, so the
+// preview says which one it is. Only NOR is marked: an operating reefer is the
+// ordinary case, and a chip on every reefer line would be noise.
+function norBadge(l) {
+    if (l.reefer_mode !== 'non_operating') return '';
+    return ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.7rem;"'
+         + ' title="Non-Operating Reefer \u2014 dry cargo, machinery off">NOR</span>';
+}
+
 function fmtEqt(l) {
     if (!l.eqt_code) return l.equipment_type || '—';
     const isReefer = l.type_code && ['RF','RH'].includes(l.type_code);
@@ -1193,7 +1202,7 @@ function renderPreview(data) {
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
             <td class="small">${fmtEqt(l)}</td>
-            <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
+            <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}${norBadge(l)}</td>
             <td class="small">${fmtDate(l.gate_in_date)}</td>
             <td class="text-center small">${fmtDate(l.storage_from)}</td>
             <td class="text-center small">${fmtDate(l.storage_to)}</td>
@@ -1298,7 +1307,7 @@ function renderPreview(data) {
             <td class="font-monospace fw-semibold">${l.container_no}</td>
             <td class="text-center"><span class="badge bg-dark badge-size">${l.container_size || '—'}'</span></td>
             <td class="small">${fmtEqt(l)}</td>
-            <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}</td>
+            <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '—'}${norBadge(l)}</td>
             <td class="small">${dateOf(l)}</td>
             ${rateCells}
         </tr>`;

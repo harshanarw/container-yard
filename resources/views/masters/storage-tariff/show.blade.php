@@ -215,6 +215,16 @@
                                 @else
                                     <span class="badge bg-info-subtle text-info border border-info-subtle fw-semibold" style="font-size:.72rem;">Empty</span>
                                 @endif
+                                {{-- Only reefer rows carry a mode. A dry row shows nothing
+                                     rather than an "Any" chip that would imply the question
+                                     was asked and answered. --}}
+                                @if($detail->reefer_mode === 'non_operating')
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fw-semibold" style="font-size:.72rem;"
+                                          title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>
+                                @elseif($detail->reefer_mode === 'operating')
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold" style="font-size:.72rem;"
+                                          title="Reefer machinery running">Operating</span>
+                                @endif
                             </td>
                             <td class="text-end fw-semibold">
                                 {{ number_format($detail->storage_rate, 2) }}
@@ -246,6 +256,7 @@
                                             data-eqt="{{ $detail->equipmentType->eqt_code ?? '' }}"
                                             data-desc="{{ $detail->equipmentType->description ?? '' }}"
                                             data-cargo_status="{{ $detail->cargo_status }}"
+                                            data-reefer_mode="{{ $detail->reefer_mode }}"
                                             data-rate="{{ $detail->storage_rate }}"
                                             data-currency="{{ $detail->currency }}"
                                             data-charge_code_id="{{ $detail->charge_code_id ?? '' }}"
@@ -310,6 +321,17 @@
                         <select name="cargo_status" class="form-select form-select-sm" required>
                             <option value="empty" selected>Empty</option>
                             <option value="laden">Laden</option>
+                        </select>
+                    </div>
+                    {{-- Reefer mode. Left blank the row prices both modes alike, which
+                         is what every pre-existing rate does; the server forces it back
+                         to blank on a dry equipment type, where it would be unreachable. --}}
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold mb-1">Reefer Mode</label>
+                        <select name="reefer_mode" class="form-select form-select-sm">
+                            <option value="">Any / not a reefer</option>
+                            <option value="operating">Operating</option>
+                            <option value="non_operating">Non-Operating (NOR)</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -419,6 +441,17 @@
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label fw-semibold">Reefer Mode</label>
+                        <select name="reefer_mode" id="editRateReeferMode" class="form-select">
+                            <option value="">Any / not a reefer</option>
+                            <option value="operating">Operating</option>
+                            <option value="non_operating">Non-Operating (NOR)</option>
+                        </select>
+                        <div class="form-text small">
+                            Blank prices both modes alike. Ignored on a dry equipment type.
+                        </div>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fw-semibold">
                             Daily Rate <span class="text-danger">*</span>
                         </label>
@@ -512,6 +545,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-edit-rate').forEach(btn => {
         btn.addEventListener('click', () => {
             const status = btn.dataset.cargo_status || 'empty';
+            const modeEl = document.getElementById('editRateReeferMode');
+            if (modeEl) modeEl.value = btn.dataset.reefer_mode || '';
             document.getElementById('editRateEqt').textContent      = btn.dataset.eqt;
             document.getElementById('editRateDesc').textContent     = btn.dataset.desc || '';
             document.getElementById('editRateStatusBadge').innerHTML =

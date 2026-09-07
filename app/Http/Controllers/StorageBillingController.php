@@ -106,14 +106,21 @@ class StorageBillingController extends Controller
             ->orderBy('gate_in_date')
             ->get();
 
-        // Load cargo_status from gate-in movement for each container
+        // Load cargo_status and reefer mode from the gate-in movement for each
+        // container. Both from the same movement: they describe one visit, and
+        // reading them from different places is how a container ends up priced
+        // as laden on one axis and empty on the other.
         $containerIds = $storageRecords->pluck('container_id')->filter()->unique()->values();
-        $gateInCargoStatus = \App\Models\GateMovement::whereIn('container_id', $containerIds)
+        $gateInByContainer = \App\Models\GateMovement::whereIn('container_id', $containerIds)
             ->where('movement_type', 'in')
             ->orderByDesc('gate_in_time')
             ->get()
-            ->keyBy('container_id')
-            ->map(fn ($m) => $m->cargo_status);
+            ->keyBy('container_id');
+
+        $gateInCargoStatus = $gateInByContainer->map(fn ($m) => $m->cargo_status);
+        // Null for a dry box, and for a reefer recorded before the column
+        // existed — resolve() matches those against the tariff's own null row.
+        $gateInReeferMode  = $gateInByContainer->map(fn ($m) => $m->reefer_mode);
 
         if ($storageRecords->isEmpty()) {
             return response()->json([
@@ -198,10 +205,12 @@ class StorageBillingController extends Controller
             $detail        = null;
 
             if ($tariffHeader) {
-                $detail = $tariffHeader->details
-                    ->where('equipment_type_id', $eqtId)
-                    ->where('cargo_status', $cargoStatus)
-                    ->first();
+                $detail = \App\Models\StorageMasterDetail::resolve(
+                    $tariffHeader->details,
+                    $eqtId,
+                    $cargoStatus,
+                    $gateInReeferMode[$container->id] ?? null,
+                );
                 if ($detail) {
                     $dailyRate    = (float) $detail->storage_rate;
                     $currency     = $detail->currency;
