@@ -153,6 +153,22 @@
         .status-laden { color: #000; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
         .status-empty { color: #000; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
 
+        /* ── Non-Operating Reefer flag (beside container size/type) ──────── */
+        /* Set off from the type by a gap and a rule, not by colour, for the same
+           reason as .status-laden above. It tells the gate one thing — do not
+           plug this box — so it has to survive a mono photocopy. */
+        .nor-flag {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 0 5px;
+            border: 1pt solid #000;
+            border-radius: 2px;
+            font-size: 7.5pt;
+            font-weight: 900;
+            letter-spacing: .5px;
+            white-space: nowrap;
+        }
+
         /* ── Status badge (header, below pass number) ────────────────────── */
         .gp-status-badge {
             display: inline-block;
@@ -413,7 +429,7 @@
             <tr>
                 <td style="width:28%">
                     <div class="cell-lbl">Size / Type</div>
-                    <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1" title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>@endif</div>
+                    <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="nor-flag">NOR — Non-Operating</span>@endif</div>
                 </td>
                 <td style="width:24%">
                     <div class="cell-lbl">Status</div>
@@ -612,7 +628,7 @@
             <tr>
                 <td style="width:20%">
                     <div class="cell-lbl">Size / Type</div>
-                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1" title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>@endif</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="nor-flag">NOR</span>@endif</div>
                 </td>
                 <td style="width:18%">
                     <div class="cell-lbl">Status</div>
@@ -789,7 +805,7 @@
             <tr>
                 <td style="width:16%">
                     <div class="cell-lbl">Size / Type</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1" title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>@endif</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="nor-flag">NOR</span>@endif</div>
                 </td>
                 <td style="width:18%">
                     <div class="cell-lbl">Status</div>

@@ -271,7 +271,25 @@ to run them.
 
 **Phase 1** — `gate_movements.reefer_mode`, the gate-in selector with both
 defaults, the service-type and plug-session conditions unified into one, and the
-NOR label on all five gate-pass layouts.
+NOR label on the gate-pass layouts.
+
+That last part shipped broken and was fixed afterwards. There are **six** layouts,
+not the five originally counted — the inward custom-half format renders container
+number and type together in one compact chip and was missed entirely, so a NOR
+printed there identically to an operating reefer. The other five carried Bootstrap
+badge classes copied from the screen views, but the gate passes are standalone
+print documents with their own `<style>` block and no Bootstrap at all, so every
+class matched nothing: the span rendered as bare text with no margin and printed
+as `20' RFNOR`. Both faults came from reading the markup rather than the sheet it
+lands on.
+
+The replacement is a `.nor-flag` rule declared in each print stylesheet — a
+bordered inline chip, separated by a gap and a rule rather than by colour, which
+is the same reasoning `.status-laden` already carries: the amber badge photocopied
+to white. The two full-A4 layouts have room for `NOR — Non-Operating`; the four
+half formats keep `NOR` alone, because the long form wraps at 8.5pt in a half-A5
+cell. On the compact chip the flag sits *beside* the type box, never inside it —
+one bordered box nested in another reads as a printing fault.
 
 **Phase 2** — `storage_master_details.reefer_mode` with the unique index grown to
 match, a backfill migration turning existing reefer rows into operating/NOR

@@ -148,6 +148,22 @@
         .status-laden { color: #000; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
         .status-empty { color: #000; font-weight: 900; font-size: 10pt; letter-spacing: .5px; }
 
+        /* ── Non-Operating Reefer flag (beside container size/type) ──────── */
+        /* Set off from the type by a gap and a rule, not by colour, for the same
+           reason as .status-laden above. It tells the gate one thing — do not
+           plug this box — so it has to survive a mono photocopy. */
+        .nor-flag {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 0 5px;
+            border: 1pt solid #000;
+            border-radius: 2px;
+            font-size: 7.5pt;
+            font-weight: 900;
+            letter-spacing: .5px;
+            white-space: nowrap;
+        }
+
         /* ── Condition text ──────────────────────────────────────────────── */
         .cond-sound   { color: #000; font-weight: 900; letter-spacing: .5px; }
         .cond-damaged { color: #000; font-weight: 900; letter-spacing: .5px; }
@@ -371,7 +387,7 @@
             <tr>
                 <td style="width:18%">
                     <div class="cell-lbl">Size / Type</div>
-                    <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1" title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>@endif</div>
+                    <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="nor-flag">NOR — Non-Operating</span>@endif</div>
                 </td>
                 <td style="width:18%">
                     <div class="cell-lbl">Status</div>
@@ -567,7 +583,7 @@
             <tr>
                 <td style="width:16%">
                     <div class="cell-lbl">Size / Type</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1" title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>@endif</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="nor-flag">NOR</span>@endif</div>
                 </td>
                 <td style="width:16%">
                     <div class="cell-lbl">Status</div>
@@ -735,6 +751,10 @@
                     <div style="display:flex;justify-content:flex-start;align-items:center;gap:10px;">
                         <span class="cell-val" style="font-size:12pt;letter-spacing:1px;">{{ $movement->container_no }}</span>
                         <span style="font-family:Arial,sans-serif;font-size:8pt;font-weight:900;letter-spacing:.5px;color:#000;background:#fff;border:1pt solid #000;padding:1px 6px;border-radius:2px;">{{ $movement->size }}'{{ $movement->container_type }}</span>
+                        {{-- A sibling of the type chip, never inside it: one bordered box
+                             nested in another reads as a printing fault. The flex gap
+                             already separates them, so the flag's own margin is dropped. --}}
+                        @if($movement->isLadenNor())<span class="nor-flag" style="margin-left:0;">NOR</span>@endif
                     </div>
                 </td>
             </tr>
