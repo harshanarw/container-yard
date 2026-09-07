@@ -196,6 +196,7 @@ class YardController extends Controller
             'grade_id'          => ['nullable', 'exists:container_grades,id'],
             'cargo_status'      => ['required', 'in:empty,laden'],
             'reefer_service_type' => ['nullable', 'in:pti,long_term'],
+            'reefer_mode'         => ['nullable', 'in:operating,non_operating'],
             'location_zone'     => ['nullable', 'string', 'max:10', 'exists:storage_zones,code'],
             'location_row'      => ['nullable', 'string', 'max:5'],
             'location_bay'      => ['nullable', 'integer', 'min:1', 'max:99'],
@@ -320,9 +321,25 @@ class YardController extends Controller
 
         $eqt = EquipmentType::findOrFail($validated['equipment_type_id']);
 
-        // A reefer plug session is created below for laden reefer containers. The
-        // operator must choose its billing service type up front — never defaulted.
-        $willPlugReefer = $validated['cargo_status'] === 'laden' && $eqt->isReefer();
+        // Is the reefer machinery in use this visit? Null on a dry box — the
+        // question does not arise. A reefer carrying dry cargo with the
+        // compressor off is a NOR, and needs no service type, no plug session
+        // and no PTI.
+        //
+        // Defaults follow what arrived: a laden reefer is running unless the
+        // operator says otherwise (today's behaviour), an empty one is not
+        // unless they say it is (feeder movements, pre-cooling).
+        $reeferMode = $eqt->isReefer()
+            ? ($validated['reefer_mode']
+                ?? ($validated['cargo_status'] === 'laden' ? 'operating' : 'non_operating'))
+            : null;
+
+        // A reefer plug session is created below for laden, *operating* reefers.
+        // The operator must choose its billing service type up front — never
+        // defaulted. A NOR is not plugged, so it is not asked.
+        $willPlugReefer = $validated['cargo_status'] === 'laden'
+            && $eqt->isReefer()
+            && $reeferMode === 'operating';
         if ($willPlugReefer && empty($validated['reefer_service_type'])) {
             return $this->validationResponse($request, ['reefer_service_type' => [
                 'Please choose the reefer service type (Short-Term PTI or Long-Term Electricity) for this reefer container.',
@@ -405,7 +422,7 @@ class YardController extends Controller
         );
 
         // Record gate movement
-        $movement = DB::transaction(function () use ($container, $jobType, $eqt, $validated, $gateInTime, $otEval, $otReceipt) {
+        $movement = DB::transaction(function () use ($container, $jobType, $eqt, $validated, $gateInTime, $otEval, $otReceipt, $reeferMode) {
             return GateMovement::create([
                 'container_id'     => $container->id,
                 'container_no'     => $container->container_no,
@@ -426,6 +443,7 @@ class YardController extends Controller
                 'condition'       => $validated['condition'],
                 'grade_id'        => $validated['grade_id'] ?? null,
                 'cargo_status'    => $validated['cargo_status'],
+                'reefer_mode'     => $reeferMode,
                 'seal_no'         => $validated['seal_no'],
                 'no_seal_reason'  => $validated['no_seal_reason'] ?? null,
                 'vehicle_plate'   => $validated['vehicle_plate'],
@@ -543,7 +561,9 @@ class YardController extends Controller
         // Auto-create a pending reefer plug session for laden reefer containers
         // Non-blocking: any failure here must not abort a successful gate-in
         try {
-            if ($validated['cargo_status'] === 'laden' && $eqt->isReefer()) {
+            // Exactly the condition that demanded a service type above, so the
+            // two can never disagree about whether this box gets plugged.
+            if ($willPlugReefer) {
                 \App\Models\ReeferPlugSession::create([
                     'container_id'    => $container->id,
                     'gate_movement_id'=> $movement->id,

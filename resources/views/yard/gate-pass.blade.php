@@ -413,7 +413,7 @@
             <tr>
                 <td style="width:28%">
                     <div class="cell-lbl">Size / Type</div>
-                    <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}</div>
+                    <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1" title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>@endif</div>
                 </td>
                 <td style="width:24%">
                     <div class="cell-lbl">Status</div>
@@ -612,7 +612,7 @@
             <tr>
                 <td style="width:20%">
                     <div class="cell-lbl">Size / Type</div>
-                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->size }}' {{ $movement->container_type }}</div>
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1" title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>@endif</div>
                 </td>
                 <td style="width:18%">
                     <div class="cell-lbl">Status</div>
@@ -789,7 +789,7 @@
             <tr>
                 <td style="width:16%">
                     <div class="cell-lbl">Size / Type</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->size }}' {{ $movement->container_type }}</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1" title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>@endif</div>
                 </td>
                 <td style="width:18%">
                     <div class="cell-lbl">Status</div>

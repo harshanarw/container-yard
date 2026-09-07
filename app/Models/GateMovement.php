@@ -16,7 +16,7 @@ class GateMovement extends Model
         'container_no', 'customer_id', 'transporter_id', 'movement_type', 'eir_no', 'size',
         'container_type', 'ventilation_type', 'vent_count',
         'location_zone', 'location_row', 'location_bay', 'location_tier',
-        'condition', 'grade_id', 'cargo_status', 'seal_no', 'no_seal_reason', 'vehicle_plate', 'driver_name',
+        'condition', 'grade_id', 'cargo_status', 'reefer_mode', 'seal_no', 'no_seal_reason', 'vehicle_plate', 'driver_name',
         'driver_ic', 'driver_phone', 'release_order', 'gate_in_time', 'gate_out_time',
         'movement_status', 'remarks', 'created_by',
         // Gate-In: import shipment information
@@ -89,6 +89,37 @@ class GateMovement extends Model
         // on gate-IN rows. Live while the cycle is open, terminal once it closes.
         'mr_status_at'       => 'datetime',
     ];
+
+    /** Non-Operating Reefer: a reefer box whose machinery is off for this visit. */
+    public function isNonOperatingReefer(): bool
+    {
+        return $this->reefer_mode === 'non_operating';
+    }
+
+    /**
+     * Whether this movement should carry a visible NOR label.
+     *
+     * Laden only. An empty reefer with its machinery off is the ordinary state
+     * of an empty reefer and flagging it would be noise; a *loaded* one is the
+     * exception worth pointing at, because it is the case where someone might
+     * otherwise expect a plug, a set point and a PTI.
+     */
+    public function isLadenNor(): bool
+    {
+        return $this->isNonOperatingReefer() && $this->cargo_status === 'laden';
+    }
+
+    /**
+     * Whether the reefer machinery is in use for this visit.
+     *
+     * Null on a reefer reads as operating: every movement recorded before this
+     * column existed behaved that way, and re-interpreting them as NOR would
+     * rewrite history the yard never entered.
+     */
+    public function isOperatingReefer(): bool
+    {
+        return $this->reefer_mode !== 'non_operating';
+    }
 
     // Relationships
     public function yardJob()

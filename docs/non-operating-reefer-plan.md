@@ -73,9 +73,16 @@ $table->enum('reefer_mode', ['operating', 'non_operating'])->nullable();
 `cargo_status` keeps saying `laden` for a loaded NOR, which is true and keeps
 billing and reporting correct.
 
-**Default exactly as you described:** a laden reefer defaults to `operating`,
-which is what happens today, and the operator switches it to NOR when that is
-what arrived.
+**Defaults, by what arrived:**
+
+| Equipment | Cargo | Default | Why |
+| --- | --- | --- | --- |
+| Reefer | laden | `operating` | today's behaviour; the common case |
+| Reefer | empty | `non_operating` | an empty reefer is not running unless someone says so |
+| Dry | either | `null` | the question does not arise |
+
+Both defaults are changeable. The empty case matters for feeder movements, where
+an empty reefer may genuinely be running.
 
 ---
 
@@ -92,10 +99,37 @@ of three of them.
 | 4 | `ContainerMrStatusService:255` | Rung 18 "PTI due / failed", lane REEFER | Not while the visit is a NOR |
 | 5 | `ContainerMrStatusService:293` | `MODIFIER_PTI_EXPIRED` chip | Same |
 | 6 | `ReeferBillingService` | Bills completed plug sessions | **No change needed** — no session, no bill |
-| 7 | Storage & handling tariffs | Keyed on equipment type and `cargo_status` | **No change** — a NOR is still physically a reefer box and occupies the same slot |
+| 7a | **Storage tariff** | Keyed on `(header, equipment_type_id, cargo_status)` | **Gains `reefer_mode`** — see below |
+| 7b | Handling tariff | Keyed on equipment type and `cargo_status` | **No change** — a lift is a lift |
 | 8 | Weekly Performance report | Splits laden/empty from `cargo_status` | **No change** — the deliberate benefit of not touching `cargo_status` |
 
-Items 6, 7 and 8 needing nothing is the payoff for putting this on its own axis.
+Items 6, 7b and 8 needing nothing is the payoff for putting this on its own axis.
+
+### 7a — storage rates do differ, and that is a phase of its own
+
+An earlier draft of this document claimed storage tariffs needed no change,
+reasoning that a NOR occupies the same slot as any other box. **That was wrong
+for this yard**: a NOR is priced differently, and the tariff has to say so.
+
+`storage_master_details` is keyed on `(storage_master_header_id,
+equipment_type_id, cargo_status)`. It gains `reefer_mode`, so a reefer equipment
+type can carry four rows:
+
+| cargo_status | reefer_mode | |
+| --- | --- | --- |
+| laden | operating | a working reefer with cargo |
+| laden | non_operating | a NOR |
+| empty | operating | an empty reefer being run |
+| empty | non_operating | an empty reefer, machinery off |
+
+**Existing rows keep `reefer_mode = null`, and null means "any".** The lookup
+prefers an exact match and falls back to the null row, so a yard that has not
+entered NOR rates keeps billing exactly as it does today until it does. Without
+that fallback, every existing tariff would stop resolving the moment the column
+landed.
+
+Handling tariffs are explicitly out of scope: lift-on and lift-off cost the same
+whether the machinery runs.
 
 ### Item 3 deserves care
 
@@ -174,20 +208,27 @@ recorded it, and guessing would be inventing history.
 
 ## 6. Phases
 
-**Phase 1 — record it.** Migration, the gate-in form choice, and the two gate-in
-rules (items 1 and 2). After this a NOR can be gated in without a service type
-and without a plug session. This alone unblocks the yard.
+**Phase 1 — record it, and unblock the gate.** Migration, the gate-in selector
+with both defaults, the two gate-in rules (items 1 and 2), and the NOR label on
+the gate pass. No money moves. After this a NOR gates in without a service type
+and without a plug session.
 
-**Phase 2 — stop the false demands.** The gate-out PTI gate (item 3, including
-the `$needsBooking` gap) and the M&R rung (items 4 and 5). After this a NOR
-neither blocks at the gate nor clutters the M&R board.
+**Phase 2 — the tariff.** `reefer_mode` on `storage_master_details`, the
+resolution change with its null fallback, the tariff master screen, and visual
+indication in the billing preview (item 7a).
 
-**Phase 3 — make it visible.** NOR shown on Container Inquiry, the M&R screens,
-the gate pass and the Daily Movements export, so anyone asking "why is this
-reefer not flagged for PTI?" can see the answer rather than wonder.
+**Phase 3 — PTI and M&R.** The gate-out block including the `$needsBooking` gap
+(item 3), the M&R rung (items 4 and 5), and NOR shown on Container Inquiry, the
+M&R screens and the Daily Movements export.
 
-Phase 1 is the one with operational urgency. Phases 2 and 3 are what stop it
-becoming a half-feature that records something nothing acts on.
+**Phase 1 first is not only convenience: Phase 2 has nothing to key on until the
+mode is being recorded.**
+
+**One consequence of the gap between them.** Between Phase 1 and Phase 2, a NOR
+is still billed at the reefer storage rate — the same as today, so nothing gets
+worse, but nothing is fixed either. Invoices raised in that window may want
+revisiting once Phase 2 lands, which is worth knowing when deciding how far apart
+to run them.
 
 ---
 
@@ -210,20 +251,16 @@ becoming a half-feature that records something nothing acts on.
 
 ---
 
-## 8. Worth deciding before Phase 1
+## 8. Settled
 
-1. **Should an empty reefer be able to be `operating`?** Today no plug session is
-   created for an empty reefer at all (`cargo_status === 'laden' && isReefer()`),
-   so an empty box being pre-cooled is already unrecordable. That is a
-   pre-existing gap this design leaves room to close, but closing it is a
-   separate change and I would not fold it in.
+1. **An empty reefer can be marked `operating`**, and the selector shows for any
+   reefer rather than only laden ones — feeder movements need it. But **no plug
+   session is created for an empty reefer even when marked operating**, because
+   none is created today and widening that is a separate change. The mode is
+   still recorded, which is what Phase 2's tariff lookup needs.
 
-2. **Does a NOR affect what you charge?** The box occupies the same slot and is
-   lifted the same way, so storage and handling should be unchanged — but if the
-   yard charges reefer boxes a different storage rate regardless of whether the
-   machinery runs, that rate should keep applying, and it will, because tariffs
-   key on equipment type rather than on this flag. Worth confirming that matches
-   how the yard actually prices it.
+2. **Storage rates differ; handling rates do not.** See 7a.
 
-3. **Does the gate pass need to print NOR?** Likely yes, so the driver and the
-   line's paperwork agree with the system. Cheap to add in Phase 3 if wanted.
+3. **The gate pass prints a NOR label** beside Container Size/Type, and only for
+   a **laden** NOR. An empty NOR is the ordinary state of an empty reefer and
+   needs no flag; a laden one is the exception worth pointing at.

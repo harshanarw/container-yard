@@ -658,6 +658,47 @@
                     {{-- Reefer service type — required when a reefer plug session will be
                          created (laden + reefer equipment). The operator must choose the
                          billing category up front; it is never silently defaulted. --}}
+                    {{-- Reefer machinery: operating, or NOR.
+
+                         A reefer carrying dry cargo with the compressor off is a
+                         Non-Operating Reefer, and it is ordinary practice. It
+                         needs no service type, no plug session and no PTI.
+
+                         Shown for any reefer, not only laden ones: an empty
+                         reefer may genuinely be running on a feeder movement.
+                         The default follows what arrived -- laden is operating,
+                         empty is not -- and either can be changed. --}}
+                    <div id="reeferModeBlock" class="mt-3 d-none">
+                        <label class="form-label fw-semibold">Reefer Machinery</label>
+                        <div class="d-flex flex-column gap-1">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reefer_mode"
+                                       id="reeferModeOperating" value="operating"
+                                       @checked(old('reefer_mode', 'operating') === 'operating')>
+                                <label class="form-check-label" for="reeferModeOperating">
+                                    <strong>Operating</strong>
+                                    <span class="text-muted small d-block">
+                                        Machinery running — service type, plug session and PTI apply.
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reefer_mode"
+                                       id="reeferModeNor" value="non_operating"
+                                       @checked(old('reefer_mode') === 'non_operating')>
+                                <label class="form-check-label" for="reeferModeNor">
+                                    <strong>Non-Operating (NOR)</strong>
+                                    <span class="text-muted small d-block">
+                                        Dry cargo in a reefer box, machinery off — no plug, no PTI.
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                        @error('reefer_mode')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <div id="reeferServiceBlock" class="mt-3 d-none">
                         <label class="form-label fw-semibold">
                             Reefer Service Type <span class="text-danger">*</span>
@@ -1897,15 +1938,39 @@ window.ventilationFields = {
     const sizeHid = document.getElementById('gateEqtSize'), typeHid = document.getElementById('gateEqtTypeCode');
     const sizeBadge = document.getElementById('gateEqtSizeBadge'), typeBadge = document.getElementById('gateEqtTypeBadge');
 
-    // Show the reefer service-type selector exactly when a reefer plug session
-    // will be created at gate-in: reefer equipment (RF/RH) + laden cargo.
+    // Two blocks, two different conditions.
+    //
+    //   Reefer Machinery  — any reefer box. An empty one may be running on a
+    //                       feeder movement, so the question is still asked.
+    //   Service Type      — only when a plug session will actually be created:
+    //                       reefer + laden + operating. A NOR is never plugged,
+    //                       so it is never asked which way to bill the plug.
+    //
+    // The mode also defaults itself from the cargo status each time that
+    // changes, matching what the server does when the field is absent.
     function toggleReeferService() {
-        const block = document.getElementById('reeferServiceBlock');
-        if (!block) return;
+        const modeBlock    = document.getElementById('reeferModeBlock');
+        const serviceBlock = document.getElementById('reeferServiceBlock');
+        if (!serviceBlock) return;
+
         const isReefer = ['RF', 'RH'].includes((typeHid.value || '').toUpperCase());
         const cargoEl  = document.getElementById('cargoStatusIn');
         const isLaden  = cargoEl && cargoEl.value === 'laden';
-        block.classList.toggle('d-none', !(isReefer && isLaden));
+
+        if (modeBlock) modeBlock.classList.toggle('d-none', !isReefer);
+
+        const operating = document.getElementById('reeferModeOperating');
+        const nor       = document.getElementById('reeferModeNor');
+
+        // Re-default on a cargo-status change, but never overrule a choice the
+        // operator has already made for this cargo status.
+        if (isReefer && operating && nor && cargoEl && cargoEl.dataset.reeferSyncedTo !== cargoEl.value) {
+            cargoEl.dataset.reeferSyncedTo = cargoEl.value;
+            if (isLaden) { operating.checked = true; } else { nor.checked = true; }
+        }
+
+        const isOperating = !nor || !nor.checked;
+        serviceBlock.classList.toggle('d-none', !(isReefer && isLaden && isOperating));
     }
     window.toggleReeferService = toggleReeferService;
 
@@ -1944,6 +2009,12 @@ window.ventilationFields = {
     // Cargo status also gates the reefer service selector (reefer + laden only)
     const cargoEl = document.getElementById('cargoStatusIn');
     if (cargoEl) cargoEl.addEventListener('change', toggleReeferService);
+
+    // Switching to NOR hides the service type; switching back reveals it.
+    ['reeferModeOperating', 'reeferModeNor'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', toggleReeferService);
+    });
     if (sel.value) applyEqt(sel.selectedOptions[0]);
     toggleReeferService();
 })();
