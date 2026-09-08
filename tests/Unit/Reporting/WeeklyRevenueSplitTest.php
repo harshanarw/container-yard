@@ -277,6 +277,45 @@ class WeeklyRevenueSplitTest extends TestCase
         $this->assertStringContainsString('No handling tariff in force.', (string) $row['total']['issue']);
     }
 
+    /**
+     * Messages name the equipment by its code and carry no date or record id.
+     *
+     * A tariff is configured against a code, so "#7" sends the reader to look
+     * up the row before they can act. And a message carrying the date would be
+     * a different string every day — a customer unconfigured for a month would
+     * get thirty-one variations of one sentence stacked in a tooltip.
+     */
+    public function test_a_message_names_the_equipment_and_carries_no_date_or_id(): void
+    {
+        $row = Revenue::row(1, 'AGP', 'AGP', [], $this->augustWeeks(), [
+            Revenue::STORAGE => ['The storage tariff has no 40HC (laden) rate.' => true],
+        ]);
+
+        $message = (string) $row['categories'][Revenue::STORAGE]['issue'];
+
+        $this->assertStringContainsString('40HC', $message);
+        $this->assertDoesNotMatchRegularExpression('/#\d/', $message, 'No record ids in a message a reader has to act on.');
+        $this->assertDoesNotMatchRegularExpression('/\d{4}-\d{2}-\d{2}/', $message, 'No dates: they would defeat deduplication.');
+    }
+
+    /** The banner names whose configuration is missing, not only what. */
+    public function test_the_banner_names_the_customer_and_the_category(): void
+    {
+        $weeks = $this->augustWeeks();
+        $rows  = [
+            Revenue::row(1, 'AGP', 'AGP', [], $weeks, [
+                Revenue::STORAGE => ['No storage tariff covers this period.' => true],
+            ]),
+            Revenue::row(2, 'DELTA', 'DEL', $this->sampleCells(), $weeks),
+        ];
+
+        $banner = (new \ReflectionMethod(Revenue::class, 'bannerIssues'));
+        $banner->setAccessible(true);
+        $lines = $banner->invoke(null, $rows);
+
+        $this->assertSame(['AGP — Storage: No storage tariff covers this period.'], $lines);
+    }
+
     // ── Shape ───────────────────────────────────────────────────────────────
 
     public function test_every_category_carries_a_label(): void

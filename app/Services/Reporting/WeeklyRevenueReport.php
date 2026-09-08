@@ -92,17 +92,18 @@ class WeeklyRevenueReport
         ];
     }
 
-    /** @var array<int,string> collected while building; shown above the grid */
-    private array $issues = [];
-
     /**
-     * The same problems, attributed to the cell that has them:
+     * Problems, attributed to the cell that has them:
      * `[customerId][category] => [message, …]`.
      *
      * A cell left blank because no tariff is configured and a cell left blank
      * because nothing happened are the same blank, and the difference is the
-     * difference between missing configuration and a quiet week. The banner
-     * says something is wrong; this says *where*.
+     * difference between missing configuration and a quiet week.
+     *
+     * This is the only collection kept: the banner above the grid is derived
+     * from it once the rows exist, because that is the first point at which
+     * customer *names* are known. A banner of bare messages tells a reader that
+     * something is unconfigured without saying whose.
      *
      * @var array<int,array<string,array<int,string>>>
      */
@@ -113,7 +114,6 @@ class WeeklyRevenueReport
      */
     public function build(string $from, string $to, array $options = []): array
     {
-        $this->issues     = [];
         $this->cellIssues = [];
 
         $rule = $options['week_rule'] ?? WeekBreakdown::DEFAULT;
@@ -160,7 +160,7 @@ class WeeklyRevenueReport
             'category_totals' => self::categoryTotals($rows, $weeks),
             'grand'           => self::grand($rows, $weeks),
             'title'           => self::title($from, $to),
-            'issues'          => array_values(array_unique($this->issues)),
+            'issues'          => self::bannerIssues($rows),
         ];
     }
 
@@ -244,14 +244,14 @@ class WeeklyRevenueReport
     private function handlingRate(array $tariffs, int $customerId, string $size, string $cargo, string $date, string $category): ?float
     {
         if ($size === '') {
-            $this->issue("A gate movement carries a container size outside 20/40/45 and cannot be priced.", $customerId, $category);
+            $this->issue('A gate movement records a container size outside 20/40/45, so its lifts are not priced.', $customerId, $category);
 
             return null;
         }
 
         $tariff = $this->validAt($tariffs, $date);
         if (! $tariff) {
-            $this->issue("No handling tariff in force on {$date}.", $customerId, $category);
+            $this->issue('No handling tariff covers this period.', $customerId, $category);
 
             return null;
         }
@@ -262,7 +262,7 @@ class WeeklyRevenueReport
             ->first();
 
         if (! $rate) {
-            $this->issue("Handling tariff #{$tariff->id} has no {$size}' {$cargo} rate.", $customerId, $category);
+            $this->issue("The handling tariff has no {$size}' {$cargo} rate.", $customerId, $category);
 
             return null;
         }
@@ -306,6 +306,11 @@ class WeeklyRevenueReport
         foreach ($stays as $stay) {
             $container = $stay->container;
             $eqtId     = $container?->equipment_type_id;
+            // Same fallback the invoice uses when a container has no equipment
+            // type linked: its own size and type code still name the box.
+            $equipment = $container?->equipmentType?->eqt_code
+                ?? trim(($container->size ?? '') . ($container->type_code ?? ''))
+                ?: 'this equipment type';
             $facts     = $visit[$stay->container_id] ?? null;
             $cargo     = $facts->cargo_status ?? $container?->cargo_status ?? 'empty';
             $mode      = $facts->reefer_mode ?? null;
@@ -321,7 +326,7 @@ class WeeklyRevenueReport
 
             foreach (self::chargeableDaysByWeek($weeks, $inDate, $outDate, $anchor, $freeDays, $today) as $i => $chargeable) {
                 $week = $weeks[$i];
-                $rate = $this->storageRate($headers, (int) $stay->customer_id, $eqtId, $cargo, $mode, $week['from']);
+                $rate = $this->storageRate($headers, (int) $stay->customer_id, $eqtId, $equipment, $cargo, $mode, $week['from']);
 
                 if ($rate !== null) {
                     $cells[(int) $stay->customer_id][self::STORAGE][$i] =
@@ -389,12 +394,18 @@ class WeeklyRevenueReport
     }
 
     /** The daily storage rate, in base currency, or null when unpriceable. */
-    private function storageRate(array $headers, int $customerId, ?int $eqtId, string $cargo, ?string $mode, string $date): ?float
+    /**
+     * @param  string  $equipment  the equipment's own code — "40HC", not "#7".
+     *                             A tariff is configured against a code, so a
+     *                             message naming an id sends the reader to look
+     *                             up the row before they can act on it.
+     */
+    private function storageRate(array $headers, int $customerId, ?int $eqtId, string $equipment, string $cargo, ?string $mode, string $date): ?float
     {
         $header = $this->validAt($headers[$customerId] ?? [], $date);
 
         if (! $header) {
-            $this->issue("No storage tariff in force on {$date}.", $customerId, self::STORAGE);
+            $this->issue('No storage tariff covers this period.', $customerId, self::STORAGE);
 
             return null;
         }
@@ -402,7 +413,7 @@ class WeeklyRevenueReport
         $detail = StorageMasterDetail::resolve($header->details, $eqtId, $cargo, $mode);
 
         if (! $detail) {
-            $this->issue("Storage tariff #{$header->id} has no rate for equipment type #{$eqtId} ({$cargo}).", $customerId, self::STORAGE);
+            $this->issue("The storage tariff has no {$equipment} ({$cargo}) rate.", $customerId, self::STORAGE);
 
             return null;
         }
@@ -734,7 +745,7 @@ class WeeklyRevenueReport
         $rate = CurrencyService::usdToDefault($date);
 
         if ($rate === null) {
-            $this->issue("No USD exchange rate on file for {$date}; USD tariff amounts are omitted.", $customerId, $category);
+            $this->issue('No USD exchange rate on file, so amounts from USD tariffs are omitted.', $customerId, $category);
 
             return null;
         }
@@ -745,19 +756,44 @@ class WeeklyRevenueReport
     // ── Small helpers ───────────────────────────────────────────────────────
 
     /**
-     * Record a problem, and where it belongs.
+     * Record a problem against the cell it belongs to.
      *
-     * Without the customer and category it is only a banner line; with them the
-     * cell can carry a marker, which is what turns "something is unpriced" into
-     * "this customer's storage is unpriced".
+     * Messages are deliberately free of dates and record ids. They are keyed on
+     * themselves to deduplicate, and a message carrying the date would produce
+     * one line per day — a customer with no tariff for a month would hand the
+     * reader thirty-one variations of the same sentence. What the reader needs
+     * is the fact and the fix, once.
      */
-    private function issue(string $message, ?int $customerId = null, ?string $category = null): void
+    private function issue(string $message, int $customerId, string $category): void
     {
-        $this->issues[] = $message;
+        $this->cellIssues[$customerId][$category][$message] = true;
+    }
 
-        if ($customerId !== null && $category !== null) {
-            $this->cellIssues[$customerId][$category][$message] = true;
+    /**
+     * The banner above the grid: one line per customer and category, naming
+     * both.
+     *
+     * Derived from the assembled rows rather than collected during the build,
+     * because the customer's name only exists here. "No storage tariff covers
+     * this period" is not actionable; "AGP — Storage: no storage tariff covers
+     * this period" is.
+     *
+     * @return array<int,string>
+     */
+    private static function bannerIssues(array $rows): array
+    {
+        $out = [];
+
+        foreach ($rows as $row) {
+            foreach (self::CATEGORIES as $category) {
+                if ($row['categories'][$category]['issue']) {
+                    $out[] = $row['customer'] . ' — ' . self::labels()[$category]
+                           . ': ' . $row['categories'][$category]['issue'];
+                }
+            }
         }
+
+        return $out;
     }
 
     /** Whole days between two `Y-m-d` dates; negative when `$b` precedes `$a`. */
