@@ -1571,18 +1571,24 @@
                         <i class="bi bi-graph-up"></i><span>Weekly Performance</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('reports.billing') }}"
-                       class="nav-link {{ request()->routeIs('reports.billing') ? 'active' : '' }}">
-                        <i class="bi bi-receipt"></i><span>Billing</span>
-                    </a>
-                </li>
                 @endcan
+                {{-- The two weekly reports sit together: same filters, same week
+                     bands, one counted and one priced. They are read as a pair,
+                     so the permission gate splits around them rather than
+                     separating them. --}}
                 @can('weekly-revenue.view')
                 <li class="nav-item">
                     <a href="{{ route('reports.weekly-revenue') }}"
                        class="nav-link {{ request()->routeIs('reports.weekly-revenue') ? 'active' : '' }}">
                         <i class="bi bi-cash-coin"></i><span>Weekly Revenue</span>
+                    </a>
+                </li>
+                @endcan
+                @can('reports.view')
+                <li class="nav-item">
+                    <a href="{{ route('reports.billing') }}"
+                       class="nav-link {{ request()->routeIs('reports.billing') ? 'active' : '' }}">
+                        <i class="bi bi-receipt"></i><span>Billing</span>
                     </a>
                 </li>
                 @endcan
