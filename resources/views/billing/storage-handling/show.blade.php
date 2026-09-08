@@ -70,7 +70,7 @@
     </div>
     <div class="d-flex gap-2 flex-wrap">
         @can('billing.storage-handling.pdf')
-        <a href="{{ route('billing.storage-handling.pdf', $invoice) }}"
+        <a href="{{ route('billing.storage-handling.pdf', $invoice) }}" target="_blank"
            class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF
         </a>
