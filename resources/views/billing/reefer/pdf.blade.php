@@ -50,14 +50,20 @@
     p, h1, h2, h3, h4, ul, ol, li { margin: 0; padding: 0; }
     body { font-family: 'Courier New', Courier, monospace; color: #222; font-size: 10px; }
     /* Reserve space for the running header/footer on every page. */
-    /* position:fixed repeats the letterhead and footer on every page and is
-       positioned against the page edge, not the content box; these margins
-       reserve the band each one sits in. The content must not be wrapped in a
-       table: DomPDF splits a table between rows but never inside a single cell,
-       so a body taller than one page produced blank pages with everything
-       crammed onto the last. */
+    /* position:fixed makes DomPDF repeat the letterhead and footer on every
+       page; these margins reserve the band each one sits in. The content
+       must not be wrapped in a table: DomPDF splits a table between rows
+       but never inside a single cell, so a body taller than one page
+       produced blank pages with everything crammed onto the last. */
     @page { margin: 120px 24px 44px; }
-    .pdf-fixed-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 24px 0; background: #fff; text-transform: uppercase; }
+    /* DomPDF positions a fixed element against the content box, which the
+       @page margins have already inset — so `top: 0` would park the
+       letterhead 120px down the page. The negative offset lifts it back
+       into the band those margins reserved for it. */
+    .pdf-fixed-header { position: fixed; top: -120px; left: 0; right: 0; padding: 14px 24px 0; background: #fff; text-transform: uppercase; }
+    /* Same correction for the shared footer partial, which sets bottom:0
+       inline for the templates that keep zero @page margins. */
+    .pdf-running-footer { bottom: -44px !important; }
     .wrap { padding: 0; position: relative; }
     /* Sub-header info boxes — match the storage / handling invoices */
     .info-box { border: 1px solid #dee2e6; border-radius: 5px; padding: 8px 10px; text-transform: uppercase; }

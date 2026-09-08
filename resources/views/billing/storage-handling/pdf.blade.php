@@ -14,15 +14,20 @@
         p, h1, h2, h3, h4, ul, ol, li { margin: 0; padding: 0; }
         body { font-family: 'Courier New', Courier, monospace; font-size: 10px; color: #222; background: #fff; }
 
-        /* The running header and footer are position:fixed, which DomPDF repeats
-           on every page and positions against the page edge (not the content
-           box). The @page margins reserve the band each one sits in, on every
-           page — the whole reason the content must not be wrapped in a table:
-           DomPDF splits a table between rows but never inside a single cell, so
-           a body taller than one page inside one wrapper cell produced blank
-           pages with everything crammed onto the last. */
+        /* position:fixed makes DomPDF repeat the letterhead and footer on every
+           page; these margins reserve the band each one sits in. The content
+           must not be wrapped in a table: DomPDF splits a table between rows
+           but never inside a single cell, so a body taller than one page
+           produced blank pages with everything crammed onto the last. */
         @page { margin: 120px 24px 44px; }
-        .pdf-fixed-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 24px 0; background: #fff; }
+        /* DomPDF positions a fixed element against the content box, which the
+           @page margins have already inset — so `top: 0` would park the
+           letterhead 120px down the page. The negative offset lifts it back
+           into the band those margins reserved for it. */
+        .pdf-fixed-header { position: fixed; top: -120px; left: 0; right: 0; padding: 14px 24px 0; background: #fff; }
+        /* Same correction for the shared footer partial, which sets bottom:0
+           inline for the templates that keep zero @page margins. */
+        .pdf-running-footer { bottom: -44px !important; }
         .page { padding: 0; }
 
         /* ── Header ── */
