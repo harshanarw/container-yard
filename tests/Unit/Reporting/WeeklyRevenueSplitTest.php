@@ -215,6 +215,68 @@ class WeeklyRevenueSplitTest extends TestCase
         $this->assertFalse($row['earned']);
     }
 
+    // ── Unpriced cells ──────────────────────────────────────────────────────
+
+    /**
+     * A cell blank because no tariff is configured and a cell blank because
+     * nothing happened are the same blank. The marker is the only thing that
+     * separates missing configuration from a quiet week, so it has to reach the
+     * exact category that could not be priced — and no other.
+     */
+    public function test_only_the_unpriced_category_carries_the_marker(): void
+    {
+        $row = Revenue::row(2, 'DELTA', 'DEL', [], $this->augustWeeks(), [
+            Revenue::STORAGE => ['No storage tariff in force on 2026-08-01.' => true],
+        ]);
+
+        $this->assertSame('No storage tariff in force on 2026-08-01.', $row['categories'][Revenue::STORAGE]['issue']);
+
+        foreach (Revenue::CATEGORIES as $category) {
+            if ($category !== Revenue::STORAGE) {
+                $this->assertNull($row['categories'][$category]['issue'], "{$category} should carry no marker.");
+            }
+        }
+    }
+
+    /** The Total row is the one a reader trusts, so it says when it is short. */
+    public function test_the_block_total_is_flagged_when_any_category_is_unpriced(): void
+    {
+        $row = Revenue::row(2, 'DELTA', 'DEL', [], $this->augustWeeks(), [
+            Revenue::STORAGE => ['No storage tariff in force on 2026-08-01.' => true],
+        ]);
+
+        $this->assertStringContainsString('understated', (string) $row['total']['issue']);
+        $this->assertStringContainsString('No storage tariff', (string) $row['total']['issue']);
+    }
+
+    public function test_a_fully_priced_block_carries_no_markers_at_all(): void
+    {
+        $row = Revenue::row(1, 'AGP', 'AGP', $this->sampleCells(), $this->augustWeeks());
+
+        $this->assertNull($row['total']['issue']);
+        foreach (Revenue::CATEGORIES as $category) {
+            $this->assertNull($row['categories'][$category]['issue']);
+        }
+    }
+
+    /**
+     * Two categories unpriced must not fatal.
+     *
+     * `$issues` is keyed by category, and merging its values needs
+     * `array_values` first — spreading a string-keyed array into `array_merge`
+     * is a named-argument call in PHP 8 and throws.
+     */
+    public function test_several_unpriced_categories_merge_rather_than_throw(): void
+    {
+        $row = Revenue::row(2, 'DELTA', 'DEL', [], $this->augustWeeks(), [
+            Revenue::STORAGE    => ['No storage tariff in force.' => true],
+            Revenue::DEMOUNTING => ['No handling tariff in force.' => true],
+        ]);
+
+        $this->assertStringContainsString('No storage tariff in force.', (string) $row['total']['issue']);
+        $this->assertStringContainsString('No handling tariff in force.', (string) $row['total']['issue']);
+    }
+
     // ── Shape ───────────────────────────────────────────────────────────────
 
     public function test_every_category_carries_a_label(): void

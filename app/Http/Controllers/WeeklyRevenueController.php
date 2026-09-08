@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Services\Reporting\WeekBreakdown;
 use App\Services\Reporting\WeeklyRevenueReport;
+use App\Support\Export\TabularExport;
+use App\Support\Export\WeeklyRevenueWorkbook;
 use Illuminate\Http\Request;
 
 /**
@@ -34,6 +36,75 @@ class WeeklyRevenueController extends Controller
             'weekRules' => WeekBreakdown::rules(),
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
         ]);
+    }
+
+    /**
+     * The sheet as the workbook the yard prepares by hand — customer blocks
+     * eight rows deep, the name merged down each, zeros blank.
+     */
+    public function exportXlsx(Request $request, WeeklyRevenueReport $report)
+    {
+        $this->authorize('weekly-revenue.view');
+
+        // Where the writer cannot produce a styled workbook it produces none:
+        // a document that is circulated has to look the same everywhere or not
+        // be offered. The CSV carries the same figures.
+        if (! WeeklyRevenueWorkbook::available()) {
+            return $this->exportCsv($request, $report);
+        }
+
+        $filters = $this->filters($request);
+
+        return WeeklyRevenueWorkbook::stream($report->build($filters['from'], $filters['to'], $filters));
+    }
+
+    /**
+     * The same figures flat: one row per customer and service, one column per
+     * week. A merged workbook is unreadable to a script, and this is the shape
+     * a spreadsheet formula or an import can actually consume.
+     */
+    public function exportCsv(Request $request, WeeklyRevenueReport $report)
+    {
+        $this->authorize('weekly-revenue.view');
+
+        $filters = $this->filters($request);
+        $data    = $report->build($filters['from'], $filters['to'], $filters);
+
+        $headings = ['Customer', 'Code', 'Service'];
+        foreach ($data['weeks'] as $week) {
+            $headings[] = $week['label'] . ($week['partial'] ? " ({$week['days']}d)" : '');
+        }
+        // Appended, after the week columns, so anything reading the file by
+        // position keeps working when a range with more weeks is exported.
+        $headings[] = 'Total (' . $data['currency'] . ')';
+        $headings[] = 'Note';
+
+        return TabularExport::csv('weekly-revenue', $headings, function () use ($data) {
+            foreach ($data['rows'] as $row) {
+                foreach ($data['categories'] as $category) {
+                    yield $this->csvLine($row['customer'], $row['code'], $data['labels'][$category], $row['categories'][$category]);
+                }
+                yield $this->csvLine($row['customer'], $row['code'], 'Total', $row['total']);
+            }
+
+            yield $this->csvLine('OTHER INCOME — RENT', '', '', $data['rent']);
+
+            foreach ($data['categories'] as $category) {
+                yield $this->csvLine('CATEGORY TOTALS', '', $data['labels'][$category], $data['category_totals'][$category]);
+            }
+
+            yield $this->csvLine('GRAND TOTAL', '', '', $data['grand']);
+        });
+    }
+
+    /** @param array{weeks:array<int,float>,total:float,issue?:?string} $line */
+    private function csvLine(string $customer, ?string $code, string $service, array $line): array
+    {
+        return array_merge(
+            [$customer, $code ?? '', $service],
+            array_map(fn ($v) => number_format((float) $v, 2, '.', ''), $line['weeks']),
+            [number_format((float) $line['total'], 2, '.', ''), $line['issue'] ?? ''],
+        );
     }
 
     /**

@@ -321,6 +321,8 @@ Route::middleware(['auth'])->group(function () {
         // in the controller rather than by this group's middleware, for the
         // same reason Gate Data Check has one.
         Route::get('/weekly-revenue',                   [\App\Http\Controllers\WeeklyRevenueController::class, 'index'])->name('weekly-revenue');
+        Route::get('/weekly-revenue/export',            [\App\Http\Controllers\WeeklyRevenueController::class, 'exportXlsx'])->name('weekly-revenue.export');
+        Route::get('/weekly-revenue/export/csv',        [\App\Http\Controllers\WeeklyRevenueController::class, 'exportCsv'])->name('weekly-revenue.export.csv');
         Route::get('/weekly-performance',               [ReportController::class, 'weeklyPerformance'])->name('weekly-performance');
         Route::get('/weekly-performance/export',        [ReportController::class, 'exportWeeklyPerformance'])->name('weekly-performance.export');
         Route::get('/weekly-performance/export/csv',    [ReportController::class, 'exportWeeklyPerformanceCsv'])->name('weekly-performance.export.csv');

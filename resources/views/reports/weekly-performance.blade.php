@@ -191,7 +191,7 @@
             </div>
         </div>
 
-        <div class="wp-scroll">
+        <div class="wp-scroll" data-xscroll>
             <table class="wp-grid mb-0 w-100">
                 <thead>
                     {{-- Week number, then its date range, then Empty/Laden, then sizes.
@@ -319,4 +319,5 @@
 </div>
 @endif
 
+@include('partials.x-scroll')
 @endsection

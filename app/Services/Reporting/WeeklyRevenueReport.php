@@ -92,15 +92,29 @@ class WeeklyRevenueReport
         ];
     }
 
-    /** @var array<int,string> collected while building; shown on the screen */
+    /** @var array<int,string> collected while building; shown above the grid */
     private array $issues = [];
+
+    /**
+     * The same problems, attributed to the cell that has them:
+     * `[customerId][category] => [message, …]`.
+     *
+     * A cell left blank because no tariff is configured and a cell left blank
+     * because nothing happened are the same blank, and the difference is the
+     * difference between missing configuration and a quiet week. The banner
+     * says something is wrong; this says *where*.
+     *
+     * @var array<int,array<string,array<int,string>>>
+     */
+    private array $cellIssues = [];
 
     /**
      * @param  array{week_rule?:string,customer_id?:int,only_with_revenue?:bool}  $options
      */
     public function build(string $from, string $to, array $options = []): array
     {
-        $this->issues = [];
+        $this->issues     = [];
+        $this->cellIssues = [];
 
         $rule = $options['week_rule'] ?? WeekBreakdown::DEFAULT;
         if (! WeekBreakdown::isRule($rule)) {
@@ -123,7 +137,10 @@ class WeeklyRevenueReport
 
         $rows = [];
         foreach ($this->customers($only, array_keys($cells), (bool) ($options['only_with_revenue'] ?? false)) as $customer) {
-            $rows[] = self::row($customer->id, $customer->name, $customer->code, $cells[$customer->id] ?? [], $weeks);
+            $rows[] = self::row(
+                $customer->id, $customer->name, $customer->code,
+                $cells[$customer->id] ?? [], $weeks, $this->cellIssues[$customer->id] ?? [],
+            );
         }
 
         return [
@@ -227,14 +244,14 @@ class WeeklyRevenueReport
     private function handlingRate(array $tariffs, int $customerId, string $size, string $cargo, string $date, string $category): ?float
     {
         if ($size === '') {
-            $this->issue("A gate movement carries a container size outside 20/40/45 and cannot be priced.");
+            $this->issue("A gate movement carries a container size outside 20/40/45 and cannot be priced.", $customerId, $category);
 
             return null;
         }
 
         $tariff = $this->validAt($tariffs, $date);
         if (! $tariff) {
-            $this->issue("No handling tariff in force on {$date} for customer #{$customerId}.");
+            $this->issue("No handling tariff in force on {$date}.", $customerId, $category);
 
             return null;
         }
@@ -245,13 +262,13 @@ class WeeklyRevenueReport
             ->first();
 
         if (! $rate) {
-            $this->issue("Handling tariff #{$tariff->id} has no {$size}' {$cargo} rate.");
+            $this->issue("Handling tariff #{$tariff->id} has no {$size}' {$cargo} rate.", $customerId, $category);
 
             return null;
         }
 
         $column = $category === self::DEMOUNTING ? 'lift_off_rate' : 'lift_on_rate';
-        $mult   = $this->tariffMultiplier((string) ($rate->currency ?? 'USD'), $date);
+        $mult   = $this->tariffMultiplier((string) ($rate->currency ?? 'USD'), $date, $customerId, $category);
 
         return $mult === null ? null : (float) $rate->{$column} * $mult;
     }
@@ -377,7 +394,7 @@ class WeeklyRevenueReport
         $header = $this->validAt($headers[$customerId] ?? [], $date);
 
         if (! $header) {
-            $this->issue("No storage tariff in force on {$date} for customer #{$customerId}.");
+            $this->issue("No storage tariff in force on {$date}.", $customerId, self::STORAGE);
 
             return null;
         }
@@ -385,12 +402,12 @@ class WeeklyRevenueReport
         $detail = StorageMasterDetail::resolve($header->details, $eqtId, $cargo, $mode);
 
         if (! $detail) {
-            $this->issue("Storage tariff #{$header->id} has no rate for equipment type #{$eqtId} ({$cargo}).");
+            $this->issue("Storage tariff #{$header->id} has no rate for equipment type #{$eqtId} ({$cargo}).", $customerId, self::STORAGE);
 
             return null;
         }
 
-        $mult = $this->tariffMultiplier((string) ($detail->currency ?? 'USD'), $date);
+        $mult = $this->tariffMultiplier((string) ($detail->currency ?? 'USD'), $date, $customerId, self::STORAGE);
 
         return $mult === null ? null : (float) $detail->storage_rate * $mult;
     }
@@ -491,8 +508,11 @@ class WeeklyRevenueReport
      * One customer block: seven category rows and the Total that must equal
      * their sum. Scalars rather than a model so the rollup can be checked
      * without a database.
+     *
+     * `$issues` is this customer's slice of `cellIssues`, so a category that
+     * could not be priced carries the reason rather than an unexplained blank.
      */
-    public static function row(int $id, string $name, ?string $code, array $found, array $weeks): array
+    public static function row(int $id, string $name, ?string $code, array $found, array $weeks, array $issues = []): array
     {
         $n          = count($weeks);
         $categories = [];
@@ -510,7 +530,15 @@ class WeeklyRevenueReport
                 $weekTotals[$i] += $amount;
             }
 
-            $categories[$category] = ['weeks' => $cells, 'total' => round($total, 2)];
+            $categories[$category] = [
+                'weeks' => $cells,
+                'total' => round($total, 2),
+                // What the cell's marker says on hover. Null when the line is
+                // simply quiet, which is the distinction the marker exists for.
+                'issue' => isset($issues[$category])
+                    ? implode(' ', array_keys($issues[$category]))
+                    : null,
+            ];
             $grand += $total;
         }
 
@@ -521,7 +549,19 @@ class WeeklyRevenueReport
             'categories'  => $categories,
             // The eighth row of the block. Its whole job is to be checkable:
             // it must equal the sum of the seven above it.
-            'total'       => ['weeks' => array_map(fn ($v) => round($v, 2), $weekTotals), 'total' => round($grand, 2)],
+            'total'       => [
+                'weeks' => array_map(fn ($v) => round($v, 2), $weekTotals),
+                'total' => round($grand, 2),
+                // A total built over an unpriced category is itself short. The
+                // Total row is the one a reader trusts, so it carries the flag.
+                // array_values first: $issues is keyed by category, and spreading
+                // a string-keyed array is a named-argument call in PHP 8.
+                'issue' => $issues
+                    ? 'This total is understated. ' . implode(' ', array_unique(
+                        array_merge(...array_values(array_map('array_keys', $issues)))
+                    ))
+                    : null,
+            ],
             'earned'      => $grand > 0,
         ];
     }
@@ -685,7 +725,7 @@ class WeeklyRevenueReport
      * zero: pretending an unconvertible amount is nothing would quietly shrink
      * the week. It is recorded as an issue and the cell is left out.
      */
-    private function tariffMultiplier(string $currency, string $date): ?float
+    private function tariffMultiplier(string $currency, string $date, int $customerId, string $category): ?float
     {
         if (strtoupper($currency) === CurrencyService::defaultCurrency()) {
             return 1.0;
@@ -694,7 +734,7 @@ class WeeklyRevenueReport
         $rate = CurrencyService::usdToDefault($date);
 
         if ($rate === null) {
-            $this->issue("No USD exchange rate on file for {$date}; amounts in USD tariffs are omitted.");
+            $this->issue("No USD exchange rate on file for {$date}; USD tariff amounts are omitted.", $customerId, $category);
 
             return null;
         }
@@ -704,9 +744,20 @@ class WeeklyRevenueReport
 
     // ── Small helpers ───────────────────────────────────────────────────────
 
-    private function issue(string $message): void
+    /**
+     * Record a problem, and where it belongs.
+     *
+     * Without the customer and category it is only a banner line; with them the
+     * cell can carry a marker, which is what turns "something is unpriced" into
+     * "this customer's storage is unpriced".
+     */
+    private function issue(string $message, ?int $customerId = null, ?string $category = null): void
     {
         $this->issues[] = $message;
+
+        if ($customerId !== null && $category !== null) {
+            $this->cellIssues[$customerId][$category][$message] = true;
+        }
     }
 
     /** Whole days between two `Y-m-d` dates; negative when `$b` precedes `$a`. */

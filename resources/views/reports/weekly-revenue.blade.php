@@ -34,6 +34,10 @@
     .wr-grid tbody tr.wr-block-end td { border-bottom-width: 2px; }
     .wr-grid tbody tr.wr-total td { font-weight: 600; background: var(--bs-secondary-bg); }
     .wr-grid tbody tr.wr-quiet .wr-name, .wr-grid tbody tr.wr-quiet .wr-label { color: var(--bs-secondary-color); font-weight: 400; }
+    /* A figure that is short because a rate is missing. Amber on the row, not
+       only an icon: the reader should see it without hovering every line. */
+    .wr-grid tbody tr.wr-unpriced td { background: var(--bs-warning-bg-subtle); }
+    @media print { .wr-flag { display: none; } }
 
     .wr-grid tfoot td { background: var(--bs-tertiary-bg); }
     .wr-grid tfoot tr.wr-cat-head td { font-weight: 700; letter-spacing: .04em; }
@@ -80,6 +84,17 @@
         <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-printer me-1"></i>Print
         </button>
+        {{-- Both carry the current filters, so what downloads is what is on screen. --}}
+        @if(\App\Support\Export\WeeklyRevenueWorkbook::available())
+        <a href="{{ route('reports.weekly-revenue.export', request()->query()) }}"
+           class="btn btn-outline-success btn-sm" title="The sheet as an Excel workbook">
+            <i class="bi bi-file-earmark-excel me-1"></i>Excel
+        </a>
+        @endif
+        <a href="{{ route('reports.weekly-revenue.export.csv', request()->query()) }}"
+           class="btn btn-outline-success btn-sm" title="One heading row per column, for scripts and formulas">
+            <i class="bi bi-filetype-csv me-1"></i>CSV
+        </a>
     </div>
 </div>
 
@@ -185,7 +200,7 @@
             </div>
         </div>
 
-        <div class="wr-scroll">
+        <div class="wr-scroll" data-xscroll>
             <table class="wr-grid mb-0 w-100">
                 <thead>
                     <tr>
@@ -213,7 +228,7 @@
                 <tbody>
                 @foreach($data['rows'] as $row)
                     @foreach($data['categories'] as $category)
-                        <tr class="{{ $row['earned'] ? '' : 'wr-quiet' }}">
+                        <tr class="{{ $row['earned'] ? '' : 'wr-quiet' }} {{ $row['categories'][$category]['issue'] ? 'wr-unpriced' : '' }}">
                             @if($loop->first)
                                 <td class="wr-name" rowspan="{{ count($data['categories']) + 1 }}">
                                     {{ $row['customer'] }}
@@ -222,7 +237,14 @@
                                     @endif
                                 </td>
                             @endif
-                            <td class="wr-label">{{ $data['labels'][$category] }}</td>
+                            <td class="wr-label">
+                                {{ $data['labels'][$category] }}
+                                @if($row['categories'][$category]['issue'])
+                                    <i class="bi bi-exclamation-triangle-fill text-warning ms-1 wr-flag"
+                                       data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="{{ $row['categories'][$category]['issue'] }}"></i>
+                                @endif
+                            </td>
                             @foreach($row['categories'][$category]['weeks'] as $amount)
                                 <td class="wr-amt {{ $amount == 0 ? 'wr-zero' : '' }}">{{ $money($amount) }}</td>
                             @endforeach
@@ -234,7 +256,14 @@
                     {{-- The eighth row. Its job is to be checkable: it must equal
                          the seven above it. --}}
                     <tr class="wr-total wr-block-end {{ $row['earned'] ? '' : 'wr-quiet' }}">
-                        <td class="wr-label">Total</td>
+                        <td class="wr-label">
+                            Total
+                            @if($row['total']['issue'])
+                                <i class="bi bi-exclamation-triangle-fill text-warning ms-1 wr-flag"
+                                   data-bs-toggle="tooltip" data-bs-placement="right"
+                                   title="{{ $row['total']['issue'] }}"></i>
+                            @endif
+                        </td>
                         @foreach($row['total']['weeks'] as $amount)
                             <td class="wr-amt {{ $amount == 0 ? 'wr-zero' : '' }}">{{ $money($amount) }}</td>
                         @endforeach
@@ -277,7 +306,14 @@
                     </tr>
                     @foreach(array_slice($data['categories'], 1) as $category)
                         <tr>
-                            <td class="wr-label">{{ $data['labels'][$category] }}</td>
+                            <td class="wr-label">
+                                {{ $data['labels'][$category] }}
+                                @if($row['categories'][$category]['issue'])
+                                    <i class="bi bi-exclamation-triangle-fill text-warning ms-1 wr-flag"
+                                       data-bs-toggle="tooltip" data-bs-placement="right"
+                                       title="{{ $row['categories'][$category]['issue'] }}"></i>
+                                @endif
+                            </td>
                             @foreach($data['category_totals'][$category]['weeks'] as $amount)
                                 <td class="wr-amt {{ $amount == 0 ? 'wr-zero' : '' }}">{{ $money($amount) }}</td>
                             @endforeach
@@ -312,4 +348,17 @@
 </div>
 
 @endif
+
+@include('partials.x-scroll')
+
+@push('scripts')
+<script>
+// Bootstrap tooltips are opt-in, and this app initialises them per view rather
+// than globally. Without this the markers fall back to the browser's own
+// tooltip, which works but appears slowly and cannot be placed.
+document.querySelectorAll('.wr-flag[data-bs-toggle="tooltip"]').forEach(function (el) {
+    if (typeof bootstrap !== 'undefined') new bootstrap.Tooltip(el, { trigger: 'hover focus' });
+});
+</script>
+@endpush
 @endsection
