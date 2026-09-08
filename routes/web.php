@@ -317,6 +317,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/gate-data-check',                  [\App\Http\Controllers\GateDataCheckController::class, 'index'])->name('gate-data-check');
         Route::post('/gate-data-check/{movement}/review',   [\App\Http\Controllers\GateDataCheckController::class, 'review'])->name('gate-data-check.review');
         Route::delete('/gate-data-check/{movement}/review', [\App\Http\Controllers\GateDataCheckController::class, 'unreview'])->name('gate-data-check.unreview');
+        // Weekly Performance — Revenue. Its own permission, checked per action
+        // in the controller rather than by this group's middleware, for the
+        // same reason Gate Data Check has one.
+        Route::get('/weekly-revenue',                   [\App\Http\Controllers\WeeklyRevenueController::class, 'index'])->name('weekly-revenue');
         Route::get('/weekly-performance',               [ReportController::class, 'weeklyPerformance'])->name('weekly-performance');
         Route::get('/weekly-performance/export',        [ReportController::class, 'exportWeeklyPerformance'])->name('weekly-performance.export');
         Route::get('/weekly-performance/export/csv',    [ReportController::class, 'exportWeeklyPerformanceCsv'])->name('weekly-performance.export.csv');

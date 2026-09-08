@@ -353,6 +353,15 @@ return [
         'actions' => ['view'],
     ],
 
+    // Separate from reports.view on purpose, like gate-check below: this screen
+    // shows what every customer is worth, week by week. The people who read
+    // throughput are not automatically the people who should read revenue.
+    'weekly-revenue' => [
+        'label'   => 'Weekly Performance — Revenue',
+        'section' => 'Reports',
+        'actions' => ['view'],
+    ],
+
     // Separate from reports.view on purpose: the people who correct gate data
     // are a smaller group than the people who read reports, and this screen
     // links straight to the movement edit form.

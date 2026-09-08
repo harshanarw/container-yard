@@ -1578,6 +1578,14 @@
                     </a>
                 </li>
                 @endcan
+                @can('weekly-revenue.view')
+                <li class="nav-item">
+                    <a href="{{ route('reports.weekly-revenue') }}"
+                       class="nav-link {{ request()->routeIs('reports.weekly-revenue') ? 'active' : '' }}">
+                        <i class="bi bi-cash-coin"></i><span>Weekly Revenue</span>
+                    </a>
+                </li>
+                @endcan
                 @can('gate-check.view')
                 <li class="nav-item">
                     <a href="{{ route('reports.gate-data-check') }}"
