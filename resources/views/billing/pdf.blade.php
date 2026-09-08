@@ -4,19 +4,25 @@
     <meta charset="UTF-8">
     <title>Invoice {{ $invoice->invoice_no }}</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* The reset must NOT use `*`. DomPDF applies the universal selector to
+           the @page box as well, so `* { margin: 0 }` silently zeroes the page
+           margins — which is what made an earlier version conclude @page was
+           unsupported and reach for a spacer-table instead. It is supported;
+           it was being overridden. Reset by element name and leave @page alone. */
+        * { box-sizing: border-box; }
+        body, div, table, thead, tbody, tfoot, tr, th, td,
+        p, h1, h2, h3, h4, ul, ol, li { margin: 0; padding: 0; }
         body { font-family: 'Courier New', Courier, monospace; font-size: 10px; color: #333; background: #fff; }
         /* Reserve top space for the running header and bottom space for the footer
            on every page; content flows in between and paginates automatically. */
-        /* This dompdf build ignores @page margins, so: the header/footer are drawn
-           with position:fixed (repeat on every page) and empty thead/tfoot spacers
-           reserve their height in the flow. All padding is on elements. */
-        @page { margin: 0; }
+        /* position:fixed repeats the letterhead and footer on every page and is
+           positioned against the page edge, not the content box; these margins
+           reserve the band each one sits in. The content must not be wrapped in a
+           table: DomPDF splits a table between rows but never inside a single cell,
+           so a body taller than one page produced blank pages with everything
+           crammed onto the last. */
+        @page { margin: 120px 28px 44px; }
         .pdf-fixed-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 28px 0; background: #fff; }
-        .doc-layout { width: 100%; border-collapse: collapse; }
-        .doc-body-cell { padding: 0 28px; border: none; vertical-align: top; }
-        .doc-spacer-head { height: 120px; }   /* ≈ header height — tune to taste */
-        .doc-spacer-foot { height: 44px; }    /* ≈ footer height */
         .page { padding: 0; }
 
         /* ── Header ── */
@@ -99,12 +105,6 @@
     ])
 </div>
 @include('partials.pdf-footer')
-
-{{-- Empty thead/tfoot spacers reserve the header/footer band on every page. --}}
-<table class="doc-layout">
-<thead><tr><td class="doc-spacer-head"></td></tr></thead>
-<tfoot><tr><td class="doc-spacer-foot"></td></tr></tfoot>
-<tbody><tr><td class="doc-body-cell">
 
 <div class="page">
 
@@ -293,7 +293,5 @@
 @endif
 
 </div>
-</td></tr></tbody>
-</table>
 </body>
 </html>

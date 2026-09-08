@@ -40,17 +40,24 @@
 <meta charset="utf-8">
 <title>Reefer Electricity Invoice {{ $reeferInvoice->invoice_no }}</title>
 <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* The reset must NOT use `*`. DomPDF applies the universal selector to
+       the @page box as well, so `* { margin: 0 }` silently zeroes the page
+       margins — which is what made an earlier version conclude @page was
+       unsupported and reach for a spacer-table instead. It is supported;
+       it was being overridden. Reset by element name and leave @page alone. */
+    * { box-sizing: border-box; }
+    body, div, table, thead, tbody, tfoot, tr, th, td,
+    p, h1, h2, h3, h4, ul, ol, li { margin: 0; padding: 0; }
     body { font-family: 'Courier New', Courier, monospace; color: #222; font-size: 10px; }
     /* Reserve space for the running header/footer on every page. */
-    /* Header/footer drawn with position:fixed (repeat every page); empty
-       thead/tfoot spacers reserve their height. @page ignored by this build. */
-    @page { margin: 0; }
+    /* position:fixed repeats the letterhead and footer on every page and is
+       positioned against the page edge, not the content box; these margins
+       reserve the band each one sits in. The content must not be wrapped in a
+       table: DomPDF splits a table between rows but never inside a single cell,
+       so a body taller than one page produced blank pages with everything
+       crammed onto the last. */
+    @page { margin: 120px 24px 44px; }
     .pdf-fixed-header { position: fixed; top: 0; left: 0; right: 0; padding: 14px 24px 0; background: #fff; text-transform: uppercase; }
-    .doc-layout { width: 100%; border-collapse: collapse; }
-    .doc-body-cell { padding: 0 24px; border: none; vertical-align: top; }
-    .doc-spacer-head { height: 120px; }
-    .doc-spacer-foot { height: 44px; }
     .wrap { padding: 0; position: relative; }
     /* Sub-header info boxes — match the storage / handling invoices */
     .info-box { border: 1px solid #dee2e6; border-radius: 5px; padding: 8px 10px; text-transform: uppercase; }
@@ -138,12 +145,6 @@
     </div>
 </div>
 @include('partials.pdf-footer', ['company' => $company])
-
-{{-- Empty thead/tfoot spacers reserve the header/footer band on every page. --}}
-<table class="doc-layout">
-<thead><tr><td class="doc-spacer-head"></td></tr></thead>
-<tfoot><tr><td class="doc-spacer-foot"></td></tr></tfoot>
-<tbody><tr><td class="doc-body-cell">
 
 <div class="wrap">
 
@@ -241,7 +242,5 @@
     @endif
 
 </div>
-</td></tr></tbody>
-</table>
 </body>
 </html>
