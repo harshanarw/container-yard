@@ -69,7 +69,7 @@
                         <option value="">All Customers</option>
                         @foreach($customers as $c)
                         <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ request('customer_id') == $c->id ? 'selected' : '' }}>
-                            {{ $c->code }} — {{ $c->name }}
+                            {{ $c->code }} - {{ $c->name }}
                         </option>
                         @endforeach
                     </select>
@@ -119,7 +119,7 @@
                         <td class="ps-3 fw-semibold small">{{ $estimate->estimate_no }}</td>
                         <td class="font-monospace small">{{ $estimate->container_no }}</td>
                         <td>@include('partials.job-badge', ['job' => $estimate->yardJob, 'mode' => 'cell'])</td>
-                        <td class="small">{{ $estimate->customer->name ?? '—' }}</td>
+                        <td class="small">{{ $estimate->customer->name ?? '-' }}</td>
                         <td>
                             @if($estimate->inquiry)
                                 <a href="{{ route('inquiries.show', $estimate->inquiry) }}"
@@ -127,7 +127,7 @@
                                     {{ $estimate->inquiry->inquiry_no }}
                                 </a>
                             @else
-                                <span class="text-muted small">—</span>
+                                <span class="text-muted small">-</span>
                             @endif
                         </td>
                         <td class="small text-muted">{{ $estimate->estimate_date->format('d M Y') }}</td>

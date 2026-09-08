@@ -80,8 +80,8 @@ class ReeferController extends Controller
         ]);
 
         NotificationService::notifyAll(
-            'Reefer Plug-In — ' . $plugSession->container->container_no,
-            ($plugSession->customer->name ?? 'Unknown') . ' · Set temp: ' . ($data['set_temperature'] ?? '—') . '°C',
+            'Reefer Plug-In - ' . $plugSession->container->container_no,
+            ($plugSession->customer->name ?? 'Unknown') . ' · Set temp: ' . ($data['set_temperature'] ?? '-') . '°C',
             'info',
             route('yard.reefer.show', $plugSession)
         );
@@ -127,8 +127,8 @@ class ReeferController extends Controller
         ]);
 
         NotificationService::notifyAll(
-            'Reefer Plug-Out — ' . $plugSession->container->container_no,
-            ($plugSession->customer->name ?? 'Unknown') . ' · Session complete — ready for billing',
+            'Reefer Plug-Out - ' . $plugSession->container->container_no,
+            ($plugSession->customer->name ?? 'Unknown') . ' · Session complete - ready for billing',
             'info',
             route('yard.reefer.show', $plugSession)
         );

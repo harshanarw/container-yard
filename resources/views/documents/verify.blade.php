@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify {{ $docLabel }} — {{ $company->company_name ?? 'Document' }}</title>
+    <title>Verify {{ $docLabel }} - {{ $company->company_name ?? 'Document' }}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, Helvetica, sans-serif; background: #eef2f7; color: #222; padding: 24px 12px; }

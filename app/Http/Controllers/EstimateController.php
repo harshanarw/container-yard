@@ -484,7 +484,7 @@ class EstimateController extends Controller
             : $primaryTo;
 
         NotificationService::notifyAll(
-            'Estimate Sent — ' . $estimate->estimate_no,
+            'Estimate Sent - ' . $estimate->estimate_no,
             ($estimate->customer->name ?? 'Unknown') . ' · Sent to ' . $toSummary . $versionNote,
             'info',
             route('estimates.show', $estimate)
@@ -547,7 +547,7 @@ class EstimateController extends Controller
             ->first();
 
         if (!$token) {
-            return back()->with('error', 'No active portal token — send the estimate first.');
+            return back()->with('error', 'No active portal token - send the estimate first.');
         }
 
         try {
@@ -589,7 +589,7 @@ class EstimateController extends Controller
         ]);
 
         NotificationService::notifyAll(
-            'Estimate Approved — ' . $estimate->estimate_no,
+            'Estimate Approved - ' . $estimate->estimate_no,
             ($estimate->customer->name ?? 'Unknown') . ' · ' . $estimate->container_no,
             'success',
             route('estimates.show', $estimate)
@@ -610,7 +610,7 @@ class EstimateController extends Controller
         ]);
 
         NotificationService::notifyAll(
-            'Estimate Rejected — ' . $estimate->estimate_no,
+            'Estimate Rejected - ' . $estimate->estimate_no,
             ($estimate->customer->name ?? 'Unknown') . ' · ' . $estimate->container_no,
             'warning',
             route('estimates.show', $estimate)
@@ -796,7 +796,7 @@ class EstimateController extends Controller
                 $w = $this->resolveWashingRate($customerId, $scope, $washType, $containerSize, $washDate, $estCurrency, $exchangeRate);
 
                 $lines[] = [
-                    'component'         => $w['label'] ?? (ucfirst($scope) . ' Wash — ' . ucfirst($washType)),
+                    'component'         => $w['label'] ?? (ucfirst($scope) . ' Wash - ' . ucfirst($washType)),
                     'repair_type'       => 'clean_and_treat',
                     'qty'               => 1,
                     'unit_price'        => $w['unit_price'] ?? 0,
@@ -931,7 +931,7 @@ class EstimateController extends Controller
         return [
             'washing_tariff_id' => $wt->id,
             'wash_scope'        => $scope,
-            'label'             => $wt->scope_label . ' — ' . $wt->type_label,
+            'label'             => $wt->scope_label . ' - ' . $wt->type_label,
             'unit_price'        => round($base * $factor, 2),
             'currency'          => $estCur,
             'charge_code_id'    => $wt->charge_code_id,

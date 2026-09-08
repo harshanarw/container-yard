@@ -57,7 +57,7 @@
                     <td class="small text-muted fw-semibold">{{ $item->sort_order }}</td>
                     <td class="fw-semibold small">{{ $item->label }}</td>
                     <td><code class="small">{{ $item->code }}</code></td>
-                    <td class="small text-muted">{{ $item->description ?? '—' }}</td>
+                    <td class="small text-muted">{{ $item->description ?? '-' }}</td>
                     <td class="text-center">
                         @can('masters.checklist-items.edit')
                         <form method="POST" action="{{ route('masters.checklist.toggle', $item) }}">

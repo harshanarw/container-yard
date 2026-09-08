@@ -259,7 +259,7 @@
                                 <span class="badge bg-dark text-white">{{ $container->customer->code }}</span>
                                 <span class="text-muted">{{ $container->customer->name }}</span>
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </td>
                         <td>
@@ -288,10 +288,10 @@
                             @if($container->location_row)
                                 {{ $container->location_row }}{{ $container->location_bay }}-T{{ $container->location_tier }}
                             @else
-                                —
+                                -
                             @endif
                         </td>
-                        <td>{{ $container->gate_in_date ? $container->gate_in_date->format('d M Y') : '—' }}</td>
+                        <td>{{ $container->gate_in_date ? $container->gate_in_date->format('d M Y') : '-' }}</td>
                         <td>
                             @if($container->gate_in_date && !$container->gate_out_date)
                                 @php $days = $container->gate_in_date->diffInDays(now()); @endphp
@@ -301,7 +301,7 @@
                             @elseif($container->gate_out_date)
                                 {{ $container->gate_in_date->diffInDays($container->gate_out_date) }}d
                             @else
-                                —
+                                -
                             @endif
                         </td>
                         <td>
@@ -331,7 +331,7 @@
                                     {{ \App\Support\MrStatusCatalogue::label($container->mr_status, $container->mr_lane) }}
                                 </span>
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </td>
                     </tr>

@@ -163,7 +163,7 @@
     </table>
     </div>
     <div class="card-footer bg-light py-2 small text-muted">
-        Drag rows to reorder. System types (padlock) are seeded defaults — their codes are protected.
+        Drag rows to reorder. System types (padlock) are seeded defaults - their codes are protected.
     </div>
 </div>
 
@@ -426,7 +426,7 @@
             document.getElementById('edit_code').readOnly      = isSystem;
             document.getElementById('edit_direction').disabled = isSystem;
             document.getElementById('edit_code_hint').textContent =
-                isSystem ? 'System type — code is protected.' : '';
+                isSystem ? 'System type - code is protected.' : '';
 
             // Apply flag checkboxes
             const activeFlags = JSON.parse(d.flags || '[]');

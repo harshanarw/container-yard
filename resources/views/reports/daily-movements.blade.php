@@ -82,7 +82,7 @@
                         <option value="">All Operators</option>
                         @foreach($customers as $c)
                         <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ request('customer_id') == $c->id ? 'selected' : '' }}>
-                            {{ $c->code }} — {{ $c->name }}
+                            {{ $c->code }} - {{ $c->name }}
                         </option>
                         @endforeach
                     </select>
@@ -292,11 +292,11 @@
                                      no plug session and no PTI demand. --}}
                                 @if($m->isLadenNor())
                                     <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small"
-                                          title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>
+                                          title="Non-Operating Reefer - dry cargo, machinery off">NOR</span>
                                 @endif
                             </td>
-                            <td class="small font-monospace">{{ $m->seal_no ?: '—' }}</td>
-                            <td class="small">{{ $m->vehicle_plate ?: '—' }}</td>
+                            <td class="small font-monospace">{{ $m->seal_no ?: '-' }}</td>
+                            <td class="small">{{ $m->vehicle_plate ?: '-' }}</td>
                             {{-- Each row shows both ends of the visit it belongs to. The
                                  movement's own event is solid; the paired one is muted and
                                  marked, so the report still reads as a list of movements
@@ -313,7 +313,7 @@
                                     @endif
                                 </div>
                                 @else
-                                <span class="text-muted" title="No gate-in recorded for this container">—</span>
+                                <span class="text-muted" title="No gate-in recorded for this container">-</span>
                                 @endif
                             </td>
                             <td class="small">
@@ -330,7 +330,7 @@
                                 @elseif($visitContext[$m->id]['open'])
                                 <span class="badge bg-info-subtle text-info border border-info-subtle small">In yard</span>
                                 @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td class="small text-center font-monospace">
@@ -340,15 +340,15 @@
                                     <span class="text-muted" title="Still counting">+</span>
                                     @endif
                                 @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td class="small text-muted">
-                                {{ implode('-', array_filter([$m->location_row, $m->location_bay, $m->location_tier])) ?: '—' }}
+                                {{ implode('-', array_filter([$m->location_row, $m->location_bay, $m->location_tier])) ?: '-' }}
                             </td>
                             <td class="small no-print">
                                 @if($m->csv_exported_at)
-                                <span class="text-success" title="Exported {{ $m->csv_exported_at->format('d M Y H:i') }} by {{ $m->csvExportedBy->name ?? '—' }}">
+                                <span class="text-success" title="Exported {{ $m->csv_exported_at->format('d M Y H:i') }} by {{ $m->csvExportedBy->name ?? '-' }}">
                                     <i class="bi bi-check-circle-fill me-1"></i>
                                     <span class="d-none d-xl-inline">{{ $m->csv_exported_at->format('d M H:i') }}</span>
                                 </span>
@@ -358,7 +358,7 @@
                             </td>
                             <td class="small no-print">
                                 @if($m->codeco_exported_at)
-                                <span class="text-success" title="Exported {{ $m->codeco_exported_at->format('d M Y H:i') }} by {{ $m->codecoExportedBy->name ?? '—' }}">
+                                <span class="text-success" title="Exported {{ $m->codeco_exported_at->format('d M Y H:i') }} by {{ $m->codecoExportedBy->name ?? '-' }}">
                                     <i class="bi bi-check-circle-fill me-1"></i>
                                     <span class="d-none d-xl-inline">{{ $m->codeco_exported_at->format('d M H:i') }}</span>
                                 </span>

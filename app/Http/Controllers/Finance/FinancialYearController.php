@@ -68,7 +68,7 @@ class FinancialYearController extends Controller
 
         $message = "Financial year {$fy->code} created with 12 monthly periods"
             . ($noOpenYear
-                ? ' and opened — you can now post invoices to it.'
+                ? ' and opened - you can now post invoices to it.'
                 : '. Another financial year is currently open, so this one was saved as draft; open it from this page when you are ready.');
 
         return redirect()->route('finance.setup.fiscal-years.show', $fy)
@@ -180,10 +180,10 @@ class FinancialYearController extends Controller
             $msg = "Period '{$period->name}' P&L closed";
             if ($result['period_journal']) {
                 $verb = $result['net_pl'] >= 0 ? 'profit' : 'loss';
-                $msg .= " — net {$verb} " . number_format(abs($result['net_pl']), 2)
+                $msg .= " - net {$verb} " . number_format(abs($result['net_pl']), 2)
                       . " (journal {$result['period_journal']->journal_no})";
             } else {
-                $msg .= " — no P&L activity in this period";
+                $msg .= " - no P&L activity in this period";
             }
             if ($result['year_end']) {
                 $msg .= '. Year-end complete: Current Year P/L transferred to Retained Earnings'

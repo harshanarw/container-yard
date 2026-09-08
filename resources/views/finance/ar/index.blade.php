@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'AR — Invoice Postings')
+@section('title', 'AR - Invoice Postings')
 
 @section('breadcrumb')
     <li class="breadcrumb-item">Finance</li>
@@ -12,7 +12,7 @@
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
         <h4 class="mb-1">
-            <i class="bi bi-receipt-cutoff me-2 text-primary"></i>AR — Invoice Postings
+            <i class="bi bi-receipt-cutoff me-2 text-primary"></i>AR - Invoice Postings
         </h4>
         <p class="text-muted mb-0 small">
             Post invoices to the General Ledger and track their posting status.
@@ -136,7 +136,7 @@
                                 {{ $posting->journal->journal_no }}
                             </a>
                             @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                             @endif
                         </td>
                         <td>
@@ -149,9 +149,9 @@
                             </div>
                             @endif
                         </td>
-                        <td class="small">{{ $posting->postedBy->name ?? '—' }}</td>
+                        <td class="small">{{ $posting->postedBy->name ?? '-' }}</td>
                         <td class="small text-muted">
-                            {{ $posting->posted_at ? $posting->posted_at->format('d M Y H:i') : '—' }}
+                            {{ $posting->posted_at ? $posting->posted_at->format('d M Y H:i') : '-' }}
                         </td>
                         <td class="pe-3 text-end">
                             @if($posting->isPosted())
@@ -193,7 +193,7 @@
             <div class="col-sm-4 col-md-3">
                 <label class="form-label fw-semibold small">Invoice Type <span class="text-danger">*</span></label>
                 <select name="invoice_type" class="form-select form-select-sm" required>
-                    <option value="">— Select Type —</option>
+                    <option value="">- Select Type -</option>
                     <option value="storage">Storage Invoice</option>
                     <option value="storage-handling">Storage &amp; Handling Invoice</option>
                     <option value="reefer">Reefer Electricity Invoice</option>

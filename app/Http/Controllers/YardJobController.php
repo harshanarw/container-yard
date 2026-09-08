@@ -96,7 +96,7 @@ class YardJobController extends Controller
         if (in_array($data['status'], ['completed', 'cancelled'])) {
             $notifType = $data['status'] === 'completed' ? 'success' : 'warning';
             NotificationService::notifyAll(
-                'Yard Job ' . ucfirst($data['status']) . ' — ' . $yardJob->job_no,
+                'Yard Job ' . ucfirst($data['status']) . ' - ' . $yardJob->job_no,
                 ($yardJob->customer->name ?? 'Unknown') . ' · ' . ($yardJob->jobType->name ?? 'Job'),
                 $notifType,
                 route('yard.jobs.show', $yardJob)

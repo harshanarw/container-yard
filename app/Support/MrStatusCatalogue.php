@@ -90,29 +90,29 @@ final class MrStatusCatalogue
         self::AWAITING_SURVEY      => ['Awaiting survey',                'pending',     self::LANE_REPAIR],
         self::SURVEY_IN_PROGRESS   => ['Survey in progress',             'in_progress', self::LANE_REPAIR],
         self::ESTIMATE_PENDING     => ['Estimate in preparation',        'pending',     self::LANE_REPAIR],
-        self::ESTIMATE_SENT        => ['Estimate sent — awaiting approval', 'pending',  self::LANE_REPAIR],
+        self::ESTIMATE_SENT        => ['Estimate sent - awaiting approval', 'pending',  self::LANE_REPAIR],
         self::ESTIMATE_REJECTED    => ['Estimate rejected',              'blocked',     self::LANE_REPAIR],
-        self::ESTIMATE_APPROVED    => ['Approved — awaiting work order', 'pending',     self::LANE_REPAIR],
+        self::ESTIMATE_APPROVED    => ['Approved - awaiting work order', 'pending',     self::LANE_REPAIR],
         self::REPAIR_SCHEDULED     => ['Repair scheduled',               'pending',     self::LANE_REPAIR],
         self::REPAIR_IN_PROGRESS   => ['Repair in progress',             'in_progress', self::LANE_REPAIR],
         self::REPAIR_ON_HOLD       => ['Repair on hold',                 'blocked',     self::LANE_REPAIR],
         self::AWAITING_QC          => ['Awaiting QC',                    'pending',     self::LANE_REPAIR],
-        self::QC_FAILED            => ['QC failed — rework',             'blocked',     self::LANE_REPAIR],
-        self::REPAIRED_AVAILABLE   => ['Repaired — available',           'ready',       self::LANE_REPAIR],
+        self::QC_FAILED            => ['QC failed - rework',             'blocked',     self::LANE_REPAIR],
+        self::REPAIRED_AVAILABLE   => ['Repaired - available',           'ready',       self::LANE_REPAIR],
         self::WASH_SCHEDULED       => ['Wash scheduled',                 'pending',     self::LANE_WASH],
         self::WASH_IN_PROGRESS     => ['Washing',                        'in_progress', self::LANE_WASH],
-        self::WASHED               => ['Washed — available',             'ready',       self::LANE_WASH],
+        self::WASHED               => ['Washed - available',             'ready',       self::LANE_WASH],
         self::PTI_DUE              => ['PTI due',                        'pending',     self::LANE_REEFER],
         self::PTI_FAILED           => ['PTI failed',                     'blocked',     self::LANE_REEFER],
         self::CONDEMNED            => ['Condemned / scrap',              'blocked',     null],
-        self::SOUND_AVAILABLE      => ['Sound — available',              'ready',       null],
+        self::SOUND_AVAILABLE      => ['Sound - available',              'ready',       null],
         self::IN_STORAGE           => ['In storage',                     'idle',        self::LANE_STORAGE],
         self::TRANSFER_IN_PROGRESS => ['Cargo transfer in progress',     'in_progress', self::LANE_TRANSFER],
         self::ON_HIRE              => ['On hire',                        'committed',   null],
         self::RESERVED             => ['Reserved to booking',            'committed',   null],
-        self::AWAITING_DISPOSITION => ['In yard — awaiting disposition', 'idle',        self::LANE_HANDLING],
+        self::AWAITING_DISPOSITION => ['In yard - awaiting disposition', 'idle',        self::LANE_HANDLING],
         self::GATED_OUT            => ['Gated out',                      'closed',      null],
-        self::RELEASED_NO_MOVEMENT => ['Released — no movement record',  'closed',      null],
+        self::RELEASED_NO_MOVEMENT => ['Released - no movement record',  'closed',      null],
     ];
 
     // ── Modifiers (independent of the status, rendered as chips) ──────────────
@@ -178,7 +178,7 @@ final class MrStatusCatalogue
     private const WASH_LABEL_OVERRIDES = [
         self::REPAIR_ON_HOLD => 'Wash on hold',
         self::AWAITING_QC    => 'Awaiting wash check',
-        self::QC_FAILED      => 'Wash check failed — rework',
+        self::QC_FAILED      => 'Wash check failed - rework',
     ];
 
     public static function label(string $code, ?string $lane = null): string

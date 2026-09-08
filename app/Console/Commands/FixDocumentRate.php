@@ -80,14 +80,14 @@ class FixDocumentRate extends Command
             : $docTotal;
         $newBase = round($docAmt * $rate, 2);
 
-        $this->info(($apply ? 'APPLY' : 'DRY-RUN') . " — {$type} {$doc->invoice_no}");
+        $this->info(($apply ? 'APPLY' : 'DRY-RUN') . " - {$type} {$doc->invoice_no}");
         $this->table(
             ['Currency', 'Doc amount', 'Old rate', 'New rate', 'New base (' . $base . ')'],
             [[$currency, number_format($docAmt, 2), $oldRate, $rate, number_format($newBase, 2)]]
         );
 
         if (!$apply) {
-            $this->line('Dry run — re-run with --apply to update the rate and re-post.');
+            $this->line('Dry run - re-run with --apply to update the rate and re-post.');
             return self::SUCCESS;
         }
 

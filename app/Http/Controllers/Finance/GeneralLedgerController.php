@@ -778,7 +778,7 @@ class GeneralLedgerController extends Controller
                 // no room for either, and a difference the reader cannot see is
                 // worse than one they can, so it is stated as a figure.
                 yield ['Summary', 0, 'Check', '',
-                    $data['balanced'] ? 'Balanced' : 'OUT OF BALANCE — difference',
+                    $data['balanced'] ? 'Balanced' : 'OUT OF BALANCE - difference',
                     number_format((float) $data['balanceDiff'], 2, '.', ''),
                 ];
             });
@@ -1002,7 +1002,7 @@ class GeneralLedgerController extends Controller
         }
 
         return redirect()->route('finance.reports.fx-revaluation', ['as_of' => $asOf])
-            ->with('success', "FX revaluation posted — journal {$result['journal']}, reversal {$result['reversal']}.");
+            ->with('success', "FX revaluation posted - journal {$result['journal']}, reversal {$result['reversal']}.");
     }
 
     /**

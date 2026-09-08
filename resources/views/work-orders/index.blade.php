@@ -63,13 +63,13 @@
                         </td>
                         <td class="small">{{ $wo->container_no }}</td>
                         <td>@include('partials.job-badge', ['job' => $wo->yardJob, 'mode' => 'cell'])</td>
-                        <td class="small">{{ $wo->customer->code ?? $wo->customer->name ?? '—' }}</td>
+                        <td class="small">{{ $wo->customer->code ?? $wo->customer->name ?? '-' }}</td>
                         <td class="small">
                             @if($wo->repairCategory)
                                 <span class="badge bg-{{ $wo->repairCategory->color }}">{{ $wo->repairCategory->code }}</span>
                                 <span class="text-muted">{{ $wo->repairCategory->name }}</span>
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </td>
                         <td class="small">
@@ -94,9 +94,9 @@
                                 {{ ucfirst(str_replace('_', ' ', $wo->status)) }}
                             </span>
                         </td>
-                        <td class="small">{{ $wo->assignedTo->name ?? '—' }}</td>
+                        <td class="small">{{ $wo->assignedTo->name ?? '-' }}</td>
                         <td class="small text-muted">
-                            {{ $wo->target_date ? $wo->target_date->format('d M Y') : '—' }}
+                            {{ $wo->target_date ? $wo->target_date->format('d M Y') : '-' }}
                         </td>
                         <td class="text-end">
                             <a href="{{ route('work-orders.show', $wo) }}" class="btn btn-sm btn-outline-primary">View</a>

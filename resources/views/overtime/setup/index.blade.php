@@ -13,7 +13,7 @@
     <div>
         <h4><i class="bi bi-sliders me-2 text-primary"></i>Overtime Setup</h4>
         <p class="text-muted mb-0 small">
-            What the overtime engine is reading right now — working hours, holiday calendar and tariff rates.
+            What the overtime engine is reading right now - working hours, holiday calendar and tariff rates.
             Everything here is editable; nothing is hard-coded.
         </p>
     </div>
@@ -164,7 +164,7 @@
     </div>
     <div class="card-body">
         <p class="text-muted small">
-            Pick any date and time to see exactly what the engine would decide for a gate movement —
+            Pick any date and time to see exactly what the engine would decide for a gate movement -
             the day category, whether it is overtime, and which rate would apply.
         </p>
         <div class="row g-2 align-items-end mb-3">
@@ -245,7 +245,7 @@
 
         if (!d.is_overtime) {
             html += '<div class="alert alert-success py-2 small mb-0">'
-                 +  'Inside normal working hours — no overtime receipt is needed.</div>';
+                 +  'Inside normal working hours - no overtime receipt is needed.</div>';
         } else if (d.unconfigured) {
             html += '<div class="alert alert-danger py-2 small mb-0">'
                  +  '<strong>Unconfigured overtime period.</strong> This time is outside working hours but no tariff rule covers it. '

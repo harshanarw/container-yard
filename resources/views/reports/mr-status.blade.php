@@ -144,7 +144,7 @@
 <div class="card content-card mb-3">
     <div class="card-header bg-transparent py-2 small fw-semibold">
         Breakdown by status
-        <span class="text-muted fw-normal ms-1">— days counted in the current stage, not days in the yard</span>
+        <span class="text-muted fw-normal ms-1">- days counted in the current stage, not days in the yard</span>
     </div>
     <div class="table-responsive">
         <table class="table table-sm align-middle mb-0" style="font-size:.82rem">
@@ -177,7 +177,7 @@
                     <td class="text-end font-monospace text-muted">{{ $r['avg_days'] }}d</td>
                     <td class="text-end font-monospace {{ $r['max_days'] > 30 ? 'text-danger' : 'text-muted' }}">{{ $r['max_days'] }}d</td>
                     <td class="text-end pe-3 font-monospace {{ $r['overdue'] > 0 ? 'text-danger fw-bold' : 'text-muted' }}">
-                        {{ $r['overdue'] ?: '—' }}
+                        {{ $r['overdue'] ?: '-' }}
                     </td>
                 </tr>
             @empty
@@ -194,7 +194,7 @@
 {{-- ── Detail ──────────────────────────────────────────────────────────── --}}
 <div class="card content-card">
     <div class="card-header bg-transparent py-2 small fw-semibold d-flex justify-content-between align-items-center">
-        <span>Containers <span class="text-muted fw-normal">— longest-stuck first</span></span>
+        <span>Containers <span class="text-muted fw-normal">- longest-stuck first</span></span>
         <span class="text-muted fw-normal">{{ number_format($detail->total()) }} total</span>
     </div>
     <div class="table-responsive">
@@ -223,7 +223,7 @@
                             {{ $c->container_no }}
                         </a>
                     </td>
-                    <td>{{ $c->customer->name ?? '—' }}</td>
+                    <td>{{ $c->customer->name ?? '-' }}</td>
                     <td class="text-muted">{{ $c->size }}ft {{ $c->type_code }}</td>
                     <td><span class="text-muted">{{ str_replace('_', ' ', $c->status) }}</span></td>
                     <td>
@@ -232,7 +232,7 @@
                         </span>
                     </td>
                     <td class="text-end font-monospace {{ $isOverdue ? 'text-danger fw-bold' : 'text-muted' }}">
-                        {{ $days !== null ? $days . 'd' : '—' }}
+                        {{ $days !== null ? $days . 'd' : '-' }}
                     </td>
                     <td class="pe-3">
                         @if($isOverdue)

@@ -152,7 +152,7 @@ class InquirySeeder extends Seeder
                 'estimated_repair_cost' => 5200.00,
                 'damages' => [
                     ['location' => 'cross_member', 'damage_type' => 'broken', 'severity' => 'severe',
-                     'dimensions' => null, 'description' => 'Refrigeration compressor failure — unit non-operational', 'repair_cost' => null, 'repaired' => false],
+                     'dimensions' => null, 'description' => 'Refrigeration compressor failure - unit non-operational', 'repair_cost' => null, 'repaired' => false],
                     ['location' => 'door_seal', 'damage_type' => 'broken', 'severity' => 'severe',
                      'dimensions' => null, 'description' => 'Door gaskets perished, no seal integrity', 'repair_cost' => null, 'repaired' => false],
                 ],

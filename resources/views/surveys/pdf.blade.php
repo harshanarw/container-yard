@@ -123,11 +123,11 @@
             </div>
             <div class="info-row">
                 <span class="info-label">Inspection Date</span>
-                <span class="info-value">{{ $inquiry->inspection_date?->format('d M Y') ?? '—' }}</span>
+                <span class="info-value">{{ $inquiry->inspection_date?->format('d M Y') ?? '-' }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Inspector</span>
-                <span class="info-value">{{ $inquiry->inspector?->name ?? '—' }}</span>
+                <span class="info-value">{{ $inquiry->inspector?->name ?? '-' }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Priority</span>
@@ -154,12 +154,12 @@
             @if($inquiry->equipmentType)
             <div class="info-row">
                 <span class="info-label">Equipment</span>
-                <span class="info-value">{{ $inquiry->equipmentType->eqt_code }} — {{ $inquiry->equipmentType->description }}</span>
+                <span class="info-value">{{ $inquiry->equipmentType->eqt_code }} - {{ $inquiry->equipmentType->description }}</span>
             </div>
             @endif
             <div class="info-row">
                 <span class="info-label">Customer</span>
-                <span class="info-value">{{ $inquiry->customer?->name ?? '—' }}</span>
+                <span class="info-value">{{ $inquiry->customer?->name ?? '-' }}</span>
             </div>
             @if($inquiry->customer?->code)
             <div class="info-row">
@@ -195,13 +195,13 @@
                     {{ ucfirst($inquiry->overall_condition) }}
                 </span>
             @else
-                <span style="color:#adb5bd">— Not assessed</span>
+                <span style="color:#adb5bd">- Not assessed</span>
             @endif
         </div>
         <div class="condition-box">
             <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Recommended Action</div>
             <div style="font-size:13px;font-weight:bold;">
-                {{ $inquiry->recommended_action ? ucwords(str_replace('_', ' ', $inquiry->recommended_action)) : '—' }}
+                {{ $inquiry->recommended_action ? ucwords(str_replace('_', ' ', $inquiry->recommended_action)) : '-' }}
             </div>
             @if($inquiry->wash_required)
             <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px;">Washing / Cleaning</div>
@@ -214,7 +214,7 @@
 
     <!-- Damage Assessment Table -->
     <div class="section">
-        <div class="section-title">Damage Assessment — {{ $inquiry->damages->count() }} Item(s)</div>
+        <div class="section-title">Damage Assessment - {{ $inquiry->damages->count() }} Item(s)</div>
         @if($inquiry->damages->isEmpty())
             <div style="text-align:center;color:#adb5bd;padding:16px 0;">No damages recorded on this survey.</div>
         @else
@@ -241,33 +241,33 @@
                         @if($dmg->locationCode)
                             <span class="code-chip">{{ $dmg->locationCode->code }}</span>
                             <span style="font-size:9px;color:#555;display:block;margin-top:1px;">{{ $dmg->locationCode->name }}</span>
-                        @else <span style="color:#adb5bd">—</span>
+                        @else <span style="color:#adb5bd">-</span>
                         @endif
                     </td>
                     <td>
                         @if($dmg->componentCode)
                             <span class="code-chip">{{ $dmg->componentCode->code }}</span>
                             <span style="font-size:9px;color:#555;display:block;margin-top:1px;">{{ $dmg->componentCode->name }}</span>
-                        @else <span style="color:#adb5bd">—</span>
+                        @else <span style="color:#adb5bd">-</span>
                         @endif
                     </td>
                     <td>
                         @if($dmg->damageCode)
                             <span class="code-chip danger">{{ $dmg->damageCode->code }}</span>
                             <span style="font-size:9px;color:#555;display:block;margin-top:1px;">{{ $dmg->damageCode->name }}</span>
-                        @else <span style="color:#adb5bd">—</span>
+                        @else <span style="color:#adb5bd">-</span>
                         @endif
                     </td>
                     <td>
                         @if($dmg->repairCode)
                             <span class="code-chip success">{{ $dmg->repairCode->code }}</span>
-                        @else <span style="color:#adb5bd">—</span>
+                        @else <span style="color:#adb5bd">-</span>
                         @endif
                     </td>
                     <td>
                         @if($dmg->responsibilityCode)
                             <span class="code-chip warn">{{ $dmg->responsibilityCode->code }}</span>
-                        @else <span style="color:#adb5bd">—</span>
+                        @else <span style="color:#adb5bd">-</span>
                         @endif
                     </td>
                     <td>
@@ -287,16 +287,16 @@
                             @if($dmg->dim_area)
                                 <span style="color:#777;display:block;">({{ $dmg->dim_area }} m²)</span>
                             @endif
-                        @else —
+                        @else -
                         @endif
                     </td>
                     <td>
                         @if($dmg->cedex_code)
                             <span class="code-chip dark">{{ $dmg->cedex_code }}</span>
-                        @else <span style="color:#adb5bd">—</span>
+                        @else <span style="color:#adb5bd">-</span>
                         @endif
                     </td>
-                    <td style="color:#555;font-size:10px;">{{ $dmg->description ?? '—' }}</td>
+                    <td style="color:#555;font-size:10px;">{{ $dmg->description ?? '-' }}</td>
                 </tr>
                 @endforeach
             </tbody>

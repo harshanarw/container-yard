@@ -1,6 +1,6 @@
 @extends('portal.layout')
 
-@section('title', 'Survey Photos — ' . $estimate->estimate_no)
+@section('title', 'Survey Photos - ' . $estimate->estimate_no)
 
 @push('head')
 <style>

@@ -280,7 +280,7 @@ class PortalEstimateController extends Controller
             'estimates/signed-approvals/' . $estimate->id,
             [
                 'document_type' => 'signed_approval',
-                'label'         => 'Signed Approval — ' . $estimate->estimate_no,
+                'label'         => 'Signed Approval - ' . $estimate->estimate_no,
             ]
         );
 
@@ -488,7 +488,7 @@ class PortalEstimateController extends Controller
         };
 
         NotificationService::notifyAll(
-            title: "Estimate {$label} — {$estimate->estimate_no}",
+            title: "Estimate {$label} - {$estimate->estimate_no}",
             body:  "Owner/principal {$label} repair estimate for container {$estimate->container_no}.",
             type:  $notifType,
             url:   route('estimates.show', $estimate),

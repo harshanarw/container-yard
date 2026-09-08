@@ -44,15 +44,15 @@
                     <dt class="col-sm-5 text-muted">Container</dt>
                     <dd class="col-sm-7 font-monospace fw-bold">{{ $session->container?->container_no }}</dd>
                     <dt class="col-sm-5 text-muted">Equipment Type</dt>
-                    <dd class="col-sm-7">{{ $session->container?->equipmentType?->dropdown_label ?? '—' }}</dd>
+                    <dd class="col-sm-7">{{ $session->container?->equipmentType?->dropdown_label ?? '-' }}</dd>
                     <dt class="col-sm-5 text-muted">Customer</dt>
                     <dd class="col-sm-7">{{ $session->customer?->name }}</dd>
                     <dt class="col-sm-5 text-muted">Gate-In Movement</dt>
                     <dd class="col-sm-7">#{{ $session->gate_movement_id }}</dd>
                     <dt class="col-sm-5 text-muted">Plug-In</dt>
-                    <dd class="col-sm-7">{{ $session->plug_in_at?->format('d M Y H:i') ?? '—' }}</dd>
+                    <dd class="col-sm-7">{{ $session->plug_in_at?->format('d M Y H:i') ?? '-' }}</dd>
                     <dt class="col-sm-5 text-muted">Plug-Out</dt>
-                    <dd class="col-sm-7">{{ $session->plug_out_at?->format('d M Y H:i') ?? '—' }}</dd>
+                    <dd class="col-sm-7">{{ $session->plug_out_at?->format('d M Y H:i') ?? '-' }}</dd>
                     @if($session->plug_in_at)
                     <dt class="col-sm-5 text-muted">Duration</dt>
                     <dd class="col-sm-7">
@@ -73,7 +73,7 @@
                     <dd class="col-sm-7">{{ $session->notes }}</dd>
                     @endif
                     <dt class="col-sm-5 text-muted">Created by</dt>
-                    <dd class="col-sm-7">{{ $session->createdBy?->name ?? '—' }}</dd>
+                    <dd class="col-sm-7">{{ $session->createdBy?->name ?? '-' }}</dd>
                     <dt class="col-sm-5 text-muted">Created at</dt>
                     <dd class="col-sm-7">{{ $session->created_at?->format('d M Y H:i') }}</dd>
                 </dl>
@@ -112,11 +112,11 @@
                         @foreach($session->tempLogs as $log)
                         <tr>
                             <td>{{ $log->logged_at->format('d M H:i') }}</td>
-                            <td>{{ $log->set_temperature ?? '—' }}</td>
-                            <td>{{ $log->return_temperature ?? '—' }}</td>
-                            <td>{{ $log->supply_temperature ?? '—' }}</td>
-                            <td>{{ $log->humidity_pct ? $log->humidity_pct.'%' : '—' }}</td>
-                            <td>{{ $log->loggedBy?->name ?? '—' }}</td>
+                            <td>{{ $log->set_temperature ?? '-' }}</td>
+                            <td>{{ $log->return_temperature ?? '-' }}</td>
+                            <td>{{ $log->supply_temperature ?? '-' }}</td>
+                            <td>{{ $log->humidity_pct ? $log->humidity_pct.'%' : '-' }}</td>
+                            <td>{{ $log->loggedBy?->name ?? '-' }}</td>
                             <td>
                                 @can('yard.reefer.temp-log')
                                 <form action="{{ route('yard.reefer.temp-log.destroy', [$session, $log]) }}" method="POST"

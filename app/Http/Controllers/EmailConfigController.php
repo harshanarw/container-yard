@@ -168,7 +168,7 @@ class EmailConfigController extends Controller
                 "This is a test email from {$emailConfig->name}.",
                 function ($message) use ($request, $emailConfig) {
                     $message->to($request->test_email)
-                            ->subject('Test Email — ' . $emailConfig->name);
+                            ->subject('Test Email - ' . $emailConfig->name);
                     if ($emailConfig->from_email) {
                         $message->from($emailConfig->from_email, $emailConfig->from_name);
                     }

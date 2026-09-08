@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Dashboard') — {{ $companySetting?->company_name ?? 'CYM' }}</title>
+    <title>@yield('title', 'Dashboard') - {{ $companySetting?->company_name ?? 'CYM' }}</title>
     @if($companySetting?->icon_url)
     <link rel="icon" type="image/png" href="{{ $companySetting->icon_url }}">
     @endif
@@ -1124,7 +1124,7 @@
                 <li class="nav-item">
                     <a href="{{ route('billing.storage-handling.manual.create') }}"
                        class="nav-link {{ request()->routeIs('billing.storage-handling.manual.*') ? 'active' : '' }}">
-                        <i class="bi bi-pencil-square"></i><span>Storage &amp; Handling — Manual</span>
+                        <i class="bi bi-pencil-square"></i><span>Storage &amp; Handling - Manual</span>
                     </a>
                 </li>
                 @endcan
@@ -2496,7 +2496,7 @@
                 : '';
             return '<tr>' +
                 '<td class="fw-semibold">' + _npEsc(opLabel[m.operation] || m.operation || '') + '</td>' +
-                '<td>' + _npEsc(combo || '—') + '</td>' +
+                '<td>' + _npEsc(combo || '-') + '</td>' +
                 '<td class="text-danger">' + _npEsc(m.reason || '') + '</td>' +
                 '<td class="small text-muted">' + _npEsc(contStr) + '</td>' +
                 '<td class="text-end">' + fix + '</td>' +

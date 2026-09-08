@@ -26,16 +26,16 @@
             <div class="col-md-6">
                 <label class="form-label fw-semibold">Container <span class="text-danger">*</span></label>
                 <select name="container_id" class="form-select select2" required>
-                    <option value="">— Select container —</option>
+                    <option value="">- Select container -</option>
                     @foreach($containers as $c)
-                        <option value="{{ $c->id }}" @selected(old('container_id') == $c->id)>{{ $c->container_no }} — {{ $c->size }}' {{ $c->type_code }}@if($c->mr_status) · {{ \App\Support\MrStatusCatalogue::label($c->mr_status, $c->mr_lane) }}@endif</option>
+                        <option value="{{ $c->id }}" @selected(old('container_id') == $c->id)>{{ $c->container_no }} - {{ $c->size }}' {{ $c->type_code }}@if($c->mr_status) · {{ \App\Support\MrStatusCatalogue::label($c->mr_status, $c->mr_lane) }}@endif</option>
                     @endforeach
                 </select>
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-semibold">Lessor (shipping line) <span class="text-danger">*</span></label>
                 <select name="lessor_id" class="form-select select2" required>
-                    <option value="">— Select lessor —</option>
+                    <option value="">- Select lessor -</option>
                     @foreach($lessors as $l)
                         <option value="{{ $l->id }}" @selected(old('lessor_id') == $l->id)>{{ $l->name }}</option>
                     @endforeach
@@ -60,7 +60,7 @@
             </div>
             <div class="col-12">
                 <div class="alert alert-info small mb-3">
-                    <i class="bi bi-info-circle me-1"></i>On save a job opens for this on-hire. Enter the lessor's fee as a <strong>supplier invoice or payment voucher</strong> and pick this job in its <em>Job (costing)</em> field — the cost then appears on the job's P&amp;L.
+                    <i class="bi bi-info-circle me-1"></i>On save a job opens for this on-hire. Enter the lessor's fee as a <strong>supplier invoice or payment voucher</strong> and pick this job in its <em>Job (costing)</em> field - the cost then appears on the job's P&amp;L.
                 </div>
                 <button type="submit" class="btn btn-primary px-4"><i class="bi bi-check-circle me-1"></i>Open On-Hire</button>
                 <a href="{{ route('yard.lessor-hires.index') }}" class="btn btn-outline-secondary">Cancel</a>

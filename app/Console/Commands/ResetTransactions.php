@@ -27,7 +27,7 @@ class ResetTransactions extends Command
         {--dry-run   : Show what would be cleared without changing anything}
         {--force     : Skip the interactive confirmation}
         {--keep-audit : Do not clear the audit_logs table}
-        {--reset-containers : Also reset movement-derived state — container in-yard status/location/gate dates AND free all yard slots (zone occupancy)}';
+        {--reset-containers : Also reset movement-derived state - container in-yard status/location/gate dates AND free all yard slots (zone occupancy)}';
 
     protected $description = 'Wipe all transactional data and reset sequences for a fresh go-live (keeps master data).';
 
@@ -110,7 +110,7 @@ class ResetTransactions extends Command
         $this->line('');
 
         if ($dry) {
-            $this->info('Dry run — nothing was changed.');
+            $this->info('Dry run - nothing was changed.');
             return self::SUCCESS;
         }
 

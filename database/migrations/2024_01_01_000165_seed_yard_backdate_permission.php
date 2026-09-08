@@ -13,7 +13,7 @@ return new class extends Migration
             'name'         => 'yard.backdate',
             'module'       => 'yard',
             'action'       => 'backdate',
-            'display_name' => 'Backdate — Yard Gate Operations',
+            'display_name' => 'Backdate - Yard Gate Operations',
             'sort_order'   => 5, // after movement-delete (index 4)
             'created_at'   => now(),
             'updated_at'   => now(),

@@ -597,7 +597,7 @@ class YardController extends Controller
         }
 
         NotificationService::notifyAll(
-            'Gate IN — ' . $container->container_no,
+            'Gate IN - ' . $container->container_no,
             ($container->customer->name ?? 'Unknown') . ' · ' . ($container->condition ?? ''),
             'info',
             route('yard.movements.edit', $movement)
@@ -620,7 +620,7 @@ class YardController extends Controller
             $warnings[] = $photoError;
         }
         if (! \App\Support\Iso6346::checkDigitValid($container->container_no)) {
-            $warnings[] = "Container {$container->container_no} fails the ISO 6346 check digit — please verify it against the box.";
+            $warnings[] = "Container {$container->container_no} fails the ISO 6346 check digit - please verify it against the box.";
         }
         if ($w = $this->noGuardCaptureWarning($request)) {
             $warnings[] = $w;
@@ -648,7 +648,7 @@ class YardController extends Controller
             return null;
         }
 
-        return 'Recorded without a linked Guard Post capture — check the Review Queue if a capture exists.';
+        return 'Recorded without a linked Guard Post capture - check the Review Queue if a capture exists.';
     }
 
     /**
@@ -720,7 +720,7 @@ class YardController extends Controller
         }
 
         return "The Gate-In time ({$gateInTime->format('d M Y H:i')}) is in the future. "
-            . "A gate movement records what has already happened — check the date, "
+            . "A gate movement records what has already happened - check the date, "
             . "and use a booking if you are recording an expected arrival.";
     }
 
@@ -752,7 +752,7 @@ class YardController extends Controller
 
         return "The Gate-Out time ({$gateOutTime->format('d M Y H:i')}) is before this "
             . "container's Gate-In ({$gateInTime->format('d M Y H:i')}). "
-            . "A same-day turnaround is fine — check the time, not the date.";
+            . "A same-day turnaround is fine - check the time, not the date.";
     }
 
     /**
@@ -802,7 +802,7 @@ class YardController extends Controller
             return null; // sealed, or a documented exception was given
         }
 
-        return 'Seal Number is required for a laden container. Enter the seal number — '
+        return 'Seal Number is required for a laden container. Enter the seal number - '
              . 'or, if you want to leave it blank, select a No-seal reason '
              . '(LCL, customs exam, broken/missing, or special equipment).';
     }
@@ -826,8 +826,8 @@ class YardController extends Controller
                             // only the message is more specific.
                             $detail = app(\App\Services\ContainerMrStatusService::class)->repairBlockDetail($c);
                             $reason = $detail
-                                ? "it is under repair ({$detail}) — complete or close the work order first"
-                                : 'it is under repair — complete or close the work order first';
+                                ? "it is under repair ({$detail}) - complete or close the work order first"
+                                : 'it is under repair - complete or close the work order first';
                         } else {
                             $reason = "its status is '{$c->status}'";
                         }
@@ -1159,7 +1159,7 @@ class YardController extends Controller
         });
 
         NotificationService::notifyAll(
-            'Gate OUT — ' . $container->container_no,
+            'Gate OUT - ' . $container->container_no,
             ($container->customer->name ?? 'Unknown') . ' · Container released',
             'info',
             route('yard.movements.edit', $movement)
@@ -1376,7 +1376,7 @@ class YardController extends Controller
         if ($guardCount > 0) {
             $warnings[] = [
                 'icon'    => 'bi-camera',
-                'message' => $guardCount . ' guard post capture(s) are linked — the link will be cleared (captures kept).',
+                'message' => $guardCount . ' guard post capture(s) are linked - the link will be cleared (captures kept).',
             ];
         }
 
@@ -1471,7 +1471,7 @@ class YardController extends Controller
                     $warnings[] = [
                         'icon'    => 'bi-receipt',
                         'message' => 'A storage billing record (gate-in: ' . $storage->gate_in_date->format('d M Y')
-                            . ') exists with no active invoice — it will be removed along with this movement.',
+                            . ') exists with no active invoice - it will be removed along with this movement.',
                     ];
                 }
             }
@@ -1786,7 +1786,7 @@ class YardController extends Controller
             $dbSt   = strtolower($movement->cargo_status ?? '') === 'laden' ? 'L' : 'E';
             $checks['Status'] = [
                 'url'   => $urlSt === 'L' ? 'LADEN' : 'EMPTY',
-                'db'    => ucfirst(strtolower($movement->cargo_status ?? '—')),
+                'db'    => ucfirst(strtolower($movement->cargo_status ?? '-')),
                 'match' => $urlSt === $dbSt,
             ];
         }
@@ -1800,7 +1800,7 @@ class YardController extends Controller
                 'url'   => $movement->$timeField
                     ? \Carbon\Carbon::createFromFormat('YmdHi', $urlDt)?->format('d M Y H:i')
                     : $urlDt,
-                'db'    => $movement->$timeField?->format('d M Y H:i') ?? '—',
+                'db'    => $movement->$timeField?->format('d M Y H:i') ?? '-',
                 'match' => $urlDt === $dbDt,
             ];
         }
@@ -1810,7 +1810,7 @@ class YardController extends Controller
             $urlVh = $request->query('vh');
             $checks['Vehicle Plate'] = [
                 'url'   => strtoupper($urlVh),
-                'db'    => $movement->vehicle_plate ?? '—',
+                'db'    => $movement->vehicle_plate ?? '-',
                 'match' => $normalize($urlVh) === $normalize($movement->vehicle_plate),
             ];
         }
@@ -2036,17 +2036,17 @@ class YardController extends Controller
             if ($container->status === 'in_repair') {
                 $detail = app(\App\Services\ContainerMrStatusService::class)->repairBlockDetail($container);
                 $releaseBlock = $detail
-                    ? "It is under repair ({$detail}) — complete or close the work order first."
-                    : 'It is under repair — complete or close the work order first.';
+                    ? "It is under repair ({$detail}) - complete or close the work order first."
+                    : 'It is under repair - complete or close the work order first.';
             } else {
                 $releaseBlock = "Its status is '{$container->status}'.";
             }
         } elseif ($container->activeHire) {
-            $releaseBlock = 'It is currently on hire — complete or cancel the hire before gating out.';
+            $releaseBlock = 'It is currently on hire - complete or cancel the hire before gating out.';
         } elseif ($container->isHeld()) {
             $holds = $container->activeHolds()->pluck('hold_type')
                 ->map(fn ($t) => str_replace('_', ' ', $t))->implode(', ');
-            $releaseBlock = "It is on hold ({$holds}). Clear the hold first — a Customs Release clears a customs hold.";
+            $releaseBlock = "It is on hold ({$holds}). Clear the hold first - a Customs Release clears a customs hold.";
         }
 
         return response()->json([
@@ -2057,9 +2057,9 @@ class YardController extends Controller
             'size'             => $container->size,
             'type_code'        => $container->type_code,
             'equipment_label'  => $container->equipmentType
-                ? $container->equipmentType->eqt_code . ' — ' . $container->equipmentType->description
+                ? $container->equipmentType->eqt_code . ' - ' . $container->equipmentType->description
                 : ($container->size . "' " . $container->type_code),
-            'customer'         => $container->customer?->name ?? '—',
+            'customer'         => $container->customer?->name ?? '-',
             'condition'        => $container->condition,
             // What the box is waiting on, so the gate form can show it beside
             // the disposition rather than making the operator infer it.

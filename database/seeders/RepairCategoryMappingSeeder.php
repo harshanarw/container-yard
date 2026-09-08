@@ -33,7 +33,7 @@ class RepairCategoryMappingSeeder extends Seeder
         $comp = MrCode::where('type', 'component')->pluck('id', 'code');
 
         if ($cat->isEmpty()) {
-            $this->command->warn('No repair categories found — run RepairCategorySeeder first.');
+            $this->command->warn('No repair categories found - run RepairCategorySeeder first.');
             return;
         }
 

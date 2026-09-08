@@ -22,14 +22,14 @@
             <div class="col-sm-5 col-md-4">
                 <label class="form-label form-label-sm fw-semibold mb-1">Account <span class="text-danger">*</span></label>
                 <select name="account_id" class="form-select form-select-sm select2" required>
-                    <option value="">— Select Account —</option>
+                    <option value="">- Select Account -</option>
                     @php $accountsByClass = $accounts->groupBy('classification'); @endphp
                     @foreach(['asset','liability','equity','income','expense'] as $cls)
                         @if($accountsByClass->has($cls))
                         <optgroup label="{{ ucfirst($cls) }}">
                             @foreach($accountsByClass[$cls] as $acc)
                             <option value="{{ $acc->id }}" {{ request('account_id') == $acc->id ? 'selected' : '' }}>
-                                {{ $acc->code }} — {{ $acc->name }}
+                                {{ $acc->code }} - {{ $acc->name }}
                             </option>
                             @endforeach
                         </optgroup>
@@ -109,8 +109,8 @@
                     {{-- Opening balance row --}}
                     <tr class="table-secondary">
                         <td colspan="3" class="fw-semibold small text-muted">Opening Balance (before {{ request('from', \Carbon\Carbon::now()->startOfMonth()->toDateString()) }})@if($currencyFilter) · {{ $currencyFilter }} only@endif</td>
-                        <td class="text-end font-monospace small text-muted">—</td>
-                        <td class="text-end font-monospace small text-muted">—</td>
+                        <td class="text-end font-monospace small text-muted">-</td>
+                        <td class="text-end font-monospace small text-muted">-</td>
                         <td class="text-end font-monospace fw-semibold small">{{ number_format($openingBalance, 2) }}</td>
                         <td></td>
                         <td></td>
@@ -135,8 +135,8 @@
                                class="font-monospace small text-decoration-none">{{ $entry->journal->journal_no }}</a>
                         </td>
                         <td class="small text-muted">{{ $entry->narration ?: $entry->journal->narration }}</td>
-                        <td class="text-end font-monospace small">{{ $debit > 0 ? number_format($debit, 2) : '—' }}</td>
-                        <td class="text-end font-monospace small">{{ $credit > 0 ? number_format($credit, 2) : '—' }}</td>
+                        <td class="text-end font-monospace small">{{ $debit > 0 ? number_format($debit, 2) : '-' }}</td>
+                        <td class="text-end font-monospace small">{{ $credit > 0 ? number_format($credit, 2) : '-' }}</td>
                         <td class="text-end font-monospace small {{ $balance < 0 ? 'text-danger' : '' }}">
                             {{ number_format($balance, 2) }}
                         </td>

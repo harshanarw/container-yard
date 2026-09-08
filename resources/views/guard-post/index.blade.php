@@ -116,10 +116,10 @@
                                 <span class="badge bg-success-subtle text-success"><i class="bi bi-box-arrow-right me-1"></i>OUT</span>
                             @endif
                         </td>
-                        <td class="font-monospace small">{{ $c->container_number ?? '—' }}</td>
-                        <td class="small">{{ $c->vehicle_number ?? '—' }}</td>
+                        <td class="font-monospace small">{{ $c->container_number ?? '-' }}</td>
+                        <td class="small">{{ $c->vehicle_number ?? '-' }}</td>
                         <td><span class="badge {{ $c->status_badge_class }}">{{ $c->status_label }}</span></td>
-                        <td class="small text-muted">{{ $c->captured_at?->diffForHumans() ?? '—' }}</td>
+                        <td class="small text-muted">{{ $c->captured_at?->diffForHumans() ?? '-' }}</td>
                         <td>
                             <a href="{{ route('guard-post.status', $c) }}" class="btn btn-sm btn-outline-secondary py-0">
                                 <i class="bi bi-eye"></i>

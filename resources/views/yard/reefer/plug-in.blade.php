@@ -29,7 +29,7 @@
                         </div>
                         <div class="col-6">
                             <span class="text-muted d-block">Equipment Type</span>
-                            <span>{{ $session->container?->equipmentType?->dropdown_label ?? '—' }}</span>
+                            <span>{{ $session->container?->equipmentType?->dropdown_label ?? '-' }}</span>
                         </div>
                         <div class="col-6">
                             <span class="text-muted d-block">Customer</span>
@@ -37,7 +37,7 @@
                         </div>
                         <div class="col-6">
                             <span class="text-muted d-block">Gate In</span>
-                            <span>{{ $session->gateMovement?->gate_in_time?->format('d M Y H:i') ?? '—' }}</span>
+                            <span>{{ $session->gateMovement?->gate_in_time?->format('d M Y H:i') ?? '-' }}</span>
                         </div>
                     </div>
                 </div>
@@ -55,7 +55,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-medium">Reefer Service Type <span class="text-danger">*</span></label>
                         <select name="service_type" class="form-select @error('service_type') is-invalid @enderror" required>
-                            <option value="">— Select Service Type —</option>
+                            <option value="">- Select Service Type -</option>
                             @foreach(\App\Models\ReeferElectricityTariff::SERVICE_TYPES as $val => $label)
                                 <option value="{{ $val }}" @selected(old('service_type', $session->service_type) === $val)>{{ $label }}</option>
                             @endforeach
@@ -70,7 +70,7 @@
                         <input type="number" name="set_temperature" class="form-control @error('set_temperature') is-invalid @enderror"
                                step="0.1" min="-50" max="40" placeholder="e.g. -18"
                                value="{{ old('set_temperature') }}">
-                        <div class="form-text">Optional — operator-requested temperature set-point.</div>
+                        <div class="form-text">Optional - operator-requested temperature set-point.</div>
                         @error('set_temperature')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

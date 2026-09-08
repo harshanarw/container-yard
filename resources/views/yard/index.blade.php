@@ -51,7 +51,7 @@
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
         <h4><i class="bi bi-map me-2 text-primary"></i>Yard Occupancy Map</h4>
-        <p class="text-muted mb-0 small">Real-time container positions — Zone → Row → Bay → Tier</p>
+        <p class="text-muted mb-0 small">Real-time container positions - Zone → Row → Bay → Tier</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
         <a href="{{ route('yard.gate') }}#gate-in" class="btn btn-primary btn-sm">
@@ -190,7 +190,7 @@
              style="background:{{ $zone->color ?? '#6b7280' }}18;border-left:4px solid {{ $zone->color ?? '#6b7280' }};">
             <div class="d-flex align-items-center gap-2">
                 <span class="zone-pill" style="background:{{ $zone->color ?? '#6b7280' }};width:16px;height:16px;"></span>
-                <strong>Zone {{ $zone->code }} — {{ $zone->name }}</strong>
+                <strong>Zone {{ $zone->code }} - {{ $zone->name }}</strong>
                 @if($zone->description)
                     <span class="text-muted small">· {{ $zone->description }}</span>
                 @endif
@@ -263,7 +263,7 @@
                                 <a href="{{ route('yard.gate') }}"
                                    class="ys-block ys-empty text-decoration-none"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   title="{{ "{$zone->code}-{$row}{$bay}-T{$tier}" }}: Empty — click to Gate In">
+                                   title="{{ "{$zone->code}-{$row}{$bay}-T{$tier}" }}: Empty - click to Gate In">
                                     <i class="bi bi-plus" style="font-size:.75rem;"></i>
                                 </a>
                             @else
@@ -305,7 +305,7 @@
 {{-- ── Container Inventory Table ── --}}
 <div class="card content-card mt-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-list-ul me-2 text-primary"></i>Container Inventory — In Yard</span>
+        <span><i class="bi bi-list-ul me-2 text-primary"></i>Container Inventory - In Yard</span>
         <span class="badge bg-primary rounded-pill">{{ $inYardContainers->count() }}</span>
     </div>
     <div class="card-body p-0">
@@ -358,19 +358,19 @@
                             {{ $c->equipmentType?->eqt_code ?? ($c->size . "' " . $c->type_code) }}
                         </span>
                     </td>
-                    <td class="small">{{ $c->customer?->name ?? '—' }}</td>
+                    <td class="small">{{ $c->customer?->name ?? '-' }}</td>
                     <td>
                         @if($c->location_zone)
                             <span class="badge fw-bold" style="background:{{ $zoneColor }};">
                                 {{ $c->location_zone }}
                             </span>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
-                    <td class="small font-monospace">{{ $location ?: '—' }}</td>
+                    <td class="small font-monospace">{{ $location ?: '-' }}</td>
                     <td class="small text-muted">
-                        {{ $c->gate_in_date?->format('d M Y') ?? '—' }}
+                        {{ $c->gate_in_date?->format('d M Y') ?? '-' }}
                     </td>
                     <td class="text-center">
                         @if($days !== null)
@@ -378,7 +378,7 @@
                                 {{ $days }}d
                             </span>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td>

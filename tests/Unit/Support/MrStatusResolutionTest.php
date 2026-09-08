@@ -254,180 +254,180 @@ class MrStatusResolutionTest extends TestCase
     public static function ladderCases(): array
     {
         return [
-            'rung 1 — matched gate-out closes the cycle' => [
+            'rung 1 - matched gate-out closes the cycle' => [
                 Cat::GATED_OUT,
                 ['gateOut' => true, 'workOrders' => [['in_progress', []]]],
-                'A closed cycle is history — nothing in it can still be in progress.',
+                'A closed cycle is history - nothing in it can still be in progress.',
             ],
 
-            'rung 1 — released with no movement history at all' => [
+            'rung 1 - released with no movement history at all' => [
                 Cat::RELEASED_NO_MOVEMENT,
                 ['container' => ['status' => 'released'], 'gateIn' => null],
                 'An imported or legacy row: someone knows the box left, but nothing was ever '
                 . 'written at the gate. Without this it falls past every rung to the catch-all '
-                . 'and reads "In yard — awaiting disposition".',
+                . 'and reads "In yard - awaiting disposition".',
             ],
 
-            'rung 2 — survey recommends scrap' => [
+            'rung 2 - survey recommends scrap' => [
                 Cat::CONDEMNED,
                 ['inquiries' => [['closed', 'scrap']]],
                 'A scrapped box must never read as work in progress.',
             ],
 
-            'rung 3 — active hire' => [
+            'rung 3 - active hire' => [
                 Cat::ON_HIRE,
                 ['hire' => true],
                 'Out on hire is committed to a customer, not the yard to work on.',
             ],
 
-            'rung 4 — work order rejected at QC' => [
+            'rung 4 - work order rejected at QC' => [
                 Cat::QC_FAILED,
                 ['workOrders' => [['rejected', []]]],
                 'QC failure is the one state where a box looks finished and is not.',
             ],
 
-            'rung 5 — work order on hold' => [
+            'rung 5 - work order on hold' => [
                 Cat::REPAIR_ON_HOLD,
                 ['workOrders' => [['on_hold', []]]],
                 'Work started then stopped.',
             ],
 
-            'rung 6 — work order in progress' => [
+            'rung 6 - work order in progress' => [
                 Cat::REPAIR_IN_PROGRESS,
                 ['workOrders' => [['in_progress', []]]],
                 'Work happening right now.',
             ],
 
-            'rung 7 — work order completed, awaiting QC' => [
+            'rung 7 - work order completed, awaiting QC' => [
                 Cat::AWAITING_QC,
                 ['workOrders' => [['completed', []]]],
                 'Finished but not yet signed off.',
             ],
 
-            'rung 8 — work order pending' => [
+            'rung 8 - work order pending' => [
                 Cat::REPAIR_SCHEDULED,
                 ['workOrders' => [['pending', []]]],
                 'Raised but not started.',
             ],
 
-            'rung 9 — estimate approved, no work order raised' => [
+            'rung 9 - estimate approved, no work order raised' => [
                 Cat::ESTIMATE_APPROVED,
                 ['estimates' => [['approved', []]]],
                 'The gap where approved jobs quietly stall.',
             ],
 
-            'rung 9 — partially approved counts too' => [
+            'rung 9 - partially approved counts too' => [
                 Cat::ESTIMATE_APPROVED,
                 ['estimates' => [['partially_approved', []]]],
                 'Partial approval still needs a work order raising.',
             ],
 
-            'rung 10 — estimate rejected' => [
+            'rung 10 - estimate rejected' => [
                 Cat::ESTIMATE_REJECTED,
                 ['estimates' => [['rejected', []]]],
                 'The customer said no.',
             ],
 
-            'rung 11 — estimate sent' => [
+            'rung 11 - estimate sent' => [
                 Cat::ESTIMATE_SENT,
                 ['estimates' => [['sent', []]]],
                 'With the customer, awaiting a decision.',
             ],
 
-            'rung 11 — estimate under review' => [
+            'rung 11 - estimate under review' => [
                 Cat::ESTIMATE_SENT,
                 ['estimates' => [['under_review', []]]],
                 'Under review is still awaiting the customer.',
             ],
 
-            'rung 11 — inquiry says estimate sent, without an estimate record' => [
+            'rung 11 - inquiry says estimate sent, without an estimate record' => [
                 Cat::ESTIMATE_SENT,
                 ['inquiries' => [['estimate_sent', null]]],
                 'The survey knows the estimate went out even if the estimate is not linked.',
             ],
 
-            'rung 12 — estimate still in draft' => [
+            'rung 12 - estimate still in draft' => [
                 Cat::ESTIMATE_PENDING,
                 ['estimates' => [['draft', []]]],
                 'Being priced.',
             ],
 
-            'rung 12 — survey recommends repair, no estimate yet' => [
+            'rung 12 - survey recommends repair, no estimate yet' => [
                 Cat::ESTIMATE_PENDING,
                 ['inquiries' => [['closed', 'repair']]],
                 'Needs pricing.',
             ],
 
-            'rung 13 — survey open' => [
+            'rung 13 - survey open' => [
                 Cat::SURVEY_IN_PROGRESS,
                 ['inquiries' => [['open', null]]],
                 'Survey underway.',
             ],
 
-            'rung 13 — survey in progress' => [
+            'rung 13 - survey in progress' => [
                 Cat::SURVEY_IN_PROGRESS,
                 ['inquiries' => [['in_progress', null]]],
                 'Survey underway.',
             ],
 
-            'rung 14 — all work orders closed after QC' => [
+            'rung 14 - all work orders closed after QC' => [
                 Cat::REPAIRED_AVAILABLE,
                 ['workOrders' => [['closed', []]]],
                 'Everything raised this cycle ran to a QC pass.',
             ],
 
-            'rung 15 — surveyed sound, no work raised' => [
+            'rung 15 - surveyed sound, no work raised' => [
                 Cat::SOUND_AVAILABLE,
                 ['inquiries' => [['closed', 'no_action']]],
                 'Surveyed and found not to need work.',
             ],
 
-            'rung 15 — monitor counts as sound' => [
+            'rung 15 - monitor counts as sound' => [
                 Cat::SOUND_AVAILABLE,
                 ['inquiries' => [['closed', 'monitor']]],
                 'Monitor is not a repair.',
             ],
 
-            'rung 16 — reserved to a booking' => [
+            'rung 16 - reserved to a booking' => [
                 Cat::RESERVED,
                 ['container' => ['status' => 'reserved']],
                 'Allocated stock is committed, not free.',
             ],
 
-            'rung 17 — active cargo transfer' => [
+            'rung 17 - active cargo transfer' => [
                 Cat::TRANSFER_IN_PROGRESS,
                 ['transfer' => true],
                 'Standing in while cargo is cross-stuffed.',
             ],
 
-            'rung 18 — reefer with no valid PTI' => [
+            'rung 18 - reefer with no valid PTI' => [
                 Cat::PTI_DUE,
                 ['container' => ['type_code' => 'RF'], 'ptiValid' => false],
                 'A reefer cannot ship without a live PTI.',
             ],
 
-            'rung 18 — reefer whose PTI failed' => [
+            'rung 18 - reefer whose PTI failed' => [
                 Cat::PTI_FAILED,
                 ['container' => ['type_code' => 'RF', 'pti_status' => 'failed'], 'ptiValid' => false],
                 'A failed PTI is blocked, not merely due.',
             ],
 
-            'rung 19 — job type wants a survey and none exists' => [
+            'rung 19 - job type wants a survey and none exists' => [
                 Cat::AWAITING_SURVEY,
                 ['jobType' => ['survey_applicable' => true]],
                 'The job type says survey it; nothing has.',
             ],
 
-            'rung 20 — storage-only job type' => [
+            'rung 20 - storage-only job type' => [
                 Cat::IN_STORAGE,
                 ['jobType' => ['storage_applicable' => true]],
                 'Here purely to sit.',
             ],
 
-            'rung 21 — nothing attached at all' => [
+            'rung 21 - nothing attached at all' => [
                 Cat::AWAITING_DISPOSITION,
                 [],
-                'An incomplete history lands here by design — never a confident wrong answer.',
+                'An incomplete history lands here by design - never a confident wrong answer.',
             ],
         ];
     }
@@ -488,7 +488,7 @@ class MrStatusResolutionTest extends TestCase
         $this->assertSame(Cat::REPAIRED_AVAILABLE, $this->resolve([
             'estimates'  => [$this->estimate('approved')],
             'workOrders' => [$this->wo('closed', ['qc_at' => Carbon::now()->subDay()])],
-        ])->code, 'A closed work order means the repair ran — not that one is still owed.');
+        ])->code, 'A closed work order means the repair ran - not that one is still owed.');
     }
 
     public function test_scrap_beats_an_in_flight_estimate(): void
@@ -503,7 +503,7 @@ class MrStatusResolutionTest extends TestCase
     {
         $this->assertSame(Cat::AWAITING_DISPOSITION, $this->resolve([
             'jobType' => $this->jobType(['handling_applicable' => true]),
-        ])->code, 'The classification axis is the job type — a handling job is not awaiting survey.');
+        ])->code, 'The classification axis is the job type - a handling job is not awaiting survey.');
     }
 
     public function test_a_reefer_under_repair_reads_repair_not_pti(): void
@@ -696,7 +696,7 @@ class MrStatusResolutionTest extends TestCase
 
         $this->assertSame(Cat::RESERVED, $status->code);
         $this->assertFalse($status->exportReady,
-            'Allocated stock is committed, not free — the booking screens ask for it separately.');
+            'Allocated stock is committed, not free - the booking screens ask for it separately.');
     }
 
     // ── The expiry boundary ──────────────────────────────────────────────────

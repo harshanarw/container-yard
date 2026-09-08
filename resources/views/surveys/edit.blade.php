@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Survey — ' . $inquiry->inquiry_no)
+@section('title', 'Edit Survey - ' . $inquiry->inquiry_no)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('surveys.index') }}" class="text-decoration-none">Container Surveys</a></li>
@@ -22,7 +22,7 @@
 
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
-        <h4><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Survey — {{ $inquiry->inquiry_no }}</h4>
+        <h4><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Survey - {{ $inquiry->inquiry_no }}</h4>
         <p class="text-muted mb-0 small">
             Container <span class="font-monospace fw-semibold">{{ $inquiry->container_no }}</span>
             &nbsp;·&nbsp; {{ $inquiry->size }}ft {{ $inquiry->type_code }}
@@ -91,7 +91,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="text-muted mb-1">Customer</div>
-                            <div class="fw-semibold">{{ $inquiry->customer?->name ?? '—' }}</div>
+                            <div class="fw-semibold">{{ $inquiry->customer?->name ?? '-' }}</div>
                         </div>
                         <div class="col-md-4">
                             <div class="text-muted mb-1">Survey Type</div>
@@ -99,7 +99,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="text-muted mb-1">Gate-In Reference</div>
-                            <div class="font-monospace">{{ $inquiry->gate_in_ref ?? '—' }}</div>
+                            <div class="font-monospace">{{ $inquiry->gate_in_ref ?? '-' }}</div>
                         </div>
                         <div class="col-md-4">
                             <div class="text-muted mb-1">Survey No.</div>
@@ -119,7 +119,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Assigned Inspector</label>
                             <select name="inspector_id" class="form-select select2">
-                                <option value="">— Select Inspector —</option>
+                                <option value="">- Select Inspector -</option>
                                 @foreach($inspectors as $ins)
                                 <option value="{{ $ins->id }}"
                                     {{ old('inspector_id', $inquiry->inspector_id) == $ins->id ? 'selected' : '' }}>
@@ -197,7 +197,7 @@
                                 <tr class="damage-row">
                                     <td class="ps-3">
                                         <select name="damages[{{ $di }}][location_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrLocationCodes as $c)
                                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $dmg->location_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -205,7 +205,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[{{ $di }}][component_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $dmg->component_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -213,7 +213,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[{{ $di }}][damage_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrDamageCodes as $c)
                                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $dmg->damage_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -221,7 +221,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[{{ $di }}][repair_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrRepairCodes as $c)
                                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $dmg->repair_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -229,7 +229,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[{{ $di }}][responsibility_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrResponsibilityCodes as $c)
                                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ $dmg->responsibility_code_id == $c->id ? 'selected' : '' }}>{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -297,7 +297,7 @@
                                 <tr class="damage-row">
                                     <td class="ps-3">
                                         <select name="damages[0][location_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrLocationCodes as $c)
                                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -305,7 +305,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][component_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -313,7 +313,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][damage_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrDamageCodes as $c)
                                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -321,7 +321,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][repair_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrRepairCodes as $c)
                                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -329,7 +329,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrResponsibilityCodes as $c)
                                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -391,7 +391,7 @@
                         <input class="form-check-input" type="checkbox" role="switch" value="1"
                                id="washRequired" name="wash_required" {{ $washOn ? 'checked' : '' }}>
                         <label class="form-check-label fw-semibold" for="washRequired">Washing required</label>
-                        <div class="form-text">Flags this box for cleaning. Pulls into the estimate as washing line(s) — even if there are no repair damages.</div>
+                        <div class="form-text">Flags this box for cleaning. Pulls into the estimate as washing line(s) - even if there are no repair damages.</div>
                     </div>
                     <div class="row g-3" id="washFields" style="{{ $washOn ? '' : 'display:none' }}">
                         <div class="col-md-6">
@@ -660,7 +660,7 @@
     const mrResOpts  = @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
 
     function buildSel(name, opts, codeOnly) {
-        let html = `<select name="${name}" class="form-select form-select-sm s2 s2-code"><option value="">—</option>`;
+        let html = `<select name="${name}" class="form-select form-select-sm s2 s2-code"><option value="">-</option>`;
         opts.forEach(o => { html += `<option value="${o.id}" data-code="${o.code}" data-name="${codeOnly ? o.code : o.name}">${o.code}${codeOnly ? '' : ' '+o.name}</option>`; });
         return html + '</select>';
     }
@@ -754,7 +754,7 @@
                     <td class="small"><span class="badge bg-primary-subtle text-primary border font-monospace">${escHtml(r.component_code)}</span> <span class="text-muted">${escHtml(r.component_name)}</span></td>
                     <td class="small"><span class="badge bg-warning-subtle text-warning-emphasis border font-monospace">${escHtml(r.damage_code)}</span> <span class="text-muted">${escHtml(r.damage_name)}</span></td>
                     <td class="small"><span class="badge bg-info-subtle text-info-emphasis border font-monospace">${escHtml(r.repair_code)}</span> <span class="text-muted">${escHtml(r.repair_name)}</span></td>
-                    <td class="small">${r.default_severity ? `<span class="badge ${sevClass(r.default_severity)}">${r.default_severity.charAt(0).toUpperCase() + r.default_severity.slice(1)}</span>` : '<span class="text-muted">—</span>'}</td>
+                    <td class="small">${r.default_severity ? `<span class="badge ${sevClass(r.default_severity)}">${r.default_severity.charAt(0).toUpperCase() + r.default_severity.slice(1)}</span>` : '<span class="text-muted">-</span>'}</td>
                 </tr>`).join('');
             updateCount();
         }

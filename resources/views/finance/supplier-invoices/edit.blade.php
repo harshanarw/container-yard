@@ -13,7 +13,7 @@
 
 <div class="page-header mb-3">
     <h4 class="mb-0"><i class="bi bi-pencil me-2 text-primary"></i>Edit {{ $supplierInvoice->invoice_no }}</h4>
-    <p class="text-muted small mb-0">Editing a draft invoice — changes take effect immediately.</p>
+    <p class="text-muted small mb-0">Editing a draft invoice - changes take effect immediately.</p>
 </div>
 
 @if($errors->any())
@@ -38,7 +38,7 @@
                         <div class="col-12">
                             <label class="form-label small">Supplier / Contact <span class="text-danger">*</span></label>
                             <select name="customer_id" id="supplierSelect" class="form-select form-select-sm" data-s2-sel="name" required>
-                                <option value="">— Select contact —</option>
+                                <option value="">- Select contact -</option>
                                 @foreach($suppliers as $sup)
                                 <option value="{{ $sup->id }}"
                                     data-code="{{ $sup->code }}"
@@ -46,7 +46,7 @@
                                     data-currency="{{ $sup->currency }}"
                                     data-payment-terms="{{ $sup->ap_payment_terms }}"
                                     {{ (string) old('customer_id', $supplierInvoice->customer_id) === (string) $sup->id ? 'selected' : '' }}>
-                                    {{ $sup->code }} — {{ $sup->name }}
+                                    {{ $sup->code }} - {{ $sup->name }}
                                 </option>
                                 @endforeach
                             </select>
@@ -78,7 +78,7 @@
                         <div class="col-12">
                             <label class="form-label small">Job <span class="text-muted">(costing)</span></label>
                             <select name="yard_job_id" id="yard_job_id" class="form-select form-select-sm job-costing job-select" data-s2-sel="name">
-                                <option value="">— None —</option>
+                                <option value="">- None -</option>
                                 @foreach($jobs as $j)
                                     <option value="{{ $j['id'] }}" data-job-no="{{ $j['job_no'] }}" data-cont="{{ $j['container_no'] }}" data-st="{{ $j['size'] ? $j['size']."'".$j['type_code'] : '' }}" data-cust="{{ $j['customer'] }}" data-cust-id="{{ $j['customer_id'] }}" @selected(old('yard_job_id') == $j['id'])>{{ $jobLabel($j) }}</option>
                                 @endforeach
@@ -107,7 +107,7 @@
                         <div class="col-6">
                             <label class="form-label small">Credit Terms</label>
                             <select id="creditTermsSelect" class="form-select form-select-sm">
-                                <option value="">— select —</option>
+                                <option value="">- select -</option>
                                 <option value="cod">Cash on Delivery</option>
                                 <option value="net15">Net 15 Days</option>
                                 <option value="net30">Net 30 Days</option>
@@ -195,10 +195,10 @@
 </div>
 
 @php
-    $accountOptionsHtml = '<option value="">— account —</option>';
+    $accountOptionsHtml = '<option value="">- account -</option>';
     foreach ($accounts as $a) {
         $accountOptionsHtml .= '<option value="' . $a->id . '" data-code="' . e($a->code) . '" data-name="' . e($a->name) . '">'
-            . e($a->code . ' — ' . $a->name) . '</option>';
+            . e($a->code . ' - ' . $a->name) . '</option>';
     }
     $chargeCodesData = $chargeCodes->map(fn($c) => [
         'id'          => $c->id,
@@ -260,7 +260,7 @@
             group.items.forEach(item => {
                 const opt        = document.createElement('option');
                 opt.value        = item.id;
-                opt.textContent  = item.code + ' — ' + item.name;
+                opt.textContent  = item.code + ' - ' + item.name;
                 opt.dataset.code = item.code;
                 opt.dataset.name = item.name;
                 og.appendChild(opt);
@@ -273,7 +273,7 @@
         taxCodes.forEach(tc => {
             const opt        = document.createElement('option');
             opt.value        = tc.id;
-            opt.textContent  = tc.code + ' — ' + tc.description;
+            opt.textContent  = tc.code + ' - ' + tc.description;
             opt.dataset.code = tc.code;
             opt.dataset.name = tc.description;
             opt.dataset.t1   = tc.tax1_rate;
@@ -302,7 +302,7 @@
     function jobOption(j, sel){
         return `<option value="${j.id}" data-job-no="${jobEsc(j.job_no)}" data-cont="${jobEsc(j.container_no || '')}" data-st="${jobEsc(jobST(j))}" data-cust="${jobEsc(j.customer || '')}" data-cust-id="${j.customer_id ?? ''}" ${String(sel)===String(j.id)?'selected':''}>${jobEsc(jobLabel(j))}</option>`;
     }
-    function jobOpts(sel){ return '<option value="">— none —</option>' + JOBS.map(j => jobOption(j, sel)).join(''); }
+    function jobOpts(sel){ return '<option value="">- none -</option>' + JOBS.map(j => jobOption(j, sel)).join(''); }
     function jobPartyId(){ return document.getElementById('supplierSelect')?.value || ''; }
     function jobShowAll(){ return !!document.getElementById('jobShowAll')?.checked; }
     function jobsForParty(){
@@ -318,7 +318,7 @@
             if (f) list.unshift(f);
         }
         const lbl = $sel.hasClass('job-line') ? 'none' : 'None';
-        $sel.html('<option value="">— ' + lbl + ' —</option>' + list.map(j => jobOption(j, cur)).join(''))
+        $sel.html('<option value="">- ' + lbl + ' -</option>' + list.map(j => jobOption(j, cur)).join(''))
             .val(cur || '').trigger('change.select2');
     }
     function refreshAllJobSelects(){
@@ -349,7 +349,7 @@
             </td>
             <td>
                 <select name="lines[${i}][tax_code_id]" class="form-select form-select-sm tc-select">
-                    <option value="">— none —</option>
+                    <option value="">- none -</option>
                 </select>
             </td>
             <td>
@@ -375,7 +375,7 @@
         const $ccSel = jQuery(ccEl).select2({
             theme             : 'bootstrap-5',
             width             : '100%',
-            placeholder       : '— charge code —',
+            placeholder       : '- charge code -',
             allowClear        : true,
             templateResult    : window.s2CodeResult    || null,
             templateSelection : window.s2CodeSelection || null,
@@ -390,7 +390,7 @@
         const $tcSel = jQuery(tcEl).select2({
             theme             : 'bootstrap-5',
             width             : '100%',
-            placeholder       : '— none —',
+            placeholder       : '- none -',
             allowClear        : true,
             templateResult    : window.s2CodeResult    || null,
             templateSelection : window.s2CodeSelection || null,
@@ -400,7 +400,7 @@
         jQuery(row.querySelector('.acct-select')).select2({
             theme             : 'bootstrap-5',
             width             : '100%',
-            placeholder       : '— account —',
+            placeholder       : '- account -',
             templateResult    : window.s2CodeResult    || null,
             templateSelection : window.s2CodeSelection || null,
         });
@@ -536,7 +536,7 @@
         const labelEl   = document.getElementById('exchangeRateLabel');
         const rateInput = document.getElementById('exchangeRateInput');
         if (!ccy || ccy === 'LKR') {
-            labelEl.innerHTML  = 'Exchange Rate <span class="text-muted small fw-normal">(LKR — base currency)</span>';
+            labelEl.innerHTML  = 'Exchange Rate <span class="text-muted small fw-normal">(LKR - base currency)</span>';
             rateInput.value    = '1';
             rateInput.readOnly = true;
             rateInput.classList.add('bg-light', 'text-muted');
@@ -565,7 +565,7 @@
                     if (noteEl) { noteEl.className = 'form-text small text-success'; noteEl.textContent = 'Re-loaded: 1 ' + ccy + ' = ' + parseFloat(res.rate).toFixed(4) + ' LKR (editable).'; }
                 } else if (noteEl) {
                     noteEl.className = 'form-text small text-warning';
-                    noteEl.textContent = 'No rate on record for ' + ccy + ' on this date — enter it manually.';
+                    noteEl.textContent = 'No rate on record for ' + ccy + ' on this date - enter it manually.';
                 }
             })
             .catch(function () {});
@@ -576,7 +576,7 @@
         jQuery('#supplierSelect').select2({
             theme             : 'bootstrap-5',
             width             : '100%',
-            placeholder       : '— Select contact —',
+            placeholder       : '- Select contact -',
             templateResult    : window.s2CodeResult    || null,
             templateSelection : window.s2CodeSelection || null,
         });

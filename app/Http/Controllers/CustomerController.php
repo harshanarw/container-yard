@@ -43,7 +43,7 @@ class CustomerController extends Controller
 
         return response()->json($query->map(fn ($c) => [
             'id'    => $c->id,
-            'label' => "{$c->code} — {$c->name}",
+            'label' => "{$c->code} - {$c->name}",
             'name'  => $c->name,
             'code'  => $c->code,
         ]));

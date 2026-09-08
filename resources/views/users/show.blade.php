@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'User Profile — ' . $user->name)
+@section('title', 'User Profile - ' . $user->name)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('users.index') }}" class="text-decoration-none">User Management</a></li>
@@ -70,7 +70,7 @@
                 <ul class="list-unstyled text-start small mb-0">
                     <li class="d-flex justify-content-between py-1 border-bottom">
                         <span class="text-muted"><i class="bi bi-telephone me-1"></i>Phone</span>
-                        <span>{{ $user->phone ?? '—' }}</span>
+                        <span>{{ $user->phone ?? '-' }}</span>
                     </li>
                     <li class="d-flex justify-content-between py-1 border-bottom">
                         <span class="text-muted"><i class="bi bi-circle-fill me-1" style="font-size:.5rem;"></i>Status</span>
@@ -194,8 +194,8 @@
                                     </a>
                                 </td>
                                 <td class="font-monospace">{{ $inq->container_no }}</td>
-                                <td>{{ $inq->customer->code ?? '—' }}</td>
-                                <td>{{ $inq->inspection_date ? $inq->inspection_date->format('d M Y') : '—' }}</td>
+                                <td>{{ $inq->customer->code ?? '-' }}</td>
+                                <td>{{ $inq->inspection_date ? $inq->inspection_date->format('d M Y') : '-' }}</td>
                                 <td>
                                     @php
                                         $sc = match($inq->status) {
@@ -246,14 +246,14 @@
                             @foreach($recentGate as $gm)
                             <tr>
                                 <td class="ps-3 font-monospace fw-semibold">{{ $gm->container_no }}</td>
-                                <td>{{ $gm->customer->code ?? '—' }}</td>
+                                <td>{{ $gm->customer->code ?? '-' }}</td>
                                 <td>
                                     <span class="badge {{ $gm->movement_type === 'in' ? 'bg-success' : 'bg-danger' }}">
                                         Gate {{ strtoupper($gm->movement_type) }}
                                     </span>
                                 </td>
                                 <td class="text-muted">
-                                    {{ ($gm->gate_in_time ?? $gm->gate_out_time)?->format('d M Y, H:i') ?? '—' }}
+                                    {{ ($gm->gate_in_time ?? $gm->gate_out_time)?->format('d M Y, H:i') ?? '-' }}
                                 </td>
                             </tr>
                             @endforeach

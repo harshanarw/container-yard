@@ -48,7 +48,7 @@ class ReeferPtiController extends Controller
 
         $msg = $validated['result'] === 'pass'
             ? "PTI passed for {$container->container_no}."
-            : "PTI failed for {$container->container_no} — the container is not fit for export release.";
+            : "PTI failed for {$container->container_no} - the container is not fit for export release.";
 
         return back()->with('success', $msg);
     }

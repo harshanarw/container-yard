@@ -53,7 +53,7 @@
                     </div>
                     <div class="col-sm-4">
                         <div class="text-muted small fw-semibold mb-1">Period</div>
-                        <div class="small">{{ $journal->period?->name ?? '—' }}
+                        <div class="small">{{ $journal->period?->name ?? '-' }}
                             @if($journal->period?->financialYear)
                                 <span class="text-muted">({{ $journal->period->financialYear->code }})</span>
                             @endif
@@ -81,12 +81,12 @@
                     @endif
                     <div class="col-sm-6">
                         <div class="text-muted small fw-semibold mb-1">Created By</div>
-                        <div class="small">{{ $journal->createdBy?->name ?? '—' }}</div>
+                        <div class="small">{{ $journal->createdBy?->name ?? '-' }}</div>
                     </div>
                     @if($journal->isPosted())
                     <div class="col-sm-6">
                         <div class="text-muted small fw-semibold mb-1">Posted By</div>
-                        <div class="small">{{ $journal->postedBy?->name ?? '—' }}
+                        <div class="small">{{ $journal->postedBy?->name ?? '-' }}
                             @if($journal->posted_at)
                                 <span class="text-muted">· {{ $journal->posted_at->format('d M Y H:i') }}</span>
                             @endif
@@ -96,7 +96,7 @@
                     @if($journal->isVoided())
                     <div class="col-sm-6">
                         <div class="text-muted small fw-semibold mb-1">Voided By</div>
-                        <div class="small">{{ $journal->voidedBy?->name ?? '—' }}
+                        <div class="small">{{ $journal->voidedBy?->name ?? '-' }}
                             @if($journal->voided_at)
                                 <span class="text-muted">· {{ $journal->voided_at->format('d M Y H:i') }}</span>
                             @endif
@@ -127,10 +127,10 @@
                                 <td class="font-monospace small">{{ $entry->account->code }}</td>
                                 <td class="small">{{ $entry->account->name }}</td>
                                 <td class="text-end font-monospace small">
-                                    {{ $entry->debit > 0 ? number_format($entry->debit, 2) : '—' }}
+                                    {{ $entry->debit > 0 ? number_format($entry->debit, 2) : '-' }}
                                 </td>
                                 <td class="text-end font-monospace small">
-                                    {{ $entry->credit > 0 ? number_format($entry->credit, 2) : '—' }}
+                                    {{ $entry->credit > 0 ? number_format($entry->credit, 2) : '-' }}
                                 </td>
                                 <td class="small {{ $entry->currency === $base ? 'text-muted' : '' }}">
                                     {{ $entry->currency }}
@@ -139,10 +139,10 @@
                                     @endif
                                 </td>
                                 <td class="text-end font-monospace small {{ $entry->currency === $base ? 'text-muted' : '' }}">
-                                    {{ $entry->txn_debit > 0 ? number_format($entry->txn_debit, 2) : '—' }}
+                                    {{ $entry->txn_debit > 0 ? number_format($entry->txn_debit, 2) : '-' }}
                                 </td>
                                 <td class="text-end font-monospace small {{ $entry->currency === $base ? 'text-muted' : '' }}">
-                                    {{ $entry->txn_credit > 0 ? number_format($entry->txn_credit, 2) : '—' }}
+                                    {{ $entry->txn_credit > 0 ? number_format($entry->txn_credit, 2) : '-' }}
                                 </td>
                                 <td class="small text-muted">{{ $entry->narration }}</td>
                             </tr>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Driver — ' . ($driver->name ?: $driver->nic_number))
+@section('title', 'Driver - ' . ($driver->name ?: $driver->nic_number))
 
 @section('breadcrumb')
     <li class="breadcrumb-item">Operations</li>
@@ -16,7 +16,7 @@
         <p class="text-muted mb-0 small">
             <span class="font-monospace">{{ $driver->nic_number }}</span>
             · {{ $driver->movement_count }} movement(s)
-            · last seen {{ $driver->last_seen_at?->format('d M Y') ?? '—' }}
+            · last seen {{ $driver->last_seen_at?->format('d M Y') ?? '-' }}
         </p>
     </div>
     <a href="{{ route('masters.drivers.index') }}" class="btn btn-outline-secondary btn-sm">
@@ -130,12 +130,12 @@
                         <tbody>
                             @forelse($timeline as $t)
                             <tr>
-                                <td class="small text-muted">{{ optional($t['when'])->format('d M Y H:i') ?? '—' }}</td>
+                                <td class="small text-muted">{{ optional($t['when'])->format('d M Y H:i') ?? '-' }}</td>
                                 <td><span class="badge bg-secondary-subtle text-secondary border">{{ $t['label'] }}</span></td>
                                 <td class="font-monospace small">
                                     @if($t['url'])<a href="{{ $t['url'] }}">{{ $t['ref'] }}</a>@else{{ $t['ref'] }}@endif
                                 </td>
-                                <td class="small">{{ $t['detail'] ?: '—' }}</td>
+                                <td class="small">{{ $t['detail'] ?: '-' }}</td>
                             </tr>
                             @empty
                             <tr><td colspan="4" class="text-center text-muted py-4"><i class="bi bi-inbox me-1"></i>No movement history for this driver.</td></tr>

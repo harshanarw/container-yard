@@ -33,7 +33,7 @@
             <div class="col-sm-3">
                 <label class="form-label small mb-1 fw-semibold">Customer</label>
                 <select name="customer_id" class="form-select form-select-sm select2">
-                    <option value="">— All Customers —</option>
+                    <option value="">- All Customers -</option>
                     @foreach($customers as $c)
                         <option value="{{ $c->id }}" @selected(request('customer_id') == $c->id)>{{ $c->name }}</option>
                     @endforeach
@@ -42,7 +42,7 @@
             <div class="col-sm-2">
                 <label class="form-label small mb-1 fw-semibold">Status</label>
                 <select name="status" class="form-select form-select-sm">
-                    <option value="">— All —</option>
+                    <option value="">- All -</option>
                     <option value="active"    @selected(request('status') === 'active')>Active</option>
                     <option value="completed" @selected(request('status') === 'completed')>Completed</option>
                     <option value="cancelled" @selected(request('status') === 'cancelled')>Cancelled</option>
@@ -100,14 +100,14 @@
                     <tr>
                         <td class="font-monospace fw-semibold">
                             <a href="{{ route('yard.hires.show', $hire) }}">
-                                {{ $hire->container->container_no ?? '—' }}
+                                {{ $hire->container->container_no ?? '-' }}
                             </a>
                         </td>
-                        <td class="small">{{ $hire->originalCustomer->name ?? '—' }}</td>
+                        <td class="small">{{ $hire->originalCustomer->name ?? '-' }}</td>
                         <td class="small">{{ $hire->hire_party_name }}</td>
                         <td class="small">{{ $hire->on_hire_date->format('d M Y') }}</td>
-                        <td class="small">{{ $hire->off_hire_date?->format('d M Y') ?? '—' }}</td>
-                        <td class="small text-muted">{{ $hire->hire_reference ?? '—' }}</td>
+                        <td class="small">{{ $hire->off_hire_date?->format('d M Y') ?? '-' }}</td>
+                        <td class="small text-muted">{{ $hire->hire_reference ?? '-' }}</td>
                         <td class="text-center">
                             @if($hire->isActive())
                                 <span class="badge bg-warning text-dark">Active</span>

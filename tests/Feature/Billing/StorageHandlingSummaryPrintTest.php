@@ -84,7 +84,7 @@ class StorageHandlingSummaryPrintTest extends FeatureTestCase
         $line = fn (array $a) => StorageHandlingInvoiceLine::create(array_merge([
             'invoice_id'              => $invoice->id,
             'container_size'          => '40',
-            'equipment_type'          => '40HC — 40ft High Cube',
+            'equipment_type'          => '40HC - 40ft High Cube',
             'cargo_status'            => 'empty',
             'gate_in_date'            => '2026-03-01',
             'storage_from'            => '2026-03-01',

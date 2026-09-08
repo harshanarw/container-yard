@@ -121,9 +121,9 @@
             <td class="lbl">Payment Method</td><td class="val">{{ \App\Models\PaymentVoucher::paymentMethodLabel($voucher->payment_method) }}</td>
         </tr>
         <tr>
-            <td class="lbl">Bank Account</td><td class="val">{{ $voucher->bankAccount->bank_name ?? '—' }}{{ $voucher->bankAccount->account_number ? ' · '.$voucher->bankAccount->account_number : '' }}</td>
+            <td class="lbl">Bank Account</td><td class="val">{{ $voucher->bankAccount->bank_name ?? '-' }}{{ $voucher->bankAccount->account_number ? ' · '.$voucher->bankAccount->account_number : '' }}</td>
             <td class="lbl">{{ $voucher->payment_method === 'cheque' ? 'Cheque No' : 'Reference' }}</td>
-            <td class="val">{{ $voucher->payment_method === 'cheque' ? ($voucher->cheque_no ?: '—') : ($voucher->reference_no ?: '—') }}</td>
+            <td class="val">{{ $voucher->payment_method === 'cheque' ? ($voucher->cheque_no ?: '-') : ($voucher->reference_no ?: '-') }}</td>
         </tr>
     </table>
 
@@ -140,7 +140,7 @@
         <thead><tr><th>Settled Bill</th><th>Reference</th><th class="r">Amount ({{ $cur }})</th></tr></thead>
         <tbody>
             @foreach($allocRows as $r)
-            <tr><td>{{ $r['no'] }}</td><td>{{ $r['ref'] ?: '—' }}</td><td class="r">{{ number_format($r['amount'], 2) }}</td></tr>
+            <tr><td>{{ $r['no'] }}</td><td>{{ $r['ref'] ?: '-' }}</td><td class="r">{{ number_format($r['amount'], 2) }}</td></tr>
             @endforeach
         </tbody>
     </table>
@@ -154,7 +154,7 @@
     <table class="sign"><tr>
         <td style="width:45%;">
             <div class="sigline"></div>
-            <div class="siglabel">Prepared by{{ $voucher->createdBy ? ' — '.$voucher->createdBy->name : '' }}</div>
+            <div class="siglabel">Prepared by{{ $voucher->createdBy ? ' - '.$voucher->createdBy->name : '' }}</div>
         </td>
         <td style="width:10%;">&nbsp;</td>
         <td style="width:45%;">

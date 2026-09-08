@@ -62,7 +62,7 @@
                     <option value="">All Customers</option>
                     @foreach($customers as $c)
                         <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ request('customer_id') == $c->id ? 'selected' : '' }}>
-                            {{ $c->code }} — {{ $c->name }}
+                            {{ $c->code }} - {{ $c->name }}
                         </option>
                     @endforeach
                 </select>
@@ -119,7 +119,7 @@
                                 {{ $inv->invoice_no }}
                             </a>
                         </td>
-                        <td>{{ $inv->customer->name ?? '—' }}</td>
+                        <td>{{ $inv->customer->name ?? '-' }}</td>
                         <td class="small text-muted">{{ $inv->invoice_date->format('d M Y') }}</td>
                         @php $pastDue = $inv->due_date && $inv->status === 'issued' && now()->startOfDay()->gt($inv->due_date); @endphp
                         <td class="small {{ $pastDue ? 'text-danger fw-semibold' : 'text-muted' }}">
@@ -127,7 +127,7 @@
                                 {{ $inv->due_date->format('d M Y') }}
                                 @if($pastDue)<i class="bi bi-exclamation-circle ms-1" title="Past due"></i>@endif
                             @else
-                                —
+                                -
                             @endif
                         </td>
                         <td class="small text-muted">

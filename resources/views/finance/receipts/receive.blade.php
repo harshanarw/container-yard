@@ -32,7 +32,7 @@
                 <label class="form-label fw-semibold small">Customer <span class="text-danger">*</span></label>
                 <select name="customer_id" class="form-select form-select-sm s2-code" data-s2-sel="name"
                         onchange="this.form.submit()">
-                    <option value="">— Select customer —</option>
+                    <option value="">- Select customer -</option>
                     @foreach($customers as $c)
                     <option value="{{ $c->id }}"
                         data-code="{{ $c->currency }}" data-name="{{ $c->name }}"
@@ -64,7 +64,7 @@
         <input type="hidden" name="customer_id" value="{{ $customer->id }}">
 
         <div class="card content-card mb-3">
-            <div class="card-header bg-transparent py-2"><strong class="small">Receipt Details — {{ $customer->name }}</strong></div>
+            <div class="card-header bg-transparent py-2"><strong class="small">Receipt Details - {{ $customer->name }}</strong></div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-3">
@@ -74,9 +74,9 @@
                     <div class="col-md-3">
                         <label class="form-label fw-semibold small">Bank Account</label>
                         <select name="bank_account_id" class="form-select form-select-sm select2">
-                            <option value="">— Select —</option>
+                            <option value="">- Select -</option>
                             @foreach($bankAccounts as $ba)
-                            <option value="{{ $ba->id }}" {{ old('bank_account_id') == $ba->id ? 'selected' : '' }}>{{ $ba->display_name ?? ($ba->bank_name.' — '.$ba->account_name) }}</option>
+                            <option value="{{ $ba->id }}" {{ old('bank_account_id') == $ba->id ? 'selected' : '' }}>{{ $ba->display_name ?? ($ba->bank_name.' - '.$ba->account_name) }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -98,7 +98,7 @@
                             @foreach($currencies as $cur)
                             <option value="{{ $cur->code }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}"
                                 {{ old('currency', $customer->currency ?: $baseCurrency) === $cur->code ? 'selected' : '' }}>
-                                {{ $cur->code }} — {{ $cur->name }}
+                                {{ $cur->code }} - {{ $cur->name }}
                             </option>
                             @endforeach
                         </select>
@@ -152,7 +152,7 @@
                             <td class="font-monospace">{{ $pi['invoice_no'] }}</td>
                             <td><span class="badge bg-secondary-subtle text-secondary">{{ ucwords(str_replace('-',' ', $pi['type'])) }}</span></td>
                             <td class="{{ $pi['past_due'] ? 'text-danger fw-semibold' : 'text-muted' }}">
-                                {{ $pi['due_date'] ? $pi['due_date']->format('d M Y') : '—' }}
+                                {{ $pi['due_date'] ? $pi['due_date']->format('d M Y') : '-' }}
                             </td>
                             <td class="text-center"><span class="badge bg-light text-dark">{{ $rowCcy }}</span></td>
                             <td class="text-end font-monospace">{{ number_format($pi['outstanding'], 2) }}</td>
@@ -175,7 +175,7 @@
                     <div class="col-md-3 col-6">
                         <label class="form-label small mb-1 fw-semibold">WHT Nature (withheld by customer)</label>
                         <select name="wht_type" id="whtType" class="form-select form-select-sm">
-                            <option value="">— No WHT —</option>
+                            <option value="">- No WHT -</option>
                             @foreach(collect(config('wht.types', []))->where('applies', '!=', 'ap') as $t)
                                 <option value="{{ $t['code'] }}" data-rate="{{ $t['rate'] }}" {{ old('wht_type') === $t['code'] ? 'selected' : '' }}>
                                     {{ $t['label'] }}@if($t['rate'] > 0) ({{ rtrim(rtrim(number_format($t['rate'], 2), '0'), '.') }}%)@endif

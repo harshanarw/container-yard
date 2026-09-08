@@ -13,13 +13,13 @@ class WorkOrderObserver extends AuditObserver
     protected function describeCreated(Model $m, ?string $ref): string
     {
         return "Work Order {$ref} created"
-            . ($m->container_no ? " — {$m->container_no}" : '');
+            . ($m->container_no ? " - {$m->container_no}" : '');
     }
 
     protected function describeDeleted(Model $m, ?string $ref): string
     {
         return "Work Order {$ref} deleted"
-            . ($m->container_no ? " — {$m->container_no}" : '');
+            . ($m->container_no ? " - {$m->container_no}" : '');
     }
 
     public function updated(Model $m): void

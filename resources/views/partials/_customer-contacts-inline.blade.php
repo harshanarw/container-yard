@@ -45,7 +45,7 @@
     </div>
 
     @if(!$ccCustomer)
-        <div class="text-muted fst-italic">No customer linked — saved recipients unavailable.</div>
+        <div class="text-muted fst-italic">No customer linked - saved recipients unavailable.</div>
     @else
         <div class="text-muted mb-2" style="font-size:.78rem;">
             @if($showPortalHint)

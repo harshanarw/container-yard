@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Estimate — ' . $estimate->estimate_no)
+@section('title', 'Estimate - ' . $estimate->estimate_no)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('estimates.index') }}">Repair Estimates</a></li>
@@ -54,7 +54,7 @@
         </h4>
         <p class="text-muted mb-0 small">
             <span class="badge bg-{{ $statusColors[$estimate->status] ?? 'secondary' }}">{{ ucfirst(str_replace('_',' ',$estimate->status)) }}</span>
-            &nbsp;·&nbsp; {{ $estimate->customer->name ?? '—' }}
+            &nbsp;·&nbsp; {{ $estimate->customer->name ?? '-' }}
             &nbsp;·&nbsp; {{ $estimate->container_no }}
             &nbsp;·&nbsp; @include('partials.job-badge', ['job' => $estimate->yardJob, 'mode' => 'inline'])
         </p>
@@ -171,7 +171,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="text-muted small">Customer</div>
-                        <div class="fw-semibold">{{ $estimate->customer->name ?? '—' }}</div>
+                        <div class="fw-semibold">{{ $estimate->customer->name ?? '-' }}</div>
                     </div>
                     <div class="col-md-3">
                         <div class="text-muted small">Currency</div>
@@ -235,14 +235,14 @@
                                         <span class="fw-semibold text-primary">{{ number_format($item->std_labor_hours, 2) }}</span>
                                         <span class="text-muted" style="font-size:.75rem;">hrs</span>
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="text-end small">
                                     @if($item->labor_amount > 0)
                                         <span class="text-primary">{{ number_format($item->labor_amount, 2) }}</span>
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="text-end small">
@@ -254,7 +254,7 @@
                                     @elseif($item->ancillary_amount > 0)
                                         <span class="text-muted small">{{ number_format($item->ancillary_amount, 2) }}</span>
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 @if($estimate->tax_applicable)
@@ -274,7 +274,7 @@
                                             </div>
                                         @endif
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 @endif
@@ -448,7 +448,7 @@
                     <div class="flex-grow-1 small">
                         <div class="fw-semibold">{{ $am['label'] }}
                             @if($action->lineItem)
-                                <span class="text-muted">— {{ $action->lineItem->component }}</span>
+                                <span class="text-muted">- {{ $action->lineItem->component }}</span>
                             @endif
                         </div>
                         @if($action->notes)
@@ -464,7 +464,7 @@
                         </div>
                         @endif
                         <div class="text-muted mt-1 d-flex flex-wrap align-items-center gap-2">
-                            <span>{{ $action->performed_by_email ?? $action->actionedBy?->name ?? '—' }}</span>
+                            <span>{{ $action->performed_by_email ?? $action->actionedBy?->name ?? '-' }}</span>
                             <span>·</span>
                             <span>{{ $action->created_at->format('d M Y H:i') }}</span>
                             @if($action->ip_address)
@@ -671,7 +671,7 @@
                             <i class="bi bi-plus-circle-fill text-success mt-1" style="font-size:.8rem;"></i>
                             <div>
                                 <div class="fw-semibold">Created</div>
-                                <div class="text-muted">{{ $estimate->createdBy->name ?? '—' }}</div>
+                                <div class="text-muted">{{ $estimate->createdBy->name ?? '-' }}</div>
                                 <div class="text-muted" style="font-size:.75rem;">{{ $estimate->created_at->format('d M Y, H:i') }}</div>
                             </div>
                         </div>
@@ -682,7 +682,7 @@
                             <i class="bi bi-pencil-fill text-primary mt-1" style="font-size:.8rem;"></i>
                             <div>
                                 <div class="fw-semibold">Last Updated</div>
-                                <div class="text-muted">{{ $estimate->updatedBy->name ?? '—' }}</div>
+                                <div class="text-muted">{{ $estimate->updatedBy->name ?? '-' }}</div>
                                 <div class="text-muted" style="font-size:.75rem;">{{ $estimate->updated_at->format('d M Y, H:i') }}</div>
                             </div>
                         </div>

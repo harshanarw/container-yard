@@ -24,7 +24,7 @@ class WorkOrderSeeder extends Seeder
         }
 
         if (RepairCategory::count() === 0) {
-            $this->command->warn('No repair categories found. WorkOrderSeeder skipped — run RepairCategorySeeder first.');
+            $this->command->warn('No repair categories found. WorkOrderSeeder skipped - run RepairCategorySeeder first.');
             return;
         }
 
@@ -79,7 +79,7 @@ class WorkOrderSeeder extends Seeder
                     'status'             => 'pending',
                     'priority'           => 'normal',
                     'target_date'        => now()->addDays(7)->toDateString(),
-                    'instructions'       => "Repair work for {$container->container_no} — {$estimate->estimate_no}.",
+                    'instructions'       => "Repair work for {$container->container_no} - {$estimate->estimate_no}.",
                     'created_by'         => $admin->id,
                 ]);
 
@@ -118,7 +118,7 @@ class WorkOrderSeeder extends Seeder
                     'status'             => 'pending',
                     'priority'           => 'normal',
                     'target_date'        => now()->addDays(7)->toDateString(),
-                    'instructions'       => "Repair work [{$category->code}] for {$container->container_no} — {$estimate->estimate_no}.",
+                    'instructions'       => "Repair work [{$category->code}] for {$container->container_no} - {$estimate->estimate_no}.",
                     'created_by'         => $admin->id,
                 ]);
 

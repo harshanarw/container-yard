@@ -36,7 +36,7 @@ class ContainerGradeController extends Controller
 
         ContainerGrade::create($data);
 
-        return back()->with('success', "Grade {$data['code']} — {$data['name']} added successfully.");
+        return back()->with('success', "Grade {$data['code']} - {$data['name']} added successfully.");
     }
 
     public function update(Request $request, ContainerGrade $containerGrade)
@@ -66,7 +66,7 @@ class ContainerGradeController extends Controller
     public function destroy(ContainerGrade $containerGrade)
     {
         if ($containerGrade->containers()->exists() || $containerGrade->gateMovements()->exists()) {
-            return back()->with('error', "Cannot delete grade {$containerGrade->code} — it is in use by containers or gate movements.");
+            return back()->with('error', "Cannot delete grade {$containerGrade->code} - it is in use by containers or gate movements.");
         }
 
         $containerGrade->delete();

@@ -19,7 +19,7 @@ class GateMovementObserver extends AuditObserver
     protected function describeCreated(Model $m, ?string $ref): string
     {
         return $this->typeLabel($m) . ' recorded'
-            . ($ref ? " — {$ref}" : '')
+            . ($ref ? " - {$ref}" : '')
             . ($m->vehicle_plate ? " · truck {$m->vehicle_plate}" : '');
     }
 
@@ -27,13 +27,13 @@ class GateMovementObserver extends AuditObserver
     {
         $changed = implode(', ', array_keys($diff['old'] ?? []));
         return $this->typeLabel($m) . " #{$m->id} updated [{$changed}]"
-            . ($ref ? " — {$ref}" : '');
+            . ($ref ? " - {$ref}" : '');
     }
 
     protected function describeDeleted(Model $m, ?string $ref): string
     {
         return $this->typeLabel($m) . " #{$m->id} deleted"
-            . ($ref ? " — {$ref}" : '');
+            . ($ref ? " - {$ref}" : '');
     }
 
     // Gate-In / Gate-Out created events get a specific event type for easy filtering

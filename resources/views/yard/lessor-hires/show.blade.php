@@ -16,7 +16,7 @@
             <span class="badge bg-{{ $hire->status === 'active' ? 'success' : ($hire->status === 'completed' ? 'secondary' : 'danger') }} ms-2" style="font-size:.7rem;">{{ ucfirst($hire->status) }}</span>
         </h4>
         <p class="text-muted mb-0 small">
-            Job <a href="{{ route('yard.jobs.show', $hire->yardJob) }}" class="font-monospace">{{ $hire->yardJob?->job_no ?? '—' }}</a>
+            Job <a href="{{ route('yard.jobs.show', $hire->yardJob) }}" class="font-monospace">{{ $hire->yardJob?->job_no ?? '-' }}</a>
             · {{ $hire->container?->container_no }} · from {{ $hire->lessor?->name }}
         </p>
     </div>
@@ -32,9 +32,9 @@
                     <div class="col-6"><span class="text-muted d-block">Container</span><span class="font-monospace fw-bold">{{ $hire->container?->container_no }}</span></div>
                     <div class="col-6"><span class="text-muted d-block">Lessor</span>{{ $hire->lessor?->name }}</div>
                     <div class="col-6"><span class="text-muted d-block">On-Hire Date</span>{{ $hire->on_hire_date?->format('d M Y') }}</div>
-                    <div class="col-6"><span class="text-muted d-block">Off-Hire Date</span>{{ $hire->off_hire_date?->format('d M Y') ?? '—' }}</div>
-                    <div class="col-6"><span class="text-muted d-block">Reference</span>{{ $hire->hire_reference ?: '—' }}</div>
-                    <div class="col-6"><span class="text-muted d-block">Per-Diem Rate</span>{{ $hire->per_diem_rate ? number_format($hire->per_diem_rate, 2) : '—' }}</div>
+                    <div class="col-6"><span class="text-muted d-block">Off-Hire Date</span>{{ $hire->off_hire_date?->format('d M Y') ?? '-' }}</div>
+                    <div class="col-6"><span class="text-muted d-block">Reference</span>{{ $hire->hire_reference ?: '-' }}</div>
+                    <div class="col-6"><span class="text-muted d-block">Per-Diem Rate</span>{{ $hire->per_diem_rate ? number_format($hire->per_diem_rate, 2) : '-' }}</div>
                 </div>
                 @if($hire->notes)<hr class="my-2"><div class="text-muted mb-1">Notes</div><div>{{ $hire->notes }}</div>@endif
             </div>
@@ -43,7 +43,7 @@
         @if($hire->isActive())
         @can('yard.lessor-hire.off_hire')
         <div class="card content-card mt-3 border-secondary">
-            <div class="card-header py-2 fw-semibold small"><i class="bi bi-box-arrow-up-right me-2"></i>Off-Hire — return box to lessor</div>
+            <div class="card-header py-2 fw-semibold small"><i class="bi bi-box-arrow-up-right me-2"></i>Off-Hire - return box to lessor</div>
             <div class="card-body">
                 <form method="POST" action="{{ route('yard.lessor-hires.off-hire', $hire) }}" class="row g-3 align-items-end">
                     @csrf

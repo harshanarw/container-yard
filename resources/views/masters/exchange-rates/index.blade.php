@@ -140,8 +140,8 @@
                             1 {{ $r->from_currency_code }} = {{ number_format((float) $r->rate, 4) }} {{ $r->to_currency_code }}
                         </div>
                     </td>
-                    <td class="small text-muted">{{ $r->notes ?? '—' }}</td>
-                    <td class="small text-muted">{{ $r->createdBy?->name ?? '—' }}</td>
+                    <td class="small text-muted">{{ $r->notes ?? '-' }}</td>
+                    <td class="small text-muted">{{ $r->createdBy?->name ?? '-' }}</td>
                     <td class="text-end pe-3">
                         <div class="d-flex flex-wrap justify-content-end gap-1">
                             @can('masters.exchange-rates.edit')
@@ -225,7 +225,7 @@
                                     <option value="{{ $cur->code }}"
                                             data-code="{{ $cur->code }}" data-name="{{ $cur->name }}"
                                             {{ old('from_currency_code', 'USD') === $cur->code ? 'selected' : '' }}>
-                                        {{ $cur->code }} — {{ $cur->name }}
+                                        {{ $cur->code }} - {{ $cur->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -238,7 +238,7 @@
                                     <option value="{{ $cur->code }}"
                                             data-code="{{ $cur->code }}" data-name="{{ $cur->name }}"
                                             {{ old('to_currency_code', $defaultCurrency) === $cur->code ? 'selected' : '' }}>
-                                        {{ $cur->code }} — {{ $cur->name }}
+                                        {{ $cur->code }} - {{ $cur->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -305,7 +305,7 @@
                             <select name="from_currency_code" id="editFromCurrency" class="form-select select2-modal s2-code" required>
                                 @foreach($currencies as $cur)
                                     <option value="{{ $cur->code }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}">
-                                        {{ $cur->code }} — {{ $cur->name }}
+                                        {{ $cur->code }} - {{ $cur->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -316,7 +316,7 @@
                             <select name="to_currency_code" id="editToCurrency" class="form-select select2-modal s2-code" required>
                                 @foreach($currencies as $cur)
                                     <option value="{{ $cur->code }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}">
-                                        {{ $cur->code }} — {{ $cur->name }}
+                                        {{ $cur->code }} - {{ $cur->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -325,10 +325,10 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Exchange Rate <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span class="input-group-text small" id="editRatePrefix">1 — =</span>
+                                <span class="input-group-text small" id="editRatePrefix">1 - =</span>
                                 <input type="number" name="rate" id="editRate" class="form-control"
                                        min="0" step="any" required>
-                                <span class="input-group-text small" id="editRateSuffix">—</span>
+                                <span class="input-group-text small" id="editRateSuffix">-</span>
                             </div>
                         </div>
 

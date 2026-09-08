@@ -157,7 +157,7 @@
     <div class="card-body py-3">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
             <div class="fw-semibold small text-muted">
-                <i class="bi bi-clipboard-pulse me-1"></i>M&amp;R Status — containers in the yard
+                <i class="bi bi-clipboard-pulse me-1"></i>M&amp;R Status - containers in the yard
             </div>
             <a href="{{ route('containers.index', ['export_ready' => 1]) }}"
                class="badge bg-success-subtle text-success border text-decoration-none">
@@ -341,7 +341,7 @@
                                         @endif
                                     </div>
                                 </td>
-                                <td class="small">{{ $mv->customer?->name ?? '—' }}</td>
+                                <td class="small">{{ $mv->customer?->name ?? '-' }}</td>
                                 <td class="text-center">
                                     @if($mv->movement_type === 'in')
                                         <span class="badge bg-primary-subtle text-primary">
@@ -359,7 +359,7 @@
                                             {{ $mv->location_zone }}-{{ $mv->location_row }}{{ $mv->location_bay }}-T{{ $mv->location_tier }}
                                         </span>
                                     @else
-                                        <span class="text-muted small">—</span>
+                                        <span class="text-muted small">-</span>
                                     @endif
                                 </td>
                                 <td class="small text-muted text-nowrap">
@@ -488,7 +488,7 @@
                 @if($recentInquiries->isEmpty())
                     <div class="text-center text-muted py-4 small">
                         <i class="bi bi-check-circle fs-2 d-block mb-2 text-success opacity-50"></i>
-                        No open inquiries — all clear!
+                        No open inquiries - all clear!
                     </div>
                 @else
                 <div class="list-group list-group-flush">
@@ -501,7 +501,7 @@
                                 </span>
                                 <span class="small fw-semibold font-monospace">{{ $inq->container_no }}</span>
                                 <div class="text-muted" style="font-size:.72rem;">
-                                    {{ $inq->customer?->name ?? '—' }}
+                                    {{ $inq->customer?->name ?? '-' }}
                                     @if($inq->inquiry_type)
                                         &mdash; {{ ucwords(str_replace('_', ' ', $inq->inquiry_type)) }}
                                     @endif
@@ -546,7 +546,7 @@
                                 </span>
                                 <span class="small fw-semibold font-monospace">{{ $est->container_no }}</span>
                                 <div class="text-muted" style="font-size:.72rem;">
-                                    {{ $est->customer?->name ?? '—' }}
+                                    {{ $est->customer?->name ?? '-' }}
                                 </div>
                             </div>
                             <div class="text-end">
@@ -629,7 +629,7 @@
                                 $doc = $req->approvable;
                                 $isGatePass = $req->workflow_type === 'gate_pass';
                                 $docLabel = $isGatePass
-                                    ? 'Gate Pass — ' . ($doc?->container_no ?? '#' . $req->approvable_id)
+                                    ? 'Gate Pass - ' . ($doc?->container_no ?? '#' . $req->approvable_id)
                                     : ucfirst(str_replace('_', ' ', $req->workflow_type)) . ' #' . $req->approvable_id;
                                 $docLink = ($isGatePass && $doc) ? route('yard.movements.edit', $doc) : null;
                             @endphp
@@ -638,7 +638,7 @@
                                     <div class="fw-semibold small">{{ $docLabel }}</div>
                                     <div class="text-muted" style="font-size:.68rem;">Req #{{ $req->id }}</div>
                                 </td>
-                                <td class="small">{{ $req->initiatedBy?->name ?? '—' }}</td>
+                                <td class="small">{{ $req->initiatedBy?->name ?? '-' }}</td>
                                 <td class="small text-muted text-nowrap">{{ $req->initiated_at?->format('d M Y') }}</td>
                                 <td class="text-center">
                                     @if($req->isPending())

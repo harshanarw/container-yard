@@ -33,7 +33,7 @@
                         </div>
                         <div class="col-6">
                             <span class="text-muted d-block">Plugged In</span>
-                            <span>{{ $session->plug_in_at?->format('d M Y H:i') ?? '—' }}</span>
+                            <span>{{ $session->plug_in_at?->format('d M Y H:i') ?? '-' }}</span>
                         </div>
                         <div class="col-6">
                             <span class="text-muted d-block">Duration so far</span>

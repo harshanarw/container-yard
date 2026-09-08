@@ -124,7 +124,7 @@ class SupplierInvoicePostingService
                 'account_id' => $apAccount->id,
                 'debit'      => 0,
                 'credit'     => $totalDr,
-                'narration'  => 'Trade creditors — ' . ($invoice->supplier->name ?? 'Supplier'),
+                'narration'  => 'Trade creditors - ' . ($invoice->supplier->name ?? 'Supplier'),
             ];
 
             // Attach transaction-currency metadata to every line (base stays primary).
@@ -140,7 +140,7 @@ class SupplierInvoicePostingService
                 'journal_type'   => 'invoice',
                 'reference_type' => SupplierInvoice::class,
                 'reference_id'   => $invoice->id,
-                'narration'      => "Supplier Invoice {$invoice->invoice_no} — " . ($invoice->supplier->name ?? ''),
+                'narration'      => "Supplier Invoice {$invoice->invoice_no} - " . ($invoice->supplier->name ?? ''),
             ], $lines);
 
             $this->engine->postJournal($journal, $userId);
@@ -158,7 +158,7 @@ class SupplierInvoicePostingService
     {
         if (!$invoice->isPosted()) {
             throw new \RuntimeException(
-                "Supplier invoice {$invoice->invoice_no} is not posted — nothing to void."
+                "Supplier invoice {$invoice->invoice_no} is not posted - nothing to void."
             );
         }
 

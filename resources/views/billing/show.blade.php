@@ -43,7 +43,7 @@
             </span>
         </h4>
         <p class="text-muted mb-0 small">
-            {{ $invoice->customer->name ?? '—' }}
+            {{ $invoice->customer->name ?? '-' }}
             &nbsp;·&nbsp;
             Period: {{ $invoice->billing_period_from->format('d M Y') }} – {{ $invoice->billing_period_to->format('d M Y') }}
         </p>
@@ -166,7 +166,7 @@
                 <div class="mb-2">
                     <div class="text-muted small">Due Date</div>
                     <div>
-                        {{ $invoice->due_date?->format('d M Y') ?? '—' }}
+                        {{ $invoice->due_date?->format('d M Y') ?? '-' }}
                         @if($invoice->due_date && $invoice->status === 'issued' && $invoice->due_date->isPast())
                             <span class="badge bg-danger ms-1">Past due</span>
                         @endif
@@ -205,7 +205,7 @@
                 @endif
                 <div class="mb-2">
                     <div class="text-muted small">Created By</div>
-                    <div>{{ $invoice->createdBy->name ?? '—' }}</div>
+                    <div>{{ $invoice->createdBy->name ?? '-' }}</div>
                 </div>
                 @if($invoice->notes)
                 <hr class="my-2">
@@ -221,13 +221,13 @@
             </div>
             <div class="card-body">
                 @php $cust = $invoice->customer; @endphp
-                <div class="fw-semibold mb-1">{{ $cust->name ?? '—' }}</div>
+                <div class="fw-semibold mb-1">{{ $cust->name ?? '-' }}</div>
                 @if($cust)
                     <div class="text-muted small">{{ $cust->address }}</div>
                     @if($cust->contact_person)
                     <div class="small mt-1">
                         <i class="bi bi-person me-1"></i>{{ $cust->contact_person }}
-                        @if($cust->designation) — {{ $cust->designation }} @endif
+                        @if($cust->designation) - {{ $cust->designation }} @endif
                     </div>
                     @endif
                     @if($cust->phone_office)
@@ -246,13 +246,13 @@
             </div>
             <div class="card-body">
                 @php $bp = $invoice->billingParty ?? $invoice->customer; @endphp
-                <div class="fw-semibold mb-1">{{ $bp->name ?? '—' }}</div>
+                <div class="fw-semibold mb-1">{{ $bp->name ?? '-' }}</div>
                 @if($bp)
                     <div class="text-muted small">{{ $bp->address }}</div>
                     @if($bp->contact_person)
                     <div class="small mt-1">
                         <i class="bi bi-person me-1"></i>{{ $bp->contact_person }}
-                        @if($bp->designation) — {{ $bp->designation }} @endif
+                        @if($bp->designation) - {{ $bp->designation }} @endif
                     </div>
                     @endif
                     @if($bp->phone_office)
@@ -355,7 +355,7 @@
                                     @elseif($line->cargo_status === 'empty')
                                         <span class="badge bg-info-subtle text-info border" style="font-size:.7rem;">Empty</span>
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="small">{{ $line->gate_in_date->format('d M Y') }}</td>
@@ -383,7 +383,7 @@
                                         <div class="text-muted" style="font-size:.65rem;">{{ $line->chargeCode->taxCode->code }}</div>
                                         @endif
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="text-end small text-secondary">
@@ -464,7 +464,7 @@
 @endphp
 <div class="card content-card mt-3">
     <div class="card-header">
-        <i class="bi bi-bank me-2 text-primary"></i>Finance — GL Posting
+        <i class="bi bi-bank me-2 text-primary"></i>Finance - GL Posting
     </div>
     <div class="card-body">
         @if($_posting && $_posting->isPosted())
@@ -479,7 +479,7 @@
                 </a>
                 @endif
                 <span class="text-muted small">
-                    by {{ $_posting->postedBy->name ?? '—' }}
+                    by {{ $_posting->postedBy->name ?? '-' }}
                     {{ $_posting->posted_at ? 'on ' . $_posting->posted_at->format('d M Y H:i') : '' }}
                 </span>
             </div>

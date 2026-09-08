@@ -12,7 +12,7 @@
 
 <div class="page-header mb-3">
     <h4 class="mb-0"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>New Supplier Invoice</h4>
-    <p class="text-muted small mb-0">Saved as a draft — approve it to post to the General Ledger.</p>
+    <p class="text-muted small mb-0">Saved as a draft - approve it to post to the General Ledger.</p>
 </div>
 
 @if($errors->any())
@@ -36,7 +36,7 @@
                         <div class="col-12">
                             <label class="form-label small">Supplier / Contact <span class="text-danger">*</span></label>
                             <select name="customer_id" id="supplierSelect" class="form-select form-select-sm" data-s2-sel="name" required>
-                                <option value="">— Select contact —</option>
+                                <option value="">- Select contact -</option>
                                 @foreach($suppliers as $sup)
                                 <option value="{{ $sup->id }}"
                                     data-code="{{ $sup->code }}"
@@ -44,7 +44,7 @@
                                     data-currency="{{ $sup->currency }}"
                                     data-payment-terms="{{ $sup->ap_payment_terms }}"
                                     {{ (string) old('customer_id', request('customer_id')) === (string) $sup->id ? 'selected' : '' }}>
-                                    {{ $sup->code }} — {{ $sup->name }}
+                                    {{ $sup->code }} - {{ $sup->name }}
                                 </option>
                                 @endforeach
                             </select>
@@ -76,7 +76,7 @@
                         <div class="col-12">
                             <label class="form-label small">Job <span class="text-muted">(costing)</span></label>
                             <select name="yard_job_id" id="yard_job_id" class="form-select form-select-sm job-costing job-select" data-s2-sel="name">
-                                <option value="">— None —</option>
+                                <option value="">- None -</option>
                                 @foreach($jobs as $j)
                                     <option value="{{ $j['id'] }}" data-job-no="{{ $j['job_no'] }}" data-cont="{{ $j['container_no'] }}" data-st="{{ $j['size'] ? $j['size']."'".$j['type_code'] : '' }}" data-cust="{{ $j['customer'] }}" data-cust-id="{{ $j['customer_id'] }}" @selected(old('yard_job_id') == $j['id'])>{{ $jobLabel($j) }}</option>
                                 @endforeach
@@ -105,7 +105,7 @@
                         <div class="col-6">
                             <label class="form-label small">Credit Terms</label>
                             <select id="creditTermsSelect" class="form-select form-select-sm">
-                                <option value="">— select —</option>
+                                <option value="">- select -</option>
                                 <option value="cod">Cash on Delivery</option>
                                 <option value="net15">Net 15 Days</option>
                                 <option value="net30">Net 30 Days</option>
@@ -548,7 +548,7 @@
         const rateInput = document.getElementById('exchangeRateInput');
         const noteEl   = document.getElementById('supRateNote');
         if (!ccy || ccy === 'LKR') {
-            labelEl.innerHTML = 'Exchange Rate <span class="text-muted small fw-normal">(LKR — base currency)</span>';
+            labelEl.innerHTML = 'Exchange Rate <span class="text-muted small fw-normal">(LKR - base currency)</span>';
             rateInput.value    = '1';
             rateInput.readOnly = true;
             rateInput.classList.add('bg-light', 'text-muted');
@@ -576,7 +576,7 @@
                     if (noteEl) { noteEl.className = 'form-text small text-success'; noteEl.textContent = 'Auto-loaded: 1 ' + ccy + ' = ' + parseFloat(res.rate).toFixed(4) + ' LKR (editable).'; }
                 } else if (noteEl) {
                     noteEl.className = 'form-text small text-warning';
-                    noteEl.textContent = 'No rate on record for ' + ccy + ' on this date — enter it manually.';
+                    noteEl.textContent = 'No rate on record for ' + ccy + ' on this date - enter it manually.';
                 }
             })
             .catch(function () {
@@ -591,7 +591,7 @@
         jQuery('#supplierSelect').select2({
             theme             : 'bootstrap-5',
             width             : '100%',
-            placeholder       : '— Select contact —',
+            placeholder       : '- Select contact -',
             templateResult    : window.s2CodeResult    || null,
             templateSelection : window.s2CodeSelection || null,
         });

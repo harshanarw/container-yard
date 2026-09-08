@@ -28,10 +28,10 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Supplier / Contact</label>
                     <select name="customer_id" id="supplierSelect" class="form-select form-select-sm s2-code @error('customer_id') is-invalid @enderror" data-s2-sel="name">
-                        <option value="">— None / one-off payee —</option>
+                        <option value="">- None / one-off payee -</option>
                         @foreach($suppliers as $sup)
                         <option value="{{ $sup->id }}" data-code="{{ $sup->code }}" data-name="{{ $sup->name }}" {{ old('customer_id') == $sup->id ? 'selected' : '' }}>
-                            {{ $sup->code }} — {{ $sup->name }}
+                            {{ $sup->code }} - {{ $sup->name }}
                         </option>
                         @endforeach
                     </select>
@@ -53,10 +53,10 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Bank Account</label>
                     <select name="bank_account_id" class="form-select form-select-sm select2 @error('bank_account_id') is-invalid @enderror">
-                        <option value="">— None / Cash —</option>
+                        <option value="">- None / Cash -</option>
                         @foreach($bankAccounts as $ba)
                         <option value="{{ $ba->id }}" {{ old('bank_account_id') == $ba->id ? 'selected' : '' }}>
-                            {{ $ba->account_name }} ({{ $ba->bank_name }}) — {{ $ba->currency }}
+                            {{ $ba->account_name }} ({{ $ba->bank_name }}) - {{ $ba->currency }}
                         </option>
                         @endforeach
                     </select>
@@ -65,7 +65,7 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Expense Account</label>
                     <select name="expense_account_id" class="form-select form-select-sm select2 @error('expense_account_id') is-invalid @enderror">
-                        <option value="">— Select Expense Account —</option>
+                        <option value="">- Select Expense Account -</option>
                         @php $lastClass = null; @endphp
                         @foreach($expenseAccounts as $acc)
                         @if($acc->classification !== $lastClass)
@@ -74,18 +74,18 @@
                         @php $lastClass = $acc->classification; @endphp
                         @endif
                         <option value="{{ $acc->id }}" {{ old('expense_account_id') == $acc->id ? 'selected' : '' }}>
-                            {{ $acc->code }} — {{ $acc->name }}
+                            {{ $acc->code }} - {{ $acc->name }}
                         </option>
                         @endforeach
                         @if($lastClass !== null)</optgroup>@endif
                     </select>
-                    <div class="form-text small" id="expenseAccountHint">Ignored when a supplier is selected — the payment debits Accounts Payable instead.</div>
+                    <div class="form-text small" id="expenseAccountHint">Ignored when a supplier is selected - the payment debits Accounts Payable instead.</div>
                     @error('expense_account_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Job <span class="text-muted">(costing)</span></label>
                     <select name="yard_job_id" class="form-select form-select-sm select2">
-                        <option value="">— None —</option>
+                        <option value="">- None -</option>
                         @foreach($jobs as $j)
                             <option value="{{ $j->id }}" {{ old('yard_job_id') == $j->id ? 'selected' : '' }}>{{ $j->job_no }} · {{ $j->job_type_code }} · {{ $j->customer?->name }}</option>
                         @endforeach
@@ -95,7 +95,7 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Payment Method <span class="text-danger">*</span></label>
                     <select name="payment_method" id="paymentMethod" class="form-select form-select-sm @error('payment_method') is-invalid @enderror" required>
-                        <option value="">— Select —</option>
+                        <option value="">- Select -</option>
                         <option value="cash" {{ old('payment_method') === 'cash' ? 'selected' : '' }}>Cash</option>
                         <option value="cheque" {{ old('payment_method') === 'cheque' ? 'selected' : '' }}>Cheque</option>
                         <option value="bank_transfer" {{ old('payment_method') === 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
@@ -128,7 +128,7 @@
                         <option value="{{ $cur->code }}"
                             data-code="{{ $cur->code }}" data-name="{{ $cur->name }}"
                             {{ old('currency', $baseCurrency) === $cur->code ? 'selected' : '' }}>
-                            {{ $cur->code }} — {{ $cur->name }}
+                            {{ $cur->code }} - {{ $cur->name }}
                         </option>
                         @endforeach
                     </select>

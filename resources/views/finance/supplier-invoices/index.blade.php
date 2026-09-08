@@ -12,7 +12,7 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h4 class="mb-0"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Supplier Invoices</h4>
-        <p class="text-muted small mb-0">Purchase bills — Accounts Payable</p>
+        <p class="text-muted small mb-0">Purchase bills - Accounts Payable</p>
     </div>
     @can('finance.ap.create')
     <a href="{{ route('finance.ap.invoices.create') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Invoice</a>
@@ -38,7 +38,7 @@
                 <select name="customer_id" class="form-select form-select-sm select2" style="width:240px">
                     <option value="">All</option>
                     @foreach($suppliers as $sup)
-                    <option value="{{ $sup->id }}" {{ (string) request('customer_id') === (string) $sup->id ? 'selected' : '' }}>{{ $sup->code }} — {{ $sup->name }}</option>
+                    <option value="{{ $sup->id }}" {{ (string) request('customer_id') === (string) $sup->id ? 'selected' : '' }}>{{ $sup->code }} - {{ $sup->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -82,11 +82,11 @@
                 @forelse($invoices as $inv)
                 <tr>
                     <td class="font-monospace small fw-semibold">{{ $inv->invoice_no }}</td>
-                    <td class="small">{{ $inv->supplier->name ?? '—' }}</td>
-                    <td class="small text-muted">{{ $inv->supplier_invoice_no ?: '—' }}</td>
-                    <td class="small text-muted">{{ $inv->supplier_bill_date?->format('d M Y') ?: '—' }}</td>
+                    <td class="small">{{ $inv->supplier->name ?? '-' }}</td>
+                    <td class="small text-muted">{{ $inv->supplier_invoice_no ?: '-' }}</td>
+                    <td class="small text-muted">{{ $inv->supplier_bill_date?->format('d M Y') ?: '-' }}</td>
                     <td class="small">{{ $inv->invoice_date->format('d M Y') }}</td>
-                    <td class="small">{{ $inv->due_date?->format('d M Y') ?: '—' }}</td>
+                    <td class="small">{{ $inv->due_date?->format('d M Y') ?: '-' }}</td>
                     <td class="text-end font-monospace small">{{ number_format($inv->total_amount, 2) }} <span class="text-muted">{{ $inv->currency }}</span></td>
                     <td><span class="badge {{ $inv->status_badge_class }}">{{ $inv->status_label }}</span></td>
                     <td>
@@ -95,7 +95,7 @@
                         @elseif($inv->status === 'approved' && $inv->posting_error)
                         <span class="badge bg-danger-subtle text-danger" title="{{ $inv->posting_error }}">Failed</span>
                         @else
-                        <span class="text-muted small">—</span>
+                        <span class="text-muted small">-</span>
                         @endif
                     </td>
                     <td class="text-end">

@@ -24,7 +24,7 @@ return new class extends Migration
         Schema::table('mr_tariff_rules', function (Blueprint $table) {
             $table->string('unit_type', 10)->nullable()->default('nos')
                   ->after('notes')
-                  ->comment('nos | lift | sqft | inches — controls qty derivation in estimates');
+                  ->comment('nos | lift | sqft | inches - controls qty derivation in estimates');
         });
     }
 

@@ -123,8 +123,8 @@
                     </td>
                     <td><span class="badge bg-secondary-subtle text-secondary">{{ $r['source'] }}</span></td>
                     <td class="text-muted">{{ $r['narration'] }}</td>
-                    <td class="text-end font-monospace {{ $r['gain'] > 0 ? 'text-success' : 'text-muted' }}">{{ $r['gain'] != 0 ? number_format($r['gain'], 2) : '—' }}</td>
-                    <td class="text-end font-monospace {{ $r['loss'] > 0 ? 'text-danger' : 'text-muted' }}">{{ $r['loss'] != 0 ? number_format($r['loss'], 2) : '—' }}</td>
+                    <td class="text-end font-monospace {{ $r['gain'] > 0 ? 'text-success' : 'text-muted' }}">{{ $r['gain'] != 0 ? number_format($r['gain'], 2) : '-' }}</td>
+                    <td class="text-end font-monospace {{ $r['loss'] > 0 ? 'text-danger' : 'text-muted' }}">{{ $r['loss'] != 0 ? number_format($r['loss'], 2) : '-' }}</td>
                 </tr>
                 @empty
                 <tr><td colspan="6" class="text-center text-muted py-4">No realized FX gain or loss in this period.</td></tr>

@@ -79,7 +79,7 @@ class DateWindowTest extends TestCase
             'an adjacent earlier interval changes nothing' => [
                 '2026-03-01', '2026-03-31', [['2026-02-01', '2026-02-28']],
                 [['2026-03-01', '2026-03-31']],
-                'Touching the window is not overlapping it — the boundary case.',
+                'Touching the window is not overlapping it - the boundary case.',
             ],
             'several holes leave several ranges' => [
                 '2026-03-01', '2026-03-31',
@@ -101,7 +101,7 @@ class DateWindowTest extends TestCase
             'a backwards window yields nothing' => [
                 '2026-03-31', '2026-03-01', [],
                 [],
-                'An empty window — a record closed before the period opened — accrues nothing.',
+                'An empty window - a record closed before the period opened - accrues nothing.',
             ],
             'a single-day window survives' => [
                 '2026-03-05', '2026-03-05', [],
@@ -258,7 +258,7 @@ class DateWindowTest extends TestCase
 
                     foreach (DateWindow::merge($prior) as [$ps, $pe]) {
                         $this->assertTrue($e < $ps || $s > $pe,
-                            "Remaining {$s}..{$e} overlaps billed {$ps}..{$pe} — that is a day billed twice.");
+                            "Remaining {$s}..{$e} overlaps billed {$ps}..{$pe} - that is a day billed twice.");
                     }
                 }
             }

@@ -97,9 +97,9 @@
                     <td class="small">{{ $t->type_label }}</td>
                     <td class="small">{{ $t->size_label }}</td>
                     <td class="text-end fw-semibold">{{ $t->currency }} {{ number_format($t->rate, 2) }}</td>
-                    <td class="text-end small text-muted">{{ $t->min_charge !== null ? number_format($t->min_charge, 2) : '—' }}</td>
+                    <td class="text-end small text-muted">{{ $t->min_charge !== null ? number_format($t->min_charge, 2) : '-' }}</td>
                     <td class="small">
-                        {{ $t->chargeCode?->code ?? '—' }}
+                        {{ $t->chargeCode?->code ?? '-' }}
                         @if($t->taxCode)<span class="text-muted">· {{ $t->taxCode->code }}</span>@endif
                     </td>
                     <td>

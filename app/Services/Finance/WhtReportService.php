@@ -58,7 +58,7 @@ class WhtReportService
             ->orderBy('receipt_date')->get();
 
         $rows = $receipts->map(fn ($r) => $this->row(
-            $r->receipt_date, $r->receipt_no, optional($r->customer)->name ?? '—',
+            $r->receipt_date, $r->receipt_no, optional($r->customer)->name ?? '-',
             optional($r->customer)->id, $r->wht_type, $r->wht_rate,
             (float) $r->amount, (float) $r->wht_amount, (float) ($r->exchange_rate ?: 1)
         ));
@@ -70,7 +70,7 @@ class WhtReportService
     {
         return [
             'date'      => ($date instanceof \Carbon\Carbon ? $date : \Carbon\Carbon::parse($date))->toDateString(),
-            'no'        => $no ?? '—',
+            'no'        => $no ?? '-',
             'party'     => $party,
             'party_id'  => $partyId ?? 0,
             'nature'    => $this->natureLabel($whtType),
@@ -106,7 +106,7 @@ class WhtReportService
     private function natureLabel(?string $code): string
     {
         if (!$code) {
-            return '—';
+            return '-';
         }
         foreach (config('wht.types', []) as $t) {
             if (($t['code'] ?? null) === $code) {

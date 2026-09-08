@@ -18,7 +18,7 @@
                 <div class="col-md-2">
                     <label class="form-label fw-semibold small">Operation Type <span class="text-danger">*</span></label>
                     <select name="operation_type" class="form-select form-select-sm" required>
-                        <option value="">— Select —</option>
+                        <option value="">- Select -</option>
                         @foreach($operationTypes as $op)
                             <option value="{{ $op }}">{{ ucfirst($op) }}</option>
                         @endforeach
@@ -167,7 +167,7 @@
                                 @if($slab->is_additional)
                                     <i class="bi bi-check-circle-fill text-warning"></i>
                                 @else
-                                    <span class="text-muted">—</span>
+                                    <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td class="text-end font-monospace">{{ number_format($slab->labor_hours, 3) }}</td>

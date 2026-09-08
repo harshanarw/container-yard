@@ -114,7 +114,7 @@ class CreditService
             return null;
         }
 
-        return "Credit alert: {$customer->name} is now over their AR credit limit — "
+        return "Credit alert: {$customer->name} is now over their AR credit limit - "
             . "outstanding {$customer->currency} " . number_format($exposure, 2)
             . " exceeds the limit of {$customer->currency} " . number_format($limit, 2) . '.';
     }

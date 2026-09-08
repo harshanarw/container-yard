@@ -12,7 +12,7 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h4 class="mb-0"><i class="bi bi-check2-circle me-2 text-primary"></i>Available Empties</h4>
-        <p class="text-muted small mb-0">Sound / repaired containers ready for allocation, by size · type · grade — with dwell aging.</p>
+        <p class="text-muted small mb-0">Sound / repaired containers ready for allocation, by size · type · grade - with dwell aging.</p>
     </div>
     <div class="d-flex align-items-center gap-2 d-print-none">
         <a href="{{ route('containers.index', ['status' => 'available']) }}" class="btn btn-sm btn-outline-secondary">

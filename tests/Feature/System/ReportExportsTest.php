@@ -92,7 +92,7 @@ class ReportExportsTest extends FeatureTestCase
         $this->assertSame('BRL', $row[3]);
         $this->assertSame('Bringer Lines', $row[4]);
         $this->assertSame('Require Repair', $row[5],
-            'The badge on screen resolves to the words it stands for — a spreadsheet has no colour.');
+            'The badge on screen resolves to the words it stands for - a spreadsheet has no colour.');
         $this->assertSame('Empty', $row[6]);
         $this->assertSame('2026-06-10', $row[8]);
         $this->assertSame('5', $row[9], 'Five days in yard, counted to today.');
@@ -108,7 +108,7 @@ class ReportExportsTest extends FeatureTestCase
 
         $this->assertContains('INVE0000003', $numbers->all());
         $this->assertNotContains('INVE0000002', $numbers->all(),
-            'Filtered on screen means filtered in the file — otherwise the operator sends the wrong set.');
+            'Filtered on screen means filtered in the file - otherwise the operator sends the wrong set.');
     }
 
     public function test_the_inventory_export_button_is_no_longer_a_dead_link(): void

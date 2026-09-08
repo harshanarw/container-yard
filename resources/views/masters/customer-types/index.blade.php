@@ -62,10 +62,10 @@
                         @if($item->short_code)
                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">{{ $item->short_code }}</span>
                         @else
-                            <span class="text-muted small">—</span>
+                            <span class="text-muted small">-</span>
                         @endif
                     </td>
-                    <td class="small text-muted">{{ $item->description ?? '—' }}</td>
+                    <td class="small text-muted">{{ $item->description ?? '-' }}</td>
                     <td class="text-center">
                         <span class="badge bg-primary rounded-pill">{{ $item->customers_count ?? 0 }}</span>
                     </td>

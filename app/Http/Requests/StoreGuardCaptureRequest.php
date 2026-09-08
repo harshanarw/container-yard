@@ -46,7 +46,7 @@ class StoreGuardCaptureRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'container_number.regex' => 'Container number must be ISO 6346 format — 4 letters + 7 digits (e.g. CSQU3054383).',
+            'container_number.regex' => 'Container number must be ISO 6346 format - 4 letters + 7 digits (e.g. CSQU3054383).',
             'iso_code.regex'         => 'ISO type code must be like 22G1 or 45R1 (2 digits, a letter, a digit).',
         ];
     }

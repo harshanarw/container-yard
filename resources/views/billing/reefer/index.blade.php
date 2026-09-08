@@ -86,7 +86,7 @@
                             {{ $invoice->due_date->format('d M Y') }}
                             @if($pastDue)<i class="bi bi-exclamation-circle ms-1" title="Past due"></i>@endif
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td class="small text-nowrap">{{ $invoice->billing_period_from?->format('d M Y') }} – {{ $invoice->billing_period_to?->format('d M Y') }}</td>

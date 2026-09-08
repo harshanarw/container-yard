@@ -305,6 +305,6 @@ class WeeklyPerformanceReport
             ? strtoupper($start->format('F Y'))
             : strtoupper($start->format('d M Y') . ' to ' . $end->format('d M Y'));
 
-        return 'PERFORMANCE UPDATE [NO. OF UNITS] — ' . $period;
+        return 'PERFORMANCE UPDATE [NO. OF UNITS] - ' . $period;
     }
 }

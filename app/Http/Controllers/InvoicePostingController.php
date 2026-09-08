@@ -28,6 +28,6 @@ class InvoicePostingController extends Controller
         }
 
         return back()->with('error',
-            'Posting still failed — ' . ($posting->error_message ?? 'unknown error') . '.');
+            'Posting still failed - ' . ($posting->error_message ?? 'unknown error') . '.');
     }
 }

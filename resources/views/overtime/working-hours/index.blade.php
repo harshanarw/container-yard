@@ -35,12 +35,12 @@
 <div class="alert alert-info py-2 small d-flex align-items-center gap-2">
     <i class="bi bi-info-circle"></i>
     <div>The overtime engine is using <strong>{{ $resolved->name }}</strong>@if(! $resolved->is_default)
-        (fallback — no set is flagged default)@endif.</div>
+        (fallback - no set is flagged default)@endif.</div>
 </div>
 @else
 <div class="alert alert-danger py-2 small d-flex align-items-center gap-2">
     <i class="bi bi-exclamation-octagon"></i>
-    <div>No active working-hour set — every movement currently counts as overtime.</div>
+    <div>No active working-hour set - every movement currently counts as overtime.</div>
 </div>
 @endif
 
@@ -69,7 +69,7 @@
                             @if($resolved && $resolved->is($set))<span class="badge bg-success-subtle text-success border ms-1">In use</span>@endif
                         </td>
                         <td class="small text-muted">
-                            {{ $set->effective_from?->format('d M Y') ?? '—' }}
+                            {{ $set->effective_from?->format('d M Y') ?? '-' }}
                             @if($set->effective_to) → {{ $set->effective_to->format('d M Y') }} @endif
                         </td>
                         @foreach(array_keys(\App\Models\WeeklyWorkingHour::DAYS) as $key)
@@ -80,7 +80,7 @@
                                         {{ substr((string) $day->normal_start_time, 0, 5) }}<br>{{ substr((string) $day->normal_end_time, 0, 5) }}
                                     </span>
                                 @else
-                                    <span class="text-muted" title="Closed">—</span>
+                                    <span class="text-muted" title="Closed">-</span>
                                 @endif
                             </td>
                         @endforeach

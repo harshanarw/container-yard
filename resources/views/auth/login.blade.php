@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login — {{ $companySetting?->company_name ?? 'CYM System' }}</title>
+    <title>Login - {{ $companySetting?->company_name ?? 'CYM System' }}</title>
     @if($companySetting?->icon_url)
     <link rel="icon" type="image/png" href="{{ $companySetting->icon_url }}">
     @endif

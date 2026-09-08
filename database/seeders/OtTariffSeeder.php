@@ -21,7 +21,7 @@ class OtTariffSeeder extends Seeder
                 'name'             => 'ACDO Revised Depot OT',
                 'effective_from'   => '2026-04-01',
                 'currency'         => 'LKR',
-                'source_reference' => 'ACDO Sri Lanka circular — Revised Depot OT effective 01 Apr 2026',
+                'source_reference' => 'ACDO Sri Lanka circular - Revised Depot OT effective 01 Apr 2026',
                 'approval_status'  => 'active',
                 'active'           => true,
             ]

@@ -87,9 +87,9 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Parent Account</label>
                             <select name="parent_id" class="form-select form-select-sm select2-modal s2-code" data-s2-sel="name">
-                                <option value="">(No parent — top level)</option>
+                                <option value="">(No parent - top level)</option>
                                 @foreach($allAccounts as $acc)
-                                <option value="{{ $acc->id }}" data-code="{{ $acc->code }}" data-name="{{ $acc->name }}">{{ $acc->code }} — {{ $acc->name }}</option>
+                                <option value="{{ $acc->id }}" data-code="{{ $acc->code }}" data-name="{{ $acc->name }}">{{ $acc->code }} - {{ $acc->name }}</option>
                                 @endforeach
                             </select>
                         </div>

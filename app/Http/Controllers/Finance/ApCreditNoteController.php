@@ -66,7 +66,7 @@ class ApCreditNoteController extends Controller
                 $invoice->loadMissing('lines');
 
                 $lines = $invoice->lines->map(fn ($l) => [
-                    'description'        => 'Reversal — ' . $l->description,
+                    'description'        => 'Reversal - ' . $l->description,
                     'expense_account_id' => $l->expense_account_id,
                     'charge_code_id'     => $l->charge_code_id,
                     'tax_code_id'        => $l->tax_code_id,
@@ -266,7 +266,7 @@ class ApCreditNoteController extends Controller
                 'cn'            => $apCreditNote,
                 'title'         => 'CREDIT NOTE',
                 'partyLabel'    => 'Received From',
-                'partyName'     => $apCreditNote->supplier->name ?? '—',
+                'partyName'     => $apCreditNote->supplier->name ?? '-',
                 'taxLabel'      => 'Input VAT',
                 'size'          => $size,
                 'showSignature' => true,

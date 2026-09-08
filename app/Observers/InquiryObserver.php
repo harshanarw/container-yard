@@ -15,7 +15,7 @@ class InquiryObserver extends AuditObserver
     protected function describeCreated(Model $m, ?string $ref): string
     {
         return "Survey {$ref} created"
-            . ($m->container_no ? " — container {$m->container_no}" : '');
+            . ($m->container_no ? " - container {$m->container_no}" : '');
     }
 
     protected function describeUpdated(Model $m, ?string $ref, array $diff): string

@@ -73,17 +73,17 @@
                         @if($bank->short_name)
                             <span class="badge bg-primary" style="font-size:.75rem;">{{ $bank->short_name }}</span>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td><span class="fw-semibold">{{ $bank->name }}</span></td>
-                    <td class="small font-monospace text-muted">{{ $bank->swift_code ?: '—' }}</td>
-                    <td class="small font-monospace text-muted">{{ $bank->local_code ?: '—' }}</td>
+                    <td class="small font-monospace text-muted">{{ $bank->swift_code ?: '-' }}</td>
+                    <td class="small font-monospace text-muted">{{ $bank->local_code ?: '-' }}</td>
                     <td class="small text-muted">
                         @if($bank->countryInfo)
                             {{ $bank->countryInfo->flag_emoji }} {{ $bank->countryInfo->name }}
                         @else
-                            —
+                            -
                         @endif
                     </td>
                     <td class="text-center">
@@ -181,7 +181,7 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Country</label>
                             <select name="country_id" class="form-select select2-modal-add">
-                                <option value="">— Select Country —</option>
+                                <option value="">- Select Country -</option>
                                 @foreach($countries as $c)
                                     <option value="{{ $c->id }}"
                                         {{ $defaultCountryId == $c->id ? 'selected' : '' }}>
@@ -237,7 +237,7 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Country</label>
                             <select name="country_id" id="editCountryId" class="form-select select2-modal-edit">
-                                <option value="">— Select Country —</option>
+                                <option value="">- Select Country -</option>
                                 @foreach($countries as $c)
                                     <option value="{{ $c->id }}">
                                         {{ $c->flag_emoji }} {{ $c->name }} ({{ $c->iso2 }})

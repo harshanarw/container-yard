@@ -95,7 +95,7 @@ $allTypes = \App\Models\MrCode::TYPES;
                         </span>
                     </td>
                     <td class="fw-semibold small">{{ $item->name }}</td>
-                    <td class="small text-muted">{{ $item->description ?? '—' }}</td>
+                    <td class="small text-muted">{{ $item->description ?? '-' }}</td>
                     <td class="text-center">
                         @can('masters.mr-codes.edit')
                         <form method="POST" action="{{ route('masters.mr-codes.toggle', [$type, $item]) }}">

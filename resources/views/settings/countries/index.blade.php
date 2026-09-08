@@ -120,23 +120,23 @@
                             <span class="badge bg-primary fw-bold">{{ $country->iso2 }}</span>
                         </td>
                         <td class="text-center">
-                            <span class="badge bg-secondary-subtle text-secondary border">{{ $country->iso3 ?? '—' }}</span>
+                            <span class="badge bg-secondary-subtle text-secondary border">{{ $country->iso3 ?? '-' }}</span>
                         </td>
                         <td class="small">
                             @if($country->phone_code)
                                 <span class="text-muted">+</span>{{ $country->phone_code }}
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </td>
-                        <td class="small">{{ $country->capital ?? '—' }}</td>
+                        <td class="small">{{ $country->capital ?? '-' }}</td>
                         <td class="text-center">
                             @if($country->currency_code)
                                 <span class="badge bg-info-subtle text-info border border-info-subtle" title="{{ $country->currency_name }}">
                                     {{ $country->currency_code }}
                                 </span>
                             @else
-                                <span class="text-muted small">—</span>
+                                <span class="text-muted small">-</span>
                             @endif
                         </td>
                         <td>
@@ -249,7 +249,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Region</label>
                             <select name="region" class="form-select">
-                                <option value="">— Select Region —</option>
+                                <option value="">- Select Region -</option>
                                 @foreach(['Africa','Americas','Asia','Europe','Oceania'] as $r)
                                     <option value="{{ $r }}">{{ $r }}</option>
                                 @endforeach
@@ -328,7 +328,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Region</label>
                             <select name="region" id="editRegion" class="form-select">
-                                <option value="">— Select Region —</option>
+                                <option value="">- Select Region -</option>
                                 @foreach(['Africa','Americas','Asia','Europe','Oceania'] as $r)
                                     <option value="{{ $r }}">{{ $r }}</option>
                                 @endforeach

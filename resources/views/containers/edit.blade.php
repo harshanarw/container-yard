@@ -11,7 +11,7 @@
 @section('content')
 
 <div class="page-header">
-    <h4><i class="bi bi-pencil me-2 text-primary"></i>Edit Container — {{ $container->container_no }}</h4>
+    <h4><i class="bi bi-pencil me-2 text-primary"></i>Edit Container - {{ $container->container_no }}</h4>
     <p class="text-muted mb-0 small">Update master profile for this container</p>
 </div>
 

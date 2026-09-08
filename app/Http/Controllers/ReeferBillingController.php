@@ -134,7 +134,7 @@ class ReeferBillingController extends Controller
             return back()
                 ->withInput()
                 ->with('tariff_block', $preview['missing_rates'])
-                ->with('error', 'Invoice not saved — ' . count($preview['missing_rates'])
+                ->with('error', 'Invoice not saved - ' . count($preview['missing_rates'])
                     . ' reefer session group(s) have no usable tariff rate. Please set up the reefer tariff and preview again.');
         }
 
@@ -180,7 +180,7 @@ class ReeferBillingController extends Controller
         $reeferInvoice->update(['status' => 'issued', 'sent_at' => now(), 'ird_invoice_no' => $irdNo]);
 
         NotificationService::notifyAll(
-            'Reefer Invoice Issued — ' . $reeferInvoice->invoice_no,
+            'Reefer Invoice Issued - ' . $reeferInvoice->invoice_no,
             ($reeferInvoice->customer->name ?? 'Unknown') . ' · ' . $reeferInvoice->invoice_currency . ' ' . number_format($reeferInvoice->total_amount, 2),
             'success',
             route('billing.reefer.show', $reeferInvoice)
@@ -192,7 +192,7 @@ class ReeferBillingController extends Controller
         }
         // Surface an auto-post failure so the invoice isn't silently left unposted.
         if ($err = \App\Services\Finance\InvoicePostingService::lastFailure()) {
-            $redirect->with('warning', 'Issued, but not yet posted to the ledger — ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
+            $redirect->with('warning', 'Issued, but not yet posted to the ledger - ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
         }
 
         return $redirect;
@@ -206,7 +206,7 @@ class ReeferBillingController extends Controller
         $reeferInvoice->update(['status' => 'paid']);
 
         NotificationService::notifyAll(
-            'Reefer Invoice Paid — ' . $reeferInvoice->invoice_no,
+            'Reefer Invoice Paid - ' . $reeferInvoice->invoice_no,
             ($reeferInvoice->customer->name ?? 'Unknown') . ' · ' . $reeferInvoice->invoice_currency . ' ' . number_format($reeferInvoice->total_amount, 2),
             'success',
             route('billing.reefer.show', $reeferInvoice)
@@ -289,7 +289,7 @@ class ReeferBillingController extends Controller
             $rateToLkr = $lineCur === $default ? 1.0 : $rate;
             return [
                 'reference'       => optional($l->plugSession)->container_no,
-                'description'     => 'Reefer Electricity — ' . (optional($l->chargeCode)->name ?? 'Electricity Charge'),
+                'description'     => 'Reefer Electricity - ' . (optional($l->chargeCode)->name ?? 'Electricity Charge'),
                 'quantity'        => $l->hours ?? $l->quantity ?? 1,
                 'unit_price'      => round((float) ($l->rate ?? 0) * $rateToLkr, 2),
                 'amount_excl_vat' => round((float) ($l->subtotal ?? $l->line_amount ?? 0) * $toLkr, 2),
@@ -319,7 +319,7 @@ class ReeferBillingController extends Controller
             : null;
 
         $data = [
-            'ird_invoice_no'        => $reeferInvoice->ird_invoice_no ?? '—',
+            'ird_invoice_no'        => $reeferInvoice->ird_invoice_no ?? '-',
             'invoice_date'          => $reeferInvoice->invoice_date,
             'company'               => $company,
             'verifyUrl'             => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'reefer', 'id' => $reeferInvoice->id]),

@@ -44,7 +44,7 @@
             {{-- Empty dates are deliberate: a future-dated arrival falls outside
                  any range ending today, so a default range would hide it. --}}
             <div class="form-text small mt-2">
-                Leave the dates empty to check everything — a future-dated arrival sits outside any
+                Leave the dates empty to check everything - a future-dated arrival sits outside any
                 range ending today.
             </div>
         </form>
@@ -78,7 +78,7 @@
                 @forelse($open as $f)
                     <tr>
                         <td class="ps-3 font-monospace small">{{ $f['movement']->container_no }}</td>
-                        <td class="small">{{ $f['movement']->customer->name ?? '—' }}</td>
+                        <td class="small">{{ $f['movement']->customer->name ?? '-' }}</td>
                         <td>
                             <span class="badge {{ $f['check'] === 'no_gate_in' ? 'bg-secondary-subtle text-secondary border border-secondary-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle' }}">
                                 {{ $f['label'] }}
@@ -146,7 +146,7 @@
                         <td class="small">{{ $f['label'] }}</td>
                         <td class="small">{{ $f['review']->note }}</td>
                         <td class="small">
-                            {{ $f['review']->reviewer->name ?? '—' }}
+                            {{ $f['review']->reviewer->name ?? '-' }}
                             <span class="d-block text-muted">{{ $f['review']->updated_at->format('d M Y') }}</span>
                         </td>
                         <td class="text-end pe-3">
@@ -181,7 +181,7 @@
                 </div>
                 <div class="modal-body">
                     <p class="small text-muted">
-                        <span class="font-monospace" id="reviewContainer"></span> —
+                        <span class="font-monospace" id="reviewContainer"></span> -
                         <span id="reviewLabel"></span>
                     </p>
                     <label class="form-label form-label-sm">Why is there nothing to correct?</label>

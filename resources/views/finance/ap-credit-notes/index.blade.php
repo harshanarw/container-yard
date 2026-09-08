@@ -42,9 +42,9 @@
             @forelse($creditNotes as $cn)
                 <tr style="cursor:pointer" onclick="window.location='{{ route('finance.ap-credit-notes.show', $cn) }}'">
                     <td class="font-monospace">{{ $cn->credit_note_no }}</td>
-                    <td class="font-monospace text-muted small">{{ $cn->supplier_credit_no ?: '—' }}</td>
+                    <td class="font-monospace text-muted small">{{ $cn->supplier_credit_no ?: '-' }}</td>
                     <td class="text-muted">{{ $cn->credit_date->format('d M Y') }}</td>
-                    <td>{{ $cn->supplier->name ?? '—' }}</td>
+                    <td>{{ $cn->supplier->name ?? '-' }}</td>
                     <td class="text-end font-monospace">{{ $cn->currency }} {{ number_format($cn->total_amount, 2) }}</td>
                     <td class="text-end font-monospace text-muted">{{ $cn->currency }} {{ number_format($cn->applied_total, 2) }}</td>
                     <td class="text-center">

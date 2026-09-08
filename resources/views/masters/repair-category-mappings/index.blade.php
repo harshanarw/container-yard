@@ -169,9 +169,9 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">→ Repair Category <span class="text-danger">*</span></label>
                         <select name="repair_category_id" class="form-select select2-modal s2-code" data-s2-sel="name" required>
-                            <option value="">— Select category —</option>
+                            <option value="">- Select category -</option>
                             @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}" data-code="{{ $cat->code }}" data-name="{{ $cat->name }}">{{ $cat->code }} — {{ $cat->name }}</option>
+                            <option value="{{ $cat->id }}" data-code="{{ $cat->code }}" data-name="{{ $cat->name }}">{{ $cat->code }} - {{ $cat->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -179,16 +179,16 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">When Component Code is</label>
                         <select name="component_code_id" class="form-select select2-modal s2-code" data-s2-sel="name">
-                            <option value="">— Any —</option>
+                            <option value="">- Any -</option>
                             @foreach($componentCodes as $cc)
-                            <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->name }}">{{ $cc->code }} — {{ $cc->name }}</option>
+                            <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->name }}">{{ $cc->code }} - {{ $cc->name }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">When Repair Type is</label>
                         <select name="repair_type" class="form-select">
-                            <option value="">— Any —</option>
+                            <option value="">- Any -</option>
                             @foreach($repairTypes as $rt)
                             <option value="{{ $rt }}">{{ ucfirst(str_replace('_', ' ', $rt)) }}</option>
                             @endforeach
@@ -225,25 +225,25 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">→ Repair Category <span class="text-danger">*</span></label>
                         <select name="repair_category_id" id="editCategory" class="form-select select2-modal s2-code" data-s2-sel="name" required>
-                            <option value="">— Select category —</option>
+                            <option value="">- Select category -</option>
                             @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}" data-code="{{ $cat->code }}" data-name="{{ $cat->name }}">{{ $cat->code }} — {{ $cat->name }}</option>
+                            <option value="{{ $cat->id }}" data-code="{{ $cat->code }}" data-name="{{ $cat->name }}">{{ $cat->code }} - {{ $cat->name }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">When Component Code is</label>
                         <select name="component_code_id" id="editComponent" class="form-select select2-modal s2-code" data-s2-sel="name">
-                            <option value="">— Any —</option>
+                            <option value="">- Any -</option>
                             @foreach($componentCodes as $cc)
-                            <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->name }}">{{ $cc->code }} — {{ $cc->name }}</option>
+                            <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->name }}">{{ $cc->code }} - {{ $cc->name }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">When Repair Type is</label>
                         <select name="repair_type" id="editRepairType" class="form-select">
-                            <option value="">— Any —</option>
+                            <option value="">- Any -</option>
                             @foreach($repairTypes as $rt)
                             <option value="{{ $rt }}">{{ ucfirst(str_replace('_', ' ', $rt)) }}</option>
                             @endforeach

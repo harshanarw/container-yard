@@ -117,7 +117,7 @@ class GeneralInvoice extends Model
 
     public function getCategoryLabelAttribute(): string
     {
-        return self::CATEGORIES[$this->category] ?? ($this->category ?: '—');
+        return self::CATEGORIES[$this->category] ?? ($this->category ?: '-');
     }
 
     public function isTaxDocument(): bool

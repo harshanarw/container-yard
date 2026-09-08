@@ -59,10 +59,10 @@
                             @error('container_no')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             <div id="checkDigitWarnMaster" class="mt-1 small d-none">
                                 <span class="badge" style="background:#fef3c7;color:#92400e;">
-                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid check digit — please verify number
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid check digit - please verify number
                                 </span>
                             </div>
-                            <div class="form-text">ISO 6346 format — 4 letters + 7 digits</div>
+                            <div class="form-text">ISO 6346 format - 4 letters + 7 digits</div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
@@ -92,7 +92,7 @@
                             <label class="form-label fw-semibold">Equipment Type</label>
                             <select name="equipment_type_id" id="equipmentTypeSelect"
                                     class="form-select s2-code @error('equipment_type_id') is-invalid @enderror">
-                                <option value="">— Select —</option>
+                                <option value="">- Select -</option>
                                 @foreach($equipmentTypes as $et)
                                     <option value="{{ $et->id }}"
                                             data-code="{{ $et->eqt_code }}"
@@ -101,7 +101,7 @@
                                             data-vent-count="{{ $et->vent_count ?? '' }}"
                                             @if(in_array($et->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif
                                             {{ old('equipment_type_id', $container?->equipment_type_id) == $et->id ? 'selected' : '' }}>
-                                        {{ $et->eqt_code }} — {{ $et->description }}
+                                        {{ $et->eqt_code }} - {{ $et->description }}
                                     </option>
                                 @endforeach
                             </select>
@@ -110,14 +110,14 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Container Grade</label>
                             <select name="grade_id" class="form-select s2-grade @error('grade_id') is-invalid @enderror">
-                                <option value="">— Not Set —</option>
+                                <option value="">- Not Set -</option>
                                 @foreach($grades as $grade)
                                     <option value="{{ $grade->id }}"
                                             data-code="{{ $grade->code }}"
                                             data-name="{{ $grade->name }}"
                                             data-color="{{ $grade->color ?? 'secondary' }}"
                                             {{ old('grade_id', $container?->grade_id) == $grade->id ? 'selected' : '' }}>
-                                        {{ $grade->code }} — {{ $grade->name }}
+                                        {{ $grade->code }} - {{ $grade->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -137,7 +137,7 @@
                             <label class="form-label fw-semibold">Ventilation Type</label>
                             <select name="ventilation_type" id="masterVentType"
                                     class="form-select @error('ventilation_type') is-invalid @enderror">
-                                <option value="">— Inherit from Equipment Type —</option>
+                                <option value="">- Inherit from Equipment Type -</option>
                                 @foreach(\App\Models\EquipmentType::VENTILATION_TYPES as $val => $label)
                                     <option value="{{ $val }}"
                                             {{ old('ventilation_type', $container?->ventilation_type) == $val ? 'selected' : '' }}>
@@ -152,7 +152,7 @@
                             <label class="form-label fw-semibold">Vent Count</label>
                             <input type="number" name="vent_count" id="masterVentCount"
                                    class="form-control @error('vent_count') is-invalid @enderror"
-                                   min="0" max="99" placeholder="—"
+                                   min="0" max="99" placeholder="-"
                                    value="{{ old('vent_count', $container?->vent_count) }}">
                             @error('vent_count')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             <div class="form-text">Discrete vent openings.</div>
@@ -192,19 +192,19 @@
                                 <span class="text-muted fw-normal" style="font-size:.75rem;">(linked party)</span>
                             </label>
                             <select name="owner_customer_id" class="form-select s2-code @error('owner_customer_id') is-invalid @enderror" data-s2-sel="name">
-                                <option value="">— Not a registered party —</option>
+                                <option value="">- Not a registered party -</option>
                                 @foreach($customers as $cust)
                                     <option value="{{ $cust->id }}"
                                         data-code="{{ $cust->code }}" data-name="{{ $cust->name }}"
                                         {{ old('owner_customer_id', $container?->owner_customer_id) == $cust->id ? 'selected' : '' }}>
-                                        {{ $cust->code }} — {{ $cust->name }}
+                                        {{ $cust->code }} - {{ $cust->name }}
                                     </option>
                                 @endforeach
                             </select>
                             @error('owner_customer_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             <div class="form-text">
                                 Who owns the box. Leave blank if the owner is not one of your registered
-                                parties — the Owner Code / Name above still apply.
+                                parties - the Owner Code / Name above still apply.
                             </div>
                         </div>
                     </div>
@@ -220,22 +220,22 @@
                                     <span class="text-muted fw-normal" style="font-size:.75rem;">(from current visit)</span>
                                 </label>
                                 <input type="text" class="form-control" disabled
-                                       value="{{ $container->customer?->name ?? '—' }}">
+                                       value="{{ $container->customer?->name ?? '-' }}">
                                 <div class="form-text">
                                     Set at Gate-In and carried through to Gate-Out. To correct it,
-                                    edit the gate-in movement — that moves the whole visit.
+                                    edit the gate-in movement - that moves the whole visit.
                                 </div>
                             @else
                                 <label class="form-label fw-semibold">
                                     Customer <span class="text-danger">*</span>
                                 </label>
                                 <select name="customer_id" class="form-select s2-code @error('customer_id') is-invalid @enderror" data-s2-sel="name">
-                                    <option value="">— Select —</option>
+                                    <option value="">- Select -</option>
                                     @foreach($customers as $cust)
                                         <option value="{{ $cust->id }}"
                                             data-code="{{ $cust->code }}" data-name="{{ $cust->name }}"
                                             {{ old('customer_id') == $cust->id ? 'selected' : '' }}>
-                                            {{ $cust->code }} — {{ $cust->name }}
+                                            {{ $cust->code }} - {{ $cust->name }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -442,17 +442,17 @@
                         <dd class="col-6 fw-semibold">
                             @if($container->location_zone)
                                 {{ $container->location_zone }}-{{ $container->location_row }}{{ $container->location_bay }}-T{{ $container->location_tier }}
-                            @else —
+                            @else -
                             @endif
                         </dd>
                         <dt class="col-6 text-muted fw-normal">Current Condition</dt>
-                        <dd class="col-6">{{ ucfirst(str_replace('_',' ',$container->condition ?? '')) ?: '—' }}</dd>
+                        <dd class="col-6">{{ ucfirst(str_replace('_',' ',$container->condition ?? '')) ?: '-' }}</dd>
                         <dt class="col-6 text-muted fw-normal">Cargo</dt>
-                        <dd class="col-6">{{ $container->cargo_status === 'empty' ? 'Empty' : ($container->cargo_status ? 'Laden' : '—') }}</dd>
+                        <dd class="col-6">{{ $container->cargo_status === 'empty' ? 'Empty' : ($container->cargo_status ? 'Laden' : '-') }}</dd>
                         <dt class="col-6 text-muted fw-normal">Gate In</dt>
-                        <dd class="col-6">{{ $container->gate_in_date?->format('d M Y') ?? '—' }}</dd>
+                        <dd class="col-6">{{ $container->gate_in_date?->format('d M Y') ?? '-' }}</dd>
                         <dt class="col-6 text-muted fw-normal">Gate Out</dt>
-                        <dd class="col-6">{{ $container->gate_out_date?->format('d M Y') ?? '—' }}</dd>
+                        <dd class="col-6">{{ $container->gate_out_date?->format('d M Y') ?? '-' }}</dd>
                         <dt class="col-6 text-muted fw-normal">Gate cycles</dt>
                         <dd class="col-6">{{ $container->gateMovements()->count() }}</dd>
                     </dl>

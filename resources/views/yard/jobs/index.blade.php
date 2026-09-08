@@ -74,7 +74,7 @@
                     <option value="">All Types</option>
                     @foreach($jobTypes as $jt)
                     <option value="{{ $jt->id }}" {{ request('job_type_id') == $jt->id ? 'selected' : '' }}>
-                        {{ $jt->type_short_code }} — {{ $jt->job_type_name }}
+                        {{ $jt->type_short_code }} - {{ $jt->job_type_name }}
                     </option>
                     @endforeach
                 </select>

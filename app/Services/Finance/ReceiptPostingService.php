@@ -117,7 +117,7 @@ class ReceiptPostingService
 
             // Withholding tax the customer deducted → WHT Receivable (base currency).
             if ($whtBase > 0.005 && $whtAccount) {
-                $lines[] = ['account_id' => $whtAccount->id, 'debit' => $whtBase, 'credit' => 0, 'narration' => 'WHT withheld by customer — receivable'];
+                $lines[] = ['account_id' => $whtAccount->id, 'debit' => $whtBase, 'credit' => 0, 'narration' => 'WHT withheld by customer - receivable'];
             }
 
             // AR: gross settlement minus AR relieved → positive = exchange gain.
@@ -131,7 +131,7 @@ class ReceiptPostingService
                 'journal_type'   => 'receipt',
                 'reference_type' => Receipt::class,
                 'reference_id'   => $receipt->id,
-                'narration'      => "Receipt {$receipt->receipt_no} — {$customerName}",
+                'narration'      => "Receipt {$receipt->receipt_no} - {$customerName}",
             ], $lines);
 
             $this->engine->postJournal($journal, $userId);
@@ -300,7 +300,7 @@ class ReceiptPostingService
 
             // Withholding tax credited to WHT Payable (base currency — remitted in LKR).
             if ($whtBase > 0.005 && $whtAccount) {
-                $lines[] = ['account_id' => $whtAccount->id, 'debit' => 0, 'credit' => $whtBase, 'narration' => 'WHT withheld — payable to IRD'];
+                $lines[] = ['account_id' => $whtAccount->id, 'debit' => 0, 'credit' => $whtBase, 'narration' => 'WHT withheld - payable to IRD'];
             }
 
             $journal = $this->engine->createJournal([
@@ -308,7 +308,7 @@ class ReceiptPostingService
                 'journal_type'   => 'payment',
                 'reference_type' => PaymentVoucher::class,
                 'reference_id'   => $voucher->id,
-                'narration'      => "Voucher {$voucher->voucher_no} — {$voucher->payee_name}",
+                'narration'      => "Voucher {$voucher->voucher_no} - {$voucher->payee_name}",
             ], $lines);
 
             $this->engine->postJournal($journal, $userId);

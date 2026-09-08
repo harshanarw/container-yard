@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Weekly Performance — Revenue')
+@section('title', 'Weekly Performance - Revenue')
 
 @section('breadcrumb')
     <li class="breadcrumb-item">Reports</li>
-    <li class="breadcrumb-item active">Weekly Performance — Revenue</li>
+    <li class="breadcrumb-item active">Weekly Performance - Revenue</li>
 @endsection
 
 @push('styles')
@@ -73,7 +73,7 @@
 
 <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
     <div>
-        <h4><i class="bi bi-cash-coin me-2 text-primary"></i>Weekly Performance — Revenue</h4>
+        <h4><i class="bi bi-cash-coin me-2 text-primary"></i>Weekly Performance - Revenue</h4>
         <p class="text-muted mb-0 small">Revenue per customer, week by week, in {{ $data['currency'] }}</p>
     </div>
     <div class="d-flex flex-wrap gap-2 no-print">
@@ -285,7 +285,7 @@
                          models rental income yet; the row holds its place so the
                          sheet keeps the shape the yard knows. --}}
                     <tr>
-                        <td class="wr-name">OTHER INCOME — RENT</td>
+                        <td class="wr-name">OTHER INCOME - RENT</td>
                         <td class="wr-label text-muted fst-italic">not yet recorded</td>
                         @foreach($data['rent']['weeks'] as $amount)
                             <td class="wr-amt wr-zero">{{ $money($amount) }}</td>
@@ -337,9 +337,9 @@
     {{-- The basis note. A report that quietly disagrees with the invoices is
          trusted until someone checks, and distrusted permanently after. --}}
     <div class="card-footer bg-transparent small text-muted">
-        <strong>De-mounting, Mounting and Storage are earned revenue</strong> — computed from gate
+        <strong>De-mounting, Mounting and Storage are earned revenue</strong> - computed from gate
         movements and the tariffs in force, so they do not wait for invoicing to run.
-        <strong>Electricity, PTI, Overtime and Other are billed</strong> — taken from issued documents
+        <strong>Electricity, PTI, Overtime and Other are billed</strong> - taken from issued documents
         dated in the period, excluding drafts, cancellations and voids.
         Storage &amp; Handling invoices are never read here, because the first three rows already
         compute that revenue from the movements themselves.

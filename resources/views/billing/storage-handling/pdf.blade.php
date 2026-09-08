@@ -129,7 +129,7 @@
             <div class="info-box">
                 <h3>Bill To (Shipping Line)</h3>
                 <div style="font-weight:bold; font-size:11px; margin-bottom:4px;">
-                    {{ $invoice->shippingLine->name ?? '—' }}
+                    {{ $invoice->shippingLine->name ?? '-' }}
                 </div>
                 @if($invoice->shippingLine)
                     @if($invoice->shippingLine->code)
@@ -285,7 +285,7 @@
             <td class="bold" style="font-family:monospace;">{{ $l->container_no }}</td>
             <td class="c">{{ $l->container_size }}'</td>
             <td>{{ $l->equipment_type }}</td>
-            <td>{{ $l->gate_out_date ? $l->gate_out_date->format('d M Y') : '—' }}</td>
+            <td>{{ $l->gate_out_date ? $l->gate_out_date->format('d M Y') : '-' }}</td>
             <td class="r">{{ $fmtDisp($l->lift_on_rate) }}</td>
             <td class="r bold">{{ $fmtDisp($l->lift_on_rate) }}</td>
         </tr>

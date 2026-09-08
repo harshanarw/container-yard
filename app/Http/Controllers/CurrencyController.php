@@ -102,6 +102,6 @@ class CurrencyController extends Controller
 
         Currency::setDefault($currency);
 
-        return back()->with('success', "{$currency->code} — {$currency->name} set as default currency.");
+        return back()->with('success', "{$currency->code} - {$currency->name} set as default currency.");
     }
 }

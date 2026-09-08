@@ -58,7 +58,7 @@ class LessorOnHireController extends Controller
 
         return redirect()->route('yard.lessor-hires.show', $hire)
             ->with('success', 'Container placed on hire from the lessor. Job ' . $hire->yardJob?->job_no
-                . ' opened — tag the lessor fee (supplier invoice / voucher) to this job to cost it.');
+                . ' opened - tag the lessor fee (supplier invoice / voucher) to this job to cost it.');
     }
 
     public function show(LessorOnHire $lessorHire)
@@ -87,6 +87,6 @@ class LessorOnHireController extends Controller
         }
 
         return redirect()->route('yard.lessor-hires.show', $lessorHire)
-            ->with('success', 'Off-hired — the container was returned to the lessor and the job closed.');
+            ->with('success', 'Off-hired - the container was returned to the lessor and the job closed.');
     }
 }

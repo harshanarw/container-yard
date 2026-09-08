@@ -125,7 +125,7 @@
                         <div class="col-md-6">
                             <label class="form-label">Customer <small class="text-muted">(leave blank for default)</small></label>
                             <select name="customer_id" class="form-select select2">
-                                <option value="">— System Default —</option>
+                                <option value="">- System Default -</option>
                                 @foreach($customers as $c)
                                     <option value="{{ $c->id }}">{{ $c->name }}</option>
                                 @endforeach
@@ -156,10 +156,10 @@
                         <div class="col-md-6">
                             <label class="form-label fw-medium">Charge Code</label>
                             <select name="charge_code_id" class="form-select s2-code">
-                                <option value="">— Use default reefer charge code —</option>
+                                <option value="">- Use default reefer charge code -</option>
                                 @foreach($chargeCodes as $cc)
                                     <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}">
-                                        {{ $cc->code }} — {{ $cc->description }}@if($cc->taxCode) ({{ $cc->taxCode->code }})@endif
+                                        {{ $cc->code }} - {{ $cc->description }}@if($cc->taxCode) ({{ $cc->taxCode->code }})@endif
                                     </option>
                                 @endforeach
                             </select>

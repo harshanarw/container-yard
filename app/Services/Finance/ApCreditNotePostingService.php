@@ -123,7 +123,7 @@ class ApCreditNotePostingService
                 'account_id' => $apAccount->id,
                 'debit'      => $drAp,
                 'credit'     => 0,
-                'narration'  => 'Trade creditors — credit note',
+                'narration'  => 'Trade creditors - credit note',
             ]];
             $lines = array_merge($lines, $credits);
 
@@ -140,7 +140,7 @@ class ApCreditNotePostingService
                 'journal_type'   => 'credit_note',
                 'reference_type' => ApCreditNote::class,
                 'reference_id'   => $cn->id,
-                'narration'      => "AP Credit Note {$cn->credit_note_no} — " . ($cn->supplier->name ?? 'Supplier'),
+                'narration'      => "AP Credit Note {$cn->credit_note_no} - " . ($cn->supplier->name ?? 'Supplier'),
             ], $lines);
 
             $this->engine->postJournal($journal, $userId);
@@ -216,7 +216,7 @@ class ApCreditNotePostingService
                 throw new \RuntimeException('No Foreign Exchange Gain account found (expected code 4102). Add it to the Chart of Accounts.');
             }
             $lines = [
-                ['account_id' => $apAccount->id, 'debit' => $residue, 'credit' => 0, 'narration' => 'AP FX adjustment — credit note application'],
+                ['account_id' => $apAccount->id, 'debit' => $residue, 'credit' => 0, 'narration' => 'AP FX adjustment - credit note application'],
                 ['account_id' => $gain->id, 'debit' => 0, 'credit' => $residue, 'narration' => 'Exchange gain on credit note application'],
             ];
         } else {
@@ -226,7 +226,7 @@ class ApCreditNotePostingService
                 throw new \RuntimeException('No Foreign Exchange Loss account found (expected code 7002). Add it to the Chart of Accounts.');
             }
             $lines = [
-                ['account_id' => $apAccount->id, 'debit' => 0, 'credit' => $mag, 'narration' => 'AP FX adjustment — credit note application'],
+                ['account_id' => $apAccount->id, 'debit' => 0, 'credit' => $mag, 'narration' => 'AP FX adjustment - credit note application'],
                 ['account_id' => $loss->id, 'debit' => $mag, 'credit' => 0, 'narration' => 'Exchange loss on credit note application'],
             ];
         }

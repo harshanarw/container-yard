@@ -48,11 +48,11 @@
                 <tbody>
                     @forelse($drivers as $driver)
                     <tr>
-                        <td class="fw-semibold">{{ $driver->name ?: '—' }}</td>
+                        <td class="fw-semibold">{{ $driver->name ?: '-' }}</td>
                         <td class="font-monospace">{{ $driver->nic_number }}</td>
-                        <td>{{ $driver->phone ?: '—' }}</td>
+                        <td>{{ $driver->phone ?: '-' }}</td>
                         <td class="text-center">{{ $driver->movement_count }}</td>
-                        <td class="small text-muted">{{ $driver->last_seen_at?->format('d M Y') ?? '—' }}</td>
+                        <td class="small text-muted">{{ $driver->last_seen_at?->format('d M Y') ?? '-' }}</td>
                         <td class="text-end">
                             <a href="{{ route('masters.drivers.show', $driver) }}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-eye me-1"></i>View
@@ -63,7 +63,7 @@
                     <tr>
                         <td colspan="6" class="text-center text-muted py-4">
                             <i class="bi bi-inbox me-1"></i>
-                            {{ $q !== '' ? 'No drivers match your search.' : 'No drivers yet — they appear here as gate movements are recorded.' }}
+                            {{ $q !== '' ? 'No drivers match your search.' : 'No drivers yet - they appear here as gate movements are recorded.' }}
                         </td>
                     </tr>
                     @endforelse

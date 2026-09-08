@@ -61,7 +61,7 @@
                         $doc = $req->approvable;
                         $isGatePass = $req->workflow_type === 'gate_pass';
                         $docLabel = $isGatePass
-                            ? 'Gate Pass — ' . ($doc?->container_no ?? '#' . $req->approvable_id)
+                            ? 'Gate Pass - ' . ($doc?->container_no ?? '#' . $req->approvable_id)
                             : ucfirst(str_replace('_', ' ', $req->workflow_type)) . ' #' . $req->approvable_id;
                         $docLink = $isGatePass && $doc
                             ? route('yard.movements.edit', $doc)
@@ -88,7 +88,7 @@
                             @endif
                         </td>
                         <td>
-                            <div>{{ $req->initiatedBy?->name ?? '—' }}</div>
+                            <div>{{ $req->initiatedBy?->name ?? '-' }}</div>
                         </td>
                         <td>
                             <div>{{ $req->initiated_at?->format('d M Y') }}</div>

@@ -148,31 +148,31 @@ return [
 
     'masters.reefer-tariff' => [
         'label'   => 'Reefer Electricity Tariff',
-        'section' => 'Masters — Tariffs',
+        'section' => 'Masters - Tariffs',
         'actions' => ['view', 'create', 'edit', 'delete', 'toggle'],
     ],
 
     'masters.storage-tariff' => [
         'label'   => 'Storage Tariff',
-        'section' => 'Masters — Tariffs',
+        'section' => 'Masters - Tariffs',
         'actions' => ['view', 'create', 'edit', 'delete', 'toggle'],
     ],
 
     'masters.handling-tariff' => [
         'label'   => 'Handling Tariff',
-        'section' => 'Masters — Tariffs',
+        'section' => 'Masters - Tariffs',
         'actions' => ['view', 'create', 'edit', 'delete', 'toggle'],
     ],
 
     'masters.mr-tariff' => [
         'label'   => 'M&R Tariff',
-        'section' => 'Masters — Tariffs',
+        'section' => 'Masters - Tariffs',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.washing-tariff' => [
         'label'   => 'Washing / Cleaning Tariff',
-        'section' => 'Masters — Tariffs',
+        'section' => 'Masters - Tariffs',
         'actions' => ['view', 'create', 'edit', 'delete', 'toggle'],
     ],
 
@@ -180,7 +180,7 @@ return [
 
     'masters.job-types' => [
         'label'   => 'Gate-In Job Types',
-        'section' => 'Masters — Operations',
+        'section' => 'Masters - Operations',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
@@ -188,85 +188,85 @@ return [
 
     'masters.charge-codes' => [
         'label'   => 'Charge Codes',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.tax-codes' => [
         'label'   => 'Tax Codes',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.currencies' => [
         'label'   => 'Currencies',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.banks' => [
         'label'   => 'Banks',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.exchange-rates' => [
         'label'   => 'Exchange Rates',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.equipment-types' => [
         'label'   => 'Equipment Types',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.container-grades' => [
         'label'   => 'Container Grades',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.storage-zones' => [
         'label'   => 'Storage Zones & Slots',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.customer-types' => [
         'label'   => 'Customer Types',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.mr-codes' => [
         'label'   => 'M&R Codes',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.repair-categories' => [
         'label'   => 'Repair Categories',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.damage-rules' => [
         'label'   => 'Damage Assessment Rules',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.checklist-items' => [
         'label'   => 'Checklist Items',
-        'section' => 'Masters — Reference',
+        'section' => 'Masters - Reference',
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
     'masters.countries' => [
         'label'       => 'Countries & States',
-        'section'     => 'Masters — Reference',
+        'section'     => 'Masters - Reference',
         'system_only' => true,
         'actions'     => ['view', 'create', 'edit', 'delete'],
     ],
@@ -357,7 +357,7 @@ return [
     // shows what every customer is worth, week by week. The people who read
     // throughput are not automatically the people who should read revenue.
     'weekly-revenue' => [
-        'label'   => 'Weekly Performance — Revenue',
+        'label'   => 'Weekly Performance - Revenue',
         'section' => 'Reports',
         'actions' => ['view'],
     ],

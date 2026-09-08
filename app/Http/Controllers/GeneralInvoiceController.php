@@ -121,7 +121,7 @@ class GeneralInvoiceController extends Controller
         if ($err = \App\Services\Finance\InvoicePostingService::lastFailure()) {
             return back()
                 ->with('success', "{$general->type_label} {$general->invoice_no} issued.")
-                ->with('warning', 'Not yet posted to the ledger — ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
+                ->with('warning', 'Not yet posted to the ledger - ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
         }
 
         return back()->with('success', "{$general->type_label} {$general->invoice_no} issued and posted to the ledger.");
@@ -136,7 +136,7 @@ class GeneralInvoiceController extends Controller
         // Any settlement (confirmed receipt or approved credit note) must be
         // reversed first — voiding would strand the receipt's cash journal.
         if ($ar->getAllocatedTotal('general', $general->id) > 0.005) {
-            return back()->with('error', 'This document has receipts or credit notes applied — reverse those before voiding.');
+            return back()->with('error', 'This document has receipts or credit notes applied - reverse those before voiding.');
         }
 
         $general->update(['status' => 'void']);

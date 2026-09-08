@@ -61,7 +61,7 @@
                         </span>
                     </td>
                     <td class="fw-semibold small">{{ $item->name }}</td>
-                    <td class="small text-muted">{{ $item->description ?? '—' }}</td>
+                    <td class="small text-muted">{{ $item->description ?? '-' }}</td>
                     <td class="text-center">
                         @can('masters.container-grades.edit')
                         <form method="POST" action="{{ route('masters.container-grades.toggle', $item) }}">
@@ -90,7 +90,7 @@
                             @can('masters.container-grades.delete')
                             <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                     data-id="{{ $item->id }}"
-                                    data-label="{{ $item->code }} — {{ $item->name }}"
+                                    data-label="{{ $item->code }} - {{ $item->name }}"
                                     title="Delete">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -145,12 +145,12 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Badge Colour <span class="text-danger">*</span></label>
                             <select name="color" class="form-select" required id="addColorSelect">
-                                <option value="success">Green — Success</option>
-                                <option value="primary">Blue — Primary</option>
-                                <option value="info">Teal — Info</option>
-                                <option value="secondary" selected>Grey — Secondary</option>
-                                <option value="warning">Yellow — Warning</option>
-                                <option value="danger">Red — Danger</option>
+                                <option value="success">Green - Success</option>
+                                <option value="primary">Blue - Primary</option>
+                                <option value="info">Teal - Info</option>
+                                <option value="secondary" selected>Grey - Secondary</option>
+                                <option value="warning">Yellow - Warning</option>
+                                <option value="danger">Red - Danger</option>
                             </select>
                         </div>
                         <div class="col-md-6 d-flex align-items-end pb-1">
@@ -202,12 +202,12 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Badge Colour <span class="text-danger">*</span></label>
                             <select name="color" id="editColorSelect" class="form-select" required>
-                                <option value="success">Green — Success</option>
-                                <option value="primary">Blue — Primary</option>
-                                <option value="info">Teal — Info</option>
-                                <option value="secondary">Grey — Secondary</option>
-                                <option value="warning">Yellow — Warning</option>
-                                <option value="danger">Red — Danger</option>
+                                <option value="success">Green - Success</option>
+                                <option value="primary">Blue - Primary</option>
+                                <option value="info">Teal - Info</option>
+                                <option value="secondary">Grey - Secondary</option>
+                                <option value="warning">Yellow - Warning</option>
+                                <option value="danger">Red - Danger</option>
                             </select>
                         </div>
                         <div class="col-md-6 d-flex align-items-end pb-1">

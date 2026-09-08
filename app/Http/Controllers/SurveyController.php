@@ -114,7 +114,7 @@ class SurveyController extends Controller
 
     public function store(StoreSurveyRequest $request)
     {
-        \Log::debug('[StoreSurvey] store() reached — validation passed', [
+        \Log::debug('[StoreSurvey] store() reached - validation passed', [
             'wants_json'   => $request->wantsJson(),
             'accept'       => $request->header('Accept'),
             'container_id' => $request->container_id,
@@ -208,10 +208,10 @@ class SurveyController extends Controller
             });
 
             $redirectUrl = route('surveys.show', $inquiry);
-            \Log::debug('[StoreSurvey] Success — redirect=' . $redirectUrl . ' wants_json=' . ($request->wantsJson() ? 'yes' : 'no'));
+            \Log::debug('[StoreSurvey] Success - redirect=' . $redirectUrl . ' wants_json=' . ($request->wantsJson() ? 'yes' : 'no'));
 
             NotificationService::notifyAll(
-                'Survey Created — ' . $inquiry->inquiry_no,
+                'Survey Created - ' . $inquiry->inquiry_no,
                 ($container->customer->name ?? $inquiry->customer->name ?? 'Unknown') . ' · ' . $container->container_no . ' · ' . ucfirst($request->inquiry_type ?? 'survey'),
                 'info',
                 route('surveys.show', $inquiry)
@@ -276,7 +276,7 @@ class SurveyController extends Controller
 
     public function update(UpdateSurveyRequest $request, Inquiry $survey)
     {
-        \Log::debug('[UpdateSurvey] update() reached — validation passed', [
+        \Log::debug('[UpdateSurvey] update() reached - validation passed', [
             'survey_id'  => $survey->id,
             'wants_json' => $request->wantsJson(),
             'accept'     => $request->header('Accept'),
@@ -331,7 +331,7 @@ class SurveyController extends Controller
             \Log::debug('[UpdateSurvey] Checklist rebuilt');
 
             $redirectUrl = route('surveys.show', $survey);
-            \Log::debug('[UpdateSurvey] Success — redirect=' . $redirectUrl . ' wants_json=' . ($request->wantsJson() ? 'yes' : 'no'));
+            \Log::debug('[UpdateSurvey] Success - redirect=' . $redirectUrl . ' wants_json=' . ($request->wantsJson() ? 'yes' : 'no'));
 
             if ($request->wantsJson()) {
                 return response()->json(['redirect' => $redirectUrl]);

@@ -177,7 +177,7 @@ class WeeklyPerformanceScreenTest extends FeatureTestCase
         $response->assertSee('TOTAL DEMOUNTING');
         $response->assertSee('TOTAL MOUNTING');
         $response->assertSee('GRAND TOTAL');
-        $response->assertSee('PERFORMANCE UPDATE [NO. OF UNITS] — AUGUST 2026', false);
+        $response->assertSee('PERFORMANCE UPDATE [NO. OF UNITS] - AUGUST 2026', false);
     }
 
     /** The date range under each week band is the requirement, not decoration. */
@@ -231,7 +231,7 @@ class WeeklyPerformanceScreenTest extends FeatureTestCase
             'only_with_movements' => 1,
         ]))->assertOk();
 
-        $response->assertSee('PERFORMANCE UPDATE [NO. OF UNITS] — AUGUST 2026', false);
+        $response->assertSee('PERFORMANCE UPDATE [NO. OF UNITS] - AUGUST 2026', false);
         $response->assertSee('01 Aug 2026', false);
         $response->assertSee('31 Aug 2026', false);
         $response->assertSee('7-day blocks from the start date', false);

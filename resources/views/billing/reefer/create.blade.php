@@ -26,7 +26,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Customer <span class="text-danger">*</span></label>
                         <select name="customer_id" id="customerId" class="form-select s2-code" required data-s2-sel="name">
-                            <option value="">— Select Customer —</option>
+                            <option value="">- Select Customer -</option>
                             @foreach($customers as $c)
                                 <option value="{{ $c->id }}"
                                         data-code="{{ $c->code }}" data-name="{{ $c->name }}"
@@ -44,7 +44,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Billing Party</label>
                         <select name="billing_party_id" id="billingPartyId" class="form-select s2-code" data-s2-sel="name">
-                            <option value="">— Select Billing Party —</option>
+                            <option value="">- Select Billing Party -</option>
                             @foreach($allCustomers as $c)
                                 <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-address="{{ $c->address ?? '' }}">
                                     [{{ $c->code }}] {{ $c->name }}
@@ -58,7 +58,7 @@
 
                     <div id="taxExemptAlert" class="alert alert-warning py-2 small d-none mb-2">
                         <i class="bi bi-shield-check me-1"></i>
-                        <strong>Tax Exempt Customer</strong> — all tax rates will be applied as 0%.
+                        <strong>Tax Exempt Customer</strong> - all tax rates will be applied as 0%.
                     </div>
 
                     <div class="mb-3">
@@ -88,12 +88,12 @@
                         <div class="col-5">
                             <label class="form-label fw-semibold">Invoice Currency <span class="text-danger">*</span></label>
                             <select name="invoice_currency" id="invoiceCurrency" class="form-select s2-code" data-s2-sel="name">
-                                <option value="LKR" data-code="LKR" data-name="Sri Lankan Rupee">LKR — Sri Lankan Rupee</option>
-                                <option value="USD" data-code="USD" data-name="US Dollar">USD — US Dollar</option>
-                                <option value="EUR" data-code="EUR" data-name="Euro">EUR — Euro</option>
-                                <option value="GBP" data-code="GBP" data-name="British Pound">GBP — British Pound</option>
-                                <option value="SGD" data-code="SGD" data-name="Singapore Dollar">SGD — Singapore Dollar</option>
-                                <option value="AUD" data-code="AUD" data-name="Australian Dollar">AUD — Australian Dollar</option>
+                                <option value="LKR" data-code="LKR" data-name="Sri Lankan Rupee">LKR - Sri Lankan Rupee</option>
+                                <option value="USD" data-code="USD" data-name="US Dollar">USD - US Dollar</option>
+                                <option value="EUR" data-code="EUR" data-name="Euro">EUR - Euro</option>
+                                <option value="GBP" data-code="GBP" data-name="British Pound">GBP - British Pound</option>
+                                <option value="SGD" data-code="SGD" data-name="Singapore Dollar">SGD - Singapore Dollar</option>
+                                <option value="AUD" data-code="AUD" data-name="Australian Dollar">AUD - Australian Dollar</option>
                             </select>
                             <div class="form-text">Values always stored in LKR</div>
                         </div>
@@ -171,11 +171,11 @@
                 <div class="card-footer">
                     <div class="row justify-content-end g-1 small">
                         <div class="col-md-5">
-                            <div class="d-flex justify-content-between text-muted"><span>Subtotal</span><span id="sumSubtotal">—</span></div>
-                            <div class="d-flex justify-content-between text-muted"><span>SSCL</span><span id="sumSscl">—</span></div>
-                            <div class="d-flex justify-content-between text-muted"><span>VAT</span><span id="sumVat">—</span></div>
-                            <div class="d-flex justify-content-between fw-bold border-top mt-1 pt-1"><span>Total</span><span id="sumTotal">—</span></div>
-                            <div class="d-flex justify-content-between text-muted small mt-1"><span>Total Value (LKR)</span><span id="sumValue">—</span></div>
+                            <div class="d-flex justify-content-between text-muted"><span>Subtotal</span><span id="sumSubtotal">-</span></div>
+                            <div class="d-flex justify-content-between text-muted"><span>SSCL</span><span id="sumSscl">-</span></div>
+                            <div class="d-flex justify-content-between text-muted"><span>VAT</span><span id="sumVat">-</span></div>
+                            <div class="d-flex justify-content-between fw-bold border-top mt-1 pt-1"><span>Total</span><span id="sumTotal">-</span></div>
+                            <div class="d-flex justify-content-between text-muted small mt-1"><span>Total Value (LKR)</span><span id="sumValue">-</span></div>
                         </div>
                     </div>
                 </div>
@@ -267,10 +267,10 @@
                 rateInput.value = parseFloat(d.rate).toFixed(4);
                 setRateNote('Auto-loaded: 1 ' + currency + ' = ' + parseFloat(d.rate).toFixed(4) + ' LKR', 'success');
             } else {
-                setRateNote('No rate found for this date — enter manually', 'warning');
+                setRateNote('No rate found for this date - enter manually', 'warning');
             }
         } catch (e) {
-            setRateNote('Rate lookup failed — enter manually', 'warning');
+            setRateNote('Rate lookup failed - enter manually', 'warning');
         }
         spinner.classList.add('d-none');
     }
@@ -348,13 +348,13 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="font-monospace">${line.container_no}</td>
-                    <td class="small text-nowrap">${line.plug_in_at ? new Date(line.plug_in_at).toLocaleString() : '—'}</td>
-                    <td class="small text-nowrap">${line.plug_out_at ? new Date(line.plug_out_at).toLocaleString() : '—'}</td>
+                    <td class="small text-nowrap">${line.plug_in_at ? new Date(line.plug_in_at).toLocaleString() : '-'}</td>
+                    <td class="small text-nowrap">${line.plug_out_at ? new Date(line.plug_out_at).toLocaleString() : '-'}</td>
                     <td><span class="badge bg-light border text-muted text-capitalize">${line.billing_mode}</span></td>
                     <td class="small">${chargeable}</td>
                     <td class="text-end small font-monospace">${rateLabel}</td>
                     <td class="text-end small font-monospace">${cur} ${fmt(line.subtotal_display)}</td>
-                    <td class="text-center small">${line.tax_code ? '<span class="badge bg-light border text-secondary">' + line.tax_code + '</span>' : '<span class="text-muted">—</span>'}</td>
+                    <td class="text-center small">${line.tax_code ? '<span class="badge bg-light border text-secondary">' + line.tax_code + '</span>' : '<span class="text-muted">-</span>'}</td>
                     <td class="text-end small text-muted font-monospace">${fmt(line.tax1_rate)}%</td>
                     <td class="text-end small text-muted font-monospace">${fmt(line.tax2_rate)}%</td>
                     <td class="text-end small font-monospace">${cur} ${fmt(line.line_total)}</td>
@@ -380,7 +380,7 @@
     form.addEventListener('submit', function (e) {
         if (previewMissing.length > 0) {
             e.preventDefault();
-            if (window.showToast) showToast('Cannot save — missing tariff rates. Update the tariff and preview again.', 'danger');
+            if (window.showToast) showToast('Cannot save - missing tariff rates. Update the tariff and preview again.', 'danger');
         }
     });
 

@@ -11,7 +11,7 @@ return new class extends Migration
             'name'         => 'container-inquiry.view',
             'module'       => 'container-inquiry',
             'action'       => 'view',
-            'display_name' => 'View — Container Inquiry',
+            'display_name' => 'View - Container Inquiry',
             'sort_order'   => 0,
             'created_at'   => now(),
             'updated_at'   => now(),

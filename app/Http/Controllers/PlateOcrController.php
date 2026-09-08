@@ -33,7 +33,7 @@ class PlateOcrController extends Controller
             'plate_no' => $result['plate_no'],
             'raw_text' => $result['raw_text'],
             'message'  => $result['plate_no']
-                ? 'Vehicle plate extracted — please verify before accepting.'
+                ? 'Vehicle plate extracted - please verify before accepting.'
                 : 'Could not read a plate number from the image. Please enter manually.',
         ]);
     }

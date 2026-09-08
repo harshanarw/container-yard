@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('company_settings', function (Blueprint $table) {
             $table->string('product_icon_path')->nullable()->after('icon_path')
-                ->comment('Sidebar brand icon — shown next to company name in the left nav');
+                ->comment('Sidebar brand icon - shown next to company name in the left nav');
         });
     }
 

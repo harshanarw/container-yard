@@ -93,7 +93,7 @@
                             {{-- Dropdown shown when country has states in DB --}}
                             <div id="stateDropdownWrap" @if($initialStates->isEmpty()) style="display:none;" @endif>
                                 <select name="state_id" id="stateSelect" class="form-select">
-                                    <option value="">— Select State / Province —</option>
+                                    <option value="">- Select State / Province -</option>
                                     @foreach($initialStates as $s)
                                         <option value="{{ $s->id }}" {{ old('state_id') == $s->id ? 'selected' : '' }}>
                                             {{ $s->name }}
@@ -110,7 +110,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Country</label>
                             <select name="country_id" id="countrySelect" class="form-select select2">
-                                <option value="">— Select Country —</option>
+                                <option value="">- Select Country -</option>
                                 @foreach($countries as $c)
                                     <option value="{{ $c->id }}"
                                         {{ old('country_id', $defaultCountryId) == $c->id ? 'selected' : '' }}>
@@ -123,7 +123,7 @@
                         <div class="col-md-4" id="districtWrap" style="display:none;">
                             <label class="form-label fw-semibold">District</label>
                             <select name="district_id" id="districtSelect" class="form-select">
-                                <option value="">— Select District —</option>
+                                <option value="">- Select District -</option>
                             </select>
                         </div>
                         <div class="w-100"></div>
@@ -207,9 +207,9 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Currency</label>
                             <select name="currency" class="form-select">
-                                <option value="LKR">LKR — Sri Lankan Rupee</option>
-                                <option value="USD">USD — US Dollar</option>
-                                <option value="SGD">SGD — Singapore Dollar</option>
+                                <option value="LKR">LKR - Sri Lankan Rupee</option>
+                                <option value="USD">USD - US Dollar</option>
+                                <option value="SGD">SGD - Singapore Dollar</option>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -255,7 +255,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">AP Payment Terms</label>
                             <select name="ap_payment_terms" class="form-select">
-                                <option value="">— Not specified —</option>
+                                <option value="">- Not specified -</option>
                                 <option value="cod">Cash on Delivery</option>
                                 <option value="net15">Net 15 Days</option>
                                 <option value="net30">Net 30 Days</option>
@@ -448,17 +448,17 @@
 
     function initSelect2State() {
         if (!$.fn.select2) return;
-        $(stateSelect).select2({ theme: 'bootstrap-5', placeholder: '— Select State / Province —', width: '100%' });
+        $(stateSelect).select2({ theme: 'bootstrap-5', placeholder: '- Select State / Province -', width: '100%' });
     }
 
     function initSelect2District() {
         if (!$.fn.select2) return;
-        $(districtSelect).select2({ theme: 'bootstrap-5', placeholder: '— Select District —', width: '100%' });
+        $(districtSelect).select2({ theme: 'bootstrap-5', placeholder: '- Select District -', width: '100%' });
     }
 
     function clearDistricts() {
         s2destroy(districtSelect);
-        districtSelect.innerHTML = '<option value="">— Select District —</option>';
+        districtSelect.innerHTML = '<option value="">- Select District -</option>';
         districtWrap.style.display = 'none';
     }
 
@@ -483,7 +483,7 @@
 
     function loadStates(countryId, preselectStateId, preselectDistrictId) {
         s2destroy(stateSelect);
-        stateSelect.innerHTML = '<option value="">— Select State / Province —</option>';
+        stateSelect.innerHTML = '<option value="">- Select State / Province -</option>';
         stateFreeText.value = '';
         clearDistricts();
 

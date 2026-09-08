@@ -64,7 +64,7 @@
                             {{ $item->eqt_code }}
                         </span>
                     </td>
-                    <td><code class="small">{{ $item->iso_code ?? '—' }}</code></td>
+                    <td><code class="small">{{ $item->iso_code ?? '-' }}</code></td>
                     <td><span class="badge bg-light border text-dark">{{ $item->size }}'</span></td>
                     <td><span class="badge {{ $item->isReefer() ? 'badge-reefer' : 'bg-info-subtle text-info' }}">{{ $item->type_code }}</span></td>
                     <td>
@@ -74,7 +74,7 @@
                             <span class="text-muted small">Standard</span>
                         @endif
                     </td>
-                    <td class="small">{{ $item->description ?? '—' }}</td>
+                    <td class="small">{{ $item->description ?? '-' }}</td>
                     <td class="small">
                         @if($item->ventilation_type)
                             @php
@@ -95,7 +95,7 @@
                                 <span class="text-muted" style="font-size:.75rem;">· {{ $item->vent_count }}v</span>
                             @endif
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td class="text-center">
@@ -181,7 +181,7 @@
                         <div class="col-md-2">
                             <label class="form-label fw-semibold">Size (ft) <span class="text-danger">*</span></label>
                             <select name="size" class="form-select" required>
-                                <option value="">—</option>
+                                <option value="">-</option>
                                 <option value="20">20'</option>
                                 <option value="40">40'</option>
                                 <option value="45">45'</option>
@@ -190,7 +190,7 @@
                         <div class="col-md-2">
                             <label class="form-label fw-semibold">Type <span class="text-danger">*</span></label>
                             <select name="type_code" class="form-select" required>
-                                <option value="">—</option>
+                                <option value="">-</option>
                                 <option value="GP">GP</option>
                                 <option value="HC">HC</option>
                                 <option value="RF">RF</option>
@@ -215,7 +215,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Ventilation Type</label>
                             <select name="ventilation_type" class="form-select add-vent-type">
-                                <option value="">— Unknown / Not Set —</option>
+                                <option value="">- Unknown / Not Set -</option>
                                 @foreach(\App\Models\EquipmentType::VENTILATION_TYPES as $val => $label)
                                     <option value="{{ $val }}">{{ $label }}</option>
                                 @endforeach
@@ -300,7 +300,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Ventilation Type</label>
                             <select name="ventilation_type" id="editVentilationType" class="form-select edit-vent-type">
-                                <option value="">— Unknown / Not Set —</option>
+                                <option value="">- Unknown / Not Set -</option>
                                 @foreach(\App\Models\EquipmentType::VENTILATION_TYPES as $val => $label)
                                     <option value="{{ $val }}">{{ $label }}</option>
                                 @endforeach

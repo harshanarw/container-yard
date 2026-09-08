@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Handling Tariff — ' . ($handlingTariff->shippingLine->name ?? 'Detail'))
+@section('title', 'Handling Tariff - ' . ($handlingTariff->shippingLine->name ?? 'Detail'))
 
 @section('breadcrumb')
     <li class="breadcrumb-item">Masters</li>
@@ -46,7 +46,7 @@
             </span>
         </h4>
         <p class="text-muted mb-0 small">
-            {{ $handlingTariff->shippingLine->name ?? '—' }} &nbsp;·&nbsp;
+            {{ $handlingTariff->shippingLine->name ?? '-' }} &nbsp;·&nbsp;
             {{ $handlingTariff->validity_label }}
         </p>
     </div>
@@ -91,7 +91,7 @@
                                 <option value="{{ $line->id }}"
                                     data-code="{{ $line->code }}" data-name="{{ $line->name }}"
                                     {{ $handlingTariff->shipping_line_id == $line->id ? 'selected' : '' }}>
-                                    {{ $line->code }} — {{ $line->name }}
+                                    {{ $line->code }} - {{ $line->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -139,7 +139,7 @@
                 <div class="small text-muted">
                     <div class="d-flex justify-content-between mb-1">
                         <span><i class="bi bi-person-plus me-1"></i>Added by</span>
-                        <span class="fw-semibold text-dark">{{ $handlingTariff->createdBy->name ?? '—' }}</span>
+                        <span class="fw-semibold text-dark">{{ $handlingTariff->createdBy->name ?? '-' }}</span>
                     </div>
                     <div class="d-flex justify-content-between mb-1">
                         <span><i class="bi bi-calendar me-1"></i>Added on</span>
@@ -147,7 +147,7 @@
                     </div>
                     <div class="d-flex justify-content-between mb-1">
                         <span><i class="bi bi-person-check me-1"></i>Updated by</span>
-                        <span class="fw-semibold text-dark">{{ $handlingTariff->updatedBy->name ?? '—' }}</span>
+                        <span class="fw-semibold text-dark">{{ $handlingTariff->updatedBy->name ?? '-' }}</span>
                     </div>
                     <div class="d-flex justify-content-between">
                         <span><i class="bi bi-clock me-1"></i>Updated on</span>
@@ -236,7 +236,7 @@
                                         </span>
                                     @endif
                                 @else
-                                    <span class="text-muted small">—</span>
+                                    <span class="text-muted small">-</span>
                                 @endif
                             </td>
                             <td class="text-end pe-3">
@@ -293,7 +293,7 @@
                             Size <span class="text-danger">*</span>
                         </label>
                         <select name="container_size" class="form-select form-select-sm" required>
-                            <option value="">—</option>
+                            <option value="">-</option>
                             @foreach($allSizes as $size)
                                 <option value="{{ $size }}">{{ $size }}'</option>
                             @endforeach
@@ -343,10 +343,10 @@
                             <i class="bi bi-tag me-1 text-primary"></i>Charge Code
                         </label>
                         <select name="charge_code_id" class="form-select form-select-sm select2 s2-code">
-                            <option value="">— None —</option>
+                            <option value="">- None -</option>
                             @foreach($chargeCodes as $cc)
                                 <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}" {{ $cc->code === \App\Models\ChargeCode::DEFAULT_HANDLING ? 'selected' : '' }}>
-                                    {{ $cc->code }} — {{ $cc->description }}
+                                    {{ $cc->code }} - {{ $cc->description }}
                                     @if($cc->taxCode) ({{ $cc->taxCode->code }}) @endif
                                 </option>
                             @endforeach
@@ -428,7 +428,7 @@
                 <div class="modal-header border-0 pb-0">
                     <h6 class="modal-title">
                         <i class="bi bi-pencil me-1 text-primary"></i>
-                        Edit Rate — <span id="editRateSize"></span>' Container
+                        Edit Rate - <span id="editRateSize"></span>' Container
                         <span id="editRateStatusBadge" class="ms-1"></span>
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -487,10 +487,10 @@
                                 <i class="bi bi-tag me-1 text-primary"></i>Charge Code
                             </label>
                             <select name="charge_code_id" id="editRateChargeCode" class="form-select select2-modal s2-code">
-                                <option value="">— None —</option>
+                                <option value="">- None -</option>
                                 @foreach($chargeCodes as $cc)
                                     <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}">
-                                        {{ $cc->code }} — {{ $cc->description }}
+                                        {{ $cc->code }} - {{ $cc->description }}
                                         @if($cc->taxCode) ({{ $cc->taxCode->code }}) @endif
                                     </option>
                                 @endforeach

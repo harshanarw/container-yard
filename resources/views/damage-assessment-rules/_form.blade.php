@@ -4,7 +4,7 @@
         <label class="form-label fw-semibold">Rule Name <span class="text-danger">*</span></label>
         <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
                value="{{ old('name', $rule?->name) }}"
-               placeholder="e.g. Left Door Hinge — Broken / Replace"
+               placeholder="e.g. Left Door Hinge - Broken / Replace"
                maxlength="150" required>
         <div class="form-text text-muted">A clear, descriptive label shown in the Pull From Rules picker.</div>
         @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -13,10 +13,10 @@
     <div class="col-md-6">
         <label class="form-label fw-semibold">Location <span class="text-muted fw-normal">(optional)</span></label>
         <select name="location_code_id" class="form-select select2 @error('location_code_id') is-invalid @enderror">
-            <option value="">— Any / Not Specified —</option>
+            <option value="">- Any / Not Specified -</option>
             @foreach($locations as $c)
             <option value="{{ $c->id }}" {{ old('location_code_id', $rule?->location_code_id) == $c->id ? 'selected' : '' }}>
-                {{ $c->code }} — {{ $c->name }}
+                {{ $c->code }} - {{ $c->name }}
             </option>
             @endforeach
         </select>
@@ -26,10 +26,10 @@
     <div class="col-md-6">
         <label class="form-label fw-semibold">Component <span class="text-danger">*</span></label>
         <select name="component_code_id" class="form-select select2 @error('component_code_id') is-invalid @enderror" required>
-            <option value="">— Select Component —</option>
+            <option value="">- Select Component -</option>
             @foreach($components as $c)
             <option value="{{ $c->id }}" {{ old('component_code_id', $rule?->component_code_id) == $c->id ? 'selected' : '' }}>
-                {{ $c->code }} — {{ $c->name }}
+                {{ $c->code }} - {{ $c->name }}
             </option>
             @endforeach
         </select>
@@ -39,10 +39,10 @@
     <div class="col-md-6">
         <label class="form-label fw-semibold">Damage Type <span class="text-danger">*</span></label>
         <select name="damage_code_id" class="form-select select2 @error('damage_code_id') is-invalid @enderror" required>
-            <option value="">— Select Damage —</option>
+            <option value="">- Select Damage -</option>
             @foreach($damages as $c)
             <option value="{{ $c->id }}" {{ old('damage_code_id', $rule?->damage_code_id) == $c->id ? 'selected' : '' }}>
-                {{ $c->code }} — {{ $c->name }}
+                {{ $c->code }} - {{ $c->name }}
             </option>
             @endforeach
         </select>
@@ -52,10 +52,10 @@
     <div class="col-md-6">
         <label class="form-label fw-semibold">Repair Action <span class="text-danger">*</span></label>
         <select name="repair_code_id" class="form-select select2 @error('repair_code_id') is-invalid @enderror" required>
-            <option value="">— Select Repair —</option>
+            <option value="">- Select Repair -</option>
             @foreach($repairs as $c)
             <option value="{{ $c->id }}" {{ old('repair_code_id', $rule?->repair_code_id) == $c->id ? 'selected' : '' }}>
-                {{ $c->code }} — {{ $c->name }}
+                {{ $c->code }} - {{ $c->name }}
             </option>
             @endforeach
         </select>
@@ -65,7 +65,7 @@
     <div class="col-md-4">
         <label class="form-label fw-semibold">Default Severity <span class="text-muted fw-normal">(optional)</span></label>
         <select name="default_severity" class="form-select @error('default_severity') is-invalid @enderror">
-            <option value="">— Not set —</option>
+            <option value="">- Not set -</option>
             <option value="minor"    {{ old('default_severity', $rule?->default_severity) === 'minor'    ? 'selected' : '' }}>Minor</option>
             <option value="moderate" {{ old('default_severity', $rule?->default_severity) === 'moderate' ? 'selected' : '' }}>Moderate</option>
             <option value="severe"   {{ old('default_severity', $rule?->default_severity) === 'severe'   ? 'selected' : '' }}>Severe</option>

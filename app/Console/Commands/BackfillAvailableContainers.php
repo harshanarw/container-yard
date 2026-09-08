@@ -33,7 +33,7 @@ class BackfillAvailableContainers extends Command
             ->get();
 
         if ($candidates->isEmpty()) {
-            $this->info('No containers to backfill — nothing has a completed repair without an open work order.');
+            $this->info('No containers to backfill - nothing has a completed repair without an open work order.');
             return self::SUCCESS;
         }
 
@@ -48,7 +48,7 @@ class BackfillAvailableContainers extends Command
         $this->line('');
 
         if ($this->option('dry-run')) {
-            $this->info('Dry run — nothing changed.');
+            $this->info('Dry run - nothing changed.');
             return self::SUCCESS;
         }
 

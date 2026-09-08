@@ -119,10 +119,10 @@
             <div class="card-body small">
                 <dl class="row mb-0">
                     <dt class="col-6">Invoice Date</dt>
-                    <dd class="col-6">{{ $invoice->invoice_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-6">{{ $invoice->invoice_date?->format('d M Y') ?? '-' }}</dd>
 
                     <dt class="col-6">Due Date</dt>
-                    <dd class="col-6">{{ $invoice->due_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-6">{{ $invoice->due_date?->format('d M Y') ?? '-' }}</dd>
 
                     <dt class="col-6">Subtotal</dt>
                     <dd class="col-6 text-end">{{ $invoice->currency }} {{ number_format($invoice->subtotal, 2) }}</dd>

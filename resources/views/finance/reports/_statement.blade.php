@@ -7,7 +7,7 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h4 class="mb-0"><i class="bi bi-file-earmark-text me-2 text-primary"></i>{{ $title }}</h4>
-        <p class="text-muted small mb-0">Statement of account — all amounts in {{ $base }} (base currency).</p>
+        <p class="text-muted small mb-0">Statement of account - all amounts in {{ $base }} (base currency).</p>
     </div>
     @if($data)
     <div class="d-flex gap-2 flex-wrap d-print-none">
@@ -28,11 +28,11 @@
             <div class="col-md-5">
                 <label class="form-label small mb-1 fw-semibold">{{ $partyLabel }}</label>
                 <select name="party_id" class="form-select form-select-sm s2-code" data-s2-sel="name" required>
-                    <option value="">— Select {{ $partyLabel }} —</option>
+                    <option value="">- Select {{ $partyLabel }} -</option>
                     @foreach($parties as $p)
                         <option value="{{ $p->id }}" data-code="{{ $p->code }}" data-name="{{ $p->name }}"
                             {{ (string) optional($party)->id === (string) $p->id ? 'selected' : '' }}>
-                            {{ $p->code }} — {{ $p->name }}
+                            {{ $p->code }} - {{ $p->name }}
                         </option>
                     @endforeach
                 </select>
@@ -66,7 +66,7 @@
                 <div class="text-muted small">{{ $party->code }}</div>
             </div>
             <div class="text-md-end small text-muted">
-                <div>Period: {{ \Carbon\Carbon::parse($from)->format('d M Y') }} — {{ \Carbon\Carbon::parse($to)->format('d M Y') }}</div>
+                <div>Period: {{ \Carbon\Carbon::parse($from)->format('d M Y') }} - {{ \Carbon\Carbon::parse($to)->format('d M Y') }}</div>
                 <div>Currency: {{ $base }} (base)</div>
             </div>
         </div>

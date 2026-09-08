@@ -54,7 +54,7 @@ class Account extends Model
 
     public function getFullNameAttribute(): string
     {
-        return "{$this->code} — {$this->name}";
+        return "{$this->code} - {$this->name}";
     }
 
     public static function classificationLabel(string $c): string

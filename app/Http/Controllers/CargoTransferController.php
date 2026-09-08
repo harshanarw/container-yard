@@ -117,7 +117,7 @@ class CargoTransferController extends Controller
         }
 
         return redirect()->route('yard.cargo-transfers.show', $cargoTransfer)
-            ->with('success', 'Cargo transfer completed — storage and reefer closed'
+            ->with('success', 'Cargo transfer completed - storage and reefer closed'
                 . ($request->boolean('release_box') ? ', and the substitute box released.' : ' (box kept as empty stock).'));
     }
 

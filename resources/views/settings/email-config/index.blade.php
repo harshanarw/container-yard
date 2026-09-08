@@ -121,14 +121,14 @@
                             @if($cfg->is_active)
                                 <span class="badge bg-success ms-1">Active</span>
                             @else
-                                <span class="badge bg-secondary ms-1">Inactive — uses fallback</span>
+                                <span class="badge bg-secondary ms-1">Inactive - uses fallback</span>
                             @endif
                         </div>
                         @if($cfg->driver === 'smtp')
-                            <div><span class="text-muted">Host:</span> {{ $cfg->smtp_host ?? '—' }}:{{ $cfg->smtp_port ?? '—' }}</div>
-                            <div><span class="text-muted">User:</span> {{ $cfg->smtp_username ?? '—' }}</div>
+                            <div><span class="text-muted">Host:</span> {{ $cfg->smtp_host ?? '-' }}:{{ $cfg->smtp_port ?? '-' }}</div>
+                            <div><span class="text-muted">User:</span> {{ $cfg->smtp_username ?? '-' }}</div>
                         @elseif($cfg->driver === 'mailgun')
-                            <div><span class="text-muted">Domain:</span> {{ $cfg->mailgun_domain ?? '—' }}</div>
+                            <div><span class="text-muted">Domain:</span> {{ $cfg->mailgun_domain ?? '-' }}</div>
                         @elseif($cfg->driver === 'sendgrid')
                             <div><span class="text-muted">API Key:</span> ••••••••••••</div>
                         @endif
@@ -139,9 +139,9 @@
                         <div class="text-muted">
                             <i class="bi bi-info-circle me-1"></i>
                             @if($isGeneral)
-                                No General internal sender — internal mail falls back to the external <strong>General</strong> sender.
+                                No General internal sender - internal mail falls back to the external <strong>General</strong> sender.
                             @else
-                                No dedicated sender — uses <strong>General Notifications</strong> (or the external General sender).
+                                No dedicated sender - uses <strong>General Notifications</strong> (or the external General sender).
                             @endif
                         </div>
                     @endif
@@ -157,7 +157,7 @@
                         <form method="POST" action="{{ route('settings.email-config.update', $cfg) }}">
                             @csrf @method('PATCH')
                             <div class="modal-header">
-                                <h5 class="modal-title">Edit Sender — {{ $catInfo['label'] }}</h5>
+                                <h5 class="modal-title">Edit Sender - {{ $catInfo['label'] }}</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body">
@@ -200,7 +200,7 @@
                         <form method="POST" action="{{ route('settings.email-config.store') }}">
                             @csrf
                             <div class="modal-header">
-                                <h5 class="modal-title">Configure Sender — {{ $catInfo['label'] }}</h5>
+                                <h5 class="modal-title">Configure Sender - {{ $catInfo['label'] }}</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body">
@@ -256,7 +256,7 @@
                         <td class="ps-3">
                             <span class="{{ $rec->is_active ? '' : 'text-muted text-decoration-line-through' }}">{{ $rec->email }}</span>
                         </td>
-                        <td class="text-muted">{{ $rec->label ?: '—' }}</td>
+                        <td class="text-muted">{{ $rec->label ?: '-' }}</td>
                         <td class="text-center">
                             <span class="badge bg-{{ $rec->address_type === 'to' ? 'primary' : 'secondary' }}">{{ strtoupper($rec->address_type) }}</span>
                         </td>
@@ -302,8 +302,8 @@
                                         <div class="mb-2">
                                             <label class="form-label form-label-sm">Type</label>
                                             <select name="address_type" class="form-select form-select-sm">
-                                                <option value="to" {{ $rec->address_type === 'to' ? 'selected' : '' }}>TO — Primary recipient</option>
-                                                <option value="cc" {{ $rec->address_type === 'cc' ? 'selected' : '' }}>CC — Copy</option>
+                                                <option value="to" {{ $rec->address_type === 'to' ? 'selected' : '' }}>TO - Primary recipient</option>
+                                                <option value="cc" {{ $rec->address_type === 'cc' ? 'selected' : '' }}>CC - Copy</option>
                                             </select>
                                         </div>
                                         <div class="form-check">
@@ -423,13 +423,13 @@
         <div class="card-body small">
             <div class="row g-2">
                 @if($config->driver === 'smtp')
-                    <div class="col-md-3"><span class="text-muted">Host:</span> {{ $config->smtp_host ?? '—' }}</div>
-                    <div class="col-md-2"><span class="text-muted">Port:</span> {{ $config->smtp_port ?? '—' }}</div>
-                    <div class="col-md-2"><span class="text-muted">Encryption:</span> {{ $config->smtp_encryption ?? '—' }}</div>
-                    <div class="col-md-3"><span class="text-muted">Username:</span> {{ $config->smtp_username ?? '—' }}</div>
+                    <div class="col-md-3"><span class="text-muted">Host:</span> {{ $config->smtp_host ?? '-' }}</div>
+                    <div class="col-md-2"><span class="text-muted">Port:</span> {{ $config->smtp_port ?? '-' }}</div>
+                    <div class="col-md-2"><span class="text-muted">Encryption:</span> {{ $config->smtp_encryption ?? '-' }}</div>
+                    <div class="col-md-3"><span class="text-muted">Username:</span> {{ $config->smtp_username ?? '-' }}</div>
                 @elseif($config->driver === 'mailgun')
-                    <div class="col-md-4"><span class="text-muted">Domain:</span> {{ $config->mailgun_domain ?? '—' }}</div>
-                    <div class="col-md-4"><span class="text-muted">Endpoint:</span> {{ $config->mailgun_endpoint ?? '—' }}</div>
+                    <div class="col-md-4"><span class="text-muted">Domain:</span> {{ $config->mailgun_domain ?? '-' }}</div>
+                    <div class="col-md-4"><span class="text-muted">Endpoint:</span> {{ $config->mailgun_endpoint ?? '-' }}</div>
                 @elseif($config->driver === 'sendgrid')
                     <div class="col-md-4"><span class="text-muted">API Key:</span> ••••••••••••</div>
                 @endif
@@ -589,7 +589,7 @@
                                         {{ $contact->email }}
                                     </span>
                                 </td>
-                                <td class="text-muted" style="width:28%">{{ $contact->label ?: '—' }}</td>
+                                <td class="text-muted" style="width:28%">{{ $contact->label ?: '-' }}</td>
                                 <td class="text-center" style="width:14%">
                                     <span class="badge bg-{{ $contact->address_type === 'to' ? 'primary' : 'secondary' }}">
                                         {{ strtoupper($contact->address_type) }}
@@ -638,8 +638,8 @@
                                                 <div class="mb-2">
                                                     <label class="form-label form-label-sm">Type</label>
                                                     <select name="address_type" class="form-select form-select-sm">
-                                                        <option value="to" {{ $contact->address_type === 'to' ? 'selected' : '' }}>TO — Primary recipient</option>
-                                                        <option value="cc" {{ $contact->address_type === 'cc' ? 'selected' : '' }}>CC — Copy</option>
+                                                        <option value="to" {{ $contact->address_type === 'to' ? 'selected' : '' }}>TO - Primary recipient</option>
+                                                        <option value="cc" {{ $contact->address_type === 'cc' ? 'selected' : '' }}>CC - Copy</option>
                                                     </select>
                                                 </div>
                                                 <div class="form-check">

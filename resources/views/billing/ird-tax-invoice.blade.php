@@ -259,7 +259,7 @@
             <span class="hg-sep">:</span>
             <span class="hg-val" style="letter-spacing:.5px">{{ $ird_invoice_no }}</span>
         </div>
-        @if($ird_invoice_no === '—')
+        @if($ird_invoice_no === '-')
         <div class="note">(IRD number assigned at issuance)</div>
         @endif
     </div>
@@ -276,7 +276,7 @@
         <div class="hg-block-label">Purchaser</div>
         <div class="hg-block">
             @if($customer?->tin_number)<div><strong>TIN:</strong> {{ $customer->tin_number }}</div>@endif
-            <div><strong>{{ $customer?->name ?? '—' }}</strong></div>
+            <div><strong>{{ $customer?->name ?? '-' }}</strong></div>
             @if($customer?->address)<div>{{ $customer->address }}{{ $customer->city ? ', ' . $customer->city : '' }}</div>@endif
             @if($customer?->phone_office || $customer?->phone_mobile)
             <div>Tel: {{ $customer->phone_office ?? $customer->phone_mobile }}</div>
@@ -363,7 +363,7 @@
     <tbody>
         @forelse($lines as $line)
         <tr>
-            <td>{{ $line['reference'] ?? '—' }}</td>
+            <td>{{ $line['reference'] ?? '-' }}</td>
             <td>{{ $line['description'] }}</td>
             <td class="r">{{ number_format($line['quantity'], 2) }}</td>
             <td class="r">{{ number_format($line['unit_price'], 2) }}</td>

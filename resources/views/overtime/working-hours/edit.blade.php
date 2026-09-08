@@ -15,7 +15,7 @@
 <div class="page-header mb-3">
     <h4><i class="bi bi-clock me-2 text-primary"></i>{{ $isNew ? 'New Working-Hour Set' : 'Edit Working Hours' }}</h4>
     <p class="text-muted mb-0 small">
-        Untick a day to mark it closed — the engine then treats every hour of that day as overtime.
+        Untick a day to mark it closed - the engine then treats every hour of that day as overtime.
     </p>
 </div>
 

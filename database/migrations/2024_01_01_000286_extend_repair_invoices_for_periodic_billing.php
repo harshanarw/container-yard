@@ -23,7 +23,7 @@ return new class extends Migration
         Schema::table('repair_invoices', function (Blueprint $table) {
             $table->enum('billing_mode', ['estimate', 'periodic'])->default('estimate')->after('invoice_no');
             $table->string('period_basis', 20)->nullable()->after('due_date')
-                  ->comment('wo_completed | approved | estimate — which date puts an estimate in range');
+                  ->comment('wo_completed | approved | estimate - which date puts an estimate in range');
             $table->date('billing_period_from')->nullable()->after('period_basis');
             $table->date('billing_period_to')->nullable()->after('billing_period_from');
             $table->json('bill_categories')->nullable()->after('billing_period_to')

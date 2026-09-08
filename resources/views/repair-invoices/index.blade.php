@@ -61,9 +61,9 @@
                         <td class="fw-semibold small">
                             <a href="{{ route('repair-invoices.show', $invoice) }}">{{ $invoice->invoice_no }}</a>
                         </td>
-                        <td class="small">{{ $invoice->container_no ?? '—' }}</td>
+                        <td class="small">{{ $invoice->container_no ?? '-' }}</td>
                         <td>@include('partials.job-badge', ['job' => $invoice->yardJob, 'mode' => 'cell'])</td>
-                        <td class="small">{{ $invoice->customer->code ?? $invoice->customer->name ?? '—' }}</td>
+                        <td class="small">{{ $invoice->customer->code ?? $invoice->customer->name ?? '-' }}</td>
                         <td class="small text-muted">{{ \Carbon\Carbon::parse($invoice->invoice_date)->format('d M Y') }}</td>
                         <td class="small">
                             <span class="badge

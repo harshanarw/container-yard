@@ -329,7 +329,7 @@ class OtTariffController extends Controller
         // next-day flag — that is what makes the validity window span two dates.
         if (! $data['ends_next_day'] && $data['end_time'] <= $data['start_time']) {
             throw ValidationException::withMessages([
-                'end_time' => 'The end time must be after the start time — or tick "ends next day" if the window runs past midnight.',
+                'end_time' => 'The end time must be after the start time - or tick "ends next day" if the window runs past midnight.',
             ]);
         }
 

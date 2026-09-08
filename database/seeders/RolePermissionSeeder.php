@@ -94,14 +94,14 @@ class RolePermissionSeeder extends Seeder
             $role = Role::where('name', $roleName)->first();
 
             if (!$role) {
-                $this->command->warn("  ⚠  Role '{$roleName}' not found — skipped.");
+                $this->command->warn("  ⚠  Role '{$roleName}' not found - skipped.");
                 continue;
             }
 
             $ids = $this->resolvePermissionIds($allPermissions, $patterns);
             $role->permissions()->sync($ids);
 
-            $this->command->info("  ✔  {$role->display_name} — assigned " . count($ids) . " permissions.");
+            $this->command->info("  ✔  {$role->display_name} - assigned " . count($ids) . " permissions.");
         }
     }
 

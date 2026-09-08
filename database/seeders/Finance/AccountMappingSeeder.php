@@ -25,8 +25,8 @@ class AccountMappingSeeder extends Seeder
     {
         // Default system-wide mappings — no source entity (source_type / source_id = null)
         $rows = [
-            ['mapping_type' => 'customer_ar',      'code' => '1101', 'notes' => 'Default AR control — Trade Debtors'],
-            ['mapping_type' => 'supplier_ap',       'code' => '2011', 'notes' => 'Default AP control — Trade Creditors'],
+            ['mapping_type' => 'customer_ar',      'code' => '1101', 'notes' => 'Default AR control - Trade Debtors'],
+            ['mapping_type' => 'supplier_ap',       'code' => '2011', 'notes' => 'Default AP control - Trade Creditors'],
             ['mapping_type' => 'advance_customer',  'code' => '2021', 'notes' => 'Customer advance receipts liability'],
             ['mapping_type' => 'advance_supplier',  'code' => '1201', 'notes' => 'Advance payments to suppliers asset'],
             ['mapping_type' => 'bank_charge',       'code' => '7003', 'notes' => 'Bank charges & transaction fees'],

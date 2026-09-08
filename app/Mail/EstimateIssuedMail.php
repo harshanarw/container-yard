@@ -39,7 +39,7 @@ class EstimateIssuedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Repair Estimate {$this->estimate->estimate_no} — {$this->estimate->container_no}",
+            subject: "Repair Estimate {$this->estimate->estimate_no} - {$this->estimate->container_no}",
         );
     }
 

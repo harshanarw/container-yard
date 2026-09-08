@@ -33,7 +33,7 @@ class ReeferElectricityTariffSeeder extends Seeder
                 'valid_from'     => '2024-01-01',
                 'valid_to'       => null,
                 'is_active'      => true,
-                'notes'          => 'Default long-term daily tariff. Each calendar day (including the day of plug-in) is charged at the full day rate. Override per customer as required. Sample rate — adjust to your pricing.',
+                'notes'          => 'Default long-term daily tariff. Each calendar day (including the day of plug-in) is charged at the full day rate. Override per customer as required. Sample rate - adjust to your pricing.',
             ],
 
             // ── Short-Term PTI (Hourly) ──────────────────────────────────────
@@ -55,7 +55,7 @@ class ReeferElectricityTariffSeeder extends Seeder
                 'valid_from'     => '2024-01-01',
                 'valid_to'       => null,
                 'is_active'      => true,
-                'notes'          => 'Default short-term PTI tariff. Duration is ceiled to the next full hour; minimum charge USD 20 applies. Sample rate — adjust to your pricing.',
+                'notes'          => 'Default short-term PTI tariff. Duration is ceiled to the next full hour; minimum charge USD 20 applies. Sample rate - adjust to your pricing.',
             ],
         ];
 

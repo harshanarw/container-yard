@@ -410,7 +410,7 @@ class SupplierInvoiceController extends Controller
             Log::error("Auto-post failed for supplier invoice {$supplierInvoice->invoice_no}: {$e->getMessage()}");
 
             return back()->with('error',
-                'Invoice approved but GL posting failed: ' . $e->getMessage() . ' — fix the mapping and use Retry Post.');
+                'Invoice approved but GL posting failed: ' . $e->getMessage() . ' - fix the mapping and use Retry Post.');
         }
 
         return back()->with('success',
@@ -447,7 +447,7 @@ class SupplierInvoiceController extends Controller
             ->whereHas('voucher', fn ($q) => $q->whereIn('status', ['draft', 'confirmed']))
             ->exists()) {
             return back()->with('error',
-                'Cannot cancel — remove payment allocations against this invoice first.');
+                'Cannot cancel - remove payment allocations against this invoice first.');
         }
 
         try {
@@ -497,7 +497,7 @@ class SupplierInvoiceController extends Controller
             'tax2_rate'          => (float) ($taxCode?->tax2_rate ?? 0),
             'expense_account_id' => $expenseMapping?->account_id,
             'expense_account'    => $expenseMapping?->account
-                ? $expenseMapping->account->code . ' — ' . $expenseMapping->account->name
+                ? $expenseMapping->account->code . ' - ' . $expenseMapping->account->name
                 : null,
         ]);
     }

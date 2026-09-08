@@ -12,7 +12,7 @@ class YardJobObserver extends AuditObserver
     protected function describeCreated(Model $m, ?string $ref): string
     {
         return "Yard Job {$ref} created"
-            . ($m->job_type_code ? " — {$m->job_type_code}" : '');
+            . ($m->job_type_code ? " - {$m->job_type_code}" : '');
     }
 
     protected function describeUpdated(Model $m, ?string $ref, array $diff): string

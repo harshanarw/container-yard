@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Storage Tariff — ' . ($storageTariff->customer->name ?? 'Detail'))
+@section('title', 'Storage Tariff - ' . ($storageTariff->customer->name ?? 'Detail'))
 
 @section('breadcrumb')
     <li class="breadcrumb-item">Masters</li>
@@ -47,7 +47,7 @@
             </span>
         </h4>
         <p class="text-muted mb-0 small">
-            {{ $storageTariff->customer->name ?? '—' }} &nbsp;·&nbsp;
+            {{ $storageTariff->customer->name ?? '-' }} &nbsp;·&nbsp;
             {{ $storageTariff->validity_label }}
         </p>
     </div>
@@ -92,7 +92,7 @@
                                 <option value="{{ $customer->id }}"
                                     data-code="{{ $customer->code }}" data-name="{{ $customer->name }}"
                                     {{ $storageTariff->customer_id == $customer->id ? 'selected' : '' }}>
-                                    {{ $customer->code }} — {{ $customer->name }}
+                                    {{ $customer->code }} - {{ $customer->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -151,7 +151,7 @@
                 <div class="small text-muted">
                     <div class="d-flex justify-content-between mb-1">
                         <span><i class="bi bi-person-plus me-1"></i>Added by</span>
-                        <span class="fw-semibold text-dark">{{ $storageTariff->createdBy->name ?? '—' }}</span>
+                        <span class="fw-semibold text-dark">{{ $storageTariff->createdBy->name ?? '-' }}</span>
                     </div>
                     <div class="d-flex justify-content-between mb-1">
                         <span><i class="bi bi-calendar me-1"></i>Added on</span>
@@ -159,7 +159,7 @@
                     </div>
                     <div class="d-flex justify-content-between mb-1">
                         <span><i class="bi bi-person-check me-1"></i>Updated by</span>
-                        <span class="fw-semibold text-dark">{{ $storageTariff->updatedBy->name ?? '—' }}</span>
+                        <span class="fw-semibold text-dark">{{ $storageTariff->updatedBy->name ?? '-' }}</span>
                     </div>
                     <div class="d-flex justify-content-between">
                         <span><i class="bi bi-clock me-1"></i>Updated on</span>
@@ -200,14 +200,14 @@
                             <td class="ps-3">
                                 <span class="badge {{ ($detail->equipmentType?->isReefer()) ? 'badge-reefer' : 'bg-primary' }} fw-bold me-2"
                                       style="font-size:.8rem;letter-spacing:.5px;">
-                                    {{ $detail->equipmentType->eqt_code ?? '—' }}
+                                    {{ $detail->equipmentType->eqt_code ?? '-' }}
                                 </span>
                                 <span class="small text-muted">
                                     {{ $detail->equipmentType->description ?? '' }}
                                 </span>
                             </td>
                             <td class="text-center">
-                                <code class="small">{{ $detail->equipmentType->iso_code ?? '—' }}</code>
+                                <code class="small">{{ $detail->equipmentType->iso_code ?? '-' }}</code>
                             </td>
                             <td class="text-center">
                                 @if($detail->cargo_status === 'laden')
@@ -220,7 +220,7 @@
                                      was asked and answered. --}}
                                 @if($detail->reefer_mode === 'non_operating')
                                     <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fw-semibold" style="font-size:.72rem;"
-                                          title="Non-Operating Reefer — dry cargo, machinery off">NOR</span>
+                                          title="Non-Operating Reefer - dry cargo, machinery off">NOR</span>
                                 @elseif($detail->reefer_mode === 'operating')
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold" style="font-size:.72rem;"
                                           title="Reefer machinery running">Operating</span>
@@ -245,7 +245,7 @@
                                         </span>
                                     @endif
                                 @else
-                                    <span class="text-muted small">—</span>
+                                    <span class="text-muted small">-</span>
                                 @endif
                             </td>
                             <td class="text-end pe-3">
@@ -303,13 +303,13 @@
                             Equipment Type <span class="text-danger">*</span>
                         </label>
                         <select name="equipment_type_id" class="form-select form-select-sm s2-code" required>
-                            <option value="">— Select —</option>
+                            <option value="">- Select -</option>
                             @foreach($allTypes as $eqt)
                                 <option value="{{ $eqt->id }}"
                                     data-code="{{ $eqt->eqt_code }}"
                                     data-name="{{ $eqt->description }}"
                                     @if($eqt->isReefer()) data-chip-class="s2-code-chip s2-chip-reefer" @endif>
-                                    {{ $eqt->eqt_code }} — {{ $eqt->description }}
+                                    {{ $eqt->eqt_code }} - {{ $eqt->description }}
                                 </option>
                             @endforeach
                         </select>
@@ -358,10 +358,10 @@
                             <i class="bi bi-tag me-1 text-primary"></i>Charge Code
                         </label>
                         <select name="charge_code_id" class="form-select form-select-sm select2 s2-code">
-                            <option value="">— None —</option>
+                            <option value="">- None -</option>
                             @foreach($chargeCodes as $cc)
                                 <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}" {{ $cc->code === \App\Models\ChargeCode::DEFAULT_STORAGE ? 'selected' : '' }}>
-                                    {{ $cc->code }} — {{ $cc->description }}
+                                    {{ $cc->code }} - {{ $cc->description }}
                                     @if($cc->taxCode) ({{ $cc->taxCode->code }}) @endif
                                 </option>
                             @endforeach
@@ -390,7 +390,7 @@
                     <div class="col-6 col-md-3">
                         <div class="border rounded p-2 text-center bg-light">
                             <div class="badge {{ ($detail->equipmentType?->isReefer()) ? 'badge-reefer' : 'bg-primary' }} mb-1" style="font-size:.75rem;">
-                                {{ $detail->equipmentType->eqt_code ?? '—' }}
+                                {{ $detail->equipmentType->eqt_code ?? '-' }}
                             </div>
                             @if($detail->cargo_status === 'laden')
                                 <div><span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">Laden</span></div>
@@ -424,7 +424,7 @@
                 <div class="modal-header border-0 pb-0">
                     <h6 class="modal-title">
                         <i class="bi bi-pencil me-1 text-primary"></i>
-                        Edit Rate — <span id="editRateEqt"></span>
+                        Edit Rate - <span id="editRateEqt"></span>
                         <span id="editRateStatusBadge" class="ms-1"></span>
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -475,10 +475,10 @@
                             <i class="bi bi-tag me-1 text-primary"></i>Charge Code
                         </label>
                         <select name="charge_code_id" id="editRateChargeCode" class="form-select select2-modal s2-code">
-                            <option value="">— None —</option>
+                            <option value="">- None -</option>
                             @foreach($chargeCodes as $cc)
                                 <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}">
-                                    {{ $cc->code }} — {{ $cc->description }}
+                                    {{ $cc->code }} - {{ $cc->description }}
                                     @if($cc->taxCode) ({{ $cc->taxCode->code }}) @endif
                                 </option>
                             @endforeach

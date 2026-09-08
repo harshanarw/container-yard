@@ -157,6 +157,6 @@ class CompanySettingsPartialUpdateTest extends FeatureTestCase
         CompanySetting::flushCache();
 
         $this->assertSame([Cat::AWAITING_QC => 9], CompanySetting::current()->mr_age_thresholds,
-            'A rejected submit changes nothing — zero days would flag every container instantly.');
+            'A rejected submit changes nothing - zero days would flag every container instantly.');
     }
 }

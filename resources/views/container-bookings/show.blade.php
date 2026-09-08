@@ -22,7 +22,7 @@
             <span class="badge {{ $statusBadge[$b->status] ?? 'bg-secondary' }} align-middle">{{ ucfirst($b->status) }}</span>
         </h4>
         <p class="text-muted mb-0 small">
-            {{ $b->customer->name ?? '—' }}
+            {{ $b->customer->name ?? '-' }}
             @if($b->valid_from || $b->valid_to) · valid {{ optional($b->valid_from)->format('d M Y') }} – {{ optional($b->valid_to)->format('d M Y') }}@endif
         </p>
     </div>
@@ -102,7 +102,7 @@
                                  releasable. They just should not do it unaware. --}}
                             @unless($ready)
                                 <i class="bi bi-slash-circle text-warning ms-auto"
-                                   title="Not export ready{{ $c->mr_status ? ' — ' . \App\Support\MrStatusCatalogue::label($c->mr_status, $c->mr_lane) : '' }}{{ $c->mrStatusHasExpired() ? ' (PTI expired)' : '' }}"></i>
+                                   title="Not export ready{{ $c->mr_status ? ' - ' . \App\Support\MrStatusCatalogue::label($c->mr_status, $c->mr_lane) : '' }}{{ $c->mrStatusHasExpired() ? ' (PTI expired)' : '' }}"></i>
                             @endunless
                         </label>
                     </div>

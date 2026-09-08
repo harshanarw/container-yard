@@ -208,7 +208,7 @@
             </td>
 
             {{-- Repair type --}}
-            <td class="text-muted">{{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}</td>
+            <td class="text-muted">{{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '-' }}</td>
 
             {{-- Qty / Size: computed quantity with raw dimensions as context --}}
             <td class="text-end" style="white-space:nowrap;">
@@ -244,7 +244,7 @@
               @if($dimStr2)
                 <div class="text-muted" style="font-size:.72rem;">&#x1F4CF; {!! $dimStr2 !!}</div>
               @elseif(!($line->qty > 0))
-                <span class="text-muted">—</span>
+                <span class="text-muted">-</span>
               @endif
             </td>
 
@@ -265,7 +265,7 @@
                   {{ ($line->labor_rate > 0 && $line->std_labor_hours > 0) ? '= ' : '' }}{{ $estimate->currency }} {{ number_format($line->labor_amount, 2) }}
                 </div>
               @else
-                <span class="text-muted">—</span>
+                <span class="text-muted">-</span>
               @endif
             </td>
 
@@ -285,7 +285,7 @@
                   {{ $estimate->currency }} {{ number_format($line->ancillary_amount, 2) }}
                 </div>
               @else
-                <span class="text-muted">—</span>
+                <span class="text-muted">-</span>
               @endif
             </td>
 
@@ -308,7 +308,7 @@
                 <button type="button" class="btn btn-success btn-sm py-0 px-2" title="Approve"
                         data-bs-toggle="modal" data-bs-target="#approveLineModal"
                         data-action="{{ route('portal.estimate.line-action', ['token' => $token, 'lineItem' => $line->id]) }}"
-                        data-label="{{ $line->component }}{{ $line->repair_type ? ' — ' . ucfirst(str_replace('_', ' ', $line->repair_type)) : '' }}"
+                        data-label="{{ $line->component }}{{ $line->repair_type ? ' - ' . ucfirst(str_replace('_', ' ', $line->repair_type)) : '' }}"
                         data-amount="{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}">
                   <i class="bi bi-check-lg"></i>
                 </button>
@@ -322,7 +322,7 @@
                 </button>
               </div>
               @else
-                <span class="text-muted">—</span>
+                <span class="text-muted">-</span>
               @endif
             </td>
             @endif
@@ -403,7 +403,7 @@
             @if($sumLaborHrs > 0)
               <span class="badge bg-primary-subtle text-primary fw-semibold">{{ number_format($sumLaborHrs, 2) }} hrs</span>
             @else
-              <span class="text-muted">—</span>
+              <span class="text-muted">-</span>
             @endif
           </td>
           <td class="text-end pe-3 fw-semibold">
@@ -416,7 +416,7 @@
           <td class="ps-3">
             <i class="bi bi-box me-2 text-success"></i>Materials
           </td>
-          <td class="text-end text-muted">—</td>
+          <td class="text-end text-muted">-</td>
           <td class="text-end pe-3 fw-semibold">
             {{ $estimate->currency }} {{ number_format($sumMaterial, 2) }}
           </td>
@@ -427,7 +427,7 @@
           <td class="ps-3">
             <i class="bi bi-plus-circle me-2 text-secondary"></i>Ancillary / Overhead
           </td>
-          <td class="text-end text-muted">—</td>
+          <td class="text-end text-muted">-</td>
           <td class="text-end pe-3 fw-semibold">
             {{ $estimate->currency }} {{ number_format($sumAncillary, 2) }}
           </td>
@@ -578,7 +578,7 @@
         <div class="modal-body">
           <div class="bg-light rounded p-2 mb-3 small">
             <strong>{{ $line->component }}</strong>
-            @if($line->repair_type) — {{ ucfirst(str_replace('_', ' ', $line->repair_type)) }}@endif
+            @if($line->repair_type) - {{ ucfirst(str_replace('_', ' ', $line->repair_type)) }}@endif
             <span class="float-end fw-semibold">{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}</span>
           </div>
           <div class="row g-2 mb-2">
@@ -610,13 +610,13 @@
         @csrf
         <input type="hidden" name="action" value="amended">
         <div class="modal-header">
-          <h6 class="modal-title"><i class="bi bi-pencil text-warning me-2"></i>Request Amendment — Line #{{ $loop->iteration }}</h6>
+          <h6 class="modal-title"><i class="bi bi-pencil text-warning me-2"></i>Request Amendment - Line #{{ $loop->iteration }}</h6>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <div class="bg-light rounded p-2 mb-3 small">
             <strong>{{ $line->component }}</strong>
-            @if($line->repair_type) — {{ ucfirst(str_replace('_', ' ', $line->repair_type)) }}@endif
+            @if($line->repair_type) - {{ ucfirst(str_replace('_', ' ', $line->repair_type)) }}@endif
             <span class="float-end fw-semibold">{{ $estimate->currency }} {{ number_format($line->line_amount, 2) }}</span>
           </div>
           <div class="row g-2 mb-2">

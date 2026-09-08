@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Hire — ' . ($hire->container->container_no ?? 'Detail'))
+@section('title', 'Hire - ' . ($hire->container->container_no ?? 'Detail'))
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('yard.index') }}">Yard</a></li>
@@ -27,7 +27,7 @@
     <div>
         <h4 class="mb-1">
             <i class="bi bi-arrow-left-right me-2 text-warning"></i>
-            Container Hire — <span class="font-monospace">{{ $hire->container->container_no ?? '—' }}</span>
+            Container Hire - <span class="font-monospace">{{ $hire->container->container_no ?? '-' }}</span>
         </h4>
         <div class="d-flex align-items-center gap-2 flex-wrap">
             @if($hire->isActive())
@@ -81,7 +81,7 @@
                     <tbody>
                         <tr>
                             <td class="text-muted small w-40">Container</td>
-                            <td class="fw-semibold font-monospace">{{ $hire->container->container_no ?? '—' }}</td>
+                            <td class="fw-semibold font-monospace">{{ $hire->container->container_no ?? '-' }}</td>
                         </tr>
                         <tr>
                             <td class="text-muted small">Size / Type</td>
@@ -89,7 +89,7 @@
                         </tr>
                         <tr>
                             <td class="text-muted small">Original Owner</td>
-                            <td>{{ $hire->originalCustomer->name ?? '—' }}</td>
+                            <td>{{ $hire->originalCustomer->name ?? '-' }}</td>
                         </tr>
                         <tr>
                             <td class="text-muted small">Hire Party</td>
@@ -102,7 +102,7 @@
                         <tr>
                             <td class="text-muted small">Off Hire Date</td>
                             <td class="fw-semibold">
-                                {{ $hire->off_hire_date?->format('d M Y') ?? '—' }}
+                                {{ $hire->off_hire_date?->format('d M Y') ?? '-' }}
                             </td>
                         </tr>
                         @if($hire->on_hire_date && $hire->off_hire_date)
@@ -118,11 +118,11 @@
                         @endif
                         <tr>
                             <td class="text-muted small">Reference</td>
-                            <td>{{ $hire->hire_reference ?? '—' }}</td>
+                            <td>{{ $hire->hire_reference ?? '-' }}</td>
                         </tr>
                         <tr>
                             <td class="text-muted small">Created By</td>
-                            <td class="small">{{ $hire->createdBy->name ?? '—' }} · {{ $hire->created_at->format('d M Y H:i') }}</td>
+                            <td class="small">{{ $hire->createdBy->name ?? '-' }} · {{ $hire->created_at->format('d M Y H:i') }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -157,9 +157,9 @@
                         @if($hire->originalYardStorage)
                         <tr>
                             <td class="small fw-semibold">Original</td>
-                            <td class="small">{{ $hire->originalCustomer->name ?? '—' }}</td>
+                            <td class="small">{{ $hire->originalCustomer->name ?? '-' }}</td>
                             <td class="small">{{ $hire->originalYardStorage->gate_in_date->format('d M Y') }}</td>
-                            <td class="small">{{ $hire->originalYardStorage->gate_out_date?->format('d M Y') ?? '—' }}</td>
+                            <td class="small">{{ $hire->originalYardStorage->gate_out_date?->format('d M Y') ?? '-' }}</td>
                             <td class="text-center"><span class="badge bg-secondary">{{ $hire->originalYardStorage->hire_type }}</span></td>
                         </tr>
                         @endif
@@ -175,7 +175,7 @@
                         @if($hire->resumedYardStorage)
                         <tr class="table-success">
                             <td class="small fw-semibold">Resumed</td>
-                            <td class="small">{{ $hire->originalCustomer->name ?? '—' }}</td>
+                            <td class="small">{{ $hire->originalCustomer->name ?? '-' }}</td>
                             <td class="small">{{ $hire->resumedYardStorage->gate_in_date->format('d M Y') }}</td>
                             <td class="small">{{ $hire->resumedYardStorage->gate_out_date?->format('d M Y') ?? 'Active' }}</td>
                             <td class="text-center"><span class="badge bg-success">resumed</span></td>
@@ -193,8 +193,8 @@
                     <small class="text-muted">
                         <i class="bi bi-info-circle me-1"></i>
                         Effective gate-in date for free-day calculations:
-                        <strong>{{ $hire->resumedYardStorage->effective_gate_in_date?->format('d M Y') ?? '—' }}</strong>
-                        (original physical gate-in — free days are not reset after off-hire)
+                        <strong>{{ $hire->resumedYardStorage->effective_gate_in_date?->format('d M Y') ?? '-' }}</strong>
+                        (original physical gate-in - free days are not reset after off-hire)
                     </small>
                 </div>
                 @endif

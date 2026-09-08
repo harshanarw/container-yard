@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Estimate — ' . $estimate->estimate_no)
+@section('title', 'Edit Estimate - ' . $estimate->estimate_no)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('estimates.index') }}">Repair Estimates</a></li>
@@ -93,12 +93,12 @@
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Inquiry Ref.</label>
                             <input type="text" class="form-control"
-                                   value="{{ $estimate->inquiry->inquiry_no ?? '—' }}" readonly>
+                                   value="{{ $estimate->inquiry->inquiry_no ?? '-' }}" readonly>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Customer</label>
                             <input type="text" class="form-control"
-                                   value="{{ $estimate->customer->name ?? '—' }}" readonly>
+                                   value="{{ $estimate->customer->name ?? '-' }}" readonly>
                         </div>
                         @php
                             $editCur     = old('currency', $estimate->currency);
@@ -119,12 +119,12 @@
                         <div class="col-md-2">
                             <label class="form-label fw-semibold">Currency <span class="text-danger">*</span></label>
                             <select name="currency" id="estimateCurrency" class="form-select" {{ $rateLocked ? 'disabled' : '' }} required>
-                                <option value="USD" {{ $editCur==='USD'?'selected':'' }}>USD — US Dollar</option>
-                                <option value="{{ $defaultCurrency }}" {{ $editCur===$defaultCurrency && $defaultCurrency!=='USD'?'selected':'' }}>{{ $defaultCurrency }} — Local</option>
-                                <option value="EUR" {{ $editCur==='EUR'?'selected':'' }}>EUR — Euro</option>
-                                <option value="GBP" {{ $editCur==='GBP'?'selected':'' }}>GBP — British Pound</option>
-                                <option value="SGD" {{ $editCur==='SGD'?'selected':'' }}>SGD — Singapore Dollar</option>
-                                <option value="AUD" {{ $editCur==='AUD'?'selected':'' }}>AUD — Australian Dollar</option>
+                                <option value="USD" {{ $editCur==='USD'?'selected':'' }}>USD - US Dollar</option>
+                                <option value="{{ $defaultCurrency }}" {{ $editCur===$defaultCurrency && $defaultCurrency!=='USD'?'selected':'' }}>{{ $defaultCurrency }} - Local</option>
+                                <option value="EUR" {{ $editCur==='EUR'?'selected':'' }}>EUR - Euro</option>
+                                <option value="GBP" {{ $editCur==='GBP'?'selected':'' }}>GBP - British Pound</option>
+                                <option value="SGD" {{ $editCur==='SGD'?'selected':'' }}>SGD - Singapore Dollar</option>
+                                <option value="AUD" {{ $editCur==='AUD'?'selected':'' }}>AUD - Australian Dollar</option>
                             </select>
                             @if($rateLocked)
                                 {{-- keep the value in the form even when select is disabled --}}
@@ -157,9 +157,9 @@
                             </div>
                             <div id="estRateNote" class="form-text">
                                 @if($rateLocked)
-                                    <span class="text-muted"><i class="bi bi-lock me-1"></i>Rate locked — estimate has been sent to customer</span>
+                                    <span class="text-muted"><i class="bi bi-lock me-1"></i>Rate locked - estimate has been sent to customer</span>
                                 @elseif($editCur === 'USD')
-                                    <span class="text-muted">Estimate is in USD — no conversion applied</span>
+                                    <span class="text-muted">Estimate is in USD - no conversion applied</span>
                                 @else
                                     <span class="text-success"><i class="bi bi-check-circle me-1"></i>Rate as at estimate date</span>
                                 @endif
@@ -178,7 +178,7 @@
                             <label class="form-label fw-semibold">Tax Applicable <span class="text-danger">*</span></label>
                             <select name="tax_applicable" id="taxApplicable" class="form-select" required>
                                 <option value="1" {{ (string) $taxDefault === '1' ? 'selected' : '' }}>Yes</option>
-                                <option value="0" {{ (string) $taxDefault === '0' ? 'selected' : '' }}>No — Tax Exempt</option>
+                                <option value="0" {{ (string) $taxDefault === '0' ? 'selected' : '' }}>No - Tax Exempt</option>
                             </select>
                             @if($estimate->customer?->tax_exempt)
                             <div class="form-text text-warning"><i class="bi bi-info-circle me-1"></i>Customer is tax-exempt</div>
@@ -244,17 +244,17 @@
                                         <input type="hidden" name="line_items[{{ $i }}][dim_width]"         value="{{ $item->dim_width ?? '' }}">
                                         <input type="hidden" name="line_items[{{ $i }}][dim_uom]"           value="{{ $item->dim_uom ?? '' }}">
                                         <select name="line_items[{{ $i }}][component_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">— any —</option>
+                                            <option value="">- any -</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ old("line_items.{$i}.component_code_id", $item->component_code_id) == $c->id ? 'selected' : '' }}>
-                                                {{ $c->code }} — {{ $c->name }}
+                                                {{ $c->code }} - {{ $c->name }}
                                             </option>
                                             @endforeach
                                         </select>
                                     </td>
                                     <td>
                                         <select name="line_items[{{ $i }}][charge_code_id]" class="form-select form-select-sm charge-code-sel s2 s2-code">
-                                            <option value="">— none —</option>
+                                            <option value="">- none -</option>
                                             @foreach($chargeCodes as $cc)
                                             <option value="{{ $cc->id }}"
                                                     data-code="{{ $cc->code }}"
@@ -263,7 +263,7 @@
                                                     data-tax2-rate="{{ $cc->taxCode?->tax2_rate ?? 0 }}"
                                                     data-tax-code-id="{{ $cc->tax_code_id ?? '' }}"
                                                     {{ old("line_items.{$i}.charge_code_id", $item->charge_code_id) == $cc->id ? 'selected' : '' }}>
-                                                {{ $cc->code }} — {{ $cc->description }}
+                                                {{ $cc->code }} - {{ $cc->description }}
                                             </option>
                                             @endforeach
                                         </select>
@@ -295,7 +295,7 @@
                                     </td>
                                     <td class="tax-col">
                                         <select name="line_items[{{ $i }}][tax_code_id]" class="form-select form-select-sm tax-code-sel s2 s2-code">
-                                            <option value="">— none —</option>
+                                            <option value="">- none -</option>
                                             @foreach($taxCodes as $tc)
                                             <option value="{{ $tc->id }}"
                                                     data-code="{{ $tc->code }}"
@@ -592,10 +592,10 @@
                 </div>
                 <div id="grRateResult" class="d-none mt-3 p-3 border rounded bg-light">
                     <div class="row g-2 small">
-                        <div class="col-md-2"><div class="text-muted">Labor Hours</div><div class="fw-bold" id="grLaborHrs">—</div></div>
-                        <div class="col-md-2"><div class="text-muted">Labor Amount</div><div class="fw-bold" id="grLaborAmt">—</div></div>
-                        <div class="col-md-2"><div class="text-muted">Material Cost</div><div class="fw-bold" id="grMaterialAmt">—</div></div>
-                        <div class="col-md-2"><div class="text-muted">Total</div><div class="fw-bold text-success fs-6" id="grTotal">—</div></div>
+                        <div class="col-md-2"><div class="text-muted">Labor Hours</div><div class="fw-bold" id="grLaborHrs">-</div></div>
+                        <div class="col-md-2"><div class="text-muted">Labor Amount</div><div class="fw-bold" id="grLaborAmt">-</div></div>
+                        <div class="col-md-2"><div class="text-muted">Material Cost</div><div class="fw-bold" id="grMaterialAmt">-</div></div>
+                        <div class="col-md-2"><div class="text-muted">Total</div><div class="fw-bold text-success fs-6" id="grTotal">-</div></div>
                         <div class="col-md-4 d-flex align-items-end">
                             <button type="button" class="btn btn-sm btn-success w-100" id="grApplyBtn">
                                 <i class="bi bi-check-circle me-1"></i>Apply Rate to New Line
@@ -641,7 +641,7 @@
             if (label)  label.textContent = 'No conversion (USD tariff)';
             if (prefix) prefix.textContent = '';
             if (suffix) suffix.textContent = '';
-            if (note)   note.innerHTML = '<span class="text-muted">Estimate is in USD — no conversion applied.</span>';
+            if (note)   note.innerHTML = '<span class="text-muted">Estimate is in USD - no conversion applied.</span>';
             return;
         }
 
@@ -659,7 +659,7 @@
                 if (input) input.value = parseFloat(data.rate).toFixed(4);
                 if (note)  note.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Rate auto-loaded: 1 USD = ${parseFloat(data.rate).toFixed(4)} ${currency}</span>`;
             } else {
-                if (note)  note.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No rate found — enter manually</span>`;
+                if (note)  note.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No rate found - enter manually</span>`;
             }
         } catch (_) {
             if (note) note.innerHTML = '<span class="text-danger">Failed to fetch rate</span>';
@@ -798,7 +798,7 @@
         if (cur !== 'USD' && (rate <= 0 || Math.abs(rate - 1.0) < 1e-7)) {
             e.preventDefault();
             const note = document.getElementById('estRateNote');
-            if (note) note.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Enter the USD → ${cur} exchange rate before saving — a rate of 1.0 means no conversion.</span>`;
+            if (note) note.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Enter the USD → ${cur} exchange rate before saving - a rate of 1.0 means no conversion.</span>`;
             const input = document.getElementById('estimateExchangeRate');
             input?.focus();
             input?.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -844,21 +844,21 @@
     const resolveUrl = '{{ route("estimates.resolve-charge-code") }}';
 
     function buildCompSelect(name) {
-        let opts = '<option value="">— any —</option>';
-        mrCmpCodeOpts.forEach(o => { opts += `<option value="${o.id}" data-code="${esc(o.code)}" data-name="${esc(o.name)}">${esc(o.code)} — ${esc(o.name)}</option>`; });
+        let opts = '<option value="">- any -</option>';
+        mrCmpCodeOpts.forEach(o => { opts += `<option value="${o.id}" data-code="${esc(o.code)}" data-name="${esc(o.name)}">${esc(o.code)} - ${esc(o.name)}</option>`; });
         return `<select name="${name}" class="form-select form-select-sm mb-1 s2 s2-code">${opts}</select>`;
     }
 
     function buildChargeCodeSelect(name) {
-        let opts = '<option value="">— none —</option>';
+        let opts = '<option value="">- none -</option>';
         chargeCodeOpts.forEach(c => {
-            opts += `<option value="${c.id}" data-code="${esc(c.code)}" data-name="${esc(c.description)}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}">${esc(c.code)} — ${esc(c.description)}</option>`;
+            opts += `<option value="${c.id}" data-code="${esc(c.code)}" data-name="${esc(c.description)}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}">${esc(c.code)} - ${esc(c.description)}</option>`;
         });
         return `<select name="${name}" class="form-select form-select-sm charge-code-sel s2 s2-code">${opts}</select>`;
     }
 
     function buildTaxCodeSelect(name) {
-        let opts = '<option value="">— none —</option>';
+        let opts = '<option value="">- none -</option>';
         taxCodeOpts.forEach(tc => {
             const fullLabel = `${tc.code} (SSCL ${tc.tax1_rate}% + VAT ${tc.tax2_rate}%)`;
             opts += `<option value="${tc.id}" data-code="${esc(tc.code)}" data-name="${esc(fullLabel)}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}" title="${esc(fullLabel)}">${esc(tc.code)}</option>`;
@@ -1354,7 +1354,7 @@
                             <span class="dim-axis-lbl">W</span>
                         </div>
                         <input type="hidden" class="gr-qty" value="">
-                        <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;sqft</div>
+                        <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>-&nbsp;sqft</div>
                     </div>`;
                 }
                 return `<div class="d-flex align-items-center gap-1 flex-wrap" onclick="event.stopPropagation()">
@@ -1363,7 +1363,7 @@
                     <input type="number" class="form-control form-control-sm gr-dim-w" placeholder="W" min="0.01" step="0.01" style="width:52px" title="Width (${DIM_UOM_LABEL})">
                     <span class="text-muted" style="font-size:.72rem;">${DIM_UOM_LABEL}</span>
                     <input type="hidden" class="gr-qty" value="1">
-                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;sqft</div>
+                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>-&nbsp;sqft</div>
                 </div>`;
             }
             if (unitType === 'inches') {
@@ -1374,14 +1374,14 @@
                         <input type="number" class="form-control form-control-sm dim-no-spin gr-in-l" placeholder="0" min="0" max="11.75" step="0.25" style="width:40px" title="Length inches">
                         <span class="dim-unit-lbl">in</span>
                         <input type="hidden" class="gr-qty" value="">
-                        <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;in</div>
+                        <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>-&nbsp;in</div>
                     </div>`;
                 }
                 return `<div class="d-flex align-items-center gap-1" onclick="event.stopPropagation()">
                     <input type="number" class="form-control form-control-sm gr-dim-l" placeholder="Length" min="0.01" step="0.01" style="width:68px" title="Length (${DIM_UOM_LABEL})">
                     <span class="text-muted" style="font-size:.72rem;">${DIM_UOM_LABEL}</span>
                     <input type="hidden" class="gr-qty" value="1">
-                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;in</div>
+                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>-&nbsp;in</div>
                 </div>`;
             }
             return `<input type="number" class="form-control form-control-sm gr-qty" value="1" min="0.01" step="0.01" style="width:70px" onclick="event.stopPropagation()">`;
@@ -1395,7 +1395,7 @@
             resultBody.innerHTML = items.map(item => {
                 const color = opColors[item.operation_type] || 'secondary';
                 return `<tr data-item-id="${item.id}" data-item-unit="${item.unit_type}" data-item-desc="${item.description}" style="cursor:pointer;">
-                    <td class="ps-2 font-monospace small">${item.tariff_code || '—'}</td>
+                    <td class="ps-2 font-monospace small">${item.tariff_code || '-'}</td>
                     <td><span class="badge bg-${color}-subtle text-${color} border text-uppercase small">${item.operation_type}</span></td>
                     <td class="small">${item.description}</td>
                     <td class="small text-muted">${item.unit_type.toUpperCase()}</td>

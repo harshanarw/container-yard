@@ -71,7 +71,7 @@
                         <option value="">All Customers</option>
                         @foreach($customers as $customer)
                             <option value="{{ $customer->id }}" data-code="{{ $customer->code }}" data-name="{{ $customer->name }}" {{ request('customer_id') == $customer->id ? 'selected' : '' }}>
-                                {{ $customer->code }} — {{ $customer->name }}
+                                {{ $customer->code }} - {{ $customer->name }}
                             </option>
                         @endforeach
                     </select>
@@ -165,15 +165,15 @@
                                 {{ $inquiry->size }} {{ $inquiry->type_code }}
                             </span>
                         </td>
-                        <td class="small">{{ $inquiry->customer?->name ?? '—' }}</td>
+                        <td class="small">{{ $inquiry->customer?->name ?? '-' }}</td>
                         <td>
                             <span class="badge bg-light border text-dark">
                                 {{ $typeLabels[$inquiry->inquiry_type] ?? $inquiry->inquiry_type }}
                             </span>
                         </td>
-                        <td class="small">{{ $inquiry->inspector?->name ?? '—' }}</td>
+                        <td class="small">{{ $inquiry->inspector?->name ?? '-' }}</td>
                         <td class="small text-muted">
-                            {{ $inquiry->inspection_date ? \Carbon\Carbon::parse($inquiry->inspection_date)->format('d M Y') : '—' }}
+                            {{ $inquiry->inspection_date ? \Carbon\Carbon::parse($inquiry->inspection_date)->format('d M Y') : '-' }}
                         </td>
                         <td class="small">
                             @if($inquiry->estimate)
@@ -182,7 +182,7 @@
                                     {{ $inquiry->estimate->estimate_no }}
                                 </a>
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </td>
                         <td>

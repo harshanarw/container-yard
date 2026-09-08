@@ -167,7 +167,7 @@ class CurrencyAuditService
                             'rate'       => $rate,
                             'expected'   => null,
                             'actual'     => null,
-                            'note'       => "Foreign-currency {$label} booked at rate {$rate} — likely a silent 1.0 fallback.",
+                            'note'       => "Foreign-currency {$label} booked at rate {$rate} - likely a silent 1.0 fallback.",
                         ];
                     }
                 });
@@ -205,7 +205,7 @@ class CurrencyAuditService
         if ($row['currency'] !== $base && (float) $row['rate'] <= 1.0) {
             $findings[] = $row + [
                 'issue' => 'suspect_rate',
-                'note'  => "Foreign-currency {$row['doc']} booked at rate {$row['rate']} — likely a silent 1.0 fallback.",
+                'note'  => "Foreign-currency {$row['doc']} booked at rate {$row['rate']} - likely a silent 1.0 fallback.",
             ];
         }
     }

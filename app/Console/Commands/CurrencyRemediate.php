@@ -47,7 +47,7 @@ class CurrencyRemediate extends Command
         $mismatches = collect($result['findings'])->where('issue', 'base_mismatch')->values();
         $suspects   = collect($result['findings'])->where('issue', 'suspect_rate')->values();
 
-        $this->info(($apply ? 'APPLY' : 'DRY-RUN') . " — base currency {$result['base']}");
+        $this->info(($apply ? 'APPLY' : 'DRY-RUN') . " - base currency {$result['base']}");
         $this->line("{$mismatches->count()} base mismatch(es) to remediate; {$suspects->count()} suspect-rate item(s) need manual rate correction.");
         $this->newLine();
 
@@ -97,7 +97,7 @@ class CurrencyRemediate extends Command
                 $this->info("  re-posted: {$label}");
             } catch (\Throwable $e) {
                 $failed++;
-                $this->error("  FAILED: {$label} — {$e->getMessage()}");
+                $this->error("  FAILED: {$label} - {$e->getMessage()}");
             }
         }
 
@@ -105,12 +105,12 @@ class CurrencyRemediate extends Command
             $this->newLine();
             $this->warn('Manual rate correction needed (NOT auto-fixed):');
             foreach ($suspects as $s) {
-                $this->line("  {$s['doc']} {$s['no']} — {$s['currency']} at rate {$s['rate']}. Set the correct rate, then re-post.");
+                $this->line("  {$s['doc']} {$s['no']} - {$s['currency']} at rate {$s['rate']}. Set the correct rate, then re-post.");
             }
         }
 
         $this->newLine();
-        $this->line($apply ? "Done. {$fixed} re-posted, {$failed} failed." : 'Dry run complete — re-run with --apply to make changes.');
+        $this->line($apply ? "Done. {$fixed} re-posted, {$failed} failed." : 'Dry run complete - re-run with --apply to make changes.');
 
         return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }

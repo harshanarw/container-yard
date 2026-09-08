@@ -156,7 +156,7 @@
                                 </span>
                             @endif
                             @if($customer->types->isEmpty())
-                                <span class="text-muted small">—</span>
+                                <span class="text-muted small">-</span>
                             @endif
                         </td>
                         <td class="small">{{ $customer->contact_person }}</td>
@@ -174,7 +174,7 @@
                                 <a href="{{ route('customers.show', $customer) }}#email-contacts"
                                    class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle text-decoration-none ms-1"
                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                   title="No email recipients configured — click to set up">
+                                   title="No email recipients configured - click to set up">
                                     <i class="bi bi-envelope-exclamation"></i> Set up
                                 </a>
                             @endif

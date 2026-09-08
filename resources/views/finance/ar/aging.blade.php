@@ -12,7 +12,7 @@
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
         <h4 class="mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>AR Aging Report</h4>
-        <p class="text-muted small mb-0">Outstanding receivables by customer — as of {{ \Carbon\Carbon::parse($asOf)->format('d M Y') }} · aged by {{ $ageBy === 'invoice_date' ? 'invoice date' : 'due date' }} · buckets in {{ $base }}@if($currencyFilter) · currency: {{ $currencyFilter }}@endif</p>
+        <p class="text-muted small mb-0">Outstanding receivables by customer - as of {{ \Carbon\Carbon::parse($asOf)->format('d M Y') }} · aged by {{ $ageBy === 'invoice_date' ? 'invoice date' : 'due date' }} · buckets in {{ $base }}@if($currencyFilter) · currency: {{ $currencyFilter }}@endif</p>
     </div>
     <form method="GET" action="{{ route('finance.ar.aging') }}" class="d-flex align-items-center gap-2">
         <label class="form-label small mb-0 text-muted">Age By</label>
@@ -85,7 +85,7 @@
                     <td class="text-end font-monospace">{{ $cs['currency'] }} {{ number_format($cs['doc_outstanding'], 2) }}</td>
                     <td class="text-end font-monospace text-muted">
                         @if($cs['currency'] === $base)
-                            —
+                            -
                         @elseif($cs['rate_min'] == $cs['rate_max'])
                             {{ rtrim(rtrim(number_format($cs['rate_min'], 4, '.', ''), '0'), '.') }}
                         @else
@@ -215,7 +215,7 @@
                         @if($inv['past_due'])
                             <span class="badge bg-{{ $bc }}-subtle text-{{ $bc }}">{{ $inv['age_days'] }}d</span>
                         @else
-                            <span class="text-muted small">—</span>
+                            <span class="text-muted small">-</span>
                         @endif
                     </td>
 
@@ -224,20 +224,20 @@
 
                     {{-- Bucket columns --}}
                     <td class="text-end font-monospace {{ $inv['bucket'] === 'current' ? 'fw-semibold text-success' : 'text-muted' }}">
-                        {{ $inv['bucket'] === 'current' ? number_format($inv['outstanding'], 2) : '—' }}
+                        {{ $inv['bucket'] === 'current' ? number_format($inv['outstanding'], 2) : '-' }}
                     </td>
                     <td class="text-end font-monospace {{ $inv['bucket'] === '1-30' ? 'fw-semibold text-info' : 'text-muted' }}">
-                        {{ $inv['bucket'] === '1-30' ? number_format($inv['outstanding'], 2) : '—' }}
+                        {{ $inv['bucket'] === '1-30' ? number_format($inv['outstanding'], 2) : '-' }}
                     </td>
                     <td class="text-end font-monospace {{ $inv['bucket'] === '31-60' ? 'fw-semibold text-warning' : 'text-muted' }}">
-                        {{ $inv['bucket'] === '31-60' ? number_format($inv['outstanding'], 2) : '—' }}
+                        {{ $inv['bucket'] === '31-60' ? number_format($inv['outstanding'], 2) : '-' }}
                     </td>
                     <td class="text-end font-monospace {{ $inv['bucket'] === '61-90' ? 'fw-semibold' : 'text-muted' }}"
                         style="{{ $inv['bucket'] === '61-90' ? 'color:#c47200' : '' }}">
-                        {{ $inv['bucket'] === '61-90' ? number_format($inv['outstanding'], 2) : '—' }}
+                        {{ $inv['bucket'] === '61-90' ? number_format($inv['outstanding'], 2) : '-' }}
                     </td>
                     <td class="text-end font-monospace {{ $inv['bucket'] === '90+' ? 'fw-semibold text-danger' : 'text-muted' }}">
-                        {{ $inv['bucket'] === '90+' ? number_format($inv['outstanding'], 2) : '—' }}
+                        {{ $inv['bucket'] === '90+' ? number_format($inv['outstanding'], 2) : '-' }}
                     </td>
 
                     <td class="text-end font-monospace fw-semibold {{ $inv['outstanding'] > 0 ? 'text-danger' : 'text-success' }}">

@@ -36,7 +36,7 @@
         <p class="text-muted mb-0 small">
             Movement #{{ $movement->id }} &nbsp;·&nbsp;
             Recorded {{ ($movement->gate_in_time ?? $movement->gate_out_time)?->format('d M Y H:i') }}
-            &nbsp;·&nbsp; By {{ $movement->createdBy?->name ?? '—' }}
+            &nbsp;·&nbsp; By {{ $movement->createdBy?->name ?? '-' }}
         </p>
     </div>
     <div class="d-flex gap-2">
@@ -90,7 +90,7 @@
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="text-muted">Customer</div>
-                                <div class="fw-semibold">{{ $movement->customer?->name ?? '—' }}</div>
+                                <div class="fw-semibold">{{ $movement->customer?->name ?? '-' }}</div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="text-muted">Location</div>
@@ -98,7 +98,7 @@
                                     @if($movement->location_row)
                                         @if($movement->location_zone){{ $movement->location_zone }}-@endif{{ $movement->location_row }}{{ $movement->location_bay }}-T{{ $movement->location_tier }}
                                     @else
-                                        —
+                                        -
                                     @endif
                                 </div>
                             </div>
@@ -132,7 +132,7 @@
                                 <option value="{{ $customer->id }}"
                                     data-code="{{ $customer->code }}" data-name="{{ $customer->name }}"
                                     {{ old('customer_id', $movement->customer_id) == $customer->id ? 'selected' : '' }}>
-                                    {{ $customer->code }} — {{ $customer->name }}
+                                    {{ $customer->code }} - {{ $customer->name }}
                                 </option>
                                 @endforeach
                             </select>
@@ -231,11 +231,11 @@
                                 <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
                             </label>
                             <select name="transporter_id" class="form-select s2-code" data-s2-sel="name">
-                                <option value="">— Select Transporter —</option>
+                                <option value="">- Select Transporter -</option>
                                 @foreach($transporters as $t)
                                 <option value="{{ $t->id }}" data-code="{{ $t->code }}" data-name="{{ $t->name }}"
                                     {{ old('transporter_id', $movement->transporter_id) == $t->id ? 'selected' : '' }}>
-                                    {{ $t->code }} — {{ $t->name }}
+                                    {{ $t->code }} - {{ $t->name }}
                                 </option>
                                 @endforeach
                             </select>
@@ -476,11 +476,11 @@
                                 <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
                             </label>
                             <select name="transporter_id" class="form-select s2-code" data-s2-sel="name">
-                                <option value="">— Select Transporter —</option>
+                                <option value="">- Select Transporter -</option>
                                 @foreach($transporters as $t)
                                 <option value="{{ $t->id }}" data-code="{{ $t->code }}" data-name="{{ $t->name }}"
                                     {{ old('transporter_id', $movement->transporter_id) == $t->id ? 'selected' : '' }}>
-                                    {{ $t->code }} — {{ $t->name }}
+                                    {{ $t->code }} - {{ $t->name }}
                                 </option>
                                 @endforeach
                             </select>
@@ -566,7 +566,7 @@
                     <div class="col-6">
                         <div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Container</div>
                         <a href="{{ $movement->containerOcrImageUrl }}" data-bs-toggle="modal" data-bs-target="#ocrImageModal"
-                           data-src="{{ $movement->containerOcrImageUrl }}" data-label="Container — {{ $movement->container_no }}"
+                           data-src="{{ $movement->containerOcrImageUrl }}" data-label="Container - {{ $movement->container_no }}"
                            class="ocr-thumb-link">
                             <img src="{{ $movement->containerOcrImageUrl }}" alt="Container OCR"
                                  class="img-fluid rounded border"
@@ -578,7 +578,7 @@
                     <div class="col-6">
                         <div class="text-muted mb-1" style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Vehicle Plate</div>
                         <a href="{{ $movement->plateOcrImageUrl }}" data-bs-toggle="modal" data-bs-target="#ocrImageModal"
-                           data-src="{{ $movement->plateOcrImageUrl }}" data-label="Vehicle Plate — {{ $movement->vehicle_plate }}"
+                           data-src="{{ $movement->plateOcrImageUrl }}" data-label="Vehicle Plate - {{ $movement->vehicle_plate }}"
                            class="ocr-thumb-link">
                             <img src="{{ $movement->plateOcrImageUrl }}" alt="Plate OCR"
                                  class="img-fluid rounded border"
@@ -752,7 +752,7 @@
         slotGridLoading.classList.remove('d-none');
         zoneSelectorPanel.classList.add('d-none');
         slotGridPanel.classList.remove('d-none');
-        gridZoneLabel.textContent = '— ' + zoneName;
+        gridZoneLabel.textContent = '- ' + zoneName;
         try {
             const url = '{{ rtrim(url("/yard/zones"), "/") }}/' + encodeURIComponent(zoneCode) + '/slots';
             const res  = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });

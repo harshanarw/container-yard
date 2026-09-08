@@ -85,7 +85,7 @@
                 <tr>
                     <td>
                         <span class="font-monospace fw-medium">{{ $session->container?->container_no }}</span>
-                        <div class="text-muted small">{{ $session->container?->equipmentType?->dropdown_label ?? '—' }}</div>
+                        <div class="text-muted small">{{ $session->container?->equipmentType?->dropdown_label ?? '-' }}</div>
                     </td>
                     <td>@include('partials.job-badge', ['job' => $session->yardJob, 'mode' => 'cell'])</td>
                     <td>{{ $session->customer?->name }}</td>
@@ -93,21 +93,21 @@
                         @if($session->gateMovement?->gate_in_time)
                             {{ $session->gateMovement->gate_in_time->format('d M Y H:i') }}
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td>
                         @if($session->plug_in_at)
                             {{ $session->plug_in_at->format('d M Y H:i') }}
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td>
                         @if($session->plug_out_at)
                             {{ $session->plug_out_at->format('d M Y H:i') }}
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td>
@@ -119,7 +119,7 @@
                             @endphp
                             <span class="small">{{ $hrs }}h / {{ $days }}d</span>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td>

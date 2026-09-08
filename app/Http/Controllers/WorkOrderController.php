@@ -135,10 +135,10 @@ class WorkOrderController extends Controller
             ->get()
             ->map(fn($l) => [
                 'id'          => $l->id,
-                'component'   => $l->component ?? $l->componentCode?->name ?? '—',
-                'damage'      => $l->damageCode?->name ?? '—',
-                'repair'      => $l->repairCode?->name ?? $l->repair_type ?? '—',
-                'location'    => $l->locationCode?->name ?? '—',
+                'component'   => $l->component ?? $l->componentCode?->name ?? '-',
+                'damage'      => $l->damageCode?->name ?? '-',
+                'repair'      => $l->repairCode?->name ?? $l->repair_type ?? '-',
+                'location'    => $l->locationCode?->name ?? '-',
                 'qty'         => $l->qty,
                 'line_amount' => $l->line_amount,
             ]);
@@ -220,7 +220,7 @@ class WorkOrderController extends Controller
         });
 
         NotificationService::notifyAll(
-            'Work Order Created — ' . $workOrder->wo_no,
+            'Work Order Created - ' . $workOrder->wo_no,
             ($estimate->customer->name ?? 'Unknown') . ' · ' . $estimate->container_no . ' · ' . $workOrder->repairCategory->name,
             'info',
             route('work-orders.show', $workOrder)
@@ -360,7 +360,7 @@ class WorkOrderController extends Controller
 
         $action = match($newStatus) {
             'in_progress' => $oldStatus === 'rejected' ? 'sent back for rework' : 'started',
-            'completed'   => 'marked as complete — awaiting QC',
+            'completed'   => 'marked as complete - awaiting QC',
             'on_hold'     => 'put on hold',
             'cancelled'   => 'cancelled',
             default       => 'updated',
@@ -374,7 +374,7 @@ class WorkOrderController extends Controller
         };
 
         NotificationService::notifyAll(
-            'Work Order ' . ucfirst(str_replace('_', ' ', $newStatus)) . ' — ' . $workOrder->wo_no,
+            'Work Order ' . ucfirst(str_replace('_', ' ', $newStatus)) . ' - ' . $workOrder->wo_no,
             ($workOrder->customer->name ?? 'Unknown') . ' · ' . $workOrder->container_no . ' · ' . ucfirst($action),
             $notifType,
             route('work-orders.show', $workOrder)
@@ -457,8 +457,8 @@ class WorkOrderController extends Controller
             $failCount = collect($validated['line_results'])->filter(fn($r) => $r === 'failed')->count();
 
             NotificationService::notifyAll(
-                'QC Failed — ' . $workOrder->wo_no,
-                ($workOrder->customer->name ?? 'Unknown') . ' · ' . $workOrder->container_no . ' · ' . $failCount . ' line(s) failed — returned for rework',
+                'QC Failed - ' . $workOrder->wo_no,
+                ($workOrder->customer->name ?? 'Unknown') . ' · ' . $workOrder->container_no . ' · ' . $failCount . ' line(s) failed - returned for rework',
                 'danger',
                 route('work-orders.show', $workOrder)
             );
@@ -468,13 +468,13 @@ class WorkOrderController extends Controller
         }
 
         NotificationService::notifyAll(
-            'QC Passed — ' . $workOrder->wo_no,
+            'QC Passed - ' . $workOrder->wo_no,
             ($workOrder->customer->name ?? 'Unknown') . ' · ' . $workOrder->container_no . ' · Work order closed',
             'success',
             route('work-orders.show', $workOrder)
         );
 
         return redirect()->route('work-orders.show', $workOrder)
-                         ->with('success', 'QC passed — work order closed.');
+                         ->with('success', 'QC passed - work order closed.');
     }
 }

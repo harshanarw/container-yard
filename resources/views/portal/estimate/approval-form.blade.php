@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Customer Decision Record — {{ $estimate->estimate_no }}</title>
+<title>Customer Decision Record - {{ $estimate->estimate_no }}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #222; background: #fff; }
@@ -194,7 +194,7 @@
     </tr>
     <tr>
       <td class="lbl">Customer</td>
-      <td class="val">{{ $estimate->customer->name ?? '—' }}</td>
+      <td class="val">{{ $estimate->customer->name ?? '-' }}</td>
       <td class="lbl">Currency</td>
       <td class="val">{{ $estimate->currency }}</td>
     </tr>

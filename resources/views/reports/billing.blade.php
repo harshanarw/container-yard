@@ -165,7 +165,7 @@
                                     {{ $record->container->size }}ft <span class="badge {{ in_array($record->container->type_code, ['RF','RH']) ? 'badge-reefer' : 'bg-info-subtle text-info' }}">{{ $record->container->type_code }}</span>
                                 </div>
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </td>
                         <td>
@@ -173,11 +173,11 @@
                                 <span class="badge bg-dark text-white">{{ $record->customer->code }}</span>
                                 <div class="text-muted" style="font-size:.72rem;">{{ $record->customer->name }}</div>
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </td>
-                        <td>{{ $record->gate_in_date ? $record->gate_in_date->format('d M Y') : '—' }}</td>
-                        <td>{{ $record->gate_out_date ? $record->gate_out_date->format('d M Y') : '—' }}</td>
+                        <td>{{ $record->gate_in_date ? $record->gate_in_date->format('d M Y') : '-' }}</td>
+                        <td>{{ $record->gate_out_date ? $record->gate_out_date->format('d M Y') : '-' }}</td>
                         <td class="text-center">{{ $record->total_days }}</td>
                         <td class="text-center text-success">{{ $record->free_days }}</td>
                         <td class="text-center">
@@ -194,7 +194,7 @@
                                 {{ number_format($record->tax_amount, 2) }}
                                 <small class="text-muted">({{ $record->tax_percentage }}%)</small>
                             @else
-                                —
+                                -
                             @endif
                         </td>
                         <td class="text-end pe-3 fw-bold">

@@ -47,7 +47,7 @@ class ContainerCustodyServiceTest extends TestCase
             ],
             'the gate-in is used when the visit has no job' => [
                 null, 20, 30, 20,
-                'Gate-in creates the job in a try/catch that only logs, and old movements predate it — '
+                'Gate-in creates the job in a try/catch that only logs, and old movements predate it - '
                 . 'the movement is still a per-visit snapshot.',
             ],
             'the container is the last resort only' => [

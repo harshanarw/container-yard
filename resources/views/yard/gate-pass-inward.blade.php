@@ -10,7 +10,7 @@
     @else
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @endif
-    <title>Inward Gate Pass — {{ $movement->container_no }}</title>
+    <title>Inward Gate Pass - {{ $movement->container_no }}</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         /* ── Page setup ──────────────────────────────────────────────────── */
@@ -246,7 +246,7 @@
 {{-- ── Screen-only toolbar ─────────────────────────────────────────────────── --}}
 @php $driverView = $driverView ?? false; @endphp
 <div class="screen-toolbar">
-    <h6>&#128438; &nbsp; Inward Gate Pass{{ $driverView ? '' : ' Preview' }} — {{ $movement->container_no }}</h6>
+    <h6>&#128438; &nbsp; Inward Gate Pass{{ $driverView ? '' : ' Preview' }} - {{ $movement->container_no }}</h6>
     <button class="tb-btn tb-btn-primary" onclick="window.print()">&#128438; Print / Save PDF</button>
     @if(!$driverView && $movement->driver_phone && \Illuminate\Support\Facades\Route::has('yard.movements.wa-gatepass') && \App\Models\CompanySetting::current()->enable_gatepass_whatsapp)
     <a class="tb-btn" href="{{ route('yard.movements.wa-gatepass', $movement) }}" target="_blank" rel="noopener"
@@ -295,7 +295,7 @@
     $isLaden   = strtolower($movement->cargo_status ?? '') === 'laden';
     $softwareCopyright = '© ' . date('Y') . ' ' . ($companySetting?->software_provider ?? 'CYM Software');
     $printedAt = now()->format('d M Y H:i');
-    $printedBy = $movement->createdBy?->name ?? '—';
+    $printedBy = $movement->createdBy?->name ?? '-';
 
     $cond          = strtolower($movement->condition ?? 'sound');
     $condLabel     = match($cond) { 'damaged' => 'DAMAGED', 'require_repair' => 'REQ. REPAIR', default => 'GOOD' };
@@ -370,11 +370,11 @@
                 </td>
                 <td style="width:39%">
                     <div class="cell-lbl">Date</div>
-                    <div class="cell-val">{{ $movement->gate_in_time?->format('d M Y') ?? '—' }}</div>
+                    <div class="cell-val">{{ $movement->gate_in_time?->format('d M Y') ?? '-' }}</div>
                 </td>
                 <td style="width:39%">
                     <div class="cell-lbl">Time</div>
-                    <div class="cell-val">{{ $movement->gate_in_time?->format('H:i') ?? '—' }}</div>
+                    <div class="cell-val">{{ $movement->gate_in_time?->format('H:i') ?? '-' }}</div>
                 </td>
             </tr>
         </table>
@@ -387,7 +387,7 @@
             <tr>
                 <td style="width:18%">
                     <div class="cell-lbl">Size / Type</div>
-                    <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="nor-flag">NOR — Non-Operating</span>@endif</div>
+                    <div class="cell-val">{{ $movement->size }}' {{ $movement->container_type }}@if($movement->isLadenNor())<span class="nor-flag">NOR - Non-Operating</span>@endif</div>
                 </td>
                 <td style="width:18%">
                     <div class="cell-lbl">Status</div>
@@ -395,7 +395,7 @@
                 </td>
                 <td style="width:18%">
                     <div class="cell-lbl">Seal No.</div>
-                    <div class="cell-val">{{ $movement->seal_no ?: '—' }}</div>
+                    <div class="cell-val">{{ $movement->seal_no ?: '-' }}</div>
                 </td>
                 <td style="width:16%">
                     <div class="cell-lbl">Condition</div>
@@ -403,13 +403,13 @@
                 </td>
                 <td style="width:30%">
                     <div class="cell-lbl">Yard Location</div>
-                    <div class="cell-val">{{ $yardLoc ?: '—' }}</div>
+                    <div class="cell-val">{{ $yardLoc ?: '-' }}</div>
                 </td>
             </tr>
             <tr>
                 <td colspan="5">
                     <div class="cell-lbl">Owner / Shipping Line</div>
-                    <div class="cell-val">{{ $movement->customer?->name ?? '—' }}</div>
+                    <div class="cell-val">{{ $movement->customer?->name ?? '-' }}</div>
                 </td>
             </tr>
         </table>
@@ -426,15 +426,15 @@
             <tr>
                 <td colspan="2">
                     <div class="cell-lbl">Ex. Vessel (Import)</div>
-                    <div class="cell-val">{{ $movement->vessel_name ?: '—' }}</div>
+                    <div class="cell-val">{{ $movement->vessel_name ?: '-' }}</div>
                 </td>
                 <td colspan="2">
                     <div class="cell-lbl">Voyage No.</div>
-                    <div class="cell-val">{{ $movement->voyage_no ?: '—' }}</div>
+                    <div class="cell-val">{{ $movement->voyage_no ?: '-' }}</div>
                 </td>
                 <td colspan="2">
                     <div class="cell-lbl">Arrival Date</div>
-                    <div class="cell-val">{{ $movement->gate_in_time?->format('d M Y') ?? '—' }}</div>
+                    <div class="cell-val">{{ $movement->gate_in_time?->format('d M Y') ?? '-' }}</div>
                 </td>
             </tr>
         </table>
@@ -450,29 +450,29 @@
             <tr>
                 <td colspan="2">
                     <div class="cell-lbl">Customer / Consignee</div>
-                    <div class="cell-val">{{ $movement->customer?->name ?: '—' }}</div>
+                    <div class="cell-val">{{ $movement->customer?->name ?: '-' }}</div>
                 </td>
                 <td colspan="2">
                     <div class="cell-lbl">Transporter</div>
-                    <div class="cell-val">{{ $movement->transporter?->name ?: '—' }}</div>
+                    <div class="cell-val">{{ $movement->transporter?->name ?: '-' }}</div>
                 </td>
             </tr>
             <tr>
                 <td>
                     <div class="cell-lbl">Truck / Vehicle No.</div>
-                    <div class="cell-val">{{ $movement->vehicle_plate ?: '—' }}</div>
+                    <div class="cell-val">{{ $movement->vehicle_plate ?: '-' }}</div>
                 </td>
                 <td>
                     <div class="cell-lbl">Trailer No.</div>
-                    <div class="cell-val">{{ $movement->trailer_no ?? '—' }}</div>
+                    <div class="cell-val">{{ $movement->trailer_no ?? '-' }}</div>
                 </td>
                 <td>
                     <div class="cell-lbl">Driver Name</div>
-                    <div class="cell-val">{{ $movement->driver_name ?: '—' }}</div>
+                    <div class="cell-val">{{ $movement->driver_name ?: '-' }}</div>
                 </td>
                 <td>
                     <div class="cell-lbl">Driver NIC / ID</div>
-                    <div class="cell-val">{{ $movement->driver_ic ?: '—' }}</div>
+                    <div class="cell-val">{{ $movement->driver_ic ?: '-' }}</div>
                 </td>
             </tr>
         </table>
@@ -530,7 +530,7 @@
             @foreach($approvalReq->actions->where('status', 'approved') as $step)
             <div class="da-step">
                 <div class="da-step-lbl">{{ $step->step_label }}</div>
-                <div class="da-step-name">{{ $step->actionedBy?->name ?? '—' }}</div>
+                <div class="da-step-name">{{ $step->actionedBy?->name ?? '-' }}</div>
                 <div class="da-step-time">{{ $step->actioned_at?->format('d M Y H:i') }}</div>
             </div>
             @endforeach
@@ -591,7 +591,7 @@
                 </td>
                 <td style="width:20%">
                     <div class="cell-lbl">Seal No.</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->seal_no ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->seal_no ?: '-' }}</div>
                 </td>
                 <td style="width:16%">
                     <div class="cell-lbl">Condition</div>
@@ -600,7 +600,7 @@
                 <td style="width:32%">
                     <div class="cell-lbl">Date / Time</div>
                     <div class="cell-val" style="font-size:9pt;">
-                        {{ $movement->gate_in_time?->format('d M Y') ?? '—' }}
+                        {{ $movement->gate_in_time?->format('d M Y') ?? '-' }}
                         {{ $movement->gate_in_time?->format('H:i') ?? '' }}
                     </div>
                 </td>
@@ -608,11 +608,11 @@
             <tr>
                 <td colspan="3">
                     <div class="cell-lbl">Owner / Shipping Line</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?? '—' }}</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?? '-' }}</div>
                 </td>
                 <td colspan="2">
                     <div class="cell-lbl">Yard Location</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $yardLoc ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $yardLoc ?: '-' }}</div>
                 </td>
             </tr>
         </table>
@@ -625,26 +625,26 @@
             <tr>
                 <td style="width:24%">
                     <div class="cell-lbl">Customer / Consignee</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?: '-' }}</div>
                 </td>
                 <td style="width:28%">
                     <div class="cell-lbl">Ex. Vessel / Voyage</div>
                     <div class="cell-val" style="font-size:9pt;">
-                        {{ $movement->vessel_name ?: '—' }}
+                        {{ $movement->vessel_name ?: '-' }}
                         @if($movement->voyage_no) / {{ $movement->voyage_no }} @endif
                     </div>
                 </td>
                 <td style="width:20%">
                     <div class="cell-lbl">Truck / Vehicle No.</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->vehicle_plate ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->vehicle_plate ?: '-' }}</div>
                 </td>
                 <td style="width:16%">
                     <div class="cell-lbl">Driver Name</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_name ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_name ?: '-' }}</div>
                 </td>
                 <td style="width:12%">
                     <div class="cell-lbl">Driver ID</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_ic ?: '—' }}</div>
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->driver_ic ?: '-' }}</div>
                 </td>
             </tr>
         </table>
@@ -688,7 +688,7 @@
             @foreach($approvalReq->actions->where('status', 'approved') as $step)
             <div class="da-step" style="padding:3px 6px;">
                 <div class="da-step-lbl">{{ $step->step_label }}</div>
-                <div class="da-step-name">{{ $step->actionedBy?->name ?? '—' }}</div>
+                <div class="da-step-name">{{ $step->actionedBy?->name ?? '-' }}</div>
                 <div class="da-step-time">{{ $step->actioned_at?->format('d M Y H:i') }}</div>
             </div>
             @endforeach
@@ -760,15 +760,15 @@
             </tr>
             <tr>
                 <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">Gate In Date</div></td>
-                <td><div class="cell-val">{{ $movement->gate_in_time?->format('d M Y') ?? '—' }}</div></td>
+                <td><div class="cell-val">{{ $movement->gate_in_time?->format('d M Y') ?? '-' }}</div></td>
             </tr>
             <tr>
                 <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">In Time</div></td>
-                <td><div class="cell-val">{{ $movement->gate_in_time?->format('H:i') ?? '—' }}</div></td>
+                <td><div class="cell-val">{{ $movement->gate_in_time?->format('H:i') ?? '-' }}</div></td>
             </tr>
             <tr>
                 <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">Vehicle No.</div></td>
-                <td><div class="cell-val" style="letter-spacing:.8px;">{{ $movement->vehicle_plate ?: '—' }}</div></td>
+                <td><div class="cell-val" style="letter-spacing:.8px;">{{ $movement->vehicle_plate ?: '-' }}</div></td>
             </tr>
             <tr>
                 <td style="background:#f8fafc;vertical-align:middle;"><div class="cell-lbl">Status</div></td>
@@ -820,7 +820,7 @@
             @foreach($approvalReq->actions->where('status', 'approved') as $step)
             <div class="da-step" style="padding:3px 6px;">
                 <div class="da-step-lbl">{{ $step->step_label }}</div>
-                <div class="da-step-name">{{ $step->actionedBy?->name ?? '—' }}</div>
+                <div class="da-step-name">{{ $step->actionedBy?->name ?? '-' }}</div>
                 <div class="da-step-time">{{ $step->actioned_at?->format('d M Y H:i') }}</div>
             </div>
             @endforeach

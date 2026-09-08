@@ -95,10 +95,10 @@ class ArCreditNoteController extends Controller
                     $handlingAmt = round($docNet - $storageAmt, 2);
 
                     if ($storageAmt > 0) {
-                        $lines[] = ['revenue_account_id' => $accId('4001'), 'amount' => $storageAmt, 'description' => 'Reversal of storage income — ' . $invoice->invoice_no];
+                        $lines[] = ['revenue_account_id' => $accId('4001'), 'amount' => $storageAmt, 'description' => 'Reversal of storage income - ' . $invoice->invoice_no];
                     }
                     if ($handlingAmt > 0) {
-                        $lines[] = ['revenue_account_id' => $accId('4002'), 'amount' => $handlingAmt, 'description' => 'Reversal of handling income — ' . $invoice->invoice_no];
+                        $lines[] = ['revenue_account_id' => $accId('4002'), 'amount' => $handlingAmt, 'description' => 'Reversal of handling income - ' . $invoice->invoice_no];
                     }
                 }
 
@@ -274,7 +274,7 @@ class ArCreditNoteController extends Controller
                 'cn'            => $arCreditNote,
                 'title'         => 'CREDIT NOTE',
                 'partyLabel'    => 'Issued To',
-                'partyName'     => $arCreditNote->customer->name ?? '—',
+                'partyName'     => $arCreditNote->customer->name ?? '-',
                 'taxLabel'      => 'Output VAT',
                 'size'          => $size,
                 'showSignature' => true,

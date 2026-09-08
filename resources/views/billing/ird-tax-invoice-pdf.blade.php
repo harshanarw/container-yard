@@ -170,7 +170,7 @@
         </td>
         <td style="width:50%;border-right:none">
             <span class="cell-lbl">Tax Invoice No.</span><span class="cell-sep">:</span><span class="cell-val" style="letter-spacing:.4px">{{ $ird_invoice_no }}</span>
-            @if($ird_invoice_no === '—')<div class="note">(IRD number assigned at issuance)</div>@endif
+            @if($ird_invoice_no === '-')<div class="note">(IRD number assigned at issuance)</div>@endif
         </td>
     </tr>
     {{-- Row 2: Supplier | Purchaser --}}
@@ -188,7 +188,7 @@
             <span class="block-lbl">Purchaser</span>
             <div class="hg-block">
                 @if($customer?->tin_number)<div><strong>TIN:</strong> {{ $customer->tin_number }}</div>@endif
-                <div><strong>{{ $customer?->name ?? '—' }}</strong></div>
+                <div><strong>{{ $customer?->name ?? '-' }}</strong></div>
                 @if($customer?->address)<div>{{ $customer->address }}{{ $customer->city ? ', ' . $customer->city : '' }}</div>@endif
                 @if($customer?->phone_office || $customer?->phone_mobile)
                 <div>Tel: {{ $customer->phone_office ?? $customer->phone_mobile }}</div>
@@ -299,7 +299,7 @@
     <tbody>
         @forelse($lines as $line)
         <tr>
-            <td>{{ $line['reference'] ?? '—' }}</td>
+            <td>{{ $line['reference'] ?? '-' }}</td>
             <td>{{ $line['description'] }}</td>
             <td class="r">{{ number_format($line['quantity'], 2) }}</td>
             <td class="r">{{ number_format($line['unit_price'], 2) }}</td>

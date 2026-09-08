@@ -512,7 +512,7 @@ class StorageHandlingController extends Controller
             $eqtCode  = $eqt ? $eqt->eqt_code  : ($container->size . ($container->type_code ?? ''));
             $isoCode  = $eqt?->iso_code ?? null;
             $eqtLabel = $eqt
-                ? $eqt->eqt_code . ' — ' . $eqt->description
+                ? $eqt->eqt_code . ' - ' . $eqt->description
                 : ($container->size . "' " . $container->type_code);
 
             // Flag missing/zero tariff rates only where they affect a billable
@@ -959,7 +959,7 @@ class StorageHandlingController extends Controller
 
         foreach ($v['lines'] as $line) {
             $containerId = (int) ($line['container_id'] ?? 0) ?: null;
-            $containerNo = $line['container_no'] ?? '—';
+            $containerNo = $line['container_no'] ?? '-';
             $reasons     = [];
 
             if ((int) ($line['storage_total_days'] ?? 0) > 0 && ! empty($line['storage_from']) && ! empty($line['storage_to'])) {
@@ -996,7 +996,7 @@ class StorageHandlingController extends Controller
         $more  = count($conflicts) - count($shown);
 
         return redirect()->back()->withInput()->with('error',
-            'Invoice not saved — already invoiced: ' . implode('; ', $shown)
+            'Invoice not saved - already invoiced: ' . implode('; ', $shown)
             . ($more > 0 ? " and {$more} more" : '')
             . '. Another invoice was raised for these days. Preview again to pick up what is still owed.');
     }
@@ -1087,7 +1087,7 @@ class StorageHandlingController extends Controller
 
         if ($missingCodes) {
             return redirect()->back()->withInput()->with('error',
-                'Invoice not saved — charge code ' . implode(' and ', $missingCodes)
+                'Invoice not saved - charge code ' . implode(' and ', $missingCodes)
                 . ' is missing or inactive. Manual pricing takes its tax codes and accounts from there,'
                 . ' so it must exist in the Charge Code master before a manual bill can be raised.');
         }
@@ -1098,7 +1098,7 @@ class StorageHandlingController extends Controller
 
         return redirect()->back()->withInput()
             ->with('tariff_block', $guard->toArray())
-            ->with('error', 'Invoice not saved — no rate entered for: ' . $guard->summary()
+            ->with('error', 'Invoice not saved - no rate entered for: ' . $guard->summary()
                 . '. Please fill in every chargeable line.');
     }
 
@@ -1182,7 +1182,7 @@ class StorageHandlingController extends Controller
 
         return redirect()->back()->withInput()
             ->with('tariff_block', $guard->toArray())
-            ->with('error', 'Invoice not saved — missing tariff rates for: ' . $guard->summary()
+            ->with('error', 'Invoice not saved - missing tariff rates for: ' . $guard->summary()
                 . '. Please update the tariff and preview again.');
     }
 
@@ -1232,7 +1232,7 @@ class StorageHandlingController extends Controller
         $storageHandlingInvoice->update(['status' => 'issued', 'sent_at' => now(), 'ird_invoice_no' => $irdNo]);
 
         NotificationService::notifyAll(
-            'Handling Invoice Issued — ' . $storageHandlingInvoice->invoice_no,
+            'Handling Invoice Issued - ' . $storageHandlingInvoice->invoice_no,
             ($storageHandlingInvoice->billingParty->name ?? 'Unknown') . ' · ' . $storageHandlingInvoice->invoice_currency . ' ' . number_format($storageHandlingInvoice->total_amount, 2),
             'success',
             route('billing.storage-handling.show', $storageHandlingInvoice)
@@ -1246,7 +1246,7 @@ class StorageHandlingController extends Controller
         }
         // Surface an auto-post failure so the invoice isn't silently left unposted.
         if ($err = \App\Services\Finance\InvoicePostingService::lastFailure()) {
-            $redirect->with('warning', 'Issued, but not yet posted to the ledger — ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
+            $redirect->with('warning', 'Issued, but not yet posted to the ledger - ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
         }
 
         return $redirect;
@@ -1260,7 +1260,7 @@ class StorageHandlingController extends Controller
         $storageHandlingInvoice->update(['status' => 'paid']);
 
         NotificationService::notifyAll(
-            'Handling Invoice Paid — ' . $storageHandlingInvoice->invoice_no,
+            'Handling Invoice Paid - ' . $storageHandlingInvoice->invoice_no,
             ($storageHandlingInvoice->billingParty->name ?? 'Unknown') . ' · ' . $storageHandlingInvoice->invoice_currency . ' ' . number_format($storageHandlingInvoice->total_amount, 2),
             'success',
             route('billing.storage-handling.show', $storageHandlingInvoice)
@@ -1285,7 +1285,11 @@ class StorageHandlingController extends Controller
         $storageHandlingInvoice->load(['shippingLine', 'billingParty', 'lines.chargeCode', 'lines.handlingChargeCode', 'createdBy']);
         $company = CompanySetting::current();
 
-        $eqtCode = fn ($label) => trim(explode(' — ', $label ?? '')[0]) ?: '';
+        // `equipment_type` is a stored display label, so rows written before the
+        // em dash was retired still hold "40HC — 40' High Cube" while new ones
+        // hold "40HC - ...". Split on either, or every historical invoice prints
+        // the whole label where the code belongs.
+        $eqtCode = fn ($label) => trim(preg_split('/\s+[\x{2014}\x{2013}-]\s+/u', $label ?? '')[0]) ?: '';
 
         // ── Build storage lines ───────────────────────────────────────────────
         $storageLines = $storageHandlingInvoice->lines
@@ -1293,7 +1297,7 @@ class StorageHandlingController extends Controller
             ->map(fn ($l) => [
                 'reference'       => $l->container_no,
                 'description'     => 'CONTAINER STORAGE'
-                                     . (($eqt = trim($eqtCode($l->equipment_type) . ' ' . strtoupper($l->cargo_status ?? ''))) ? ' — ' . $eqt : '')
+                                     . (($eqt = trim($eqtCode($l->equipment_type) . ' ' . strtoupper($l->cargo_status ?? ''))) ? ' - ' . $eqt : '')
                                      . ' | ' . \Carbon\Carbon::parse($l->storage_from)->format('d M Y')
                                      . ' TO ' . \Carbon\Carbon::parse($l->storage_to)->format('d M Y'),
                 'quantity'        => $l->storage_chargeable_days ?? 0,
@@ -1309,7 +1313,7 @@ class StorageHandlingController extends Controller
             if ($l->has_lift_off && ($l->lift_off_rate ?? 0) > 0) {
                 $handlingLines->push([
                     'reference'       => $l->container_no,
-                    'description'     => 'LIFT-OFF (GATE-IN)' . ($eqtDesc ? ' — ' . $eqtDesc : ''),
+                    'description'     => 'LIFT-OFF (GATE-IN)' . ($eqtDesc ? ' - ' . $eqtDesc : ''),
                     'quantity'        => 1,
                     'unit_price'      => $l->lift_off_rate,
                     'amount_excl_vat' => $l->lift_off_rate,
@@ -1318,7 +1322,7 @@ class StorageHandlingController extends Controller
             if ($l->has_lift_on && ($l->lift_on_rate ?? 0) > 0) {
                 $handlingLines->push([
                     'reference'       => $l->container_no,
-                    'description'     => 'LIFT-ON (GATE-OUT)' . ($eqtDesc ? ' — ' . $eqtDesc : ''),
+                    'description'     => 'LIFT-ON (GATE-OUT)' . ($eqtDesc ? ' - ' . $eqtDesc : ''),
                     'quantity'        => 1,
                     'unit_price'      => $l->lift_on_rate,
                     'amount_excl_vat' => $l->lift_on_rate,
@@ -1345,7 +1349,7 @@ class StorageHandlingController extends Controller
         $shippingLine = $storageHandlingInvoice->shippingLine ?? $storageHandlingInvoice->billingParty;
 
         $data = [
-            'ird_invoice_no'        => $storageHandlingInvoice->ird_invoice_no ?? '—',
+            'ird_invoice_no'        => $storageHandlingInvoice->ird_invoice_no ?? '-',
             'invoice_date'          => $storageHandlingInvoice->invoice_date,
             'company'               => $company,
             'verifyUrl'             => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage-handling', 'id' => $storageHandlingInvoice->id]),

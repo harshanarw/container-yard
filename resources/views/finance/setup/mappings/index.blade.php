@@ -63,10 +63,10 @@
                                         data-type="charge_revenue"
                                         data-source-type="{{ addslashes(\App\Models\ChargeCode::class) }}"
                                         data-source-id="{{ $cc->id }}">
-                                    <option value="">— Not mapped —</option>
+                                    <option value="">- Not mapped -</option>
                                     @foreach($postingAccounts as $acc)
                                     <option value="{{ $acc->id }}" {{ $currentAccId == $acc->id ? 'selected' : '' }}>
-                                        {{ $acc->code }} — {{ $acc->name }}
+                                        {{ $acc->code }} - {{ $acc->name }}
                                     </option>
                                     @endforeach
                                 </select>
@@ -110,10 +110,10 @@
                                         data-type="charge_expense"
                                         data-source-type="{{ addslashes(\App\Models\ChargeCode::class) }}"
                                         data-source-id="{{ $cc->id }}">
-                                    <option value="">— Not mapped —</option>
+                                    <option value="">- Not mapped -</option>
                                     @foreach($postingAccounts as $acc)
                                     <option value="{{ $acc->id }}" {{ $currentAccId == $acc->id ? 'selected' : '' }}>
-                                        {{ $acc->code }} — {{ $acc->name }}
+                                        {{ $acc->code }} - {{ $acc->name }}
                                     </option>
                                     @endforeach
                                 </select>
@@ -148,13 +148,13 @@
                             <i class="bi bi-person-lines-fill me-2 text-primary"></i>Default AR Control Account
                         </div>
                         <div class="card-body">
-                            <p class="text-muted small">Accounts Receivable — debited when invoices are posted to customers.</p>
+                            <p class="text-muted small">Accounts Receivable - debited when invoices are posted to customers.</p>
                             <select class="form-select form-select-sm mapping-select"
                                     data-type="customer_ar" data-source-type="" data-source-id="0">
-                                <option value="">— Not mapped —</option>
+                                <option value="">- Not mapped -</option>
                                 @foreach($postingAccounts as $acc)
                                 <option value="{{ $acc->id }}" {{ $defaultArId == $acc->id ? 'selected' : '' }}>
-                                    {{ $acc->code }} — {{ $acc->name }}
+                                    {{ $acc->code }} - {{ $acc->name }}
                                 </option>
                                 @endforeach
                             </select>
@@ -171,13 +171,13 @@
                             <i class="bi bi-building me-2 text-danger"></i>Default AP Control Account
                         </div>
                         <div class="card-body">
-                            <p class="text-muted small">Accounts Payable — credited when supplier bills are posted.</p>
+                            <p class="text-muted small">Accounts Payable - credited when supplier bills are posted.</p>
                             <select class="form-select form-select-sm mapping-select"
                                     data-type="supplier_ap" data-source-type="" data-source-id="0">
-                                <option value="">— Not mapped —</option>
+                                <option value="">- Not mapped -</option>
                                 @foreach($postingAccounts as $acc)
                                 <option value="{{ $acc->id }}" {{ $defaultApId == $acc->id ? 'selected' : '' }}>
-                                    {{ $acc->code }} — {{ $acc->name }}
+                                    {{ $acc->code }} - {{ $acc->name }}
                                 </option>
                                 @endforeach
                             </select>
@@ -225,20 +225,20 @@
                             </td>
                             <td>
                                 <select class="form-select form-select-sm tax-select-output" data-tc-id="{{ $tc->id }}">
-                                    <option value="">— Not mapped —</option>
+                                    <option value="">- Not mapped -</option>
                                     @foreach($postingAccounts as $acc)
                                     <option value="{{ $acc->id }}" {{ $outAccId == $acc->id ? 'selected' : '' }}>
-                                        {{ $acc->code }} — {{ $acc->name }}
+                                        {{ $acc->code }} - {{ $acc->name }}
                                     </option>
                                     @endforeach
                                 </select>
                             </td>
                             <td>
                                 <select class="form-select form-select-sm tax-select-input" data-tc-id="{{ $tc->id }}">
-                                    <option value="">— Not mapped —</option>
+                                    <option value="">- Not mapped -</option>
                                     @foreach($postingAccounts as $acc)
                                     <option value="{{ $acc->id }}" {{ $inAccId == $acc->id ? 'selected' : '' }}>
-                                        {{ $acc->code }} — {{ $acc->name }}
+                                        {{ $acc->code }} - {{ $acc->name }}
                                     </option>
                                     @endforeach
                                 </select>
@@ -262,8 +262,8 @@
             <p class="text-muted small mb-3">Configure accounts for advances, bank charges, discounts, and write-offs.</p>
             @php
                 $otherTypes = [
-                    'advance_customer' => ['label' => 'Customer Advance Receipts', 'icon' => 'bi-arrow-down-circle text-success',  'desc' => 'Liability account — money received from customers before invoice'],
-                    'advance_supplier' => ['label' => 'Supplier Advance Payments', 'icon' => 'bi-arrow-up-circle text-danger',    'desc' => 'Asset account — money paid to suppliers before bill'],
+                    'advance_customer' => ['label' => 'Customer Advance Receipts', 'icon' => 'bi-arrow-down-circle text-success',  'desc' => 'Liability account - money received from customers before invoice'],
+                    'advance_supplier' => ['label' => 'Supplier Advance Payments', 'icon' => 'bi-arrow-up-circle text-danger',    'desc' => 'Asset account - money paid to suppliers before bill'],
                     'bank_charge'      => ['label' => 'Bank Charges',              'icon' => 'bi-bank text-secondary',            'desc' => 'Expense account for bank fees and transaction charges'],
                     'discount'         => ['label' => 'Discount Allowed',          'icon' => 'bi-tag text-info',                  'desc' => 'Expense account for discounts given to customers'],
                     'write_off'        => ['label' => 'Bad Debt Write-Off',        'icon' => 'bi-x-circle text-danger',           'desc' => 'Expense account for uncollectable receivables'],
@@ -280,10 +280,10 @@
                             <div class="d-flex gap-2">
                                 <select class="form-select form-select-sm flex-grow-1 mapping-select"
                                         data-type="{{ $type }}" data-source-type="" data-source-id="0">
-                                    <option value="">— Not mapped —</option>
+                                    <option value="">- Not mapped -</option>
                                     @foreach($postingAccounts as $acc)
                                     <option value="{{ $acc->id }}" {{ $curAccId == $acc->id ? 'selected' : '' }}>
-                                        {{ $acc->code }} — {{ $acc->name }}
+                                        {{ $acc->code }} - {{ $acc->name }}
                                     </option>
                                     @endforeach
                                 </select>

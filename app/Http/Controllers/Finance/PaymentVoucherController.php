@@ -327,7 +327,7 @@ class PaymentVoucherController extends Controller
 
         if (!$invoice->isPosted()) {
             return back()->with('error',
-                'That invoice is not yet posted to the GL — post it before allocating a payment.');
+                'That invoice is not yet posted to the GL - post it before allocating a payment.');
         }
 
         // Treat a blank currency on either side as the base currency so the check

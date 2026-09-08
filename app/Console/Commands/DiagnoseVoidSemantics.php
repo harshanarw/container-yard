@@ -68,7 +68,7 @@ class DiagnoseVoidSemantics extends Command
         $NOTDRAFT = ['posted', 'voided'];   // include voided (the reversal-based interpretation)
 
         $this->line('');
-        $this->info('VOID SEMANTICS DIAGNOSTIC — all changes are rolled back (safe).');
+        $this->info('VOID SEMANTICS DIAGNOSTIC - all changes are rolled back (safe).');
         $this->line("Accounts under test:  A = {$a->code} {$a->name}   |   B = {$b->code} {$b->name}");
         $this->line("Test journal: DR A / CR B  {$amount}  dated {$today->toDateString()}");
         $this->line('');
@@ -104,7 +104,7 @@ class DiagnoseVoidSemantics extends Command
 
             $this->line("Created journal {$j->journal_no}, voided via reversal {$rev->journal_no}.");
             $this->line('');
-            $this->line('Net change to A and B caused by (post + void) — should be 0.00 if voiding is correct:');
+            $this->line('Net change to A and B caused by (post + void) - should be 0.00 if voiding is correct:');
             $this->line(sprintf("  Under 'posted' filter        (Trial Balance / all reports):  A = %+0.2f   B = %+0.2f", $dA_p, $dB_p));
             $this->line(sprintf("  Under 'posted + voided' filter (include voided originals):    A = %+0.2f   B = %+0.2f", $dA_nd, $dB_nd));
             $this->line('');
@@ -120,9 +120,9 @@ class DiagnoseVoidSemantics extends Command
                 $this->line("  return to baseline when voided originals are INCLUDED. Every report that filters");
                 $this->line("  status = 'posted' understates (or overstates) by each voided journal's amount.");
                 $this->line('  FIX DIRECTION: balance queries should include voided journals (status <> draft),');
-                $this->line("  since the reversal — not the exclusion — is what neutralises a void.");
+                $this->line("  since the reversal - not the exclusion - is what neutralises a void.");
             } else {
-                $this->warn('VERDICT: INCONCLUSIVE — neither interpretation nets to zero. Investigate manually.');
+                $this->warn('VERDICT: INCONCLUSIVE - neither interpretation nets to zero. Investigate manually.');
                 $this->line("  posted deltas: A={$dA_p} B={$dB_p} ; not-draft deltas: A={$dA_nd} B={$dB_nd}");
             }
         } finally {

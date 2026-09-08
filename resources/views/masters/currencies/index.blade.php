@@ -66,7 +66,7 @@
                         </span>
                     </td>
                     <td class="text-center">
-                        <span class="text-muted small font-monospace">{{ $cur->symbol ?? '—' }}</span>
+                        <span class="text-muted small font-monospace">{{ $cur->symbol ?? '-' }}</span>
                     </td>
                     <td>
                         <span class="fw-semibold {{ $cur->is_default ? 'text-warning-emphasis' : '' }}">
@@ -84,7 +84,7 @@
                         @elseif($cur->country)
                             {{ $cur->country }}
                         @else
-                            —
+                            -
                         @endif
                     </td>
                     <td class="text-center">
@@ -176,7 +176,7 @@
         @if($default)
             <span class="small text-muted">
                 <i class="bi bi-star-fill text-warning me-1"></i>
-                System default: <strong>{{ $default->code }} — {{ $default->name }}</strong>
+                System default: <strong>{{ $default->code }} - {{ $default->name }}</strong>
             </span>
         @endif
     </div>
@@ -216,7 +216,7 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Country / Region</label>
                             <select name="country_id" class="form-select select2-modal-add">
-                                <option value="">— Select Country —</option>
+                                <option value="">- Select Country -</option>
                                 @foreach($countries as $c)
                                     <option value="{{ $c->id }}"
                                         {{ $defaultCountryId == $c->id ? 'selected' : '' }}>
@@ -273,7 +273,7 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Country / Region</label>
                             <select name="country_id" id="editCountryId" class="form-select select2-modal-edit">
-                                <option value="">— Select Country —</option>
+                                <option value="">- Select Country -</option>
                                 @foreach($countries as $c)
                                     <option value="{{ $c->id }}">
                                         {{ $c->flag_emoji }} {{ $c->name }} ({{ $c->iso2 }})

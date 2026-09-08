@@ -19,7 +19,7 @@ class ReeferPlugSessionObserver extends AuditObserver
         AuditService::log(
             event: 'plug-in',
             module: $this->getModule(),
-            description: 'Reefer plug-in recorded' . ($ref ? " — {$ref}" : '') . ($m->plug_in_at ? ' at ' . $m->plug_in_at->format('d M Y H:i') : ''),
+            description: 'Reefer plug-in recorded' . ($ref ? " - {$ref}" : '') . ($m->plug_in_at ? ' at ' . $m->plug_in_at->format('d M Y H:i') : ''),
             reference: $ref,
             subject: $m,
             properties: AuditService::snapshot($m),
@@ -38,7 +38,7 @@ class ReeferPlugSessionObserver extends AuditObserver
             AuditService::log(
                 event: 'plug-out',
                 module: $this->getModule(),
-                description: 'Reefer plug-out recorded' . ($ref ? " — {$ref}" : '') . ($m->plug_out_at ? ' at ' . $m->plug_out_at->format('d M Y H:i') : ''),
+                description: 'Reefer plug-out recorded' . ($ref ? " - {$ref}" : '') . ($m->plug_out_at ? ' at ' . $m->plug_out_at->format('d M Y H:i') : ''),
                 reference: $ref,
                 subject: $m,
                 properties: $diff,
@@ -49,7 +49,7 @@ class ReeferPlugSessionObserver extends AuditObserver
         AuditService::log(
             event: 'updated',
             module: $this->getModule(),
-            description: 'Reefer session updated' . ($ref ? " — {$ref}" : ''),
+            description: 'Reefer session updated' . ($ref ? " - {$ref}" : ''),
             reference: $ref,
             subject: $m,
             properties: $diff,

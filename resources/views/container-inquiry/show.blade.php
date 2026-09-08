@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Container Inquiry — ' . $container_no)
+@section('title', 'Container Inquiry - ' . $container_no)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('container-inquiry.index') }}">Container Inquiry</a></li>
@@ -16,7 +16,7 @@
             <i class="bi bi-box-seam me-2 text-primary"></i>
             <span class="font-monospace">{{ $container_no }}</span>
         </h4>
-        <p class="text-muted mb-0 small">Full container history — {{ $total_visits }} gate-in visit{{ $total_visits !== 1 ? 's' : '' }} on record</p>
+        <p class="text-muted mb-0 small">Full container history - {{ $total_visits }} gate-in visit{{ $total_visits !== 1 ? 's' : '' }} on record</p>
     </div>
     <div class="d-flex gap-2 no-print">
         <a href="{{ route('container-inquiry.index', request()->only(['container_no','customer_id','job_type_code','date_from','date_to'])) }}"
@@ -66,15 +66,15 @@
             </div>
             <div class="col-6 col-md-3 col-lg-2">
                 <div class="text-muted small">Customer / Owner</div>
-                <div>{{ optional($container->customer)->name ?? '—' }}</div>
+                <div>{{ optional($container->customer)->name ?? '-' }}</div>
             </div>
             <div class="col-6 col-md-3 col-lg-2">
                 <div class="text-muted small">Size / Type</div>
-                <div>{{ $container->size ? $container->size . 'ft' : '—' }} {{ $container->type_code ?? '' }}</div>
+                <div>{{ $container->size ? $container->size . 'ft' : '-' }} {{ $container->type_code ?? '' }}</div>
             </div>
             <div class="col-6 col-md-3 col-lg-2">
                 <div class="text-muted small">Current Condition</div>
-                <div>{{ ucfirst(str_replace('_', ' ', $container->condition ?? '—')) }}</div>
+                <div>{{ ucfirst(str_replace('_', ' ', $container->condition ?? '-')) }}</div>
             </div>
             @if($mrStatus)
             <div class="col-6 col-md-3 col-lg-2">
@@ -111,14 +111,14 @@
             @if($container->owner_code || $container->owner_name)
             <div class="col-6 col-md-3 col-lg-2">
                 <div class="text-muted small">Owner</div>
-                <div>{{ $container->owner_code ? $container->owner_code . ' — ' . ($container->owner_name ?? '') : ($container->owner_name ?? '—') }}</div>
+                <div>{{ $container->owner_code ? $container->owner_code . ' - ' . ($container->owner_name ?? '') : ($container->owner_name ?? '-') }}</div>
             </div>
             @endif
             @if($container->location_zone)
             <div class="col-6 col-md-3 col-lg-2">
                 <div class="text-muted small">Location</div>
                 <div class="font-monospace small">
-                    {{ implode('-', array_filter([$container->location_zone, $container->location_row, $container->location_bay, $container->location_tier])) ?: '—' }}
+                    {{ implode('-', array_filter([$container->location_zone, $container->location_row, $container->location_bay, $container->location_tier])) ?: '-' }}
                 </div>
             </div>
             @endif
@@ -251,10 +251,10 @@
                         @endphp
                         <tr>
                             <td class="font-monospace fw-semibold">{{ $inv->invoice_no }}</td>
-                            <td class="text-nowrap">{{ $inv->invoice_date?->format('d M Y') ?? '—' }}</td>
+                            <td class="text-nowrap">{{ $inv->invoice_date?->format('d M Y') ?? '-' }}</td>
                             <td>
                                 <span class="badge {{ $invStatusClass }}" style="font-size:.68rem">
-                                    {{ ucfirst($inv->status ?? '—') }}
+                                    {{ ucfirst($inv->status ?? '-') }}
                                 </span>
                             </td>
                             <td class="text-end text-nowrap">
@@ -267,14 +267,14 @@
                                 @if($isForeign && $invRate)
                                 {{ number_format($invRate, 4) }}
                                 @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td class="text-end text-nowrap fw-semibold">
                                 @if($invLkrAmount !== null)
                                 {{ number_format($invLkrAmount, 2) }}
                                 @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                                 @endif
                             </td>
                         </tr>
@@ -491,7 +491,7 @@
 
                 {{-- Date range + duration --}}
                 <span class="text-muted" style="font-size:.8rem">
-                    <i class="bi bi-box-arrow-in-right me-1 text-success"></i>{{ $gateIn->gate_in_time?->format('d M Y') ?? '—' }}
+                    <i class="bi bi-box-arrow-in-right me-1 text-success"></i>{{ $gateIn->gate_in_time?->format('d M Y') ?? '-' }}
                     @if($gateOut)
                     <i class="bi bi-arrow-right mx-1"></i>
                     <i class="bi bi-box-arrow-right me-1 text-danger"></i>{{ $gateOut->gate_out_time?->format('d M Y') }}
@@ -627,13 +627,13 @@
                                 </div>
                                 <div class="row g-1" style="font-size:.8rem">
                                     <div class="col-6"><span class="text-muted">Customer:</span>
-                                        <span class="ms-1">{{ optional($gateIn->customer)->name ?? '—' }}</span></div>
+                                        <span class="ms-1">{{ optional($gateIn->customer)->name ?? '-' }}</span></div>
                                     <div class="col-6"><span class="text-muted">On arrival:</span>
-                                        <span class="ms-1">{{ ucfirst(str_replace('_',' ', $gateIn->condition ?? '—')) }}</span></div>
+                                        <span class="ms-1">{{ ucfirst(str_replace('_',' ', $gateIn->condition ?? '-')) }}</span></div>
                                     <div class="col-6"><span class="text-muted">Cargo:</span>
-                                        <span class="ms-1">{{ ucfirst($gateIn->cargo_status ?? '—') }}</span></div>
+                                        <span class="ms-1">{{ ucfirst($gateIn->cargo_status ?? '-') }}</span></div>
                                     <div class="col-6"><span class="text-muted">Size:</span>
-                                        <span class="ms-1">{{ $gateIn->size ? $gateIn->size.'ft' : '—' }}</span></div>
+                                        <span class="ms-1">{{ $gateIn->size ? $gateIn->size.'ft' : '-' }}</span></div>
                                     @if($gateIn->seal_no)
                                     <div class="col-6"><span class="text-muted">Seal:</span>
                                         <span class="ms-1 font-monospace">{{ $gateIn->seal_no }}</span></div>
@@ -688,9 +688,9 @@
                                 </div>
                                 <div class="row g-1" style="font-size:.8rem">
                                     <div class="col-6"><span class="text-muted">Vehicle:</span>
-                                        <span class="ms-1 font-monospace">{{ $gateOut->vehicle_plate ?? '—' }}</span></div>
+                                        <span class="ms-1 font-monospace">{{ $gateOut->vehicle_plate ?? '-' }}</span></div>
                                     <div class="col-6"><span class="text-muted">Driver:</span>
-                                        <span class="ms-1">{{ $gateOut->driver_name ?? '—' }}</span></div>
+                                        <span class="ms-1">{{ $gateOut->driver_name ?? '-' }}</span></div>
                                     @if($gateOut->release_order)
                                     <div class="col-6"><span class="text-muted">Release Order:</span>
                                         <span class="ms-1 font-monospace">{{ $gateOut->release_order }}</span></div>
@@ -913,11 +913,11 @@
                             <tbody>
                                 @foreach($storage as $sr)
                                 <tr>
-                                    <td>{{ $sr->gate_in_date?->format('d M Y') ?? '—' }}</td>
-                                    <td>{{ $sr->gate_out_date?->format('d M Y') ?? '—' }}</td>
-                                    <td class="text-end">{{ $sr->total_days ?? '—' }}</td>
-                                    <td class="text-end">{{ $sr->total_charge ? number_format($sr->total_charge, 2) : '—' }}</td>
-                                    <td>{{ $sr->billing_status ?? '—' }}</td>
+                                    <td>{{ $sr->gate_in_date?->format('d M Y') ?? '-' }}</td>
+                                    <td>{{ $sr->gate_out_date?->format('d M Y') ?? '-' }}</td>
+                                    <td class="text-end">{{ $sr->total_days ?? '-' }}</td>
+                                    <td class="text-end">{{ $sr->total_charge ? number_format($sr->total_charge, 2) : '-' }}</td>
+                                    <td>{{ $sr->billing_status ?? '-' }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -942,10 +942,10 @@
                             <tbody>
                                 @foreach($reefer as $rs)
                                 <tr>
-                                    <td>{{ $rs->plug_in_at?->format('d M Y H:i') ?? '—' }}</td>
-                                    <td>{{ $rs->plug_out_at?->format('d M Y H:i') ?? '—' }}</td>
-                                    <td>{{ $rs->set_temp_c !== null ? $rs->set_temp_c . '°C' : '—' }}</td>
-                                    <td>{{ $rs->status ?? '—' }}</td>
+                                    <td>{{ $rs->plug_in_at?->format('d M Y H:i') ?? '-' }}</td>
+                                    <td>{{ $rs->plug_out_at?->format('d M Y H:i') ?? '-' }}</td>
+                                    <td>{{ $rs->set_temp_c !== null ? $rs->set_temp_c . '°C' : '-' }}</td>
+                                    <td>{{ $rs->status ?? '-' }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -1025,12 +1025,12 @@
 
                     let html = '';
                     if (data.blocks && data.blocks.length) {
-                        html += '<div class="alert alert-danger py-2 mb-3 small"><strong><i class="bi bi-x-octagon-fill me-1"></i>Cannot delete — resolve the following first:</strong><ul class="mb-0 mt-2 ps-3">';
+                        html += '<div class="alert alert-danger py-2 mb-3 small"><strong><i class="bi bi-x-octagon-fill me-1"></i>Cannot delete - resolve the following first:</strong><ul class="mb-0 mt-2 ps-3">';
                         data.blocks.forEach(b => { html += '<li><i class="bi ' + b.icon + ' me-1"></i>' + b.message + '</li>'; });
                         html += '</ul></div>';
                     }
                     if (data.warnings && data.warnings.length) {
-                        html += '<div class="alert alert-warning py-2 mb-3 small"><strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Warnings — review before confirming:</strong><ul class="mb-0 mt-2 ps-3">';
+                        html += '<div class="alert alert-warning py-2 mb-3 small"><strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Warnings - review before confirming:</strong><ul class="mb-0 mt-2 ps-3">';
                         data.warnings.forEach(w => { html += '<li><i class="bi ' + w.icon + ' me-1"></i>' + w.message + '</li>'; });
                         html += '</ul></div>';
                     }

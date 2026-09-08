@@ -102,7 +102,7 @@ class HolidayController extends Controller
             'active'                   => ['sometimes', 'boolean'],
             'remarks'                  => ['nullable', 'string', 'max:500'],
         ], [
-            'holiday_date.unique' => 'That date is already in the holiday calendar — edit the existing entry instead.',
+            'holiday_date.unique' => 'That date is already in the holiday calendar - edit the existing entry instead.',
         ]);
 
         // Custom hours are only meaningful (and only read by the resolver) when the

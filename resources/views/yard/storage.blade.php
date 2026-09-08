@@ -56,7 +56,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Customer</label>
                     <select id="calcCustomer" class="form-select s2-code" data-s2-sel="name">
-                        <option value="">— Select Customer —</option>
+                        <option value="">- Select Customer -</option>
                         @foreach($customers as $cust)
                             <option value="{{ $cust->id }}" data-code="{{ $cust->code }}" data-name="{{ $cust->name }}">{{ $cust->name }}</option>
                         @endforeach
@@ -67,14 +67,14 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Equipment Type</label>
                     <select id="calcEquipmentType" class="form-select s2-code">
-                        <option value="">— Select Equipment Type —</option>
+                        <option value="">- Select Equipment Type -</option>
                         @foreach($equipmentTypes as $eqt)
                             <option value="{{ $eqt->id }}"
                                     data-code="{{ $eqt->eqt_code }}"
                                     data-name="{{ $eqt->description }}"
                                     data-description="{{ $eqt->description }}"
                                     @if(in_array($eqt->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif>
-                                {{ $eqt->eqt_code }} — {{ $eqt->description }}
+                                {{ $eqt->eqt_code }} - {{ $eqt->description }}
                             </option>
                         @endforeach
                     </select>
@@ -151,7 +151,7 @@
                     <tfoot class="table-light">
                         <tr>
                             <td class="ps-3 text-muted small" colspan="4">
-                                Free Days: <strong id="tariffFreeDaysLabel">—</strong>
+                                Free Days: <strong id="tariffFreeDaysLabel">-</strong>
                             </td>
                         </tr>
                     </tfoot>
@@ -168,19 +168,19 @@
             <div class="row g-3 text-center">
                 <div class="col-4">
                     <div class="label">Total Days</div>
-                    <div class="fs-2 fw-bold" id="resTotalDays">—</div>
+                    <div class="fs-2 fw-bold" id="resTotalDays">-</div>
                 </div>
                 <div class="col-4">
                     <div class="label">Chargeable Days</div>
-                    <div class="fs-2 fw-bold" id="resChargeDays">—</div>
+                    <div class="fs-2 fw-bold" id="resChargeDays">-</div>
                 </div>
                 <div class="col-4">
                     <div class="label">Free Days Used</div>
-                    <div class="fs-2 fw-bold" id="resFreeDays">—</div>
+                    <div class="fs-2 fw-bold" id="resFreeDays">-</div>
                 </div>
                 <div class="col-12 border-top border-white border-opacity-25 pt-3">
                     <div class="label">Total Storage Charge (incl. tax)</div>
-                    <div class="display-5 fw-bold" id="resTotal">—</div>
+                    <div class="display-5 fw-bold" id="resTotal">-</div>
                 </div>
             </div>
         </div>
@@ -251,8 +251,8 @@
                                 $estCharge  = $chargeable * $rec->daily_rate;
                             @endphp
                             <tr>
-                                <td class="ps-3 font-monospace small">{{ $rec->container->container_no ?? '—' }}</td>
-                                <td class="small">{{ $rec->customer->name ?? '—' }}</td>
+                                <td class="ps-3 font-monospace small">{{ $rec->container->container_no ?? '-' }}</td>
+                                <td class="small">{{ $rec->customer->name ?? '-' }}</td>
                                 <td class="small text-muted">{{ $rec->gate_in_date->format('d M Y') }}</td>
                                 <td class="text-center"><span class="badge bg-light border text-dark">{{ $days }}d</span></td>
                                 <td class="text-center text-success small">{{ $rec->free_days }}d</td>
@@ -338,13 +338,13 @@
         table.classList.remove('d-none');
 
         const to = activeTariff.valid_to ?? 'Open-ended';
-        badge.textContent = activeTariff.valid_from + ' — ' + to;
+        badge.textContent = activeTariff.valid_from + ' - ' + to;
         freeLabel.textContent = activeTariff.free_days + ' days';
 
         tbody.innerHTML = activeTariff.rates.map(r => `
             <tr>
-                <td class="ps-3">${r.description ?? '—'}</td>
-                <td><span class="badge bg-secondary-subtle text-secondary">${r.eqt_code ?? '—'}</span></td>
+                <td class="ps-3">${r.description ?? '-'}</td>
+                <td><span class="badge bg-secondary-subtle text-secondary">${r.eqt_code ?? '-'}</span></td>
                 <td class="fw-semibold">${r.storage_rate.toFixed(2)}</td>
                 <td class="text-muted small">${r.currency}</td>
             </tr>

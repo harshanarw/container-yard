@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Customer — ' . $customer->name)
+@section('title', 'Edit Customer - ' . $customer->name)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('customers.index') }}">Customers</a></li>
@@ -98,7 +98,7 @@
                             {{-- Dropdown shown when country has states in DB --}}
                             <div id="stateDropdownWrap" @if($initialStates->isEmpty()) style="display:none;" @endif>
                                 <select name="state_id" id="stateSelect" class="form-select">
-                                    <option value="">— Select State / Province —</option>
+                                    <option value="">- Select State / Province -</option>
                                     @foreach($initialStates as $s)
                                         <option value="{{ $s->id }}"
                                             {{ old('state_id', $customer->state_id) == $s->id ? 'selected' : '' }}>
@@ -116,7 +116,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Country</label>
                             <select name="country_id" id="countrySelect" class="form-select select2">
-                                <option value="">— Select Country —</option>
+                                <option value="">- Select Country -</option>
                                 @foreach($countries as $c)
                                     <option value="{{ $c->id }}"
                                         {{ old('country_id', $customer->country_id ?? $defaultCountryId) == $c->id ? 'selected' : '' }}>
@@ -130,7 +130,7 @@
                              @if($initialDistricts->isEmpty()) style="display:none;" @endif>
                             <label class="form-label fw-semibold">District</label>
                             <select name="district_id" id="districtSelect" class="form-select">
-                                <option value="">— Select District —</option>
+                                <option value="">- Select District -</option>
                                 @foreach($initialDistricts as $d)
                                     <option value="{{ $d->id }}"
                                         {{ old('district_id', $customer->district_id) == $d->id ? 'selected' : '' }}>
@@ -151,7 +151,7 @@
                                        value="{{ old('local_agent_id', $customer->local_agent_id) }}">
                                 <input type="text" class="form-control ac-text" placeholder="Search by name or code…"
                                        autocomplete="off"
-                                       value="{{ $initLocalAgent ? $initLocalAgent->code.' — '.$initLocalAgent->name : '' }}">
+                                       value="{{ $initLocalAgent ? $initLocalAgent->code.' - '.$initLocalAgent->name : '' }}">
                                 <ul class="ac-dropdown list-group position-absolute shadow-sm" style="z-index:1000;display:none;width:100%;max-height:200px;overflow-y:auto;"></ul>
                             </div>
                             <div class="form-text">Only customers tagged as "Local Agent".</div>
@@ -163,7 +163,7 @@
                                        value="{{ old('billing_party_id', $customer->billing_party_id) }}">
                                 <input type="text" class="form-control ac-text" placeholder="Search by name or code…"
                                        autocomplete="off"
-                                       value="{{ $initBillingParty ? $initBillingParty->code.' — '.$initBillingParty->name : '' }}">
+                                       value="{{ $initBillingParty ? $initBillingParty->code.' - '.$initBillingParty->name : '' }}">
                                 <ul class="ac-dropdown list-group position-absolute shadow-sm" style="z-index:1000;display:none;width:100%;max-height:200px;overflow-y:auto;"></ul>
                             </div>
                             <div class="form-text">Defaults to same customer if not specified.</div>
@@ -238,9 +238,9 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Currency</label>
                             <select name="currency" class="form-select">
-                                <option value="LKR" {{ old('currency', $customer->currency)=='LKR'?'selected':'' }}>LKR — Sri Lankan Rupee</option>
-                                <option value="USD" {{ old('currency', $customer->currency)=='USD'?'selected':'' }}>USD — US Dollar</option>
-                                <option value="SGD" {{ old('currency', $customer->currency)=='SGD'?'selected':'' }}>SGD — Singapore Dollar</option>
+                                <option value="LKR" {{ old('currency', $customer->currency)=='LKR'?'selected':'' }}>LKR - Sri Lankan Rupee</option>
+                                <option value="USD" {{ old('currency', $customer->currency)=='USD'?'selected':'' }}>USD - US Dollar</option>
+                                <option value="SGD" {{ old('currency', $customer->currency)=='SGD'?'selected':'' }}>SGD - Singapore Dollar</option>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -288,7 +288,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">AP Payment Terms</label>
                             <select name="ap_payment_terms" class="form-select">
-                                <option value="" {{ old('ap_payment_terms', $customer->ap_payment_terms) === null ?'selected':'' }}>— Not specified —</option>
+                                <option value="" {{ old('ap_payment_terms', $customer->ap_payment_terms) === null ?'selected':'' }}>- Not specified -</option>
                                 <option value="cod"   {{ old('ap_payment_terms', $customer->ap_payment_terms)=='cod'  ?'selected':'' }}>Cash on Delivery</option>
                                 <option value="net15" {{ old('ap_payment_terms', $customer->ap_payment_terms)=='net15'?'selected':'' }}>Net 15 Days</option>
                                 <option value="net30" {{ old('ap_payment_terms', $customer->ap_payment_terms)=='net30'?'selected':'' }}>Net 30 Days</option>
@@ -487,17 +487,17 @@
 
     function initSelect2State() {
         if (!$.fn.select2) return;
-        $(stateSelect).select2({ theme: 'bootstrap-5', placeholder: '— Select State / Province —', width: '100%' });
+        $(stateSelect).select2({ theme: 'bootstrap-5', placeholder: '- Select State / Province -', width: '100%' });
     }
 
     function initSelect2District() {
         if (!$.fn.select2) return;
-        $(districtSelect).select2({ theme: 'bootstrap-5', placeholder: '— Select District —', width: '100%' });
+        $(districtSelect).select2({ theme: 'bootstrap-5', placeholder: '- Select District -', width: '100%' });
     }
 
     function clearDistricts() {
         s2destroy(districtSelect);
-        districtSelect.innerHTML = '<option value="">— Select District —</option>';
+        districtSelect.innerHTML = '<option value="">- Select District -</option>';
         districtWrap.style.display = 'none';
     }
 
@@ -522,7 +522,7 @@
 
     function loadStates(countryId, preselectStateId, preselectDistrictId) {
         s2destroy(stateSelect);
-        stateSelect.innerHTML = '<option value="">— Select State / Province —</option>';
+        stateSelect.innerHTML = '<option value="">- Select State / Province -</option>';
         stateFreeText.value = '';
         clearDistricts();
 

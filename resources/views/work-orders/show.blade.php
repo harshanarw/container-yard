@@ -36,7 +36,7 @@ $statusColors = [
             <span class="text-muted">{{ $workOrder->repairCategory->name }}</span>
             @endif
             &nbsp;·&nbsp; {{ $workOrder->container_no }}
-            &nbsp;·&nbsp; {{ $workOrder->customer->name ?? '—' }}
+            &nbsp;·&nbsp; {{ $workOrder->customer->name ?? '-' }}
             &nbsp;·&nbsp; @include('partials.job-badge', ['job' => $workOrder->yardJob, 'mode' => 'inline'])
         </p>
     </div>
@@ -181,13 +181,13 @@ $statusColors = [
     <div class="d-flex align-items-start gap-2">
         <i class="bi bi-x-octagon-fill fs-5 flex-shrink-0 mt-1"></i>
         <div class="flex-grow-1">
-            <strong>QC Rejected — Rework Required</strong>
+            <strong>QC Rejected - Rework Required</strong>
             @if($workOrder->qc_notes)
             <p class="mb-1 mt-1 small">{{ $workOrder->qc_notes }}</p>
             @endif
             <div class="small text-muted mt-1">
-                Rejected by <strong>{{ $workOrder->qcBy?->name ?? '—' }}</strong>
-                on {{ $workOrder->qc_at?->format('d M Y, H:i') ?? '—' }}
+                Rejected by <strong>{{ $workOrder->qcBy?->name ?? '-' }}</strong>
+                on {{ $workOrder->qc_at?->format('d M Y, H:i') ?? '-' }}
             </div>
         </div>
     </div>
@@ -215,7 +215,7 @@ $statusColors = [
                     <dd class="col-7 fw-semibold">{{ $workOrder->container_no }}</dd>
 
                     <dt class="col-5 text-muted fw-normal small">Customer</dt>
-                    <dd class="col-7 fw-semibold">{{ $workOrder->customer->name ?? '—' }}</dd>
+                    <dd class="col-7 fw-semibold">{{ $workOrder->customer->name ?? '-' }}</dd>
 
                     <dt class="col-5 text-muted fw-normal small">Priority</dt>
                     <dd class="col-7">
@@ -225,16 +225,16 @@ $statusColors = [
                     </dd>
 
                     <dt class="col-5 text-muted fw-normal small">Assigned To</dt>
-                    <dd class="col-7">{{ $workOrder->assignedTo->name ?? '—' }}</dd>
+                    <dd class="col-7">{{ $workOrder->assignedTo->name ?? '-' }}</dd>
 
                     <dt class="col-5 text-muted fw-normal small">Target Date</dt>
-                    <dd class="col-7 small">{{ $workOrder->target_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-7 small">{{ $workOrder->target_date?->format('d M Y') ?? '-' }}</dd>
 
                     <dt class="col-5 text-muted fw-normal small">Started</dt>
-                    <dd class="col-7 small">{{ $workOrder->started_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-7 small">{{ $workOrder->started_date?->format('d M Y') ?? '-' }}</dd>
 
                     <dt class="col-5 text-muted fw-normal small">Completed</dt>
-                    <dd class="col-7 small">{{ $workOrder->completed_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-7 small">{{ $workOrder->completed_date?->format('d M Y') ?? '-' }}</dd>
                 </dl>
             </div>
         </div>
@@ -350,10 +350,10 @@ $statusColors = [
                 @foreach($workOrder->lines as $i => $line)
                 <tr class="{{ $line->qc_status === 'failed' ? 'table-danger' : ($line->qc_status === 'passed' ? 'table-success bg-opacity-25' : '') }}">
                     <td class="text-muted small">{{ $i + 1 }}</td>
-                    <td class="small">{{ $line->locationCode?->code ?? '—' }}</td>
-                    <td class="small fw-semibold">{{ $line->componentCode?->code ?? '—' }}</td>
-                    <td class="small">{{ $line->damageCode?->code ?? '—' }}</td>
-                    <td class="small">{{ $line->repairCode?->code ?? '—' }}</td>
+                    <td class="small">{{ $line->locationCode?->code ?? '-' }}</td>
+                    <td class="small fw-semibold">{{ $line->componentCode?->code ?? '-' }}</td>
+                    <td class="small">{{ $line->damageCode?->code ?? '-' }}</td>
+                    <td class="small">{{ $line->repairCode?->code ?? '-' }}</td>
                     <td class="small text-end">{{ $line->qty }}</td>
                     <td class="small">
                         @php
@@ -373,12 +373,12 @@ $statusColors = [
                         @elseif($line->qc_status === 'failed')
                             <span class="badge bg-danger"><i class="bi bi-x-lg"></i> Fail</span>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
-                    <td class="small text-muted">{{ $line->qc_notes ?? '—' }}</td>
+                    <td class="small text-muted">{{ $line->qc_notes ?? '-' }}</td>
                     @else
-                    <td class="small text-muted">{{ $line->technician_notes ?? '—' }}</td>
+                    <td class="small text-muted">{{ $line->technician_notes ?? '-' }}</td>
                     @endif
                 </tr>
                 @endforeach
@@ -430,15 +430,15 @@ $statusColors = [
                         @foreach($workOrder->lines as $i => $line)
                         <tr class="qc-line-row" id="qc-row-{{ $line->id }}">
                             <td class="text-muted">{{ $i + 1 }}</td>
-                            <td class="small">{{ $line->locationCode?->code ?? '—' }}</td>
+                            <td class="small">{{ $line->locationCode?->code ?? '-' }}</td>
                             <td class="small fw-semibold">
-                                {{ $line->componentCode?->code ?? '—' }}
+                                {{ $line->componentCode?->code ?? '-' }}
                                 @if($line->componentCode?->name)
                                 <div class="text-muted" style="font-size:.7rem">{{ $line->componentCode->name }}</div>
                                 @endif
                             </td>
-                            <td class="small">{{ $line->damageCode?->code ?? '—' }}</td>
-                            <td class="small">{{ $line->repairCode?->code ?? '—' }}</td>
+                            <td class="small">{{ $line->damageCode?->code ?? '-' }}</td>
+                            <td class="small">{{ $line->repairCode?->code ?? '-' }}</td>
                             <td class="small text-end">{{ $line->qty }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm w-100" role="group">

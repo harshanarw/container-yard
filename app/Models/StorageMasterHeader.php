@@ -91,6 +91,6 @@ class StorageMasterHeader extends Model
         $from = $this->valid_from->format('d M Y');
         $to   = $this->valid_to ? $this->valid_to->format('d M Y') : 'Open-ended';
 
-        return "{$from} — {$to}";
+        return "{$from} - {$to}";
     }
 }

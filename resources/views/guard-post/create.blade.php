@@ -435,14 +435,14 @@ document.getElementById('containerImage').addEventListener('change', async funct
                 '<span style="font-size:.72rem;font-weight:400;">Enter number manually</span>');
             setOcrStatus('ocrStatus',
                 '<span class="badge bg-secondary-subtle text-secondary-emphasis border px-2 py-1">' +
-                '<i class="bi bi-info-circle me-1"></i>Photo saved. OCR is not available on this server — enter the details manually.</span>');
+                '<i class="bi bi-info-circle me-1"></i>Photo saved. OCR is not available on this server - enter the details manually.</span>');
             return;
         }
 
         if (data.success && data.container_no) {
             document.getElementById('containerNumber').value = data.container_no;
             if (data.iso_type) document.getElementById('isoCode').value = data.iso_type;
-            setContainerHelp('Filled automatically by OCR — edit if incorrect.');
+            setContainerHelp('Filled automatically by OCR - edit if incorrect.');
             const warn = document.getElementById('containerCheckDigitWarn');
             // Show the resolved equipment type + weights when OCR found them.
             const bits = [];
@@ -460,7 +460,7 @@ document.getElementById('containerImage').addEventListener('change', async funct
                     '<span style="font-size:.72rem;font-weight:400;">Check digit unconfirmed</span>');
                 setOcrStatus('ocrStatus',
                     '<span class="badge border px-2 py-1" style="background:#fef3c7;color:#92400e;border-color:#fbbf24!important;">' +
-                    '<i class="bi bi-exclamation-triangle-fill me-1"></i>Read: ' + data.container_no + ' — verify check digit</span>');
+                    '<i class="bi bi-exclamation-triangle-fill me-1"></i>Read: ' + data.container_no + ' - verify check digit</span>');
             } else {
                 warn.classList.add('d-none');
                 setOcrOverlay('ocrOverlayContainer', 'boxContainerImage', 'ok',
@@ -479,7 +479,7 @@ document.getElementById('containerImage').addEventListener('change', async funct
                 '<span style="font-size:.72rem;font-weight:400;">Enter number manually</span>');
             setOcrStatus('ocrStatus',
                 '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">' +
-                '<i class="bi bi-exclamation-triangle me-1"></i>Could not read number — enter manually</span>');
+                '<i class="bi bi-exclamation-triangle me-1"></i>Could not read number - enter manually</span>');
         }
     } catch (e) {
         setContainerHelp();         // OCR errored → keep the neutral hint
@@ -487,7 +487,7 @@ document.getElementById('containerImage').addEventListener('change', async funct
             '<i class="bi bi-x-circle-fill fs-2"></i><span>OCR failed</span>');
         setOcrStatus('ocrStatus',
             '<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle px-2 py-1">' +
-            '<i class="bi bi-x-circle me-1"></i>OCR failed — enter manually</span>');
+            '<i class="bi bi-x-circle me-1"></i>OCR failed - enter manually</span>');
     }
 });
 
@@ -586,14 +586,14 @@ document.getElementById('plateImage').addEventListener('change', async function 
                 '<span style="font-size:.72rem;font-weight:400;">Enter plate manually</span>');
             setOcrStatus('plateOcrStatus',
                 '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">' +
-                '<i class="bi bi-exclamation-triangle me-1"></i>Could not read plate — enter manually</span>');
+                '<i class="bi bi-exclamation-triangle me-1"></i>Could not read plate - enter manually</span>');
         }
     } catch (e) {
         setOcrOverlay('ocrOverlayPlate', 'boxPlateImage', 'err',
             '<i class="bi bi-x-circle-fill fs-2"></i><span>OCR failed</span>');
         setOcrStatus('plateOcrStatus',
             '<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle px-2 py-1">' +
-            '<i class="bi bi-x-circle me-1"></i>OCR failed — enter manually</span>');
+            '<i class="bi bi-x-circle me-1"></i>OCR failed - enter manually</span>');
     }
 });
 

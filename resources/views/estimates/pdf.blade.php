@@ -97,7 +97,7 @@
             </div>
             <div class="info-row">
                 <span class="info-label">Customer</span>
-                <span class="info-value">{{ $estimate->customer->name ?? '—' }}</span>
+                <span class="info-value">{{ $estimate->customer->name ?? '-' }}</span>
             </div>
             @if($estimate->customer?->contact_person)
             <div class="info-row">
@@ -138,7 +138,7 @@
                         <span style="font-size:10px;color:#666;display:block;">1 USD = {{ number_format((float)$estimate->exchange_rate, 4) }} {{ $estimate->currency }}</span>
                     @endif
                     @unless($estimate->tax_applicable)
-                        <span style="font-size:10px;color:#666;display:block;">Tax exempt — no SSCL/VAT applied</span>
+                        <span style="font-size:10px;color:#666;display:block;">Tax exempt - no SSCL/VAT applied</span>
                     @endunless
                 </span>
             </div>
@@ -230,7 +230,7 @@
                         @if($pDimStr)
                             <div style="font-size:8px;color:#888;white-space:nowrap;">{{ $pDimStr }}</div>
                         @elseif(!($item->qty > 0))
-                            <span style="color:#adb5bd">—</span>
+                            <span style="color:#adb5bd">-</span>
                         @endif
                     </td>
                     <td class="text-right">
@@ -238,14 +238,14 @@
                             <strong style="color:#1a56db;">{{ number_format($item->std_labor_hours, 2) }}</strong>
                             <span style="font-size:9px;color:#666;">hrs</span>
                         @else
-                            <span style="color:#adb5bd">—</span>
+                            <span style="color:#adb5bd">-</span>
                         @endif
                     </td>
                     <td class="text-right">
                         @if($item->labor_amount > 0)
                             <span style="color:#1a56db;font-weight:600;">{{ number_format($item->labor_amount, 2) }}</span>
                         @else
-                            <span style="color:#adb5bd">—</span>
+                            <span style="color:#adb5bd">-</span>
                         @endif
                     </td>
                     <td class="text-right">
@@ -257,7 +257,7 @@
                         @elseif(($item->ancillary_amount ?? 0) > 0)
                             <span style="color:#666;font-size:10px;">{{ number_format($item->ancillary_amount, 2) }}</span>
                         @else
-                            <span style="color:#adb5bd">—</span>
+                            <span style="color:#adb5bd">-</span>
                         @endif
                     </td>
                     <td class="text-right">
@@ -324,7 +324,7 @@
                 <tr>
                     <td style="color:#1a56db;font-weight:600;">Labour</td>
                     <td class="text-right" style="color:#1a56db;font-weight:600;">
-                        @if($pdfLaborHrs > 0){{ number_format($pdfLaborHrs, 2) }} hrs@else —@endif
+                        @if($pdfLaborHrs > 0){{ number_format($pdfLaborHrs, 2) }} hrs@else -@endif
                     </td>
                     <td class="text-right" style="color:#1a56db;font-weight:600;">
                         {{ $estimate->currency }} {{ number_format($pdfLaborCost, 2) }}
@@ -334,7 +334,7 @@
                 @if($pdfMaterial > 0)
                 <tr>
                     <td style="color:#166534;font-weight:600;">Materials</td>
-                    <td class="text-right" style="color:#555;">—</td>
+                    <td class="text-right" style="color:#555;">-</td>
                     <td class="text-right" style="color:#166534;font-weight:600;">
                         {{ $estimate->currency }} {{ number_format($pdfMaterial, 2) }}
                     </td>
@@ -343,7 +343,7 @@
                 @if($pdfAncillary > 0)
                 <tr>
                     <td style="color:#555;">Ancillary / Overhead</td>
-                    <td class="text-right" style="color:#555;">—</td>
+                    <td class="text-right" style="color:#555;">-</td>
                     <td class="text-right" style="color:#555;">
                         {{ $estimate->currency }} {{ number_format($pdfAncillary, 2) }}
                     </td>
@@ -378,7 +378,7 @@
     @php $__co = \App\Models\CompanySetting::current(); @endphp
     <div class="footer">
         <div>&copy; {{ date('Y') }} {{ $__co->software_provider ?? 'CYM Software' }} &nbsp;&middot;&nbsp; Generated {{ now()->format('d M Y H:i') }}</div>
-        <div>Prepared by: {{ $estimate->createdBy->name ?? '—' }}</div>
+        <div>Prepared by: {{ $estimate->createdBy->name ?? '-' }}</div>
     </div>
 
 </div>

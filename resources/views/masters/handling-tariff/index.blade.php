@@ -95,7 +95,7 @@
                     <tr class="{{ $rowCls }}">
                         <td class="ps-3 text-muted small fw-semibold">{{ $tariff->id }}</td>
                         <td>
-                            <div class="fw-semibold small">{{ $tariff->shippingLine->name ?? '—' }}</div>
+                            <div class="fw-semibold small">{{ $tariff->shippingLine->name ?? '-' }}</div>
                             <div class="text-muted" style="font-size:.72rem;">
                                 {{ $tariff->shippingLine->code ?? '' }}
                             </div>
@@ -139,11 +139,11 @@
                             @endcan
                         </td>
                         <td>
-                            <div class="small">{{ $tariff->createdBy->name ?? '—' }}</div>
+                            <div class="small">{{ $tariff->createdBy->name ?? '-' }}</div>
                             <div class="text-muted" style="font-size:.7rem;">{{ $tariff->created_at->format('d M Y') }}</div>
                         </td>
                         <td>
-                            <div class="small">{{ $tariff->updatedBy->name ?? '—' }}</div>
+                            <div class="small">{{ $tariff->updatedBy->name ?? '-' }}</div>
                             <div class="text-muted" style="font-size:.7rem;">{{ $tariff->updated_at->format('d M Y') }}</div>
                         </td>
                         <td class="text-end pe-3">
@@ -210,10 +210,10 @@
                                 Customer <span class="text-danger">*</span>
                             </label>
                             <select name="shipping_line_id" class="form-select select2-modal s2-code" required data-s2-sel="name">
-                                <option value="">— Select Customer —</option>
+                                <option value="">- Select Customer -</option>
                                 @foreach($customers as $line)
                                     <option value="{{ $line->id }}" data-code="{{ $line->code }}" data-name="{{ $line->name }}">
-                                        {{ $line->code }} — {{ $line->name }}
+                                        {{ $line->code }} - {{ $line->name }}
                                     </option>
                                 @endforeach
                             </select>

@@ -78,13 +78,13 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Survey / Inquiry Ref.</label>
                             <input type="text" class="form-control"
-                                   value="{{ $selectedInquiry->inquiry_no ?? '—' }}" readonly>
+                                   value="{{ $selectedInquiry->inquiry_no ?? '-' }}" readonly>
                             <input type="hidden" name="inquiry_id" value="{{ $selectedInquiry->id ?? '' }}">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Customer</label>
                             <input type="text" class="form-control"
-                                   value="{{ $selectedInquiry->customer->name ?? ($selectedContainer->customer->name ?? '—') }}" readonly>
+                                   value="{{ $selectedInquiry->customer->name ?? ($selectedContainer->customer->name ?? '-') }}" readonly>
                             <input type="hidden" name="customer_id"
                                    value="{{ $selectedInquiry->customer_id ?? ($selectedContainer->customer_id ?? '') }}">
                             <input type="hidden" name="container_id"
@@ -94,7 +94,7 @@
                             <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
                             <div class="d-flex gap-2 align-items-center">
                                 <select name="equipment_type_id" id="eqtSelect" class="form-select s2-code" required>
-                                    <option value="">— Select Equipment Type —</option>
+                                    <option value="">- Select Equipment Type -</option>
                                     @foreach($equipmentTypes as $eqt)
                                     <option value="{{ $eqt->id }}"
                                             data-code="{{ $eqt->eqt_code }}"
@@ -103,7 +103,7 @@
                                             data-type="{{ $eqt->type_code }}"
                                             @if(in_array($eqt->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif
                                             {{ old('equipment_type_id', $selectedInquiry->equipment_type_id ?? ($selectedContainer->equipment_type_id ?? '')) == $eqt->id ? 'selected' : '' }}>
-                                        {{ $eqt->eqt_code }} — {{ $eqt->description }}
+                                        {{ $eqt->eqt_code }} - {{ $eqt->description }}
                                     </option>
                                     @endforeach
                                 </select>
@@ -130,12 +130,12 @@
                         <div class="col-md-2">
                             <label class="form-label fw-semibold">Currency <span class="text-danger">*</span></label>
                             <select name="currency" id="estimateCurrency" class="form-select" required>
-                                <option value="USD" {{ $selCur==='USD'?'selected':'' }}>USD — US Dollar</option>
-                                <option value="{{ $defaultCurrency }}" {{ $selCur===$defaultCurrency && $defaultCurrency!=='USD'?'selected':'' }}>{{ $defaultCurrency }} — Local</option>
-                                <option value="EUR" {{ $selCur==='EUR'?'selected':'' }}>EUR — Euro</option>
-                                <option value="GBP" {{ $selCur==='GBP'?'selected':'' }}>GBP — British Pound</option>
-                                <option value="SGD" {{ $selCur==='SGD'?'selected':'' }}>SGD — Singapore Dollar</option>
-                                <option value="AUD" {{ $selCur==='AUD'?'selected':'' }}>AUD — Australian Dollar</option>
+                                <option value="USD" {{ $selCur==='USD'?'selected':'' }}>USD - US Dollar</option>
+                                <option value="{{ $defaultCurrency }}" {{ $selCur===$defaultCurrency && $defaultCurrency!=='USD'?'selected':'' }}>{{ $defaultCurrency }} - Local</option>
+                                <option value="EUR" {{ $selCur==='EUR'?'selected':'' }}>EUR - Euro</option>
+                                <option value="GBP" {{ $selCur==='GBP'?'selected':'' }}>GBP - British Pound</option>
+                                <option value="SGD" {{ $selCur==='SGD'?'selected':'' }}>SGD - Singapore Dollar</option>
+                                <option value="AUD" {{ $selCur==='AUD'?'selected':'' }}>AUD - Australian Dollar</option>
                             </select>
                             <div class="form-text">Tariffs are in USD</div>
                         </div>
@@ -154,11 +154,11 @@
                             </div>
                             <div id="estRateNote" class="form-text">
                                 @if($selCur === 'USD')
-                                    <span class="text-muted">No conversion — estimate is in USD (same as tariff)</span>
+                                    <span class="text-muted">No conversion - estimate is in USD (same as tariff)</span>
                                 @elseif($todayRate)
                                     <span class="text-success"><i class="bi bi-check-circle me-1"></i>Rate auto-loaded for today</span>
                                 @else
-                                    <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No rate found — enter manually</span>
+                                    <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No rate found - enter manually</span>
                                 @endif
                             </div>
                         </div>
@@ -175,7 +175,7 @@
                             <label class="form-label fw-semibold">Tax Applicable <span class="text-danger">*</span></label>
                             <select name="tax_applicable" id="taxApplicable" class="form-select" required>
                                 <option value="1" {{ (string) $taxDefault === '1' ? 'selected' : '' }}>Yes</option>
-                                <option value="0" {{ (string) $taxDefault === '0' ? 'selected' : '' }}>No — Tax Exempt</option>
+                                <option value="0" {{ (string) $taxDefault === '0' ? 'selected' : '' }}>No - Tax Exempt</option>
                             </select>
                             @unless($defaultTaxApplicable ?? true)
                             <div class="form-text text-warning"><i class="bi bi-info-circle me-1"></i>Customer is tax-exempt</div>
@@ -335,7 +335,7 @@
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <span class="fw-semibold">
-                                        {{ $dmg->locationCode?->name ?? ucwords(str_replace('_', ' ', $dmg->location ?? '—')) }}
+                                        {{ $dmg->locationCode?->name ?? ucwords(str_replace('_', ' ', $dmg->location ?? '-')) }}
                                     </span>
                                     @if($dmg->componentCode)
                                         <span class="badge bg-primary-subtle text-primary border font-monospace ms-1 source-badge">{{ $dmg->componentCode->code }}</span>
@@ -346,7 +346,7 @@
                                     </div>
                                 </div>
                                 <span class="badge bg-{{ $sc }}-subtle text-{{ $sc }} ms-2 flex-shrink-0">
-                                    {{ ucfirst($dmg->severity ?? '—') }}
+                                    {{ ucfirst($dmg->severity ?? '-') }}
                                 </span>
                             </div>
                             @if($dmg->cedex_code)
@@ -542,10 +542,10 @@
                 {{-- Rate result --}}
                 <div id="grRateResult" class="d-none mt-3 p-3 border rounded bg-light">
                     <div class="row g-2 small">
-                        <div class="col-md-2"><div class="text-muted">Labor Hours</div><div class="fw-bold" id="grLaborHrs">—</div></div>
-                        <div class="col-md-2"><div class="text-muted">Labor Amount</div><div class="fw-bold" id="grLaborAmt">—</div></div>
-                        <div class="col-md-2"><div class="text-muted">Material Cost</div><div class="fw-bold" id="grMaterialAmt">—</div></div>
-                        <div class="col-md-2"><div class="text-muted">Total</div><div class="fw-bold text-success fs-6" id="grTotal">—</div></div>
+                        <div class="col-md-2"><div class="text-muted">Labor Hours</div><div class="fw-bold" id="grLaborHrs">-</div></div>
+                        <div class="col-md-2"><div class="text-muted">Labor Amount</div><div class="fw-bold" id="grLaborAmt">-</div></div>
+                        <div class="col-md-2"><div class="text-muted">Material Cost</div><div class="fw-bold" id="grMaterialAmt">-</div></div>
+                        <div class="col-md-2"><div class="text-muted">Total</div><div class="fw-bold text-success fs-6" id="grTotal">-</div></div>
                         <div class="col-md-4 d-flex align-items-end">
                             <button type="button" class="btn btn-sm btn-success w-100" id="grApplyBtn">
                                 <i class="bi bi-check-circle me-1"></i>Apply Rate to New Line
@@ -590,7 +590,7 @@
             if (label)  label.textContent = 'No conversion (USD tariff)';
             if (prefix) prefix.textContent = '';
             if (suffix) suffix.textContent = '';
-            if (note)   note.innerHTML = '<span class="text-muted">Estimate is in USD — same as tariff currency, no conversion applied.</span>';
+            if (note)   note.innerHTML = '<span class="text-muted">Estimate is in USD - same as tariff currency, no conversion applied.</span>';
             return;
         }
 
@@ -609,7 +609,7 @@
                 if (input) input.value = parseFloat(data.rate).toFixed(4);
                 if (note)  note.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Rate auto-loaded: 1 USD = ${parseFloat(data.rate).toFixed(4)} ${currency}</span>`;
             } else {
-                if (note)  note.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No rate found for ${date} — please enter manually or add in Exchange Rate master</span>`;
+                if (note)  note.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No rate found for ${date} - please enter manually or add in Exchange Rate master</span>`;
             }
         } catch (_) {
             if (note) note.innerHTML = '<span class="text-danger">Failed to fetch rate</span>';
@@ -750,7 +750,7 @@
         if (cur !== 'USD' && (rate <= 0 || Math.abs(rate - 1.0) < 1e-7)) {
             e.preventDefault();
             const note = document.getElementById('estRateNote');
-            if (note) note.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Enter the USD → ${cur} exchange rate before saving — a rate of 1.0 means no conversion.</span>`;
+            if (note) note.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Enter the USD → ${cur} exchange rate before saving - a rate of 1.0 means no conversion.</span>`;
             const input = document.getElementById('estimateExchangeRate');
             input?.focus();
             input?.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -886,23 +886,23 @@
     }
 
     function buildCodeSelect(name, options, selectedId) {
-        let html = `<select name="${name}" class="form-select form-select-sm mb-1 s2 s2-code"><option value="">— any —</option>`;
+        let html = `<select name="${name}" class="form-select form-select-sm mb-1 s2 s2-code"><option value="">- any -</option>`;
         options.forEach(o => {
-            html += `<option value="${o.id}" data-code="${esc(o.code)}" data-name="${esc(o.name)}"${o.id == selectedId ? ' selected' : ''}>${esc(o.code)} — ${esc(o.name)}</option>`;
+            html += `<option value="${o.id}" data-code="${esc(o.code)}" data-name="${esc(o.name)}"${o.id == selectedId ? ' selected' : ''}>${esc(o.code)} - ${esc(o.name)}</option>`;
         });
         return html + '</select>';
     }
 
     function buildChargeCodeSelect(name, selectedId) {
-        let opts = '<option value="">— none —</option>';
+        let opts = '<option value="">- none -</option>';
         chargeCodeOpts.forEach(c => {
-            opts += `<option value="${c.id}" data-code="${esc(c.code)}" data-name="${esc(c.description)}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}"${c.id == selectedId ? ' selected' : ''}>${esc(c.code)} — ${esc(c.description)}</option>`;
+            opts += `<option value="${c.id}" data-code="${esc(c.code)}" data-name="${esc(c.description)}" data-tax1-rate="${c.tax1_rate}" data-tax2-rate="${c.tax2_rate}" data-tax-code-id="${c.tax_code_id ?? ''}"${c.id == selectedId ? ' selected' : ''}>${esc(c.code)} - ${esc(c.description)}</option>`;
         });
         return `<select name="${name}" class="form-select form-select-sm charge-code-sel s2 s2-code">${opts}</select>`;
     }
 
     function buildTaxCodeSelect(name, selectedId) {
-        let opts = '<option value="">— none —</option>';
+        let opts = '<option value="">- none -</option>';
         taxCodeOpts.forEach(tc => {
             const fullLabel = `${tc.code} (SSCL ${tc.tax1_rate}% + VAT ${tc.tax2_rate}%)`;
             opts += `<option value="${tc.id}" data-code="${esc(tc.code)}" data-name="${esc(fullLabel)}" data-tax1-rate="${tc.tax1_rate}" data-tax2-rate="${tc.tax2_rate}" title="${esc(fullLabel)}"${tc.id == selectedId ? ' selected' : ''}>${esc(tc.code)}</option>`;
@@ -1294,16 +1294,16 @@
                         if (data.tariff_found) {
                             m += ` Prices pre-filled from tariff: <strong>${data.tariff_name}</strong>.`;
                             const noPrice = data.lines.filter(l => !l._washing && !l._tariff_matched).length;
-                            if (noPrice > 0) m += ` <span class="text-warning">${noPrice} line(s) had no matching tariff rule — unit price set to 0.</span>`;
+                            if (noPrice > 0) m += ` <span class="text-warning">${noPrice} line(s) had no matching tariff rule - unit price set to 0.</span>`;
                         } else {
-                            m += ' <span class="text-warning">No active M&R tariff found — unit prices set to 0. Please fill them in manually.</span>';
+                            m += ' <span class="text-warning">No active M&R tariff found - unit prices set to 0. Please fill them in manually.</span>';
                         }
                         parts.push(m);
                     }
                     if (data.washing_count > 0) {
                         let w = `${data.washing_count} washing line(s) added from the survey.`;
                         const noWash = data.lines.filter(l => l._washing && !l._tariff_matched).length;
-                        if (noWash > 0) w += ` <span class="text-warning">${noWash} had no washing rate — unit price set to 0.</span>`;
+                        if (noWash > 0) w += ` <span class="text-warning">${noWash} had no washing rate - unit price set to 0.</span>`;
                         parts.push(w);
                     }
                     alertText.innerHTML = parts.length ? parts.join(' ') : 'Nothing to import from this survey.';
@@ -1510,7 +1510,7 @@
                             <span class="dim-axis-lbl">W</span>
                         </div>
                         <input type="hidden" class="gr-qty" value="">
-                        <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;sqft</div>
+                        <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>-&nbsp;sqft</div>
                     </div>`;
                 }
                 return `<div class="d-flex align-items-center gap-1 flex-wrap" onclick="event.stopPropagation()">
@@ -1519,7 +1519,7 @@
                     <input type="number" class="form-control form-control-sm gr-dim-w" placeholder="W" min="0.01" step="0.01" style="width:52px" title="Width (${DIM_UOM_LABEL})">
                     <span class="text-muted" style="font-size:.72rem;">${DIM_UOM_LABEL}</span>
                     <input type="hidden" class="gr-qty" value="1">
-                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;sqft</div>
+                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>-&nbsp;sqft</div>
                 </div>`;
             }
             if (unitType === 'inches') {
@@ -1530,14 +1530,14 @@
                         <input type="number" class="form-control form-control-sm dim-no-spin gr-in-l" placeholder="0" min="0" max="11.75" step="0.25" style="width:40px" title="Length inches">
                         <span class="dim-unit-lbl">in</span>
                         <input type="hidden" class="gr-qty" value="">
-                        <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;in</div>
+                        <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>-&nbsp;in</div>
                     </div>`;
                 }
                 return `<div class="d-flex align-items-center gap-1" onclick="event.stopPropagation()">
                     <input type="number" class="form-control form-control-sm gr-dim-l" placeholder="Length" min="0.01" step="0.01" style="width:68px" title="Length (${DIM_UOM_LABEL})">
                     <span class="text-muted" style="font-size:.72rem;">${DIM_UOM_LABEL}</span>
                     <input type="hidden" class="gr-qty" value="1">
-                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>—&nbsp;in</div>
+                    <div class="text-primary" style="font-size:.72rem;white-space:nowrap;" data-dim-display>-&nbsp;in</div>
                 </div>`;
             }
             return `<input type="number" class="form-control form-control-sm gr-qty" value="1" min="0.01" step="0.01" style="width:70px" onclick="event.stopPropagation()">`;
@@ -1551,7 +1551,7 @@
             resultBody.innerHTML = items.map(item => {
                 const color = opColors[item.operation_type] || 'secondary';
                 return `<tr data-item-id="${item.id}" data-item-unit="${item.unit_type}" data-item-desc="${item.description}" style="cursor:pointer;">
-                    <td class="ps-2 font-monospace small">${item.tariff_code || '—'}</td>
+                    <td class="ps-2 font-monospace small">${item.tariff_code || '-'}</td>
                     <td><span class="badge bg-${color}-subtle text-${color} border text-uppercase small">${item.operation_type}</span></td>
                     <td class="small">${item.description}</td>
                     <td class="small text-muted">${item.unit_type.toUpperCase()}</td>

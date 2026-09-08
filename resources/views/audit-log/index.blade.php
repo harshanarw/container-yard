@@ -11,7 +11,7 @@
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
         <h4><i class="bi bi-journal-text me-2 text-primary"></i>Audit Log</h4>
-        <p class="text-muted mb-0 small">Complete record of all system actions — who did what, when, and on which record</p>
+        <p class="text-muted mb-0 small">Complete record of all system actions - who did what, when, and on which record</p>
     </div>
 </div>
 
@@ -164,7 +164,7 @@
                     </td>
                     <td>
                         <span class="badge bg-light text-secondary border" style="font-size:.68rem;text-transform:none">
-                            {{ $log->log_name ?? '—' }}
+                            {{ $log->log_name ?? '-' }}
                         </span>
                     </td>
                     <td>
@@ -173,13 +173,13 @@
                         </span>
                     </td>
                     <td class="text-wrap" style="max-width:280px">
-                        {{ $log->description ?? '—' }}
+                        {{ $log->description ?? '-' }}
                     </td>
                     <td>
                         @if($log->reference)
                         <span class="font-monospace fw-semibold" style="font-size:.78rem">{{ $log->reference }}</span>
                         @else
-                        <span class="text-muted">—</span>
+                        <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td>
@@ -191,11 +191,11 @@
                             {{ ucwords(str_replace('_', ' ', $log->causer_role)) }}
                         </span>
                         @else
-                        <span class="text-muted">—</span>
+                        <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td class="text-muted font-monospace" style="font-size:.7rem">
-                        {{ $log->ip_address ?? '—' }}
+                        {{ $log->ip_address ?? '-' }}
                     </td>
                     <td class="text-center">
                         @if($log->properties)
@@ -298,9 +298,9 @@
                         html += '<tr>'
                             + '<td class="text-muted">' + escHtml(field) + '</td>'
                             + '<td>'
-                            + (oldVal !== null ? '<span class="audit-diff-old">' + escHtml(String(oldVal)) + '</span>' : '<span class="text-muted">—</span>')
+                            + (oldVal !== null ? '<span class="audit-diff-old">' + escHtml(String(oldVal)) + '</span>' : '<span class="text-muted">-</span>')
                             + '<i class="bi bi-arrow-right mx-2 text-muted" style="font-size:.7rem"></i>'
-                            + (newVal !== null ? '<span class="audit-diff-new">' + escHtml(String(newVal)) + '</span>' : '<span class="text-muted">—</span>')
+                            + (newVal !== null ? '<span class="audit-diff-new">' + escHtml(String(newVal)) + '</span>' : '<span class="text-muted">-</span>')
                             + '</td>'
                             + '</tr>';
                     });

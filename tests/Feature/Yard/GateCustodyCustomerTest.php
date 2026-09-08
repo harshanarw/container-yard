@@ -128,7 +128,7 @@ class GateCustodyCustomerTest extends FeatureTestCase
 
         $this->assertNotNull($in->yard_job_id, 'Gate-in opens the visit.');
         $this->assertSame((int) $in->yard_job_id, (int) $out->yard_job_id,
-            'Both gates belong to one visit — which is what makes pairing exact rather than a time guess.');
+            'Both gates belong to one visit - which is what makes pairing exact rather than a time guess.');
 
         $this->assertSame(
             (int) YardJob::whereKey($in->yard_job_id)->value('customer_id'),
@@ -178,7 +178,7 @@ class GateCustodyCustomerTest extends FeatureTestCase
 
         $this->assertSame($this->other->id, (int) $in->customer_id);
         $this->assertSame($this->other->id, (int) $out->customer_id,
-            'Correcting one end used to leave the other behind — that is how they drifted apart.');
+            'Correcting one end used to leave the other behind - that is how they drifted apart.');
         $this->assertSame($this->other->id, (int) YardJob::whereKey($in->yard_job_id)->value('customer_id'),
             'The job is the writer, so it moves too.');
     }

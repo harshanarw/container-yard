@@ -92,7 +92,7 @@
                     <tr class="{{ $receipt->isVoided() ? 'opacity-50' : '' }}">
                         <td class="font-monospace small fw-semibold">{{ $receipt->receipt_no }}</td>
                         <td class="small">{{ \Carbon\Carbon::parse($receipt->receipt_date)->format('d M Y') }}</td>
-                        <td class="small">{{ $receipt->customer->name ?? '—' }}</td>
+                        <td class="small">{{ $receipt->customer->name ?? '-' }}</td>
                         <td class="small">{{ \App\Models\Receipt::paymentMethodLabel($receipt->payment_method) }}</td>
                         <td class="text-end font-monospace small">{{ number_format($receipt->amount, 2) }}</td>
                         <td><span class="badge bg-secondary-subtle text-secondary">{{ $receipt->currency }}</span></td>

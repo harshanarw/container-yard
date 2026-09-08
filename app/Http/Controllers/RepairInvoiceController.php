@@ -301,7 +301,7 @@ class RepairInvoiceController extends Controller
         ]);
 
         NotificationService::notifyAll(
-            'Repair Invoice Issued — ' . $invoice->invoice_no,
+            'Repair Invoice Issued - ' . $invoice->invoice_no,
             ($invoice->customer->name ?? 'Unknown') . ' · ' . $invoice->container_no . ' · ' . $invoice->currency . ' ' . number_format($invoice->grand_total, 2),
             'success',
             route('repair-invoices.show', $invoice)
@@ -314,7 +314,7 @@ class RepairInvoiceController extends Controller
         // Surface an auto-post failure last so it isn't lost — an unposted issued
         // invoice is the more important thing to flag than an AR-limit notice.
         if ($err = \App\Services\Finance\InvoicePostingService::lastFailure()) {
-            $redirect->with('warning', 'Issued, but not yet posted to the ledger — ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
+            $redirect->with('warning', 'Issued, but not yet posted to the ledger - ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
         }
 
         return $redirect;
@@ -351,7 +351,7 @@ class RepairInvoiceController extends Controller
         $paymentType = $newAmountPaid >= $invoice->grand_total ? 'success' : 'info';
 
         NotificationService::notifyAll(
-            'Repair Invoice Payment — ' . $invoice->invoice_no,
+            'Repair Invoice Payment - ' . $invoice->invoice_no,
             ($invoice->customer->name ?? 'Unknown') . ' · Paid ' . $invoice->currency . ' ' . number_format($validated['amount'], 2) . ' · Balance: ' . number_format(max(0, $balanceDue), 2),
             $paymentType,
             route('repair-invoices.show', $invoice)
@@ -424,7 +424,7 @@ class RepairInvoiceController extends Controller
             : null;
 
         $data = [
-            'ird_invoice_no'        => $invoice->ird_invoice_no ?? '—',
+            'ird_invoice_no'        => $invoice->ird_invoice_no ?? '-',
             'invoice_date'          => $invoice->invoice_date,
             'company'               => $company,
             'verifyUrl'             => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'repair', 'id' => $invoice->id]),

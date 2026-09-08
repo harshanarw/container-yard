@@ -69,7 +69,7 @@ class MrCodeSeeder extends Seeder
                 ['code' => 'ODR',  'name' => 'Odour',              'description' => 'Persistent odour / smell (taint)'],
                 ['code' => 'WTR',  'name' => 'Water Damage',       'description' => 'Water ingress / moisture damage'],
                 ['code' => 'ROT',  'name' => 'Rotten / Soft',      'description' => 'Rotten or soft timber floor / component'],
-                ['code' => 'LEK',  'name' => 'Leaking',            'description' => 'Leak — reefer circuit, tank or water-tightness failure'],
+                ['code' => 'LEK',  'name' => 'Leaking',            'description' => 'Leak - reefer circuit, tank or water-tightness failure'],
                 ['code' => 'INO',  'name' => 'Inoperative',        'description' => 'Mechanical / reefer unit not operating correctly'],
                 ['code' => 'OTH',  'name' => 'Other',              'description' => 'Other damage not listed'],
             ],
@@ -91,7 +91,7 @@ class MrCodeSeeder extends Seeder
                 ['code' => 'RFT',  'name' => 'Refit / Secure',     'description' => 'Refit, reset or secure a loose component'],
                 ['code' => 'TGT',  'name' => 'Tighten',            'description' => 'Tighten fasteners / fittings'],
                 ['code' => 'RCD',  'name' => 'Recondition',        'description' => 'Recondition / service mechanical or reefer unit'],
-                ['code' => 'INS',  'name' => 'Inspect Only',       'description' => 'Inspect — no physical repair'],
+                ['code' => 'INS',  'name' => 'Inspect Only',       'description' => 'Inspect - no physical repair'],
             ],
 
             // ── Material codes ───────────────────────────────────────────────

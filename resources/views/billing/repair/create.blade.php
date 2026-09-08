@@ -269,7 +269,7 @@
         if (!cur || cur === baseCurrency.toUpperCase()) {
             rateInput.value = '1';
             rateInput.readOnly = true;
-            if (note) { note.textContent = 'Base currency — rate is 1.'; note.className = 'form-text small text-muted'; }
+            if (note) { note.textContent = 'Base currency - rate is 1.'; note.className = 'form-text small text-muted'; }
             return;
         }
         rateInput.readOnly = false;
@@ -282,13 +282,13 @@
             const data = await res.json();
             if (data.found && data.rate != null) {
                 rateInput.value = parseFloat(data.rate).toFixed(4);
-                if (note) { note.innerHTML = '1 ' + cur + ' = ' + rateInput.value + ' ' + baseCurrency + ' (auto-loaded — editable)'; note.className = 'form-text small text-success'; }
+                if (note) { note.innerHTML = '1 ' + cur + ' = ' + rateInput.value + ' ' + baseCurrency + ' (auto-loaded - editable)'; note.className = 'form-text small text-success'; }
             } else if (note) {
-                note.innerHTML = 'No rate configured for ' + cur + ' on ' + (date || 'that date') + ' — enter manually.';
+                note.innerHTML = 'No rate configured for ' + cur + ' on ' + (date || 'that date') + ' - enter manually.';
                 note.className = 'form-text small text-warning';
             }
         } catch (e) {
-            if (note) { note.textContent = 'Could not fetch rate — enter manually.'; note.className = 'form-text small text-danger'; }
+            if (note) { note.textContent = 'Could not fetch rate - enter manually.'; note.className = 'form-text small text-danger'; }
         }
     }
     if (window.jQuery) { jQuery('#invoice_currency').on('change select2:select', loadRate); }

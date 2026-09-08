@@ -225,7 +225,7 @@
         el.textContent = '…';
         fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (r) { return r.json(); })
-            .then(function (d) { el.textContent = d.preview || '—'; })
+            .then(function (d) { el.textContent = d.preview || '-'; })
             .catch(function ()  { el.textContent = 'error'; });
     }
 

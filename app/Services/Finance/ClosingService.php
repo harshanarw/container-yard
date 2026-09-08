@@ -58,7 +58,7 @@ class ClosingService
             ->first();
         if ($earlierUnlocked) {
             throw new RuntimeException(
-                "Close earlier period '{$earlierUnlocked->name}' first — periods must be P&L-closed in order."
+                "Close earlier period '{$earlierUnlocked->name}' first - periods must be P&L-closed in order."
             );
         }
 
@@ -82,7 +82,7 @@ class ClosingService
                     'journal_date'   => $period->end_date->toDateString(),
                     'reference_type' => AccountingPeriod::class,
                     'reference_id'   => $period->id,
-                    'narration'      => "P&L close — {$period->name}",
+                    'narration'      => "P&L close - {$period->name}",
                 ], $lines, $period, $userId);
             }
             $result['net_pl'] = $netPL;
@@ -125,7 +125,7 @@ class ClosingService
             ->first();
         if ($laterLocked) {
             throw new RuntimeException(
-                "Reverse later period '{$laterLocked->name}' first — closes must be undone in reverse order."
+                "Reverse later period '{$laterLocked->name}' first - closes must be undone in reverse order."
             );
         }
 
@@ -274,7 +274,7 @@ class ClosingService
             'journal_date'   => $finalPeriod->end_date->toDateString(),
             'reference_type' => FinancialYear::class,
             'reference_id'   => $finalPeriod->financial_year_id,
-            'narration'      => "Year-end close {$fyCode} — transfer Current Year P/L to Retained Earnings",
+            'narration'      => "Year-end close {$fyCode} - transfer Current Year P/L to Retained Earnings",
         ], $lines, $finalPeriod, $userId);
     }
 

@@ -71,7 +71,7 @@
     <td style="width:50%; vertical-align:top; padding-right:8px;">
         <div class="info-box">
             <h3>Bill To</h3>
-            <div style="font-weight:bold; font-size:11px; margin-bottom:3px;">{{ $bill?->name ?? '—' }}</div>
+            <div style="font-weight:bold; font-size:11px; margin-bottom:3px;">{{ $bill?->name ?? '-' }}</div>
             @if($bill?->tin_number)<div style="color:#555;">TIN: {{ $bill->tin_number }}</div>@endif
             @if($bill?->address)<div style="color:#555; margin-top:2px;">{{ $bill->address }}{{ $bill->city ? ', '.$bill->city : '' }}</div>@endif
             @if($invoice->billing_party_id && $invoice->billing_party_id !== $invoice->customer_id)
@@ -115,7 +115,7 @@
             <td class="r">{{ rtrim(rtrim(number_format($l->qty, 3), '0'), '.') }}</td>
             <td class="r">{{ number_format($l->unit_rate, 2) }}</td>
             <td class="c">{{ $l->line_currency }}@if($l->line_currency !== $cur)<br><span class="muted" style="font-size:8px;">@ {{ number_format($l->line_exchange_rate, 4) }}</span>@endif</td>
-            @if($invoice->tax_applicable)<td class="c">{{ $l->taxCode?->code ?? '—' }}</td>@endif
+            @if($invoice->tax_applicable)<td class="c">{{ $l->taxCode?->code ?? '-' }}</td>@endif
             <td class="r">{{ number_format($l->line_amount, 2) }}</td>
         </tr>
         @endforeach
@@ -142,7 +142,7 @@
 @endif
 
 @unless($invoice->tax_applicable)
-<div class="muted" style="margin-top:8px; font-size:8px;">Tax exempt — no SSCL/VAT applied.</div>
+<div class="muted" style="margin-top:8px; font-size:8px;">Tax exempt - no SSCL/VAT applied.</div>
 @endunless
 
 

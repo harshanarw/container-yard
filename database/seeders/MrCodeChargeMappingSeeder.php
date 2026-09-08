@@ -16,11 +16,11 @@ class MrCodeChargeMappingSeeder extends Seeder
         $repairs = MrCode::where('type', 'repair')->pluck('id', 'code');
 
         if ($charges->isEmpty()) {
-            $this->command->warn('No charge codes found — run ChargeCodeSeeder first.');
+            $this->command->warn('No charge codes found - run ChargeCodeSeeder first.');
             return;
         }
         if ($comps->isEmpty() || $repairs->isEmpty()) {
-            $this->command->warn('No MR codes found — run MrCodeSeeder first.');
+            $this->command->warn('No MR codes found - run MrCodeSeeder first.');
             return;
         }
 
@@ -202,17 +202,17 @@ class MrCodeChargeMappingSeeder extends Seeder
             $chargeId = $c($rule['charge']);
 
             if (!$chargeId) {
-                $this->command->warn("  Charge code '{$rule['charge']}' not found — skipping.");
+                $this->command->warn("  Charge code '{$rule['charge']}' not found - skipping.");
                 $skipped++;
                 continue;
             }
             if ($rule['comp'] && !$compId) {
-                $this->command->warn("  Component code '{$rule['comp']}' not found — skipping.");
+                $this->command->warn("  Component code '{$rule['comp']}' not found - skipping.");
                 $skipped++;
                 continue;
             }
             if ($rule['rep'] && !$repId) {
-                $this->command->warn("  Repair code '{$rule['rep']}' not found — skipping.");
+                $this->command->warn("  Repair code '{$rule['rep']}' not found - skipping.");
                 $skipped++;
                 continue;
             }

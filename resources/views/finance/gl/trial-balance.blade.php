@@ -44,7 +44,7 @@
 @if(round($totalDebit, 4) !== round($totalCredit, 4))
 <div class="alert alert-danger d-flex gap-2 align-items-center">
     <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
-    <div>Trial balance does not balance — check for unposted entries or data integrity issues.
+    <div>Trial balance does not balance - check for unposted entries or data integrity issues.
         <strong>Difference: {{ number_format(abs($totalDebit - $totalCredit), 2) }}</strong>
     </div>
 </div>

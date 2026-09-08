@@ -40,7 +40,7 @@ class ManualPricingTest extends TestCase
             ],
             'an allowance already spent gives nothing' => [
                 5, 31, 28, 0,
-                'Gated in on 1 January with five free days, billed for February — all five went in January. '
+                'Gated in on 1 January with five free days, billed for February - all five went in January. '
                 . 'This is the case that makes the rule cumulative rather than flat.',
             ],
             'an allowance partly spent gives the balance' => [
@@ -143,7 +143,7 @@ class ManualPricingTest extends TestCase
         $a = ManualPricing::lineAmounts(1000.0, 0.0, 2.5, 18.0, 0.0, 0.0);
 
         $this->assertSame(25.0, $a['storage_sscl']);
-        $this->assertSame(184.5, $a['storage_vat'], 'VAT is charged on 1025, not on 1000 — matching the tariff flow.');
+        $this->assertSame(184.5, $a['storage_vat'], 'VAT is charged on 1025, not on 1000 - matching the tariff flow.');
         $this->assertSame(1209.5, $a['line_grand_total']);
     }
 
@@ -229,9 +229,9 @@ class ManualPricingTest extends TestCase
 
     public function test_matrix_key_survives_missing_values(): void
     {
-        $this->assertSame('—|—', ManualPricing::matrixKey(null, null),
+        $this->assertSame('-|-', ManualPricing::matrixKey(null, null),
             'A container with no equipment record still needs a row to be priced in.');
-        $this->assertSame('20GP|—', ManualPricing::matrixKey('20GP', ''),
+        $this->assertSame('20GP|-', ManualPricing::matrixKey('20GP', ''),
             'Empty and null are the same absence.');
     }
 }

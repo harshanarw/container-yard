@@ -66,7 +66,7 @@
                             <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
                             <div class="d-flex gap-2 align-items-center">
                                 <select name="equipment_type_id" id="eqtSelect" class="form-select s2-code" required>
-                                    <option value="">— Select Equipment Type —</option>
+                                    <option value="">- Select Equipment Type -</option>
                                     @foreach($equipmentTypes as $eqt)
                                     <option value="{{ $eqt->id }}"
                                             data-code="{{ $eqt->eqt_code }}"
@@ -76,7 +76,7 @@
                                             data-eqt="{{ $eqt->eqt_code }}"
                                             @if(in_array($eqt->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif
                                             {{ old('equipment_type_id') == $eqt->id ? 'selected' : '' }}>
-                                        {{ $eqt->eqt_code }} — {{ $eqt->description }}
+                                        {{ $eqt->eqt_code }} - {{ $eqt->description }}
                                     </option>
                                     @endforeach
                                 </select>
@@ -89,16 +89,16 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Customer / Owner <span class="text-danger">*</span></label>
                             <select name="customer_id" class="form-select s2-code" required data-s2-sel="name">
-                                <option value="">— Select Customer —</option>
+                                <option value="">- Select Customer -</option>
                                 @foreach($customers ?? [] as $c)
-                                    <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ old('customer_id') == $c->id ? 'selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>
+                                    <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" {{ old('customer_id') == $c->id ? 'selected' : '' }}>{{ $c->code }} - {{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Inquiry Type <span class="text-danger">*</span></label>
                             <select name="inquiry_type" class="form-select" required>
-                                <option value="">— Select Type —</option>
+                                <option value="">- Select Type -</option>
                                 <option value="damage_survey"            {{ old('inquiry_type') === 'damage_survey'            ? 'selected' : '' }}>Damage Survey</option>
                                 <option value="pre_trip_inspection"      {{ old('inquiry_type') === 'pre_trip_inspection'      ? 'selected' : '' }}>Pre-trip Inspection</option>
                                 <option value="repair_assessment"        {{ old('inquiry_type') === 'repair_assessment'        ? 'selected' : '' }}>Repair Assessment</option>
@@ -109,7 +109,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Assigned Inspector <span class="text-danger">*</span></label>
                             <select name="inspector_id" class="form-select select2" required>
-                                <option value="">— Inspector —</option>
+                                <option value="">- Inspector -</option>
                                 @foreach($inspectors ?? [] as $ins)
                                     <option value="{{ $ins->id }}" {{ old('inspector_id') == $ins->id ? 'selected' : '' }}>{{ $ins->name }}</option>
                                 @endforeach
@@ -174,7 +174,7 @@
                                 <tr class="damage-row">
                                     <td class="ps-3">
                                         <select name="damages[0][location_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrLocationCodes as $c)
                                                 <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -182,7 +182,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][component_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrComponentCodes as $c)
                                                 <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -190,7 +190,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][damage_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrDamageCodes as $c)
                                                 <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -198,7 +198,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][repair_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrRepairCodes as $c)
                                                 <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -206,7 +206,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrResponsibilityCodes as $c)
                                                 <option value="{{ $c->id }}">{{ $c->code }}</option>
                                             @endforeach
@@ -424,7 +424,7 @@
     const mrResOpts  = @json($resOpts);
 
     function buildSelect(name, opts, codePfx) {
-        let html = `<select name="${name}" class="form-select form-select-sm s2"><option value="">—</option>`;
+        let html = `<select name="${name}" class="form-select form-select-sm s2"><option value="">-</option>`;
         opts.forEach(o => { html += `<option value="${o.id}">${o.code} ${codePfx ? '' : o.name}</option>`; });
         return html + '</select>';
     }
@@ -447,7 +447,7 @@
             <td>${buildSelect('damages['+i+'][repair_code_id]', mrRepOpts)}</td>
             <td>
                 <select name="damages[${i}][responsibility_code_id]" class="form-select form-select-sm">
-                    <option value="">—</option>
+                    <option value="">-</option>
                     ${mrResOpts.map(o => `<option value="${o.id}">${o.code}</option>`).join('')}
                 </select>
             </td>

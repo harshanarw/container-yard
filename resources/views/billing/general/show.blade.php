@@ -94,12 +94,12 @@
                         <tbody>
                         @foreach($invoice->lines as $l)
                         <tr>
-                            <td class="ps-3 small">{{ $l->chargeCode?->code ?? '—' }}</td>
+                            <td class="ps-3 small">{{ $l->chargeCode?->code ?? '-' }}</td>
                             <td class="small">
                                 @if($l->revenueAccount)
                                     <span class="font-monospace">{{ $l->revenueAccount->code }}</span>
                                     <span class="text-muted d-block" style="font-size:.66rem;">{{ $l->revenueAccount->name }}</span>
-                                @else — @endif
+                                @else - @endif
                             </td>
                             <td class="small">{{ $l->description }}</td>
                             <td class="text-end small">{{ rtrim(rtrim(number_format($l->qty, 3), '0'), '.') }}</td>
@@ -111,7 +111,7 @@
                                 @endif
                             </td>
                             @if($invoice->tax_applicable)
-                            <td class="text-center small">{{ $l->taxCode?->code ?? '—' }}</td>
+                            <td class="text-center small">{{ $l->taxCode?->code ?? '-' }}</td>
                             @endif
                             <td class="text-end small fw-semibold">{{ number_format($l->line_amount, 2) }}</td>
                             <td class="text-end small text-muted pe-3">{{ number_format($l->base_value, 2) }}</td>
@@ -149,13 +149,13 @@
                     @if($invoice->ird_invoice_no)
                     <dt class="col-5 text-muted">IRD No.</dt><dd class="col-7 fw-semibold">{{ $invoice->ird_invoice_no }}</dd>
                     @endif
-                    <dt class="col-5 text-muted">Customer</dt><dd class="col-7">{{ $invoice->customer?->name ?? '—' }}</dd>
-                    <dt class="col-5 text-muted">Billing Party</dt><dd class="col-7">{{ $invoice->billingParty?->name ?? $invoice->customer?->name ?? '—' }}</dd>
+                    <dt class="col-5 text-muted">Customer</dt><dd class="col-7">{{ $invoice->customer?->name ?? '-' }}</dd>
+                    <dt class="col-5 text-muted">Billing Party</dt><dd class="col-7">{{ $invoice->billingParty?->name ?? $invoice->customer?->name ?? '-' }}</dd>
                     <dt class="col-5 text-muted">Invoice Date</dt><dd class="col-7">{{ $invoice->invoice_date?->format('d M Y') }}</dd>
-                    <dt class="col-5 text-muted">Credit Term</dt><dd class="col-7">{{ $invoice->payment_terms ? \App\Services\Finance\PaymentTermsHelper::label($invoice->payment_terms) : '—' }}</dd>
-                    <dt class="col-5 text-muted">Due Date</dt><dd class="col-7">{{ $invoice->due_date?->format('d M Y') ?? '—' }}</dd>
+                    <dt class="col-5 text-muted">Credit Term</dt><dd class="col-7">{{ $invoice->payment_terms ? \App\Services\Finance\PaymentTermsHelper::label($invoice->payment_terms) : '-' }}</dd>
+                    <dt class="col-5 text-muted">Due Date</dt><dd class="col-7">{{ $invoice->due_date?->format('d M Y') ?? '-' }}</dd>
                     <dt class="col-5 text-muted">Currency</dt><dd class="col-7">{{ $invoice->currency }}@if($invoice->currency !== $base) <span class="text-muted">@ {{ number_format($invoice->exchange_rate, 4) }}</span>@endif</dd>
-                    <dt class="col-5 text-muted">Reference</dt><dd class="col-7">{{ $invoice->reference ?? '—' }}</dd>
+                    <dt class="col-5 text-muted">Reference</dt><dd class="col-7">{{ $invoice->reference ?? '-' }}</dd>
                     <dt class="col-5 text-muted">Grand Total</dt><dd class="col-7 fw-semibold">{{ $invoice->currency }} {{ number_format($invoice->grand_total, 2) }}</dd>
                     <dt class="col-5 text-muted">Balance Due</dt><dd class="col-7">{{ $invoice->currency }} {{ number_format($invoice->balance_due, 2) }}</dd>
                 </dl>
@@ -179,7 +179,7 @@
 @endphp
 @if($invoice->status !== 'draft')
 <div class="card content-card mt-3">
-    <div class="card-header"><i class="bi bi-bank me-2 text-primary"></i>Finance — GL Posting</div>
+    <div class="card-header"><i class="bi bi-bank me-2 text-primary"></i>Finance - GL Posting</div>
     <div class="card-body">
         @if($_posting && $_posting->isPosted())
             <div class="d-flex align-items-center gap-3 flex-wrap">
@@ -187,7 +187,7 @@
                 @if($_posting->journal)
                 <a href="{{ route('finance.gl.journals.show', $_posting->journal) }}" class="font-monospace fw-semibold text-decoration-none">{{ $_posting->journal->journal_no }}</a>
                 @endif
-                <span class="text-muted small">by {{ $_posting->postedBy->name ?? '—' }} {{ $_posting->posted_at ? 'on ' . $_posting->posted_at->format('d M Y H:i') : '' }}</span>
+                <span class="text-muted small">by {{ $_posting->postedBy->name ?? '-' }} {{ $_posting->posted_at ? 'on ' . $_posting->posted_at->format('d M Y H:i') : '' }}</span>
             </div>
         @elseif($_posting && $_posting->isVoided())
             <span class="badge bg-secondary-subtle text-secondary fs-6"><i class="bi bi-x-circle me-1"></i>Voided</span>

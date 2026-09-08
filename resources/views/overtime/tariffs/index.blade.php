@@ -13,7 +13,7 @@
     <div>
         <h4><i class="bi bi-cash-coin me-2 text-primary"></i>OT Tariff Versions</h4>
         <p class="text-muted mb-0 small">
-            Effective-dated overtime rates. A rate revision becomes a <strong>new version</strong> — versions that have
+            Effective-dated overtime rates. A rate revision becomes a <strong>new version</strong> - versions that have
             issued receipts stay frozen so printed receipts keep the rate they were billed at.
         </p>
     </div>

@@ -22,7 +22,7 @@ class TariffChargeCodeBackfillSeeder extends Seeder
                 ->update(['charge_code_id' => $stcId]);
             $this->command->info("storage_master_details: {$updated} row(s) linked to {$storage}.");
         } else {
-            $this->command->warn("{$storage} charge code not found — storage_master_details skipped.");
+            $this->command->warn("{$storage} charge code not found - storage_master_details skipped.");
         }
 
         if ($loloId) {
@@ -31,7 +31,7 @@ class TariffChargeCodeBackfillSeeder extends Seeder
                 ->update(['charge_code_id' => $loloId]);
             $this->command->info("handling_tariff_rates: {$updated} row(s) linked to {$handling}.");
         } else {
-            $this->command->warn("{$handling} charge code not found — handling_tariff_rates skipped.");
+            $this->command->warn("{$handling} charge code not found - handling_tariff_rates skipped.");
         }
     }
 }

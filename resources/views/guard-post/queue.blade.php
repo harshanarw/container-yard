@@ -92,12 +92,12 @@
                                 </span>
                             @endif
                         </td>
-                        <td class="font-monospace small">{{ $capture->container_number ?? '—' }}</td>
-                        <td class="small">{{ $capture->vehicle_number ?? '—' }}</td>
-                        <td class="small">{{ $capture->driver_name ?? '—' }}</td>
-                        <td class="small">{{ $capture->capturedBy?->full_name ?? '—' }}</td>
+                        <td class="font-monospace small">{{ $capture->container_number ?? '-' }}</td>
+                        <td class="small">{{ $capture->vehicle_number ?? '-' }}</td>
+                        <td class="small">{{ $capture->driver_name ?? '-' }}</td>
+                        <td class="small">{{ $capture->capturedBy?->full_name ?? '-' }}</td>
                         <td class="small text-muted text-nowrap">
-                            {{ $capture->captured_at?->format('d M H:i') ?? '—' }}
+                            {{ $capture->captured_at?->format('d M H:i') ?? '-' }}
                         </td>
                         <td>
                             @php
@@ -127,7 +127,7 @@
                                 @can('guard-post.edit')
                                 <button type="button" class="act-btn act-clear"
                                         onclick="openActionModal({{ $capture->id }},'cleared','{{ $capture->reference_no }}')"
-                                        title="Clear — allow entry">
+                                        title="Clear - allow entry">
                                     <i class="bi bi-check-lg me-1"></i>Clear
                                 </button>
                                 <button type="button" class="act-btn act-hold"
@@ -148,7 +148,7 @@
                                 @can('guard-post.edit')
                                 <button type="button" class="act-btn act-clear"
                                         onclick="openActionModal({{ $capture->id }},'cleared','{{ $capture->reference_no }}')"
-                                        title="Clear — allow entry">
+                                        title="Clear - allow entry">
                                     <i class="bi bi-check-lg me-1"></i>Clear
                                 </button>
                                 <button type="button" class="act-btn act-reject"
@@ -163,7 +163,7 @@
                                 @if($capture->isCleared() && $capture->direction === 'gate_in' && !$capture->linked_gate_movement_id)
                                 @can('guard-post.edit')
                                 <a href="{{ route('yard.gate') }}?capture_id={{ $capture->id }}"
-                                   class="act-btn act-gate-in" title="Open Gate-In form — pre-filled from this capture">
+                                   class="act-btn act-gate-in" title="Open Gate-In form - pre-filled from this capture">
                                     <i class="bi bi-box-arrow-in-right me-1"></i>Gate-In
                                 </a>
                                 @endcan
@@ -173,7 +173,7 @@
                                 @if($capture->isCleared() && $capture->direction === 'gate_out' && !$capture->linked_gate_movement_id)
                                 @can('guard-post.edit')
                                 <a href="{{ route('yard.gate') }}?tab=out&capture_id={{ $capture->id }}"
-                                   class="act-btn act-gate-out" title="Open Gate-Out form — pre-filled from this capture">
+                                   class="act-btn act-gate-out" title="Open Gate-Out form - pre-filled from this capture">
                                     <i class="bi bi-box-arrow-right me-1"></i>Gate-Out
                                 </a>
                                 @endcan

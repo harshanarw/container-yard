@@ -86,7 +86,7 @@
                                     <td class="text-center p-0">
                                         @if($holiday && $holiday->active)
                                             <span class="badge bg-danger-subtle text-danger border w-100 px-0"
-                                                  title="{{ $holiday->holiday_name }} — {{ $holiday->overrideLabel() }}">{{ $d }}</span>
+                                                  title="{{ $holiday->holiday_name }} - {{ $holiday->overrideLabel() }}">{{ $d }}</span>
                                         @elseif($holiday)
                                             <span class="badge bg-light text-muted border w-100 px-0 text-decoration-line-through"
                                                   title="{{ $holiday->holiday_name }} (inactive)">{{ $d }}</span>
@@ -141,7 +141,7 @@
                     </td>
                     <td class="small">{{ $h->typeLabel() }}</td>
                     <td class="text-center">
-                        @if($h->is_mercantile)<i class="bi bi-check-circle-fill text-success"></i>@else<span class="text-muted">—</span>@endif
+                        @if($h->is_mercantile)<i class="bi bi-check-circle-fill text-success"></i>@else<span class="text-muted">-</span>@endif
                     </td>
                     <td class="small">{{ $h->overrideLabel() }}</td>
                     <td class="small text-muted">

@@ -129,7 +129,7 @@ class MrStatusReconcileTest extends FeatureTestCase
         ])->assertSuccessful();
 
         $this->assertSame(Cat::REPAIR_IN_PROGRESS, $container->refresh()->mr_status,
-            'resolve() is authoritative — the reconcile restores what it says.');
+            'resolve() is authoritative - the reconcile restores what it says.');
     }
 
     public function test_it_repairs_the_cycle_projection_too(): void
@@ -171,7 +171,7 @@ class MrStatusReconcileTest extends FeatureTestCase
         $container->refresh();
         $this->assertSame(Cat::REPAIR_IN_PROGRESS, $container->mr_status);
         $this->assertEquals($before, $container->mr_status_at,
-            'refresh() is idempotent — an unchanged status must not churn the row.');
+            'refresh() is idempotent - an unchanged status must not churn the row.');
     }
 
     public function test_an_unknown_container_number_fails_loudly(): void

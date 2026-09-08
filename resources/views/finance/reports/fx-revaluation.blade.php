@@ -61,14 +61,14 @@
 @if($alreadyPosted)
 <div class="alert alert-success small d-flex align-items-start gap-2">
     <i class="bi bi-check-circle mt-1"></i>
-    <div>An FX revaluation has already been posted for {{ \Carbon\Carbon::parse($as_of)->format('d M Y') }} (with its next-day reversal). To re-run, use <strong>Void Revaluation</strong> above — it voids both journals together.</div>
+    <div>An FX revaluation has already been posted for {{ \Carbon\Carbon::parse($as_of)->format('d M Y') }} (with its next-day reversal). To re-run, use <strong>Void Revaluation</strong> above - it voids both journals together.</div>
 </div>
 @else
 <div class="alert alert-info small d-flex align-items-start gap-2">
     <i class="bi bi-info-circle mt-1"></i>
     <div>
         Revaluation gain/loss is <em>unrealized</em>. Posting books a balanced adjustment journal on the as-of date and an
-        <strong>automatic reversing journal the next day</strong> — it only becomes realized FX on settlement. AR/AP control accounts are
+        <strong>automatic reversing journal the next day</strong> - it only becomes realized FX on settlement. AR/AP control accounts are
         revalued against the unrealized FX gain (4102) / loss (7002) accounts (or their <code>forex_*_unrealized</code> mapping overrides).
     </div>
 </div>
@@ -115,7 +115,7 @@
 
 @if($missing->isNotEmpty())
 <div class="alert alert-warning small">
-    <strong>{{ $missing->count() }} open foreign item(s) skipped</strong> — no exchange rate is configured on/before {{ \Carbon\Carbon::parse($as_of)->format('d M Y') }}:
+    <strong>{{ $missing->count() }} open foreign item(s) skipped</strong> - no exchange rate is configured on/before {{ \Carbon\Carbon::parse($as_of)->format('d M Y') }}:
     {{ $missing->map(fn ($m) => $m['no'].' ('.$m['currency'].')')->implode(', ') }}.
     Add the rate under Finance → Exchange Rates to include them.
 </div>

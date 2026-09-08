@@ -34,10 +34,10 @@
             <div class="col-md-4">
                 <label class="form-label small mb-1 fw-semibold">Bank Account</label>
                 <select name="bank_account_id" class="form-select form-select-sm select2" onchange="this.form.submit()">
-                    <option value="">— All accounts —</option>
+                    <option value="">- All accounts -</option>
                     @foreach($bankAccounts as $ba)
                         <option value="{{ $ba->id }}" {{ (string) request('bank_account_id') === (string) $ba->id ? 'selected' : '' }}>
-                            {{ $ba->bank_name }} — {{ $ba->account_name }} ({{ $ba->currency }})
+                            {{ $ba->bank_name }} - {{ $ba->account_name }} ({{ $ba->currency }})
                         </option>
                     @endforeach
                 </select>
@@ -65,7 +65,7 @@
                 @forelse($reconciliations as $r)
                 <tr>
                     <td class="text-nowrap">{{ $r->statement_date->format('d M Y') }}</td>
-                    <td>{{ $r->bankAccount->bank_name }} — {{ $r->bankAccount->account_name }}</td>
+                    <td>{{ $r->bankAccount->bank_name }} - {{ $r->bankAccount->account_name }}</td>
                     <td class="text-end font-monospace">{{ number_format($r->opening_balance, 2) }}</td>
                     <td class="text-end font-monospace">{{ number_format($r->closing_balance, 2) }}</td>
                     <td class="text-center">{{ $r->statement_lines_count }}</td>
@@ -76,7 +76,7 @@
                             <span class="badge bg-warning-subtle text-warning border">Draft</span>
                         @endif
                     </td>
-                    <td class="small text-muted">{{ optional($r->reconciledBy)->name ?? '—' }}</td>
+                    <td class="small text-muted">{{ optional($r->reconciledBy)->name ?? '-' }}</td>
                     <td class="text-end">
                         <a href="{{ route('finance.bank-reconciliation.show', $r) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-arrow-right-circle me-1"></i>{{ $r->isDraft() ? 'Continue' : 'View' }}

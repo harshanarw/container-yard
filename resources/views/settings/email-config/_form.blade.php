@@ -157,7 +157,7 @@
     {{-- Sender Identity --}}
     <div class="col-12">
         <div class="border-top pt-3">
-            <div class="text-muted small fw-semibold mb-2">Sender Identity (optional — overrides system defaults)</div>
+            <div class="text-muted small fw-semibold mb-2">Sender Identity (optional - overrides system defaults)</div>
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label fw-semibold small">From Name</label>

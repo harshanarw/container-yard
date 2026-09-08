@@ -76,7 +76,7 @@
                         <option value="{{ $sl->id }}"
                             data-code="{{ $sl->code }}" data-name="{{ $sl->name }}"
                             {{ request('shipping_line_id') == $sl->id ? 'selected' : '' }}>
-                            {{ $sl->code }} — {{ $sl->name }}
+                            {{ $sl->code }} - {{ $sl->name }}
                         </option>
                     @endforeach
                 </select>
@@ -147,7 +147,7 @@
                             @endif
                         </td>
                         <td>
-                            <div class="small fw-semibold">{{ $inv->shippingLine->name ?? '—' }}</div>
+                            <div class="small fw-semibold">{{ $inv->shippingLine->name ?? '-' }}</div>
                             <div class="text-muted" style="font-size:.7rem;">{{ $inv->shippingLine->code ?? '' }}</div>
                         </td>
                         <td class="small">{{ $inv->invoice_date->format('d M Y') }}</td>
@@ -157,7 +157,7 @@
                                 {{ $inv->due_date->format('d M Y') }}
                                 @if($pastDue)<i class="bi bi-exclamation-circle ms-1" title="Past due"></i>@endif
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </td>
                         <td class="small">

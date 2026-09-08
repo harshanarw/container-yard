@@ -500,7 +500,7 @@ class ContainerMrStatusService
 
         $status = $this->forContainer($container);
 
-        return "{$wo->wo_no} — {$status->label()}";
+        return "{$wo->wo_no} - {$status->label()}";
     }
 
     // ─────────────────────────────────────────────────────────────────────────

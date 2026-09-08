@@ -57,7 +57,7 @@ class AccessControlSeeder extends Seeder
             }
         });
 
-        $this->command->info("  ✔  Reconciled user role pivots — {$linked} linked, {$skipped} skipped (super-user / no matching role).");
+        $this->command->info("  ✔  Reconciled user role pivots - {$linked} linked, {$skipped} skipped (super-user / no matching role).");
         $this->command->info('Access control sync complete.');
     }
 }

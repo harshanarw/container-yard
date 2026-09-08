@@ -15,7 +15,7 @@
     <div>
         <h4><i class="bi bi-arrow-clockwise me-2 text-danger"></i>{{ $apCreditNote->credit_note_no }}
             <span class="badge bg-{{ $b }}-subtle text-{{ $b }} ms-2 fs-6 text-capitalize">{{ $apCreditNote->status }}</span></h4>
-        <p class="text-muted mb-0 small">{{ $apCreditNote->supplier->name ?? '—' }}</p>
+        <p class="text-muted mb-0 small">{{ $apCreditNote->supplier->name ?? '-' }}</p>
     </div>
     <div class="d-flex gap-2">
         @can('finance.ap-credit-notes.approve')
@@ -75,8 +75,8 @@
             <div class="card-body">
                 <table class="table table-sm mb-0 small">
                     <tr><td class="text-muted">Date</td><td class="fw-semibold">{{ $apCreditNote->credit_date->format('d M Y') }}</td></tr>
-                    <tr><td class="text-muted">Supplier</td><td class="fw-semibold">{{ $apCreditNote->supplier->name ?? '—' }}</td></tr>
-                    <tr><td class="text-muted">Vendor CN No</td><td class="font-monospace">{{ $apCreditNote->supplier_credit_no ?: '—' }}</td></tr>
+                    <tr><td class="text-muted">Supplier</td><td class="fw-semibold">{{ $apCreditNote->supplier->name ?? '-' }}</td></tr>
+                    <tr><td class="text-muted">Vendor CN No</td><td class="font-monospace">{{ $apCreditNote->supplier_credit_no ?: '-' }}</td></tr>
                     <tr><td class="text-muted">Currency / Rate</td><td class="font-monospace">{{ $apCreditNote->currency }} @ {{ rtrim(rtrim(number_format($apCreditNote->exchange_rate,6,'.',''),'0'),'.') }}</td></tr>
                     <tr><td class="text-muted">Subtotal</td><td class="text-end font-monospace">{{ number_format($apCreditNote->subtotal,2) }}</td></tr>
                     @if((float) $apCreditNote->sscl_amount > 0)
@@ -103,7 +103,7 @@
                         @foreach($apCreditNote->lines as $line)
                         <tr>
                             <td>{{ $line->description }}</td>
-                            <td class="text-muted small">{{ $line->expenseAccount ? $line->expenseAccount->code.' — '.$line->expenseAccount->name : 'Default' }}</td>
+                            <td class="text-muted small">{{ $line->expenseAccount ? $line->expenseAccount->code.' - '.$line->expenseAccount->name : 'Default' }}</td>
                             <td class="text-end font-monospace">{{ number_format($line->amount,2) }}</td>
                         </tr>
                         @endforeach
@@ -149,7 +149,7 @@
                     <div class="col-md-6">
                         <label class="form-label small mb-1 fw-semibold">Apply to bill <span class="text-muted">(unapplied: {{ number_format($apCreditNote->unapplied,2) }})</span></label>
                         <select name="supplier_invoice_id" id="pendInv" class="form-select form-select-sm" required>
-                            <option value="">— Select bill —</option>
+                            <option value="">- Select bill -</option>
                             @foreach($pendingInvoices as $pi)
                             <option value="{{ $pi['id'] }}" data-out="{{ $pi['outstanding'] }}">{{ $pi['label'] }}</option>
                             @endforeach

@@ -269,7 +269,7 @@ class ContainerHireService
             throw new \RuntimeException(
                 'On-hire date cannot be before the container\'s gate-in date ('
                 . Carbon::parse($earliestGateIn)->format('d M Y') . '). '
-                . 'Same-day hire (on the gate-in date) is allowed — the original customer then accrues no storage.'
+                . 'Same-day hire (on the gate-in date) is allowed - the original customer then accrues no storage.'
             );
         }
     }

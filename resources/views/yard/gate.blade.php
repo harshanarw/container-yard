@@ -32,7 +32,7 @@
 </div>
 <div id="gateModeBar" class="gate-mode-bar gate-mode-bar-in mb-4">
     <i class="bi bi-box-arrow-in-right me-2 fs-5"></i>
-    <span>Recording: <strong>GATE IN</strong> — Container Arrival</span>
+    <span>Recording: <strong>GATE IN</strong> - Container Arrival</span>
 </div>
 
 <div class="row g-3">
@@ -43,7 +43,7 @@
         {{-- ── Gate In Card ──────────────────────────────────────────── --}}
         <div class="card content-card" id="gateInCard">
             <div class="card-header bg-primary text-white">
-                <i class="bi bi-box-arrow-in-right me-2"></i>Gate In — Container Arrival
+                <i class="bi bi-box-arrow-in-right me-2"></i>Gate In - Container Arrival
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ route('yard.gate.in') }}" id="gateInForm" enctype="multipart/form-data">
@@ -75,7 +75,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Job / Operation Type <span class="text-danger">*</span></label>
                         <select name="job_type_id" id="jobTypeSelect" class="form-select s2-code" required data-s2-sel="name">
-                            <option value="">— Select Job Type —</option>
+                            <option value="">- Select Job Type -</option>
                             @foreach($jobTypes as $jt)
                             @php
                                 $cargoHint = match($jt->job_type_code) {
@@ -99,7 +99,7 @@
                                     data-customs="{{ $jt->customs_applicable ? '1' : '0' }}"
                                     data-cargo-transfer="{{ $jt->cargo_transfer_applicable ? '1' : '0' }}"
                                     {{ old('job_type_id') == $jt->id ? 'selected' : '' }}>
-                                {{ $jt->type_short_code }} — {{ $jt->job_type_name }}
+                                {{ $jt->type_short_code }} - {{ $jt->job_type_name }}
                             </option>
                             @endforeach
                         </select>
@@ -136,7 +136,7 @@
                                 <label class="d-flex align-items-start gap-2 p-2 rounded cursor-pointer border bg-white" style="cursor:pointer;">
                                     <input type="radio" name="return_reason" value="shipper_return" class="mt-1 flex-shrink-0">
                                     <span>
-                                        <span class="fw-semibold d-block" style="font-size:.85rem;">Shipper Return — Defect / Rejection</span>
+                                        <span class="fw-semibold d-block" style="font-size:.85rem;">Shipper Return - Defect / Rejection</span>
                                         <span class="text-muted" style="font-size:.75rem;">Shipper (exporter) took out the container but returns it due to defects or suitability issues found later.</span>
                                     </span>
                                 </label>
@@ -1435,14 +1435,14 @@ function activateIn() {
     btnIn.classList.replace('btn-outline-primary', 'btn-primary');
     btnOut.classList.replace('btn-success', 'btn-outline-success');
     modeBar.className = 'gate-mode-bar gate-mode-bar-in mb-4';
-    modeBar.innerHTML = '<i class="bi bi-box-arrow-in-right me-2 fs-5"></i><span>Recording: <strong>GATE IN</strong> — Container Arrival</span>';
+    modeBar.innerHTML = '<i class="bi bi-box-arrow-in-right me-2 fs-5"></i><span>Recording: <strong>GATE IN</strong> - Container Arrival</span>';
 }
 function activateOut() {
     cardOut.classList.remove('d-none'); cardIn.classList.add('d-none');
     btnOut.classList.replace('btn-outline-success', 'btn-success');
     btnIn.classList.replace('btn-primary', 'btn-outline-primary');
     modeBar.className = 'gate-mode-bar gate-mode-bar-out mb-4';
-    modeBar.innerHTML = '<i class="bi bi-box-arrow-right me-2 fs-5"></i><span>Recording: <strong>GATE OUT</strong> — Container Departure</span>';
+    modeBar.innerHTML = '<i class="bi bi-box-arrow-right me-2 fs-5"></i><span>Recording: <strong>GATE OUT</strong> - Container Departure</span>';
 }
 
 btnIn.addEventListener('click', activateIn);
@@ -1501,13 +1501,13 @@ btnOut.addEventListener('click', activateOut);
                     warns.push('<div class="alert alert-danger py-2 px-3 mb-2 small d-flex gap-2 align-items-start">' +
                         '<i class="bi bi-exclamation-octagon-fill flex-shrink-0 mt-1"></i>' +
                         '<span><strong>Cargo status mismatch:</strong> <em>' + jobName + '</em> expects ' +
-                        '<strong>' + expected + '</strong> but <strong>' + actual + '</strong> is selected — please verify before proceeding.</span></div>');
+                        '<strong>' + expected + '</strong> but <strong>' + actual + '</strong> is selected - please verify before proceeding.</span></div>');
                 }
 
                 if (sealHint && sealInp && !sealInp.value.trim()) {
                     warns.push('<div class="alert alert-warning py-2 px-3 mb-2 small d-flex gap-2 align-items-start">' +
                         '<i class="bi bi-shield-exclamation flex-shrink-0 mt-1"></i>' +
-                        '<span><strong>No seal number entered</strong> — recommended for this job type. You can still proceed.</span></div>');
+                        '<span><strong>No seal number entered</strong> - recommended for this job type. You can still proceed.</span></div>');
                 }
             }
 
@@ -1654,7 +1654,7 @@ btnOut.addEventListener('click', activateOut);
                         '</div>';
                 } else {
                     infoBox.className = 'mt-1 small text-success';
-                    infoBox.innerHTML = '<i class="bi bi-check-circle me-1"></i>Found in Container Master — profile pre-filled.';
+                    infoBox.innerHTML = '<i class="bi bi-check-circle me-1"></i>Found in Container Master - profile pre-filled.';
                 }
                 // Pre-select equipment type if available
                 if (data.equipment_type_id) {
@@ -1690,7 +1690,7 @@ btnOut.addEventListener('click', activateOut);
                 window.additionalDetails?.fillFromMaster(data);
             } else {
                 infoBox.className = 'mt-1 small text-muted';
-                infoBox.innerHTML = '<i class="bi bi-info-circle me-1"></i>New container — a master record will be created automatically.';
+                infoBox.innerHTML = '<i class="bi bi-info-circle me-1"></i>New container - a master record will be created automatically.';
             }
         } catch (e) {
             infoBox.className = 'd-none';
@@ -1785,7 +1785,7 @@ btnOut.addEventListener('click', activateOut);
         hint(id).innerHTML =
             '<span class="text-warning-emphasis">' +
             '<i class="bi bi-exclamation-triangle me-1"></i>' +
-            'Master has <strong>' + masterVal + '</strong> — ' +
+            'Master has <strong>' + masterVal + '</strong> - ' +
             '<button type="button" class="btn btn-link btn-sm p-0 fw-semibold text-warning-emphasis" ' +
             'style="font-size:.72rem;vertical-align:baseline;">' +
             'Use master</button></span>';
@@ -1866,7 +1866,7 @@ btnOut.addEventListener('click', activateOut);
             // Badge reflects the combined state after both OCR and master have contributed
             if (conflicts > 0) {
                 badgeEl.style.background = '#fef3c7'; badgeEl.style.color = '#92400e';
-                badgeEl.textContent = conflicts + ' conflict' + (conflicts > 1 ? 's' : '') + ' with master — please review';
+                badgeEl.textContent = conflicts + ' conflict' + (conflicts > 1 ? 's' : '') + ' with master - please review';
                 badgeEl.classList.remove('d-none');
             } else if (ocrMatches > 0 && newlyFilled === 0) {
                 badgeEl.style.background = '#d1fae5'; badgeEl.style.color = '#065f46';
@@ -2074,7 +2074,7 @@ window.ventilationFields = {
         slotGridLoading.classList.remove('d-none');
         zoneSelectorPanel.classList.add('d-none');
         slotGridPanel.classList.remove('d-none');
-        gridZoneLabel.textContent = '— ' + zoneName;
+        gridZoneLabel.textContent = '- ' + zoneName;
 
         try {
             const url = '{{ rtrim(url("/yard/zones"), "/") }}/' + encodeURIComponent(zoneCode) + '/slots';
@@ -2122,8 +2122,8 @@ window.ventilationFields = {
                 tiers.forEach(s => {
                     const cls = statusClass[s.status] || 'occupied';
                     const tooltip  = s.status === 'empty'
-                        ? `${s.full_code} — Available`
-                        : `${s.full_code} — ${s.container_no || s.status}`;
+                        ? `${s.full_code} - Available`
+                        : `${s.full_code} - ${s.container_no || s.status}`;
                     const label = s.status === 'empty'
                         ? `T${s.tier}`
                         : `<span style="font-size:.5rem;display:block;">${(s.container_no||'').substring(0,4)}</span>T${s.tier}`;
@@ -2254,7 +2254,7 @@ function initPhotoUploader(cfg) {
                     var msg = 'Gate ' + (cfg.direction || '') + ' could not be completed'
                             + (response.status ? ' (server error ' + response.status + ')' : '')
                             + '. Please check the server log'
-                            + (response.status === 419 ? ' — your session may have expired; reload the page.' : '.');
+                            + (response.status === 419 ? ' - your session may have expired; reload the page.' : '.');
                     if (window.showToast) { showToast(msg, 'danger'); } else { alert(msg); }
                     return;
                 }
@@ -2269,7 +2269,7 @@ function initPhotoUploader(cfg) {
                         var _dir = cfg.direction || '';
                         var _cno = (fd.get('container_no') || '').toString().toUpperCase();
                         window.queueSideNotification(
-                            ('Gate ' + _dir).trim() + (_cno ? ' — ' + _cno : ''),
+                            ('Gate ' + _dir).trim() + (_cno ? ' - ' + _cno : ''),
                             'Gate pass generated.',
                             'info',
                             finalUrl
@@ -2411,8 +2411,8 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                             '<div class="col-6"><span class="text-muted">Customer:</span> ' + data.customer + '</div>' +
                             '<div class="col-6"><span class="text-muted">Condition:</span> ' + (condMap[data.condition]||data.condition) + '</div>' +
                             '<div class="col-6"><span class="text-muted">Cargo:</span> ' + (cargoMap[data.cargo_status]||data.cargo_status) + '</div>' +
-                            '<div class="col-6"><span class="text-muted">Location:</span> <strong class="font-monospace">' + (data.location||'—') + '</strong></div>' +
-                            '<div class="col-6"><span class="text-muted">Gate In:</span> ' + (data.gate_in_time||data.gate_in_date||'—') + gradeInfo + '</div>' +
+                            '<div class="col-6"><span class="text-muted">Location:</span> <strong class="font-monospace">' + (data.location||'-') + '</strong></div>' +
+                            '<div class="col-6"><span class="text-muted">Gate In:</span> ' + (data.gate_in_time||data.gate_in_date||'-') + gradeInfo + '</div>' +
                             ventInfo +
                             jobInfo +
                             onHireInfo +
@@ -2685,10 +2685,10 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     : '<span class="text-warning">not verified ⚠</span>';
                 const safeRaw = (data.raw_text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                 const engineRow = data.parallel
-                    ? '<span class="text-success"><i class="bi bi-lightning-charge-fill me-1"></i>Parallel (proc_open) — fast</span>'
-                    : '<span class="text-warning"><i class="bi bi-hourglass-split me-1"></i>Sequential (shell_exec) — slow</span>';
+                    ? '<span class="text-success"><i class="bi bi-lightning-charge-fill me-1"></i>Parallel (proc_open) - fast</span>'
+                    : '<span class="text-warning"><i class="bi bi-hourglass-split me-1"></i>Sequential (shell_exec) - slow</span>';
                 const tbl =
-                    cell('Container', '<code>' + (data.container_no||'—') + '</code> ' + cdRow) +
+                    cell('Container', '<code>' + (data.container_no||'-') + '</code> ' + cdRow) +
                     cell('ISO type', isoRow) +
                     cell('Tare', data.tare_kg ? data.tare_kg.toLocaleString() + ' kg' : '<span class="text-muted">not detected</span>') +
                     cell('Max gross', data.max_gross_kg ? data.max_gross_kg.toLocaleString() + ' kg' : '<span class="text-muted">not detected</span>') +
@@ -2735,7 +2735,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                             'OCR detected <strong>' + (data.iso_type || ocrEqtLabel || ocrEqtId) + '</strong>' +
                             (ocrEqtLabel ? ' → ' + ocrEqtLabel : '') +
                             ', master has <strong>' + (eqtCodeLabel || masterEqtId) + '</strong>' +
-                            ' — <button type="button" class="btn btn-link btn-sm p-0 fw-semibold text-warning-emphasis" ' +
+                            ' - <button type="button" class="btn btn-link btn-sm p-0 fw-semibold text-warning-emphasis" ' +
                             'style="font-size:.72rem;vertical-align:baseline;" id="useOcrEqtBtn">' +
                             'Use OCR</button></span>';
                         document.getElementById('useOcrEqtBtn')?.addEventListener('click', function () {
@@ -3192,7 +3192,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 resultEl.innerHTML =
                     '<span class="badge bg-warning-subtle text-warning border" style="font-size:.72rem;">' +
                     '<i class="bi bi-exclamation-triangle me-1"></i>' +
-                    (data.message || 'Could not read plate — please enter manually') +
+                    (data.message || 'Could not read plate - please enter manually') +
                     '</span>';
             }
         } catch (err) {
@@ -3253,7 +3253,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                 resultEl.innerHTML =
                     '<span class="badge bg-warning-subtle text-warning border" style="font-size:.72rem;">' +
                     '<i class="bi bi-exclamation-triangle me-1"></i>' +
-                    (data.message || 'Could not read plate — please enter manually') +
+                    (data.message || 'Could not read plate - please enter manually') +
                     '</span>';
             }
         } catch (err) {
@@ -3363,7 +3363,7 @@ window.gpRescan = async function (btnEl, url, type) {
         // ── Seal number reminder ─────────────────────────────────────────────
         if (sealHint && sealInp && !sealInp.value.trim()) {
             alerts.push({ type: 'warning', icon: 'bi-shield-lock',
-                text: 'This job type typically involves a <strong>sealed container</strong> — enter the seal number if available.' });
+                text: 'This job type typically involves a <strong>sealed container</strong> - enter the seal number if available.' });
         }
 
         // ── Damage / condition capture reminder ──────────────────────────────
@@ -3375,7 +3375,7 @@ window.gpRescan = async function (btnEl, url, type) {
         // ── Approval required heads-up ───────────────────────────────────────
         if (approvalReq) {
             alerts.push({ type: 'info', icon: 'bi-hourglass-split',
-                text: 'This job type requires <strong>supervisor approval</strong> — the record will remain pending until approved.' });
+                text: 'This job type requires <strong>supervisor approval</strong> - the record will remain pending until approved.' });
         }
 
         renderAlerts(alerts);
@@ -3450,7 +3450,7 @@ window.gpRescan = async function (btnEl, url, type) {
                     let html = '';
 
                     if (data.blocks && data.blocks.length) {
-                        html += '<div class="alert alert-danger py-2 mb-3 small"><strong><i class="bi bi-x-octagon-fill me-1"></i>Cannot delete — resolve the following first:</strong>'
+                        html += '<div class="alert alert-danger py-2 mb-3 small"><strong><i class="bi bi-x-octagon-fill me-1"></i>Cannot delete - resolve the following first:</strong>'
                             + '<ul class="mb-0 mt-2 ps-3">';
                         data.blocks.forEach(b => {
                             html += '<li><i class="bi ' + b.icon + ' me-1"></i>' + b.message + '</li>';
@@ -3459,7 +3459,7 @@ window.gpRescan = async function (btnEl, url, type) {
                     }
 
                     if (data.warnings && data.warnings.length) {
-                        html += '<div class="alert alert-warning py-2 mb-3 small"><strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Warnings — review before confirming:</strong>'
+                        html += '<div class="alert alert-warning py-2 mb-3 small"><strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Warnings - review before confirming:</strong>'
                             + '<ul class="mb-0 mt-2 ps-3">';
                         data.warnings.forEach(w => {
                             html += '<li><i class="bi ' + w.icon + ' me-1"></i>' + w.message + '</li>';
@@ -3552,7 +3552,7 @@ window.gpRescan = async function (btnEl, url, type) {
         let cls, icon, text, btn = '';
         if (data.actionable) {
             cls = 'alert-success'; icon = 'bi-shield-check';
-            text = 'Guard Post <strong>cleared</strong> — ' + c.reference_no + (c.cleared_at ? ' &middot; ' + c.cleared_at : '');
+            text = 'Guard Post <strong>cleared</strong> - ' + c.reference_no + (c.cleared_at ? ' &middot; ' + c.cleared_at : '');
             btn  = '<button type="button" class="btn btn-sm btn-success ms-2 flex-shrink-0" id="gpUse_' + direction +
                    '"><i class="bi bi-link-45deg me-1"></i>Use this capture</button>';
         } else if (c.linked) {
@@ -3560,13 +3560,13 @@ window.gpRescan = async function (btnEl, url, type) {
             text = 'Guard Post capture ' + c.reference_no + ' is already linked to a gate movement.';
         } else if (c.status === 'pending') {
             cls = 'alert-warning'; icon = 'bi-hourglass-split';
-            text = 'Guard Post capture ' + c.reference_no + ' is <strong>pending clearance</strong> — clear it in the Review Queue, or proceed without linking.';
+            text = 'Guard Post capture ' + c.reference_no + ' is <strong>pending clearance</strong> - clear it in the Review Queue, or proceed without linking.';
         } else if (c.status === 'hold') {
             cls = 'alert-warning'; icon = 'bi-pause-circle';
-            text = 'Guard Post capture ' + c.reference_no + ' is <strong>on hold</strong> — verify before proceeding.';
+            text = 'Guard Post capture ' + c.reference_no + ' is <strong>on hold</strong> - verify before proceeding.';
         } else if (c.status === 'rejected') {
             cls = 'alert-danger'; icon = 'bi-x-octagon';
-            text = 'Guard Post capture ' + c.reference_no + ' was <strong>rejected</strong> — do not proceed without checking.';
+            text = 'Guard Post capture ' + c.reference_no + ' was <strong>rejected</strong> - do not proceed without checking.';
         } else { banner.classList.add('d-none'); return; }
 
         banner.className = 'mb-2 alert ' + cls + ' py-2 small d-flex align-items-center';

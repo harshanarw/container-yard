@@ -316,7 +316,7 @@ class WeeklyPerformanceReportTest extends FeatureTestCase
         $data = $this->build(['customer_id' => $a->id]);
 
         $this->assertCount(1, $data['rows']);
-        $this->assertSame(1, $data['movement_count'], 'The other customer is not merely hidden — they are not counted.');
+        $this->assertSame(1, $data['movement_count'], 'The other customer is not merely hidden - they are not counted.');
     }
 
     /**
@@ -351,7 +351,7 @@ class WeeklyPerformanceReportTest extends FeatureTestCase
     public function test_a_whole_calendar_month_is_titled_by_its_name(): void
     {
         $this->assertSame(
-            'PERFORMANCE UPDATE [NO. OF UNITS] — AUGUST 2026',
+            'PERFORMANCE UPDATE [NO. OF UNITS] - AUGUST 2026',
             WeeklyPerformanceReport::title('2026-08-01', '2026-08-31'),
         );
     }
@@ -359,11 +359,11 @@ class WeeklyPerformanceReportTest extends FeatureTestCase
     public function test_any_other_range_is_titled_by_its_dates(): void
     {
         $this->assertSame(
-            'PERFORMANCE UPDATE [NO. OF UNITS] — 04 AUG 2026 TO 19 SEP 2026',
+            'PERFORMANCE UPDATE [NO. OF UNITS] - 04 AUG 2026 TO 19 SEP 2026',
             WeeklyPerformanceReport::title('2026-08-04', '2026-09-19'),
         );
         $this->assertSame(
-            'PERFORMANCE UPDATE [NO. OF UNITS] — 02 AUG 2026 TO 31 AUG 2026',
+            'PERFORMANCE UPDATE [NO. OF UNITS] - 02 AUG 2026 TO 31 AUG 2026',
             WeeklyPerformanceReport::title('2026-08-02', '2026-08-31'),
             'A range that ends the month but does not start it is not that month.',
         );

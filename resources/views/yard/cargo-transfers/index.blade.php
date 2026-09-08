@@ -13,7 +13,7 @@
     <h4 class="mb-0"><i class="bi bi-box-arrow-in-right me-2 text-primary"></i>Cargo Rental / Container Substitution</h4>
     <p class="text-muted mb-0 small">
         Transfer cargo from a customer's laden box into a yard-owned or on-hired box, gate the empty box out
-        (stops detention), and bill the customer storage on the substitute box — all under one job.
+        (stops detention), and bill the customer storage on the substitute box - all under one job.
     </p>
 </div>
 
@@ -40,9 +40,9 @@
                     <tbody>
                         @foreach($pending as $m)
                             <tr>
-                                <td class="font-monospace small">{{ $m->yardJob?->job_no ?? '—' }}</td>
+                                <td class="font-monospace small">{{ $m->yardJob?->job_no ?? '-' }}</td>
                                 <td class="font-monospace fw-semibold">{{ $m->container_no }}</td>
-                                <td>{{ $m->customer?->name ?? '—' }}</td>
+                                <td>{{ $m->customer?->name ?? '-' }}</td>
                                 <td class="small">{{ $m->gate_in_time?->format('d M Y') ?? $m->created_at->format('d M Y') }}</td>
                                 <td class="text-end">
                                     @can('yard.cargo-transfer.create')
@@ -85,12 +85,12 @@
                     <tbody>
                         @foreach($transfers as $t)
                             <tr>
-                                <td class="font-monospace small">{{ $t->yardJob?->job_no ?? '—' }}</td>
-                                <td>{{ $t->customer?->name ?? '—' }}</td>
+                                <td class="font-monospace small">{{ $t->yardJob?->job_no ?? '-' }}</td>
+                                <td>{{ $t->customer?->name ?? '-' }}</td>
                                 <td class="font-monospace small">
-                                    {{ $t->sourceContainer?->container_no ?? '—' }}
+                                    {{ $t->sourceContainer?->container_no ?? '-' }}
                                     <i class="bi bi-arrow-right mx-1 text-muted"></i>
-                                    <span class="fw-semibold">{{ $t->substituteContainer?->container_no ?? '—' }}</span>
+                                    <span class="fw-semibold">{{ $t->substituteContainer?->container_no ?? '-' }}</span>
                                     @if($t->is_reefer)<span class="badge bg-info-subtle text-info ms-1">Reefer</span>@endif
                                 </td>
                                 <td class="small">{{ $t->substitute_source === 'on_hired' ? 'On-hired' : 'Yard-owned' }}</td>

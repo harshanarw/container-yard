@@ -38,7 +38,7 @@
         <div class="card content-card h-100">
             <div class="card-header py-2">
                 <i class="bi bi-image me-2 text-primary"></i>Company Logo
-                <small class="text-muted fw-normal ms-1">— shown on login screen</small>
+                <small class="text-muted fw-normal ms-1">- shown on login screen</small>
             </div>
             <div class="card-body">
                 <div class="text-center mb-3">
@@ -92,7 +92,7 @@
         <div class="card content-card h-100">
             <div class="card-header py-2">
                 <i class="bi bi-badge me-2 text-primary"></i>Company Icon
-                <small class="text-muted fw-normal ms-1">— browser tab favicon</small>
+                <small class="text-muted fw-normal ms-1">- browser tab favicon</small>
             </div>
             <div class="card-body">
                 <div class="text-center mb-3">
@@ -147,7 +147,7 @@
         <div class="card content-card h-100">
             <div class="card-header py-2">
                 <i class="bi bi-grid me-2 text-primary"></i>Product Icon
-                <small class="text-muted fw-normal ms-1">— sidebar brand area</small>
+                <small class="text-muted fw-normal ms-1">- sidebar brand area</small>
             </div>
             <div class="card-body">
                 <div class="text-center mb-3">
@@ -263,7 +263,7 @@
                     <label class="form-label fw-semibold">Country</label>
                     <select name="country_id"
                             class="form-select select2 @error('country_id') is-invalid @enderror">
-                        <option value="">— Select Country —</option>
+                        <option value="">- Select Country -</option>
                         @foreach($countries as $c)
                             <option value="{{ $c->id }}"
                                 {{ old('country_id', $settings->country_id) == $c->id ? 'selected' : '' }}>
@@ -362,7 +362,7 @@
                     <div class="form-text mt-1">
                         When enabled, a simplified capture interface is available for Security Officers at the gate.
                         They can photograph container rear plates, vehicle number plates, and driver ID documents,
-                        and enter basic details — without accessing the full Gate In / Out module.
+                        and enter basic details - without accessing the full Gate In / Out module.
                         Operations staff review and clear each capture from the Guard Post Queue.
                         Gate officers can then pre-fill the Gate-In form directly from a cleared capture.
                         This module is optional and can be turned off at any time.
@@ -386,7 +386,7 @@
                     </label>
                     <div class="form-text mt-1">
                         When enabled, recording a Gate In / Out that isn't linked to a cleared Guard Post capture
-                        shows a non-blocking reminder on the gate pass — a nudge to work from captures so the two
+                        shows a non-blocking reminder on the gate pass - a nudge to work from captures so the two
                         systems don't drift. The movement is still recorded either way. (Only applies while the
                         Guard Post module above is enabled.)
                     </div>
@@ -416,7 +416,7 @@
                     <div class="form-text mt-1">
                         When enabled, gate movements with a driver phone number show a WhatsApp button that opens
                         WhatsApp pre-addressed to the driver with a secure, time-limited link to view and print
-                        the gate pass — a paperless handover. Uses free WhatsApp click-to-chat (no paid API);
+                        the gate pass - a paperless handover. Uses free WhatsApp click-to-chat (no paid API);
                         the officer taps Send. Turn this off to hide the button everywhere.
                     </div>
                 </div>
@@ -432,7 +432,7 @@
                            value="{{ old('app_base_url', $settings->app_base_url) }}">
                     <div class="form-text mt-1">
                         Optional. The public address of <em>this</em> system. When set, it is used as the base for
-                        <strong>every</strong> link the system generates — WhatsApp gate passes, portal approval links,
+                        <strong>every</strong> link the system generates - WhatsApp gate passes, portal approval links,
                         QR verification links on gate passes and invoices, and emailed links. Set this if any of those
                         show the wrong domain (behind a proxy or on a shared domain the app can’t always detect its own
                         host). Leave blank to use the address you’re browsing on.
@@ -501,7 +501,7 @@
                     </label>
                     <div class="form-text mt-1">
                         When enabled, a <strong>laden</strong> gate-in or gate-out is <strong>blocked</strong> unless
-                        a seal number is entered — or a no-seal reason (LCL, customs exam, broken/missing, special
+                        a seal number is entered - or a no-seal reason (LCL, customs exam, broken/missing, special
                         equipment) is recorded on the movement for audit. Empty containers are never affected. When
                         disabled, the seal stays optional as before.
                     </div>
@@ -521,7 +521,7 @@
                     </label>
                     <div class="form-text mt-1">
                         When enabled, a gate-in outside the configured working hours is <strong>blocked</strong> unless a
-                        valid, paid OT receipt for that BL is selected — and the receipt must still be within its paid
+                        valid, paid OT receipt for that BL is selected - and the receipt must still be within its paid
                         time window with containers remaining. Users with the gate-in override permission can proceed
                         with a documented reason. When disabled, overtime is still calculated and receipts can still be
                         issued, but the gate is not blocked.
@@ -543,11 +543,11 @@
             <p class="small text-muted mb-3">
                 Days a container may sit in a stage before it is flagged
                 <span class="badge bg-danger-subtle text-danger border">Overdue</span>.
-                The clock runs <strong>per stage, not per visit</strong> — a container can be in the
+                The clock runs <strong>per stage, not per visit</strong> - a container can be in the
                 yard for weeks without being overdue if it only reached its current stage yesterday.
                 Flagging is advisory: it never blocks a gate-out or an allocation.
-                Leave a box empty to stop flagging that stage. Stages not listed here —
-                in storage, on hire, reserved, available, gated out — are never flagged,
+                Leave a box empty to stop flagging that stage. Stages not listed here -
+                in storage, on hire, reserved, available, gated out - are never flagged,
                 because sitting in them is not a stall.
             </p>
             <div class="row g-2">
@@ -573,7 +573,7 @@
             </div>
             <p class="small text-muted mb-0 mt-3">
                 Shipped defaults appear as placeholders. These are starting points, not
-                measurements of your yard — expect to tune them once you see which
+                measurements of your yard - expect to tune them once you see which
                 containers get flagged.
             </p>
         </div>
@@ -647,7 +647,7 @@
     <div class="card content-card mb-4">
         <div class="card-header py-2">
             <i class="bi bi-receipt me-2 text-danger"></i>IRD Tax Invoice Settings
-            <small class="text-muted fw-normal ms-1">— Gazette No. 2481/22, effective 01 July 2026</small>
+            <small class="text-muted fw-normal ms-1">- Gazette No. 2481/22, effective 01 July 2026</small>
         </div>
         <div class="card-body">
             <div class="row g-3">
@@ -655,7 +655,7 @@
                     <label class="form-label fw-semibold">Invoice Number Sequence Reset</label>
                     <select name="ird_sequence_reset" class="form-select">
                         <option value="continuous" {{ old('ird_sequence_reset', $settings->ird_sequence_reset ?? 'continuous') === 'continuous' ? 'selected' : '' }}>
-                            Continuous (never reset — recommended)
+                            Continuous (never reset - recommended)
                         </option>
                         <option value="monthly" {{ old('ird_sequence_reset', $settings->ird_sequence_reset ?? '') === 'monthly' ? 'selected' : '' }}>
                             Reset monthly
@@ -708,7 +708,7 @@
                         When enabled, gate-out movements can be submitted through a digital approval workflow
                         (Operations → Supervisor → Gate Officer). When all steps are approved the gate pass
                         will display a digital approval stamp on the printed document.
-                        This is optional — manual printed signatures remain available regardless.
+                        This is optional - manual printed signatures remain available regardless.
                     </div>
                 </div>
             </div>
@@ -739,10 +739,10 @@
             <div class="col-md-5">
                 <label class="form-label fw-semibold">Default Currency <span class="text-danger">*</span></label>
                 <select name="currency_id" class="form-select select2 s2-code" required>
-                    <option value="">— Select Currency —</option>
+                    <option value="">- Select Currency -</option>
                     @foreach($currencies as $cur)
                         <option value="{{ $cur->id }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}" {{ $defaultCurrency?->id === $cur->id ? 'selected' : '' }}>
-                            [{{ $cur->code }}] {{ $cur->name }}{{ $cur->country ? ' — ' . $cur->country : '' }}
+                            [{{ $cur->code }}] {{ $cur->name }}{{ $cur->country ? ' - ' . $cur->country : '' }}
                         </option>
                     @endforeach
                 </select>
@@ -759,7 +759,7 @@
                          style="background:#fffbea;border:1px solid #ffc107;">
                         <i class="bi bi-star-fill text-warning"></i>
                         <span class="small">Current default:
-                            <strong>{{ $defaultCurrency->code }}</strong> — {{ $defaultCurrency->name }}
+                            <strong>{{ $defaultCurrency->code }}</strong> - {{ $defaultCurrency->name }}
                             @if($defaultCurrency->country)
                                 <span class="text-muted">({{ $defaultCurrency->country }})</span>
                             @endif

@@ -50,7 +50,7 @@
                         <div class="col-md-2">
                             <label class="form-label fw-semibold">Title</label>
                             <select name="title" class="form-select">
-                                <option value="">—</option>
+                                <option value="">-</option>
                                 @foreach(['Mr','Ms','Mrs','Dr','Prof','Engr','Rev'] as $t)
                                 <option value="{{ $t }}" {{ old('title') === $t ? 'selected' : '' }}>{{ $t }}</option>
                                 @endforeach
@@ -73,7 +73,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Gender</label>
                             <select name="gender" class="form-select">
-                                <option value="">— Select —</option>
+                                <option value="">- Select -</option>
                                 <option value="male"   {{ old('gender') === 'male'   ? 'selected' : '' }}>Male</option>
                                 <option value="female" {{ old('gender') === 'female' ? 'selected' : '' }}>Female</option>
                                 <option value="other"  {{ old('gender') === 'other'  ? 'selected' : '' }}>Other</option>
@@ -182,13 +182,13 @@
                                    class="form-control @error('username') is-invalid @enderror"
                                    value="{{ old('username') }}" placeholder="e.g. ahmad.r or EMP-0001"
                                    autocomplete="off" required>
-                            <div class="form-text">Used to log in. Letters, numbers, dot, dash and underscore only. Unique per user — ideal when staff share a common email.</div>
+                            <div class="form-text">Used to log in. Letters, numbers, dot, dash and underscore only. Unique per user - ideal when staff share a common email.</div>
                             @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">System Role <span class="text-danger">*</span></label>
                             <select name="role" class="form-select @error('role') is-invalid @enderror" required>
-                                <option value="">— Select Role —</option>
+                                <option value="">- Select Role -</option>
                                 @if(auth()->user()->isSystemAdmin())
                                 <option value="system_administrator" {{ old('role') === 'system_administrator' ? 'selected' : '' }}>System Administrator</option>
                                 @endif

@@ -30,7 +30,7 @@
             <span class="font-monospace small">{{ $job->job_no }}</span>
         @endif
     @else
-        <span class="text-muted">—</span>
+        <span class="text-muted">-</span>
     @endif
 @elseif($mode === 'inline')
     @if($job)
@@ -57,7 +57,7 @@
                     <div class="fw-bold font-monospace">{{ $job->job_no }}</div>
                 @endif
             @else
-                <div class="text-muted">—</div>
+                <div class="text-muted">-</div>
             @endif
         </div>
         <div class="col-auto">
@@ -67,10 +67,10 @@
                     @if($short)
                         <span class="badge bg-primary-subtle text-primary border font-monospace me-1">{{ $short }}</span>
                     @endif
-                    <span class="fw-semibold small">{{ $typeName ?? '—' }}</span>
+                    <span class="fw-semibold small">{{ $typeName ?? '-' }}</span>
                 </div>
             @else
-                <div class="text-muted">—</div>
+                <div class="text-muted">-</div>
             @endif
         </div>
     </div>

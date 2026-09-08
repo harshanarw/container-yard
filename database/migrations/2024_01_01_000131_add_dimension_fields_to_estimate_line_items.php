@@ -13,7 +13,7 @@ return new class extends Migration
             $table->decimal('dim_length', 10, 3)->nullable()->after('ancillary_amount')
                   ->comment('Length as entered (in yard mr_dimension_uom)');
             $table->decimal('dim_width', 10, 3)->nullable()->after('dim_length')
-                  ->comment('Width as entered — only for sqft (area) items');
+                  ->comment('Width as entered - only for sqft (area) items');
             $table->string('dim_uom', 5)->nullable()->after('dim_width')
                   ->comment('Snapshot of yard mr_dimension_uom at time of save: ft_in | cm | m');
         });

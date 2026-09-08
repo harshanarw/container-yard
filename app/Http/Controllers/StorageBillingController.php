@@ -66,7 +66,7 @@ class StorageBillingController extends Controller
         // module with Bill Type = Storage Only.
         return redirect()
             ->route('billing.storage-handling.create', ['bill_type' => 'storage_only'])
-            ->with('warning', 'Storage invoices are now generated from the Storage & Handling screen — Bill Type is preset to Storage Only.');
+            ->with('warning', 'Storage invoices are now generated from the Storage & Handling screen - Bill Type is preset to Storage Only.');
     }
 
     // ── AJAX: preview charges for a customer + period ────────────────────────
@@ -249,7 +249,7 @@ class StorageBillingController extends Controller
             $eqtCode  = $eqt ? $eqt->eqt_code  : ($container->size . ($container->type_code ?? ''));
             $isoCode  = $eqt?->iso_code ?? null;
             $eqtLabel = $eqt
-                ? $eqt->eqt_code . ' — ' . $eqt->description
+                ? $eqt->eqt_code . ' - ' . $eqt->description
                 : ($container->size . "' " . $container->type_code);
 
             // Flag a missing/zero tariff rate only when it affects a chargeable
@@ -513,7 +513,7 @@ class StorageBillingController extends Controller
 
         return redirect()->back()->withInput()
             ->with('tariff_block', $guard->toArray())
-            ->with('error', 'Invoice not saved — missing tariff rates for: ' . $guard->summary()
+            ->with('error', 'Invoice not saved - missing tariff rates for: ' . $guard->summary()
                 . '. Please update the tariff and preview again.');
     }
 
@@ -556,7 +556,7 @@ class StorageBillingController extends Controller
         $invoice->update(['status' => 'issued', 'sent_at' => now(), 'ird_invoice_no' => $irdNo]);
 
         NotificationService::notifyAll(
-            'Storage Invoice Issued — ' . $invoice->invoice_no,
+            'Storage Invoice Issued - ' . $invoice->invoice_no,
             ($invoice->customer->name ?? 'Unknown') . ' · ' . $invoice->invoice_currency . ' ' . number_format($invoice->total_amount, 2),
             'success',
             route('billing.show', $invoice)
@@ -568,7 +568,7 @@ class StorageBillingController extends Controller
         }
         // Surface an auto-post failure so the invoice isn't silently left unposted.
         if ($err = \App\Services\Finance\InvoicePostingService::lastFailure()) {
-            $redirect->with('warning', 'Issued, but not yet posted to the ledger — ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
+            $redirect->with('warning', 'Issued, but not yet posted to the ledger - ' . $err . ' Use “Retry posting” on the invoice once the cause is resolved.');
         }
 
         return $redirect;
@@ -583,7 +583,7 @@ class StorageBillingController extends Controller
         $invoice->update(['status' => 'paid']);
 
         NotificationService::notifyAll(
-            'Storage Invoice Paid — ' . $invoice->invoice_no,
+            'Storage Invoice Paid - ' . $invoice->invoice_no,
             ($invoice->customer->name ?? 'Unknown') . ' · ' . $invoice->invoice_currency . ' ' . number_format($invoice->total_amount, 2),
             'success',
             route('billing.show', $invoice)
@@ -610,12 +610,16 @@ class StorageBillingController extends Controller
         $invoice->load(['customer', 'details', 'createdBy']);
         $company = CompanySetting::current();
 
-        $eqtCode = fn ($label) => trim(explode(' — ', $label ?? '')[0]) ?: '—';
+        // `equipment_type` is a stored display label, so rows written before the
+        // em dash was retired still hold "40HC — 40' High Cube" while new ones
+        // hold "40HC - ...". Split on either, or every historical invoice prints
+        // the whole label where the code belongs.
+        $eqtCode = fn ($label) => trim(preg_split('/\s+[\x{2014}\x{2013}-]\s+/u', $label ?? '')[0]) ?: '-';
 
         $lines = $invoice->details->map(fn ($d) => [
             'reference'       => $d->container_no,
             'description'     => 'CONTAINER STORAGE'
-                                 . (($eqt = trim($eqtCode($d->equipment_type) . ' ' . strtoupper($d->cargo_status ?? ''))) ? ' — ' . $eqt : '')
+                                 . (($eqt = trim($eqtCode($d->equipment_type) . ' ' . strtoupper($d->cargo_status ?? ''))) ? ' - ' . $eqt : '')
                                  . ' | ' . \Carbon\Carbon::parse($d->from_date)->format('d M Y')
                                  . ' TO ' . \Carbon\Carbon::parse($d->to_date)->format('d M Y'),
             'quantity'        => $d->chargeable_days,
@@ -639,7 +643,7 @@ class StorageBillingController extends Controller
             : null;
 
         $data = [
-            'ird_invoice_no'        => $invoice->ird_invoice_no ?? '—',
+            'ird_invoice_no'        => $invoice->ird_invoice_no ?? '-',
             'invoice_date'          => $invoice->invoice_date,
             'company'               => $company,
             'verifyUrl'             => \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'storage', 'id' => $invoice->id]),

@@ -26,7 +26,7 @@
                         <div class="col-md-6">
                             <label class="form-label">Customer <small class="text-muted">(blank = default)</small></label>
                             <select name="customer_id" class="form-select select2">
-                                <option value="">— System Default —</option>
+                                <option value="">- System Default -</option>
                                 @foreach($customers as $c)
                                     <option value="{{ $c->id }}" {{ $reeferTariff->customer_id == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                                 @endforeach
@@ -54,11 +54,11 @@
                         <div class="col-md-6">
                             <label class="form-label fw-medium">Charge Code</label>
                             <select name="charge_code_id" class="form-select s2-code">
-                                <option value="">— Use default reefer charge code —</option>
+                                <option value="">- Use default reefer charge code -</option>
                                 @foreach($chargeCodes as $cc)
                                     <option value="{{ $cc->id }}" data-code="{{ $cc->code }}" data-name="{{ $cc->description }}"
                                         {{ (string) old('charge_code_id', $reeferTariff->charge_code_id) === (string) $cc->id ? 'selected' : '' }}>
-                                        {{ $cc->code }} — {{ $cc->description }}@if($cc->taxCode) ({{ $cc->taxCode->code }})@endif
+                                        {{ $cc->code }} - {{ $cc->description }}@if($cc->taxCode) ({{ $cc->taxCode->code }})@endif
                                     </option>
                                 @endforeach
                             </select>
@@ -123,11 +123,11 @@
             <div class="card-body">
                 <dl class="row mb-0 small">
                     <dt class="col-sm-5 text-muted">Created by</dt>
-                    <dd class="col-sm-7">{{ $reeferTariff->createdBy?->name ?? '—' }}</dd>
+                    <dd class="col-sm-7">{{ $reeferTariff->createdBy?->name ?? '-' }}</dd>
                     <dt class="col-sm-5 text-muted">Created at</dt>
                     <dd class="col-sm-7">{{ $reeferTariff->created_at?->format('d M Y H:i') }}</dd>
                     <dt class="col-sm-5 text-muted">Updated by</dt>
-                    <dd class="col-sm-7">{{ $reeferTariff->updatedBy?->name ?? '—' }}</dd>
+                    <dd class="col-sm-7">{{ $reeferTariff->updatedBy?->name ?? '-' }}</dd>
                     <dt class="col-sm-5 text-muted">Updated at</dt>
                     <dd class="col-sm-7">{{ $reeferTariff->updated_at?->format('d M Y H:i') }}</dd>
                 </dl>

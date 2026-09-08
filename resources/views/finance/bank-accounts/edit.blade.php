@@ -13,7 +13,7 @@
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h4><i class="bi bi-bank2 me-2 text-primary"></i>Edit Bank Account</h4>
-        <p class="text-muted mb-0 small">{{ $bankAccount->account_name }} — {{ $bankAccount->bank_name }}</p>
+        <p class="text-muted mb-0 small">{{ $bankAccount->account_name }} - {{ $bankAccount->bank_name }}</p>
     </div>
     <a href="{{ route('finance.bank-accounts.index') }}" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left me-1"></i>Back

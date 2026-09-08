@@ -94,6 +94,6 @@ class ManualPricing
      */
     public static function matrixKey(?string $eqtCode, ?string $size): string
     {
-        return ($eqtCode ?: '—') . '|' . ($size ?: '—');
+        return ($eqtCode ?: '-') . '|' . ($size ?: '-');
     }
 }

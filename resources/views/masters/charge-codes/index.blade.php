@@ -79,7 +79,7 @@
                             {{ $cc->code }}
                         </span>
                         @if($cc->is_system)
-                            <span class="badge bg-secondary-subtle text-secondary border ms-1" style="font-size:.65rem;" title="System default — cannot be deleted">SYS</span>
+                            <span class="badge bg-secondary-subtle text-secondary border ms-1" style="font-size:.65rem;" title="System default - cannot be deleted">SYS</span>
                         @endif
                     </td>
                     <td class="small fw-semibold">{{ $cc->description }}</td>
@@ -89,7 +89,7 @@
                                 {{ $cc->category_label }}
                             </span>
                         @else
-                            <span class="text-muted small">—</span>
+                            <span class="text-muted small">-</span>
                         @endif
                     </td>
                     <td>
@@ -98,7 +98,7 @@
                                 {{ $cc->rate_type_label }}
                             </span>
                         @else
-                            <span class="text-muted small">—</span>
+                            <span class="text-muted small">-</span>
                         @endif
                     </td>
                     <td>
@@ -199,7 +199,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Category</label>
                             <select name="category" class="form-select">
-                                <option value="">— Select Category —</option>
+                                <option value="">- Select Category -</option>
                                 @foreach($categories as $key => $label)
                                     <option value="{{ $key }}">{{ $label }}</option>
                                 @endforeach
@@ -208,7 +208,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Rate Type</label>
                             <select name="rate_type" class="form-select">
-                                <option value="">— Select Rate Type —</option>
+                                <option value="">- Select Rate Type -</option>
                                 @foreach($rateTypes as $key => $label)
                                     <option value="{{ $key }}">{{ $label }}</option>
                                 @endforeach
@@ -217,9 +217,9 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Applicable Tax Code</label>
                             <select name="tax_code_id" class="form-select select2-modal s2-code" data-s2-sel="name">
-                                <option value="">— No Tax / Exempt —</option>
+                                <option value="">- No Tax / Exempt -</option>
                                 @foreach($taxCodes as $tc)
-                                    <option value="{{ $tc->id }}" data-code="{{ $tc->code }}" data-name="{{ $tc->description }}">{{ $tc->code }} — {{ $tc->description }}</option>
+                                    <option value="{{ $tc->id }}" data-code="{{ $tc->code }}" data-name="{{ $tc->description }}">{{ $tc->code }} - {{ $tc->description }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -251,7 +251,7 @@
                 <div class="modal-body">
                     <div id="editSystemNotice" class="alert alert-warning py-2 small d-none mb-3">
                         <i class="bi bi-shield-lock me-1"></i>
-                        <strong>System charge code</strong> — only the Tax Code field can be updated.
+                        <strong>System charge code</strong> - only the Tax Code field can be updated.
                     </div>
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -267,7 +267,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Category</label>
                             <select name="category" id="editCategory" class="form-select">
-                                <option value="">— Select Category —</option>
+                                <option value="">- Select Category -</option>
                                 @foreach($categories as $key => $label)
                                     <option value="{{ $key }}">{{ $label }}</option>
                                 @endforeach
@@ -276,7 +276,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Rate Type</label>
                             <select name="rate_type" id="editRateType" class="form-select">
-                                <option value="">— Select Rate Type —</option>
+                                <option value="">- Select Rate Type -</option>
                                 @foreach($rateTypes as $key => $label)
                                     <option value="{{ $key }}">{{ $label }}</option>
                                 @endforeach
@@ -285,9 +285,9 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Applicable Tax Code</label>
                             <select name="tax_code_id" id="editTaxCodeId" class="form-select select2-modal s2-code" data-s2-sel="name">
-                                <option value="">— No Tax / Exempt —</option>
+                                <option value="">- No Tax / Exempt -</option>
                                 @foreach($taxCodes as $tc)
-                                    <option value="{{ $tc->id }}" data-code="{{ $tc->code }}" data-name="{{ $tc->description }}">{{ $tc->code }} — {{ $tc->description }}</option>
+                                    <option value="{{ $tc->id }}" data-code="{{ $tc->code }}" data-name="{{ $tc->description }}">{{ $tc->code }} - {{ $tc->description }}</option>
                                 @endforeach
                             </select>
                         </div>

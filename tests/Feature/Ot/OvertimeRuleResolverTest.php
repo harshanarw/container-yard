@@ -60,7 +60,7 @@ class OvertimeRuleResolverTest extends FeatureTestCase
 
         $codes = $this->codes($dt);
         $this->assertContains('OT-WD-B', $codes, 'B covers 17:00–05:00 next day.');
-        $this->assertNotContains('OT-WD-A', $codes, 'A ends at 24:00 — must not cover 02:00.');
+        $this->assertNotContains('OT-WD-A', $codes, 'A ends at 24:00 - must not cover 02:00.');
 
         // The A window itself does not include 02:00.
         $ruleA = OtTariffRule::where('rule_code', 'OT-WD-A')->first();

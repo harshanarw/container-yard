@@ -38,14 +38,14 @@
             <div class="mb-3">
                 <label class="form-label fw-semibold">Container <span class="text-danger">*</span></label>
                 <select name="container_id" class="form-select select2" required>
-                    <option value="">— Select Container —</option>
+                    <option value="">- Select Container -</option>
                     @foreach($inYardContainers as $c)
                         <option value="{{ $c->id }}"
                             @selected(old('container_id', $container?->id) == $c->id)
                             data-customer="{{ $c->customer->name ?? '' }}">
                             {{ $c->container_no }}
                             ({{ $c->size }}ft {{ $c->type_code }})
-                            — {{ $c->customer->name ?? 'No Owner' }}
+                            - {{ $c->customer->name ?? 'No Owner' }}
                             @if($c->mr_status) · {{ \App\Support\MrStatusCatalogue::label($c->mr_status, $c->mr_lane) }}@endif
                             @unless($c->export_ready && ! $c->mrStatusHasExpired()) ⚠@endunless
                         </option>
@@ -67,7 +67,7 @@
                 @enderror
                 <div class="form-text">
                     Must be <strong>on or after</strong> the container's gate-in date.
-                    Same-day hire is allowed — the original owner then accrues no storage;
+                    Same-day hire is allowed - the original owner then accrues no storage;
                     otherwise the owner is billed up to and including the day before this date.
                 </div>
             </div>
@@ -76,7 +76,7 @@
             <div class="mb-3">
                 <label class="form-label fw-semibold">Hire Customer</label>
                 <select name="hire_customer_id" class="form-select select2">
-                    <option value="">— Internal Use (no external customer) —</option>
+                    <option value="">- Internal Use (no external customer) -</option>
                     @foreach($customers as $c)
                         <option value="{{ $c->id }}" @selected(old('hire_customer_id') == $c->id)>{{ $c->name }}</option>
                     @endforeach

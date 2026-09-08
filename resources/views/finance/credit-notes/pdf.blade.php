@@ -9,7 +9,7 @@
     $half    = ($size ?? 'a4') === 'half';
     $title   = $title ?? 'CREDIT NOTE';
     $partyLabel = $partyLabel ?? 'Party';
-    $partyName  = $partyName ?? '—';
+    $partyName  = $partyName ?? '-';
     $taxLabel   = $taxLabel ?? 'Tax';
 
     $watermark = match ($cn->status) {
@@ -136,7 +136,7 @@
 
     @if($showSignature ?? true)
     <table class="sign"><tr>
-        <td style="width:45%;"><div class="sigline"></div><div class="siglabel">Prepared by{{ $cn->createdBy ? ' — '.$cn->createdBy->name : '' }}</div></td>
+        <td style="width:45%;"><div class="sigline"></div><div class="siglabel">Prepared by{{ $cn->createdBy ? ' - '.$cn->createdBy->name : '' }}</div></td>
         <td style="width:10%;">&nbsp;</td>
         <td style="width:45%;"><div class="sigline"></div><div class="siglabel">Authorized Signatory</div></td>
     </tr></table>

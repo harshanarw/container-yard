@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Customer — ' . $customer->name)
+@section('title', 'Customer - ' . $customer->name)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('customers.index') }}">Customers</a></li>
@@ -121,7 +121,7 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                     </td>
                     <td><span class="badge bg-secondary-subtle text-secondary">{{ ucfirst($arInv['type']) }}</span></td>
                     <td class="{{ $arInv['past_due'] ? 'text-danger fw-semibold' : 'text-muted' }}">
-                        {{ $arInv['due_date'] ? $arInv['due_date']->format('d M Y') : '—' }}
+                        {{ $arInv['due_date'] ? $arInv['due_date']->format('d M Y') : '-' }}
                         @if($arInv['past_due'])<i class="bi bi-exclamation-circle ms-1" title="Past due"></i>@endif
                     </td>
                     <td class="text-end font-monospace text-danger">{{ number_format($arInv['outstanding'], 2) }}</td>
@@ -165,7 +165,7 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                     <td class="font-monospace fw-semibold">
                         <a href="{{ route('finance.ap.invoices.show', $bill) }}" class="text-decoration-none">{{ $bill->invoice_no }}</a>
                     </td>
-                    <td class="text-muted">{{ $bill->supplier_invoice_no ?: '—' }}</td>
+                    <td class="text-muted">{{ $bill->supplier_invoice_no ?: '-' }}</td>
                     <td>{{ $bill->invoice_date->format('d M Y') }}</td>
                     <td class="text-end font-monospace">{{ number_format($bill->total_amount, 2) }} <span class="text-muted">{{ $bill->currency }}</span></td>
                     <td><span class="badge {{ $bill->status_badge_class }}">{{ $bill->status_label }}</span></td>
@@ -212,17 +212,17 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                             @forelse($customer->types as $t)
                                 <span class="badge bg-info-subtle text-info border border-info-subtle me-1 mb-1">{{ $t->name }}</span>
                             @empty
-                                <span class="text-muted small">—</span>
+                                <span class="text-muted small">-</span>
                             @endforelse
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="text-muted small">Registration No. (SSM)</div>
-                        <div>{{ $customer->registration_no ?: '—' }}</div>
+                        <div>{{ $customer->registration_no ?: '-' }}</div>
                     </div>
                     <div class="col-md-6">
                         <div class="text-muted small">TIN (Tax Identification No.)</div>
-                        <div class="font-monospace">{{ $customer->tin_number ?: '—' }}</div>
+                        <div class="font-monospace">{{ $customer->tin_number ?: '-' }}</div>
                     </div>
                     <div class="col-md-6">
                         <div class="text-muted small">Local Agent</div>
@@ -232,7 +232,7 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                                     <span class="badge bg-secondary-subtle text-secondary border me-1">{{ $customer->localAgent->code }}</span>{{ $customer->localAgent->name }}
                                 </a>
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </div>
                     </div>
@@ -250,7 +250,7 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                     </div>
                     <div class="col-12">
                         <div class="text-muted small">Address</div>
-                        <div>{{ $customer->address ?: '—' }}</div>
+                        <div>{{ $customer->address ?: '-' }}</div>
                         @if($customer->city || $customer->state)
                         <div class="text-muted small mt-1">{{ implode(', ', array_filter([$customer->city, $customer->state, $customer->country])) }}</div>
                         @endif
@@ -289,11 +289,11 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted small">Mobile</div>
-                        <div>{{ $customer->phone_mobile ?: '—' }}</div>
+                        <div>{{ $customer->phone_mobile ?: '-' }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted small">Fax</div>
-                        <div>{{ $customer->fax ?: '—' }}</div>
+                        <div>{{ $customer->fax ?: '-' }}</div>
                     </div>
                 </div>
             </div>
@@ -318,9 +318,9 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                     <tbody>
                         @foreach($recentContainers as $container)
                         <tr>
-                            <td class="ps-3 font-monospace small">{{ $container->container_no ?? '—' }}</td>
-                            <td class="small">{{ $container->size ?? '—' }}</td>
-                            <td class="small">{{ ucfirst($container->status ?? '—') }}</td>
+                            <td class="ps-3 font-monospace small">{{ $container->container_no ?? '-' }}</td>
+                            <td class="small">{{ $container->size ?? '-' }}</td>
+                            <td class="small">{{ ucfirst($container->status ?? '-') }}</td>
                             <td class="small text-muted">{{ $container->created_at->format('d M Y') }}</td>
                         </tr>
                         @endforeach
@@ -460,7 +460,7 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                 </div>
                 <div class="mb-2">
                     <div class="text-muted small">AP Payment Terms</div>
-                    <div>{{ $paymentLabels[$customer->ap_payment_terms ?? ''] ?? ($customer->ap_payment_terms ? $customer->ap_payment_terms : '—') }}</div>
+                    <div>{{ $paymentLabels[$customer->ap_payment_terms ?? ''] ?? ($customer->ap_payment_terms ? $customer->ap_payment_terms : '-') }}</div>
                 </div>
                 @if($apVisible)
                 <hr class="my-2">
@@ -505,7 +505,7 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
                     <div class="d-flex justify-content-between small mb-1">
                         <span class="text-muted">Validity</span>
                         <span>{{ $tariff->valid_from->format('d M Y') }}
-                            @if($tariff->valid_to) — {{ $tariff->valid_to->format('d M Y') }}
+                            @if($tariff->valid_to) - {{ $tariff->valid_to->format('d M Y') }}
                             @else <span class="text-muted">open-ended</span>
                             @endif
                         </span>
@@ -538,11 +538,11 @@ $statusColor = $customer->status === 'active' ? 'success' : ($customer->status =
             <div class="card-body">
                 <div class="mb-2">
                     <div class="text-muted small">Contract Start</div>
-                    <div>{{ $customer->contract_start?->format('d M Y') ?? '—' }}</div>
+                    <div>{{ $customer->contract_start?->format('d M Y') ?? '-' }}</div>
                 </div>
                 <div class="mb-2">
                     <div class="text-muted small">Contract End</div>
-                    <div>{{ $customer->contract_end?->format('d M Y') ?? '—' }}</div>
+                    <div>{{ $customer->contract_end?->format('d M Y') ?? '-' }}</div>
                 </div>
                 <hr class="my-2">
                 <div class="d-flex justify-content-between small">

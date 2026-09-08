@@ -28,7 +28,7 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Customer <span class="text-danger">*</span></label>
                     <select name="customer_id" id="customerSelect" class="form-select form-select-sm s2-code @error('customer_id') is-invalid @enderror" data-s2-sel="name" required>
-                        <option value="">— Select Customer —</option>
+                        <option value="">- Select Customer -</option>
                         @foreach($customers as $c)
                         <option value="{{ $c->id }}"
                                 data-code="{{ $c->code }}" data-name="{{ $c->name }}"
@@ -49,10 +49,10 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Bank Account</label>
                     <select name="bank_account_id" class="form-select form-select-sm select2 @error('bank_account_id') is-invalid @enderror">
-                        <option value="">— None / Cash —</option>
+                        <option value="">- None / Cash -</option>
                         @foreach($bankAccounts as $ba)
                         <option value="{{ $ba->id }}" {{ old('bank_account_id') == $ba->id ? 'selected' : '' }}>
-                            {{ $ba->account_name }} ({{ $ba->bank_name }}) — {{ $ba->currency }}
+                            {{ $ba->account_name }} ({{ $ba->bank_name }}) - {{ $ba->currency }}
                         </option>
                         @endforeach
                     </select>
@@ -61,7 +61,7 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold small">Payment Method <span class="text-danger">*</span></label>
                     <select name="payment_method" id="paymentMethod" class="form-select form-select-sm @error('payment_method') is-invalid @enderror" required>
-                        <option value="">— Select —</option>
+                        <option value="">- Select -</option>
                         <option value="cash" {{ old('payment_method') === 'cash' ? 'selected' : '' }}>Cash</option>
                         <option value="cheque" {{ old('payment_method') === 'cheque' ? 'selected' : '' }}>Cheque</option>
                         <option value="bank_transfer" {{ old('payment_method') === 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
@@ -94,7 +94,7 @@
                         <option value="{{ $cur->code }}"
                             data-code="{{ $cur->code }}" data-name="{{ $cur->name }}"
                             {{ old('currency', $baseCurrency) === $cur->code ? 'selected' : '' }}>
-                            {{ $cur->code }} — {{ $cur->name }}
+                            {{ $cur->code }} - {{ $cur->name }}
                         </option>
                         @endforeach
                     </select>

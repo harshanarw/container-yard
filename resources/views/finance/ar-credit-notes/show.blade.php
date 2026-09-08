@@ -15,7 +15,7 @@
     <div>
         <h4><i class="bi bi-arrow-counterclockwise me-2 text-primary"></i>{{ $arCreditNote->credit_note_no }}
             <span class="badge bg-{{ $b }}-subtle text-{{ $b }} ms-2 fs-6 text-capitalize">{{ $arCreditNote->status }}</span></h4>
-        <p class="text-muted mb-0 small">{{ $arCreditNote->customer->name ?? '—' }}</p>
+        <p class="text-muted mb-0 small">{{ $arCreditNote->customer->name ?? '-' }}</p>
     </div>
     <div class="d-flex gap-2">
         @can('finance.ar-credit-notes.approve')
@@ -75,7 +75,7 @@
             <div class="card-body">
                 <table class="table table-sm mb-0 small">
                     <tr><td class="text-muted">Date</td><td class="fw-semibold">{{ $arCreditNote->credit_date->format('d M Y') }}</td></tr>
-                    <tr><td class="text-muted">Customer</td><td class="fw-semibold">{{ $arCreditNote->customer->name ?? '—' }}</td></tr>
+                    <tr><td class="text-muted">Customer</td><td class="fw-semibold">{{ $arCreditNote->customer->name ?? '-' }}</td></tr>
                     <tr><td class="text-muted">Currency / Rate</td><td class="font-monospace">{{ $arCreditNote->currency }} @ {{ rtrim(rtrim(number_format($arCreditNote->exchange_rate,6,'.',''),'0'),'.') }}</td></tr>
                     <tr><td class="text-muted">Subtotal</td><td class="text-end font-monospace">{{ number_format($arCreditNote->subtotal,2) }}</td></tr>
                     <tr><td class="text-muted">Output VAT</td><td class="text-end font-monospace">{{ number_format($arCreditNote->tax_amount,2) }}</td></tr>
@@ -99,7 +99,7 @@
                         @foreach($arCreditNote->lines as $line)
                         <tr>
                             <td>{{ $line->description }}</td>
-                            <td class="text-muted small">{{ $line->revenueAccount ? $line->revenueAccount->code.' — '.$line->revenueAccount->name : 'Default' }}</td>
+                            <td class="text-muted small">{{ $line->revenueAccount ? $line->revenueAccount->code.' - '.$line->revenueAccount->name : 'Default' }}</td>
                             <td class="text-end font-monospace">{{ number_format($line->amount,2) }}</td>
                         </tr>
                         @endforeach
@@ -146,7 +146,7 @@
                     <div class="col-md-6">
                         <label class="form-label small mb-1 fw-semibold">Apply to invoice <span class="text-muted">(unapplied: {{ number_format($arCreditNote->unapplied,2) }})</span></label>
                         <select name="_inv" id="pendInv" class="form-select form-select-sm" required>
-                            <option value="">— Select invoice —</option>
+                            <option value="">- Select invoice -</option>
                             @foreach($pendingInvoices as $pi)
                             <option value="{{ $pi['type'] }}|{{ $pi['id'] }}" data-type="{{ $pi['type'] }}" data-id="{{ $pi['id'] }}" data-out="{{ $pi['outstanding'] }}">{{ $pi['label'] }}</option>
                             @endforeach

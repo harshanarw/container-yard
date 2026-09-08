@@ -37,7 +37,7 @@ class FixBlankCargoStatusSeeder extends Seeder
             $full  = DB::table($table)->where('cargo_status', 'full')->count();
 
             if ($blank + $full === 0) {
-                $this->command->info("{$table}: no blank or 'full' cargo_status rows — nothing to fix.");
+                $this->command->info("{$table}: no blank or 'full' cargo_status rows - nothing to fix.");
                 continue;
             }
 

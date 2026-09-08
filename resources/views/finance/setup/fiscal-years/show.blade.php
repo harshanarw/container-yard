@@ -80,7 +80,7 @@
             <div class="card-body p-0">
                 <table class="table table-sm mb-0">
                     <tr><td class="text-muted small">Created</td><td class="small">{{ $fiscalYear->created_at->format('d M Y') }}</td></tr>
-                    <tr><td class="text-muted small">By</td><td class="small">{{ $fiscalYear->createdBy?->name ?? '—' }}</td></tr>
+                    <tr><td class="text-muted small">By</td><td class="small">{{ $fiscalYear->createdBy?->name ?? '-' }}</td></tr>
                     <tr>
                         <td class="text-muted small">Open Periods</td>
                         <td class="small">{{ $fiscalYear->periods->where('status','open')->count() }}</td>
@@ -135,7 +135,7 @@
                             </td>
                             <td class="text-center">
                                 <span class="badge bg-{{ \App\Models\AccountingPeriod::statusBadge($period->status) }}-subtle text-{{ \App\Models\AccountingPeriod::statusBadge($period->status) }}"
-                                      title="{{ $period->status === 'locked' ? 'P&L closed — period is locked' : ($period->status === 'closed' ? 'Period-end done — ready for P&L close' : 'Open for posting') }}">
+                                      title="{{ $period->status === 'locked' ? 'P&L closed - period is locked' : ($period->status === 'closed' ? 'Period-end done - ready for P&L close' : 'Open for posting') }}">
                                     {{ $period->status === 'locked' ? 'P&L Closed' : ucfirst($period->status) }}
                                 </span>
                             </td>
@@ -144,7 +144,7 @@
                                     {{ $period->closedBy->name }}<br>
                                     <span style="font-size:.7rem;">{{ $period->closed_at->format('d M Y') }}</span>
                                 @else
-                                    —
+                                    -
                                 @endif
                             </td>
                             <td class="text-end">
@@ -173,7 +173,7 @@
                                     <form method="POST" action="{{ route('finance.setup.fiscal-years.period.close-pl', [$fiscalYear, $period]) }}" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-primary py-0 px-2"
-                                                onclick="return confirm('Run the P&L close for {{ $period->name }}?\n\nThis posts the period closing journal (income/expense → Current Year P/L) and locks the period.{{ $loop->last ? '\n\nThis is the FINAL period — the year-end transfer to Retained Earnings will also run and the fiscal year will be closed.' : '' }}')">
+                                                onclick="return confirm('Run the P&L close for {{ $period->name }}?\n\nThis posts the period closing journal (income/expense → Current Year P/L) and locks the period.{{ $loop->last ? '\n\nThis is the FINAL period - the year-end transfer to Retained Earnings will also run and the fiscal year will be closed.' : '' }}')">
                                             <i class="bi bi-journal-check me-1"></i>Close P&amp;L
                                         </button>
                                     </form>

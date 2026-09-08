@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Access Control — Roles')
+@section('title', 'Access Control - Roles')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('access-control.roles.index') }}">Access Control</a></li>
@@ -11,7 +11,7 @@
 
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
-        <h4><i class="bi bi-shield-lock me-2 text-primary"></i>Access Control — Roles</h4>
+        <h4><i class="bi bi-shield-lock me-2 text-primary"></i>Access Control - Roles</h4>
         <p class="text-muted mb-0 small">Manage roles and their permission sets</p>
     </div>
     <a href="{{ route('access-control.roles.create') }}" class="btn btn-primary btn-sm">

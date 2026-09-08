@@ -14,7 +14,7 @@
     <h4><i class="bi bi-cash-coin me-2 text-primary"></i>New OT Tariff Version</h4>
     <p class="text-muted mb-0 small">
         Create the version header first, then add its day-category rate rules. Leave it as a draft until the rates are
-        checked — only an active version prices receipts.
+        checked - only an active version prices receipts.
     </p>
 </div>
 
@@ -79,8 +79,8 @@
                     <label class="form-label small mb-1">Source Reference</label>
                     <input type="text" name="source_reference" class="form-control form-control-sm"
                            value="{{ old('source_reference') }}" maxlength="255"
-                           placeholder="e.g. ACDO Sri Lanka circular — Revised Depot OT effective 01 Apr 2027">
-                    <div class="form-text">Cite the circular or board approval this rate set comes from — it is what an auditor will ask for.</div>
+                           placeholder="e.g. ACDO Sri Lanka circular - Revised Depot OT effective 01 Apr 2027">
+                    <div class="form-text">Cite the circular or board approval this rate set comes from - it is what an auditor will ask for.</div>
                 </div>
             </div>
         </div>

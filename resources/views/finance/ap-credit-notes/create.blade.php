@@ -31,7 +31,7 @@
                 <div class="col-md-4">
                     <label class="form-label fw-semibold small">Supplier <span class="text-danger">*</span></label>
                     <select name="customer_id" id="customerSelect" class="form-select form-select-sm s2-code" data-s2-sel="name" required>
-                        <option value="">— Select supplier —</option>
+                        <option value="">- Select supplier -</option>
                         @foreach($suppliers as $c)
                         <option value="{{ $c->id }}" data-code="{{ $c->currency }}" data-name="{{ $c->name }}" {{ old('customer_id', $prefill['customer_id'] ?? '') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                         @endforeach
@@ -49,7 +49,7 @@
                     <label class="form-label fw-semibold small">Currency <span class="text-danger">*</span></label>
                     <select name="currency" id="currencyField" class="form-select form-select-sm s2-code" data-s2-sel="name" required>
                         @foreach($currencies as $cur)
-                        <option value="{{ $cur->code }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}" {{ old('currency', $prefill['currency'] ?? $baseCurrency) === $cur->code ? 'selected' : '' }}>{{ $cur->code }} — {{ $cur->name }}</option>
+                        <option value="{{ $cur->code }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}" {{ old('currency', $prefill['currency'] ?? $baseCurrency) === $cur->code ? 'selected' : '' }}>{{ $cur->code }} - {{ $cur->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -94,15 +94,15 @@
                         </td>
                         <td>
                             <select name="lines[{{ $li }}][expense_account_id]" class="form-select form-select-sm s2-code" data-s2-sel="name">
-                                <option value="">— Default expense —</option>
+                                <option value="">- Default expense -</option>
                                 @foreach($expenseAccounts as $a)
-                                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}" {{ ($pl['expense_account_id'] ?? null) == $a->id ? 'selected' : '' }}>{{ $a->code }} — {{ $a->name }}</option>
+                                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}" {{ ($pl['expense_account_id'] ?? null) == $a->id ? 'selected' : '' }}>{{ $a->code }} - {{ $a->name }}</option>
                                 @endforeach
                             </select>
                         </td>
                         <td>
                             <select name="lines[{{ $li }}][tax_code_id]" class="form-select form-select-sm tc-select">
-                                <option value="" data-t1="0" data-t2="0">— No tax —</option>
+                                <option value="" data-t1="0" data-t2="0">- No tax -</option>
                                 @foreach($taxCodes as $tc)
                                 <option value="{{ $tc->id }}" data-t1="{{ $tc->tax1_rate }}" data-t2="{{ $tc->tax2_rate }}" {{ ($pl['tax_code_id'] ?? null) == $tc->id ? 'selected' : '' }}>{{ $tc->code }}</option>
                                 @endforeach
@@ -146,15 +146,15 @@
         <td><input type="text" name="lines[IDX][description]" class="form-control form-control-sm" required maxlength="255"></td>
         <td>
             <select name="lines[IDX][expense_account_id]" class="form-select form-select-sm s2-code" data-s2-sel="name">
-                <option value="">— Default expense —</option>
+                <option value="">- Default expense -</option>
                 @foreach($expenseAccounts as $a)
-                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}">{{ $a->code }} — {{ $a->name }}</option>
+                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}">{{ $a->code }} - {{ $a->name }}</option>
                 @endforeach
             </select>
         </td>
         <td>
             <select name="lines[IDX][tax_code_id]" class="form-select form-select-sm tc-select">
-                <option value="" data-t1="0" data-t2="0">— No tax —</option>
+                <option value="" data-t1="0" data-t2="0">- No tax -</option>
                 @foreach($taxCodes as $tc)
                 <option value="{{ $tc->id }}" data-t1="{{ $tc->tax1_rate }}" data-t2="{{ $tc->tax2_rate }}">{{ $tc->code }}</option>
                 @endforeach

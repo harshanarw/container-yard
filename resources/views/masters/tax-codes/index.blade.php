@@ -109,7 +109,7 @@
                                 {{ rtrim(rtrim(number_format($tc->tax1_rate, 4), '0'), '.') }}%
                             </span>
                         @else
-                            <span class="text-muted small">—</span>
+                            <span class="text-muted small">-</span>
                         @endif
                     </td>
                     <td class="text-center">
@@ -118,7 +118,7 @@
                                 {{ rtrim(rtrim(number_format($tc->tax2_rate, 4), '0'), '.') }}%
                             </span>
                         @else
-                            <span class="text-muted small">—</span>
+                            <span class="text-muted small">-</span>
                         @endif
                     </td>
                     <td class="text-center">

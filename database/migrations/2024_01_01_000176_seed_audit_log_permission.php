@@ -13,7 +13,7 @@ return new class extends Migration
             [
                 'module'       => 'audit-log',
                 'action'       => 'view',
-                'display_name' => 'View — Audit Log',
+                'display_name' => 'View - Audit Log',
                 'sort_order'   => 0,
             ]
         );

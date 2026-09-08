@@ -13,6 +13,6 @@ class GuardCaptureObserver extends AuditObserver
     {
         $dir = $m->direction === 'gate_out' ? 'Gate-Out' : 'Gate-In';
         return "Guard capture {$ref} recorded ({$dir})"
-            . ($m->container_number ? " — {$m->container_number}" : '');
+            . ($m->container_number ? " - {$m->container_number}" : '');
     }
 }

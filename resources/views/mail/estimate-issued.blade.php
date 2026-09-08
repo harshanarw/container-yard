@@ -125,7 +125,7 @@
 
             {{-- Repair Type --}}
             <td style="padding:9px 8px;border-bottom:1px solid #f1f3f5;vertical-align:top;color:#6c757d;">
-              {{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '—' }}
+              {{ $line->repair_type ? ucfirst(str_replace('_', ' ', $line->repair_type)) : '-' }}
             </td>
 
             {{-- Qty / Size --}}
@@ -159,7 +159,7 @@
               @if($eDimStr)
                 <div style="font-size:.72rem;color:#6c757d;">📏 {{ $eDimStr }}</div>
               @elseif(!($line->qty > 0))
-                <span style="color:#adb5bd;">—</span>
+                <span style="color:#adb5bd;">-</span>
               @endif
             </td>
 
@@ -171,7 +171,7 @@
                 @endif
                 <div style="color:#6c757d;font-size:.76rem;">{{ $estimate->currency }} {{ number_format($line->labor_amount, 2) }}</div>
               @else
-                <span style="color:#adb5bd;">—</span>
+                <span style="color:#adb5bd;">-</span>
               @endif
             </td>
 
@@ -185,7 +185,7 @@
               @elseif($line->ancillary_amount > 0)
                 <div style="color:#6c757d;font-size:.82rem;">{{ $estimate->currency }} {{ number_format($line->ancillary_amount, 2) }}</div>
               @else
-                <span style="color:#adb5bd;">—</span>
+                <span style="color:#adb5bd;">-</span>
               @endif
             </td>
 
@@ -244,7 +244,7 @@
           <tr style="background:#ffffff;">
             <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;color:#1a56db;font-weight:600;">&#x1F527;&nbsp;Labour</td>
             <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;color:#1a56db;font-weight:600;white-space:nowrap;">
-              @if($emailLaborHrs > 0){{ number_format($emailLaborHrs, 2) }} hrs @else — @endif
+              @if($emailLaborHrs > 0){{ number_format($emailLaborHrs, 2) }} hrs @else - @endif
             </td>
             <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;font-weight:600;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($emailLaborCost, 2) }}</td>
           </tr>
@@ -252,14 +252,14 @@
           @if($emailMaterial > 0)
           <tr style="background:#f8f9fa;">
             <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;color:#166534;font-weight:600;">&#x1F4E6;&nbsp;Materials</td>
-            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;color:#6c757d;">—</td>
+            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;color:#6c757d;">-</td>
             <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;font-weight:600;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($emailMaterial, 2) }}</td>
           </tr>
           @endif
           @if($emailAncillary > 0)
           <tr style="background:#ffffff;">
             <td style="padding:7px 10px;border-bottom:1px solid #f1f3f5;color:#495057;font-weight:600;">Ancillary / Overhead</td>
-            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;color:#6c757d;">—</td>
+            <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;color:#6c757d;">-</td>
             <td style="padding:7px 10px;text-align:right;border-bottom:1px solid #f1f3f5;font-weight:600;white-space:nowrap;">{{ $estimate->currency }} {{ number_format($emailAncillary, 2) }}</td>
           </tr>
           @endif

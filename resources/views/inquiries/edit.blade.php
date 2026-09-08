@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Inquiry — ' . $inquiry->inquiry_no)
+@section('title', 'Edit Inquiry - ' . $inquiry->inquiry_no)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('inquiries.index') }}" class="text-decoration-none">Container Inquiries</a></li>
@@ -31,7 +31,7 @@
 
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
-        <h4><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Inquiry — {{ $inquiry->inquiry_no }}</h4>
+        <h4><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Inquiry - {{ $inquiry->inquiry_no }}</h4>
         <p class="text-muted mb-0 small">
             Container <span class="font-monospace fw-semibold">{{ $inquiry->container_no }}</span>
             &nbsp;·&nbsp; {{ $inquiry->size }}ft {{ $inquiry->type_code }}
@@ -97,7 +97,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="text-muted mb-1">Customer</div>
-                            <div class="fw-semibold">{{ $inquiry->customer?->name ?? '—' }}</div>
+                            <div class="fw-semibold">{{ $inquiry->customer?->name ?? '-' }}</div>
                         </div>
                         <div class="col-md-4">
                             <div class="text-muted mb-1">Inquiry Type</div>
@@ -105,7 +105,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="text-muted mb-1">Gate-In Reference</div>
-                            <div class="font-monospace">{{ $inquiry->gate_in_ref ?? '—' }}</div>
+                            <div class="font-monospace">{{ $inquiry->gate_in_ref ?? '-' }}</div>
                         </div>
                         <div class="col-md-4">
                             <div class="text-muted mb-1">Inquiry No.</div>
@@ -125,7 +125,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Assigned Inspector</label>
                             <select name="inspector_id" class="form-select select2">
-                                <option value="">— Select Inspector —</option>
+                                <option value="">- Select Inspector -</option>
                                 @foreach($inspectors as $ins)
                                 <option value="{{ $ins->id }}"
                                     {{ old('inspector_id', $inquiry->inspector_id) == $ins->id ? 'selected' : '' }}>
@@ -200,7 +200,7 @@
                                 <tr class="damage-row">
                                     <td class="ps-3">
                                         <select name="damages[{{ $di }}][location_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrLocationCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->location_code_id == $c->id ? 'selected' : '' }}>
                                                 {{ $c->code }} {{ $c->name }}
@@ -210,7 +210,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[{{ $di }}][component_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->component_code_id == $c->id ? 'selected' : '' }}>
                                                 {{ $c->code }} {{ $c->name }}
@@ -220,7 +220,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[{{ $di }}][damage_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrDamageCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->damage_code_id == $c->id ? 'selected' : '' }}>
                                                 {{ $c->code }} {{ $c->name }}
@@ -230,7 +230,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[{{ $di }}][repair_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrRepairCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->repair_code_id == $c->id ? 'selected' : '' }}>
                                                 {{ $c->code }} {{ $c->name }}
@@ -240,7 +240,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[{{ $di }}][responsibility_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrResponsibilityCodes as $c)
                                             <option value="{{ $c->id }}" {{ $dmg->responsibility_code_id == $c->id ? 'selected' : '' }}>
                                                 {{ $c->code }}
@@ -277,7 +277,7 @@
                                 <tr class="damage-row">
                                     <td class="ps-3">
                                         <select name="damages[0][location_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrLocationCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -285,7 +285,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][component_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrComponentCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -293,7 +293,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][damage_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrDamageCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -301,7 +301,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][repair_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrRepairCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -309,7 +309,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm s2">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrResponsibilityCodes as $c)
                                             <option value="{{ $c->id }}">{{ $c->code }}</option>
                                             @endforeach
@@ -389,7 +389,7 @@
                     {{-- Existing photos --}}
                     @if($inquiry->photos->isNotEmpty())
                     <p class="small fw-semibold text-muted mb-2">
-                        Existing Photos ({{ $inquiry->photos->count() }}) — hover to remove
+                        Existing Photos ({{ $inquiry->photos->count() }}) - hover to remove
                     </p>
                     <div class="row g-2 mb-4" id="existingPhotos">
                         @foreach($inquiry->photos as $photo)
@@ -513,7 +513,7 @@
     const mrResOpts = @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
 
     function buildSel(name, opts, codeOnly) {
-        let html = `<select name="${name}" class="form-select form-select-sm s2"><option value="">—</option>`;
+        let html = `<select name="${name}" class="form-select form-select-sm s2"><option value="">-</option>`;
         opts.forEach(o => { html += `<option value="${o.id}">${o.code}${codeOnly ? '' : ' '+o.name}</option>`; });
         return html + '</select>';
     }

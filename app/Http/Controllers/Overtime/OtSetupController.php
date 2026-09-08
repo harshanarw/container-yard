@@ -99,7 +99,7 @@ class OtSetupController extends Controller
         } elseif (! $set->is_default) {
             $issues[] = [
                 'level' => 'warning',
-                'text'  => "No set is flagged default — the engine fell back to \"{$set->name}\". Flag one explicitly so the choice is not order-dependent.",
+                'text'  => "No set is flagged default - the engine fell back to \"{$set->name}\". Flag one explicitly so the choice is not order-dependent.",
                 'route' => 'overtime.working-hours.index',
                 'cta'   => 'Flag a default',
             ];

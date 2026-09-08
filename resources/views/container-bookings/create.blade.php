@@ -30,7 +30,7 @@
                 <div class="col-md-4">
                     <label class="form-label fw-semibold small">Shipping Line <span class="text-danger">*</span></label>
                     <select name="customer_id" class="form-select form-select-sm select2" required>
-                        <option value="">— Select shipping line —</option>
+                        <option value="">- Select shipping line -</option>
                         @foreach($customers as $c)
                             <option value="{{ $c->id }}" {{ old('customer_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                         @endforeach
@@ -94,7 +94,7 @@
             <select name="lines[IDX][grade_id]" class="form-select form-select-sm">
                 <option value="">Any grade</option>
                 @foreach($grades as $g)
-                    <option value="{{ $g->id }}">{{ $g->code }} — {{ $g->name }}</option>
+                    <option value="{{ $g->id }}">{{ $g->code }} - {{ $g->name }}</option>
                 @endforeach
             </select>
         </td>

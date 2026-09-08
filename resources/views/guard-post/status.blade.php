@@ -39,7 +39,7 @@
         $stateText = match($capture->status) {
             'pending'  => 'Awaiting Review',
             'cleared'  => 'Cleared to Proceed',
-            'hold'     => 'On Hold — Await Instructions',
+            'hold'     => 'On Hold - Await Instructions',
             'rejected' => 'Entry Rejected',
             default    => ucfirst($capture->status),
         };

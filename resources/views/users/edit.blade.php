@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit User — ' . $user->full_name)
+@section('title', 'Edit User - ' . $user->full_name)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('users.index') }}" class="text-decoration-none">User Management</a></li>
@@ -56,7 +56,7 @@
                         <div class="col-md-2">
                             <label class="form-label fw-semibold">Title</label>
                             <select name="title" class="form-select">
-                                <option value="">—</option>
+                                <option value="">-</option>
                                 @foreach(['Mr','Ms','Mrs','Dr','Prof','Engr','Rev'] as $t)
                                 <option value="{{ $t }}" {{ old('title', $user->title) === $t ? 'selected' : '' }}>{{ $t }}</option>
                                 @endforeach
@@ -79,7 +79,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Gender</label>
                             <select name="gender" class="form-select">
-                                <option value="">— Select —</option>
+                                <option value="">- Select -</option>
                                 <option value="male"   {{ old('gender', $user->gender) === 'male'   ? 'selected' : '' }}>Male</option>
                                 <option value="female" {{ old('gender', $user->gender) === 'female' ? 'selected' : '' }}>Female</option>
                                 <option value="other"  {{ old('gender', $user->gender) === 'other'  ? 'selected' : '' }}>Other</option>
@@ -199,7 +199,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">System Role <span class="text-danger">*</span></label>
                             <select name="role" class="form-select @error('role') is-invalid @enderror" required>
-                                <option value="">— Select Role —</option>
+                                <option value="">- Select Role -</option>
                                 @if(auth()->user()->isSystemAdmin())
                                 <option value="system_administrator" {{ old('role', $user->role) === 'system_administrator' ? 'selected' : '' }}>System Administrator</option>
                                 @endif

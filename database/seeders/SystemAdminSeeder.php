@@ -33,7 +33,7 @@ class SystemAdminSeeder extends Seeder
             $this->command->warn('     ⚠  Change this password immediately after first login.');
             $this->command->info('');
         } else {
-            $this->command->info('  –  System Administrator account already exists — skipped.');
+            $this->command->info('  –  System Administrator account already exists - skipped.');
         }
     }
 }

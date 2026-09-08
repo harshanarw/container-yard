@@ -59,14 +59,14 @@ class FixStrandedRepairStatusCommand extends Command
             $rows[] = [
                 $c->container_no,
                 $total === 0 ? 'none' : "{$total} (all closed/cancelled)",
-                $c->status_changed_at?->format('d M Y H:i') ?? '—',
+                $c->status_changed_at?->format('d M Y H:i') ?? '-',
             ];
 
             return true;
         });
 
         if ($stranded->isEmpty()) {
-            $this->info("All {$candidates->count()} in_repair container(s) have an open work order — nothing stranded.");
+            $this->info("All {$candidates->count()} in_repair container(s) have an open work order - nothing stranded.");
 
             return self::SUCCESS;
         }
@@ -76,7 +76,7 @@ class FixStrandedRepairStatusCommand extends Command
 
         if (! $apply) {
             $this->newLine();
-            $this->line('Dry run — nothing changed. Re-run with <info>--fix</info> to return these to in_yard.');
+            $this->line('Dry run - nothing changed. Re-run with <info>--fix</info> to return these to in_yard.');
 
             return self::SUCCESS;
         }

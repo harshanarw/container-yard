@@ -68,7 +68,7 @@ class StorageZoneController extends Controller
     public function destroy(StorageZone $zone)
     {
         if (YardLocation::where('zone', $zone->code)->exists()) {
-            return back()->with('error', "Cannot delete zone '{$zone->name}' — it has yard locations assigned.");
+            return back()->with('error', "Cannot delete zone '{$zone->name}' - it has yard locations assigned.");
         }
         $zone->delete();
         return back()->with('success', "Zone deleted.");
@@ -117,7 +117,7 @@ class StorageZoneController extends Controller
         }
 
         if (count($rows) * count($bays) * count($tiers) > 500) {
-            return back()->with('error', 'Too many slots — maximum 500 per bulk generate (max 500 combinations).');
+            return back()->with('error', 'Too many slots - maximum 500 per bulk generate (max 500 combinations).');
         }
 
         $created = 0;
@@ -250,7 +250,7 @@ class StorageZoneController extends Controller
             abort(404);
         }
         if ($slot->status !== 'empty') {
-            return back()->with('error', "Slot {$slot->slot_code} cannot be deleted — it is currently {$slot->status}.");
+            return back()->with('error', "Slot {$slot->slot_code} cannot be deleted - it is currently {$slot->status}.");
         }
 
         $aboveTiers = YardLocation::where('zone', $zone->code)
@@ -264,7 +264,7 @@ class StorageZoneController extends Controller
 
         if ($aboveTiers) {
             return back()->with('error',
-                "Cannot delete {$slot->slot_code} — slot(s) {$aboveTiers} exist above it in the same stack. Remove top tiers first.");
+                "Cannot delete {$slot->slot_code} - slot(s) {$aboveTiers} exist above it in the same stack. Remove top tiers first.");
         }
 
         $slot->delete();

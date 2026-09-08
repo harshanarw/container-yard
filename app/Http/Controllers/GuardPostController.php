@@ -155,7 +155,7 @@ class GuardPostController extends Controller
         // stored/derived container_number.
         $cno = \App\Support\Iso6346::normalize($request->input('container_number', ''));
         if ($cno !== '' && ! \App\Support\Iso6346::checkDigitValid($cno)) {
-            $redirect->with('warning', "Container number {$cno} fails the ISO 6346 check digit — please verify it against the box.");
+            $redirect->with('warning', "Container number {$cno} fails the ISO 6346 check digit - please verify it against the box.");
         }
 
         return $redirect;

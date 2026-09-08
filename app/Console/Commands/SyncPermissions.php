@@ -25,7 +25,7 @@ class SyncPermissions extends Command
             foreach ($moduleConfig['actions'] as $sortIdx => $action) {
                 $permName    = "{$moduleKey}.{$action}";
                 $actionLabel = Permission::actionLabel($action);
-                $displayName = "{$actionLabel} — {$label}";
+                $displayName = "{$actionLabel} - {$label}";
 
                 $exists = Permission::where('name', $permName)->exists();
 
@@ -52,7 +52,7 @@ class SyncPermissions extends Command
         $this->table(['Status', 'Permission', 'Display Name'], $rows);
 
         if ($dryRun) {
-            $this->warn("Dry run — no changes written.");
+            $this->warn("Dry run - no changes written.");
         } else {
             Cache::forget('_gate_permission_names');
             $this->info("Done. Created: {$created}  |  Already existed: {$existing}");

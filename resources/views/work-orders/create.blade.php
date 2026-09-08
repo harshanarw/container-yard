@@ -13,7 +13,7 @@
 
 <div class="page-header mb-4">
     <h4><i class="bi bi-hammer me-2 text-primary"></i>New Work Order</h4>
-    <p class="text-muted small mb-0">Create a work order from an approved estimate — one per repair category</p>
+    <p class="text-muted small mb-0">Create a work order from an approved estimate - one per repair category</p>
 </div>
 
 @if($errors->any())
@@ -49,14 +49,14 @@
                 <label for="estimate_id" class="form-label fw-semibold">Approved Estimate <span class="text-danger">*</span></label>
                 <select class="form-select s2-code @error('estimate_id') is-invalid @enderror"
                         name="estimate_id" id="estimate_id" required>
-                    <option value="">— Select an approved estimate —</option>
+                    <option value="">- Select an approved estimate -</option>
                     @foreach($approvedEstimates as $est)
                     <option value="{{ $est->id }}"
                             data-code="{{ $est->estimate_no }}"
-                            data-name="{{ $est->container_no }} — {{ $est->customer->code ?? $est->customer->name }}"
+                            data-name="{{ $est->container_no }} - {{ $est->customer->code ?? $est->customer->name }}"
                             data-categories-url="{{ route('work-orders.available-categories', $est) }}"
                             {{ old('estimate_id', $preselectedEstimateId ?? '') == $est->id ? 'selected' : '' }}>
-                        {{ $est->estimate_no }} — {{ $est->container_no }} — {{ $est->customer->code ?? $est->customer->name }}
+                        {{ $est->estimate_no }} - {{ $est->container_no }} - {{ $est->customer->code ?? $est->customer->name }}
                         ({{ $est->currency }} {{ number_format($est->grand_total, 2) }})
                     </option>
                     @endforeach
@@ -132,7 +132,7 @@
                     <div class="col-md-6">
                         <label for="assigned_to" class="form-label fw-semibold">Assigned To</label>
                         <select class="form-select select2 @error('assigned_to') is-invalid @enderror" name="assigned_to" id="assigned_to">
-                            <option value="">— Unassigned —</option>
+                            <option value="">- Unassigned -</option>
                             @foreach($supervisors as $sup)
                             <option value="{{ $sup->id }}" {{ old('assigned_to') == $sup->id ? 'selected' : '' }}>
                                 {{ $sup->name }} ({{ ucfirst(str_replace('_', ' ', $sup->role)) }})

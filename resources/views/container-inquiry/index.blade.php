@@ -281,12 +281,12 @@
                             {{ $m->container_no }}
                         </a>
                     </td>
-                    <td>{{ optional($m->customer)->name ?? '—' }}</td>
+                    <td>{{ optional($m->customer)->name ?? '-' }}</td>
                     <td class="font-monospace">
                         @if($yardJob)
                             <span class="badge bg-light text-dark border">{{ $yardJob->job_no }}</span>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td>
@@ -294,16 +294,16 @@
                             <span class="badge bg-info-subtle text-info">{{ $yardJob->jobType->type_short_code }}</span>
                             {{ $yardJob->jobType->job_type_name }}
                         @else
-                            <span class="text-muted">{{ $m->job_type_code ?? '—' }}</span>
+                            <span class="text-muted">{{ $m->job_type_code ?? '-' }}</span>
                         @endif
                     </td>
-                    <td class="text-nowrap">{{ $m->gate_in_time?->format('d M Y H:i') ?? '—' }}</td>
+                    <td class="text-nowrap">{{ $m->gate_in_time?->format('d M Y H:i') ?? '-' }}</td>
                     <td class="text-nowrap">
                         @php $matchedGateOut = $gateOutMap[$m->id] ?? null; @endphp
                         @if($matchedGateOut?->gate_out_time)
                             {{ $matchedGateOut->gate_out_time->format('d M Y H:i') }}
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td>
@@ -312,14 +312,14 @@
                                 {{ $yardJob->status }}
                             </span>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td>
                         @if($mrCode)
                             <span class="badge {{ $mrBadge }}" style="font-size:.7rem">{{ $mrLabel }}</span>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
 
                         {{-- Modifiers: true alongside the status, not instead of
@@ -340,7 +340,7 @@
                             </span>
                         @endif
                     </td>
-                    <td class="text-center">{{ $m->size ? $m->size . 'ft' : '—' }}</td>
+                    <td class="text-center">{{ $m->size ? $m->size . 'ft' : '-' }}</td>
                     <td class="pe-3 text-center">
                         <a href="{{ route('container-inquiry.show', $m->container_no) }}"
                            class="btn btn-outline-primary"

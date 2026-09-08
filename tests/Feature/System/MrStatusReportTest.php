@@ -143,7 +143,7 @@ class MrStatusReportTest extends FeatureTestCase
         $this->assertSame(1, $rows->firstWhere('code', Cat::AWAITING_QC)['overdue'],
             'Eight days awaiting QC is past its three-day threshold.');
         $this->assertSame(0, $rows->firstWhere('code', Cat::REPAIR_IN_PROGRESS)['overdue'],
-            'The same eight days mid-repair is well inside a ten-day threshold — days alone do not compare.');
+            'The same eight days mid-repair is well inside a ten-day threshold - days alone do not compare.');
 
         // Not an absolute number: the seeder's own containers are in the yard
         // too, and some of them are legitimately overdue. What must hold is

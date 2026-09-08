@@ -27,7 +27,7 @@ class EstimateReminderMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Reminder: Action Required — Estimate {$this->estimate->estimate_no}",
+            subject: "Reminder: Action Required - Estimate {$this->estimate->estimate_no}",
         );
     }
 

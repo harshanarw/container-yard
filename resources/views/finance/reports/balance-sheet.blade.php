@@ -32,7 +32,7 @@
 @if($balanced)
 <div class="alert alert-success alert-dismissible fade show py-2 small">
     <i class="bi bi-check-circle me-1"></i>
-    Balance sheet is <strong>balanced</strong> — Total Assets equals Total Liabilities + Equity.
+    Balance sheet is <strong>balanced</strong> - Total Assets equals Total Liabilities + Equity.
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 @else
@@ -238,7 +238,7 @@
                             @if($closedToCYP != 0)
                                 (closed {{ number_format($closedToCYP, 2) }} + unclosed {{ number_format($residualPL, 2) }})
                             @else
-                                (live — Revenue {{ number_format($ytdRevenue, 2) }} − Expenses {{ number_format($ytdExpense, 2) }})
+                                (live - Revenue {{ number_format($ytdRevenue, 2) }} − Expenses {{ number_format($ytdExpense, 2) }})
                             @endif
                         </small>
                     </td>

@@ -131,8 +131,8 @@
                 <h3>Receipt Details</h3>
                 <table>
                     <tr><td class="lbl">Receipt No</td><td class="val">{{ $receipt->receipt_no }}</td></tr>
-                    <tr><td class="lbl">Issued</td><td class="val">{{ $receipt->created_at?->format('d M Y H:i') ?? '—' }}</td></tr>
-                    <tr><td class="lbl">Operational Date</td><td class="val">{{ $receipt->operational_date?->format('d M Y') ?? '—' }}</td></tr>
+                    <tr><td class="lbl">Issued</td><td class="val">{{ $receipt->created_at?->format('d M Y H:i') ?? '-' }}</td></tr>
+                    <tr><td class="lbl">Operational Date</td><td class="val">{{ $receipt->operational_date?->format('d M Y') ?? '-' }}</td></tr>
                     <tr>
                         <td class="lbl">Status</td>
                         <td class="val">
@@ -149,7 +149,7 @@
             <div class="info-box">
                 <h3>Billed To</h3>
                 <table>
-                    <tr><td class="lbl">Customer</td><td class="val">{{ $receipt->customer->name ?? '—' }}</td></tr>
+                    <tr><td class="lbl">Customer</td><td class="val">{{ $receipt->customer->name ?? '-' }}</td></tr>
                     <tr><td class="lbl">BL Number</td><td class="val">{{ $receipt->bl_number }}</td></tr>
                     <tr><td class="lbl">Containers Paid</td><td class="val">{{ $receipt->expected_container_count }}</td></tr>
                     <tr><td class="lbl">Used / Remaining</td><td class="val">{{ $receipt->used_container_count }} / {{ $remaining }}</td></tr>
@@ -162,12 +162,12 @@
     <div class="window-box">
         <h3>Overtime Service Window</h3>
         <div class="win-period">
-            {{ $receipt->valid_from?->format('d M Y H:i') ?? '—' }}
+            {{ $receipt->valid_from?->format('d M Y H:i') ?? '-' }}
             &nbsp;&rarr;&nbsp;
-            {{ $receipt->valid_to?->format('d M Y H:i') ?? '—' }}
+            {{ $receipt->valid_to?->format('d M Y H:i') ?? '-' }}
         </div>
         <div class="win-rule">
-            {{ $receipt->rule->display_name ?? '—' }}
+            {{ $receipt->rule->display_name ?? '-' }}
             @if($receipt->rule?->rule_code) &middot; {{ $receipt->rule->rule_code }} @endif
             @if($receipt->rule?->version?->version_code) &middot; Tariff {{ $receipt->rule->version->version_code }} @endif
         </div>
@@ -184,11 +184,11 @@
             <td style="border:none; padding:0; width:42%; vertical-align:top; text-align:right;">
                 <table>
                     <tr><td class="lbl" style="text-align:right;">Payment Method</td>
-                        <td class="val">{{ $receipt->payment_method ? strtoupper($receipt->payment_method) : '—' }}</td></tr>
+                        <td class="val">{{ $receipt->payment_method ? strtoupper($receipt->payment_method) : '-' }}</td></tr>
                     <tr><td class="lbl" style="text-align:right;">Received To</td>
-                        <td class="val">{{ $receipt->bankAccount->bank_name ?? ($receipt->payment_method === 'cash' ? 'CASH' : '—') }}</td></tr>
+                        <td class="val">{{ $receipt->bankAccount->bank_name ?? ($receipt->payment_method === 'cash' ? 'CASH' : '-') }}</td></tr>
                     <tr><td class="lbl" style="text-align:right;">Paid On</td>
-                        <td class="val">{{ $receipt->paid_at?->format('d M Y H:i') ?? '—' }}</td></tr>
+                        <td class="val">{{ $receipt->paid_at?->format('d M Y H:i') ?? '-' }}</td></tr>
                 </table>
             </td>
         </tr></table>
@@ -212,7 +212,7 @@
     <table class="sign"><tr>
         <td style="width:45%;">
             <div class="sigline"></div>
-            <div class="siglabel">Issued by{{ $receipt->createdBy ? ' — ' . $receipt->createdBy->name : '' }}</div>
+            <div class="siglabel">Issued by{{ $receipt->createdBy ? ' - ' . $receipt->createdBy->name : '' }}</div>
         </td>
         <td style="width:10%;">&nbsp;</td>
         <td style="width:45%;">

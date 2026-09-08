@@ -51,7 +51,7 @@
                     <option value="">All Locations</option>
                     @foreach($locations as $c)
                     <option value="{{ $c->id }}" {{ request('location_code_id') == $c->id ? 'selected' : '' }}>
-                        {{ $c->code }} — {{ $c->name }}
+                        {{ $c->code }} - {{ $c->name }}
                     </option>
                     @endforeach
                 </select>
@@ -61,7 +61,7 @@
                     <option value="">All Components</option>
                     @foreach($components as $c)
                     <option value="{{ $c->id }}" {{ request('component_code_id') == $c->id ? 'selected' : '' }}>
-                        {{ $c->code }} — {{ $c->name }}
+                        {{ $c->code }} - {{ $c->name }}
                     </option>
                     @endforeach
                 </select>
@@ -71,7 +71,7 @@
                     <option value="">All Damage Types</option>
                     @foreach($damages as $c)
                     <option value="{{ $c->id }}" {{ request('damage_code_id') == $c->id ? 'selected' : '' }}>
-                        {{ $c->code }} — {{ $c->name }}
+                        {{ $c->code }} - {{ $c->name }}
                     </option>
                     @endforeach
                 </select>
@@ -149,15 +149,15 @@
                             @endphp
                             <span class="badge {{ $sc }}">{{ ucfirst($rule->default_severity) }}</span>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
-                    <td class="small text-muted">{{ Str::limit($rule->description, 60) ?? '—' }}</td>
+                    <td class="small text-muted">{{ Str::limit($rule->description, 60) ?? '-' }}</td>
                     <td class="text-center">
                         @can('masters.damage-rules.edit')
                         <form method="POST" action="{{ route('masters.damage-assessment-rules.toggle', $rule) }}">
                             @csrf @method('PATCH')
-                            <button type="submit" class="btn btn-sm {{ $rule->is_active ? 'btn-success' : 'btn-outline-secondary' }}" title="{{ $rule->is_active ? 'Active — click to deactivate' : 'Inactive — click to activate' }}">
+                            <button type="submit" class="btn btn-sm {{ $rule->is_active ? 'btn-success' : 'btn-outline-secondary' }}" title="{{ $rule->is_active ? 'Active - click to deactivate' : 'Inactive - click to activate' }}">
                                 <i class="bi {{ $rule->is_active ? 'bi-toggle-on' : 'bi-toggle-off' }}"></i>
                             </button>
                         </form>

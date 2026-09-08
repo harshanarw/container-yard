@@ -85,7 +85,7 @@ class FixStaleContainerConditionCommand extends Command
                 $c->container_no,
                 $c->condition,
                 $qcAt->format('d M Y H:i'),
-                $c->gate_in_date?->format('d M Y') ?? '—',
+                $c->gate_in_date?->format('d M Y') ?? '-',
                 $c->status,
             ];
 
@@ -93,7 +93,7 @@ class FixStaleContainerConditionCommand extends Command
         });
 
         if ($stale->isEmpty()) {
-            $this->info("None of the {$candidates->count()} non-sound container(s) have completed repairs — nothing stale.");
+            $this->info("None of the {$candidates->count()} non-sound container(s) have completed repairs - nothing stale.");
 
             return self::SUCCESS;
         }
@@ -103,7 +103,7 @@ class FixStaleContainerConditionCommand extends Command
 
         if (! $apply) {
             $this->newLine();
-            $this->line('Dry run — nothing changed. Re-run with <info>--fix</info> to set these to sound.');
+            $this->line('Dry run - nothing changed. Re-run with <info>--fix</info> to set these to sound.');
 
             return self::SUCCESS;
         }

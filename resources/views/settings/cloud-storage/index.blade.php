@@ -162,7 +162,7 @@
                                     App Secret <span class="text-danger">*</span>
                                 </label>
                                 <input type="password" name="dropbox_app_secret" class="form-control"
-                                       placeholder="{{ $settings->dropbox_app_secret ? '(saved — leave blank to keep)' : 'App secret' }}">
+                                       placeholder="{{ $settings->dropbox_app_secret ? '(saved - leave blank to keep)' : 'App secret' }}">
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold small">Root Folder</label>
@@ -203,7 +203,7 @@
                                     </summary>
                                     <div class="mt-2">
                                         <input type="password" name="dropbox_access_token" class="form-control"
-                                               placeholder="{{ $settings->dropbox_access_token ? '(saved — leave blank to keep)' : 'Long-lived access token from App Console' }}">
+                                               placeholder="{{ $settings->dropbox_access_token ? '(saved - leave blank to keep)' : 'Long-lived access token from App Console' }}">
                                         <div class="form-text">
                                             Only use if OAuth2 above is not possible. Tokens from the App Console
                                             expire in 4 hours.
@@ -239,7 +239,7 @@
                                     Client Secret <span class="text-danger">*</span>
                                 </label>
                                 <input type="password" name="gdrive_client_secret" class="form-control"
-                                       placeholder="{{ $settings->gdrive_client_secret ? '(saved — leave blank to keep)' : 'Client secret' }}">
+                                       placeholder="{{ $settings->gdrive_client_secret ? '(saved - leave blank to keep)' : 'Client secret' }}">
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold small">Target Folder ID</label>
@@ -317,8 +317,8 @@
                     <span class="badge bg-primary-subtle text-primary fw-semibold">
                         @switch($settings->provider)
                             @case('local')   Internal (Local Disk) @break
-                            @case('dropbox') External — Dropbox @break
-                            @case('gdrive')  External — Google Drive @break
+                            @case('dropbox') External - Dropbox @break
+                            @case('gdrive')  External - Google Drive @break
                         @endswitch
                     </span>
                 </div>
@@ -355,20 +355,20 @@
                 <p class="mb-2">
                     <strong>One storage option is active at a time.</strong>
                     New file uploads go to whichever option is marked <em>Active</em>.
-                    Switching does not move existing files — they remain on the original storage.
+                    Switching does not move existing files - they remain on the original storage.
                 </p>
                 <p class="mb-2">
-                    <strong>Internal Storage</strong> — Local server disk. Zero configuration.
+                    <strong>Internal Storage</strong> - Local server disk. Zero configuration.
                     Best for development or single-server deployments.
                 </p>
                 <p class="mb-2">
-                    <strong>Dropbox</strong> — Free or paid Dropbox account. Create an app in the
+                    <strong>Dropbox</strong> - Free or paid Dropbox account. Create an app in the
                     <a href="https://www.dropbox.com/developers/apps" target="_blank">App Console</a>,
                     enter App Key &amp; Secret, then click <em>Connect with Dropbox</em> to authorize.
                     Requires <code>spatie/flysystem-dropbox</code>.
                 </p>
                 <p class="mb-0">
-                    <strong>Google Drive</strong> — Personal Gmail or G Suite account.
+                    <strong>Google Drive</strong> - Personal Gmail or G Suite account.
                     Requires an OAuth2 Client ID from
                     <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a>.
                     Requires <code>masbug/flysystem-google-drive-ext</code> + <code>google/apiclient</code>.

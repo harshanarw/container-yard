@@ -72,10 +72,10 @@ $statusColors = [
                     @forelse($invoices as $inv)
                     <tr>
                         <td class="font-monospace small fw-semibold">{{ $inv->invoice_no }}</td>
-                        <td class="small">{{ $inv->customer->name ?? '—' }}</td>
+                        <td class="small">{{ $inv->customer->name ?? '-' }}</td>
                         <td class="small text-muted">
-                            {{ $inv->billing_period_from?->format('d M Y') ?? '—' }}
-                            &ndash; {{ $inv->billing_period_to?->format('d M Y') ?? '—' }}
+                            {{ $inv->billing_period_from?->format('d M Y') ?? '-' }}
+                            &ndash; {{ $inv->billing_period_to?->format('d M Y') ?? '-' }}
                         </td>
                         <td class="text-end fw-semibold">{{ $inv->currency }} {{ number_format($inv->grand_total, 2) }}</td>
                         <td class="text-center">

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Access Control — Users')
+@section('title', 'Access Control - Users')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('access-control.roles.index') }}">Access Control</a></li>
@@ -78,7 +78,7 @@
                     @if($user->direct_permissions_count > 0)
                         <span class="badge bg-warning-subtle text-warning">{{ $user->direct_permissions_count }}</span>
                     @else
-                        <span class="text-muted small">—</span>
+                        <span class="text-muted small">-</span>
                     @endif
                 </td>
                 <td class="pe-3 text-end">

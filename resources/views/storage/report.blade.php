@@ -185,7 +185,7 @@
                             @elseif($f->owner_type)
                                 <span class="text-muted">{{ class_basename($f->owner_type) }} #{{ $f->owner_id }}</span>
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </td>
                         <td class="small text-muted">{{ $f->created_at?->format('d M Y') }}</td>

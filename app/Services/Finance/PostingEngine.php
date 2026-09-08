@@ -181,7 +181,7 @@ class PostingEngine
                 'journal_type'   => $journal->journal_type,
                 'reference_type' => $journal->reference_type,
                 'reference_id'   => $journal->reference_id,
-                'narration'      => "VOID: {$journal->journal_no}" . ($reason ? " — {$reason}" : ''),
+                'narration'      => "VOID: {$journal->journal_no}" . ($reason ? " - {$reason}" : ''),
             ], $reversalLines);
 
             $this->postJournal($reversal, $userId);

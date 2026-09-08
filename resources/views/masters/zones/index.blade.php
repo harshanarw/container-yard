@@ -79,7 +79,7 @@
                     {{-- Name --}}
                     <td class="fw-semibold small">{{ $zone->name }}</td>
                     {{-- Description --}}
-                    <td class="small text-muted">{{ $zone->description ?? '—' }}</td>
+                    <td class="small text-muted">{{ $zone->description ?? '-' }}</td>
                     {{-- Slots --}}
                     <td class="text-center">
                         @if(isset($zone->yard_locations_count) && $zone->yard_locations_count > 0)
@@ -140,14 +140,14 @@
                             @if(($zone->yard_locations_count ?? 0) > 0)
                                 <button type="button" class="btn btn-sm btn-outline-danger"
                                         disabled
-                                        title="Cannot delete — zone has {{ $zone->yard_locations_count }} slot(s). Use Configure Slots to remove them first."
+                                        title="Cannot delete - zone has {{ $zone->yard_locations_count }} slot(s). Use Configure Slots to remove them first."
                                         data-bs-toggle="tooltip" data-bs-placement="left">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             @else
                                 <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
                                         data-id="{{ $zone->id }}"
-                                        data-label="{{ $zone->code }} — {{ $zone->name }}"
+                                        data-label="{{ $zone->code }} - {{ $zone->name }}"
                                         title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -198,7 +198,7 @@
                 <div class="col-12 col-md-3">
                     <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
                     <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                           value="{{ old('name') }}" maxlength="100" required placeholder="e.g. Zone A — 20ft Section">
+                           value="{{ old('name') }}" maxlength="100" required placeholder="e.g. Zone A - 20ft Section">
                     @error('name')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror

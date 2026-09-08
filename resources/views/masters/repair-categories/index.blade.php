@@ -68,7 +68,7 @@
                         </span>
                     </td>
                     <td class="fw-semibold small">{{ $cat->name }}</td>
-                    <td class="small text-muted">{{ $cat->description ?? '—' }}</td>
+                    <td class="small text-muted">{{ $cat->description ?? '-' }}</td>
                     <td>
                         <span class="badge bg-{{ $cat->color }}">{{ $cat->name }}</span>
                     </td>

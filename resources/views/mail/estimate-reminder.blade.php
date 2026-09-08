@@ -32,7 +32,7 @@
     <p>Dear Owner / Principal,</p>
 
     <div class="info-box">
-      <strong>This is a reminder</strong> — Estimate <strong>{{ $estimate->estimate_no }}</strong> for container
+      <strong>This is a reminder</strong> - Estimate <strong>{{ $estimate->estimate_no }}</strong> for container
       <strong>{{ $estimate->container_no }}</strong> is still awaiting your approval.
     </div>
 

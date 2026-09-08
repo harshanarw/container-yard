@@ -26,7 +26,7 @@ class HandlingTariffSeeder extends Seeder
                 'valid_from' => '2024-01-01',
                 'valid_to'   => null,
                 'is_active'  => true,
-                'notes'      => 'Standard Maersk handling charges — open-ended contract.',
+                'notes'      => 'Standard Maersk handling charges - open-ended contract.',
                 'rates'      => [
                     ['container_size' => '20', 'lift_off_rate' => 55.00, 'lift_on_rate' => 55.00, 'currency' => 'USD'],
                     ['container_size' => '40', 'lift_off_rate' => 85.00, 'lift_on_rate' => 85.00, 'currency' => 'USD'],
@@ -40,7 +40,7 @@ class HandlingTariffSeeder extends Seeder
                 'valid_from' => '2024-01-01',
                 'valid_to'   => '2024-12-31',
                 'is_active'  => false,
-                'notes'      => 'CMA CGM 2024 handling agreement — expired.',
+                'notes'      => 'CMA CGM 2024 handling agreement - expired.',
                 'rates'      => [
                     ['container_size' => '20', 'lift_off_rate' => 50.00, 'lift_on_rate' => 50.00, 'currency' => 'USD'],
                     ['container_size' => '40', 'lift_off_rate' => 80.00, 'lift_on_rate' => 80.00, 'currency' => 'USD'],
@@ -52,7 +52,7 @@ class HandlingTariffSeeder extends Seeder
                 'valid_from' => '2025-01-01',
                 'valid_to'   => null,
                 'is_active'  => true,
-                'notes'      => 'CMA CGM 2025 revised rates — open-ended.',
+                'notes'      => 'CMA CGM 2025 revised rates - open-ended.',
                 'rates'      => [
                     ['container_size' => '20', 'lift_off_rate' => 52.00, 'lift_on_rate' => 52.00, 'currency' => 'USD'],
                     ['container_size' => '40', 'lift_off_rate' => 82.00, 'lift_on_rate' => 82.00, 'currency' => 'USD'],
@@ -66,7 +66,7 @@ class HandlingTariffSeeder extends Seeder
                 'valid_from' => '2025-01-01',
                 'valid_to'   => null,
                 'is_active'  => true,
-                'notes'      => 'PIL standard handling — slightly lower 20\' lift-off.',
+                'notes'      => 'PIL standard handling - slightly lower 20\' lift-off.',
                 'rates'      => [
                     ['container_size' => '20', 'lift_off_rate' => 48.00, 'lift_on_rate' => 52.00, 'currency' => 'USD'],
                     ['container_size' => '40', 'lift_off_rate' => 75.00, 'lift_on_rate' => 80.00, 'currency' => 'USD'],
@@ -80,7 +80,7 @@ class HandlingTariffSeeder extends Seeder
                 'valid_from' => '2025-03-01',
                 'valid_to'   => null,
                 'is_active'  => true,
-                'notes'      => 'Hapag-Lloyd — 45\' surcharge applied.',
+                'notes'      => 'Hapag-Lloyd - 45\' surcharge applied.',
                 'rates'      => [
                     ['container_size' => '20', 'lift_off_rate' => 60.00, 'lift_on_rate' => 60.00, 'currency' => 'USD'],
                     ['container_size' => '40', 'lift_off_rate' => 90.00, 'lift_on_rate' => 90.00, 'currency' => 'USD'],
@@ -107,7 +107,7 @@ class HandlingTariffSeeder extends Seeder
             $shippingLine = Customer::where('code', $data['code'])->first();
 
             if (! $shippingLine) {
-                $this->command->warn("Shipping line [{$data['code']}] not found — skipping.");
+                $this->command->warn("Shipping line [{$data['code']}] not found - skipping.");
                 continue;
             }
 

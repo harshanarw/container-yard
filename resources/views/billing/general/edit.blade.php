@@ -70,7 +70,7 @@
                         <label class="{{ $lblCls }}" for="customerSel">Customer <span class="text-danger">*</span></label>
                         <div class="col-sm-8">
                             <select name="customer_id" id="customerSel" class="form-select select2 s2-code" data-s2-sel="name" required>
-                                <option value="">— select —</option>
+                                <option value="">- select -</option>
                                 @foreach($customers as $c)
                                     <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-tax-exempt="{{ $c->tax_exempt ? 1 : 0 }}" data-terms="{{ $c->payment_terms }}" data-currency="{{ $c->currency }}" {{ (string) old('customer_id', $invoice->customer_id) === (string) $c->id ? 'selected' : '' }}>[{{ $c->code }}] {{ $c->name }}</option>
                                 @endforeach
@@ -116,7 +116,7 @@
                         <div class="col-sm-8">
                             <select name="tax_applicable" id="taxApplicable" class="form-select" required>
                                 <option value="1" {{ old('tax_applicable', $invoice->tax_applicable ? '1' : '0') === '1' ? 'selected' : '' }}>Yes</option>
-                                <option value="0" {{ old('tax_applicable', $invoice->tax_applicable ? '1' : '0') === '0' ? 'selected' : '' }}>No — Tax Exempt</option>
+                                <option value="0" {{ old('tax_applicable', $invoice->tax_applicable ? '1' : '0') === '0' ? 'selected' : '' }}>No - Tax Exempt</option>
                             </select>
                         </div>
                     </div>
@@ -126,7 +126,7 @@
                         <label class="{{ $lblCls }}" for="category">Category</label>
                         <div class="col-sm-8">
                             <select name="category" id="category" class="form-select select2">
-                                <option value="">—</option>
+                                <option value="">-</option>
                                 @foreach(\App\Models\GeneralInvoice::CATEGORIES as $k => $label)
                                     <option value="{{ $k }}" {{ old('category', $invoice->category) === $k ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
@@ -160,7 +160,7 @@
                         <label class="{{ $lblCls }}" for="yard_job_id">Job <span class="text-muted fw-normal">(costing)</span></label>
                         <div class="col-sm-8">
                             <select name="yard_job_id" id="yard_job_id" class="form-select job-costing job-select" data-s2-sel="name">
-                                <option value="">— None —</option>
+                                <option value="">- None -</option>
                                 @foreach($jobs as $j)
                                     <option value="{{ $j['id'] }}" data-job-no="{{ $j['job_no'] }}" data-cont="{{ $j['container_no'] }}" data-st="{{ $j['size'] ? $j['size']."'".$j['type_code'] : '' }}" data-cust="{{ $j['customer'] }}" data-cust-id="{{ $j['customer_id'] }}" @selected(old('yard_job_id') == $j['id'])>{{ $jobLabel($j) }}</option>
                                 @endforeach
@@ -185,7 +185,7 @@
                         <div class="col-sm-8">
                             <select name="currency" id="invoiceCurrency" class="form-select s2-code" required>
                                 @foreach($currencies as $code => $name)
-                                    <option value="{{ $code }}" data-code="{{ $code }}" data-name="{{ $name }}" {{ $curCode === $code ? 'selected' : '' }}>{{ $code }} — {{ $name }}</option>
+                                    <option value="{{ $code }}" data-code="{{ $code }}" data-name="{{ $name }}" {{ $curCode === $code ? 'selected' : '' }}>{{ $code }} - {{ $name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -309,13 +309,13 @@
 
     // Charge code option → code chip + description (s2-code), carrying tax + account.
     function chargeOpts(sel){
-        return '<option value="">— charge code —</option>' + CHARGE.map(c => {
+        return '<option value="">- charge code -</option>' + CHARGE.map(c => {
             const a = ACCOUNTS[c.id];
-            return `<option value="${c.id}" data-code="${esc(c.code)}" data-name="${esc(c.desc)}" data-tax="${c.tax_code_id ?? ''}" data-acode="${a?esc(a.code):''}" data-aname="${a?esc(a.name):''}" ${String(sel)===String(c.id)?'selected':''}>${esc(c.code)} — ${esc(c.desc)}</option>`;
+            return `<option value="${c.id}" data-code="${esc(c.code)}" data-name="${esc(c.desc)}" data-tax="${c.tax_code_id ?? ''}" data-acode="${a?esc(a.code):''}" data-aname="${a?esc(a.name):''}" ${String(sel)===String(c.id)?'selected':''}>${esc(c.code)} - ${esc(c.desc)}</option>`;
         }).join('');
     }
     function taxOpts(sel){
-        return '<option value="">— none —</option>' + TAXCODES.map(t => {
+        return '<option value="">- none -</option>' + TAXCODES.map(t => {
             const label = `${t.code} (SSCL ${t.t1}% + VAT ${t.t2}%)`;
             return `<option value="${t.id}" data-code="${esc(t.code)}" data-name="${esc(label)}" data-t1="${t.t1}" data-t2="${t.t2}" ${String(sel)===String(t.id)?'selected':''}>${esc(t.code)}</option>`;
         }).join('');
@@ -336,11 +336,11 @@
         return `<option value="${j.id}" data-job-no="${esc(j.job_no)}" data-cont="${esc(j.container_no || '')}" data-st="${esc(jobST(j))}" data-cust="${esc(j.customer || '')}" data-cust-id="${j.customer_id ?? ''}" ${String(sel)===String(j.id)?'selected':''}>${esc(jobLabel(j))}</option>`;
     }
     function jobOpts(sel){
-        return '<option value="">— none —</option>' + JOBS.map(j => jobOption(j, sel)).join('');
+        return '<option value="">- none -</option>' + JOBS.map(j => jobOption(j, sel)).join('');
     }
     function acctOpts(sel){
-        return '<option value="">— revenue a/c —</option>' + INCOME_ACCTS.map(a =>
-            `<option value="${a.id}" data-code="${esc(a.code)}" data-name="${esc(a.name)}" ${String(sel)===String(a.id)?'selected':''}>${esc(a.code)} — ${esc(a.name)}</option>`
+        return '<option value="">- revenue a/c -</option>' + INCOME_ACCTS.map(a =>
+            `<option value="${a.id}" data-code="${esc(a.code)}" data-name="${esc(a.name)}" ${String(sel)===String(a.id)?'selected':''}>${esc(a.code)} - ${esc(a.name)}</option>`
         ).join('');
     }
 
@@ -392,7 +392,7 @@
             if (f) list.unshift(f);
         }
         const label = $sel.hasClass('job-line') ? 'none' : 'None';
-        $sel.html('<option value="">— ' + label + ' —</option>' + list.map(j => jobOption(j, cur)).join(''))
+        $sel.html('<option value="">- ' + label + ' -</option>' + list.map(j => jobOption(j, cur)).join(''))
             .val(cur || '').trigger('change.select2');
     }
     function refreshAllJobSelects(){
@@ -444,13 +444,13 @@
         const ic = invCur();
         const note = document.getElementById('invRateNote');
         document.getElementById('invRateLbl').textContent = ic === BASE ? '' : `1 ${ic} = ? ${BASE}`;
-        if (ic === BASE) { document.getElementById('invoiceRate').value = '1'; document.getElementById('invoiceRate').readOnly = true; note.textContent = `Base currency — no conversion.`; return; }
+        if (ic === BASE) { document.getElementById('invoiceRate').value = '1'; document.getElementById('invoiceRate').readOnly = true; note.textContent = `Base currency - no conversion.`; return; }
         document.getElementById('invoiceRate').readOnly = false;
         try {
             const r = await fetch(`${RATE_URL}?line_currency=${ic}&invoice_currency=${BASE}&date=${document.getElementById('invoiceDate').value}`);
             const j = await r.json();
             if (j.found && j.rate) { document.getElementById('invoiceRate').value = parseFloat(j.rate).toFixed(6); note.innerHTML = '<span class="text-success">Rate auto-loaded.</span>'; }
-            else note.innerHTML = '<span class="text-warning">No rate found — enter manually.</span>';
+            else note.innerHTML = '<span class="text-warning">No rate found - enter manually.</span>';
         } catch (_) {}
     }
 

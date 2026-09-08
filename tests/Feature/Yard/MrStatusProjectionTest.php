@@ -178,7 +178,7 @@ class MrStatusProjectionTest extends FeatureTestCase
         $wo->delete();
 
         $this->assertNotSame(Cat::REPAIR_SCHEDULED, $container->refresh()->mr_status,
-            'A deleted work order must not leave the container reading as scheduled — the shape of the in_repair stranding bug.');
+            'A deleted work order must not leave the container reading as scheduled - the shape of the in_repair stranding bug.');
     }
 
     public function test_a_hold_suppresses_export_readiness_without_changing_the_status(): void
@@ -205,7 +205,7 @@ class MrStatusProjectionTest extends FeatureTestCase
         $container->refresh();
 
         $this->assertSame(Cat::REPAIRED_AVAILABLE, $container->mr_status,
-            'A held container is still doing whatever it was doing — the hold is a modifier, not a status.');
+            'A held container is still doing whatever it was doing - the hold is a modifier, not a status.');
         $this->assertFalse((bool) $container->export_ready,
             'A held container cannot be released, however sound it is.');
     }
@@ -229,7 +229,7 @@ class MrStatusProjectionTest extends FeatureTestCase
         $hold->update(['cleared_at' => now()]);
 
         $this->assertTrue((bool) $container->refresh()->export_ready,
-            'Clearing the hold must release the box again — the projection tracks both directions.');
+            'Clearing the hold must release the box again - the projection tracks both directions.');
     }
 
     public function test_gate_out_closes_the_cycle_on_both_projections(): void

@@ -135,7 +135,7 @@ class StorageHandlingNoDoubleBillingTest extends FeatureTestCase
 
         $second = $this->preview('2026-03-01', '2026-03-31')->assertOk()->json();
 
-        $this->assertCount(1, $second['lines'], 'It comes back — the rest of the month is still owed.');
+        $this->assertCount(1, $second['lines'], 'It comes back - the rest of the month is still owed.');
         $line = $second['lines'][0];
 
         $this->assertSame('2026-03-16', $line['storage_from'], 'The window starts where the last bill ended.');
@@ -270,7 +270,7 @@ class StorageHandlingNoDoubleBillingTest extends FeatureTestCase
 
         $this->assertCount(1, $second['lines']);
         $this->assertSame('DUPE0000009', $second['lines'][0]['container_no'],
-            'The container dropped from the first invoice comes back in full on the next one — '
+            'The container dropped from the first invoice comes back in full on the next one - '
             . 'which is the requirement this guard was built for.');
         $this->assertSame(31, $second['lines'][0]['storage_total_days'], 'And it was never billed, so nothing is trimmed.');
     }

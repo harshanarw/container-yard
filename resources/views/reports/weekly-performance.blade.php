@@ -305,8 +305,8 @@
     </div>
 
     <div class="card-footer bg-transparent small text-muted">
-        <strong>Demounting</strong> is Lift Off — the box coming off the truck at gate-in.
-        <strong>Mounting</strong> is Lift On — the box going onto the truck at gate-out.
+        <strong>Demounting</strong> is Lift Off - the box coming off the truck at gate-in.
+        <strong>Mounting</strong> is Lift On - the box going onto the truck at gate-out.
         Size and cargo status are recorded as they were at the gate, so a box that arrived
         laden and left empty is counted once each way. Blank means none.
         @if($data['unmapped'] > 0)

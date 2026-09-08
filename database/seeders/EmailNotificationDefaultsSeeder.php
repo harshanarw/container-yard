@@ -66,7 +66,7 @@ class EmailNotificationDefaultsSeeder extends Seeder
         EmailConfig::firstOrCreate(
             $match,
             [
-                'name'       => 'Default (General) — configure & activate',
+                'name'       => 'Default (General) - configure & activate',
                 'driver'     => 'smtp',
                 'is_default' => true,
                 'is_active'  => false, // admin must add credentials and enable

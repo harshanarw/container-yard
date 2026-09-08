@@ -61,7 +61,7 @@ class JobMarginReportController extends Controller
                 yield [
                     $j->job_no,
                     $j->jobType->job_type_name ?? $j->job_type_code,
-                    $j->customer->name ?? '—',
+                    $j->customer->name ?? '-',
                     $j->status,
                     number_format($r['realized_revenue'], 2, '.', ''),
                     number_format($r['realized_cost'], 2, '.', ''),

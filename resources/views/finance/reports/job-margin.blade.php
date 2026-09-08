@@ -184,7 +184,7 @@
                             <a href="{{ route('yard.jobs.show', $j) }}" class="fw-semibold text-decoration-none font-monospace">{{ $j->job_no }}</a>
                             <div class="text-muted" style="font-size:.7rem">{{ $j->jobType->job_type_name ?? $j->job_type_code }}</div>
                         </td>
-                        <td>{{ $j->customer->name ?? '—' }}</td>
+                        <td>{{ $j->customer->name ?? '-' }}</td>
                         <td class="text-center">
                             <span class="badge {{ \App\Models\YardJob::statusBadgeClass($j->status) }}" style="font-size:.68rem">
                                 {{ \App\Models\YardJob::statusLabel($j->status) }}
@@ -196,7 +196,7 @@
                             {{ $signed($m) }}
                         </td>
                         <td class="text-end font-monospace {{ ($r['margin_pct'] ?? 0) < 0 ? 'text-danger' : 'text-muted' }}">
-                            {{ $r['margin_pct'] === null ? '—' : $r['margin_pct'] . '%' }}
+                            {{ $r['margin_pct'] === null ? '-' : $r['margin_pct'] . '%' }}
                         </td>
                         <td class="text-end pe-3 font-monospace" style="font-size:.72rem">
                             @if($r['pending_revenue'] > 0 || $r['pending_cost'] > 0)
@@ -204,7 +204,7 @@
                                 <span class="text-muted"> / </span>
                                 <span class="text-danger">{{ $fmt($r['pending_cost']) }}</span>
                             @elseif(($r['accrued_cost'] ?? 0) <= 0)
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">-</span>
                             @endif
                             @if(($r['accrued_cost'] ?? 0) > 0)
                                 <div class="text-danger" style="font-size:.66rem" title="Accrued lessor per-diem, not yet invoiced">
@@ -232,7 +232,7 @@
                             {{ $signed($totals['realized_margin']) }}
                         </td>
                         <td class="text-end font-monospace text-muted">
-                            {{ $totals['margin_pct'] === null ? '—' : $totals['margin_pct'] . '%' }}
+                            {{ $totals['margin_pct'] === null ? '-' : $totals['margin_pct'] . '%' }}
                         </td>
                         <td class="text-end pe-3 font-monospace" style="font-size:.72rem">
                             <span class="text-success">{{ $fmt($totals['pending_revenue']) }}</span>
@@ -254,7 +254,7 @@
     <i class="bi bi-info-circle me-1"></i>
     <strong>Realized</strong> figures come from posted GL entries tagged to each job (income &rarr; revenue,
     expense &rarr; cost). <strong>Pending</strong> is draft AR / AP / vouchers not yet posted, and
-    <strong>accrued</strong> is lessor per-diem cost building up before its supplier invoice arrives — both
+    <strong>accrued</strong> is lessor per-diem cost building up before its supplier invoice arrives - both
     shown for the pipeline but never counted in realized margin.
 </p>
 

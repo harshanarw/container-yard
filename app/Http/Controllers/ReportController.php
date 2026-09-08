@@ -625,7 +625,7 @@ class ReportController extends Controller
                     $m->container_no,
                     $m->size,
                     $m->container_type,
-                    $m->customer->name ?? '—',
+                    $m->customer->name ?? '-',
                     $m->condition,
                     // That cycle's status, from the movement row itself — a
                     // gate-out row carries none, since only gate-ins own a cycle.
@@ -642,7 +642,7 @@ class ReportController extends Controller
                     $m->location_bay,
                     $m->location_tier,
                     $m->remarks,
-                    $m->createdBy->name ?? '—',
+                    $m->createdBy->name ?? '-',
                     $visitContext[$m->id]['gate_in']?->gate_in_time?->format('Y-m-d H:i:s'),
                     $visitContext[$m->id]['gate_out']?->gate_out_time?->format('Y-m-d H:i:s'),
                     // Elapsed gate-to-gate days, not chargeable days: billing

@@ -172,13 +172,13 @@ class ExportReadinessTest extends FeatureTestCase
         // Inclusive: the PTI stays valid through the whole of its last day.
         Carbon::setTestNow(Carbon::parse('2026-08-03 12:00:00'));
         $this->assertTrue($this->isReturnedByScope($container),
-            'valid_until is inclusive — the last day still counts.');
+            'valid_until is inclusive - the last day still counts.');
 
         // The day after, with no write of any kind in between.
         Carbon::setTestNow(Carbon::parse('2026-08-04 12:00:00'));
 
         $this->assertTrue((bool) $container->refresh()->export_ready,
-            'The stored flag is untouched — nothing saved, so no observer could have fired.');
+            'The stored flag is untouched - nothing saved, so no observer could have fired.');
 
         $this->assertFalse($this->isReturnedByScope($container),
             'The query compares the stored boundary against today, so the answer is exact without a scheduled recompute.');

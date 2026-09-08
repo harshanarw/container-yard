@@ -19,7 +19,7 @@ class UserRoleSeeder extends Seeder
 
             // system_administrator / administrator bypass RBAC via isSuperUser() — no pivot row needed
             if (!$roleName || !$roles->has($roleName)) {
-                $this->command->line("  –  {$user->name} ({$roleName}) — no matching RBAC role, skipped.");
+                $this->command->line("  –  {$user->name} ({$roleName}) - no matching RBAC role, skipped.");
                 $skipped++;
                 return;
             }
@@ -31,6 +31,6 @@ class UserRoleSeeder extends Seeder
             $this->command->info("  ✔  {$user->name} → {$role->display_name}");
         });
 
-        $this->command->info("  ✔  User role assignments complete — {$assigned} assigned, {$skipped} skipped.");
+        $this->command->info("  ✔  User role assignments complete - {$assigned} assigned, {$skipped} skipped.");
     }
 }

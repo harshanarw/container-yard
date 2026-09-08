@@ -13,7 +13,7 @@
     <div>
         <h4 class="mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Income Statement</h4>
         <p class="text-muted small mb-0">
-            {{ \Carbon\Carbon::parse($from)->format('d M Y') }} — {{ \Carbon\Carbon::parse($to)->format('d M Y') }}
+            {{ \Carbon\Carbon::parse($from)->format('d M Y') }} - {{ \Carbon\Carbon::parse($to)->format('d M Y') }}
         </p>
     </div>
     <div class="d-flex gap-2 align-items-end flex-wrap">

@@ -117,7 +117,7 @@
                         <option value="m"     {{ $curDimUom === 'm'     ? 'selected' : '' }}>Metres (m)</option>
                     </select>
                     <div class="form-text">
-                        Tariff items denominated in <code>sqft</code> or <code>inches</code> — dimensions are auto-converted on save.
+                        Tariff items denominated in <code>sqft</code> or <code>inches</code> - dimensions are auto-converted on save.
                     </div>
                     @error('mr_dimension_uom')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
@@ -131,7 +131,7 @@
         <div class="card-header py-2 d-flex align-items-center justify-content-between">
             <div>
                 <i class="bi bi-hash me-2 text-primary"></i>Number Sequences
-                <small class="text-muted fw-normal ms-2">— format and counter settings for all auto-generated reference numbers</small>
+                <small class="text-muted fw-normal ms-2">- format and counter settings for all auto-generated reference numbers</small>
             </div>
             <a href="{{ route('settings.number-sequences.index') }}" class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-pencil-square me-1"></i>Configure Sequences
@@ -151,7 +151,7 @@
     <div class="card content-card mb-4">
         <div class="card-header py-2">
             <i class="bi bi-percent me-2 text-primary"></i>Billing Defaults
-            <small class="text-muted fw-normal ms-2">— pre-filled values on new invoices and estimates</small>
+            <small class="text-muted fw-normal ms-2">- pre-filled values on new invoices and estimates</small>
         </div>
         <div class="card-body">
             <div class="row g-3">

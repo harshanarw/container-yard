@@ -105,7 +105,7 @@ class UserProfileSeeder extends Seeder
             $user = User::where('email', $email)->first();
 
             if (!$user) {
-                $this->command->warn("  –  User [{$email}] not found — skipped.");
+                $this->command->warn("  –  User [{$email}] not found - skipped.");
                 continue;
             }
 

@@ -103,7 +103,7 @@ class QcConditionWriteBackTest extends FeatureTestCase
 
         $this->assertSame('rejected', $wo->refresh()->status);
         $this->assertSame('damaged', $container->refresh()->condition,
-            'Rework is not a repair — the container must stay damaged until QC actually passes.');
+            'Rework is not a repair - the container must stay damaged until QC actually passes.');
     }
 
     public function test_condition_stays_damaged_while_another_work_order_is_open(): void

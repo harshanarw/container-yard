@@ -33,7 +33,7 @@ $statusColors = [
                 {{ ucfirst(str_replace('_', ' ', $invoice->status)) }}
             </span>
             &nbsp;·&nbsp; {{ $invoice->billing_mode === 'periodic' ? 'Periodic bill' : $invoice->container_no }}
-            &nbsp;·&nbsp; {{ $invoice->customer->name ?? '—' }}
+            &nbsp;·&nbsp; {{ $invoice->customer->name ?? '-' }}
             &nbsp;·&nbsp; @include('partials.job-badge', ['job' => $invoice->yardJob, 'mode' => 'inline'])
         </p>
     </div>
@@ -138,16 +138,16 @@ $statusColors = [
                 <hr class="my-2">
                 <dl class="row mb-0">
                     <dt class="col-6">Invoice Date</dt>
-                    <dd class="col-6">{{ $invoice->invoice_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-6">{{ $invoice->invoice_date?->format('d M Y') ?? '-' }}</dd>
 
                     <dt class="col-6">Due Date</dt>
-                    <dd class="col-6">{{ $invoice->due_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-6">{{ $invoice->due_date?->format('d M Y') ?? '-' }}</dd>
 
                     @if($invoice->billing_mode === 'periodic')
                     <dt class="col-6">Billing Period</dt>
                     <dd class="col-6 fw-semibold">
-                        {{ $invoice->billing_period_from?->format('d M Y') ?? '—' }}
-                        &ndash; {{ $invoice->billing_period_to?->format('d M Y') ?? '—' }}
+                        {{ $invoice->billing_period_from?->format('d M Y') ?? '-' }}
+                        &ndash; {{ $invoice->billing_period_to?->format('d M Y') ?? '-' }}
                     </dd>
                     @else
                     <dt class="col-6">Container</dt>
@@ -155,7 +155,7 @@ $statusColors = [
                     @endif
 
                     <dt class="col-6">Customer</dt>
-                    <dd class="col-6 fw-semibold">{{ $invoice->customer->name ?? '—' }}</dd>
+                    <dd class="col-6 fw-semibold">{{ $invoice->customer->name ?? '-' }}</dd>
 
                     @if($invoice->notes)
                     <dt class="col-12 text-muted fw-semibold mt-2 mb-1">Notes</dt>
@@ -251,14 +251,14 @@ $statusColors = [
                             <span class="badge bg-warning-subtle text-warning border font-monospace">{{ $line->chargeCode->code }}</span>
                             <div class="text-muted" style="font-size:.75rem;">{{ $line->chargeCode->description }}</div>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td class="small">
                         @if($line->taxCode)
                             <span class="badge bg-info-subtle text-info border font-monospace">{{ $line->taxCode->code }}</span>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td class="small">{{ $line->description }}</td>
@@ -269,7 +269,7 @@ $statusColors = [
                             {{ $invoice->currency }} {{ number_format($line->tax1_amount, 2) }}
                             <div class="text-muted" style="font-size:.68rem;">{{ $line->tax1_rate ?? 0 }}%</div>
                         @else
-                            —
+                            -
                         @endif
                     </td>
                     <td class="small text-end text-muted">
@@ -277,7 +277,7 @@ $statusColors = [
                             {{ $invoice->currency }} {{ number_format($line->tax2_amount, 2) }}
                             <div class="text-muted" style="font-size:.68rem;">{{ $line->tax2_rate ?? 0 }}%</div>
                         @else
-                            —
+                            -
                         @endif
                     </td>
                     <td class="small text-end fw-semibold">{{ $invoice->currency }} {{ number_format($line->gross_amount ?? $line->line_amount, 2) }}</td>
@@ -315,7 +315,7 @@ $statusColors = [
 @endphp
 <div class="card mb-4">
     <div class="card-header bg-light">
-        <h5 class="mb-0"><i class="bi bi-bank me-2 text-primary"></i>Finance — GL Posting</h5>
+        <h5 class="mb-0"><i class="bi bi-bank me-2 text-primary"></i>Finance - GL Posting</h5>
     </div>
     <div class="card-body">
         @if($_posting && $_posting->isPosted())
@@ -330,7 +330,7 @@ $statusColors = [
                 </a>
                 @endif
                 <span class="text-muted small">
-                    by {{ $_posting->postedBy->name ?? '—' }}
+                    by {{ $_posting->postedBy->name ?? '-' }}
                     {{ $_posting->posted_at ? 'on ' . $_posting->posted_at->format('d M Y H:i') : '' }}
                 </span>
             </div>

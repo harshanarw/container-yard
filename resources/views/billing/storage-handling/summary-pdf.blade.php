@@ -142,7 +142,7 @@
             <div class="info-box">
                 <h3>Bill To</h3>
                 <div style="font-weight:bold; font-size:11px; margin-bottom:4px;">
-                    {{ $invoice->billingParty->name ?? $invoice->shippingLine->name ?? '—' }}
+                    {{ $invoice->billingParty->name ?? $invoice->shippingLine->name ?? '-' }}
                 </div>
                 @php $party = $invoice->billingParty ?? $invoice->shippingLine; @endphp
                 @if($party)
@@ -194,7 +194,7 @@
         <tr>
             <td class="c">{{ $i + 1 }}</td>
             <td style="font-family:monospace; font-weight:bold;">{{ $line->container_no }}</td>
-            <td class="c">{{ $line->container_size ? $line->container_size . "'" : '—' }}</td>
+            <td class="c">{{ $line->container_size ? $line->container_size . "'" : '-' }}</td>
             <td>{!! $describe($line) !!}</td>
             <td class="r" style="font-weight:bold;">{{ $fmtDisp($line->line_grand_total) }}</td>
         </tr>

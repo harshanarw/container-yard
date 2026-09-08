@@ -119,7 +119,7 @@
         document.getElementById('dayCat').textContent = (data.day_category || '').replace(/_/g, ' ');
         if (!data.rules.length) {
             box.innerHTML = '<div class="alert alert-warning py-2 small mb-0">No configured OT rule for this day' +
-                (data.unconfigured ? ' (falls into an unconfigured period — supervisor approval / custom rule required).' : '.') + '</div>';
+                (data.unconfigured ? ' (falls into an unconfigured period - supervisor approval / custom rule required).' : '.') + '</div>';
             return;
         }
         let html = '<div class="small text-muted mb-2">Select the service window the customer is paying for:</div>';

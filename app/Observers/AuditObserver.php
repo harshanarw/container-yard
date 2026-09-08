@@ -63,7 +63,7 @@ abstract class AuditObserver
     protected function describeCreated(Model $model, ?string $ref): string
     {
         return $ref
-            ? class_basename($model) . " #{$model->getKey()} created — {$ref}"
+            ? class_basename($model) . " #{$model->getKey()} created - {$ref}"
             : class_basename($model) . " #{$model->getKey()} created";
     }
 
@@ -71,14 +71,14 @@ abstract class AuditObserver
     {
         $changed = implode(', ', array_keys($diff['old'] ?? []));
         return $ref
-            ? class_basename($model) . " #{$model->getKey()} updated [{$changed}] — {$ref}"
+            ? class_basename($model) . " #{$model->getKey()} updated [{$changed}] - {$ref}"
             : class_basename($model) . " #{$model->getKey()} updated [{$changed}]";
     }
 
     protected function describeDeleted(Model $model, ?string $ref): string
     {
         return $ref
-            ? class_basename($model) . " #{$model->getKey()} deleted — {$ref}"
+            ? class_basename($model) . " #{$model->getKey()} deleted - {$ref}"
             : class_basename($model) . " #{$model->getKey()} deleted";
     }
 }

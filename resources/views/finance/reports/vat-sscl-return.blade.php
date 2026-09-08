@@ -20,7 +20,7 @@
         <h4 class="mb-0"><i class="bi bi-percent me-2 text-primary"></i>VAT / SSCL Return</h4>
         <p class="text-muted small mb-0">
             Output tax on sales vs recoverable input VAT for
-            {{ \Carbon\Carbon::parse($from)->format('d M Y') }} — {{ \Carbon\Carbon::parse($to)->format('d M Y') }} · in {{ $base }}
+            {{ \Carbon\Carbon::parse($from)->format('d M Y') }} - {{ \Carbon\Carbon::parse($to)->format('d M Y') }} · in {{ $base }}
         </p>
     </div>
     <div class="d-flex align-items-end gap-2 flex-wrap d-print-none">
@@ -76,7 +76,7 @@
 
 {{-- Output tax --}}
 <div class="card content-card mb-3">
-    <div class="card-header bg-transparent py-2"><strong class="small"><i class="bi bi-arrow-up-right-circle me-1 text-primary"></i>Output Tax — Sales</strong></div>
+    <div class="card-header bg-transparent py-2"><strong class="small"><i class="bi bi-arrow-up-right-circle me-1 text-primary"></i>Output Tax - Sales</strong></div>
     <div class="table-responsive">
         <table class="table table-sm align-middle mb-0 small">
             <thead class="table-light">
@@ -113,7 +113,7 @@
 
 {{-- Input tax --}}
 <div class="card content-card mb-3">
-    <div class="card-header bg-transparent py-2"><strong class="small"><i class="bi bi-arrow-down-left-circle me-1 text-success"></i>Input Tax — Purchases</strong></div>
+    <div class="card-header bg-transparent py-2"><strong class="small"><i class="bi bi-arrow-down-left-circle me-1 text-success"></i>Input Tax - Purchases</strong></div>
     <div class="table-responsive">
         <table class="table table-sm align-middle mb-0 small">
             <thead class="table-light">
@@ -190,7 +190,7 @@
     <i class="bi bi-info-circle mt-1"></i>
     <div>
         Figures are on an <strong>invoice (accrual) basis</strong> and normalised to {{ $base }}. Only issued/posted documents are
-        included. Credit notes reverse VAT only — consistent with how they post to the ledger. <strong>SSCL is a turnover levy and
+        included. Credit notes reverse VAT only - consistent with how they post to the ledger. <strong>SSCL is a turnover levy and
         is not recoverable</strong>: input SSCL paid on purchases is shown for information but never offsets the SSCL payable.
     </div>
 </div>

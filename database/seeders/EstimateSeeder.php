@@ -209,7 +209,7 @@ class EstimateSeeder extends Seeder
                 'scope_of_work'  => 'Clean, treat and anti-rust coat both base rails.',
                 'terms'          => "1. Estimate valid for 30 days.\n2. Payment due within 30 days of invoice.",
                 'line_items'     => [
-                    ['component' => 'Base Rail — Anti-Rust Treatment', 'repair_type' => 'clean_and_treat', 'qty' => 2.0, 'unit_price' => 190.00, 'tax_percentage' => 8.00, 'line_amount' => 380.00],
+                    ['component' => 'Base Rail - Anti-Rust Treatment', 'repair_type' => 'clean_and_treat', 'qty' => 2.0, 'unit_price' => 190.00, 'tax_percentage' => 8.00, 'line_amount' => 380.00],
                 ],
             ],
 
@@ -266,7 +266,7 @@ class EstimateSeeder extends Seeder
                 'scope_of_work'  => 'Repair multiple dents on left side wall. Straighten and weld two bent cross members.',
                 'terms'          => "1. Estimate valid for 30 days.\n2. Payment due within 30 days of invoice.",
                 'line_items'     => [
-                    ['component' => 'Left Side Wall — Dents', 'repair_type' => 'repair',     'qty' => 3.0, 'unit_price' => 300.00, 'tax_percentage' => 8.00, 'line_amount' => 900.00],
+                    ['component' => 'Left Side Wall - Dents', 'repair_type' => 'repair',     'qty' => 3.0, 'unit_price' => 300.00, 'tax_percentage' => 8.00, 'line_amount' => 900.00],
                     ['component' => 'Cross Member',            'repair_type' => 'straighten', 'qty' => 2.0, 'unit_price' => 300.00, 'tax_percentage' => 8.00, 'line_amount' => 600.00],
                 ],
             ],

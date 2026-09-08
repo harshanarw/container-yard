@@ -56,27 +56,27 @@ class MrTariffSeeder extends Seeder
 
         // Component-specific rules: [component, damage(info), repair, hrs, rate, matQty, matRate, ancillary, min, notes]
         $specific = [
-            ['PNL', 'DEN', 'STR', 2.0, 18, 0,     0, 5.0, 30, 'Straighten dented panel — per section'],
-            ['PNL', 'HOL', 'RPL', 4.0, 18, 1.0, 120, 10.0, 80, 'Replace full panel — includes material'],
-            ['PNL', 'HOL', 'PAT', 1.5, 18, 1.0,  25, 5.0, 25, 'Steel patch weld — per patch'],
+            ['PNL', 'DEN', 'STR', 2.0, 18, 0,     0, 5.0, 30, 'Straighten dented panel - per section'],
+            ['PNL', 'HOL', 'RPL', 4.0, 18, 1.0, 120, 10.0, 80, 'Replace full panel - includes material'],
+            ['PNL', 'HOL', 'PAT', 1.5, 18, 1.0,  25, 5.0, 25, 'Steel patch weld - per patch'],
             ['PNL', 'GOU', 'CRP', 3.5, 20, 1.0,  60, 10.0, 70, 'Crop & weld panel section'],
             ['PNL', 'TRN', 'IST', 3.0, 20, 1.0,  40, 8.0, 55, 'Insert / let-in a panel piece'],
             ['PST', 'BNT', 'WLD', 2.0, 20, 0,     0, 8.0, 40, 'Weld repair bent corner post'],
-            ['PST', 'BNT', 'RPL', 5.0, 20, 1.0, 180, 15.0, 100, 'Replace corner post — high-skill welding'],
+            ['PST', 'BNT', 'RPL', 5.0, 20, 1.0, 180, 15.0, 100, 'Replace corner post - high-skill welding'],
             ['PST', 'CRK', 'CRP', 4.5, 22, 1.0,  90, 15.0, 90, 'Crop & weld corner post section'],
             ['RAL', 'BNT', 'STR', 2.0, 18, 0,     0, 5.0, 35, 'Straighten bent rail section'],
             ['RAL', 'PIT', 'CRP', 4.0, 20, 1.0,  70, 10.0, 75, 'Crop & weld corroded rail section'],
             ['SIL', 'BNT', 'STR', 1.8, 18, 0,     0, 5.0, 30, 'Straighten door sill'],
-            ['SEL', 'WOR', 'RPL', 1.0, 18, 1.0,  55, 0,    20, 'Replace door rubber seal — per door'],
+            ['SEL', 'WOR', 'RPL', 1.0, 18, 1.0,  55, 0,    20, 'Replace door rubber seal - per door'],
             ['SEL', 'LEK', 'RSL', 0.8, 18, 1.0,  10, 0,    15, 'Reseal door gasket'],
             ['DOR', 'BNT', 'STR', 2.0, 18, 0,     0, 5.0, 35, 'Straighten door leaf'],
             ['DOR', 'CRK', 'WLD', 2.5, 20, 0,     0, 8.0, 45, 'Weld door leaf'],
-            ['HNG', 'BRK', 'RPL', 1.0, 18, 1.0,  35, 0,    20, 'Replace door hinge — per hinge'],
+            ['HNG', 'BRK', 'RPL', 1.0, 18, 1.0,  35, 0,    20, 'Replace door hinge - per hinge'],
             ['HNG', 'LSE', 'RFT', 0.8, 18, 0,     0, 0,    12, 'Refit / secure loose hinge'],
             ['LKR', 'BNT', 'STR', 1.2, 18, 0,     0, 0,    18, 'Straighten locking rod'],
             ['LKR', 'MIS', 'RPL', 1.2, 18, 1.0,  45, 0,    22, 'Replace locking rod set'],
             ['LKR', 'LSE', 'TGT', 0.3, 15, 0,     0, 0,     8, 'Tighten locking rod keepers'],
-            ['FLB', 'BRK', 'RPL', 2.5, 18, 1.0,  90, 5.0, 50, 'Replace floor board plank — per plank'],
+            ['FLB', 'BRK', 'RPL', 2.5, 18, 1.0,  90, 5.0, 50, 'Replace floor board plank - per plank'],
             ['FLB', 'ROT', 'IST', 2.0, 18, 1.0,  50, 5.0, 40, 'Let-in a floor board section'],
             ['FLB', 'CON', 'CLN', 1.0, 12, 0,     0, 0,    12, 'Clean / decontaminate floor'],
             ['BOW', 'BNT', 'STR', 1.5, 18, 0,     0, 5.0, 30, 'Straighten roof bow'],
@@ -128,7 +128,7 @@ class MrTariffSeeder extends Seeder
                 'std_labor_hours' => $h, 'labor_rate' => $rate,
                 'material_qty' => $mq, 'material_rate' => $mr,
                 'ancillary' => $anc, 'min_charge' => $min, 'max_charge' => null,
-                'notes' => 'Fallback rate — any component',
+                'notes' => 'Fallback rate - any component',
             ]);
         }
 

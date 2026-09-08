@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Inquiry — ' . $inquiry->inquiry_no)
+@section('title', 'Inquiry - ' . $inquiry->inquiry_no)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('inquiries.index') }}" class="text-decoration-none">Container Inquiries</a></li>
@@ -126,7 +126,7 @@
                             @if($inquiry->customer)
                                 <span class="badge bg-dark text-white me-1">{{ $inquiry->customer->code }}</span>
                                 {{ $inquiry->customer->name }}
-                            @else —
+                            @else -
                             @endif
                         </div>
                     </div>
@@ -136,24 +136,24 @@
                     </div>
                     <div class="col-sm-6">
                         <div class="text-muted mb-1">Assigned Inspector</div>
-                        <div class="fw-semibold">{{ $inquiry->inspector?->name ?? '—' }}</div>
+                        <div class="fw-semibold">{{ $inquiry->inspector?->name ?? '-' }}</div>
                     </div>
                     <div class="col-sm-6">
                         <div class="text-muted mb-1">Inspection Date</div>
                         <div class="fw-semibold">
-                            {{ $inquiry->inspection_date ? $inquiry->inspection_date->format('d M Y') : '—' }}
+                            {{ $inquiry->inspection_date ? $inquiry->inspection_date->format('d M Y') : '-' }}
                         </div>
                     </div>
                     <div class="col-sm-6">
                         <div class="text-muted mb-1">Gate-In Reference</div>
-                        <div class="fw-semibold font-monospace">{{ $inquiry->gate_in_ref ?? '—' }}</div>
+                        <div class="fw-semibold font-monospace">{{ $inquiry->gate_in_ref ?? '-' }}</div>
                     </div>
                     <div class="col-sm-6">
                         <div class="text-muted mb-1">Estimated Repair Cost</div>
                         <div class="fw-semibold">
                             @if($inquiry->estimated_repair_cost)
                                 LKR {{ number_format($inquiry->estimated_repair_cost, 2) }}
-                            @else —
+                            @else -
                             @endif
                         </div>
                     </div>
@@ -209,13 +209,13 @@
                                         <span class="ms-1">{{ $dmg->locationCode->name }}</span>
                                     @elseif($dmg->location)
                                         {{ ucwords(str_replace('_', ' ', $dmg->location)) }}
-                                    @else —
+                                    @else -
                                     @endif
                                 </td>
                                 <td class="small">
                                     @if($dmg->componentCode)
                                         <span class="badge bg-info-subtle text-info border border-info-subtle font-monospace">{{ $dmg->componentCode->code }}</span>
-                                    @else <span class="text-muted">—</span>
+                                    @else <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="small">
@@ -224,19 +224,19 @@
                                         <span class="ms-1">{{ $dmg->damageCode->name }}</span>
                                     @elseif($dmg->damage_type)
                                         {{ ucwords(str_replace('_', ' ', $dmg->damage_type)) }}
-                                    @else —
+                                    @else -
                                     @endif
                                 </td>
                                 <td class="small">
                                     @if($dmg->repairCode)
                                         <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace">{{ $dmg->repairCode->code }}</span>
-                                    @else <span class="text-muted">—</span>
+                                    @else <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="small">
                                     @if($dmg->responsibilityCode)
                                         <span class="badge bg-warning-subtle text-warning border border-warning-subtle font-monospace">{{ $dmg->responsibilityCode->code }}</span>
-                                    @else <span class="text-muted">—</span>
+                                    @else <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>
@@ -249,7 +249,7 @@
                                         };
                                     @endphp
                                     <span class="badge bg-{{ $sc }}-subtle text-{{ $sc }}">
-                                        {{ ucfirst($dmg->severity ?? '—') }}
+                                        {{ ucfirst($dmg->severity ?? '-') }}
                                     </span>
                                 </td>
                                 <td class="font-monospace text-muted small">
@@ -258,13 +258,13 @@
                                         @if($dmg->dim_area) <span class="text-muted">({{ $dmg->dim_area }}m²)</span> @endif
                                     @elseif($dmg->dimensions)
                                         {{ $dmg->dimensions }}
-                                    @else —
+                                    @else -
                                     @endif
                                 </td>
                                 <td class="font-monospace small">
                                     @if($dmg->cedex_code)
                                         <span class="badge bg-dark text-white">{{ $dmg->cedex_code }}</span>
-                                    @else <span class="text-muted">—</span>
+                                    @else <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="small">
@@ -278,7 +278,7 @@
                                         <span class="badge bg-secondary-subtle text-secondary">Not covered</span>
                                     @endif
                                 </td>
-                                <td class="text-muted small">{{ $dmg->description ?? '—' }}</td>
+                                <td class="text-muted small">{{ $dmg->description ?? '-' }}</td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -302,7 +302,7 @@
                             {{ ucfirst($inquiry->overall_condition) }}
                         </span>
                         @else
-                        <span class="text-muted">— Not assessed</span>
+                        <span class="text-muted">- Not assessed</span>
                         @endif
                     </div>
                     <div class="col-sm-6">
@@ -310,7 +310,7 @@
                         <div class="fw-semibold">
                             {{ $inquiry->recommended_action
                                 ? ucwords(str_replace('_', ' ', $inquiry->recommended_action))
-                                : '—' }}
+                                : '-' }}
                         </div>
                     </div>
                     <div class="col-12">
@@ -318,7 +318,7 @@
                         @if($inquiry->findings)
                         <div class="bg-light rounded p-3" style="white-space:pre-wrap;font-size:.85rem;">{{ $inquiry->findings }}</div>
                         @else
-                        <span class="text-muted small">— No findings recorded</span>
+                        <span class="text-muted small">- No findings recorded</span>
                         @endif
                     </div>
                 </div>
@@ -445,13 +445,13 @@
                         <span class="font-monospace fw-semibold">
                             @if($inquiry->container->location_row)
                                 {{ $inquiry->container->location_row }}{{ $inquiry->container->location_bay }}-T{{ $inquiry->container->location_tier }}
-                            @else —
+                            @else -
                             @endif
                         </span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between">
                         <span class="text-muted">Gate-In Date</span>
-                        <span>{{ $inquiry->container->gate_in_date?->format('d M Y') ?? '—' }}</span>
+                        <span>{{ $inquiry->container->gate_in_date?->format('d M Y') ?? '-' }}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between">
                         <span class="text-muted">Condition</span>

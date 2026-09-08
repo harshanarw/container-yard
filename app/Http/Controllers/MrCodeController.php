@@ -51,7 +51,7 @@ class MrCodeController extends Controller
 
         MrCode::create($data);
 
-        return back()->with('success', "{$data['code']} — {$data['name']} added.");
+        return back()->with('success', "{$data['code']} - {$data['name']} added.");
     }
 
     public function update(Request $request, string $mrCodeType, MrCode $mrCode)
@@ -69,7 +69,7 @@ class MrCodeController extends Controller
         $data['code'] = strtoupper(trim($data['code']));
         $mrCode->update($data);
 
-        return back()->with('success', "{$mrCode->code} — {$mrCode->name} updated.");
+        return back()->with('success', "{$mrCode->code} - {$mrCode->name} updated.");
     }
 
     public function toggleActive(string $mrCodeType, MrCode $mrCode)
@@ -90,7 +90,7 @@ class MrCodeController extends Controller
 
         $mrCode->delete();
 
-        return back()->with('success', "{$mrCode->code} — {$mrCode->name} deleted.");
+        return back()->with('success', "{$mrCode->code} - {$mrCode->name} deleted.");
     }
 
     public function reorder(Request $request, string $mrCodeType)

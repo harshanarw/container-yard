@@ -182,7 +182,7 @@ class WeeklyRevenueReport
             ? strtoupper($start->format('F Y'))
             : strtoupper($start->format('d M Y') . ' to ' . $end->format('d M Y'));
 
-        return 'PERFORMANCE UPDATE [REVENUE] — ' . $period;
+        return 'PERFORMANCE UPDATE [REVENUE] - ' . $period;
     }
 
     // ── Earned: handling ────────────────────────────────────────────────────
@@ -787,7 +787,7 @@ class WeeklyRevenueReport
         foreach ($rows as $row) {
             foreach (self::CATEGORIES as $category) {
                 if ($row['categories'][$category]['issue']) {
-                    $out[] = $row['customer'] . ' — ' . self::labels()[$category]
+                    $out[] = $row['customer'] . ' - ' . self::labels()[$category]
                            . ': ' . $row['categories'][$category]['issue'];
                 }
             }

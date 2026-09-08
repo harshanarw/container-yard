@@ -112,7 +112,7 @@ class FixGateCustodyCommand extends Command
                         if (count($rows) < self::MAX_ROWS) {
                             $rows[] = [
                                 $container->container_no,
-                                $gateOut->gate_out_time?->format('d M Y') ?? '—',
+                                $gateOut->gate_out_time?->format('d M Y') ?? '-',
                                 $this->name($gateOut->customer_id),
                                 $needsCustomer ? $this->name($want) : '(unchanged)',
                                 $needsJob ? 'link job' : '',
@@ -146,7 +146,7 @@ class FixGateCustodyCommand extends Command
         $this->newLine();
 
         if ($total === 0) {
-            $this->info('Gate custody is consistent — nothing to repair.');
+            $this->info('Gate custody is consistent - nothing to repair.');
 
             return self::SUCCESS;
         }
@@ -158,7 +158,7 @@ class FixGateCustodyCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->line("Dry run — nothing changed. Re-run with <info>--fix</info> to correct {$total} row(s).");
+        $this->line("Dry run - nothing changed. Re-run with <info>--fix</info> to correct {$total} row(s).");
 
         return self::SUCCESS;
     }
@@ -258,7 +258,7 @@ class FixGateCustodyCommand extends Command
     private function name(?int $customerId): string
     {
         if (! $customerId) {
-            return '—';
+            return '-';
         }
 
         return DB::table('customers')->where('id', $customerId)->value('name') ?? "#{$customerId}";

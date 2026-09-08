@@ -8,7 +8,7 @@
     <div class="col-md-6">
         <label class="form-label fw-semibold small">Bank <span class="text-danger">*</span></label>
         <select name="bank_id" class="form-select form-select-sm s2-code @error('bank_id') is-invalid @enderror" data-s2-sel="name" required>
-            <option value="">— Select Bank —</option>
+            <option value="">- Select Bank -</option>
             @foreach($banks as $bank)
             <option value="{{ $bank->id }}"
                 @if($bank->short_name) data-code="{{ $bank->short_name }}" data-name="{{ $bank->name }}" @endif
@@ -29,12 +29,12 @@
     <div class="col-md-3">
         <label class="form-label fw-semibold small">Currency <span class="text-danger">*</span></label>
         <select name="currency" class="form-select form-select-sm s2-code @error('currency') is-invalid @enderror" data-s2-sel="name" required>
-            <option value="">— Select —</option>
+            <option value="">- Select -</option>
             @foreach($currencies as $cur)
             <option value="{{ $cur->code }}"
                 data-code="{{ $cur->code }}" data-name="{{ $cur->name }}"
                 {{ old('currency', $bankAccount->currency ?? ($defaultCurrency ?? 'LKR')) === $cur->code ? 'selected' : '' }}>
-                {{ $cur->code }} — {{ $cur->name }}
+                {{ $cur->code }} - {{ $cur->name }}
             </option>
             @endforeach
         </select>
@@ -51,10 +51,10 @@
     <div class="col-md-12">
         <label class="form-label fw-semibold small">GL Account (Cash/Bank)</label>
         <select name="gl_account_id" class="form-select form-select-sm select2 @error('gl_account_id') is-invalid @enderror">
-            <option value="">— None (manual posting) —</option>
+            <option value="">- None (manual posting) -</option>
             @foreach($glAccounts as $acc)
             <option value="{{ $acc->id }}" {{ old('gl_account_id', $bankAccount->gl_account_id ?? '') == $acc->id ? 'selected' : '' }}>
-                {{ $acc->code }} — {{ $acc->name }}
+                {{ $acc->code }} - {{ $acc->name }}
             </option>
             @endforeach
         </select>

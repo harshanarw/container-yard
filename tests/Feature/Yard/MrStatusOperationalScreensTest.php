@@ -101,7 +101,7 @@ class MrStatusOperationalScreensTest extends FeatureTestCase
         // changed is that the message says what to go and do about it.
         $message = implode(' ', session('errors')->get('container_no'));
         $this->assertStringContainsString($wo->wo_no, $message,
-            'Naming the work order is the point — "under repair" alone tells the gate nothing to chase.');
+            'Naming the work order is the point - "under repair" alone tells the gate nothing to chase.');
         $this->assertStringContainsString(Cat::label(Cat::AWAITING_QC), $message);
     }
 
@@ -279,6 +279,6 @@ class MrStatusOperationalScreensTest extends FeatureTestCase
         ])->assertSessionHas('warning');
 
         $this->assertSame('reserved', $container->refresh()->status,
-            'The operator may have a reason — the point is that they are told, not stopped.');
+            'The operator may have a reason - the point is that they are told, not stopped.');
     }
 }

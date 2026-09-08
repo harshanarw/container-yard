@@ -232,7 +232,7 @@ class CloudStorageSettingController extends Controller
             // Check the required columns exist (migration 035 guard)
             if (! \Schema::hasColumn('cloud_storage_settings', 'dropbox_refresh_token')) {
                 return redirect()->route('settings.cloud-storage.index')
-                    ->with('error', 'Database migration is pending. Please run: php artisan migrate — '
+                    ->with('error', 'Database migration is pending. Please run: php artisan migrate - '
                         . 'then try connecting again.');
             }
 
@@ -251,7 +251,7 @@ class CloudStorageSettingController extends Controller
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             return redirect()->route('settings.cloud-storage.index')
                 ->with('error', 'Could not reach Dropbox API: ' . $e->getMessage()
-                    . ' — check your server\'s outbound internet access.');
+                    . ' - check your server\'s outbound internet access.');
         } catch (\Throwable $e) {
             \Log::error('[DropboxCallback] ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->route('settings.cloud-storage.index')

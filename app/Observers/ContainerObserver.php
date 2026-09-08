@@ -11,17 +11,17 @@ class ContainerObserver extends AuditObserver
 
     protected function describeCreated(Model $m, ?string $ref): string
     {
-        return "Container master record created — {$ref}";
+        return "Container master record created - {$ref}";
     }
 
     protected function describeUpdated(Model $m, ?string $ref, array $diff): string
     {
         $changed = implode(', ', array_keys($diff['old'] ?? []));
-        return "Container record updated [{$changed}] — {$ref}";
+        return "Container record updated [{$changed}] - {$ref}";
     }
 
     protected function describeDeleted(Model $m, ?string $ref): string
     {
-        return "Container master record deleted — {$ref}";
+        return "Container master record deleted - {$ref}";
     }
 }

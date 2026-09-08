@@ -49,6 +49,6 @@ class BankAccount extends Model
 
     public function getDisplayNameAttribute(): string
     {
-        return "{$this->bank_name} — {$this->account_name} ({$this->currency})";
+        return "{$this->bank_name} - {$this->account_name} ({$this->currency})";
     }
 }

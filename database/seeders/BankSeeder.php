@@ -32,7 +32,7 @@ class BankSeeder extends Seeder
         if (! is_file($file)) {
             $this->command?->warn(
                 "BankSeeder: no bank dataset for country [{$iso}] (looked for {$file}). "
-                . "Skipping — add the file or import banks via Masters → Banks."
+                . "Skipping - add the file or import banks via Masters → Banks."
             );
             return;
         }

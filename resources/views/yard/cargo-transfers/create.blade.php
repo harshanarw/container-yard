@@ -11,7 +11,7 @@
 @section('content')
 
 <div class="page-header">
-    <h4 class="mb-0"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Transfer Cargo — {{ $movement->container_no }}</h4>
+    <h4 class="mb-0"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Transfer Cargo - {{ $movement->container_no }}</h4>
     <p class="text-muted mb-0 small">
         Move the cargo into a substitute box, gate the empty {{ $movement->container_no }} out, and start customer storage
         on the substitute box.
@@ -30,8 +30,8 @@
             <div class="card-header py-2 fw-semibold small"><i class="bi bi-box-seam me-2 text-primary"></i>Source Box (leaving empty)</div>
             <div class="card-body small">
                 <div class="mb-2"><span class="text-muted d-block">Container</span><span class="font-monospace fw-bold fs-6">{{ $movement->container_no }}</span></div>
-                <div class="mb-2"><span class="text-muted d-block">Job No</span><span class="font-monospace">{{ $movement->yardJob?->job_no ?? '—' }}</span></div>
-                <div class="mb-2"><span class="text-muted d-block">Customer (billed)</span><span class="fw-semibold">{{ $movement->customer?->name ?? '—' }}</span></div>
+                <div class="mb-2"><span class="text-muted d-block">Job No</span><span class="font-monospace">{{ $movement->yardJob?->job_no ?? '-' }}</span></div>
+                <div class="mb-2"><span class="text-muted d-block">Customer (billed)</span><span class="fw-semibold">{{ $movement->customer?->name ?? '-' }}</span></div>
                 <div><span class="text-muted d-block">Size / Type</span>{{ $movement->size }}' {{ $movement->container_type }}</div>
             </div>
         </div>
@@ -49,10 +49,10 @@
                         <div class="col-md-8">
                             <label class="form-label fw-semibold">Substitute Container <span class="text-danger">*</span></label>
                             <select name="substitute_container_id" class="form-select select2" required>
-                                <option value="">— Select a yard / hired box —</option>
+                                <option value="">- Select a yard / hired box -</option>
                                 @foreach($substitutes as $c)
                                     <option value="{{ $c->id }}" @selected(old('substitute_container_id') == $c->id)>
-                                        {{ $c->container_no }} — {{ $c->size }}' {{ $c->type_code }}
+                                        {{ $c->container_no }} - {{ $c->size }}' {{ $c->type_code }}
                                         @if(in_array($c->type_code, ['RF','RH'])) (Reefer) @endif
                                     </option>
                                 @endforeach
@@ -94,8 +94,8 @@
                     <div class="alert alert-warning small mt-3 mb-0">
                         <i class="bi bi-info-circle me-1"></i>
                         On save: the substitute box goes on <strong>customer storage (no free days)</strong>, a reefer plug session
-                        is opened if it is refrigerated, and <strong>{{ $movement->container_no }} is gated out empty</strong> — all under job
-                        <span class="font-monospace">{{ $movement->yardJob?->job_no ?? '—' }}</span>.
+                        is opened if it is refrigerated, and <strong>{{ $movement->container_no }} is gated out empty</strong> - all under job
+                        <span class="font-monospace">{{ $movement->yardJob?->job_no ?? '-' }}</span>.
                     </div>
 
                     <div class="mt-3 d-flex gap-2">

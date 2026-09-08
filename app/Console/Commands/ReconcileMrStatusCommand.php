@@ -83,7 +83,7 @@ class ReconcileMrStatusCommand extends Command
         $this->newLine();
 
         if ($total === 0) {
-            $this->info('M&R status is in step — nothing drifted.');
+            $this->info('M&R status is in step - nothing drifted.');
 
             return self::SUCCESS;
         }
@@ -94,7 +94,7 @@ class ReconcileMrStatusCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->line("Dry run — nothing changed. Re-run with <info>--fix</info> to correct {$total} row(s).");
+        $this->line("Dry run - nothing changed. Re-run with <info>--fix</info> to correct {$total} row(s).");
 
         return self::SUCCESS;
     }
@@ -123,7 +123,7 @@ class ReconcileMrStatusCommand extends Command
                     if (count($rows) < self::MAX_ROWS) {
                         $rows[] = [
                             $container->container_no,
-                            $container->mr_status ?? '—',
+                            $container->mr_status ?? '-',
                             $expected->code,
                             $this->yesNo((bool) $container->export_ready) . ' → ' . $this->yesNo($expected->exportReady),
                         ];
@@ -176,8 +176,8 @@ class ReconcileMrStatusCommand extends Command
                     if (count($rows) < self::MAX_ROWS) {
                         $rows[] = [
                             $gateIn->container_no,
-                            $gateIn->gate_in_time?->format('d M Y') ?? '—',
-                            $gateIn->mr_status ?? '—',
+                            $gateIn->gate_in_time?->format('d M Y') ?? '-',
+                            $gateIn->mr_status ?? '-',
                             $expected->code,
                         ];
                     }

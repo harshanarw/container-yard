@@ -69,7 +69,7 @@ class WeeklyPerformanceExportTest extends FeatureTestCase
 
         $sheet = $this->openWorkbook($this->get(route('reports.weekly-performance'))->viewData('data'));
 
-        $this->assertSame('PERFORMANCE UPDATE [NO. OF UNITS] — AUGUST 2026', $sheet['cells']['A2'] ?? null);
+        $this->assertSame('PERFORMANCE UPDATE [NO. OF UNITS] - AUGUST 2026', $sheet['cells']['A2'] ?? null);
         $this->assertSame('CUSTOMER', $sheet['cells']['A4'] ?? null);
         $this->assertSame('WEEK 1', $sheet['cells']['C4'] ?? null);
         $this->assertSame('01 – 07 Aug 2026', $sheet['cells']['C5'] ?? null, 'The date range sits under its week number.');
@@ -261,7 +261,7 @@ class WeeklyPerformanceExportTest extends FeatureTestCase
     {
         if (! \App\Support\Export\WeeklyPerformanceWorkbook::available()) {
             $this->markTestSkipped(
-                'This openspout cannot produce the banded workbook — it needs the borders, '
+                'This openspout cannot produce the banded workbook - it needs the borders, '
                 . 'merges, column widths and frozen panes that arrived across 4.x. '
                 . 'Run `composer update openspout/openspout`. The flat CSV is covered below either way.'
             );

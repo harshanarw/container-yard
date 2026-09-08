@@ -13,7 +13,7 @@
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h4><i class="bi bi-journal-plus me-2 text-primary"></i>New Manual Journal</h4>
-        <p class="text-muted mb-0 small">Create a double-entry journal. It must balance in the base currency ({{ $baseCurrency }}). Pick a header currency + rate as the default for every line, and override any line's currency/rate when needed — amounts are entered in each line's currency and converted to {{ $baseCurrency }}.</p>
+        <p class="text-muted mb-0 small">Create a double-entry journal. It must balance in the base currency ({{ $baseCurrency }}). Pick a header currency + rate as the default for every line, and override any line's currency/rate when needed - amounts are entered in each line's currency and converted to {{ $baseCurrency }}.</p>
     </div>
     <a href="{{ route('finance.gl.journals.index') }}" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left me-1"></i>Back
@@ -194,12 +194,12 @@ $(function () {
     function round2(x)    { return Math.round((x + Number.EPSILON) * 100) / 100; }
 
     function buildAccountOptions() {
-        var html = '<option value="">— Select account —</option>';
+        var html = '<option value="">- Select account -</option>';
         classOrder.forEach(function (cls) {
             if (!accountsByClass[cls]) return;
             html += '<optgroup label="' + cls.charAt(0).toUpperCase() + cls.slice(1) + '">';
             accountsByClass[cls].forEach(function (acc) {
-                html += '<option value="' + acc.id + '">' + acc.code + ' — ' + acc.name + '</option>';
+                html += '<option value="' + acc.id + '">' + acc.code + ' - ' + acc.name + '</option>';
             });
             html += '</optgroup>';
         });
@@ -248,7 +248,7 @@ $(function () {
         document.getElementById('linesBody').appendChild(tr);
 
         var $sel = $(tr).find('.account-select');
-        $sel.select2({ theme: 'bootstrap-5', width: '100%', placeholder: '— Select account —' });
+        $sel.select2({ theme: 'bootstrap-5', width: '100%', placeholder: '- Select account -' });
         if (vals.account_id) { $sel.val(vals.account_id).trigger('change'); }
 
         var ccySel  = tr.querySelector('.currency-input');

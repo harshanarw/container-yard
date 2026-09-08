@@ -164,7 +164,7 @@ class StorageHandlingManualScreenTest extends FeatureTestCase
 
         $this->assertSame(StorageHandlingInvoice::PRICING_MANUAL, $data['pricing_mode']);
         $this->assertFalse($data['storage_tariff_found'],
-            'Manual mode resolves no tariff — not "resolves one and ignores it".');
+            'Manual mode resolves no tariff - not "resolves one and ignores it".');
         $this->assertEqualsWithDelta(0.0, (float) $data['lines'][0]['storage_daily_rate'], 0.01,
             'Every rate starts blank, whatever the tariff says.');
         $this->assertSame([], $data['missing_rates'],
@@ -210,7 +210,7 @@ class StorageHandlingManualScreenTest extends FeatureTestCase
         $this->assertSame(5, $lines['MANU0000003']['storage_free_days'],
             'The new arrival has spent none of its allowance.');
         $this->assertSame(0, $lines['MANU0000004']['storage_free_days'],
-            'The long-stayer spent all five days in January — granting them again each period '
+            'The long-stayer spent all five days in January - granting them again each period '
             . 'would give a monthly-billed customer their free days twelve times a year.');
 
         $this->assertGreaterThan(
@@ -242,7 +242,7 @@ class StorageHandlingManualScreenTest extends FeatureTestCase
 
         $this->assertArrayHasKey('days_before_period', $line);
         $this->assertSame(59, $line['days_before_period'],
-            '1 January to 1 March 2026 — the elapsed count that makes free days cumulative.');
+            '1 January to 1 March 2026 - the elapsed count that makes free days cumulative.');
         $this->assertArrayHasKey('matrix_key', $line,
             'Both ends must agree which matrix row fills this line.');
     }
@@ -263,7 +263,7 @@ class StorageHandlingManualScreenTest extends FeatureTestCase
         $matrix = $this->preview()->assertOk()->json('rate_matrix');
 
         $this->assertCount(2, $matrix,
-            'One row per equipment type × size actually present — the operator is never asked '
+            'One row per equipment type × size actually present - the operator is never asked '
             . 'for a rate nobody will use.');
         $this->assertSame(3, array_sum(array_column($matrix, 'lines')),
             'And every line belongs to exactly one row.');

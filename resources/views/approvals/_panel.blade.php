@@ -106,7 +106,7 @@
                     <div class="fw-semibold small">{{ $action->step_label }}</div>
                     @if($action->actioned_at)
                     <div class="small text-muted">
-                        {{ $action->actionedBy?->name ?? '—' }} &nbsp;·&nbsp; {{ $action->actioned_at?->format('d M Y H:i') }}
+                        {{ $action->actionedBy?->name ?? '-' }} &nbsp;·&nbsp; {{ $action->actioned_at?->format('d M Y H:i') }}
                     </div>
                     @elseif($action->assignedTo)
                     <div class="small text-muted">
@@ -178,7 +178,7 @@
                             <span class="text-muted fw-normal">({{ ucwords(str_replace('_', ' ', $step->required_role)) }})</span>
                         </label>
                         <select name="assignees[{{ $step->step_key }}]" class="form-select form-select-sm select2-modal">
-                            <option value="">— Any eligible approver —</option>
+                            <option value="">- Any eligible approver -</option>
                             @foreach($eligibleUsers as $u)
                             <option value="{{ $u->id }}">{{ $u->name }}</option>
                             @endforeach

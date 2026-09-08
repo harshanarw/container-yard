@@ -164,7 +164,7 @@ class StatementService
             'date'       => ($date instanceof Carbon ? $date : Carbon::parse($date))->toDateString(),
             'type'       => $type,
             'sub'        => $sub,
-            'ref'        => $ref ?? '—',
+            'ref'        => $ref ?? '-',
             'ird'        => $ird, // IRD tax-invoice serial (AR invoices only)
             'debit'      => round($debit, 2),
             'credit'     => round($credit, 2),

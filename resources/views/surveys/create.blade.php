@@ -65,7 +65,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Container (in yard) <span class="text-danger">*</span></label>
                             <select name="container_id" id="containerSelect" class="form-select select2" required>
-                                <option value="">— Select Container —</option>
+                                <option value="">- Select Container -</option>
                                 @foreach($containers as $c)
                                 <option value="{{ $c->id }}"
                                         data-customer-id="{{ $c->customer_id }}"
@@ -81,7 +81,7 @@
                                         data-job-type="{{ $c->linked_job_type }}"
                                         {{ (old('container_id') ?? $selectedContainer?->id) == $c->id ? 'selected' : '' }}>
                                     {{ $c->container_no }}
-                                    @if($c->customer) — {{ $c->customer->name }} @endif
+                                    @if($c->customer) - {{ $c->customer->name }} @endif
                                     @if($c->gate_movement_date) [GI: {{ $c->gate_movement_date }}] @endif
                                 </option>
                                 @endforeach
@@ -139,7 +139,7 @@
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Survey Type <span class="text-danger">*</span></label>
                             <select name="inquiry_type" class="form-select" required>
-                                <option value="">— Select Type —</option>
+                                <option value="">- Select Type -</option>
                                 <option value="damage_survey"           {{ old('inquiry_type') === 'damage_survey'           ? 'selected' : '' }}>Damage Survey</option>
                                 <option value="pre_trip_inspection"     {{ old('inquiry_type') === 'pre_trip_inspection'     ? 'selected' : '' }}>Pre-trip Inspection</option>
                                 <option value="repair_assessment"       {{ old('inquiry_type') === 'repair_assessment'       ? 'selected' : '' }}>Repair Assessment</option>
@@ -150,7 +150,7 @@
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Assigned Inspector</label>
                             <select name="inspector_id" class="form-select select2">
-                                <option value="">— Inspector —</option>
+                                <option value="">- Inspector -</option>
                                 @foreach($inspectors as $ins)
                                 <option value="{{ $ins->id }}" {{ old('inspector_id') == $ins->id ? 'selected' : '' }}>
                                     {{ $ins->name }}
@@ -210,7 +210,7 @@
                                 <tr class="damage-row">
                                     <td class="ps-3">
                                         <select name="damages[0][location_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrLocationCodes as $c)
                                                 <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -218,7 +218,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][component_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrComponentCodes as $c)
                                                 <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -226,7 +226,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][damage_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrDamageCodes as $c)
                                                 <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -234,7 +234,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][repair_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrRepairCodes as $c)
                                                 <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -242,7 +242,7 @@
                                     </td>
                                     <td>
                                         <select name="damages[0][responsibility_code_id]" class="form-select form-select-sm s2 s2-code">
-                                            <option value="">—</option>
+                                            <option value="">-</option>
                                             @foreach($mrResponsibilityCodes as $c)
                                                 <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}">{{ $c->code }} {{ $c->name }}</option>
                                             @endforeach
@@ -310,7 +310,7 @@
                         <input class="form-check-input" type="checkbox" role="switch" value="1"
                                id="washRequired" name="wash_required" {{ old('wash_required') ? 'checked' : '' }}>
                         <label class="form-check-label fw-semibold" for="washRequired">Washing required</label>
-                        <div class="form-text">Flags this box for cleaning. Pulls into the estimate as washing line(s) — even if there are no repair damages.</div>
+                        <div class="form-text">Flags this box for cleaning. Pulls into the estimate as washing line(s) - even if there are no repair damages.</div>
                     </div>
                     <div class="row g-3" id="washFields" style="{{ old('wash_required') ? '' : 'display:none' }}">
                         <div class="col-md-6">
@@ -637,7 +637,7 @@
             var eqtSize = opt.dataset.eqtSize || '';
             var eqtType = opt.dataset.eqtType || '';
             if (eqtCodeSpan) eqtCodeSpan.textContent = eqtCode;
-            if (eqtNameSpan) eqtNameSpan.textContent = opt.dataset.eqtName ? '— ' + opt.dataset.eqtName : '';
+            if (eqtNameSpan) eqtNameSpan.textContent = opt.dataset.eqtName ? '- ' + opt.dataset.eqtName : '';
             if (eqtSizeBadge) {
                 eqtSizeBadge.textContent = eqtSize ? eqtSize + "'" : '';
                 eqtSizeBadge.classList.toggle('d-none', !eqtSize);
@@ -650,9 +650,9 @@
             }
 
             // Customer and Gate-In
-            if (custDisplay)  custDisplay.textContent  = opt.dataset.customerName || '—';
-            if (gateDateSpan) gateDateSpan.textContent = opt.dataset.gateDate     || '—';
-            if (gateRefSpan)  gateRefSpan.textContent  = opt.dataset.gateRef      || '—';
+            if (custDisplay)  custDisplay.textContent  = opt.dataset.customerName || '-';
+            if (gateDateSpan) gateDateSpan.textContent = opt.dataset.gateDate     || '-';
+            if (gateRefSpan)  gateRefSpan.textContent  = opt.dataset.gateRef      || '-';
 
             // Linked yard job (previews what the survey will inherit on save)
             var jobNo    = opt.dataset.jobNo    || '';
@@ -699,7 +699,7 @@
     const mrResOpts  = @json($mrResponsibilityCodes->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]));
 
     function buildSel(name, opts, codeOnly) {
-        let html = `<select name="${name}" class="form-select form-select-sm s2 s2-code"><option value="">—</option>`;
+        let html = `<select name="${name}" class="form-select form-select-sm s2 s2-code"><option value="">-</option>`;
         opts.forEach(o => {
             html += `<option value="${o.id}" data-code="${o.code}" data-name="${codeOnly ? o.code : o.name}">${o.code}${codeOnly ? '' : ' ' + o.name}</option>`;
         });
@@ -802,7 +802,7 @@
                     <td class="small"><span class="badge bg-primary-subtle text-primary border font-monospace">${escHtml(r.component_code)}</span> <span class="text-muted">${escHtml(r.component_name)}</span></td>
                     <td class="small"><span class="badge bg-warning-subtle text-warning-emphasis border font-monospace">${escHtml(r.damage_code)}</span> <span class="text-muted">${escHtml(r.damage_name)}</span></td>
                     <td class="small"><span class="badge bg-info-subtle text-info-emphasis border font-monospace">${escHtml(r.repair_code)}</span> <span class="text-muted">${escHtml(r.repair_name)}</span></td>
-                    <td class="small">${r.default_severity ? `<span class="badge ${sevClass(r.default_severity)}">${r.default_severity.charAt(0).toUpperCase() + r.default_severity.slice(1)}</span>` : '<span class="text-muted">—</span>'}</td>
+                    <td class="small">${r.default_severity ? `<span class="badge ${sevClass(r.default_severity)}">${r.default_severity.charAt(0).toUpperCase() + r.default_severity.slice(1)}</span>` : '<span class="text-muted">-</span>'}</td>
                 </tr>`).join('');
             updateCount();
         }

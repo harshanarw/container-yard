@@ -101,7 +101,7 @@
                     </td>
                     <td><span class="badge bg-secondary-subtle text-secondary border">{{ $inv->type_label }}</span></td>
                     <td class="small">
-                        {{ $inv->customer?->name ?? '—' }}
+                        {{ $inv->customer?->name ?? '-' }}
                         @if($inv->billing_party_id && $inv->billing_party_id !== $inv->customer_id)
                             <div class="text-muted" style="font-size:.7rem;">Bill: {{ $inv->billingParty?->name }}</div>
                         @endif

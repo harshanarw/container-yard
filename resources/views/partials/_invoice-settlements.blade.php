@@ -60,11 +60,11 @@
                                 {{ $s->receipt->receipt_no }}
                             </a>
                             @else
-                            <span class="text-muted font-monospace">—</span>
+                            <span class="text-muted font-monospace">-</span>
                             @endif
                         </td>
                         <td class="text-muted">
-                            {{ $s->receipt?->receipt_date ? \Carbon\Carbon::parse($s->receipt->receipt_date)->format('d M Y') : '—' }}
+                            {{ $s->receipt?->receipt_date ? \Carbon\Carbon::parse($s->receipt->receipt_date)->format('d M Y') : '-' }}
                         </td>
                         <td>
                             @php
@@ -82,7 +82,7 @@
                             {{ $s->receipt?->status === 'voided' ? 'text-decoration-line-through text-muted' : '' }}">
                             {{ number_format($s->allocated_amount, 2) }}
                         </td>
-                        <td class="text-muted small">{{ $s->notes ?? '—' }}</td>
+                        <td class="text-muted small">{{ $s->notes ?? '-' }}</td>
                         <td class="text-end">
                             @if($s->receipt)
                             <a href="{{ route('finance.receipts.show', $s->receipt_id) }}"

@@ -42,10 +42,10 @@ class ApprovalRequestObserver extends AuditObserver
         $event   = $eventMap[$newStatus] ?? 'updated';
         $changed = implode(', ', array_keys($diff['old'] ?? []));
         $desc    = match ($newStatus) {
-            'approved'  => "Approval request approved" . ($ref ? " — {$ref}" : ''),
-            'rejected'  => "Approval request rejected" . ($ref ? " — {$ref}" : ''),
-            'cancelled' => "Approval request cancelled" . ($ref ? " — {$ref}" : ''),
-            default     => "Approval request updated [{$changed}]" . ($ref ? " — {$ref}" : ''),
+            'approved'  => "Approval request approved" . ($ref ? " - {$ref}" : ''),
+            'rejected'  => "Approval request rejected" . ($ref ? " - {$ref}" : ''),
+            'cancelled' => "Approval request cancelled" . ($ref ? " - {$ref}" : ''),
+            default     => "Approval request updated [{$changed}]" . ($ref ? " - {$ref}" : ''),
         };
 
         AuditService::log(event: $event, module: $this->getModule(),

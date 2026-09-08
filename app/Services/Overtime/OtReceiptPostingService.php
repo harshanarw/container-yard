@@ -38,12 +38,12 @@ class OtReceiptPostingService
         $lines = [
             [
                 'account_id' => $bankGl->id, 'debit' => $amount, 'credit' => 0,
-                'narration'  => "OT Receipt {$receipt->receipt_no} — " . ($receipt->customer->name ?? ''),
+                'narration'  => "OT Receipt {$receipt->receipt_no} - " . ($receipt->customer->name ?? ''),
                 'currency'   => $currency, 'exchange_rate' => 1, 'txn_debit' => $amount, 'txn_credit' => 0,
             ],
             [
                 'account_id' => $income->id, 'debit' => 0, 'credit' => $amount,
-                'narration'  => "Overtime income — BL {$receipt->bl_number}",
+                'narration'  => "Overtime income - BL {$receipt->bl_number}",
                 'currency'   => $currency, 'exchange_rate' => 1, 'txn_debit' => 0, 'txn_credit' => $amount,
             ],
         ];
@@ -53,7 +53,7 @@ class OtReceiptPostingService
             'journal_type'   => 'receipt',
             'reference_type' => OtReceipt::class,
             'reference_id'   => $receipt->id,
-            'narration'      => "OT Receipt {$receipt->receipt_no} — " . ($receipt->customer->name ?? ''),
+            'narration'      => "OT Receipt {$receipt->receipt_no} - " . ($receipt->customer->name ?? ''),
         ], $lines);
 
         $this->engine->postJournal($journal, $userId);

@@ -17,7 +17,7 @@
             @php $rsc = \App\Models\Receipt::statusBadge($receipt->status); @endphp
         <span class="badge bg-{{ $rsc }}-subtle text-{{ $rsc }} ms-2 fs-6 text-capitalize">{{ $receipt->status }}</span>
         </h4>
-        <p class="text-muted mb-0 small">{{ $receipt->customer->name ?? '—' }}</p>
+        <p class="text-muted mb-0 small">{{ $receipt->customer->name ?? '-' }}</p>
     </div>
     <div class="d-flex gap-2">
         @can('finance.receipts.confirm')
@@ -88,7 +88,7 @@
                         <label class="form-label small fw-semibold">Message</label>
                         <textarea name="message" rows="3" class="form-control form-control-sm" maxlength="1000" placeholder="Optional note to include in the email"></textarea>
                     </div>
-                    <div class="form-text small">The selected receipt PDF is attached automatically (computer-generated copy — no signature lines).</div>
+                    <div class="form-text small">The selected receipt PDF is attached automatically (computer-generated copy - no signature lines).</div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -126,7 +126,7 @@
                     </tr>
                     <tr>
                         <td class="text-muted">Customer</td>
-                        <td class="fw-semibold">{{ $receipt->customer->name ?? '—' }}</td>
+                        <td class="fw-semibold">{{ $receipt->customer->name ?? '-' }}</td>
                     </tr>
                     <tr>
                         <td class="text-muted">Amount (gross)</td>
@@ -168,7 +168,7 @@
                     @endif
                     <tr>
                         <td class="text-muted">Bank Account</td>
-                        <td>{{ $receipt->bankAccount ? $receipt->bankAccount->account_name . ' — ' . $receipt->bankAccount->bank_name : '—' }}</td>
+                        <td>{{ $receipt->bankAccount ? $receipt->bankAccount->account_name . ' - ' . $receipt->bankAccount->bank_name : '-' }}</td>
                     </tr>
                     <tr>
                         <td class="text-muted">Narration</td>
@@ -176,7 +176,7 @@
                     </tr>
                     <tr>
                         <td class="text-muted">Created By</td>
-                        <td>{{ $receipt->createdBy->name ?? '—' }}</td>
+                        <td>{{ $receipt->createdBy->name ?? '-' }}</td>
                     </tr>
                     @if($receipt->voidedBy)
                     <tr>
@@ -220,8 +220,8 @@
                                     <span class="font-monospace text-muted">{{ $entry->account->code }}</span>
                                     {{ $entry->account->name }}
                                 </td>
-                                <td class="text-end font-monospace">{{ $entry->debit > 0 ? number_format($entry->debit, 2) : '—' }}</td>
-                                <td class="text-end font-monospace">{{ $entry->credit > 0 ? number_format($entry->credit, 2) : '—' }}</td>
+                                <td class="text-end font-monospace">{{ $entry->debit > 0 ? number_format($entry->debit, 2) : '-' }}</td>
+                                <td class="text-end font-monospace">{{ $entry->credit > 0 ? number_format($entry->credit, 2) : '-' }}</td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -316,7 +316,7 @@
                                 <td class="text-end font-monospace {{ $allocOutstanding > 0 ? 'text-danger' : 'text-success' }}">
                                     {{ number_format($allocOutstanding, 2) }}
                                 </td>
-                                <td class="text-muted">{{ $alloc->notes ?? '—' }}</td>
+                                <td class="text-muted">{{ $alloc->notes ?? '-' }}</td>
                                 @if($receipt->isDraft())
                                 <td class="text-end">
                                     @can('finance.receipts.create')
@@ -357,7 +357,7 @@
                             <span class="text-muted fw-normal">({{ $pendingInvoices->count() }} pending for {{ $receipt->customer->name ?? 'this customer' }})</span>
                         </label>
                         <select name="_pending_key" class="form-select form-select-sm" id="pendingInvoiceSelect" required>
-                            <option value="">— Select invoice —</option>
+                            <option value="">- Select invoice -</option>
                             @foreach($pendingInvoices as $pi)
                             <option value="{{ $pi['type'] }}|{{ $pi['id'] }}"
                                     data-type="{{ $pi['type'] }}"

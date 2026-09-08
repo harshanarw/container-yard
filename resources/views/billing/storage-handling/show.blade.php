@@ -62,7 +62,7 @@
             </span>
         </h4>
         <p class="text-muted mb-0 small">
-            {{ $invoice->shippingLine->name ?? '—' }}
+            {{ $invoice->shippingLine->name ?? '-' }}
             &nbsp;·&nbsp;
             Period: {{ $invoice->billing_period_from->format('d M Y') }}
             – {{ $invoice->billing_period_to->format('d M Y') }}
@@ -80,7 +80,7 @@
              button is not a rule. --}}
         <a href="{{ route('billing.storage-handling.summary-pdf', $invoice) }}" target="_blank"
            class="btn btn-outline-primary btn-sm"
-           title="Customer copy — amounts include tax, no rates shown">
+           title="Customer copy - amounts include tax, no rates shown">
             <i class="bi bi-file-earmark-richtext me-1"></i>Invoice (Summary)
         </a>
         @endif
@@ -188,7 +188,7 @@
                 <div class="mb-2">
                     <div class="text-muted">Due Date</div>
                     <div>
-                        {{ $invoice->due_date?->format('d M Y') ?? '—' }}
+                        {{ $invoice->due_date?->format('d M Y') ?? '-' }}
                         @if($invoice->due_date && $invoice->status === 'issued' && $invoice->due_date->isPast())
                             <span class="badge bg-danger ms-1">Past due</span>
                         @endif
@@ -227,7 +227,7 @@
                 @endif
                 <div class="mb-2">
                     <div class="text-muted">Created By</div>
-                    <div>{{ $invoice->createdBy->name ?? '—' }}</div>
+                    <div>{{ $invoice->createdBy->name ?? '-' }}</div>
                 </div>
                 @if($invoice->notes)
                 <hr class="my-2">
@@ -243,7 +243,7 @@
             </div>
             <div class="card-body small">
                 @php $sl = $invoice->shippingLine; @endphp
-                <div class="fw-semibold mb-1">{{ $sl->name ?? '—' }}</div>
+                <div class="fw-semibold mb-1">{{ $sl->name ?? '-' }}</div>
                 @if($sl)
                     <div class="text-muted">{{ $sl->code ?? '' }}</div>
                     @if($sl->address)
@@ -267,7 +267,7 @@
             </div>
             <div class="card-body small">
                 @php $bp = $invoice->billingParty ?? $invoice->shippingLine; @endphp
-                <div class="fw-semibold mb-1">{{ $bp->name ?? '—' }}</div>
+                <div class="fw-semibold mb-1">{{ $bp->name ?? '-' }}</div>
                 @if($bp)
                     <div class="text-muted">{{ $bp->address }}</div>
                     @if($bp->contact_person)
@@ -399,7 +399,7 @@
                                     @elseif($line->cargo_status === 'empty')
                                         <span class="badge bg-info-subtle text-info border" style="font-size:.7rem;">Empty</span>
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="small">{{ $line->gate_in_date->format('d M Y') }}</td>
@@ -418,7 +418,7 @@
                                         <div class="text-muted" style="font-size:.65rem;">{{ $line->chargeCode->taxCode->code }}</div>
                                         @endif
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="text-end fw-semibold {{ $line->storage_subtotal == 0 ? 'text-success' : '' }}">
@@ -466,7 +466,7 @@
                     <span class="small fw-bold text-success">
                         <i class="bi bi-arrow-down-circle me-1"></i>Lift Off
                     </span>
-                    <span class="text-muted small ms-1">— Gate In events during billing period</span>
+                    <span class="text-muted small ms-1">- Gate In events during billing period</span>
                 </div>
                 @if($liftOffLines->isEmpty())
                 <div class="px-3 py-2 text-muted small fst-italic">No lift-off events during this period.</div>
@@ -507,7 +507,7 @@
                                     @elseif($l->cargo_status === 'empty')
                                         <span class="badge bg-info-subtle text-info border" style="font-size:.7rem;">Empty</span>
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="small">{{ $l->gate_in_date->format('d M Y') }}</td>
@@ -518,7 +518,7 @@
                                         <div class="text-muted" style="font-size:.65rem;">{{ $l->handlingChargeCode->taxCode->code }}</div>
                                         @endif
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="text-end pe-2">{{ $fmtDisp($l->lift_off_rate) }}</td>
@@ -543,7 +543,7 @@
                     <span class="small fw-bold text-primary">
                         <i class="bi bi-arrow-up-circle me-1"></i>Lift On
                     </span>
-                    <span class="text-muted small ms-1">— Gate Out events during billing period</span>
+                    <span class="text-muted small ms-1">- Gate Out events during billing period</span>
                 </div>
                 @if($liftOnLines->isEmpty())
                 <div class="px-3 py-2 text-muted small fst-italic">No lift-on events during this period.</div>
@@ -584,11 +584,11 @@
                                     @elseif($l->cargo_status === 'empty')
                                         <span class="badge bg-info-subtle text-info border" style="font-size:.7rem;">Empty</span>
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="small">
-                                    {{ $l->gate_out_date ? $l->gate_out_date->format('d M Y') : '—' }}
+                                    {{ $l->gate_out_date ? $l->gate_out_date->format('d M Y') : '-' }}
                                 </td>
                                 <td class="small">
                                     @if($l->handlingChargeCode)
@@ -597,7 +597,7 @@
                                         <div class="text-muted" style="font-size:.65rem;">{{ $l->handlingChargeCode->taxCode->code }}</div>
                                         @endif
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="text-end pe-2">{{ $fmtDisp($l->lift_on_rate) }}</td>
@@ -660,7 +660,7 @@
                                         <div class="text-muted" style="font-size:.65rem;">{{ $line->chargeCode->taxCode->code }}</div>
                                         @endif
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="small">
@@ -670,7 +670,7 @@
                                         <div class="text-muted" style="font-size:.65rem;">{{ $line->handlingChargeCode->taxCode->code }}</div>
                                         @endif
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="text-end small">{{ $fmtDisp($line->storage_subtotal) }}</td>
@@ -800,7 +800,7 @@
 @endphp
 <div class="card content-card mt-3">
     <div class="card-header">
-        <i class="bi bi-bank me-2 text-primary"></i>Finance — GL Posting
+        <i class="bi bi-bank me-2 text-primary"></i>Finance - GL Posting
     </div>
     <div class="card-body">
         @if($_posting && $_posting->isPosted())
@@ -815,7 +815,7 @@
                 </a>
                 @endif
                 <span class="text-muted small">
-                    by {{ $_posting->postedBy->name ?? '—' }}
+                    by {{ $_posting->postedBy->name ?? '-' }}
                     {{ $_posting->posted_at ? 'on ' . $_posting->posted_at->format('d M Y H:i') : '' }}
                 </span>
             </div>

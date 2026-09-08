@@ -208,10 +208,10 @@
                     <td>
                         @if($c->size)
                             {{ $c->size }}' <span class="badge {{ in_array($c->type_code, ['RF','RH']) ? 'badge-reefer' : 'bg-info-subtle text-info' }}">{{ $c->type_code }}</span>
-                        @else —
+                        @else -
                         @endif
                     </td>
-                    <td class="text-muted small">{{ $c->manufacture_year ?? '—' }}{{ $c->manufacturer ? ' / '.$c->manufacturer : '' }}</td>
+                    <td class="text-muted small">{{ $c->manufacture_year ?? '-' }}{{ $c->manufacturer ? ' / '.$c->manufacturer : '' }}</td>
                     <td class="small">
                         @if($c->category === 'leased' && $c->lessor_name)
                             {{ $c->lessor_name }}
@@ -222,10 +222,10 @@
                                 <span class="badge bg-warning text-dark ms-1" style="font-size:.6rem;">Exp. Soon</span>
                             @endif
                         @else
-                            {{ $c->owner_name ?? $c->owner_code ?? '—' }}
+                            {{ $c->owner_name ?? $c->owner_code ?? '-' }}
                         @endif
                     </td>
-                    <td class="small">{{ $c->customer?->name ?? '—' }}</td>
+                    <td class="small">{{ $c->customer?->name ?? '-' }}</td>
                     <td>
                         @php
                             $statusClass = [
@@ -260,14 +260,14 @@
                                 </span>
                             @endif
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td class="small text-muted">
                         @if($c->location_zone)
                             {{ $c->location_zone }}-{{ $c->location_row }}{{ $c->location_bay }}-T{{ $c->location_tier }}
                         @else
-                            —
+                            -
                         @endif
                     </td>
                     <td class="text-end">

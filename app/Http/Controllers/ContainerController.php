@@ -180,7 +180,7 @@ class ContainerController extends Controller
     public function markAvailable(Container $container, ContainerStatusService $status)
     {
         if ($container->status === 'released') {
-            return back()->with('error', 'A released container is not in the yard — gate it in before marking available.');
+            return back()->with('error', 'A released container is not in the yard - gate it in before marking available.');
         }
         if ($container->status === 'available') {
             return back()->with('info', 'Container is already available.');

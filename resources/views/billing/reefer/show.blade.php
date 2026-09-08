@@ -103,7 +103,7 @@
                     <dd class="col-sm-7">{{ $reeferInvoice->invoice_date?->format('d M Y') }}</dd>
                     <dt class="col-sm-5 text-muted">Due Date</dt>
                     <dd class="col-sm-7">
-                        {{ $reeferInvoice->due_date?->format('d M Y') ?? '—' }}
+                        {{ $reeferInvoice->due_date?->format('d M Y') ?? '-' }}
                         @if($reeferInvoice->due_date && $reeferInvoice->status === 'issued' && $reeferInvoice->due_date->isPast())
                             <span class="badge bg-danger ms-1">Past due</span>
                         @endif
@@ -121,7 +121,7 @@
                         @endif
                     </dd>
                     <dt class="col-sm-5 text-muted">Created by</dt>
-                    <dd class="col-sm-7">{{ $reeferInvoice->createdBy?->name ?? '—' }}</dd>
+                    <dd class="col-sm-7">{{ $reeferInvoice->createdBy?->name ?? '-' }}</dd>
                     <dt class="col-sm-5 text-muted">Created at</dt>
                     <dd class="col-sm-7">{{ $reeferInvoice->created_at?->format('d M Y H:i') }}</dd>
                     @if($reeferInvoice->notes)
@@ -177,7 +177,7 @@
 @endphp
 <div class="card shadow-sm mt-4">
     <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-bank me-2 text-primary"></i>Finance — GL Posting
+        <i class="bi bi-bank me-2 text-primary"></i>Finance - GL Posting
     </div>
     <div class="card-body">
         @if($_posting && $_posting->isPosted())
@@ -192,7 +192,7 @@
                 </a>
                 @endif
                 <span class="text-muted small">
-                    by {{ $_posting->postedBy->name ?? '—' }}
+                    by {{ $_posting->postedBy->name ?? '-' }}
                     {{ $_posting->posted_at ? 'on ' . $_posting->posted_at->format('d M Y H:i') : '' }}
                 </span>
             </div>
@@ -266,11 +266,11 @@
                             <div class="text-muted" style="font-size:.65rem;">{{ $line->chargeCode->taxCode->code }}</div>
                             @endif
                         @else
-                            <span class="text-muted small">—</span>
+                            <span class="text-muted small">-</span>
                         @endif
                     </td>
-                    <td class="small text-nowrap">{{ $line->plug_in_at?->format('d M Y H:i') ?? '—' }}</td>
-                    <td class="small text-nowrap">{{ $line->plug_out_at?->format('d M Y H:i') ?? '—' }}</td>
+                    <td class="small text-nowrap">{{ $line->plug_in_at?->format('d M Y H:i') ?? '-' }}</td>
+                    <td class="small text-nowrap">{{ $line->plug_out_at?->format('d M Y H:i') ?? '-' }}</td>
                     <td>
                         <span class="badge {{ $line->billing_mode === 'hourly' ? 'bg-info-subtle text-info' : 'bg-primary-subtle text-primary' }}">
                             {{ ucfirst($line->billing_mode) }}

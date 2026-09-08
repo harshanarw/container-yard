@@ -60,7 +60,7 @@ $statusColors = [
             <tr>
                 <td class="font-monospace small fw-semibold">{{ $r->receipt_no }}</td>
                 <td class="small font-monospace">{{ $r->bl_number }}</td>
-                <td class="small">{{ $r->customer->name ?? '—' }}</td>
+                <td class="small">{{ $r->customer->name ?? '-' }}</td>
                 <td class="small text-muted">{{ $r->rule->rule_code ?? '' }}</td>
                 <td class="small text-muted">{{ $r->valid_to?->format('d M Y H:i') }}</td>
                 <td class="text-end">{{ $r->currency }} {{ number_format($r->total_amount, 2) }}</td>

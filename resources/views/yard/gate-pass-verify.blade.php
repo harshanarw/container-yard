@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Gate Pass Verification — {{ $movement->container_no }}</title>
+    <title>Gate Pass Verification - {{ $movement->container_no }}</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; }
 
@@ -166,7 +166,7 @@
     <div class="vfy-banner-icon">📋</div>
     <div>
         <div>Record Found</div>
-        <div class="vfy-banner-sub">Gate pass exists in system — no cross-check params provided</div>
+        <div class="vfy-banner-sub">Gate pass exists in system - no cross-check params provided</div>
     </div>
 </div>
 @elseif($allMatch)
@@ -228,21 +228,21 @@
         <div class="vfy-row-lbl">{{ $isInward ? 'Gate-In Time' : 'Gate-Out Time' }}</div>
         <div class="vfy-row-val">
             {{ $isInward
-                ? ($movement->gate_in_time?->format('d M Y, H:i') ?? '—')
-                : ($movement->gate_out_time?->format('d M Y, H:i') ?? '—') }}
+                ? ($movement->gate_in_time?->format('d M Y, H:i') ?? '-')
+                : ($movement->gate_out_time?->format('d M Y, H:i') ?? '-') }}
         </div>
     </div>
     <div class="vfy-row">
         <div class="vfy-row-lbl">Vehicle Plate</div>
-        <div class="vfy-row-val mono">{{ $movement->vehicle_plate ?: '—' }}</div>
+        <div class="vfy-row-val mono">{{ $movement->vehicle_plate ?: '-' }}</div>
     </div>
     <div class="vfy-row">
         <div class="vfy-row-lbl">Driver</div>
-        <div class="vfy-row-val">{{ $movement->driver_name ?: '—' }}</div>
+        <div class="vfy-row-val">{{ $movement->driver_name ?: '-' }}</div>
     </div>
     <div class="vfy-row">
         <div class="vfy-row-lbl">{{ $isInward ? 'Owner / Shipping Line' : 'Customer' }}</div>
-        <div class="vfy-row-val">{{ $movement->customer?->name ?: ($gateIn?->customer?->name ?: '—') }}</div>
+        <div class="vfy-row-val">{{ $movement->customer?->name ?: ($gateIn?->customer?->name ?: '-') }}</div>
     </div>
     @if($isInward && $movement->vessel_name)
     <div class="vfy-row">

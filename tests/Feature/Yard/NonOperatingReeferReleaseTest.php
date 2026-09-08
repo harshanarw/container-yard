@@ -87,7 +87,7 @@ class NonOperatingReeferReleaseTest extends FeatureTestCase
     {
         $container = $this->reeferInYard('non_operating');
 
-        $this->assertFalse($container->fresh()->hasValidPti(), 'The PTI is still stale — only the rung is quiet.');
+        $this->assertFalse($container->fresh()->hasValidPti(), 'The PTI is still stale - only the rung is quiet.');
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

@@ -271,7 +271,7 @@ class MrStatusInquiryFilterTest extends FeatureTestCase
         $this->assertStringContainsString('Export Ready', $csv);
         $this->assertStringContainsString(Cat::label(Cat::REPAIR_IN_PROGRESS), $csv);
         $this->assertStringContainsString('Condition On Arrival', $csv,
-            'The arrival snapshot stays available, relabelled — it is still useful, just not current state.');
+            'The arrival snapshot stays available, relabelled - it is still useful, just not current state.');
     }
 
     /** The landing page renders with no filters applied (also covered by the smoke suite). */

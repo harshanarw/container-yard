@@ -13,13 +13,13 @@ class EstimateObserver extends AuditObserver
     protected function describeCreated(Model $m, ?string $ref): string
     {
         return "Estimate {$ref} created"
-            . ($m->container_no ? " — {$m->container_no}" : '');
+            . ($m->container_no ? " - {$m->container_no}" : '');
     }
 
     protected function describeDeleted(Model $m, ?string $ref): string
     {
         return "Estimate {$ref} deleted"
-            . ($m->container_no ? " — {$m->container_no}" : '');
+            . ($m->container_no ? " - {$m->container_no}" : '');
     }
 
     public function updated(Model $m): void
@@ -36,7 +36,7 @@ class EstimateObserver extends AuditObserver
                 event: 'approved',
                 module: $this->getModule(),
                 description: "Estimate {$ref} approved"
-                    . ($m->container_no ? " — {$m->container_no}" : ''),
+                    . ($m->container_no ? " - {$m->container_no}" : ''),
                 reference: $ref,
                 subject: $m,
                 properties: $diff,
@@ -49,7 +49,7 @@ class EstimateObserver extends AuditObserver
                 module: $this->getModule(),
                 description: "Estimate {$ref} rejected"
                     . ($m->rejected_reason ? ': ' . $m->rejected_reason : '')
-                    . ($m->container_no ? " — {$m->container_no}" : ''),
+                    . ($m->container_no ? " - {$m->container_no}" : ''),
                 reference: $ref,
                 subject: $m,
                 properties: $diff,

@@ -177,7 +177,7 @@ class WeeklyRevenueWorkbook
 
             // ── Yard-level rent placeholder ─────────────────────────────────
             $writer->addRow(new Row(array_merge(
-                [Cell::fromValue('OTHER INCOME — RENT', $name), Cell::fromValue('', $name)],
+                [Cell::fromValue('OTHER INCOME - RENT', $name), Cell::fromValue('', $name)],
                 self::amounts($data['rent'], $money),
             )));
             $options->mergeCells(0, $row, 1, $row, $sheet);

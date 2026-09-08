@@ -27,12 +27,12 @@
                 <label class="form-label small fw-semibold">Bank Account <span class="text-danger">*</span></label>
                 <select name="bank_account_id" class="form-select select2" required
                         onchange="window.location='{{ route('finance.bank-reconciliation.create') }}?bank_account_id='+this.value">
-                    <option value="">— Select bank account —</option>
+                    <option value="">- Select bank account -</option>
                     @foreach($bankAccounts as $ba)
                         <option value="{{ $ba->id }}" {{ (string) $selectedId === (string) $ba->id ? 'selected' : '' }}
                             @if(!$ba->gl_account_id) disabled @endif>
-                            {{ $ba->bank_name }} — {{ $ba->account_name }} ({{ $ba->currency }})
-                            @if(!$ba->gl_account_id) — no GL account @endif
+                            {{ $ba->bank_name }} - {{ $ba->account_name }} ({{ $ba->currency }})
+                            @if(!$ba->gl_account_id) - no GL account @endif
                         </option>
                     @endforeach
                 </select>

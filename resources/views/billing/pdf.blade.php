@@ -124,7 +124,7 @@
                 <table style="width:100%;">
                     <tr>
                         <td class="info-label">Customer</td>
-                        <td class="info-value">{{ $cust->name ?? '—' }}</td>
+                        <td class="info-value">{{ $cust->name ?? '-' }}</td>
                     </tr>
                     @if($cust?->registration_no)
                     <tr>
@@ -209,7 +209,7 @@
                     @endif
                     <tr>
                         <td class="info-label">Prepared By</td>
-                        <td class="info-value">{{ $invoice->createdBy->name ?? '—' }}</td>
+                        <td class="info-value">{{ $invoice->createdBy->name ?? '-' }}</td>
                     </tr>
                 </table>
             </div>

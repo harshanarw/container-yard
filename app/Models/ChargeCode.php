@@ -80,7 +80,7 @@ class ChargeCode extends Model
 
     public function getCategoryLabelAttribute(): string
     {
-        return self::CATEGORIES[$this->category] ?? ($this->category ?? '—');
+        return self::CATEGORIES[$this->category] ?? ($this->category ?? '-');
     }
 
     public function getCategoryBadgeAttribute(): string
@@ -90,6 +90,6 @@ class ChargeCode extends Model
 
     public function getRateTypeLabelAttribute(): string
     {
-        return self::RATE_TYPES[$this->rate_type] ?? ($this->rate_type ?? '—');
+        return self::RATE_TYPES[$this->rate_type] ?? ($this->rate_type ?? '-');
     }
 }

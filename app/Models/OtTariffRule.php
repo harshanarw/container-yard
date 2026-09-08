@@ -34,8 +34,8 @@ class OtTariffRule extends Model
     ];
 
     const PERIODS = [
-        'a'      => 'A — Short period',
-        'b'      => 'B — Extended period',
+        'a'      => 'A - Short period',
+        'b'      => 'B - Extended period',
         'custom' => 'Custom period',
     ];
 

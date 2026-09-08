@@ -56,7 +56,7 @@ class CompanySettingController extends Controller
 
         Currency::setDefault($currency);
 
-        return back()->with('success', "Default currency updated to {$currency->code} — {$currency->name}.");
+        return back()->with('success', "Default currency updated to {$currency->code} - {$currency->name}.");
     }
 
     public function update(Request $request)

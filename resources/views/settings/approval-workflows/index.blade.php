@@ -78,7 +78,7 @@
                     @if($step->auto_approve_on_create)
                         <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Yes</span>
                     @else
-                        <span class="text-muted small">—</span>
+                        <span class="text-muted small">-</span>
                     @endif
                 </td>
                 <td class="text-center">
@@ -134,7 +134,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Document Type <span class="text-danger">*</span></label>
                         <select name="document_type" class="form-select" required>
-                            <option value="">— Select —</option>
+                            <option value="">- Select -</option>
                             @foreach($docTypeLabels as $key => $label)
                             <option value="{{ $key }}">{{ $label }}</option>
                             @endforeach

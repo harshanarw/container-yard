@@ -67,11 +67,11 @@
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted small">Started</div>
-                        <div class="small">{{ $yardJob->started_at?->format('d M Y H:i') ?? '—' }}</div>
+                        <div class="small">{{ $yardJob->started_at?->format('d M Y H:i') ?? '-' }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted small">Completed</div>
-                        <div class="small">{{ $yardJob->completed_at?->format('d M Y H:i') ?? '—' }}</div>
+                        <div class="small">{{ $yardJob->completed_at?->format('d M Y H:i') ?? '-' }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted small">Duration</div>
@@ -79,7 +79,7 @@
                             @if($yardJob->started_at)
                                 {{ $yardJob->started_at->diffForHumans($yardJob->completed_at ?? now(), true) }}
                             @else
-                                —
+                                -
                             @endif
                         </div>
                     </div>

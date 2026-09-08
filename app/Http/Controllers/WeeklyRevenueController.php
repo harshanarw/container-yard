@@ -87,7 +87,7 @@ class WeeklyRevenueController extends Controller
                 yield $this->csvLine($row['customer'], $row['code'], 'Total', $row['total']);
             }
 
-            yield $this->csvLine('OTHER INCOME — RENT', '', '', $data['rent']);
+            yield $this->csvLine('OTHER INCOME - RENT', '', '', $data['rent']);
 
             foreach ($data['categories'] as $category) {
                 yield $this->csvLine('CATEGORY TOTALS', '', $data['labels'][$category], $data['category_totals'][$category]);

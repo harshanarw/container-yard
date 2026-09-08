@@ -20,7 +20,7 @@ class ReeferTempLogObserver extends AuditObserver
             event: 'temp-log',
             module: $this->getModule(),
             description: 'Temperature log recorded'
-                . ($m->supply_temperature !== null ? " — supply {$m->supply_temperature}°C" : '')
+                . ($m->supply_temperature !== null ? " - supply {$m->supply_temperature}°C" : '')
                 . ($ref ? " · {$ref}" : ''),
             reference: $ref,
             subject: $m,

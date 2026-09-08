@@ -177,7 +177,7 @@
 
             progWrap.classList.remove('d-none');
             progBar.style.width = '0%';
-            progText.textContent = (total > 1 ? `File ${current} of ${total} — ` : '') + file.name;
+            progText.textContent = (total > 1 ? `File ${current} of ${total} - ` : '') + file.name;
 
             const xhr = new XMLHttpRequest();
             xhr.open('POST', uploadUrl);
@@ -188,7 +188,7 @@
                 if (e.lengthComputable) {
                     const pct = Math.round(e.loaded / e.total * 100);
                     progBar.style.width = pct + '%';
-                    progText.textContent = (total > 1 ? `File ${current} of ${total} — ` : '') + file.name + ' (' + pct + '%)';
+                    progText.textContent = (total > 1 ? `File ${current} of ${total} - ` : '') + file.name + ' (' + pct + '%)';
                 }
             });
 

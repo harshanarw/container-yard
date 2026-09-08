@@ -25,7 +25,7 @@ class PermissionSeeder extends Seeder
                     [
                         'module'       => $moduleKey,
                         'action'       => $action,
-                        'display_name' => "{$actionLabel} — {$label}",
+                        'display_name' => "{$actionLabel} - {$label}",
                         'sort_order'   => $sortIdx,
                     ]
                 );
@@ -39,6 +39,6 @@ class PermissionSeeder extends Seeder
         Cache::forget('_gate_permission_names');
 
         $total = Permission::count();
-        $this->command->info("  ✔  Permissions synced — {$created} created, {$total} total.");
+        $this->command->info("  ✔  Permissions synced - {$created} created, {$total} total.");
     }
 }

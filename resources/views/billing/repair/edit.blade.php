@@ -12,9 +12,9 @@
 @section('content')
 <div class="page-header d-flex align-items-center justify-content-between mb-3">
     <div>
-        <h4><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Periodic Bill — {{ $invoice->invoice_no }}</h4>
+        <h4><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Periodic Bill - {{ $invoice->invoice_no }}</h4>
         <p class="text-muted mb-0 small">
-            {{ $invoice->customer->name ?? '—' }} · {{ $invoice->currency }} · draft
+            {{ $invoice->customer->name ?? '-' }} · {{ $invoice->currency }} · draft
         </p>
     </div>
     <a href="{{ route('repair-invoices.show', $invoice) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
@@ -38,7 +38,7 @@
                 <div class="card-body">
                     <div class="mb-2">
                         <label class="form-label small mb-1">Customer</label>
-                        <input type="text" class="form-control form-control-sm" value="{{ $invoice->customer->name ?? '—' }}" disabled>
+                        <input type="text" class="form-control form-control-sm" value="{{ $invoice->customer->name ?? '-' }}" disabled>
                         <div class="form-text">Customer and currency are fixed for a periodic bill.</div>
                     </div>
                     <div class="mb-2">

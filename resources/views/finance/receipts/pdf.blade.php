@@ -120,13 +120,13 @@
     {{-- Meta --}}
     <table class="meta">
         <tr>
-            <td class="lbl">Received From</td><td class="val">{{ $receipt->customer->name ?? '—' }}</td>
+            <td class="lbl">Received From</td><td class="val">{{ $receipt->customer->name ?? '-' }}</td>
             <td class="lbl">Payment Method</td><td class="val">{{ \App\Models\Receipt::paymentMethodLabel($receipt->payment_method) }}</td>
         </tr>
         <tr>
-            <td class="lbl">Bank Account</td><td class="val">{{ $receipt->bankAccount->bank_name ?? '—' }}{{ $receipt->bankAccount->account_number ? ' · '.$receipt->bankAccount->account_number : '' }}</td>
+            <td class="lbl">Bank Account</td><td class="val">{{ $receipt->bankAccount->bank_name ?? '-' }}{{ $receipt->bankAccount->account_number ? ' · '.$receipt->bankAccount->account_number : '' }}</td>
             <td class="lbl">{{ $receipt->payment_method === 'cheque' ? 'Cheque No' : 'Reference' }}</td>
-            <td class="val">{{ $receipt->payment_method === 'cheque' ? ($receipt->cheque_no ?: '—') : ($receipt->reference_no ?: '—') }}</td>
+            <td class="val">{{ $receipt->payment_method === 'cheque' ? ($receipt->cheque_no ?: '-') : ($receipt->reference_no ?: '-') }}</td>
         </tr>
     </table>
 
@@ -160,7 +160,7 @@
     <table class="sign"><tr>
         <td style="width:45%;">
             <div class="sigline"></div>
-            <div class="siglabel">Received / Prepared by{{ $receipt->createdBy ? ' — '.$receipt->createdBy->name : '' }}</div>
+            <div class="siglabel">Received / Prepared by{{ $receipt->createdBy ? ' - '.$receipt->createdBy->name : '' }}</div>
         </td>
         <td style="width:10%;">&nbsp;</td>
         <td style="width:45%;">

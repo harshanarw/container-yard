@@ -313,7 +313,7 @@ class WeeklyRevenueSplitTest extends TestCase
         $banner->setAccessible(true);
         $lines = $banner->invoke(null, $rows);
 
-        $this->assertSame(['AGP — Storage: No storage tariff covers this period.'], $lines);
+        $this->assertSame(['AGP - Storage: No storage tariff covers this period.'], $lines);
     }
 
     // ── Shape ───────────────────────────────────────────────────────────────
@@ -325,8 +325,8 @@ class WeeklyRevenueSplitTest extends TestCase
 
     public function test_the_title_collapses_a_whole_month_and_spells_out_a_partial_range(): void
     {
-        $this->assertSame('PERFORMANCE UPDATE [REVENUE] — AUGUST 2026', Revenue::title('2026-08-01', '2026-08-31'));
-        $this->assertSame('PERFORMANCE UPDATE [REVENUE] — 03 AUG 2026 TO 14 AUG 2026', Revenue::title('2026-08-03', '2026-08-14'));
+        $this->assertSame('PERFORMANCE UPDATE [REVENUE] - AUGUST 2026', Revenue::title('2026-08-01', '2026-08-31'));
+        $this->assertSame('PERFORMANCE UPDATE [REVENUE] - 03 AUG 2026 TO 14 AUG 2026', Revenue::title('2026-08-03', '2026-08-14'));
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────

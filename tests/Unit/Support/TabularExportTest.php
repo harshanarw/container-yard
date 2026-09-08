@@ -56,8 +56,8 @@ class TabularExportTest extends TestCase
                 'M&R Status and Container Inquiry both use a lone hyphen for "no value". '
                 . 'One character cannot be a formula.',
             ],
-            'an em-dash placeholder'  => ['—', '—', 'Daily Movements uses this one.'],
-            'an em dash inside a label' => ['In yard — awaiting disposition', 'In yard — awaiting disposition', ''],
+            'an em-dash placeholder'  => ['-', '-', 'Daily Movements uses this one.'],
+            'an em dash inside a label' => ['In yard - awaiting disposition', 'In yard - awaiting disposition', ''],
             'an empty cell'           => ['', '', ''],
             'a null cell'             => [null, '', ''],
         ];
@@ -134,7 +134,7 @@ class TabularExportTest extends TestCase
     private function requireExcel(): void
     {
         if (! TabularExport::supports('xlsx')) {
-            $this->markTestSkipped('openspout/openspout is not installed — Excel output is not available.');
+            $this->markTestSkipped('openspout/openspout is not installed - Excel output is not available.');
         }
     }
 
@@ -162,7 +162,7 @@ class TabularExportTest extends TestCase
         $bytes = $this->send(TabularExport::stream('xlsx', 'demo', ['Container No'], fn () => yield ['TCLU1234567']));
 
         $this->assertStringStartsWith("PK\x03\x04", $bytes,
-            'An xlsx is a zip archive — this is what distinguishes it from an HTML table '
+            'An xlsx is a zip archive - this is what distinguishes it from an HTML table '
             . 'renamed .xlsx, which Excel warns about on every open.');
 
         $path = tempnam(sys_get_temp_dir(), 'assert-');
@@ -225,7 +225,7 @@ class TabularExportTest extends TestCase
         @unlink($path);
 
         $this->assertStringNotContainsString("'=1+1", $strings,
-            'The writer types the cell as text, so it needs no escaping — adding one would '
+            'The writer types the cell as text, so it needs no escaping - adding one would '
             . 'put a stray apostrophe in front of legitimate content.');
     }
 

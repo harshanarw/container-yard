@@ -89,11 +89,11 @@
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">Charge Code</label>
                     <select name="charge_code_id" class="form-select">
-                        <option value="">—</option>
+                        <option value="">-</option>
                         @foreach($chargeCodes as $cc)
                             <option value="{{ $cc->id }}" data-tax="{{ $cc->tax_code_id }}"
                                 {{ (string) old('charge_code_id', $tariff->charge_code_id) === (string) $cc->id ? 'selected' : '' }}>
-                                {{ $cc->code }} — {{ $cc->description }}
+                                {{ $cc->code }} - {{ $cc->description }}
                             </option>
                         @endforeach
                     </select>
@@ -102,7 +102,7 @@
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">Tax Code</label>
                     <select name="tax_code_id" class="form-select">
-                        <option value="">—</option>
+                        <option value="">-</option>
                         @foreach($taxCodes as $tc)
                             <option value="{{ $tc->id }}" {{ (string) old('tax_code_id', $tariff->tax_code_id) === (string) $tc->id ? 'selected' : '' }}>
                                 {{ $tc->code }}

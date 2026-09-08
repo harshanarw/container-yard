@@ -159,7 +159,7 @@
         <td style="width:50%; vertical-align:top; padding-right:8px;">
             <div class="info-box">
                 <h3>Bill To</h3>
-                <div style="font-weight:bold; font-size:11px; margin-bottom:4px;">{{ $reeferInvoice->customer?->name ?? '—' }}</div>
+                <div style="font-weight:bold; font-size:11px; margin-bottom:4px;">{{ $reeferInvoice->customer?->name ?? '-' }}</div>
                 @if($reeferInvoice->billingParty && $reeferInvoice->billing_party_id !== $reeferInvoice->customer_id)
                 <div style="color:#555;">Billing party: {{ $reeferInvoice->billingParty->name }}</div>
                 @endif
@@ -205,8 +205,8 @@
             @foreach($reeferInvoice->lines as $line)
             <tr>
                 <td class="mono" style="font-weight:bold;">{{ $line->container_no }}</td>
-                <td>{{ $line->plug_in_at?->format('d M y H:i') ?? '—' }}</td>
-                <td>{{ $line->plug_out_at?->format('d M y H:i') ?? '—' }}</td>
+                <td>{{ $line->plug_in_at?->format('d M y H:i') ?? '-' }}</td>
+                <td>{{ $line->plug_out_at?->format('d M y H:i') ?? '-' }}</td>
                 <td><span class="badge-{{ $line->billing_mode }}">{{ ucfirst($line->billing_mode) }}</span></td>
                 <td class="r">
                     @if($line->billing_mode === 'hourly') {{ rtrim(rtrim(number_format($line->chargeable_hours, 2), '0'), '.') }}h

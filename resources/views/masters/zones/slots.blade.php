@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Slot Configuration — Zone ' . $zone->code)
+@section('title', 'Slot Configuration - Zone ' . $zone->code)
 
 @section('breadcrumb')
     <li class="breadcrumb-item">Masters</li>
     <li class="breadcrumb-item"><a href="{{ route('masters.zones.index') }}">Storage Zones</a></li>
-    <li class="breadcrumb-item active">Zone {{ $zone->code }} — Slots</li>
+    <li class="breadcrumb-item active">Zone {{ $zone->code }} - Slots</li>
 @endsection
 
 @push('styles')
@@ -257,7 +257,7 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
         <div class="card content-card">
             <div class="card-header d-flex align-items-center justify-content-between py-2">
                 <span class="fw-semibold small">
-                    <i class="bi bi-grid me-1 text-primary"></i>Slot Grid — Zone {{ $zone->code }}
+                    <i class="bi bi-grid me-1 text-primary"></i>Slot Grid - Zone {{ $zone->code }}
                 </span>
                 <div class="d-flex gap-3" style="font-size:.7rem;">
                     <span><span class="legend-dot" style="background:#dcfce7;border:1px solid #86efac;"></span> Empty</span>
@@ -286,7 +286,7 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
                         <i class="bi bi-info-circle me-1"></i>
                         Hover over an <span style="color:#15803d;">empty</span> slot to reveal the delete button.
                         <span class="text-danger fw-semibold">&times;</span> = deletable (topmost empty slot).
-                        <span class="text-secondary fw-semibold">&times;</span> = blocked — a higher tier exists above; remove top tiers first.
+                        <span class="text-secondary fw-semibold">&times;</span> = blocked - a higher tier exists above; remove top tiers first.
                         Occupied/reserved slots cannot be deleted.
                     </p>
 
@@ -311,7 +311,7 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
                                             $hasAbove = $cell->contains(fn($s) => $s->tier > $slot->tier);
                                         @endphp
                                         <div class="tier-block {{ $slot->status }}"
-                                             title="{{ $slot->slot_code }}: {{ $slot->status }}{{ $slot->container ? ' — ' . $slot->container->container_no : '' }}{{ ($slot->status === 'empty' && $hasAbove) ? ' (cannot delete — tiers above exist)' : '' }}{{ $slot->status === 'occupied' ? ' — drag to move' : '' }}"
+                                             title="{{ $slot->slot_code }}: {{ $slot->status }}{{ $slot->container ? ' - ' . $slot->container->container_no : '' }}{{ ($slot->status === 'empty' && $hasAbove) ? ' (cannot delete - tiers above exist)' : '' }}{{ $slot->status === 'occupied' ? ' - drag to move' : '' }}"
                                              @if($slot->status === 'occupied')
                                                  draggable="true"
                                                  data-drag-zone="{{ $zone->code }}"
@@ -433,9 +433,9 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
                             </span>
                         </td>
                         <td class="small">
-                            <i class="bi bi-person me-1 text-muted"></i>{{ $adj->adjustedBy?->name ?? '—' }}
+                            <i class="bi bi-person me-1 text-muted"></i>{{ $adj->adjustedBy?->name ?? '-' }}
                         </td>
-                        <td class="small text-muted">{{ $adj->notes ?? '—' }}</td>
+                        <td class="small text-muted">{{ $adj->notes ?? '-' }}</td>
                         <td class="pe-3 small text-muted text-nowrap">{{ $adj->created_at->diffForHumans() }}</td>
                     </tr>
                     @endforeach
@@ -548,7 +548,7 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
                 ? 'alert alert-danger py-2 small mb-3'
                 : 'alert alert-primary py-2 small mb-3';
             if (total > 500) {
-                numEl.textContent = total + ' — exceeds 500 limit';
+                numEl.textContent = total + ' - exceeds 500 limit';
             }
         } else {
             countEl.classList.add('d-none');
@@ -610,7 +610,7 @@ body.dragging-active .tier-block.empty:not(.drag-over) {
             const toCode   = this.dataset.dropZone + '-' + this.dataset.dropRow + this.dataset.dropBay + '-T' + this.dataset.dropTier;
             if (fromCode === toCode) return;
 
-            moveContNo.textContent   = dragData.containerNo || '—';
+            moveContNo.textContent   = dragData.containerNo || '-';
             moveFromCode.textContent = fromCode;
             moveToCode.textContent   = toCode;
             moveNotes.value          = '';

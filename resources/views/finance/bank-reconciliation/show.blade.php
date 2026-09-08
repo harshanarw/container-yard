@@ -19,7 +19,7 @@
 
 <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
-        <h4 class="mb-0"><i class="bi bi-bank me-2 text-primary"></i>{{ $r->bankAccount->bank_name }} — {{ $r->bankAccount->account_name }}
+        <h4 class="mb-0"><i class="bi bi-bank me-2 text-primary"></i>{{ $r->bankAccount->bank_name }} - {{ $r->bankAccount->account_name }}
             @if($r->isCompleted())<span class="badge bg-success-subtle text-success align-middle"><i class="bi bi-lock-fill me-1"></i>Completed</span>
             @else<span class="badge bg-warning-subtle text-warning align-middle">Draft</span>@endif
         </h4>
@@ -92,7 +92,7 @@
         <div class="card content-card mb-3">
             <div class="card-body py-3 text-center">
                 @if($summary['is_balanced'])
-                    <p class="small text-success mb-2"><i class="bi bi-check-circle me-1"></i>The difference is zero — you can finish.</p>
+                    <p class="small text-success mb-2"><i class="bi bi-check-circle me-1"></i>The difference is zero - you can finish.</p>
                     @can('finance.bank-reconciliation.edit')
                     <form method="POST" action="{{ route('finance.bank-reconciliation.complete', $r) }}" onsubmit="return confirm('Complete and lock this reconciliation?')">
                         @csrf<button class="btn btn-success w-100"><i class="bi bi-lock-fill me-1"></i>Complete Reconciliation</button>
@@ -284,9 +284,9 @@
         <div class="mb-2"><strong id="adjDesc" class="small"></strong> · <span id="adjAmount" class="font-monospace small"></span> {{ $base }}</div>
         <label class="form-label small fw-semibold">Contra Account <span class="text-danger">*</span></label>
         <select name="contra_account_id" class="form-select" required>
-            <option value="">— Select account —</option>
+            <option value="">- Select account -</option>
             @foreach($accounts as $a)
-                <option value="{{ $a->id }}">{{ $a->code }} — {{ $a->name }}</option>
+                <option value="{{ $a->id }}">{{ $a->code }} - {{ $a->name }}</option>
             @endforeach
         </select>
         <div class="form-text">Deposit → credited to this account (e.g. interest income). Withdrawal → debited to this account (e.g. bank charges).</div>

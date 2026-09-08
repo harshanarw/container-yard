@@ -32,7 +32,7 @@
                 <div class="col-md-4">
                     <label class="form-label fw-semibold small">Customer <span class="text-danger">*</span></label>
                     <select name="customer_id" id="customerSelect" class="form-select form-select-sm s2-code" data-s2-sel="name" required>
-                        <option value="">— Select customer —</option>
+                        <option value="">- Select customer -</option>
                         @foreach($customers as $c)
                         <option value="{{ $c->id }}" data-code="{{ $c->currency }}" data-name="{{ $c->name }}" {{ old('customer_id', $prefill['customer_id'] ?? '') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                         @endforeach
@@ -46,7 +46,7 @@
                     <label class="form-label fw-semibold small">Currency <span class="text-danger">*</span></label>
                     <select name="currency" id="currencyField" class="form-select form-select-sm s2-code" data-s2-sel="name" required>
                         @foreach($currencies as $cur)
-                        <option value="{{ $cur->code }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}" {{ old('currency', $prefill['currency'] ?? $baseCurrency) === $cur->code ? 'selected' : '' }}>{{ $cur->code }} — {{ $cur->name }}</option>
+                        <option value="{{ $cur->code }}" data-code="{{ $cur->code }}" data-name="{{ $cur->name }}" {{ old('currency', $prefill['currency'] ?? $baseCurrency) === $cur->code ? 'selected' : '' }}>{{ $cur->code }} - {{ $cur->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -80,9 +80,9 @@
                         <td><input type="text" name="lines[{{ $li }}][description]" class="form-control form-control-sm" required maxlength="255" value="{{ $pl['description'] }}"></td>
                         <td>
                             <select name="lines[{{ $li }}][revenue_account_id]" class="form-select form-select-sm s2-code" data-s2-sel="name">
-                                <option value="">— Default revenue —</option>
+                                <option value="">- Default revenue -</option>
                                 @foreach($revenueAccounts as $a)
-                                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}" {{ ($pl['revenue_account_id'] ?? null) == $a->id ? 'selected' : '' }}>{{ $a->code }} — {{ $a->name }}</option>
+                                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}" {{ ($pl['revenue_account_id'] ?? null) == $a->id ? 'selected' : '' }}>{{ $a->code }} - {{ $a->name }}</option>
                                 @endforeach
                             </select>
                         </td>
@@ -118,9 +118,9 @@
         <td><input type="text" name="lines[IDX][description]" class="form-control form-control-sm" required maxlength="255"></td>
         <td>
             <select name="lines[IDX][revenue_account_id]" class="form-select form-select-sm s2-code" data-s2-sel="name">
-                <option value="">— Default revenue —</option>
+                <option value="">- Default revenue -</option>
                 @foreach($revenueAccounts as $a)
-                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}">{{ $a->code }} — {{ $a->name }}</option>
+                <option value="{{ $a->id }}" data-code="{{ $a->code }}" data-name="{{ $a->name }}">{{ $a->code }} - {{ $a->name }}</option>
                 @endforeach
             </select>
         </td>

@@ -117,7 +117,7 @@ class YardJobTypeController extends Controller
         }
 
         if ($jobType->gateMovements()->exists() || $jobType->yardJobs()->exists()) {
-            return back()->with('error', "Cannot delete \"{$jobType->job_type_code}\" — it is referenced by existing gate movements or jobs.");
+            return back()->with('error', "Cannot delete \"{$jobType->job_type_code}\" - it is referenced by existing gate movements or jobs.");
         }
 
         $jobType->delete();

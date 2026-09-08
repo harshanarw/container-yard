@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'OT Tariff — ' . $version->version_code)
+@section('title', 'OT Tariff - ' . $version->version_code)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('overtime.setup.index') }}">Overtime</a></li>
@@ -211,7 +211,7 @@
                                 <button class="btn btn-outline-danger btn-xs py-0 px-1" title="Delete"><i class="bi bi-trash"></i></button>
                             </form>
                             @else
-                            <span class="text-muted small">—</span>
+                            <span class="text-muted small">-</span>
                             @endif
                         </td>
                     </tr>
@@ -374,7 +374,7 @@
                         <input type="number" name="rate_change_pct" class="form-control form-control-sm text-end" step="0.01"
                                min="-100" max="1000" value="0">
                         <div class="form-text">
-                            Applies to every copied rate — e.g. <strong>10</strong> raises all rates by 10%. Leave 0 to copy
+                            Applies to every copied rate - e.g. <strong>10</strong> raises all rates by 10%. Leave 0 to copy
                             them unchanged; you can still edit each rule afterwards.
                         </div>
                     </div>

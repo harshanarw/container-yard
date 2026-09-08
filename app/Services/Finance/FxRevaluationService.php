@@ -120,7 +120,7 @@ class FxRevaluationService
         }
         foreach ($bankItems as $bi) {
             $d = (float) $bi['delta'];
-            $lines[] = ['account_id' => (int) $bi['account_id'], 'debit' => max(0.0, $d), 'credit' => max(0.0, -$d), 'narration' => 'Cash/bank revaluation — ' . $bi['no']];
+            $lines[] = ['account_id' => (int) $bi['account_id'], 'debit' => max(0.0, $d), 'credit' => max(0.0, -$d), 'narration' => 'Cash/bank revaluation - ' . $bi['no']];
         }
         if ($gain >= 0.01) {
             $lines[] = ['account_id' => $gainAcc->id, 'debit' => 0.0, 'credit' => $gain, 'narration' => 'Unrealized exchange gain'];

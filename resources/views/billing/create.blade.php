@@ -50,7 +50,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Customer / Operator <span class="text-danger">*</span></label>
                     <select name="customer_id" id="customerId" class="form-select select2 s2-code" required data-s2-sel="name">
-                        <option value="">— Select Customer —</option>
+                        <option value="">- Select Customer -</option>
                         @foreach($customers as $c)
                             <option value="{{ $c->id }}"
                                     data-code="{{ $c->code }}" data-name="{{ $c->name }}"
@@ -68,7 +68,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Billing Party</label>
                     <select name="billing_party_id" id="billingPartyId" class="form-select select2 s2-code" data-s2-sel="name">
-                        <option value="">— Select Billing Party —</option>
+                        <option value="">- Select Billing Party -</option>
                         @foreach($customers as $c)
                             <option value="{{ $c->id }}" data-code="{{ $c->code }}" data-name="{{ $c->name }}" data-address="{{ $c->address ?? '' }}">
                                 [{{ $c->code }}] {{ $c->name }}
@@ -82,7 +82,7 @@
 
                 <div id="taxExemptAlert" class="alert alert-warning py-2 small d-none mb-2">
                     <i class="bi bi-shield-check me-1"></i>
-                    <strong>Tax Exempt Customer</strong> — all tax rates will be applied as 0%.
+                    <strong>Tax Exempt Customer</strong> - all tax rates will be applied as 0%.
                 </div>
 
                 <div class="mb-3">
@@ -107,8 +107,8 @@
                     <div class="col-5">
                         <label class="form-label fw-semibold">Invoice Currency <span class="text-danger">*</span></label>
                         <select id="invoiceCurrency" class="form-select s2-code" data-s2-sel="name">
-                            <option value="LKR" data-code="LKR" data-name="Sri Lankan Rupee" selected>LKR — Sri Lankan Rupee</option>
-                            <option value="USD" data-code="USD" data-name="US Dollar">USD — US Dollar</option>
+                            <option value="LKR" data-code="LKR" data-name="Sri Lankan Rupee" selected>LKR - Sri Lankan Rupee</option>
+                            <option value="USD" data-code="USD" data-name="US Dollar">USD - US Dollar</option>
                         </select>
                         <div class="form-text">Stored in LKR; display uses the USD→LKR rate above. (Tariffs are USD/LKR, so only these are supported.)</div>
                     </div>
@@ -130,7 +130,7 @@
                                 </span>
                             @else
                                 <span id="rateNote" class="text-warning">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>No rate found for today — please enter manually or add in Exchange Rate master
+                                    <i class="bi bi-exclamation-triangle me-1"></i>No rate found for today - please enter manually or add in Exchange Rate master
                                 </span>
                             @endif
                             <span id="rateSpinner" class="spinner-border spinner-border-sm d-none" style="width:.75rem;height:.75rem;"></span>
@@ -300,7 +300,7 @@ let previewLines = [];
 let previewMissing = [];
 
 function fmtEqt(l) {
-    if (!l.eqt_code) return l.equipment_type || '—';
+    if (!l.eqt_code) return l.equipment_type || '-';
     const isReefer = l.type_code && ['RF','RH'].includes(l.type_code);
     const chip = '<span class="badge ' + (isReefer ? 'badge-reefer' : 'bg-dark') + '" style="font-size:.72rem;">' + l.eqt_code + '</span>';
     return chip + (l.iso_code ? ' <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">' + l.iso_code + '</span>' : '');
@@ -334,12 +334,12 @@ async function fetchExchangeRate() {
             note.innerHTML = '<i class="bi bi-check-circle me-1"></i>Rate auto-loaded: 1 USD = ' + r + ' LKR';
         } else {
             note.className = 'text-warning';
-            note.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>No rate found for ' + date + ' — please enter manually';
+            note.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>No rate found for ' + date + ' - please enter manually';
         }
     } catch (e) {
         const note = document.getElementById('rateNote');
         note.className = 'text-danger';
-        note.innerHTML = '<i class="bi bi-x-circle me-1"></i>Could not fetch rate — please enter manually';
+        note.innerHTML = '<i class="bi bi-x-circle me-1"></i>Could not fetch rate - please enter manually';
     } finally {
         spinner.classList.add('d-none');
     }
@@ -492,7 +492,7 @@ function renderPreview(data) {
         <tr class="${l.chargeable_days == 0 ? 'text-muted' : ''}">
             <td class="ps-2 text-muted">${i + 1}</td>
             <td class="font-monospace fw-semibold">${l.container_no}</td>
-            <td class="text-center"><span class="badge bg-dark" style="font-size:.72rem;">${l.container_size || '—'}'</span></td>
+            <td class="text-center"><span class="badge bg-dark" style="font-size:.72rem;">${l.container_size || '-'}'</span></td>
             <td class="small">${fmtEqt(l)}</td>
             <td class="text-center">${l.cargo_status === 'laden' ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.7rem;">Laden</span>' : '<span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.7rem;">Empty</span>'}</td>
             <td class="small">${formatDate(l.gate_in_date)}</td>
@@ -548,7 +548,7 @@ function renderPreview(data) {
 }
 
 function formatDate(d) {
-    if (!d) return '—';
+    if (!d) return '-';
     const [y, m, dd] = d.split('-');
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return `${dd} ${months[parseInt(m)-1]} ${y}`;
@@ -582,7 +582,7 @@ $(document).ready(function () {
 
         if (previewMissing.length > 0) {
             e.preventDefault();
-            showToast('Cannot save — missing tariff rates. Update the tariff and preview again.', 'danger');
+            showToast('Cannot save - missing tariff rates. Update the tariff and preview again.', 'danger');
             return;
         }
 

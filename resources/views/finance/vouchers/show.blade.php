@@ -93,7 +93,7 @@
                         <label class="form-label small fw-semibold">Message</label>
                         <textarea name="message" rows="3" class="form-control form-control-sm" maxlength="1000" placeholder="Optional note to include in the email"></textarea>
                     </div>
-                    <div class="form-text small">The selected voucher PDF is attached automatically (computer-generated copy — no signature lines).</div>
+                    <div class="form-text small">The selected voucher PDF is attached automatically (computer-generated copy - no signature lines).</div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -183,7 +183,7 @@
                     @endif
                     <tr>
                         <td class="text-muted">Bank Account</td>
-                        <td>{{ $voucher->bankAccount ? $voucher->bankAccount->account_name . ' — ' . $voucher->bankAccount->bank_name : '—' }}</td>
+                        <td>{{ $voucher->bankAccount ? $voucher->bankAccount->account_name . ' - ' . $voucher->bankAccount->bank_name : '-' }}</td>
                     </tr>
                     <tr>
                         <td class="text-muted">Expense Account</td>
@@ -202,7 +202,7 @@
                     </tr>
                     <tr>
                         <td class="text-muted">Created By</td>
-                        <td>{{ $voucher->createdBy->name ?? '—' }}</td>
+                        <td>{{ $voucher->createdBy->name ?? '-' }}</td>
                     </tr>
                     @if($voucher->voidedBy)
                     <tr>
@@ -246,8 +246,8 @@
                                     <span class="font-monospace text-muted">{{ $entry->account->code }}</span>
                                     {{ $entry->account->name }}
                                 </td>
-                                <td class="text-end font-monospace">{{ $entry->debit > 0 ? number_format($entry->debit, 2) : '—' }}</td>
-                                <td class="text-end font-monospace">{{ $entry->credit > 0 ? number_format($entry->credit, 2) : '—' }}</td>
+                                <td class="text-end font-monospace">{{ $entry->debit > 0 ? number_format($entry->debit, 2) : '-' }}</td>
+                                <td class="text-end font-monospace">{{ $entry->credit > 0 ? number_format($entry->credit, 2) : '-' }}</td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -295,9 +295,9 @@
                         <a href="{{ route('finance.ap.invoices.show', $alloc->invoice) }}" class="text-decoration-none">{{ $alloc->invoice->invoice_no }}</a>
                         @else <span class="text-muted">#{{ $alloc->supplier_invoice_id }}</span> @endif
                     </td>
-                    <td class="text-end font-monospace">{{ $alloc->invoice ? $alloc->invoice->currency . ' ' . number_format($alloc->invoice->total_amount, 2) : '—' }}</td>
+                    <td class="text-end font-monospace">{{ $alloc->invoice ? $alloc->invoice->currency . ' ' . number_format($alloc->invoice->total_amount, 2) : '-' }}</td>
                     <td class="text-end font-monospace fw-semibold">{{ number_format($alloc->allocated_amount, 2) }}</td>
-                    <td class="text-muted">{{ $alloc->notes ?: '—' }}</td>
+                    <td class="text-muted">{{ $alloc->notes ?: '-' }}</td>
                     <td class="text-end">
                         @can('finance.vouchers.create')
                         @if($voucher->isDraft())
@@ -326,7 +326,7 @@
                 <div class="col-md-5">
                     <label class="form-label small mb-1">Supplier Invoice</label>
                     <select name="supplier_invoice_id" id="allocInvoice" class="form-select form-select-sm" required>
-                        <option value="">— Select invoice —</option>
+                        <option value="">- Select invoice -</option>
                         @foreach($pendingInvoices as $pi)
                         <option value="{{ $pi['id'] }}" data-outstanding="{{ $pi['outstanding'] }}">{{ $pi['label'] }}</option>
                         @endforeach

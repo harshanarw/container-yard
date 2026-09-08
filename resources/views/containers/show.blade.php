@@ -143,8 +143,8 @@
         <div class="d-flex justify-content-between align-items-center py-1 {{ !$loop->last ? 'border-bottom' : '' }}">
             <div class="small">
                 <span class="badge bg-danger-subtle text-danger border">{{ $h->typeLabel() }}</span>
-                @if($h->reason)<span class="text-muted">— {{ $h->reason }}</span>@endif
-                <span class="text-muted" style="font-size:.7rem;">· {{ optional($h->placed_at)->format('d M Y') }} by {{ optional($h->placedBy)->name ?? '—' }}</span>
+                @if($h->reason)<span class="text-muted">- {{ $h->reason }}</span>@endif
+                <span class="text-muted" style="font-size:.7rem;">· {{ optional($h->placed_at)->format('d M Y') }} by {{ optional($h->placedBy)->name ?? '-' }}</span>
             </div>
             @can('containers.hold')
             <form method="POST" action="{{ route('containers.hold.clear', [$container, $h]) }}" onsubmit="return confirm('Clear this hold?')">
@@ -213,9 +213,9 @@
             <div class="small">
                 <span class="badge {{ $pti->result === 'pass' ? 'bg-success' : 'bg-danger' }}">{{ ucfirst($pti->result) }}</span>
                 @if($pti->set_point_temp !== null)<span class="text-muted">@ {{ rtrim(rtrim(number_format($pti->set_point_temp, 1), '0'), '.') }}°C</span>@endif
-                @if($pti->findings)<span class="text-muted">— {{ $pti->findings }}</span>@endif
+                @if($pti->findings)<span class="text-muted">- {{ $pti->findings }}</span>@endif
                 <span class="text-muted d-block" style="font-size:.7rem;">
-                    {{ optional($pti->inspected_at)->format('d M Y H:i') }} by {{ optional($pti->inspectedBy)->name ?? '—' }}
+                    {{ optional($pti->inspected_at)->format('d M Y H:i') }} by {{ optional($pti->inspectedBy)->name ?? '-' }}
                     @if($pti->result === 'pass' && $pti->valid_until)
                         · valid until <span class="{{ $pti->valid_until->lt(\Carbon\Carbon::today()) ? 'text-danger' : '' }}">{{ $pti->valid_until->format('d M Y') }}</span>
                     @endif
@@ -245,21 +245,21 @@
                             <tr><th class="text-muted fw-normal" style="width:40%">Container No.</th><td class="fw-semibold">{{ $container->container_no }}</td></tr>
                             <tr><th class="text-muted fw-normal">Category</th>
                                 <td><span class="badge {{ $catBadge[$container->category] ?? 'bg-secondary' }}">{{ ucfirst($container->category) }}</span></td></tr>
-                            <tr><th class="text-muted fw-normal">Equipment Type</th><td>{{ $container->equipmentType?->name ?? '—' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Equipment Type</th><td>{{ $container->equipmentType?->name ?? '-' }}</td></tr>
                             <tr><th class="text-muted fw-normal">Size / Type</th><td>
                                 @if($container->size)
                                     {{ $container->size }}ft <span class="badge {{ in_array($container->type_code, ['RF','RH']) ? 'badge-reefer' : 'bg-info-subtle text-info' }}">{{ $container->type_code }}</span>
-                                @else —
+                                @else -
                                 @endif
                             </td></tr>
-                            <tr><th class="text-muted fw-normal">Mfr. Year</th><td>{{ $container->manufacture_year ?? '—' }}</td></tr>
-                            <tr><th class="text-muted fw-normal">Manufacturer</th><td>{{ $container->manufacturer ?? '—' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Mfr. Year</th><td>{{ $container->manufacture_year ?? '-' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Manufacturer</th><td>{{ $container->manufacturer ?? '-' }}</td></tr>
                         </table>
                     </div>
                     <div class="col-md-6">
                         <table class="table table-sm table-borderless mb-0 small">
-                            <tr><th class="text-muted fw-normal" style="width:40%">Owner Code</th><td>{{ $container->owner_code ?? '—' }}</td></tr>
-                            <tr><th class="text-muted fw-normal">Owner Name</th><td>{{ $container->owner_name ?? '—' }}</td></tr>
+                            <tr><th class="text-muted fw-normal" style="width:40%">Owner Code</th><td>{{ $container->owner_code ?? '-' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Owner Name</th><td>{{ $container->owner_name ?? '-' }}</td></tr>
                             <tr><th class="text-muted fw-normal">Customer</th>
                                 <td>
                                     @if($container->customer)
@@ -267,13 +267,13 @@
                                             {{ $container->customer->name }}
                                         </a>
                                     @else
-                                        —
+                                        -
                                     @endif
                                 </td>
                             </tr>
-                            <tr><th class="text-muted fw-normal">Gross Weight</th><td>{{ $container->gross_weight_kg ? number_format($container->gross_weight_kg).' kg' : '—' }}</td></tr>
-                            <tr><th class="text-muted fw-normal">Tare Weight</th><td>{{ $container->tare_weight_kg ? number_format($container->tare_weight_kg).' kg' : '—' }}</td></tr>
-                            <tr><th class="text-muted fw-normal">Max Payload</th><td>{{ $container->max_payload_kg ? number_format($container->max_payload_kg).' kg' : '—' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Gross Weight</th><td>{{ $container->gross_weight_kg ? number_format($container->gross_weight_kg).' kg' : '-' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Tare Weight</th><td>{{ $container->tare_weight_kg ? number_format($container->tare_weight_kg).' kg' : '-' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Max Payload</th><td>{{ $container->max_payload_kg ? number_format($container->max_payload_kg).' kg' : '-' }}</td></tr>
                         </table>
                     </div>
                 </div>
@@ -299,24 +299,24 @@
                 <div class="row g-0 small">
                     <div class="col-md-6">
                         <table class="table table-sm table-borderless mb-0">
-                            <tr><th class="text-muted fw-normal" style="width:40%">Lessor Code</th><td>{{ $container->lessor_code ?? '—' }}</td></tr>
-                            <tr><th class="text-muted fw-normal">Lessor Name</th><td class="fw-semibold">{{ $container->lessor_name ?? '—' }}</td></tr>
-                            <tr><th class="text-muted fw-normal">Contract Ref.</th><td>{{ $container->lease_reference ?? '—' }}</td></tr>
+                            <tr><th class="text-muted fw-normal" style="width:40%">Lessor Code</th><td>{{ $container->lessor_code ?? '-' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Lessor Name</th><td class="fw-semibold">{{ $container->lessor_name ?? '-' }}</td></tr>
+                            <tr><th class="text-muted fw-normal">Contract Ref.</th><td>{{ $container->lease_reference ?? '-' }}</td></tr>
                         </table>
                     </div>
                     <div class="col-md-6">
                         <table class="table table-sm table-borderless mb-0">
-                            <tr><th class="text-muted fw-normal" style="width:40%">Lease Start</th><td>{{ $container->lease_start_date?->format('d M Y') ?? '—' }}</td></tr>
+                            <tr><th class="text-muted fw-normal" style="width:40%">Lease Start</th><td>{{ $container->lease_start_date?->format('d M Y') ?? '-' }}</td></tr>
                             <tr><th class="text-muted fw-normal">Lease End</th>
                                 <td class="{{ $leaseExpired ? 'text-danger fw-semibold' : ($leaseSoon ? 'text-warning fw-semibold' : '') }}">
-                                    {{ $container->lease_end_date?->format('d M Y') ?? '—' }}
+                                    {{ $container->lease_end_date?->format('d M Y') ?? '-' }}
                                 </td>
                             </tr>
                             <tr><th class="text-muted fw-normal">Duration</th>
                                 <td>
                                     @if($container->lease_start_date && $container->lease_end_date)
                                         {{ $container->lease_start_date->diffInMonths($container->lease_end_date) }} months
-                                    @else —
+                                    @else -
                                     @endif
                                 </td>
                             </tr>
@@ -341,10 +341,10 @@
                 <div class="row g-0 small">
                     <div class="col-md-6">
                         <table class="table table-sm table-borderless mb-0">
-                            <tr><th class="text-muted fw-normal" style="width:45%">Plate No.</th><td>{{ $container->csc_plate_no ?? '—' }}</td></tr>
+                            <tr><th class="text-muted fw-normal" style="width:45%">Plate No.</th><td>{{ $container->csc_plate_no ?? '-' }}</td></tr>
                             <tr><th class="text-muted fw-normal">Expiry Date</th>
                                 <td class="{{ $cscExpired ? 'text-danger fw-semibold' : ($cscSoon ? 'text-warning fw-semibold' : '') }}">
-                                    {{ $container->csc_expiry_date?->format('d M Y') ?? '—' }}
+                                    {{ $container->csc_expiry_date?->format('d M Y') ?? '-' }}
                                 </td>
                             </tr>
                         </table>
@@ -397,18 +397,18 @@
                                 @endif
                             </td>
                             <td>
-                                {{ $mv->gate_in_time?->format('d M Y H:i') ?? $mv->gate_out_time?->format('d M Y H:i') ?? '—' }}
+                                {{ $mv->gate_in_time?->format('d M Y H:i') ?? $mv->gate_out_time?->format('d M Y H:i') ?? '-' }}
                             </td>
-                            <td>{{ $mv->customer?->name ?? '—' }}</td>
+                            <td>{{ $mv->customer?->name ?? '-' }}</td>
                             <td class="text-muted">
                                 @if($mv->location_zone)
                                     {{ $mv->location_zone }}-{{ $mv->location_row }}{{ $mv->location_bay }}-T{{ $mv->location_tier }}
                                 @else
-                                    —
+                                    -
                                 @endif
                             </td>
-                            <td>{{ ucfirst(str_replace('_',' ',$mv->condition ?? '')) ?: '—' }}</td>
-                            <td>{{ $mv->vehicle_plate ?? '—' }}</td>
+                            <td>{{ ucfirst(str_replace('_',' ',$mv->condition ?? '')) ?: '-' }}</td>
+                            <td>{{ $mv->vehicle_plate ?? '-' }}</td>
                         </tr>
                         @endforeach
                         </tbody>
@@ -442,19 +442,19 @@
                                 {{ $container->location_zone }}-{{ $container->location_row }}{{ $container->location_bay }}-T{{ $container->location_tier }}
                             </span>
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </dd>
                     <dt class="col-6 text-muted">Gate In</dt>
-                    <dd class="col-6">{{ $container->gate_in_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-6">{{ $container->gate_in_date?->format('d M Y') ?? '-' }}</dd>
                     <dt class="col-6 text-muted">Gate Out</dt>
-                    <dd class="col-6">{{ $container->gate_out_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-6">{{ $container->gate_out_date?->format('d M Y') ?? '-' }}</dd>
                     <dt class="col-6 text-muted">Days in Yard</dt>
                     <dd class="col-6">
                         @if($container->status === 'in_yard' && $container->gate_in_date)
                             {{ $container->gate_in_date->diffInDays(\Carbon\Carbon::today()) }}
                         @else
-                            —
+                            -
                         @endif
                     </dd>
                     @if($container->activeHire)
@@ -499,7 +499,7 @@
                     @foreach($container->hires as $h)
                     <tr>
                         <td class="ps-3">{{ $h->on_hire_date->format('d M Y') }}</td>
-                        <td>{{ $h->off_hire_date?->format('d M Y') ?? '—' }}</td>
+                        <td>{{ $h->off_hire_date?->format('d M Y') ?? '-' }}</td>
                         <td>{{ $h->hire_party_name }}</td>
                         <td class="text-center">
                             @if($h->isActive())

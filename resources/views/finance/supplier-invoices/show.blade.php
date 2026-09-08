@@ -110,16 +110,16 @@
                                 @if($line->chargeCode)
                                     <span class="badge bg-primary-subtle text-primary">{{ $line->chargeCode->code }}</span>
                                 @else
-                                    <span class="text-muted">—</span>
+                                    <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td class="small">{{ $line->description }}</td>
-                            <td class="small font-monospace text-muted">{{ $line->expenseAccount->code ?? '' }} — {{ $line->expenseAccount->name ?? '' }}</td>
+                            <td class="small font-monospace text-muted">{{ $line->expenseAccount->code ?? '' }} - {{ $line->expenseAccount->name ?? '' }}</td>
                             <td class="small">
                                 @if($line->taxCode)
                                     <span class="badge bg-secondary-subtle text-secondary font-monospace">{{ $line->taxCode->code }}</span>
                                 @else
-                                    <span class="text-muted">—</span>
+                                    <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td class="text-end font-monospace small">{{ number_format($line->amount, 2) }}</td>
@@ -167,16 +167,16 @@
                             <td class="font-monospace">
                                 @if($alloc->voucher)
                                 <a href="{{ route('finance.vouchers.show', $alloc->voucher) }}" class="text-decoration-none">{{ $alloc->voucher->voucher_no }}</a>
-                                @else — @endif
+                                @else - @endif
                             </td>
-                            <td class="text-muted">{{ $alloc->voucher?->voucher_date?->format('d M Y') ?: '—' }}</td>
+                            <td class="text-muted">{{ $alloc->voucher?->voucher_date?->format('d M Y') ?: '-' }}</td>
                             <td>
                                 @if($alloc->voucher)
                                 <span class="badge bg-{{ \App\Models\PaymentVoucher::statusBadge($alloc->voucher->status) }}-subtle text-{{ \App\Models\PaymentVoucher::statusBadge($alloc->voucher->status) }}">{{ ucfirst($alloc->voucher->status) }}</span>
                                 @endif
                             </td>
                             <td class="text-end font-monospace">{{ number_format($alloc->allocated_amount, 2) }}</td>
-                            <td class="text-muted">{{ $alloc->notes ?: '—' }}</td>
+                            <td class="text-muted">{{ $alloc->notes ?: '-' }}</td>
                         </tr>
                         @endforeach
                         @foreach($creditApplications as $app)
@@ -184,9 +184,9 @@
                             <td class="font-monospace">
                                 @if($app->creditNote)
                                 <a href="{{ route('finance.ap-credit-notes.show', $app->creditNote) }}" class="text-decoration-none">{{ $app->creditNote->credit_note_no }}</a>
-                                @else — @endif
+                                @else - @endif
                             </td>
-                            <td class="text-muted">{{ $app->creditNote?->credit_date?->format('d M Y') ?: '—' }}</td>
+                            <td class="text-muted">{{ $app->creditNote?->credit_date?->format('d M Y') ?: '-' }}</td>
                             <td><span class="badge bg-info-subtle text-info">Credit Note</span></td>
                             <td class="text-end font-monospace">{{ number_format($app->applied_amount, 2) }}</td>
                             <td class="text-muted">Applied as credit</td>
@@ -207,15 +207,15 @@
             <div class="card-body small">
                 <dl class="row mb-0">
                     <dt class="col-5 text-muted fw-normal">Supplier</dt><dd class="col-7"><a href="{{ route('customers.show', $inv->customer_id) }}" class="text-decoration-none">{{ $inv->supplier->name ?? '' }}</a></dd>
-                    <dt class="col-5 text-muted fw-normal">Bill No</dt><dd class="col-7">{{ $inv->supplier_invoice_no ?: '—' }}</dd>
-                    <dt class="col-5 text-muted fw-normal">Bill Date</dt><dd class="col-7">{{ $inv->supplier_bill_date?->format('d M Y') ?: '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Bill No</dt><dd class="col-7">{{ $inv->supplier_invoice_no ?: '-' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Bill Date</dt><dd class="col-7">{{ $inv->supplier_bill_date?->format('d M Y') ?: '-' }}</dd>
                     <dt class="col-5 text-muted fw-normal">Invoice Date</dt><dd class="col-7">{{ $inv->invoice_date->format('d M Y') }}</dd>
-                    <dt class="col-5 text-muted fw-normal">Due Date</dt><dd class="col-7">{{ $inv->due_date?->format('d M Y') ?: '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Due Date</dt><dd class="col-7">{{ $inv->due_date?->format('d M Y') ?: '-' }}</dd>
                     <dt class="col-5 text-muted fw-normal">Currency</dt><dd class="col-7">{{ $inv->currency }} @ {{ rtrim(rtrim(number_format($inv->exchange_rate, 6, '.', ''), '0'), '.') }}</dd>
                     @if($inv->notes)<dt class="col-5 text-muted fw-normal">Notes</dt><dd class="col-7">{{ $inv->notes }}</dd>@endif
-                    <dt class="col-5 text-muted fw-normal">Created By</dt><dd class="col-7">{{ $inv->createdBy->name ?? '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Created By</dt><dd class="col-7">{{ $inv->createdBy->name ?? '-' }}</dd>
                     @if($inv->approved_at)
-                    <dt class="col-5 text-muted fw-normal">Approved By</dt><dd class="col-7">{{ $inv->approvedBy->name ?? '—' }}</dd>
+                    <dt class="col-5 text-muted fw-normal">Approved By</dt><dd class="col-7">{{ $inv->approvedBy->name ?? '-' }}</dd>
                     <dt class="col-5 text-muted fw-normal">Approved At</dt><dd class="col-7">{{ $inv->approved_at->format('d M Y H:i') }}</dd>
                     @endif
                 </dl>

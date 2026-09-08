@@ -353,7 +353,7 @@ class StorageHandlingManualPricingTest extends FeatureTestCase
         ], [$lineFor($third)]))->assertSessionHasNoErrors();
 
         $this->assertEqualsWithDelta(100.0, (float) StorageHandlingInvoice::latest('id')->first()->total_amount, 0.01,
-            'One line, one line\'s worth of money — the header totals what was posted and nothing else.');
+            'One line, one line\'s worth of money - the header totals what was posted and nothing else.');
     }
 
     // ── The charge codes manual pricing depends on ───────────────────────────

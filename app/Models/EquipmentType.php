@@ -40,7 +40,7 @@ class EquipmentType extends Model
     public function getDropdownLabelAttribute(): string
     {
         return $this->description
-            ? "{$this->eqt_code} — {$this->description}"
+            ? "{$this->eqt_code} - {$this->description}"
             : $this->eqt_code;
     }
 
@@ -55,7 +55,7 @@ class EquipmentType extends Model
     {
         $label = self::VENTILATION_TYPES[$this->ventilation_type] ?? null;
         if (!$label) {
-            return '—';
+            return '-';
         }
         return ($this->vent_count > 0)
             ? "{$label} · {$this->vent_count} vents"

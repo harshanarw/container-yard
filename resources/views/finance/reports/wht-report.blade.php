@@ -19,7 +19,7 @@
         <h4 class="mb-0"><i class="bi bi-percent me-2 text-primary"></i>Withholding Tax</h4>
         <p class="text-muted small mb-0">
             WHT deducted from suppliers (remit to IRD) and withheld by customers (claimable), for
-            {{ \Carbon\Carbon::parse($from)->format('d M Y') }} — {{ \Carbon\Carbon::parse($to)->format('d M Y') }} · in {{ $base }}
+            {{ \Carbon\Carbon::parse($from)->format('d M Y') }} - {{ \Carbon\Carbon::parse($to)->format('d M Y') }} · in {{ $base }}
         </p>
     </div>
     <div class="d-flex align-items-end gap-2 flex-wrap d-print-none">
@@ -83,7 +83,7 @@
                         <td class="font-monospace">{{ $r['no'] }}</td>
                         <td>{{ $r['party'] }}</td>
                         <td class="text-muted">{{ $r['nature'] }}</td>
-                        <td class="text-end font-monospace">{{ $r['rate'] > 0 ? number_format($r['rate'], 2) : '—' }}</td>
+                        <td class="text-end font-monospace">{{ $r['rate'] > 0 ? number_format($r['rate'], 2) : '-' }}</td>
                         <td class="text-end font-monospace">{{ $money($r['gross']) }}</td>
                         <td class="text-end font-monospace fw-semibold">{{ $money($r['wht']) }}</td>
                         <td class="text-end pe-3 font-monospace text-muted">{{ $money($r['net']) }}</td>

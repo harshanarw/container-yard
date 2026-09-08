@@ -65,7 +65,7 @@
                     <label for="assigned_to" class="col-sm-3 col-form-label">Assigned To</label>
                     <div class="col-sm-9">
                         <select class="form-select select2 @error('assigned_to') is-invalid @enderror" name="assigned_to" id="assigned_to">
-                            <option value="">— Select supervisor —</option>
+                            <option value="">- Select supervisor -</option>
                             @foreach($supervisors as $sup)
                             <option value="{{ $sup->id }}" {{ old('assigned_to', $workOrder->assigned_to) == $sup->id ? 'selected' : '' }}>
                                 {{ $sup->name }} ({{ ucfirst($sup->role) }})
@@ -187,13 +187,13 @@
                     <dd class="col-6 text-muted">{{ $workOrder->created_at->format('d M Y, H:i') }}</dd>
 
                     <dt class="col-6">Started</dt>
-                    <dd class="col-6">{{ $workOrder->started_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-6">{{ $workOrder->started_date?->format('d M Y') ?? '-' }}</dd>
 
                     <dt class="col-6">Completed</dt>
-                    <dd class="col-6">{{ $workOrder->completed_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-6">{{ $workOrder->completed_date?->format('d M Y') ?? '-' }}</dd>
 
                     <dt class="col-6">Created By</dt>
-                    <dd class="col-6">{{ $workOrder->createdBy?->name ?? '—' }}</dd>
+                    <dd class="col-6">{{ $workOrder->createdBy?->name ?? '-' }}</dd>
                 </dl>
             </div>
         </div>

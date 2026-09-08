@@ -147,7 +147,7 @@ class ApAllocationService
                     'currency'     => strtoupper((string) ($inv->currency ?? '')),
                     'total'        => $this->getTotal($inv),
                     'outstanding'  => $outstanding,
-                    'label'        => "{$inv->invoice_no} — outstanding: " . number_format($outstanding, 2),
+                    'label'        => "{$inv->invoice_no} - outstanding: " . number_format($outstanding, 2),
                 ];
             })
             ->filter()

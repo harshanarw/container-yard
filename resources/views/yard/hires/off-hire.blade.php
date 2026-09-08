@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Off Hire — ' . $hire->container->container_no)
+@section('title', 'Off Hire - ' . $hire->container->container_no)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('yard.index') }}">Yard</a></li>
@@ -41,7 +41,7 @@
             </div>
             <div class="col-sm-4">
                 <div class="text-muted">Original Owner</div>
-                <div class="fw-semibold">{{ $hire->originalCustomer->name ?? '—' }}</div>
+                <div class="fw-semibold">{{ $hire->originalCustomer->name ?? '-' }}</div>
             </div>
             <div class="col-sm-4">
                 <div class="text-muted">Hire Party</div>

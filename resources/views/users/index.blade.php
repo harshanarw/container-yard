@@ -160,13 +160,13 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="small text-muted">{{ $user->email ?? '—' }}</td>
+                        <td class="small text-muted">{{ $user->email ?? '-' }}</td>
                         <td>
                             <span class="badge bg-{{ $roleColors[$user->role] ?? 'secondary' }}-subtle text-{{ $roleColors[$user->role] ?? 'secondary' }} badge-status">
                                 {{ $roleLabels[$user->role] ?? $user->role }}
                             </span>
                         </td>
-                        <td class="small">{{ $user->phone ?? '—' }}</td>
+                        <td class="small">{{ $user->phone ?? '-' }}</td>
                         <td class="small text-muted">
                             {{ $user->last_login ? $user->last_login->diffForHumans() : 'Never' }}
                         </td>

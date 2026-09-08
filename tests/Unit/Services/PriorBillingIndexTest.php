@@ -127,7 +127,7 @@ class PriorBillingIndexTest extends TestCase
 
         $this->assertFalse($index->liftOffBilledInPeriod(1, '2026-01-01', '2026-02-28'), 'Wholly before.');
         $this->assertFalse($index->liftOffBilledInPeriod(1, '2026-04-01', '2026-04-30'),
-            'Wholly after — so billing April after March is not a conflict, which is the ordinary case.');
+            'Wholly after - so billing April after March is not a conflict, which is the ordinary case.');
     }
 
     // ── Nothing left ─────────────────────────────────────────────────────────
@@ -141,7 +141,7 @@ class PriorBillingIndexTest extends TestCase
         );
 
         $this->assertTrue($index->nothingLeft(1, '2026-03-01', '2026-03-31', '2026-03-02', '2026-03-30'),
-            'Every day invoiced and both lifts charged — there is nothing to put on a line.');
+            'Every day invoiced and both lifts charged - there is nothing to put on a line.');
     }
 
     public function test_an_unbilled_lift_keeps_the_container_on_the_load(): void
@@ -172,7 +172,7 @@ class PriorBillingIndexTest extends TestCase
             [['2026-03-01', '2026-03-31']],
             $index->unbilledStorage(null, '2026-03-01', '2026-03-31'),
             'container_id is a nullable soft reference on the line table. Unknown must mean '
-            . '"bill it", not "silently skip it" — the second would lose revenue without a trace.'
+            . '"bill it", not "silently skip it" - the second would lose revenue without a trace.'
         );
 
         $this->assertFalse($index->liftOffBilled(null, '2026-03-05'));

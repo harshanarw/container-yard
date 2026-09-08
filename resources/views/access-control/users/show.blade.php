@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'User Access — ' . $user->full_name)
+@section('title', 'User Access - ' . $user->full_name)
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('access-control.roles.index') }}">Access Control</a></li>

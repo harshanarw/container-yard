@@ -15,7 +15,7 @@ class ApprovalWorkflowController extends Controller
     }
 
     private const ROLES = [
-        ''                    => '— Any authenticated user —',
+        ''                    => '- Any authenticated user -',
         'system_administrator'=> 'System Administrator',
         'administrator'       => 'Administrator',
         'yard_supervisor'     => 'Yard Supervisor',

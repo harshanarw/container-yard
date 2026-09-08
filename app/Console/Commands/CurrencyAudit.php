@@ -28,7 +28,7 @@ class CurrencyAudit extends Command
         $findings = collect($result['findings']);
         $counts   = $result['counts'];
 
-        $this->info("Currency audit — base currency: {$base}");
+        $this->info("Currency audit - base currency: {$base}");
         $this->line(sprintf(
             'Found %d issue(s): %d base mismatch, %d suspect rate.',
             $counts['total'], $counts['base_mismatch'], $counts['suspect_rate']
@@ -54,8 +54,8 @@ class CurrencyAudit extends Command
             }
 
             $heading = $issue === 'base_mismatch'
-                ? 'BASE MISMATCH — posted base ≠ expected (storage/handling double-conversion shows ratio ≈ rate)'
-                : 'SUSPECT RATE — foreign-currency document booked at rate ≤ 1 (likely silent 1.0 fallback)';
+                ? 'BASE MISMATCH - posted base ≠ expected (storage/handling double-conversion shows ratio ≈ rate)'
+                : 'SUSPECT RATE - foreign-currency document booked at rate ≤ 1 (likely silent 1.0 fallback)';
             $this->warn($heading);
 
             $shown = $limit > 0 ? $rows->take($limit) : $rows;
@@ -65,11 +65,11 @@ class CurrencyAudit extends Command
                 $shown->map(fn ($f) => [
                     $f['doc'],
                     $f['no'],
-                    $f['journal_no'] ?? '—',
+                    $f['journal_no'] ?? '-',
                     $f['currency'],
                     rtrim(rtrim(number_format((float) $f['rate'], 6, '.', ''), '0'), '.'),
-                    $f['expected'] !== null ? number_format((float) $f['expected'], 2) : '—',
-                    $f['actual'] !== null ? number_format((float) $f['actual'], 2) : '—',
+                    $f['expected'] !== null ? number_format((float) $f['expected'], 2) : '-',
+                    $f['actual'] !== null ? number_format((float) $f['actual'], 2) : '-',
                     $f['note'] ?? '',
                 ])->all()
             );

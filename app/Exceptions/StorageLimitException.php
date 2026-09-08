@@ -23,7 +23,7 @@ class StorageLimitException extends \Exception
     {
         $fmt = fn (int $b) => number_format($b / 1048576, 1) . ' MB';
 
-        return 'Storage limit reached — ' . $fmt($this->usedBytes) . ' of ' . $fmt($this->limitBytes)
+        return 'Storage limit reached - ' . $fmt($this->usedBytes) . ' of ' . $fmt($this->limitBytes)
              . ' used. Remove some files or raise the limit before uploading.';
     }
 
