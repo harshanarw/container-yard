@@ -73,7 +73,7 @@
     $disp     = fn ($lkr) => $dispCur === $baseCur ? $lkr : round($lkr / $dispRate, 2);
     $fmtDisp  = fn ($lkr) => $dispCur . ' ' . number_format($disp($lkr), 2);
 
-    // Anything the customer was actually charged for, or handled at no charge —
+    // Anything the customer was actually charged for, or handled at no charge -
     // a deliberate zero-rate line still belongs on the document. Only rows with
     // nothing at all on them drop out, and those contribute nothing to the total,
     // so the column still adds up to it.
@@ -85,7 +85,7 @@
     )->values();
 
     /**
-     * What was charged for, and over what period — never how much per unit and
+     * What was charged for, and over what period - never how much per unit and
      * never a quantity. A day count printed beside an amount would hand the
      * daily rate straight back, which is exactly what this format exists to
      * avoid.

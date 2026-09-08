@@ -113,7 +113,7 @@ def example_box(title, lines):
     """Grey example block."""
     doc.add_paragraph()
     p = doc.add_paragraph()
-    run = p.add_run(f'  Example — {title}')
+    run = p.add_run(f'  Example - {title}')
     run.bold = True
     run.font.size = Pt(10)
     run.font.color.rgb = RGBColor(0, 112, 192)
@@ -179,7 +179,7 @@ doc.add_paragraph()
 doc.add_paragraph()
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = p.add_run('For internal use — Operations & Finance teams')
+run = p.add_run('For internal use - Operations & Finance teams')
 run.font.size = Pt(10)
 run.italic = True
 run.font.color.rgb = RGBColor(120, 120, 120)
@@ -195,17 +195,17 @@ para(
     'When a shipping container arrives at the yard and is found to have damage, '
     'the yard prepares a Maintenance & Repair (MnR) Estimate. This estimate lists '
     'every repair needed, how many labour hours each job will take, and what materials '
-    'are required — along with the total cost. The estimate is then sent to the container '
+    'are required - along with the total cost. The estimate is then sent to the container '
     'owner (the shipping line or agent) for approval before any repair work begins.',
     size=11
 )
 
 doc.add_paragraph()
 para('The process has four stages:', bold=True)
-numbered('Survey — the yard inspector walks around the container and records each damage found.')
-numbered('Tariff lookup — the system finds the matching repair rate from the MnR Tariff master.')
-numbered('Estimate creation — the system builds the estimate line items with labour and material costs.')
-numbered('Customer approval — the estimate is sent to the customer through the owner portal or by email.')
+numbered('Survey - the yard inspector walks around the container and records each damage found.')
+numbered('Tariff lookup - the system finds the matching repair rate from the MnR Tariff master.')
+numbered('Estimate creation - the system builds the estimate line items with labour and material costs.')
+numbered('Customer approval - the estimate is sent to the customer through the owner portal or by email.')
 
 doc.add_paragraph()
 box_note(
@@ -262,7 +262,7 @@ para(
 heading('3.1  Tariff Header (the "Agreement")', 2)
 
 para(
-    'The Tariff Header is the top-level record. It represents a rate agreement — '
+    'The Tariff Header is the top-level record. It represents a rate agreement - '
     'either a customer-specific agreement or a general default rate for all customers.',
     size=11
 )
@@ -375,31 +375,31 @@ numbered('It picks the slab with the highest Qty From value (the "best match").'
 numbered('If there is an "Additional" slab, extra units beyond the base slab are priced using it.')
 
 example_box(
-    'Replace Twist Locks — Slab Pricing (qty = 8 locks)',
+    'Replace Twist Locks - Slab Pricing (qty = 8 locks)',
     [
         'Slab Setup:',
-        '  Slab 1  — qty_from: 1,  labour_hours: 0.25,  material_cost: USD 12.00  (is_additional: No)',
-        '  Slab 2  — qty_from: 5,  labour_hours: 1.00,  material_cost: USD 50.00  (is_additional: No)',
-        '  Extra   — qty_from: 1,  labour_hours: 0.20,  material_cost: USD 10.00  (is_additional: Yes)',
+        '  Slab 1  - qty_from: 1,  labour_hours: 0.25,  material_cost: USD 12.00  (is_additional: No)',
+        '  Slab 2  - qty_from: 5,  labour_hours: 1.00,  material_cost: USD 50.00  (is_additional: No)',
+        '  Extra   - qty_from: 1,  labour_hours: 0.20,  material_cost: USD 10.00  (is_additional: Yes)',
         '',
         'Actual Quantity = 8 locks',
         '',
-        'Step 1 — Find best base slab:',
+        'Step 1 - Find best base slab:',
         '  qty=8 >= qty_from=1 ✓   (Slab 1 matches)',
         '  qty=8 >= qty_from=5 ✓   (Slab 2 matches) ← higher Qty From wins',
         '  Base Slab = Slab 2  →  hours=1.00,  material=USD 50.00',
         '',
-        'Step 2 — Calculate extras:',
+        'Step 2 - Calculate extras:',
         '  Extra units = 8 - 5 = 3 units',
         '  Multiplier  = 3 / 1  = 3',
         '  Extra hours   = 3 × 0.20  = 0.60',
         '  Extra material = 3 × 10.00 = USD 30.00',
         '',
-        'Step 3 — Add base + extras:',
+        'Step 3 - Add base + extras:',
         '  Total Hours    = 1.00 + 0.60 = 1.60 hrs',
         '  Total Material = 50.00 + 30.00 = USD 80.00',
         '',
-        'Step 4 — Calculate Labour Cost:',
+        'Step 4 - Calculate Labour Cost:',
         '  Labour Rate   = USD 25.00 / hr',
         '  Labour Amount = 1.60 × 25.00 = USD 40.00',
         '',
@@ -456,8 +456,8 @@ add_table(
         ['Labour Amount',    'Labour Hours × Labour Rate',                      'Both already in estimate currency'],
         ['Material Amount',  'Material Qty × Material Rate',                    'Both already in estimate currency'],
         ['Line Amount (net)','Qty × Unit Price',                                'Unit Price = Labour + Material + Ancillary'],
-        ['Tax 1 Amount',     'Line Amount × Tax1 Rate ÷ 100',                  'e.g. SSCL — applies to net amount'],
-        ['Tax 2 Amount',     '(Line Amount + Tax1) × Tax2 Rate ÷ 100',         'e.g. VAT — applies after Tax 1'],
+        ['Tax 1 Amount',     'Line Amount × Tax1 Rate ÷ 100',                  'e.g. SSCL - applies to net amount'],
+        ['Tax 2 Amount',     '(Line Amount + Tax1) × Tax2 Rate ÷ 100',         'e.g. VAT - applies after Tax 1'],
         ['Gross Amount',     'Line Amount + Tax1 Amount + Tax2 Amount',         'Total per line including all taxes'],
     ],
     col_widths=[1.5, 2.5, 2.3],
@@ -550,7 +550,7 @@ para(
 )
 
 example_box(
-    'Replacing a floor board — USD tariff converted to LKR',
+    'Replacing a floor board - USD tariff converted to LKR',
     [
         'Tariff (in USD):',
         '  Labour Hours    : 2.00 hrs',
@@ -610,7 +610,7 @@ heading('7.1  MnR Code Charge Mapping', 2)
 
 para(
     'The system finds the best matching Charge Code by looking up the '
-    'Component Code and Repair Code combination. It uses a specificity rule — '
+    'Component Code and Repair Code combination. It uses a specificity rule - '
     'a more specific match wins over a general one:',
     size=11
 )
@@ -666,12 +666,12 @@ para(
     'The customer receives a unique link (no password needed) and sees a table with:',
     size=11
 )
-bullet('Component — which part of the container needs repair')
-bullet('Repair Type — what kind of repair (e.g., Straighten, Replace, Weld, Paint)')
-bullet('Labour — number of hours and the labour cost')
-bullet('Materials — material cost for the repair (and ancillary charges if any)')
-bullet('Line Total — total amount for that line')
-bullet('Action — Accept or Reject button for each line item')
+bullet('Component - which part of the container needs repair')
+bullet('Repair Type - what kind of repair (e.g., Straighten, Replace, Weld, Paint)')
+bullet('Labour - number of hours and the labour cost')
+bullet('Materials - material cost for the repair (and ancillary charges if any)')
+bullet('Line Total - total amount for that line')
+bullet('Action - Accept or Reject button for each line item')
 
 doc.add_paragraph()
 para(
@@ -700,7 +700,7 @@ add_table(
         ['Container No.', 'TCKU4567890'],
         ['Size / Type',   '40ft General Purpose (GP)'],
         ['Customer',      'TransOcean Shipping Line'],
-        ['Tariff Used',   'TransOcean Shipping — 2025 Tariff (customer-specific)'],
+        ['Tariff Used',   'TransOcean Shipping - 2025 Tariff (customer-specific)'],
         ['Estimate Currency', 'USD (overseas shipping line)'],
         ['Exchange Rate', '1.00 (no conversion)'],
     ],
@@ -713,8 +713,8 @@ add_table(
     headers=['#', 'Location', 'Component', 'Damage', 'Repair', 'Qty', 'Dimensions'],
     rows=[
         ['1', 'Left Side', 'Panel',      'Dented',   'Straighten (STR)', '1',  'L: 18 in, W: 12 in'],
-        ['2', 'Floor',     'Floor Board', 'Cracked', 'Replace (RPL)',    '3',   '—'],
-        ['3', 'Door',      'Twist Lock',  'Broken',  'Replace (RPL)',    '8 (locks)', '—'],
+        ['2', 'Floor',     'Floor Board', 'Cracked', 'Replace (RPL)',    '3',   '-'],
+        ['3', 'Door',      'Twist Lock',  'Broken',  'Replace (RPL)',    '8 (locks)', '-'],
     ],
     col_widths=[0.3, 0.8, 1.1, 0.9, 1.4, 0.8, 1.5],
     header_fill='2E75B6'
@@ -736,9 +736,9 @@ heading('9.4  Calculated Estimate Line Items', 2)
 add_table(
     headers=['#', 'Component / Repair', 'Labour Hrs', 'Labour Cost', 'Material Cost', 'Ancillary', 'Net (USD)', 'Tax (18%)', 'Gross (USD)'],
     rows=[
-        ['1', 'Panel — Straighten',       '1.50', '37.50',  '0.00',  '0.00', '37.50', '6.75',  '44.25'],
-        ['2', 'Floor Board — Replace',    '2.00', '50.00', '54.00',  '0.00', '104.00','18.72', '122.72'],
-        ['3', 'Twist Lock — Replace (×8)','1.60', '40.00', '80.00',  '0.00', '120.00','21.60', '141.60'],
+        ['1', 'Panel - Straighten',       '1.50', '37.50',  '0.00',  '0.00', '37.50', '6.75',  '44.25'],
+        ['2', 'Floor Board - Replace',    '2.00', '50.00', '54.00',  '0.00', '104.00','18.72', '122.72'],
+        ['3', 'Twist Lock - Replace (×8)','1.60', '40.00', '80.00',  '0.00', '120.00','21.60', '141.60'],
         ['',  'TOTALS',                   '5.10','127.50', '134.00', '0.00', '261.50','47.07', '308.57'],
     ],
     col_widths=[0.3, 1.7, 0.7, 0.8, 0.9, 0.7, 0.8, 0.7, 0.8],
@@ -772,7 +772,7 @@ para(
 # SECTION 10 — QUICK REFERENCE FORMULAS
 # ══════════════════════════════════════════════════════════════════════════════
 doc.add_page_break()
-heading('10.  Quick Reference — All Formulas', 1)
+heading('10.  Quick Reference - All Formulas', 1)
 
 add_table(
     headers=['Calculation', 'Formula'],

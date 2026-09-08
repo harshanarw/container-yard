@@ -171,7 +171,7 @@
                             <input type="file" id="containerOcrHolderIn" name="container_ocr_image" class="d-none">
                             <div id="checkDigitWarnIn" class="mt-1 small d-none">
                                 <span class="badge" style="background:#fef3c7;color:#92400e;">
-                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid check digit — please verify number
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid check digit - please verify number
                                 </span>
                             </div>
                             <div id="masterLookupInfo" class="mt-1 small d-none"></div>
@@ -186,7 +186,7 @@
                             <label class="form-label fw-semibold">Equipment Type <span class="text-danger">*</span></label>
                             <div class="d-flex gap-2 align-items-center">
                                 <select name="equipment_type_id" id="gateEqtSelect" class="form-select s2-code" required>
-                                    <option value="">— Select Equipment Type —</option>
+                                    <option value="">- Select Equipment Type -</option>
                                     @foreach($equipmentTypes as $eqt)
                                     <option value="{{ $eqt->id }}"
                                             data-code="{{ $eqt->eqt_code }}"
@@ -198,7 +198,7 @@
                                             data-vent-type="{{ $eqt->ventilation_type ?? '' }}"
                                             data-vent-count="{{ $eqt->vent_count ?? '' }}"
                                             @if(in_array($eqt->type_code, ['RF','RH'])) data-chip-class="s2-code-chip s2-chip-reefer" @endif>
-                                        {{ $eqt->eqt_code }} — {{ $eqt->description }}
+                                        {{ $eqt->eqt_code }} - {{ $eqt->description }}
                                     </option>
                                     @endforeach
                                 </select>
@@ -212,9 +212,9 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Customer / Owner <span class="text-danger">*</span></label>
                             <select name="customer_id" class="form-select s2-code" required data-s2-sel="name">
-                                <option value="">— Select Customer —</option>
+                                <option value="">- Select Customer -</option>
                                 @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}" data-code="{{ $customer->code }}" data-name="{{ $customer->name }}">{{ $customer->code }} — {{ $customer->name }}</option>
+                                <option value="{{ $customer->id }}" data-code="{{ $customer->code }}" data-name="{{ $customer->name }}">{{ $customer->code }} - {{ $customer->name }}</option>
                                 @endforeach
                             </select>
                             <div id="hint_customer_id" class="mt-1" style="font-size:.72rem;min-height:1.1rem;"></div>
@@ -244,10 +244,10 @@
                             @if($companySetting?->require_seal_for_laden)
                             <div class="mt-2 d-none" id="noSealWrapIn">
                                 <label class="form-label fw-semibold small mb-1">No-seal reason
-                                    <span class="text-muted fw-normal">— choose only if a laden box has no seal</span>
+                                    <span class="text-muted fw-normal">- choose only if a laden box has no seal</span>
                                 </label>
                                 <select name="no_seal_reason" id="noSealReasonIn" class="form-select form-select-sm">
-                                    <option value="">— Select reason —</option>
+                                    <option value="">- Select reason -</option>
                                     <option value="lcl">LCL / groupage</option>
                                     <option value="customs_exam">Customs examination</option>
                                     <option value="broken_missing">Seal broken / missing</option>
@@ -260,12 +260,12 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Container Grade</label>
                             <select name="grade_id" id="inGradeSelect" class="form-select s2-grade">
-                                <option value="">— Not Set —</option>
+                                <option value="">- Not Set -</option>
                                 @foreach($grades as $grade)
                                 <option value="{{ $grade->id }}"
                                         data-code="{{ $grade->code }}"
                                         data-name="{{ $grade->name }}"
-                                        data-color="{{ $grade->color ?? 'secondary' }}">{{ $grade->code }} — {{ $grade->name }}</option>
+                                        data-color="{{ $grade->color ?? 'secondary' }}">{{ $grade->code }} - {{ $grade->name }}</option>
                                 @endforeach
                             </select>
                             <div class="form-text">Grade classification for cargo suitability (e.g. Fiber Grade, Tea Grade).</div>
@@ -273,7 +273,7 @@
                         <div class="col-md-5">
                             <label class="form-label fw-semibold" style="font-size:.85rem;">Ventilation Type</label>
                             <select name="ventilation_type" id="gateVentType" class="form-select form-select-sm">
-                                <option value="">— Not Set —</option>
+                                <option value="">- Not Set -</option>
                                 @foreach(\App\Models\EquipmentType::VENTILATION_TYPES as $val => $label)
                                     <option value="{{ $val }}">{{ $label }}</option>
                                 @endforeach
@@ -282,7 +282,7 @@
                         <div class="col-md-3">
                             <label class="form-label fw-semibold" style="font-size:.85rem;">Vent Count</label>
                             <input type="number" name="vent_count" id="gateVentCount"
-                                   class="form-control form-control-sm" min="0" max="99" placeholder="—">
+                                   class="form-control form-control-sm" min="0" max="99" placeholder="-">
                         </div>
                         <div class="col-md-4 d-flex align-items-end pb-1">
                             <div id="gateVentSource" class="text-muted" style="font-size:.72rem;"></div>
@@ -480,10 +480,10 @@
                                 <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
                             </label>
                             <select name="transporter_id" class="form-select s2-code" data-s2-sel="name">
-                                <option value="">— Select Transporter —</option>
+                                <option value="">- Select Transporter -</option>
                                 @foreach($transporters as $t)
                                 <option value="{{ $t->id }}" data-code="{{ $t->code }}" data-name="{{ $t->name }}">
-                                    {{ $t->code }} — {{ $t->name }}
+                                    {{ $t->code }} - {{ $t->name }}
                                 </option>
                                 @endforeach
                             </select>
@@ -522,7 +522,7 @@
                         <span>
                             <i class="bi bi-geo-alt text-success me-2"></i>
                             <span class="fw-semibold text-success" style="font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;">Storage Location</span>
-                            <span class="badge bg-secondary-subtle text-secondary fw-normal ms-2" style="font-size:.65rem;text-transform:none;">Optional — assign later</span>
+                            <span class="badge bg-secondary-subtle text-secondary fw-normal ms-2" style="font-size:.65rem;text-transform:none;">Optional - assign later</span>
                         </span>
                         <i class="bi bi-chevron-down text-success collapse-chevron"></i>
                     </div>
@@ -548,7 +548,7 @@
                             <div id="zoneSelectorPanel">
                                 <p class="text-muted small mb-2">
                                     <span class="badge bg-primary-subtle text-primary rounded-pill me-1">Step 1</span>
-                                    Select a storage zone <span class="text-muted">(optional — can be assigned later)</span>:
+                                    Select a storage zone <span class="text-muted">(optional - can be assigned later)</span>:
                                 </p>
                                 <div class="d-flex gap-2 flex-wrap" id="zoneCards">
                                     @foreach($zones as $zone)
@@ -678,7 +678,7 @@
                                 <label class="form-check-label" for="reeferModeOperating">
                                     <strong>Operating</strong>
                                     <span class="text-muted small d-block">
-                                        Machinery running — service type, plug session and PTI apply.
+                                        Machinery running - service type, plug session and PTI apply.
                                     </span>
                                 </label>
                             </div>
@@ -689,7 +689,7 @@
                                 <label class="form-check-label" for="reeferModeNor">
                                     <strong>Non-Operating (NOR)</strong>
                                     <span class="text-muted small d-block">
-                                        Dry cargo in a reefer box, machinery off — no plug, no PTI.
+                                        Dry cargo in a reefer box, machinery off - no plug, no PTI.
                                     </span>
                                 </label>
                             </div>
@@ -704,7 +704,7 @@
                             Reefer Service Type <span class="text-danger">*</span>
                         </label>
                         <select name="reefer_service_type" id="reeferServiceType" class="form-select @error('reefer_service_type') is-invalid @enderror">
-                            <option value="">— Select Service Type —</option>
+                            <option value="">- Select Service Type -</option>
                             <option value="pti" @selected(old('reefer_service_type') === 'pti')>Short-Term PTI (hourly)</option>
                             <option value="long_term" @selected(old('reefer_service_type') === 'long_term')>Long-Term Electricity (daily)</option>
                         </select>
@@ -719,7 +719,7 @@
                     {{-- Cargo Transfer notice --}}
                     <div id="cargoTransferNotice" class="alert alert-warning small py-2 mt-3 d-none">
                         <i class="bi bi-arrow-left-right me-1"></i>
-                        <strong>Cargo Transfer</strong> job — after gate-in, complete the swap from
+                        <strong>Cargo Transfer</strong> job - after gate-in, complete the swap from
                         <a href="{{ route('yard.cargo-transfers.index') }}" class="alert-link">Yard → Cargo Transfers</a>
                         (this box will appear under “Awaiting Cargo Transfer”).
                     </div>
@@ -737,7 +737,7 @@
         {{-- ── Gate Out Card ─────────────────────────────────────────── --}}
         <div class="card content-card d-none" id="gateOutCard">
             <div class="card-header bg-success text-white">
-                <i class="bi bi-box-arrow-right me-2"></i>Gate Out — Container Departure
+                <i class="bi bi-box-arrow-right me-2"></i>Gate Out - Container Departure
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ route('yard.gate.out') }}" id="gateOutForm" enctype="multipart/form-data">
@@ -753,7 +753,7 @@
 
                     <div id="gateOutMissingWarn" class="alert alert-warning py-2 small d-none">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                        This container from the guard capture isn't on record in the yard — verify it before releasing.
+                        This container from the guard capture isn't on record in the yard - verify it before releasing.
                     </div>
 
                     {{-- ── Guard Post Verification Panel (Gate Out) ──────────── --}}
@@ -792,7 +792,7 @@
                         <input type="file" id="containerOcrHolderOut" name="container_ocr_image" class="d-none">
                         <div id="checkDigitWarnOut" class="mt-1 small d-none">
                             <span class="badge" style="background:#fef3c7;color:#92400e;">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid check digit — please verify number
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Invalid check digit - please verify number
                             </span>
                         </div>
                         <div class="form-text text-muted" style="font-size:.72rem;">Enter and search to confirm the container is in yard.</div>
@@ -808,12 +808,12 @@
                     <div id="outGradeRow" class="mb-3 d-none">
                         <label class="form-label fw-semibold">Container Grade</label>
                         <select name="grade_id" id="outGradeSelect" class="form-select s2-grade">
-                            <option value="">— Not Set —</option>
+                            <option value="">- Not Set -</option>
                             @foreach($grades as $grade)
                             <option value="{{ $grade->id }}"
                                     data-code="{{ $grade->code }}"
                                     data-name="{{ $grade->name }}"
-                                    data-color="{{ $grade->color ?? 'secondary' }}">{{ $grade->code }} — {{ $grade->name }}</option>
+                                    data-color="{{ $grade->color ?? 'secondary' }}">{{ $grade->code }} - {{ $grade->name }}</option>
                             @endforeach
                         </select>
                         <div class="form-text">Override the container's grade classification for this gate-out if needed.</div>
@@ -840,7 +840,7 @@
                                 <div class="col-6">
                                     <label class="form-label fw-semibold">Gate-Out Purpose</label>
                                     <select name="gate_out_purpose" class="form-select">
-                                        <option value="">— Select purpose —</option>
+                                        <option value="">- Select purpose -</option>
                                         @foreach($gateOutPurposes as $p)
                                             <option value="{{ $p->job_type_code }}" data-booking="{{ $p->booking_applicable ? '1' : '0' }}">{{ $p->job_type_name }}</option>
                                         @endforeach
@@ -849,7 +849,7 @@
                                 <div class="col-6">
                                     <label class="form-label fw-semibold">Booking / EDO <span class="text-muted small fw-normal">(export release)</span></label>
                                     <select name="container_booking_id" class="form-select">
-                                        <option value="">— None —</option>
+                                        <option value="">- None -</option>
                                         @foreach($openBookings as $bk)
                                             <option value="{{ $bk->id }}">{{ $bk->booking_no }}</option>
                                         @endforeach
@@ -881,10 +881,10 @@
                                     @if($companySetting?->require_seal_for_laden)
                                     <div class="mt-2 d-none" id="noSealWrapOut">
                                         <label class="form-label fw-semibold small mb-1">No-seal reason
-                                            <span class="text-muted fw-normal">— required for this laden box if you leave the seal blank</span>
+                                            <span class="text-muted fw-normal">- required for this laden box if you leave the seal blank</span>
                                         </label>
                                         <select name="no_seal_reason" id="noSealReasonOut" class="form-select form-select-sm">
-                                            <option value="">— Select reason —</option>
+                                            <option value="">- Select reason -</option>
                                             <option value="lcl">LCL / groupage</option>
                                             <option value="customs_exam">Customs examination</option>
                                             <option value="broken_missing">Seal broken / missing</option>
@@ -930,10 +930,10 @@
                                 <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Optional</span>
                             </label>
                             <select name="transporter_id" class="form-select s2-code" data-s2-sel="name">
-                                <option value="">— Select Transporter —</option>
+                                <option value="">- Select Transporter -</option>
                                 @foreach($transporters as $t)
                                 <option value="{{ $t->id }}" data-code="{{ $t->code }}" data-name="{{ $t->name }}">
-                                    {{ $t->code }} — {{ $t->name }}
+                                    {{ $t->code }} - {{ $t->name }}
                                 </option>
                                 @endforeach
                             </select>
@@ -1182,9 +1182,9 @@
             </div>
             <div class="modal-body text-center py-4">
                 <p class="mb-2 text-muted">You are about to record a</p>
-                <p class="mb-3"><span class="badge bg-primary" style="font-size:1rem;padding:.5rem 1.2rem;letter-spacing:.05em;">GATE IN — ARRIVAL</span></p>
+                <p class="mb-3"><span class="badge bg-primary" style="font-size:1rem;padding:.5rem 1.2rem;letter-spacing:.05em;">GATE IN - ARRIVAL</span></p>
                 <p class="mb-1 text-muted small">Container:</p>
-                <p class="font-monospace fw-bold mb-3" style="font-size:1.4rem;" id="confirmInContainerNo">—</p>
+                <p class="font-monospace fw-bold mb-3" style="font-size:1.4rem;" id="confirmInContainerNo">-</p>
                 <p class="text-muted small mb-0">Please confirm this is a container <strong>arriving</strong> into the yard.</p>
                 <div id="confirmGateInWarnings" class="mt-3 text-start"></div>
             </div>
@@ -1210,9 +1210,9 @@
             </div>
             <div class="modal-body text-center py-4">
                 <p class="mb-2 text-muted">You are about to record a</p>
-                <p class="mb-3"><span class="badge bg-success" style="font-size:1rem;padding:.5rem 1.2rem;letter-spacing:.05em;">GATE OUT — DEPARTURE</span></p>
+                <p class="mb-3"><span class="badge bg-success" style="font-size:1rem;padding:.5rem 1.2rem;letter-spacing:.05em;">GATE OUT - DEPARTURE</span></p>
                 <p class="mb-1 text-muted small">Container:</p>
-                <p class="font-monospace fw-bold mb-3" style="font-size:1.4rem;" id="confirmOutContainerNo">—</p>
+                <p class="font-monospace fw-bold mb-3" style="font-size:1.4rem;" id="confirmOutContainerNo">-</p>
                 <p class="text-muted small mb-0">Please confirm this container is <strong>departing</strong> from the yard.</p>
             </div>
             <div class="modal-footer py-2 justify-content-center gap-3">

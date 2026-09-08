@@ -66,7 +66,7 @@
 @section('content')
 
 @php
-    /** Blank rather than 0.00 — the yard's own sheet leaves empty cells empty. */
+    /** Blank rather than 0.00 - the yard's own sheet leaves empty cells empty. */
     $money = fn ($v) => abs((float) $v) < 0.005 ? '' : number_format((float) $v, 2);
     $weeks = $data['weeks'];
 @endphp

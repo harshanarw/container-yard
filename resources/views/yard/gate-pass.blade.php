@@ -353,7 +353,7 @@
         'vh' => preg_replace('/[^A-Z0-9]/', '', strtoupper($movement->vehicle_plate ?? '')),
     ]);
     $qrData = route('gp.verify', $movement->id) . '?' . http_build_query($qrParams);
-    // Server-rendered QR (SVG) — reliable on every device and in print; falls
+    // Server-rendered QR (SVG) - reliable on every device and in print; falls
     // back to the JS QR generator when the package is absent.
     $qrImg = \App\Support\Qr::svgDataUri($qrData, 220);
 

@@ -206,10 +206,10 @@
 </form>
 
 @php
-    $accountOptionsHtml = '<option value="">— account —</option>';
+    $accountOptionsHtml = '<option value="">- account -</option>';
     foreach ($accounts as $a) {
         $accountOptionsHtml .= '<option value="' . $a->id . '" data-code="' . e($a->code) . '" data-name="' . e($a->name) . '">'
-            . e($a->code . ' — ' . $a->name) . '</option>';
+            . e($a->code . ' - ' . $a->name) . '</option>';
     }
     $chargeCodesData = $chargeCodes->map(fn($c) => [
         'id'          => $c->id,
@@ -261,7 +261,7 @@
             group.items.forEach(item => {
                 const opt        = document.createElement('option');
                 opt.value        = item.id;
-                opt.textContent  = item.code + ' — ' + item.name;
+                opt.textContent  = item.code + ' - ' + item.name;
                 opt.dataset.code = item.code;
                 opt.dataset.name = item.name;
                 og.appendChild(opt);
@@ -276,7 +276,7 @@
         taxCodes.forEach(tc => {
             const opt        = document.createElement('option');
             opt.value        = tc.id;
-            opt.textContent  = tc.code + ' — ' + tc.description;
+            opt.textContent  = tc.code + ' - ' + tc.description;
             opt.dataset.code = tc.code;
             opt.dataset.name = tc.description;
             opt.dataset.t1   = tc.tax1_rate;
@@ -305,7 +305,7 @@
     function jobOption(j, sel){
         return `<option value="${j.id}" data-job-no="${jobEsc(j.job_no)}" data-cont="${jobEsc(j.container_no || '')}" data-st="${jobEsc(jobST(j))}" data-cust="${jobEsc(j.customer || '')}" data-cust-id="${j.customer_id ?? ''}" ${String(sel)===String(j.id)?'selected':''}>${jobEsc(jobLabel(j))}</option>`;
     }
-    function jobOpts(sel){ return '<option value="">— none —</option>' + JOBS.map(j => jobOption(j, sel)).join(''); }
+    function jobOpts(sel){ return '<option value="">- none -</option>' + JOBS.map(j => jobOption(j, sel)).join(''); }
     function jobPartyId(){ return document.getElementById('supplierSelect')?.value || ''; }
     function jobShowAll(){ return !!document.getElementById('jobShowAll')?.checked; }
     function jobsForParty(){
@@ -321,7 +321,7 @@
             if (f) list.unshift(f);
         }
         const lbl = $sel.hasClass('job-line') ? 'none' : 'None';
-        $sel.html('<option value="">— ' + lbl + ' —</option>' + list.map(j => jobOption(j, cur)).join(''))
+        $sel.html('<option value="">- ' + lbl + ' -</option>' + list.map(j => jobOption(j, cur)).join(''))
             .val(cur || '').trigger('change.select2');
     }
     function refreshAllJobSelects(){
@@ -352,7 +352,7 @@
             </td>
             <td>
                 <select name="lines[${i}][tax_code_id]" class="form-select form-select-sm tc-select">
-                    <option value="">— none —</option>
+                    <option value="">- none -</option>
                 </select>
             </td>
             <td>
@@ -379,7 +379,7 @@
         const $ccSel = jQuery(ccEl).select2({
             theme             : 'bootstrap-5',
             width             : '100%',
-            placeholder       : '— charge code —',
+            placeholder       : '- charge code -',
             allowClear        : true,
             templateResult    : window.s2CodeResult    || null,
             templateSelection : window.s2CodeSelection || null,
@@ -395,7 +395,7 @@
         const $tcSel = jQuery(tcEl).select2({
             theme             : 'bootstrap-5',
             width             : '100%',
-            placeholder       : '— none —',
+            placeholder       : '- none -',
             allowClear        : true,
             templateResult    : window.s2CodeResult    || null,
             templateSelection : window.s2CodeSelection || null,
@@ -406,7 +406,7 @@
         jQuery(row.querySelector('.acct-select')).select2({
             theme             : 'bootstrap-5',
             width             : '100%',
-            placeholder       : '— account —',
+            placeholder       : '- account -',
             templateResult    : window.s2CodeResult    || null,
             templateSelection : window.s2CodeSelection || null,
         });

@@ -11,7 +11,7 @@
     $nextAction = $req?->nextPendingAction();
     $canAction  = $req && $nextAction && app(\App\Services\ApprovalService::class)->canAction($req, auth()->user());
 
-    // Workflow steps + eligible users per role — used by the Submit modal
+    // Workflow steps + eligible users per role - used by the Submit modal
     $docType       = $movement->movement_type === 'in' ? 'gate_pass_in' : 'gate_pass';
     $workflowSteps = \App\Models\ApprovalWorkflow::stepsFor($docType);
     $usersByRole   = $workflowSteps

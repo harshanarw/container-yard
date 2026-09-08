@@ -124,7 +124,7 @@
         }
     }
 
-    // Verification QR (right of the letterhead) — same scheme as the other documents.
+    // Verification QR (right of the letterhead) - same scheme as the other documents.
     $qrB64 = \App\Support\Qr::svgDataUri($verifyUrl ?? null, 110);
 @endphp
 <table class="lh-table">

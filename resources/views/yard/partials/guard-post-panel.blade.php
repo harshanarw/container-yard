@@ -27,7 +27,7 @@
     if ($guardCapture->nic_back_url)        $gpPhotos[] = ['label' => 'NIC Back',  'url' => $guardCapture->nic_back_url,        'icon' => 'bi-person-vcard-fill', 'rescan' => null];
     if ($guardCapture->license_front_url)   $gpPhotos[] = ['label' => 'License',   'url' => $guardCapture->license_front_url,   'icon' => 'bi-card-text',         'rescan' => null];
 
-    // Header accent follows the clearance state — the panel now surfaces
+    // Header accent follows the clearance state - the panel now surfaces
     // pending/hold/rejected captures too, not just cleared ones.
     $statusIcon = match($guardCapture->status) {
         'cleared'  => 'bi-shield-check text-success',

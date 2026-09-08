@@ -319,7 +319,7 @@
         'tp' => 'in',
     ]);
     $qrData = route('gp.verify', $movement->id) . '?' . http_build_query($qrParams);
-    // Prefer a server-rendered QR (SVG) — works on every device and in print,
+    // Prefer a server-rendered QR (SVG) - works on every device and in print,
     // with no dependency on a client-side CDN script (which fails on some
     // mobile browsers). Falls back to the JS QR when the package is absent.
     $qrImg = \App\Support\Qr::svgDataUri($qrData, 220);

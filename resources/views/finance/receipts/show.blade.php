@@ -275,7 +275,7 @@
                         <tbody>
                             @forelse($receipt->allocations as $alloc)
                             @php
-                                // Resolve invoice for display (best-effort — may not exist)
+                                // Resolve invoice for display (best-effort - may not exist)
                                 try {
                                     $allocInvoice = app(\App\Services\Finance\ArAllocationService::class)
                                         ->resolveInvoice($alloc->invoice_type, $alloc->invoice_id);

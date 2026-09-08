@@ -22,7 +22,7 @@
     $acctJs = $incomeAccounts->map(fn($a) => ['id' => $a->id, 'code' => $a->code, 'name' => $a->name])->values();
     $curCode = old('currency', $invoice->currency ?? $baseCurrency);
 
-    // Precompute JS data here — the json blade directive can't parse arrow-fn
+    // Precompute JS data here - the json blade directive can't parse arrow-fn
     // array literals inline, so build the arrays first.
     $chargeJs = $chargeCodes->map(fn($c) => [
         'id' => $c->id, 'code' => $c->code, 'desc' => $c->description,
@@ -145,7 +145,7 @@
 
                 {{-- Job costing — tag this invoice's income to a job/container --}}
                 @php
-                    // Full label (option text — searchable); name (the chip's description, no job no).
+                    // Full label (option text - searchable); name (the chip's description, no job no).
                     $jobName = function ($j) {
                         $parts = [];
                         if (!empty($j['container_no'])) $parts[] = $j['container_no'];

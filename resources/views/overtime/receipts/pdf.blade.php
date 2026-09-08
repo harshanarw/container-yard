@@ -3,7 +3,7 @@
      * Overtime receipt printout. Follows the shared document standard:
      * partials.pdf-letterhead for the header (logo, company block, bordered title,
      * verify QR) and partials.pdf-footer for the running footer (generated stamp,
-     * software-provider copyright, Page X of Y) — both repeated on every page.
+     * software-provider copyright, Page X of Y) - both repeated on every page.
      */
     $company = $company ?? \App\Models\CompanySetting::current();
     $accent  = '#0d6efd';

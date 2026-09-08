@@ -318,7 +318,7 @@
     }
     $allInfo[] = ['label' => 'SYSTEM REF.', 'value' => strtoupper($invoice_no)];
 
-    // value > 16 chars risks wrapping in the 3-column grid — move those to full-row
+    // value > 16 chars risks wrapping in the 3-column grid - move those to full-row
     $shortItems = array_values(array_filter($allInfo, fn($i) => strlen($i['value']) <= 16));
     $longItems  = array_values(array_filter($allInfo, fn($i) => strlen($i['value']) >  16));
 @endphp
