@@ -171,7 +171,8 @@ class ReeferSessionNeverPluggedTest extends FeatureTestCase
             'size'            => '40',
             'container_type'  => 'RF',
             'condition'       => 'sound',
-            'cargo_status'    => 'full',
+            // enum('empty','laden') — migration 000079 replaced 'full'.
+            'cargo_status'    => 'laden',
             'gate_in_time'    => '2026-09-01 08:00:00',
             'movement_status' => 'done',
             'created_by'      => auth()->id(),
