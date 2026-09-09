@@ -121,6 +121,53 @@ class ReeferSessionNeverPluggedTest extends FeatureTestCase
         $this->assertCount(1, $preview['lines'], 'Only the session with both timestamps should price.');
     }
 
+    // ── What a deleted gate-out gives back ──────────────────────────────────
+
+    /**
+     * Deleting a gate-out puts the container back in the yard, so the plug
+     * session that gate-out closed has to come back with it. The plug-in screen
+     * accepts `pending` only and the plug-out screen `active` only, so a
+     * session left closed is a box sitting in the yard drawing power with no
+     * screen willing to record it.
+     */
+    public function test_deleting_a_gate_out_reopens_a_session_closed_unplugged(): void
+    {
+        $this->gateInLadenReefer('RSTP1234567');
+        $this->gateOut('RSTP1234567', '2026-09-09 10:00:00');
+
+        $this->assertSame('not_plugged', $this->sessionFor('RSTP1234567')->status);
+
+        $this->deleteGateOut('RSTP1234567');
+
+        $session = $this->sessionFor('RSTP1234567');
+        $this->assertSame('pending', $session->status, 'It is awaiting a plug-in again.');
+        $this->assertNull($session->gate_out_movement_id);
+        $this->assertSame('in_yard', Container::where('container_no', 'RSTP1234567')->value('status'));
+    }
+
+    /** A session that had run reopens as active, keeping the plug-in it recorded. */
+    public function test_deleting_a_gate_out_reopens_a_session_that_had_run(): void
+    {
+        $this->gateInLadenReefer('RSTA1234567');
+        $this->sessionFor('RSTA1234567')->update([
+            'status'     => 'active',
+            'plug_in_at' => '2026-09-08 09:00:00',
+        ]);
+        $this->gateOut('RSTA1234567', '2026-09-09 10:00:00');
+
+        $closed = $this->sessionFor('RSTA1234567');
+        $this->assertSame('completed', $closed->status);
+        $this->assertNotNull($closed->plug_out_at);
+
+        $this->deleteGateOut('RSTA1234567');
+
+        $session = $this->sessionFor('RSTA1234567');
+        $this->assertSame('active', $session->status);
+        $this->assertNull($session->plug_out_at, 'Only the plug-out is undone.');
+        $this->assertSame('2026-09-08 09:00:00', $session->plug_in_at->format('Y-m-d H:i:s'),
+            'The recorded plug-in survives the delete.');
+    }
+
     // ── Fixtures ────────────────────────────────────────────────────────────
 
     private function sessionFor(string $containerNo): ReeferPlugSession
@@ -205,6 +252,20 @@ class ReeferSessionNeverPluggedTest extends FeatureTestCase
             'reefer_mode'        => 'operating',
             'reefer_service_type' => 'long_term',
         ])->assertSessionHasNoErrors();
+    }
+
+    /** Delete the container's newest gate-out, asserting nothing blocked it. */
+    private function deleteGateOut(string $containerNo): void
+    {
+        $container = Container::where('container_no', $containerNo)->firstOrFail();
+
+        $out = GateMovement::where('container_id', $container->id)
+            ->where('movement_type', 'out')
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->delete(route('yard.movements.destroy', $out))
+            ->assertSessionMissing('error');
     }
 
     private function gateOut(string $containerNo, string $at): void
