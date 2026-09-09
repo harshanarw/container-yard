@@ -230,9 +230,15 @@ class ContainerStockAsAtTest extends FeatureTestCase
             'A stock file that has lost its date cannot be checked later.',
         );
 
-        $csv = $response->streamedContent();
-        $this->assertStringContainsString('As At,Container No', $csv);
-        $this->assertStringContainsString('2026-09-30,' . $c->container_no, $csv);
+        // Parsed, not matched as a substring: fputcsv quotes any field with a
+        // space in it, so "As At" arrives quoted and a raw comparison would be
+        // testing PHP's quoting rules rather than the report.
+        $rows = $this->parse($response->streamedContent());
+
+        $this->assertSame('As At', $rows[0][0]);
+        $this->assertSame('Container No', $rows[0][1]);
+        $this->assertSame('2026-09-30', $rows[1][0], 'Every row carries the date.');
+        $this->assertSame($c->container_no, $rows[1][1]);
     }
 
     /** The file must describe the same selection as the page it came from. */
@@ -280,6 +286,22 @@ class ContainerStockAsAtTest extends FeatureTestCase
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────
+
+    /** @return array<int, array<int, string>> */
+    private function parse(string $csv): array
+    {
+        $handle = fopen('php://memory', 'r+');
+        fwrite($handle, $csv);
+        rewind($handle);
+
+        $rows = [];
+        while (($row = fgetcsv($handle)) !== false) {
+            $rows[] = $row;
+        }
+        fclose($handle);
+
+        return $rows;
+    }
 
 
     private function stockHas(Container $c, array $filters = []): bool
