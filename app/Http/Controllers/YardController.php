@@ -1160,7 +1160,9 @@ class YardController extends Controller
 
         NotificationService::notifyAll(
             'Gate OUT - ' . $container->container_no,
-            ($container->customer->name ?? 'Unknown') . ' · Container released',
+            // $visitCustomer is what the movement recorded; naming the master
+            // here would tell the yard a different party released the box.
+            (Customer::whereKey($visitCustomer)->value('name') ?? 'Unknown') . ' · Container released',
             'info',
             route('yard.movements.edit', $movement)
         );
@@ -2123,6 +2125,9 @@ class YardController extends Controller
             ->first();
 
         // Get the linked Gate In movement (with job details)
+        $visitCustomerId   = app(\App\Services\ContainerCustodyService::class)->visitCustomerId($container);
+        $visitCustomerName = $visitCustomerId ? Customer::whereKey($visitCustomerId)->value('name') : null;
+
         $gateInMovement = GateMovement::with('yardJob')
             ->where('container_id', $container->id)
             ->where('movement_type', 'in')
@@ -2163,7 +2168,10 @@ class YardController extends Controller
             'equipment_label'  => $container->equipmentType
                 ? $container->equipmentType->eqt_code . ' - ' . $container->equipmentType->description
                 : ($container->size . "' " . $container->type_code),
-            'customer'         => $container->customer?->name ?? '-',
+            // The visit's party, not the master's cached one — the panel a
+            // supervisor checks before releasing has to name whoever the
+            // gate-out will actually record.
+            'customer'         => $visitCustomerName ?? ($container->customer?->name ?? '-'),
             'condition'        => $container->condition,
             // What the box is waiting on, so the gate form can show it beside
             // the disposition rather than making the operator infer it.

@@ -81,6 +81,28 @@ class GateOutShowsVisitCustomerTest extends FeatureTestCase
         $this->assertFalse($this->getJson(route('yard.container.lookup', 'SAME1234567'))->json('customer_from_visit'));
     }
 
+    // ── The green confirmation panel ────────────────────────────────────────
+
+    /**
+     * The panel the supervisor actually reads before releasing.
+     *
+     * Fed by `containerLookup()`, a *third* endpoint — not the `lookup()` above
+     * and not the search. Fixing the first two left this one still naming the
+     * master's cached party, which is what the yard reported after the first
+     * round of this change.
+     */
+    public function test_the_confirmation_panel_shows_the_gate_in_customer(): void
+    {
+        $this->driftedContainer('PANL1234567');
+
+        $body = $this->getJson(route('yard.container-lookup', ['container_no' => 'PANL1234567']))->json();
+
+        $this->assertTrue($body['found']);
+        $this->assertSame('ABC LOGISTICS', $body['customer']);
+        $this->assertNotSame('XYZ SHIPPING', $body['customer'],
+            'The panel must not read containers.customer_id.');
+    }
+
     // ── The typeahead that offers the container ─────────────────────────────
 
     public function test_the_search_shows_the_gate_in_customer(): void
