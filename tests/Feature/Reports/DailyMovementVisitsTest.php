@@ -252,13 +252,21 @@ class DailyMovementVisitsTest extends FeatureTestCase
 
         $this->assertSame('Gate In Date/Time', $headings[14], 'Unmoved.');
         $this->assertSame('Gate Out Date/Time', $headings[15], 'Unmoved.');
-        $this->assertSame(['Visit Gate In', 'Visit Gate Out', 'Days In Yard'], array_slice($headings, -3));
+
+        // Located by name, not by "the last three". The append-only rule this
+        // test defends means more columns will be appended after these — Reefer
+        // Mode already has been — and an assertion that reads from the end
+        // fails the moment the rule is correctly followed.
+        $at = array_search('Visit Gate In', $headings, true);
+        $this->assertNotFalse($at, 'The visit columns should be present.');
+        $this->assertGreaterThan(15, $at, 'Appended after the original columns, never inserted among them.');
+        $this->assertSame(['Visit Gate In', 'Visit Gate Out', 'Days In Yard'], array_slice($headings, $at, 3));
 
         $row = $rows[1];
         $this->assertSame('', $row[14], "The gate-out row's own gate-in column stays blank, as before.");
         $this->assertSame('2026-08-08 08:00:00', $row[15]);
-        $this->assertSame('2026-08-01 08:00:00', $row[count($headings) - 3], 'The visit column carries it instead.');
-        $this->assertSame('7', $row[count($headings) - 1]);
+        $this->assertSame('2026-08-01 08:00:00', $row[$at], 'The visit column carries it instead.');
+        $this->assertSame('7', $row[$at + 2]);
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

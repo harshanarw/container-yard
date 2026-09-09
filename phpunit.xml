@@ -17,6 +17,13 @@
         </include>
     </source>
     <php>
+        <!-- The suite boots the whole application once per test file, against a
+             real MySQL database with the full seed behind it. PHP's 128M CLI
+             default is not enough: the run reaches it partway through and the
+             remaining files die while loading routes, which reads as a routing
+             error rather than as memory exhaustion. Set here rather than in
+             php.ini so every machine and CI runner gets it. -->
+        <ini name="memory_limit" value="1G"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

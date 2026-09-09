@@ -127,16 +127,25 @@ class GateOutShowsVisitCustomerTest extends FeatureTestCase
             $this->driftedContainer($no);
         }
 
-        \Illuminate\Support\Facades\DB::enableQueryLog();
-        $results = $this->getJson(route('yard.in-yard-search', ['q' => 'BAT123456']))->json('results');
-        $queries = count(\Illuminate\Support\Facades\DB::getQueryLog());
-        \Illuminate\Support\Facades\DB::disableQueryLog();
+        // Measured as growth, not as an absolute. A request boots session, auth
+        // and permissions before it reaches the controller, and pinning a total
+        // makes the test a tripwire for unrelated framework work. What matters
+        // is that resolving the visit customer costs the same for three rows as
+        // for one.
+        $one   = $this->queriesForSearch('BAT1234567A');
+        $three = $this->queriesForSearch('BAT123456');
 
-        $this->assertCount(3, $results);
-        foreach ($results as $row) {
+        $this->assertSame(3, $three['rows'], 'All three containers should match the shorter query.');
+        foreach ($three['results'] as $row) {
             $this->assertSame('ABC LOGISTICS', $row['customer']);
         }
-        $this->assertLessThan(15, $queries, 'Resolving the visit customer should not scale with the row count.');
+
+        $this->assertLessThanOrEqual(
+            $one['queries'] + 1,
+            $three['queries'],
+            'Resolving the visit customer must not add a query per row: '
+            . "1 row took {$one['queries']}, 3 rows took {$three['queries']}.",
+        );
     }
 
     // ── What is saved still matches what is shown ───────────────────────────
@@ -160,6 +169,18 @@ class GateOutShowsVisitCustomerTest extends FeatureTestCase
 
         $this->assertSame($this->gateInCustomer->id, $out->customer_id);
         $this->assertSame($shown, $out->customer_id, 'Shown and saved must be the same party.');
+    }
+
+    /** @return array{queries:int,rows:int,results:array} */
+    private function queriesForSearch(string $q): array
+    {
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $results = $this->getJson(route('yard.in-yard-search', ['q' => $q]))->json('results');
+        $queries = count(\Illuminate\Support\Facades\DB::getQueryLog());
+        \Illuminate\Support\Facades\DB::disableQueryLog();
+
+        return ['queries' => $queries, 'rows' => count($results), 'results' => $results];
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────
