@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Customer;
+use App\Models\EquipmentType;
+use App\Services\Reporting\ContainerStockAsAt;
+use Illuminate\Http\Request;
+
+/**
+ * Container stock as at a date.
+ *
+ * "What was in the yard on 30 September, for this shipping line?" -- a question
+ * the Inventory report cannot answer, because it reads the container master,
+ * where `status`, `gate_in_date` and `customer_id` all describe today and are
+ * overwritten on every visit.
+ *
+ * Its own permission rather than `reports.view`, like Gate Data Check and
+ * Weekly Revenue: this one goes out to a shipping line as a statement of what
+ * they had on the ground, so it reads more like an account than an operations
+ * screen.
+ */
+class ContainerStockController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware('can:container-stock.view');
+    }
+
+    public function index(Request $request)
+    {
+        $validated = $request->validate([
+            // Defaults to yesterday: today's stock is still moving, and the
+            // question is nearly always asked about a closed day.
+            'as_at'        => 'nullable|date|before_or_equal:' . now()->toDateString(),
+            'customer_id'  => 'nullable|exists:customers,id',
+            'size'         => 'nullable|in:20,40,45',
+            'type_code'    => 'nullable|string|max:4',
+            'cargo_status' => 'nullable|in:empty,laden',
+            'condition'    => 'nullable|in:sound,damaged,require_repair',
+        ], [], ['as_at' => 'as-at date']);
+
+        $asAt = $validated['as_at'] ?? now()->subDay()->toDateString();
+
+        $filters = [
+            'customer_id'  => $validated['customer_id']  ?? null,
+            'size'         => $validated['size']         ?? null,
+            'type_code'    => $validated['type_code']    ?? null,
+            'cargo_status' => $validated['cargo_status'] ?? null,
+            'condition'    => $validated['condition']    ?? null,
+        ];
+
+        $rows    = ContainerStockAsAt::rows($asAt, $filters);
+        $summary = ContainerStockAsAt::summary($rows);
+
+        // Containers whose movements cannot be placed in time are absent from
+        // the rows. Saying so is the difference between a short count the
+        // customer queries and one they can reconcile.
+        $unplaceable = ContainerStockAsAt::unplaceableCount();
+
+        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $typeCodes = EquipmentType::orderBy('type_code')->pluck('type_code')->unique()->values();
+
+        return view('reports.container-stock', compact(
+            'rows', 'summary', 'asAt', 'filters', 'customers', 'typeCodes', 'unplaceable',
+        ));
+    }
+}

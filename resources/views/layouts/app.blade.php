@@ -1559,6 +1559,19 @@
                         <i class="bi bi-clipboard-pulse"></i><span>M&amp;R Status</span>
                     </a>
                 </li>
+                @endcan
+                {{-- Next to Inventory on purpose: the two answer the pair of
+                     questions operators actually ask, "what have I got now" and
+                     "what did I have on that date". --}}
+                @can('container-stock.view')
+                <li class="nav-item">
+                    <a href="{{ route('reports.container-stock') }}"
+                       class="nav-link {{ request()->routeIs('reports.container-stock') ? 'active' : '' }}">
+                        <i class="bi bi-clipboard-data"></i><span>Container Stock</span>
+                    </a>
+                </li>
+                @endcan
+                @can('reports.view')
                 <li class="nav-item">
                     <a href="{{ route('reports.daily-movements') }}"
                        class="nav-link {{ request()->routeIs('reports.daily-movements') ? 'active' : '' }}">

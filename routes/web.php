@@ -325,6 +325,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/weekly-revenue',                   [\App\Http\Controllers\WeeklyRevenueController::class, 'index'])->name('weekly-revenue');
         Route::get('/weekly-revenue/export',            [\App\Http\Controllers\WeeklyRevenueController::class, 'exportXlsx'])->name('weekly-revenue.export');
         Route::get('/weekly-revenue/export/csv',        [\App\Http\Controllers\WeeklyRevenueController::class, 'exportCsv'])->name('weekly-revenue.export.csv');
+        // Container Stock (As At) - its own permission, checked in the
+        // controller rather than by this group's middleware, like Gate Data
+        // Check and Weekly Revenue above.
+        Route::get('/container-stock',                  [\App\Http\Controllers\ContainerStockController::class, 'index'])->name('container-stock');
         Route::get('/weekly-performance',               [ReportController::class, 'weeklyPerformance'])->name('weekly-performance');
         Route::get('/weekly-performance/export',        [ReportController::class, 'exportWeeklyPerformance'])->name('weekly-performance.export');
         Route::get('/weekly-performance/export/csv',    [ReportController::class, 'exportWeeklyPerformanceCsv'])->name('weekly-performance.export.csv');

@@ -374,6 +374,15 @@ return [
         'actions' => ['view', 'review'],
     ],
 
+    // Separate from reports.view: this one is sent to shipping lines as a
+    // statement of what they had in the yard on a date, so it reads more like
+    // an account than an operations screen.
+    'container-stock' => [
+        'label'   => 'Container Stock (As At)',
+        'section' => 'Reports',
+        'actions' => ['view'],
+    ],
+
     'container-inquiry' => [
         'label'   => 'Container Inquiry',
         'section' => 'Reports',
