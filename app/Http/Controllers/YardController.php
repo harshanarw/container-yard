@@ -1114,8 +1114,13 @@ class YardController extends Controller
                         $updates['plug_out_at'] = $gateOutTime;
                         $updates['status']      = 'completed';
                     } else {
-                        // Still pending (plug-in never recorded) — mark completed without billing
-                        $updates['status'] = 'completed';
+                        // Still pending: the box left without a plug-in ever being
+                        // recorded. This used to close as `completed`, which read
+                        // as "billed work finished" on the screen, inflated Ready
+                        // to Bill, and reached ReeferBillingService only to be
+                        // dropped for want of timestamps — a container missing
+                        // from an electricity invoice with nothing said.
+                        $updates['status'] = 'not_plugged';
                     }
                     $session->update($updates);
                 });
@@ -1356,6 +1361,24 @@ class YardController extends Controller
             }
         }
 
+        // Reopen the reefer plug sessions this gate-out closed. Without this the
+        // box comes back to the yard carrying a closed session, and neither the
+        // plug-in screen (`pending` only) nor the plug-out screen (`active`
+        // only) will touch it — the container is in the yard drawing power with
+        // no way to record it. `billed` is left alone; an invoice is a hard
+        // block on the delete anyway, so it should not be reachable here.
+        ReeferPlugSession::where('gate_out_movement_id', $movement->id)
+            ->whereIn('status', ['completed', 'not_plugged'])
+            ->each(function (ReeferPlugSession $session) use (&$restored) {
+                $session->update([
+                    'status'               => $session->plug_in_at ? 'active' : 'pending',
+                    'plug_out_at'          => null,
+                    'gate_out_movement_id' => null,
+                    'updated_by'           => auth()->id(),
+                ]);
+                $restored = true;
+            });
+
         return $restored;
     }
 
@@ -1404,24 +1427,39 @@ class YardController extends Controller
         $reeferField    = $isIn ? 'gate_movement_id' : 'gate_out_movement_id';
         $reeferSessions = ReeferPlugSession::with('tempLogs')->where($reeferField, $movement->id)->get();
         if ($reeferSessions->isNotEmpty()) {
-            // Separate auto-created stubs (pending, no plug_in_at, no temp logs) from
-            // sessions where reefer work has actually been recorded.
+            // Separate auto-created stubs from sessions where reefer work has
+            // actually been recorded. The test is the *data*, not the status: a
+            // session gate-out closed as `not_plugged` carries no plug-in and no
+            // temperature log, so blocking the delete for "recorded plug-in or
+            // temperature data" would be simply untrue. Only a plug-in time or a
+            // temperature reading means work was recorded.
             $stubSessions    = $reeferSessions->filter(
-                fn($s) => $s->status === 'pending' && is_null($s->plug_in_at) && $s->tempLogs->isEmpty()
+                fn($s) => is_null($s->plug_in_at) && $s->tempLogs->isEmpty()
             );
             $workedSessions  = $reeferSessions->diff($stubSessions);
 
             if ($workedSessions->isNotEmpty()) {
-                $blocks[] = [
-                    'icon'    => 'bi-thermometer-half',
-                    'message' => $workedSessions->count() . ' reefer plug session(s) with recorded plug-in or temperature data are linked to this movement and must be removed first.',
-                ];
+                // A gate-out delete reopens these rather than destroying them, so
+                // recorded work is not lost and there is nothing to remove first.
+                if ($isIn) {
+                    $blocks[] = [
+                        'icon'    => 'bi-thermometer-half',
+                        'message' => $workedSessions->count() . ' reefer plug session(s) with recorded plug-in or temperature data are linked to this movement and must be removed first.',
+                    ];
+                } else {
+                    $warnings[] = [
+                        'icon'    => 'bi-thermometer-half',
+                        'message' => $workedSessions->count() . ' reefer plug session(s) closed by this gate-out will be reopened, and their plug-out time cleared.',
+                    ];
+                }
             }
 
             if ($stubSessions->isNotEmpty()) {
                 $warnings[] = [
                     'icon'    => 'bi-thermometer-half',
-                    'message' => $stubSessions->count() . ' auto-created reefer plug session(s) with no plug details recorded will be deleted along with this movement.',
+                    'message' => $isIn
+                        ? $stubSessions->count() . ' auto-created reefer plug session(s) with no plug details recorded will be deleted along with this movement.'
+                        : $stubSessions->count() . ' reefer plug session(s) with no plug details recorded will be reopened, awaiting a plug-in.',
                 ];
             }
         }

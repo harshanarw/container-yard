@@ -5,6 +5,7 @@ namespace Tests\Feature\Yard;
 use App\Models\Container;
 use App\Models\Customer;
 use App\Models\EquipmentType;
+use App\Models\GateMovement;
 use App\Models\ReeferPlugSession;
 use App\Models\YardJobType;
 use App\Services\ReeferBillingService;
@@ -146,12 +147,35 @@ class ReeferSessionNeverPluggedTest extends FeatureTestCase
         ]);
 
         return ReeferPlugSession::create(array_merge([
-            'container_id' => $container->id,
-            'customer_id'  => $this->customer->id,
-            'service_type' => 'long_term',
-            'created_by'   => auth()->id(),
-            'updated_by'   => auth()->id(),
+            'container_id'     => $container->id,
+            'gate_movement_id' => $this->arrivalFor($container)->id,
+            'customer_id'      => $this->customer->id,
+            'service_type'     => 'long_term',
+            'created_by'       => auth()->id(),
+            'updated_by'       => auth()->id(),
         ], $attributes));
+    }
+
+    /**
+     * `reefer_plug_sessions.gate_movement_id` is NOT NULL — a plug session only
+     * exists because a box arrived — so the fixture needs a real arrival rather
+     * than a bare session row.
+     */
+    private function arrivalFor(Container $container): GateMovement
+    {
+        return GateMovement::create([
+            'container_id'    => $container->id,
+            'container_no'    => $container->container_no,
+            'customer_id'     => $this->customer->id,
+            'movement_type'   => 'in',
+            'size'            => '40',
+            'container_type'  => 'RF',
+            'condition'       => 'sound',
+            'cargo_status'    => 'full',
+            'gate_in_time'    => '2026-09-01 08:00:00',
+            'movement_status' => 'done',
+            'created_by'      => auth()->id(),
+        ]);
     }
 
     private function reeferType(): EquipmentType
