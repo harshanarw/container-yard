@@ -5,7 +5,6 @@ namespace Tests\Feature\Yard;
 use App\Models\Container;
 use App\Models\Customer;
 use App\Models\EquipmentType;
-use App\Models\GateMovement;
 use App\Models\ReeferPlugSession;
 use App\Models\YardJobType;
 use App\Services\ReeferBillingService;
@@ -86,16 +85,16 @@ class ReeferSessionNeverPluggedTest extends FeatureTestCase
      */
     public function test_ready_to_bill_counts_only_billable_sessions(): void
     {
-        $this->session(['status' => 'completed', 'plug_in_at' => '2026-09-01 08:00:00', 'plug_out_at' => '2026-09-02 08:00:00']);
-        $this->session(['status' => 'completed', 'plug_in_at' => null, 'plug_out_at' => null]);
-        $this->session(['status' => 'not_plugged']);
+        $this->makeSession(['status' => 'completed', 'plug_in_at' => '2026-09-01 08:00:00', 'plug_out_at' => '2026-09-02 08:00:00']);
+        $this->makeSession(['status' => 'completed', 'plug_in_at' => null, 'plug_out_at' => null]);
+        $this->makeSession(['status' => 'not_plugged']);
 
         $this->assertSame(1, ReeferPlugSession::unbilled()->count());
     }
 
     public function test_a_completed_session_missing_a_timestamp_is_not_billable(): void
     {
-        $half = $this->session(['status' => 'completed', 'plug_in_at' => '2026-09-01 08:00:00', 'plug_out_at' => null]);
+        $half = $this->makeSession(['status' => 'completed', 'plug_in_at' => '2026-09-01 08:00:00', 'plug_out_at' => null]);
 
         $this->assertFalse($half->isBillable(), 'Half a session cannot be charged.');
         $this->assertSame(0, ReeferPlugSession::unbilled()->count());
@@ -110,9 +109,9 @@ class ReeferSessionNeverPluggedTest extends FeatureTestCase
      */
     public function test_an_unpluggable_session_never_reaches_the_invoice_preview(): void
     {
-        $this->session(['status' => 'completed', 'plug_in_at' => '2026-09-01 08:00:00', 'plug_out_at' => '2026-09-02 08:00:00']);
-        $this->session(['status' => 'completed', 'plug_in_at' => null, 'plug_out_at' => null]);
-        $this->session(['status' => 'not_plugged']);
+        $this->makeSession(['status' => 'completed', 'plug_in_at' => '2026-09-01 08:00:00', 'plug_out_at' => '2026-09-02 08:00:00']);
+        $this->makeSession(['status' => 'completed', 'plug_in_at' => null, 'plug_out_at' => null]);
+        $this->makeSession(['status' => 'not_plugged']);
 
         $preview = ReeferBillingService::preview(
             $this->customer->id, 'long_term', null, null, 'LKR', 1.0, 0.0, 0.0
@@ -130,7 +129,11 @@ class ReeferSessionNeverPluggedTest extends FeatureTestCase
         return ReeferPlugSession::where('container_id', $container->id)->latest('id')->firstOrFail();
     }
 
-    private function session(array $attributes): ReeferPlugSession
+    /**
+     * Not `session()` — `Illuminate\Foundation\Testing\TestCase` declares a
+     * public helper of that name, and narrowing it to private is a fatal.
+     */
+    private function makeSession(array $attributes): ReeferPlugSession
     {
         $eqt = $this->reeferType();
 
