@@ -18,21 +18,7 @@
         default     => null,
     };
 
-    // Embed the company logo as a base64 data URI (dompdf can't fetch URLs with
-    // remote access disabled). Logos live on the 'public' disk.
-    $logoSrc = null;
-    if (!empty($company->logo_path)) {
-        try {
-            $disk = \Illuminate\Support\Facades\Storage::disk('public');
-            if ($disk->exists($company->logo_path)) {
-                $ext  = strtolower(pathinfo($company->logo_path, PATHINFO_EXTENSION));
-                $mime = $ext === 'jpg' ? 'image/jpeg' : 'image/' . ($ext ?: 'png');
-                $logoSrc = 'data:' . $mime . ';base64,' . base64_encode($disk->get($company->logo_path));
-            }
-        } catch (\Throwable) {
-            $logoSrc = null;
-        }
-    }
+    // The logo, QR and verify URL are built by partials.pdf-letterhead.
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -55,12 +41,12 @@
        must not be wrapped in a table: DomPDF splits a table between rows
        but never inside a single cell, so a body taller than one page
        produced blank pages with everything crammed onto the last. */
-    @page { margin: 120px 24px 44px; }
+    @page { margin: 176px 24px 44px; }
     /* DomPDF positions a fixed element against the content box, which the
        @page margins have already inset — so `top: 0` would park the
        letterhead 120px down the page. The negative offset lifts it back
        into the band those margins reserved for it. */
-    .pdf-fixed-header { position: fixed; top: -120px; left: 0; right: 0; padding: 14px 24px 0; background: #fff; text-transform: uppercase; }
+    .pdf-fixed-header { position: fixed; top: -176px; left: 0; right: 0; padding: 14px 24px 0; background: #fff; text-transform: uppercase; }
     /* Same correction for the shared footer partial, which sets bottom:0
        inline for the templates that keep zero @page margins. */
     .pdf-running-footer { bottom: -44px !important; }
@@ -76,9 +62,6 @@
         transform: rotate(-22deg); letter-spacing: 6px; z-index: 0; }
 
     table { width: 100%; border-collapse: collapse; }
-    .hdr td { vertical-align: middle; }
-    .co-name { font-size: 18px; font-weight: bold; color: #1a56db; }
-    .co-sub  { color: #666; font-size: 10px; line-height: 1.5; margin-top: 2px; }
     .rule { border-bottom: 2px solid #1a56db; margin: 10px 0; }
 
     /* Centered title band below the header */
@@ -116,39 +99,22 @@
 </head>
 <body>
 @if($watermark)<div class="watermark">{{ $watermark }}</div>@endif
-@php
-    $verifyUrl = \Illuminate\Support\Facades\URL::signedRoute('documents.verify', ['type' => 'reefer', 'id' => $reeferInvoice->id]);
-    $qr = \App\Support\Qr::svgDataUri($verifyUrl, 120);
-@endphp
+{{-- Fixed header (drawn on every page).
 
-{{-- Fixed header (drawn on every page) --}}
+     The shared partial, not a local copy: this template used to carry its own
+     letterhead markup, and when the bordered title box was added to the partial
+     the @page reserve was raised on the templates that include it and not here.
+     The band then overflowed the 120px it had, and the title box printed on top
+     of the Bill To / Invoice Details boxes. One copy, one reserve. --}}
 <div class="pdf-fixed-header">
-    {{-- Letterhead: logo + company details --}}
-    <table class="hdr"><tr>
-        @if($logoSrc)
-        <td style="width:1%; white-space:nowrap; padding-right:12px;">
-            <img src="{{ $logoSrc }}" alt="{{ $company->company_name }}" style="max-height:54px; max-width:170px; display:block;">
-        </td>
-        @endif
-        <td>
-            <div class="co-name">{{ $company->company_name }}</div>
-            <div class="co-sub">
-                {{ $company->address }}{{ $company->city ? ', '.$company->city : '' }}<br>
-                @if($company->telephone)Tel: {{ $company->telephone }} @endif @if($company->email)· {{ $company->email }}@endif<br>
-                @if($company->vat_number)VAT: {{ $company->vat_number }}@endif @if($company->tin_number) · TIN: {{ $company->tin_number }}@endif
-            </div>
-        </td>
-        @if($qr)
-        <td style="width:1%; white-space:nowrap; vertical-align:middle; text-align:right; padding-left:12px;">
-            <img src="{{ $qr }}" alt="Verify" style="width:78px; height:78px; display:block; margin-left:auto;">
-            <div style="font-size:7px; color:#888; text-align:center; margin-top:1px;">Scan to verify</div>
-        </td>
-        @endif
-    </tr></table>
-    {{-- Bordered, centred document title --}}
-    <div style="border:2px solid #1a56db; border-radius:5px; padding:5px 14px; text-align:center; margin:10px 0;">
-        <span style="color:#1a56db; font-size:15px; font-weight:bold; letter-spacing:1px;">REEFER ELECTRICITY INVOICE</span>
-    </div>
+    @include('partials.pdf-letterhead', [
+        'title'     => 'REEFER ELECTRICITY INVOICE',
+        'accent'    => '#1a56db',
+        'company'   => $company,
+        'verifyUrl' => \Illuminate\Support\Facades\URL::signedRoute(
+            'documents.verify', ['type' => 'reefer', 'id' => $reeferInvoice->id]
+        ),
+    ])
 </div>
 @include('partials.pdf-footer', ['company' => $company])
 

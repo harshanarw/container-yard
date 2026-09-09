@@ -6,6 +6,23 @@
     The document number and status are NOT rendered here — each template shows
     them as label/value pairs in its right-side meta section.
 
+    ── How much room this needs ──────────────────────────────────────────────
+    Rendered, this band measures **164px** (123.3pt): 14px of host padding, an
+    87px letterhead row (driven by the 78px QR plus its caption, not the 54px
+    logo), and a 52px title box including its 10px margins.
+
+    A host that draws it with `position: fixed` must therefore reserve at least
+    that much in `@page { margin-top }`, and the templates use **176px** for a
+    ~12px gap. Reserve less and the band's white background paints over the top
+    of the flowing content — at 148px it clipped the top border of the Bill To
+    and Invoice Details boxes, and at 120px the title box printed straight
+    through them.
+
+    Measured by rendering, not estimated. If you change the QR size, the title
+    box, or the address block, re-measure and raise the three templates
+    together: they drifted apart once already, which is how the 120px was
+    missed.
+
     Params:
       title      (required) e.g. 'STORAGE INVOICE'
       accent     (optional) theme colour, default blue #1a56db
