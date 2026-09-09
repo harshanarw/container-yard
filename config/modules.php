@@ -71,7 +71,10 @@ return [
     'yard.reefer' => [
         'label'   => 'Reefer Sessions',
         'section' => 'Yard',
-        'actions' => ['view', 'plug-in', 'plug-out', 'temp-log'],
+        // 'amend' is separate from plug-in/plug-out on purpose: correcting a
+        // chargeable quantity after the fact is a supervisor's decision, not a
+        // gate clerk's, so it is granted to fewer people.
+        'actions' => ['view', 'plug-in', 'plug-out', 'temp-log', 'amend'],
     ],
 
     'yard.hire' => [

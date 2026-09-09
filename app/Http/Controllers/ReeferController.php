@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\ReeferPlugSession;
+use App\Services\AuditService;
 use App\Services\NotificationService;
 use App\Models\ReeferTempLog;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class ReeferController extends Controller
         $this->middleware('can:yard.reefer.plug-in')->only(['plugIn', 'storePlugIn']);
         $this->middleware('can:yard.reefer.plug-out')->only(['plugOut', 'storePlugOut']);
         $this->middleware('can:yard.reefer.temp-log')->only(['storeTempLog', 'destroyTempLog']);
+        $this->middleware('can:yard.reefer.amend')->only(['amend', 'storeAmend']);
     }
 
     // ── Operations dashboard ─────────────────────────────────────────────────
@@ -138,6 +140,139 @@ class ReeferController extends Controller
 
         return redirect()->route('yard.reefer.index')
             ->with('success', "Plug-out recorded for {$plugSession->container->container_no}. Session is now ready for billing.");
+    }
+
+    // ── Amend recorded plug times ────────────────────────────────────────────
+
+    /**
+     * Correcting a plug time after the fact.
+     *
+     * Recording a plug-in moves a session to `active` and a plug-out moves it
+     * to `completed`, and both screens accept only the status before their own
+     * — so until this action existed a mis-keyed time could be changed by
+     * nothing short of a database edit, with no validation and no audit trail.
+     *
+     * It also does the one thing that recovers a session closed with no plug-in
+     * at all: given both times, a `not_plugged` session becomes `completed`,
+     * which is what puts it back in front of the electricity invoice.
+     */
+    public function amend(ReeferPlugSession $plugSession)
+    {
+        if ($refusal = $this->amendmentRefusal($plugSession)) {
+            return redirect()->route('yard.reefer.show', $plugSession)->with('error', $refusal);
+        }
+
+        $plugSession->load(['container', 'customer', 'gateMovement', 'gateOutMovement']);
+        $session = $plugSession;
+
+        return view('yard.reefer.amend', compact('session'));
+    }
+
+    public function storeAmend(Request $request, ReeferPlugSession $plugSession)
+    {
+        if ($refusal = $this->amendmentRefusal($plugSession)) {
+            return redirect()->route('yard.reefer.show', $plugSession)->with('error', $refusal);
+        }
+
+        $plugSession->load(['container', 'gateMovement', 'gateOutMovement']);
+
+        [$from, $to] = array_values($plugSession->visitWindow());
+
+        // An active session has not gone off power yet, so it amends only its
+        // plug-in; entering a plug-out here would be recording a plug-out by the
+        // back door, which is what the plug-out screen is for.
+        $wantsPlugOut = $plugSession->amendsPlugOut();
+
+        // A concrete timestamp rather than the string `now`: the date rules
+        // resolve a keyword parameter through strtotime, which reads the system
+        // clock and ignores a frozen Carbon, so `now` would be untestable and
+        // would drift from what the rest of the app calls "now".
+        $notFuture = now()->format('Y-m-d H:i:s');
+
+        $rules = [
+            'plug_in_at' => ['required', 'date', 'before_or_equal:' . $notFuture],
+            'reason'     => ['required', 'string', 'min:5', 'max:500'],
+        ];
+
+        // A reefer cannot be plugged in before it arrives.
+        if ($from) {
+            $rules['plug_in_at'][] = 'after_or_equal:' . $from->format('Y-m-d H:i:s');
+        }
+
+        if ($wantsPlugOut) {
+            // Strictly after: equal times bill nothing and almost certainly mean
+            // a mis-key rather than a zero-length session.
+            $rules['plug_out_at'] = ['required', 'date', 'after:plug_in_at', 'before_or_equal:' . $notFuture];
+
+            // And it cannot draw power after it leaves.
+            if ($to) {
+                $rules['plug_out_at'][] = 'before_or_equal:' . $to->format('Y-m-d H:i:s');
+            }
+        }
+
+        $data = $request->validate($rules, [], [
+            'plug_in_at'  => 'plug-in time',
+            'plug_out_at' => 'plug-out time',
+            'reason'      => 'reason for the amendment',
+        ]);
+
+        $before = [
+            'status'      => $plugSession->status,
+            'plug_in_at'  => $plugSession->plug_in_at?->format('d M Y H:i') ?? 'not recorded',
+            'plug_out_at' => $plugSession->plug_out_at?->format('d M Y H:i') ?? 'not recorded',
+        ];
+
+        $updates = [
+            'plug_in_at' => $data['plug_in_at'],
+            'updated_by' => Auth::id(),
+        ];
+
+        if ($wantsPlugOut) {
+            $updates['plug_out_at'] = $data['plug_out_at'];
+            // A session closed without a plug-in was parked in `not_plugged`.
+            // Now that it has both times it is an ordinary finished session, and
+            // `unbilled()` will pick it up for the next electricity invoice.
+            $updates['status'] = 'completed';
+        }
+
+        $plugSession->update($updates);
+
+        // The observer records the old and new values on its own. This adds the
+        // one thing it cannot know: why the number changed.
+        AuditService::log(
+            event: 'amended',
+            module: 'yard.reefer',
+            description: sprintf(
+                'Reefer plug times amended - %s. Was %s status, plug-in %s, plug-out %s. Reason: %s',
+                $plugSession->container?->container_no ?? 'unknown container',
+                $before['status'],
+                $before['plug_in_at'],
+                $before['plug_out_at'],
+                $data['reason'],
+            ),
+            reference: $plugSession->container?->container_no,
+            subject: $plugSession,
+            properties: ['before' => $before, 'reason' => $data['reason']],
+        );
+
+        return redirect()->route('yard.reefer.show', $plugSession)
+            ->with('success', $before['status'] === 'not_plugged'
+                ? "Plug times recorded for {$plugSession->container?->container_no}. The session is now ready for billing."
+                : "Plug times amended for {$plugSession->container?->container_no}.");
+    }
+
+    /** Why this session may not be amended, or null if it may. */
+    private function amendmentRefusal(ReeferPlugSession $session): ?string
+    {
+        if ($session->isBilled()) {
+            return 'This session has been billed. Cancel the electricity invoice first - that returns the session to completed and it can then be amended.';
+        }
+
+        if ($session->isPending()) {
+            return 'No plug times have been recorded yet. Use Record Plug-In instead.';
+        }
+
+        return $session->isAmendable() ? null : 'This session cannot be amended.';
     }
 
     // ── Session detail ────────────────────────────────────────────────────────

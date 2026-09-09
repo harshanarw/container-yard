@@ -277,6 +277,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{plugSession}/plug-in',                   [ReeferController::class, 'storePlugIn'])->name('store-plug-in');
         Route::get('/{plugSession}/plug-out',                   [ReeferController::class, 'plugOut'])->name('plug-out');
         Route::post('/{plugSession}/plug-out',                  [ReeferController::class, 'storePlugOut'])->name('store-plug-out');
+        Route::get('/{plugSession}/amend',                      [ReeferController::class, 'amend'])->name('amend');
+        Route::post('/{plugSession}/amend',                     [ReeferController::class, 'storeAmend'])->name('store-amend');
         Route::get('/{plugSession}',                            [ReeferController::class, 'show'])->name('show');
         Route::post('/{plugSession}/temp-logs',                 [ReeferController::class, 'storeTempLog'])->name('temp-log.store');
         Route::delete('/{plugSession}/temp-logs/{tempLog}',     [ReeferController::class, 'destroyTempLog'])->name('temp-log.destroy');

@@ -142,6 +142,16 @@
                                 <i class="bi bi-plug"></i> Plug Out
                             </a>
                             @endcan
+                        @elseif($session->isNotPlugged())
+                            {{-- The route back for a session closed with no plug-in: without
+                                 this the row is unreachable, since plug-in accepts only
+                                 pending and plug-out only active. --}}
+                            @can('yard.reefer.amend')
+                            <a href="{{ route('yard.reefer.amend', $session) }}" class="btn btn-sm btn-outline-primary"
+                               title="Record the plug times so this session can be billed">
+                                <i class="bi bi-pencil-square"></i> Enter Times
+                            </a>
+                            @endcan
                         @endif
                     </td>
                 </tr>

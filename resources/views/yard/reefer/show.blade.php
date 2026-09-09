@@ -9,7 +9,7 @@
     <div>
         <h4 class="mb-0 fw-semibold">
             <span class="font-monospace">{{ $session->container?->container_no }}</span>
-            <span class="ms-2 badge {{ $session->status_badge_class }}">{{ ucfirst($session->status) }}</span>
+            <span class="ms-2 badge {{ $session->status_badge_class }}">{{ $session->status_label }}</span>
         </h4>
         <p class="text-muted small mb-0">
             {{ $session->customer?->name }}
@@ -25,6 +25,17 @@
             @can('yard.reefer.plug-out')
             <a href="{{ route('yard.reefer.plug-out', $session) }}" class="btn btn-danger btn-sm">
                 <i class="bi bi-plug me-1"></i>Record Plug-Out
+            </a>
+            @endcan
+        @endif
+        @if($session->isAmendable())
+            @can('yard.reefer.amend')
+            <a href="{{ route('yard.reefer.amend', $session) }}"
+               class="btn btn-outline-primary btn-sm"
+               title="{{ $session->isNotPlugged()
+                    ? 'Record the plug times so this session can be billed'
+                    : 'Correct a mis-keyed plug time' }}">
+                <i class="bi bi-pencil-square me-1"></i>{{ $session->isNotPlugged() ? 'Enter Plug Times' : 'Amend Times' }}
             </a>
             @endcan
         @endif
@@ -67,7 +78,7 @@
                     <dd class="col-sm-7">{{ $session->set_temperature }}°C</dd>
                     @endif
                     <dt class="col-sm-5 text-muted">Status</dt>
-                    <dd class="col-sm-7"><span class="badge {{ $session->status_badge_class }}">{{ ucfirst($session->status) }}</span></dd>
+                    <dd class="col-sm-7"><span class="badge {{ $session->status_badge_class }}">{{ $session->status_label }}</span></dd>
                     @if($session->notes)
                     <dt class="col-sm-5 text-muted">Notes</dt>
                     <dd class="col-sm-7">{{ $session->notes }}</dd>

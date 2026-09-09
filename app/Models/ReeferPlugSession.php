@@ -111,6 +111,46 @@ class ReeferPlugSession extends Model
         return $this->status === 'completed' && $this->plug_in_at && $this->plug_out_at;
     }
 
+    /**
+     * Whether the recorded plug times may still be corrected.
+     *
+     * `pending` has no times to correct — use the plug-in screen. `billed`
+     * refuses because amending would contradict an issued invoice; cancelling
+     * that invoice returns the session to `completed`, which is the route the
+     * operator is given.
+     */
+    public function isAmendable(): bool
+    {
+        return in_array($this->status, ['active', 'completed', 'not_plugged'], true);
+    }
+
+    /** Whether a plug-out time is part of the amendment (an active box has not gone off power). */
+    public function amendsPlugOut(): bool
+    {
+        return $this->isAmendable() && ! $this->isActive();
+    }
+
+    /**
+     * The arrival and departure this session sits between.
+     *
+     * A reefer cannot be plugged in before it arrives or draw power after it
+     * leaves, so this is the range an amendment has to fall inside — and the
+     * range the form shows, because the operator needs to know it before typing
+     * rather than after being rejected.
+     *
+     * Either end may be null: a container still in the yard has no departure,
+     * and a session whose movements were deleted has neither.
+     *
+     * @return array{from: ?\Illuminate\Support\Carbon, to: ?\Illuminate\Support\Carbon}
+     */
+    public function visitWindow(): array
+    {
+        return [
+            'from' => $this->gateMovement?->gate_in_time,
+            'to'   => $this->gateOutMovement?->gate_out_time,
+        ];
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {

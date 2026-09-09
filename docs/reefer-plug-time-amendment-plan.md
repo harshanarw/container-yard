@@ -135,13 +135,27 @@ whether the operators know the screen exists.
 
 ## 8. Phases
 
-**Phase 1 — the amend action.** Route, controller action, permission
-(`yard.reefer.amend`), the five validation rules, mandatory reason, and the
-`not_plugged` → `completed` promotion. The audit comes free.
+**Phase 1 — the amend action. Built.** `yard.reefer.amend` in
+`config/modules.php`, the two routes, `ReeferController::amend()` /
+`storeAmend()`, the five validation rules, mandatory reason, and the
+`not_plugged` → `completed` promotion. The audit came free, as expected;
+only the reason needed logging by hand.
 
-**Phase 2 — the screen.** An "Amend times" button on the session detail, the
-form showing the visit window as the allowed range, and the "plugged for the
-whole visit" fill.
+`yard_supervisor` holds `yard.reefer.*` so it picks the permission up
+automatically. `gate_officer` lists its reefer actions one by one and does
+**not** — which is the intent: a clerk records times, a supervisor changes
+them.
+
+**Phase 2 — the screen. Built.** `yard/reefer/amend.blade.php`, reached from
+an "Amend Times" button on the session detail and an "Enter Times" button on
+the sessions list for `not_plugged` rows. The form states the visit window
+before the operator types, sets `min`/`max` on both inputs so the browser
+refuses out-of-range times too, and offers the "plugged for the whole visit"
+fill.
+
+**Phase 2a — service type.** Deferred by agreement. `service_type` decides
+which tariff and which invoice a session lands on, so a wrong value is as
+billing-relevant as a wrong timestamp, but it has not yet come up in practice.
 
 **Phase 3 — stop it recurring.** A banner on the Reefer Plug Sessions list when
 unbilled sessions are missing plug times, saying how many and linking to them.
