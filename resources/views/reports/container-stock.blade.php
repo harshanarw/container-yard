@@ -39,7 +39,7 @@
            class="btn btn-outline-success btn-sm">
             <i class="bi bi-filetype-csv me-1"></i>Export CSV
         </a>
-        @if(\App\Support\Export\TabularExport::supports('xlsx'))
+        @if(\App\Support\Export\ContainerStockWorkbook::available())
         <a href="{{ route('reports.container-stock.export', array_merge(request()->query(), ['as_at' => $asAt, 'format' => 'xlsx'])) }}"
            class="btn btn-outline-success btn-sm">
             <i class="bi bi-file-earmark-excel me-1"></i>Export Excel

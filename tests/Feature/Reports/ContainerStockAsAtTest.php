@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Models\GateMovement;
 use App\Services\Reporting\ContainerStockAsAt;
+use App\Support\Export\ContainerStockWorkbook;
 use Illuminate\Support\Carbon;
 use Tests\Support\FeatureTestCase;
 
@@ -276,6 +277,48 @@ class ContainerStockAsAtTest extends FeatureTestCase
             ->assertOk()->streamedContent();
 
         $this->assertStringContainsString('Require Repair', $csv, 'A file has no colours to read.');
+    }
+
+    /**
+     * The workbook is the copy that goes to a shipping line, so it has to say
+     * on its face whose stock it is and on what date. A sheet that opens on a
+     * bare grid needs explaining in the covering email every time, and the
+     * explanation is lost the moment it is forwarded on.
+     */
+    public function test_the_workbook_carries_a_header_block(): void
+    {
+        if (! ContainerStockWorkbook::available()) {
+            $this->markTestSkipped('This host cannot write a styled workbook.');
+        }
+
+        $c = $this->arrived('2026-09-01 08:00:00');
+
+        $path = tempnam(sys_get_temp_dir(), 'stock-test-');
+
+        ContainerStockWorkbook::write(
+            ContainerStockAsAt::rows(self::AS_AT),
+            [
+                'asAt'     => self::AS_AT,
+                'customer' => $this->customer->name,
+                'filters'  => 'Size 40 - Laden',
+                'summary'  => ContainerStockAsAt::summary(ContainerStockAsAt::rows(self::AS_AT)),
+            ],
+            $path,
+        );
+
+        // An xlsx is a zip; the strings live in sharedStrings.xml.
+        $zip = new \ZipArchive();
+        $this->assertTrue($zip->open($path) === true, 'The workbook must be a readable xlsx.');
+        $strings = $zip->getFromName('xl/sharedStrings.xml') ?: '';
+        $zip->close();
+        @unlink($path);
+
+        $this->assertStringContainsString('Container Stock as at 30 Sep 2026', $strings);
+        $this->assertStringContainsString($this->customer->name, $strings, 'Whose stock this is.');
+        $this->assertStringContainsString('Size 40 - Laden', $strings, 'On what basis.');
+        $this->assertStringContainsString('end of day', $strings, 'And by which convention.');
+        $this->assertStringContainsString($c->container_no, $strings, 'The rows are still there.');
+        $this->assertStringContainsString('Days In Yard', $strings, 'And so are the headings.');
     }
 
     public function test_the_export_refuses_a_future_date(): void

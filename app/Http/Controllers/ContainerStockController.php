@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Services\Reporting\ContainerStockAsAt;
+use App\Support\Export\ContainerStockWorkbook;
 use App\Support\Export\TabularExport;
 use Illuminate\Http\Request;
 
@@ -68,14 +69,30 @@ class ContainerStockController extends Controller
         $rows      = ContainerStockAsAt::rows($asAt, $filters);
         $asAtLabel = \Illuminate\Support\Carbon::parse($asAt)->format('Y-m-d');
 
+        // The workbook says on its face whose stock this is and on what date,
+        // because it is the copy that gets sent to a shipping line. The CSV
+        // stays a flat data file: a header block above the table is exactly
+        // what breaks a CSV for anything that reads it as data.
+        // `normalise()` on TabularExport is private, so the format is compared
+        // here. Where the writer cannot produce a styled workbook this falls
+        // through to the flat file rather than failing the download.
+        $wantsXlsx = strtolower(trim((string) $request->input('format'))) === TabularExport::XLSX;
+
+        if ($wantsXlsx && ContainerStockWorkbook::available()) {
+            return ContainerStockWorkbook::stream($rows, [
+                'asAt'     => $asAtLabel,
+                'customer' => $filters['customer_id']
+                    ? Customer::find($filters['customer_id'])?->name
+                    : null,
+                'filters'  => $this->filterSummary($filters),
+                'summary'  => ContainerStockAsAt::summary($rows),
+            ]);
+        }
+
         return TabularExport::stream(
             $request->input('format'),
             'container-stock-as-at-' . $asAtLabel,
-            [
-                'As At', 'Container No', 'Size', 'Type', 'Cargo Status', 'Reefer Mode',
-                'Condition', 'Customer', 'Gate In', 'Days In Yard', 'Location',
-                'Job No', 'Job Type', 'Stage',
-            ],
+            ContainerStockWorkbook::HEADINGS,
             function () use ($rows, $asAtLabel) {
                 foreach ($rows as $row) {
                     yield [
@@ -100,6 +117,17 @@ class ContainerStockController extends Controller
                 }
             },
         );
+    }
+
+    /** The filters in words, for the sheet header: "Size 40 - Laden". */
+    private function filterSummary(array $filters): string
+    {
+        return collect([
+            $filters['size']         ? 'Size ' . $filters['size'] : null,
+            $filters['type_code']    ? 'Type ' . $filters['type_code'] : null,
+            $filters['cargo_status'] ? $this->words($filters['cargo_status']) : null,
+            $filters['condition']    ? $this->words($filters['condition']) : null,
+        ])->filter()->implode(' - ');
     }
 
     /**
