@@ -68,8 +68,8 @@
                                 <option value="">- Select Container -</option>
                                 @foreach($containers as $c)
                                 <option value="{{ $c->id }}"
-                                        data-customer-id="{{ $c->customer_id }}"
-                                        data-customer-name="{{ $c->customer?->name }}"
+                                        data-customer-id="{{ $c->visit_customer_id }}"
+                                        data-customer-name="{{ $c->visit_customer_name }}"
                                         data-gate-ref="{{ $c->gate_movement_ref }}"
                                         data-gate-date="{{ $c->gate_movement_date }}"
                                         data-eqt-code="{{ $c->equipmentType?->eqt_code }}"
@@ -81,14 +81,14 @@
                                         data-job-type="{{ $c->linked_job_type }}"
                                         {{ (old('container_id') ?? $selectedContainer?->id) == $c->id ? 'selected' : '' }}>
                                     {{ $c->container_no }}
-                                    @if($c->customer) - {{ $c->customer->name }} @endif
+                                    @if($c->visit_customer_name) - {{ $c->visit_customer_name }} @endif
                                     @if($c->gate_movement_date) [GI: {{ $c->gate_movement_date }}] @endif
                                 </option>
                                 @endforeach
                             </select>
                             {{-- Hidden inputs — values set by JS from the selected container --}}
                             <input type="hidden" name="customer_id" id="customerIdHidden"
-                                   value="{{ old('customer_id', $selectedContainer?->customer_id) }}">
+                                   value="{{ old('customer_id', $selectedVisitCustomerId) }}">
                             <input type="hidden" name="gate_in_ref" id="gateRefHidden"
                                    value="{{ old('gate_in_ref') }}">
                         </div>

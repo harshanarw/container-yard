@@ -90,9 +90,29 @@ class SurveyController extends Controller
                 return $c;
             });
 
+        // The party a survey belongs to is the party that brought the box in, not
+        // the one cached on the container master. The survey's customer is
+        // inherited by its estimate, then the work order, then the repair
+        // invoice — so a master that has drifted does not merely mislabel a
+        // survey, it bills the wrong company at the end of the chain.
+        $custody        = app(\App\Services\ContainerCustodyService::class);
+        $visitCustomers = $custody->visitCustomerIdsFor($containers);
+        $visitNames     = Customer::whereIn('id', array_filter($visitCustomers))->pluck('name', 'id');
+
+        $containers = $containers->map(function ($c) use ($visitCustomers, $visitNames) {
+            $c->visit_customer_id   = $visitCustomers[$c->id] ?? $c->customer_id;
+            $c->visit_customer_name = $visitNames[$visitCustomers[$c->id] ?? null] ?? $c->customer?->name;
+
+            return $c;
+        });
+
         // Pre-select container if passed from yard/container view
         $selectedContainer = $request->container_id
             ? Container::with(['customer', 'equipmentType'])->find($request->container_id)
+            : null;
+
+        $selectedVisitCustomerId = $selectedContainer
+            ? ($custody->visitCustomerId($selectedContainer) ?? $selectedContainer->customer_id)
             : null;
 
         $mrLocationCodes       = MrCode::ofType('location')->active()->orderBy('sort_order')->get();
@@ -104,7 +124,7 @@ class SurveyController extends Controller
         $dimUom = \App\Models\CompanySetting::current()->mr_dimension_uom ?? 'cm';
 
         return view('surveys.create', compact(
-            'customers', 'inspectors', 'containers', 'selectedContainer',
+            'customers', 'inspectors', 'containers', 'selectedContainer', 'selectedVisitCustomerId',
             'checklistItems', 'equipmentTypes',
             'mrLocationCodes', 'mrComponentCodes', 'mrDamageCodes',
             'mrRepairCodes', 'mrResponsibilityCodes',
