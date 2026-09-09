@@ -275,8 +275,8 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
 
         $this->from(route('yard.reefer.amend', $session))
             ->post(route('yard.reefer.store-amend', $session), [
-                'plug_in_at' => '2026-02-10 09:00',
-                'reason'     => 'Plug-in was recorded two days late.',
+                'plug_in_at' => '2026-02-11 09:00',
+                'reason'     => 'Plug-in was recorded a day late.',
             ])
             ->assertSessionHasNoErrors()
             ->assertSessionHas('warning', fn ($m) => str_contains($m, $invoice->invoice_no)
@@ -384,7 +384,11 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
             'container_type'  => 'RF',
             'condition'       => 'sound',
             'cargo_status'    => 'laden',
-            'gate_in_time'    => $plugIn,
+            // Two days before the plug-in: a box arrives, then gets plugged
+            // in. Setting these equal left no room below the plug-in, and the
+            // amend rule "a reefer cannot be plugged in before it arrives"
+            // then rejected every correction that moved the time earlier.
+            'gate_in_time'    => \Illuminate\Support\Carbon::parse($plugIn)->subDays(2)->toDateTimeString(),
             'movement_status' => 'done',
             'created_by'      => auth()->id(),
         ]);
