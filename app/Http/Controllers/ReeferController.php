@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\ReeferPlugSession;
 use App\Services\AuditService;
+use App\Services\Billing\DateWindow;
+use App\Services\Billing\ReeferPriorBilling;
 use App\Services\NotificationService;
 use App\Models\ReeferTempLog;
 use Illuminate\Http\Request;
@@ -170,7 +172,37 @@ class ReeferController extends Controller
         $plugSession->load(['container', 'customer', 'gateMovement', 'gateOutMovement']);
         $session = $plugSession;
 
-        return view('yard.reefer.amend', compact('session'));
+        [$invoiced, $invoicedDays] = $this->invoicedDays($plugSession);
+
+        return view('yard.reefer.amend', compact('session', 'invoiced', 'invoicedDays'));
+    }
+
+    /**
+     * The days on this session an invoice has already charged for.
+     *
+     * `billed` status is no longer the test. Since power is billed in
+     * instalments, a session invoiced for February and still running in March
+     * stays `active` — amendable, and rightly so, but the operator has to be
+     * told that part of what they are editing has already been sent to a
+     * customer.
+     *
+     * @return array{0: \Illuminate\Support\Collection, 1: int}
+     */
+    private function invoicedDays(ReeferPlugSession $session): array
+    {
+        $lines = \App\Models\ReeferElectricityInvoiceLine::with('invoice:id,invoice_no,status')
+            ->where('plug_session_id', $session->id)
+            ->whereNotNull('billed_from')
+            ->whereHas('invoice', fn ($q) => $q->whereIn('status', ReeferPriorBilling::LIVE_STATUSES))
+            ->get()
+            ->sortBy(fn ($l) => $l->billed_from?->toDateString() ?? '')
+            ->values();
+
+        $days = DateWindow::days(
+            ReeferPriorBilling::for([$session->id])->billedIntervals($session->id)
+        );
+
+        return [$lines, $days];
     }
 
     public function storeAmend(Request $request, ReeferPlugSession $plugSession)
@@ -221,6 +253,11 @@ class ReeferController extends Controller
             'reason'      => 'reason for the amendment',
         ]);
 
+        // Captured before the update: an amendment that changes days a customer
+        // has already been invoiced for is the case the operator was warned
+        // about, and the audit trail has to carry it too.
+        [$invoiced, $invoicedDays] = $this->invoicedDays($plugSession);
+
         $before = [
             'status'      => $plugSession->status,
             'plug_in_at'  => $plugSession->plug_in_at?->format('d M Y H:i') ?? 'not recorded',
@@ -248,17 +285,38 @@ class ReeferController extends Controller
             event: 'amended',
             module: 'yard.reefer',
             description: sprintf(
-                'Reefer plug times amended - %s. Was %s status, plug-in %s, plug-out %s. Reason: %s',
+                'Reefer plug times amended - %s. Was %s status, plug-in %s, plug-out %s.%s Reason: %s',
                 $plugSession->container?->container_no ?? 'unknown container',
                 $before['status'],
                 $before['plug_in_at'],
                 $before['plug_out_at'],
+                $invoicedDays > 0
+                    ? sprintf(' %d day(s) already invoiced on %s.', $invoicedDays,
+                        $invoiced->map(fn ($l) => $l->invoice?->invoice_no)->filter()->unique()->implode(', '))
+                    : '',
                 $data['reason'],
             ),
             reference: $plugSession->container?->container_no,
             subject: $plugSession,
-            properties: ['before' => $before, 'reason' => $data['reason']],
+            properties: [
+                'before'        => $before,
+                'reason'        => $data['reason'],
+                'invoiced_days' => $invoicedDays,
+                'invoices'      => $invoiced->map(fn ($l) => $l->invoice?->invoice_no)->filter()->unique()->values()->all(),
+            ],
         );
+
+        if ($invoicedDays > 0) {
+            // Not a failure, so not an error — but the operator must not walk
+            // away thinking the invoice moved with the times. It did not.
+            session()->flash('warning', sprintf(
+                '%d day(s) on this session were already invoiced on %s. Those invoices are unchanged - '
+                . 'extra days will appear on the next bill, and days no longer covered need the invoice '
+                . 'cancelled and raised again.',
+                $invoicedDays,
+                $invoiced->map(fn ($l) => $l->invoice?->invoice_no)->filter()->unique()->implode(', '),
+            ));
+        }
 
         return redirect()->route('yard.reefer.show', $plugSession)
             ->with('success', $before['status'] === 'not_plugged'

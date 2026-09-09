@@ -44,6 +44,55 @@
         </div>
         @endif
 
+        {{-- Days a customer has already been invoiced for.
+             Not a refusal: since power is billed in instalments, a session
+             invoiced for one period and still running is amendable and should
+             be. But the operator must not leave thinking the invoice moved with
+             the times, because it did not. --}}
+        @if(($invoicedDays ?? 0) > 0)
+        <div class="alert alert-warning">
+            <div class="d-flex gap-2 align-items-start">
+                <i class="bi bi-receipt-cutoff mt-1"></i>
+                <div class="small">
+                    <strong>{{ $invoicedDays }} day{{ $invoicedDays === 1 ? '' : 's' }} on this session
+                    {{ $invoicedDays === 1 ? 'has' : 'have' }} already been invoiced.</strong>
+                    Changing the times here does <strong>not</strong> change an invoice that has already
+                    been raised.
+                    <ul class="mb-0 mt-1 ps-3">
+                        <li>Days you <em>add</em> appear on the next electricity bill.</li>
+                        <li>Days you <em>remove</em> stay charged on the invoice below - cancel it and
+                            raise it again to correct that.</li>
+                    </ul>
+                </div>
+            </div>
+            <table class="table table-sm mb-0 mt-2 small bg-white rounded">
+                <thead>
+                    <tr class="text-muted">
+                        <th>Invoice</th><th>Days Charged</th><th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($invoiced as $line)
+                    <tr>
+                        <td>
+                            <a href="{{ route('billing.reefer.show', $line->invoice) }}" class="font-monospace" target="_blank">
+                                {{ $line->invoice?->invoice_no }}
+                            </a>
+                        </td>
+                        <td class="text-nowrap">
+                            {{ $line->billed_from?->format('d M Y') }} &rarr; {{ $line->billed_to?->format('d M Y') }}
+                            @if($line->is_interim)
+                                <span class="badge bg-info-subtle text-info border border-info-subtle ms-1">Interim</span>
+                            @endif
+                        </td>
+                        <td><span class="badge bg-light border text-muted text-capitalize">{{ $line->invoice?->status }}</span></td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @endif
+
         <div class="card shadow-sm">
             <div class="card-header bg-transparent fw-semibold">
                 <i class="bi bi-clock-history me-2"></i>Recorded Times

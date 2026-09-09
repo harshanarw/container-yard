@@ -247,6 +247,73 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
             ->assertSee('28 Feb 2026');
     }
 
+    // ── Amending a session that has been invoiced ───────────────────────────
+
+    /**
+     * Interim billing means an invoiced session can still be `active`, so the
+     * amend screen no longer refuses it -- and must say what is already on a
+     * customer's bill instead of letting the times be changed silently.
+     */
+    public function test_the_amend_screen_warns_about_days_already_invoiced(): void
+    {
+        $session = $this->makeSession('2026-02-12 09:00:00', null);
+        $invoice = $this->invoice($this->preview('2026-02-01', '2026-02-28'), '2026-02-01', '2026-02-28');
+
+        $this->assertSame('active', $session->refresh()->status, 'Still on power, so still amendable.');
+
+        $this->get(route('yard.reefer.amend', $session))
+            ->assertOk()
+            ->assertSee('already been invoiced')
+            ->assertSee('17 days')
+            ->assertSee($invoice->invoice_no);
+    }
+
+    public function test_saving_an_amendment_says_what_was_already_invoiced(): void
+    {
+        $session = $this->makeSession('2026-02-12 09:00:00', null);
+        $invoice = $this->invoice($this->preview('2026-02-01', '2026-02-28'), '2026-02-01', '2026-02-28');
+
+        $this->from(route('yard.reefer.amend', $session))
+            ->post(route('yard.reefer.store-amend', $session), [
+                'plug_in_at' => '2026-02-10 09:00',
+                'reason'     => 'Plug-in was recorded two days late.',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('warning', fn ($m) => str_contains($m, $invoice->invoice_no)
+                && str_contains($m, 'unchanged'));
+    }
+
+    /** A session nothing has charged for yet is amended without noise. */
+    public function test_an_uninvoiced_session_gets_no_warning(): void
+    {
+        $session = $this->makeSession('2026-02-12 09:00:00', null);
+
+        $this->get(route('yard.reefer.amend', $session))
+            ->assertOk()
+            ->assertDontSee('already been invoiced');
+
+        $this->from(route('yard.reefer.amend', $session))
+            ->post(route('yard.reefer.store-amend', $session), [
+                'plug_in_at' => '2026-02-13 09:00',
+                'reason'     => 'Corrected from the log sheet.',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertSessionMissing('warning');
+    }
+
+    /** A cancelled invoice no longer holds those days, so it no longer warns. */
+    public function test_a_cancelled_invoice_stops_warning(): void
+    {
+        $session = $this->makeSession('2026-02-12 09:00:00', null);
+        $invoice = $this->invoice($this->preview('2026-02-01', '2026-02-28'), '2026-02-01', '2026-02-28');
+
+        $this->patch(route('billing.reefer.cancel', $invoice))->assertSessionHasNoErrors();
+
+        $this->get(route('yard.reefer.amend', $session))
+            ->assertOk()
+            ->assertDontSee('already been invoiced');
+    }
+
     // ── What stays out ──────────────────────────────────────────────────────
 
     public function test_a_session_never_plugged_in_still_never_prices(): void
