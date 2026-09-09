@@ -202,7 +202,9 @@ class ContainerStockAsAtTest extends FeatureTestCase
 
     public function test_the_screen_refuses_a_future_date(): void
     {
-        $this->get(route('reports.container-stock', ['as_at' => '2026-12-25']))
+        $this->from(route('reports.container-stock'))
+            ->get(route('reports.container-stock', ['as_at' => '2026-12-25']))
+            ->assertRedirect(route('reports.container-stock'))
             ->assertSessionHasErrors('as_at');
     }
 
