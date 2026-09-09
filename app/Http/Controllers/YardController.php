@@ -2284,11 +2284,19 @@ class YardController extends Controller
             ->limit(25)
             ->get();
 
+        // The party shown is the one the visit belongs to, not the one cached on
+        // the container master. A gate-out records the gate-in's customer, so
+        // the search that offers the container has to say the same thing —
+        // otherwise the operator is shown one party and the system saves
+        // another, which reads as a bug whichever of the two is right.
+        $visitCustomers = app(\App\Services\ContainerCustodyService::class)->visitCustomerIdsFor($containers);
+        $names = Customer::whereIn('id', array_filter($visitCustomers))->pluck('name', 'id');
+
         return response()->json([
             'results' => $containers->map(fn ($c) => [
                 'id'       => $c->container_no,
                 'text'     => $c->container_no,
-                'customer' => $c->customer->name ?? 'Unknown',
+                'customer' => $names[$visitCustomers[$c->id] ?? null] ?? ($c->customer->name ?? 'Unknown'),
                 'eqt_code' => $c->equipmentType?->eqt_code,
                 'days'     => $c->gate_in_date ? (int) $c->gate_in_date->diffInDays(today()) : null,
             ]),
@@ -2436,6 +2444,14 @@ class YardController extends Controller
 
         $container->load('equipmentType');
 
+        // The customer belongs to the visit, not to the box. Gate-out records
+        // the gate-in's party, so the form has to show that party — reading
+        // `containers.customer_id` here is what made a correctly-saved gate-out
+        // look wrong on screen, because the master can hold a different value
+        // and nothing about the visit says so.
+        $visitCustomerId = app(\App\Services\ContainerCustodyService::class)->visitCustomerId($container);
+        $visitCustomer   = $visitCustomerId ? Customer::find($visitCustomerId) : null;
+
         return response()->json([
             'found'              => true,
             'id'                 => $container->id,
@@ -2448,8 +2464,13 @@ class YardController extends Controller
             'condition'          => $container->condition,
             'cargo_status'       => $container->cargo_status,
             'status'             => $container->status,
-            'customer_id'        => $container->customer_id,
-            'customer_name'      => $container->customer->name,
+            'customer_id'        => $visitCustomerId ?? $container->customer_id,
+            'customer_name'      => $visitCustomer?->name ?? $container->customer?->name,
+            // True when the party came from the visit rather than from the
+            // master's cached value. False means this container has no movement
+            // history to read, which is the one case the master is still used.
+            'customer_from_visit' => $visitCustomerId !== null
+                && $visitCustomerId !== (int) $container->customer_id,
             'location'           => "{$container->location_zone}-{$container->location_row}{$container->location_bay}-T{$container->location_tier}",
             'gate_in_date'       => $container->gate_in_date?->toDateString(),
         ]);

@@ -136,6 +136,54 @@ class ContainerCustodyService
         return $changed > 0;
     }
 
+    /**
+     * The same resolution for many containers at once.
+     *
+     * The gate-out typeahead runs on every keystroke over up to 25 containers,
+     * and calling {@see visitCustomerId()} per row would be two queries each.
+     * Same precedence, three queries total.
+     *
+     * @param  iterable<int,Container>  $containers
+     * @return array<int,?int>  containerId => customerId
+     */
+    public function visitCustomerIdsFor(iterable $containers): array
+    {
+        $containers = collect($containers);
+        $ids        = $containers->pluck('id')->filter()->values();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        // Newest gate-in per container. Ordered then grouped, so the first of
+        // each group is the current visit — the same ordering latestGateIn uses.
+        $gateIns = GateMovement::whereIn('container_id', $ids)
+            ->where('movement_type', 'in')
+            ->orderByDesc('gate_in_time')
+            ->orderByDesc('id')
+            ->get(['id', 'container_id', 'customer_id', 'yard_job_id'])
+            ->groupBy('container_id')
+            ->map(fn ($group) => $group->first());
+
+        $jobCustomers = YardJob::whereIn('id', $gateIns->pluck('yard_job_id')->filter()->unique()->values())
+            ->pluck('customer_id', 'id');
+
+        $out = [];
+
+        foreach ($containers as $container) {
+            $gateIn  = $gateIns[$container->id] ?? null;
+            $fromJob = $gateIn?->yard_job_id ? ($jobCustomers[$gateIn->yard_job_id] ?? null) : null;
+
+            $out[$container->id] = self::resolveCustomerId(
+                $fromJob !== null ? (int) $fromJob : null,
+                $gateIn?->customer_id !== null ? (int) $gateIn->customer_id : null,
+                $container->customer_id !== null ? (int) $container->customer_id : null,
+            );
+        }
+
+        return $out;
+    }
+
     /** The gate-in that opened the container's current (or most recent) visit. */
     public function latestGateIn(Container $container): ?GateMovement
     {
