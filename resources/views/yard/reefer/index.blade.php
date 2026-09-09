@@ -18,7 +18,7 @@
         $statCards = [
             ['label'=>'Pending Plug-In',  'value'=>$stats['pending'],   'icon'=>'bi-hourglass',       'class'=>'text-warning'],
             ['label'=>'Currently Active', 'value'=>$stats['active'],    'icon'=>'bi-lightning-charge', 'class'=>'text-success'],
-            ['label'=>'Ready to Bill',    'value'=>$stats['completed'], 'icon'=>'bi-check-circle',     'class'=>'text-info'],
+            ['label'=>'To Bill',          'value'=>$stats['completed'], 'icon'=>'bi-check-circle',     'class'=>'text-info'],
             ['label'=>'Billed',           'value'=>$stats['billed'],    'icon'=>'bi-receipt',          'class'=>'text-secondary'],
         ];
     @endphp

@@ -206,6 +206,47 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
         $this->assertSame($keep->id, $preview['lines'][0]['session_id']);
     }
 
+    /**
+     * The checkbox is only useful if the exclusion survives the round trip:
+     * store() recomputes the preview server-side, so an unticked container
+     * would be billed anyway unless the ids travel with the form.
+     */
+    public function test_unticked_containers_posted_with_the_form_stay_off_the_invoice(): void
+    {
+        $keep = $this->makeSession('2026-03-02 09:00:00', null);
+        $drop = $this->makeSession('2026-03-04 09:00:00', null);
+
+        $this->post(route('billing.reefer.store'), [
+            'customer_id'      => $this->customer->id,
+            'service_type'     => 'long_term',
+            'invoice_date'     => '2026-03-31',
+            'period_from'      => '2026-03-01',
+            'period_to'        => '2026-03-31',
+            'invoice_currency' => 'LKR',
+            'exchange_rate'    => 1.0,
+            'skip_session_ids' => [$drop->id],
+        ])->assertSessionHasNoErrors();
+
+        $invoice = ReeferElectricityInvoice::latest('id')->firstOrFail();
+
+        $this->assertTrue($invoice->lines->contains('plug_session_id', $keep->id));
+        $this->assertFalse($invoice->lines->contains('plug_session_id', $drop->id),
+            'An unticked container must not be billed.');
+    }
+
+    /** The session screen has to be able to answer "why only these days?". */
+    public function test_the_session_screen_shows_which_invoices_charged_which_days(): void
+    {
+        $session = $this->makeSession('2026-02-12 09:00:00', null);
+        $this->invoice($this->preview('2026-02-01', '2026-02-28'), '2026-02-01', '2026-02-28');
+
+        $this->get(route('yard.reefer.show', $session))
+            ->assertOk()
+            ->assertSee('Billing History')
+            ->assertSee('12 Feb 2026')
+            ->assertSee('28 Feb 2026');
+    }
+
     // ── What stays out ──────────────────────────────────────────────────────
 
     public function test_a_session_never_plugged_in_still_never_prices(): void

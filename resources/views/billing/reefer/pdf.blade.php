@@ -194,6 +194,7 @@
                 <th>Container</th>
                 <th>Plug-In</th>
                 <th>Plug-Out</th>
+                <th>Charged For</th>
                 <th>Mode</th>
                 <th class="r">Chargeable</th>
                 <th class="r">Rate</th>
@@ -206,7 +207,18 @@
             <tr>
                 <td class="mono" style="font-weight:bold;">{{ $line->container_no }}</td>
                 <td>{{ $line->plug_in_at?->format('d M y H:i') ?? '-' }}</td>
-                <td>{{ $line->plug_out_at?->format('d M y H:i') ?? '-' }}</td>
+                <td>{{ $line->plug_out_at?->format('d M y H:i') ?? 'on power' }}</td>
+                {{-- The days this line charges. On an interim line that is only
+                     part of the session, and saying so on the invoice is what
+                     stops "we were plugged in from February" becoming a query. --}}
+                <td>
+                    @if($line->billed_from)
+                        {{ $line->billed_from->format('d M y') }} - {{ $line->billed_to?->format('d M y') }}
+                        @if($line->is_interim)<div class="muted" style="font-size:8px;">continuing</div>@endif
+                    @else
+                        -
+                    @endif
+                </td>
                 <td><span class="badge-{{ $line->billing_mode }}">{{ ucfirst($line->billing_mode) }}</span></td>
                 <td class="r">
                     @if($line->billing_mode === 'hourly') {{ rtrim(rtrim(number_format($line->chargeable_hours, 2), '0'), '.') }}h

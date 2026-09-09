@@ -38,10 +38,15 @@ class ReeferController extends Controller
         $stats = [
             'pending'   => ReeferPlugSession::where('status', 'pending')->count(),
             'active'    => ReeferPlugSession::where('status', 'active')->count(),
-            // Only sessions a bill can actually be raised from. Counting every
-            // 'completed' row overstated this: a session with no plug-in is
-            // unbillable, and the number is read as work waiting to be invoiced.
-            'completed' => ReeferPlugSession::unbilled()->count(),
+            // Sessions with days still to invoice — which since periodic billing
+            // includes containers *still on power*, not only finished ones.
+            // Their electricity is owed for every day that passes, and counting
+            // only completed sessions hid exactly the revenue this number is
+            // read for. `billed` now means fully invoiced, so excluding it (and
+            // the never-plugged) is the whole test.
+            'completed' => ReeferPlugSession::whereIn('status', ['active', 'completed'])
+                ->whereNotNull('plug_in_at')
+                ->count(),
             'billed'    => ReeferPlugSession::where('status', 'billed')->count(),
         ];
 
@@ -281,7 +286,18 @@ class ReeferController extends Controller
     {
         $plugSession->load(['container.equipmentType', 'customer', 'tempLogs.loggedBy', 'createdBy', 'updatedBy']);
         $session = $plugSession;
-        return view('yard.reefer.show', compact('session'));
+
+        // Which invoices have charged which days. Since power is billed in
+        // instalments, "why is this box only being charged nine days?" is a
+        // question the screen has to be able to answer.
+        $billing = \App\Models\ReeferElectricityInvoiceLine::with('invoice:id,invoice_no,status,invoice_date')
+            ->where('plug_session_id', $plugSession->id)
+            ->whereHas('invoice')
+            ->get()
+            ->sortBy(fn ($l) => $l->billed_from?->toDateString() ?? '')
+            ->values();
+
+        return view('yard.reefer.show', compact('session', 'billing'));
     }
 
     // ── Temperature Log ───────────────────────────────────────────────────────

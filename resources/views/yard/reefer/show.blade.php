@@ -92,6 +92,55 @@
         </div>
     </div>
 
+    {{-- Billing history --}}
+    @if(($billing ?? collect())->isNotEmpty())
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-receipt me-2"></i>Billing History
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Invoice</th>
+                            <th>Days Charged</th>
+                            <th class="text-end">Days</th>
+                            <th class="text-end">Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($billing as $line)
+                        <tr class="{{ $line->invoice?->status === 'cancelled' ? 'text-muted text-decoration-line-through' : '' }}">
+                            <td>
+                                <a href="{{ route('billing.reefer.show', $line->invoice) }}" class="font-monospace">
+                                    {{ $line->invoice?->invoice_no ?? '-' }}
+                                </a>
+                            </td>
+                            <td class="text-nowrap">
+                                {{ $line->billed_from?->format('d M Y') ?? '-' }}
+                                &rarr;
+                                {{ $line->billed_to?->format('d M Y') ?? '-' }}
+                                @if($line->is_interim)
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle ms-1">Interim</span>
+                                @endif
+                            </td>
+                            <td class="text-end">{{ $line->chargeable_days ?? $line->chargeable_hours ?? '-' }}</td>
+                            <td class="text-end font-monospace">{{ number_format((float) $line->subtotal, 2) }}</td>
+                            <td><span class="badge bg-light border text-muted text-capitalize">{{ $line->invoice?->status }}</span></td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer small text-muted">
+                A cancelled invoice releases its days, so they return to the next bill.
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Temperature log --}}
     <div class="col-md-7">
         <div class="card shadow-sm">

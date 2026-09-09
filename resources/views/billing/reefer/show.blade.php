@@ -244,6 +244,7 @@
                     <th>Charge Code</th>
                     <th>Plug-In</th>
                     <th>Plug-Out</th>
+                    <th>Charged For</th>
                     <th>Mode</th>
                     <th>Duration</th>
                     <th>Free</th>
@@ -270,7 +271,20 @@
                         @endif
                     </td>
                     <td class="small text-nowrap">{{ $line->plug_in_at?->format('d M Y H:i') ?? '-' }}</td>
-                    <td class="small text-nowrap">{{ $line->plug_out_at?->format('d M Y H:i') ?? '-' }}</td>
+                    <td class="small text-nowrap">
+                        {{ $line->plug_out_at?->format('d M Y H:i') ?? '' }}
+                        @unless($line->plug_out_at)<span class="text-muted">on power</span>@endunless
+                    </td>
+                    <td class="small text-nowrap">
+                        @if($line->billed_from)
+                            {{ $line->billed_from->format('d M Y') }} &rarr; {{ $line->billed_to?->format('d M Y') }}
+                            @if($line->is_interim)
+                                <span class="badge bg-info-subtle text-info border border-info-subtle ms-1">Interim</span>
+                            @endif
+                        @else
+                            <span class="text-muted">-</span>
+                        @endif
+                    </td>
                     <td>
                         <span class="badge {{ $line->billing_mode === 'hourly' ? 'bg-info-subtle text-info' : 'bg-primary-subtle text-primary' }}">
                             {{ ucfirst($line->billing_mode) }}

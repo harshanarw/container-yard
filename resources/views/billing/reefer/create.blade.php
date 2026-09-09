@@ -151,9 +151,14 @@
                     <table class="table table-sm align-middle mb-0" id="previewTable">
                         <thead class="table-light">
                             <tr>
+                                <th style="width:2.5rem" class="text-center">
+                                    <input type="checkbox" class="form-check-input" id="checkAll" checked
+                                           title="Include or exclude every container">
+                                </th>
                                 <th>Container</th>
                                 <th>Plug-In</th>
                                 <th>Plug-Out</th>
+                                <th>Charged For</th>
                                 <th>Mode</th>
                                 <th>Chargeable</th>
                                 <th class="text-end">Rate</th>
@@ -181,7 +186,8 @@
                 </div>
             </div>
             <div id="previewEmpty" class="alert alert-warning mt-3" style="display:none">
-                No completed reefer sessions found for the selected customer and period.
+                Nothing to bill for the selected customer and period. Either no reefer was on
+                power, or every day in the period has already been invoiced.
             </div>
 
             <div id="missingRatesPanel" class="d-none mt-3"></div>
@@ -336,20 +342,36 @@
             previewCard.style.display = '';
             createWrap.style.display = hasMissing ? 'none' : '';
 
-            const skipped = document.getElementById('previewSkipped');
-            if (data.skipped > 0) { skipped.style.display = ''; skipped.textContent = data.skipped + ' session(s) skipped'; }
-            else { skipped.style.display = 'none'; }
+            renderNotices(data);
 
             const cur = data.invoice_currency;
             previewBody.innerHTML = '';
             data.lines.forEach(line => {
                 const chargeable = line.billing_mode === 'hourly' ? line.chargeable_hours + ' hrs' : line.chargeable_days + ' days';
                 const rateLabel  = line.billing_mode === 'hourly' ? line.currency + ' ' + fmt(line.rate) + '/hr' : line.currency + ' ' + fmt(line.rate) + '/day';
+                // The days this line charges, which for a container still on power
+                // is only part of the session -- so it is shown next to the plug
+                // times rather than instead of them.
+                const window_ = line.billed_from
+                    ? `${dmy(line.billed_from)} &rarr; ${dmy(line.billed_to)}`
+                    : '<span class="text-muted">-</span>';
+                const interim = line.is_interim
+                    ? '<span class="badge bg-info-subtle text-info border border-info-subtle ms-1" title="Still on power at the end of this period; the rest is billed next time">In progress</span>'
+                    : '';
+                const frag = line.fragmented
+                    ? '<i class="bi bi-exclamation-triangle text-warning ms-1" title="Some days inside this range were already invoiced and have been left out"></i>'
+                    : '';
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
+                    <td class="text-center">
+                        <input type="checkbox" class="form-check-input line-pick" checked
+                               value="${line.session_id}" title="Untick to leave this container off the invoice">
+                    </td>
                     <td class="font-monospace">${line.container_no}</td>
                     <td class="small text-nowrap">${line.plug_in_at ? new Date(line.plug_in_at).toLocaleString() : '-'}</td>
-                    <td class="small text-nowrap">${line.plug_out_at ? new Date(line.plug_out_at).toLocaleString() : '-'}</td>
+                    <td class="small text-nowrap">${line.plug_out_at ? new Date(line.plug_out_at).toLocaleString() : '<span class="text-muted">on power</span>'}</td>
+                    <td class="small text-nowrap">${window_}${interim}${frag}</td>
                     <td><span class="badge bg-light border text-muted text-capitalize">${line.billing_mode}</span></td>
                     <td class="small">${chargeable}</td>
                     <td class="text-end small font-monospace">${rateLabel}</td>
@@ -376,12 +398,57 @@
         });
     });
 
+    function dmy(d) {
+        if (!d) return '-';
+        const [y, m, day] = d.split('-');
+        return day + '/' + m + '/' + y.slice(2);
+    }
+
+    // "3 already invoiced" is not a warning: it is what re-running a billed
+    // period is supposed to do, so it reads differently from a real skip.
+    function renderNotices(data) {
+        const el = document.getElementById('previewSkipped');
+        const bits = [];
+        if (data.already_billed > 0) bits.push(data.already_billed + ' already invoiced for this period');
+        if (data.skipped > 0)        bits.push(data.skipped + ' skipped');
+        if (!bits.length) { el.style.display = 'none'; return; }
+        el.style.display = '';
+        el.textContent = bits.join(' \u00b7 ');
+    }
+
+    document.getElementById('checkAll').addEventListener('change', function () {
+        previewBody.querySelectorAll('.line-pick').forEach(cb => { cb.checked = this.checked; });
+    });
+
+    /**
+     * The unticked containers, posted so the server can leave them out.
+     *
+     * store() recomputes the preview rather than trusting the browser, so the
+     * exclusions have to travel with the form or an unticked container would be
+     * billed anyway.
+     */
+    function skippedSessionIds() {
+        return Array.from(previewBody.querySelectorAll('.line-pick'))
+            .filter(cb => !cb.checked)
+            .map(cb => cb.value);
+    }
+
     // Block save when unresolved missing rates exist (server also re-checks)
     form.addEventListener('submit', function (e) {
         if (previewMissing.length > 0) {
             e.preventDefault();
             if (window.showToast) showToast('Cannot save - missing tariff rates. Update the tariff and preview again.', 'danger');
+            return;
         }
+
+        form.querySelectorAll('input[name="skip_session_ids[]"]').forEach(el => el.remove());
+        skippedSessionIds().forEach(id => {
+            const hidden = document.createElement('input');
+            hidden.type  = 'hidden';
+            hidden.name  = 'skip_session_ids[]';
+            hidden.value = id;
+            form.appendChild(hidden);
+        });
     });
 
     // Initial sync — deferred so it runs AFTER the layout's DOMContentLoaded
