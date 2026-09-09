@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\CompanySetting;
 use App\Models\Customer;
 use App\Models\ReeferElectricityInvoice;
-use App\Models\ReeferPlugSession;
 use App\Services\CurrencyService;
 use App\Services\IrdInvoiceNumberService;
 use App\Services\NotificationService;
@@ -78,6 +77,8 @@ class ReeferBillingController extends Controller
             'exchange_rate'    => 'nullable|numeric|min:0.0001',
             'sscl_pct'         => 'nullable|numeric|min:0|max:100',
             'vat_pct'          => 'nullable|numeric|min:0|max:100',
+            'skip_session_ids'   => 'nullable|array',
+            'skip_session_ids.*' => 'integer',
         ]);
 
         $invoiceCurrency = strtoupper($validated['invoice_currency'] ?? CurrencyService::defaultCurrency());
@@ -93,7 +94,9 @@ class ReeferBillingController extends Controller
             $invoiceCurrency,
             $exchangeRate,
             $ssclPct,
-            $vatPct
+            $vatPct,
+            // Containers the operator unticked on the preview.
+            array_map('intval', $validated['skip_session_ids'] ?? []),
         );
 
         return response()->json($preview);
@@ -116,6 +119,8 @@ class ReeferBillingController extends Controller
             'sscl_pct'         => 'nullable|numeric|min:0|max:100',
             'vat_pct'          => 'nullable|numeric|min:0|max:100',
             'notes'            => 'nullable|string',
+            'skip_session_ids'   => 'nullable|array',
+            'skip_session_ids.*' => 'integer',
         ]);
 
         $preview = ReeferBillingService::preview(
@@ -126,7 +131,11 @@ class ReeferBillingController extends Controller
             $validated['invoice_currency'],
             (float) $validated['exchange_rate'],
             (float) ($validated['sscl_pct'] ?? 0),
-            (float) ($validated['vat_pct'] ?? 0)
+            (float) ($validated['vat_pct'] ?? 0),
+            // Must match what the operator saw: the preview is recomputed here,
+            // so an unticked container has to be excluded again or it would be
+            // billed anyway.
+            array_map('intval', $validated['skip_session_ids'] ?? []),
         );
 
         // Authoritative tariff guard: block if any session has no usable rate.
@@ -221,15 +230,15 @@ class ReeferBillingController extends Controller
             return back()->with('error', 'Paid invoices cannot be cancelled.');
         }
 
-        // Re-open plug sessions so they can be re-billed
-        if ($reeferInvoice->isDraft() || $reeferInvoice->status === 'issued') {
-            $sessionIds = $reeferInvoice->lines()->pluck('plug_session_id')->filter();
-            ReeferPlugSession::whereIn('id', $sessionIds)
-                ->where('status', 'billed')
-                ->update(['status' => 'completed']);
-        }
+        $sessionIds = $reeferInvoice->lines()->pluck('plug_session_id')->filter()->unique()->all();
 
         $reeferInvoice->update(['status' => 'cancelled']);
+
+        // Cancelling releases this invoice's days — a cancelled invoice is no
+        // longer a claim on them — so the sessions are re-derived against what
+        // is left. One still covered by another invoice stays billed; one that
+        // is not comes back for re-billing.
+        ReeferBillingService::syncBilledStatus($sessionIds);
         return back()->with('success', 'Invoice cancelled. Linked sessions are available for re-billing.');
     }
 
@@ -239,13 +248,12 @@ class ReeferBillingController extends Controller
             return back()->with('error', 'Only draft invoices can be deleted.');
         }
 
-        // Re-open sessions
-        $sessionIds = $reeferInvoice->lines()->pluck('plug_session_id')->filter();
-        ReeferPlugSession::whereIn('id', $sessionIds)
-            ->where('status', 'billed')
-            ->update(['status' => 'completed']);
+        $sessionIds = $reeferInvoice->lines()->pluck('plug_session_id')->filter()->unique()->all();
 
         $reeferInvoice->delete();
+
+        // The lines went with it, so those days are free again.
+        ReeferBillingService::syncBilledStatus($sessionIds);
         return redirect()->route('billing.reefer.index')
             ->with('success', 'Draft invoice deleted.');
     }

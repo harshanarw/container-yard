@@ -8,6 +8,9 @@ use App\Models\ReeferElectricityInvoice;
 use App\Models\ReeferElectricityInvoiceLine;
 use App\Models\ReeferElectricityTariff;
 use App\Models\ReeferPlugSession;
+use App\Services\Billing\ManualPricing;
+use App\Services\Billing\ReeferPeriodWindow;
+use App\Services\Billing\ReeferPriorBilling;
 use App\Services\Tariff\TariffRateGuard;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -110,7 +113,179 @@ class ReeferBillingService
     }
 
     /**
-     * Preview billing for a customer's completed sessions within an optional date range.
+     * Charge a daily session for one billing period.
+     *
+     * The period-aware counterpart of {@see calculateSession()}, which can only
+     * price a whole finished session. Reefer power is a continuing service: a
+     * container plugged in during February and still running in April owes
+     * February, March and April separately, and each period must charge its own
+     * days and no others.
+     *
+     * `$window` comes from {@see ReeferPeriodWindow::forSession()} and has
+     * already had the days billed by earlier invoices subtracted, so this
+     * function never has to ask what was charged before.
+     *
+     * @param  array{days:int,from:?string,to:?string,is_interim:bool,fragmented:bool,days_before_period:int} $window
+     * @return array|null  null when the period owes nothing
+     */
+    public static function calculateForPeriod(
+        ReeferPlugSession $session,
+        ReeferElectricityTariff $tariff,
+        array $window,
+    ): ?array {
+        if ($window['days'] < 1) {
+            return null;
+        }
+
+        $totalDays = $window['days'];
+
+        // Free time is spent from the plug-in, not granted afresh each period.
+        // Without this a monthly-billed customer receives their free days twelve
+        // times a year. Same helper the storage side uses, for the same reason.
+        $freeDays       = ManualPricing::freeDaysInPeriod(
+            (int) ($tariff->free_days ?? 0),
+            $window['days_before_period'],
+            $totalDays,
+        );
+        $chargeableDays = max(0, $totalDays - $freeDays);
+
+        $rate     = (float) $tariff->daily_rate;
+        $subtotal = $chargeableDays * $rate;
+
+        // The minimum is a floor on the whole service, not on each instalment.
+        // Applying it per period would multiply it by however many months the
+        // container happened to straddle, which is an artifact of the billing
+        // calendar rather than anything the customer did. So it is settled once,
+        // on the closing line, against what the session comes to in total.
+        //
+        // Computed from days at the current rate rather than from the money on
+        // earlier lines, which are stored in invoice currency and would not
+        // compare cleanly against a tariff-currency minimum.
+        if (! $window['is_interim'] && (float) $tariff->minimum_charge > 0) {
+            $subtotal += static::minimumTopUp($session, $tariff, $rate, $subtotal);
+        }
+
+        return [
+            'billing_mode'     => 'daily',
+            'plug_in_at'       => $session->plug_in_at,
+            'plug_out_at'      => $session->plug_out_at,
+            'billed_from'      => $window['from'],
+            'billed_to'        => $window['to'],
+            'is_interim'       => $window['is_interim'],
+            'fragmented'       => $window['fragmented'],
+            'total_hours'      => null,
+            'total_days'       => $totalDays,
+            'free_hours'       => null,
+            'free_days'        => $freeDays,
+            'chargeable_hours' => null,
+            'chargeable_days'  => $chargeableDays,
+            'rate'             => $rate,
+            'currency'         => $tariff->currency,
+            'subtotal'         => round($subtotal, 2),
+            'tariff_id'        => $tariff->id,
+        ];
+    }
+
+    /**
+     * What the closing line must add so the session as a whole meets the minimum.
+     *
+     * Zero whenever the session already earns more than the minimum, which is
+     * every case where `minimum_charge` is 0 — so a tariff with no floor bills
+     * purely on days, exactly as before.
+     */
+    private static function minimumTopUp(
+        ReeferPlugSession $session,
+        ReeferElectricityTariff $tariff,
+        float $rate,
+        float $thisPeriodSubtotal,
+    ): float {
+        if (! $session->plug_in_at || ! $session->plug_out_at) {
+            return 0.0;
+        }
+
+        $lifetimeDays = (int) $session->plug_in_at->copy()->startOfDay()
+            ->diffInDays($session->plug_out_at->copy()->startOfDay()) + 1;
+
+        $lifetimeChargeable = max(0, $lifetimeDays - (int) ($tariff->free_days ?? 0));
+        $lifetimeSubtotal   = $lifetimeChargeable * $rate;
+        $minimum            = (float) $tariff->minimum_charge;
+
+        if ($lifetimeSubtotal <= 0 || $lifetimeSubtotal >= $minimum) {
+            return 0.0;
+        }
+
+        // Never let the top-up exceed what is still missing after this line.
+        return max(0.0, min($minimum - $lifetimeSubtotal, $minimum - $thisPeriodSubtotal));
+    }
+
+    /**
+     * A PTI line, billed whole in the period the inspection ended.
+     *
+     * Hourly work is not billed in instalments. {@see DateWindow} works in whole
+     * days, so charging part of a two-hour session by day would be wrong, and an
+     * inspection does not outlast a billing cycle in the first place. So the
+     * rule is simply: bill it once, in the period containing its plug-out.
+     */
+    private static function hourlyLineForPeriod(
+        ReeferPlugSession $session,
+        ReeferElectricityTariff $tariff,
+        string $from,
+        string $to,
+        ReeferPriorBilling $ledger,
+        TariffRateGuard $guard,
+        ?string $containerNo,
+    ): ?array {
+        if (! $session->plug_out_at) {
+            // Still on power. Say so rather than billing an unfinished
+            // inspection or dropping it silently.
+            $guard->flag('reefer', null, null, 'PTI session is still on power and is billed when it ends.', $containerNo, null, null);
+
+            return null;
+        }
+
+        $outDate = $session->plug_out_at->toDateString();
+
+        // It ended in another period; that period's invoice carries it.
+        if ($outDate < $from || $outDate > $to) {
+            return null;
+        }
+
+        $inDate = $session->plug_in_at->toDateString();
+
+        // Already invoiced — the hourly equivalent of the day ledger.
+        if ($ledger->nothingLeft($session->id, $inDate, $outDate)) {
+            return null;
+        }
+
+        $calc = static::calculateSession($session, $tariff);
+
+        if (! $calc) {
+            $guard->flag('reefer', null, null, 'Session has no plug-in/out time and cannot be billed.', $containerNo, null, null);
+
+            return null;
+        }
+
+        return array_merge($calc, [
+            'billed_from' => $inDate,
+            'billed_to'   => $outDate,
+            'is_interim'  => false,
+            'fragmented'  => false,
+        ]);
+    }
+
+    /** The earliest plug-in on record, so a caller that gives no period start still gets one. */
+    private static function earliestPlugInDate(int $customerId, string $serviceType): ?string
+    {
+        $earliest = ReeferPlugSession::where('customer_id', $customerId)
+            ->where('service_type', $serviceType)
+            ->whereNotNull('plug_in_at')
+            ->min('plug_in_at');
+
+        return $earliest ? substr((string) $earliest, 0, 10) : null;
+    }
+
+    /**
+     * Preview billing for a customer's sessions overlapping a date range.
      * Returns structured data suitable for the create invoice UI.
      */
     public static function preview(
@@ -121,32 +296,44 @@ class ReeferBillingService
         string $invoiceCurrency,
         float $exchangeRate,
         float $ssclPct,
-        float $vatPct
+        float $vatPct,
+        array $skipSessionIds = [],
+        ?int $excludeInvoiceId = null
     ): array {
         $customer = Customer::findOrFail($customerId);
 
-        // Only sessions of the requested bill type (PTI vs Long-Term), and only
-        // ones a charge can be computed from.
+        // The period bounds the charge, so it needs both ends even when the
+        // caller supplies neither: an open session has no end of its own, and
+        // "everything up to today" is the only sane default. Today is also the
+        // cut-off — power not yet consumed cannot be billed.
+        $to   = $periodTo ?: today()->toDateString();
+        $from = $periodFrom ?: static::earliestPlugInDate($customerId, $serviceType) ?? $to;
+
+        // Sessions **overlapping** the period, not contained by it.
         //
-        // `unbilled()` carries the timestamp guard. Selecting on the status
-        // alone pulled in sessions with no plug-in, which line() then dropped by
-        // returning null — so they vanished from the invoice with nothing said,
-        // and the only symptom was a container the yard expected to see on the
-        // bill and did not. Excluded here instead, where it is one condition
-        // rather than a silent discard further down.
-        $sessionsQuery = ReeferPlugSession::with(['container.equipmentType'])
+        // The old filter required plug_in >= from AND plug_out <= to, so a
+        // session that started before the period or ended after it was excluded
+        // from both months' invoices and billed by nobody, with nothing said. It
+        // also excluded every container still on power, because `unbilled()`
+        // demands a plug-out that an active session does not have.
+        //
+        // `not_plugged` and `pending` stay out: no plug-in, nothing consumed.
+        $sessions = ReeferPlugSession::with(['container.equipmentType'])
             ->where('customer_id', $customerId)
             ->where('service_type', $serviceType)
-            ->unbilled();
+            ->whereIn('status', ['active', 'completed', 'billed'])
+            ->whereNotNull('plug_in_at')
+            ->whereDate('plug_in_at', '<=', $to)
+            ->where(fn ($q) => $q
+                ->whereNull('plug_out_at')
+                ->orWhereDate('plug_out_at', '>=', $from))
+            ->when($skipSessionIds, fn ($q, $ids) => $q->whereNotIn('id', $ids))
+            ->orderBy('plug_in_at')
+            ->get();
 
-        if ($periodFrom) {
-            $sessionsQuery->where('plug_in_at', '>=', $periodFrom . ' 00:00:00');
-        }
-        if ($periodTo) {
-            $sessionsQuery->where('plug_out_at', '<=', $periodTo . ' 23:59:59');
-        }
-
-        $sessions = $sessionsQuery->orderBy('plug_in_at')->get();
+        // What earlier invoices already charged, so the same day is never billed
+        // twice. A draft counts; cancelling releases its days.
+        $ledger = ReeferPriorBilling::for($sessions->pluck('id')->all(), $excludeInvoiceId);
 
         $defaultCurrency = CurrencyService::defaultCurrency();
         // base (LKR) → invoice-currency display factor
@@ -177,22 +364,54 @@ class ReeferBillingService
         $tariffFixUrl = route('masters.reefer-tariff.index');
         $typeLabel    = ReeferElectricityTariff::SERVICE_TYPES[$serviceType] ?? ucfirst($serviceType);
 
+        $alreadyBilled = 0;   // sessions in range whose days are all invoiced
+
         foreach ($sessions as $session) {
             $containerNo = $session->container->container_no ?? null;
 
-            $tariff = ReeferElectricityTariff::resolveForType($customerId, $serviceType, $session->plug_in_at?->toDateString());
+            $window = ReeferPeriodWindow::forSession(
+                $session->plug_in_at?->toDateTimeString(),
+                $session->plug_out_at?->toDateTimeString(),
+                $from,
+                $to,
+                $ledger->billedIntervals($session->id),
+            );
+
+            // Every day of this session in this period is already on an invoice.
+            // Not an error and not worth a warning — it is the ordinary result of
+            // re-running a period that has been billed, and the whole point of
+            // the ledger.
+            if ($window['days'] < 1) {
+                $alreadyBilled++;
+                continue;
+            }
+
+            // Resolve the tariff for the days being billed, not for the plug-in:
+            // a session running from February into April should be priced at
+            // April's rate on April's instalment.
+            $tariff = ReeferElectricityTariff::resolveForType(
+                $customerId,
+                $serviceType,
+                $window['from'] ?? $session->plug_in_at?->toDateString(),
+            );
             if (!$tariff) {
-                // A completed session with consumption but no applicable tariff would
+                // A session with consumption but no applicable tariff would
                 // otherwise be silently dropped from the bill — flag it instead.
                 $guard->flag('reefer', null, null, "No active {$typeLabel} reefer tariff covering this session.", $containerNo, $tariffFixUrl, "Set up {$typeLabel} tariff");
                 continue;
             }
 
-            $calc = static::calculateSession($session, $tariff);
+            if ($tariff->billing_mode === 'hourly') {
+                // PTI is billed by the hour on completion, not in instalments:
+                // an inspection does not span a billing cycle, and day-resolution
+                // arithmetic would price it wrongly. Bill it in the period it
+                // ends, once.
+                $calc = static::hourlyLineForPeriod($session, $tariff, $from, $to, $ledger, $guard, $containerNo);
+            } else {
+                $calc = static::calculateForPeriod($session, $tariff, $window);
+            }
+
             if (!$calc) {
-                // Missing plug-in/out timestamps — cannot be billed; surface rather
-                // than silently skip so the data can be corrected.
-                $guard->flag('reefer', null, null, 'Session has no plug-in/out time and cannot be billed.', $containerNo, null, null);
                 continue;
             }
 
@@ -253,7 +472,12 @@ class ReeferBillingService
             'service_type'     => $serviceType,
             'charge_code_id'   => $chargeCode?->id,
             'tax_code'         => $taxCode,
-            'skipped'          => $sessions->count() - count($lines),
+            'period_from'      => $from,
+            'period_to'        => $to,
+            // Sessions in range whose days are all on an earlier invoice. Not an
+            // error: it is what re-running a billed period is supposed to do.
+            'already_billed'   => $alreadyBilled,
+            'skipped'          => $sessions->count() - count($lines) - $alreadyBilled,
             'missing_rates'    => $guard->toArray(),
         ];
     }
@@ -309,6 +533,12 @@ class ReeferBillingService
                     'container_no'                  => $line['container_no'],
                     'plug_in_at'                    => $line['plug_in_at'],
                     'plug_out_at'                   => $line['plug_out_at'],
+                    // The days this line charges, which for a container still on
+                    // power is only part of the session. Next period subtracts
+                    // them; without them it would charge the same days again.
+                    'billed_from'                   => $line['billed_from'] ?? null,
+                    'billed_to'                     => $line['billed_to'] ?? null,
+                    'is_interim'                    => $line['is_interim'] ?? false,
                     'billing_mode'                  => $line['billing_mode'],
                     'total_hours'                   => $line['total_hours'],
                     'total_days'                    => $line['total_days'],
@@ -329,12 +559,64 @@ class ReeferBillingService
                     'line_value'                    => $line['line_value'],
                 ]);
 
-                // Mark the session as billed
-                ReeferPlugSession::where('id', $line['session_id'])
-                    ->update(['status' => 'billed']);
             }
+
+            // `billed` now means *finished and fully invoiced*, so it is derived
+            // after the lines exist rather than stamped on every session the
+            // invoice touched. Stamping it blindly would close a container that
+            // is still on power and remove it from every future invoice —
+            // turning a missing instalment into permanently lost revenue.
+            static::syncBilledStatus(
+                collect($preview['lines'])->pluck('session_id')->filter()->unique()->all()
+            );
 
             return $invoice;
         });
+    }
+
+    /**
+     * Set `billed` on the sessions that are finished and have nothing left owing.
+     *
+     * A session on power keeps its operational status: it is mid-service, and
+     * more instalments are coming. One that has come off power and whose whole
+     * run is on live invoices is done, and `billed` says so — which is also what
+     * stops the amendment screen touching it.
+     *
+     * Reversing is deliberate too: cancelling an invoice releases its days, so a
+     * session that is no longer fully covered goes back to `completed` and can
+     * be re-billed. That is what makes cancel-and-re-raise the way to correct a
+     * reefer bill.
+     *
+     * @param array<int,int> $sessionIds
+     */
+    public static function syncBilledStatus(array $sessionIds): void
+    {
+        if (! $sessionIds) {
+            return;
+        }
+
+        $ledger = ReeferPriorBilling::for($sessionIds);
+
+        foreach (ReeferPlugSession::whereIn('id', $sessionIds)->get() as $session) {
+            if (! $session->plug_in_at) {
+                continue;
+            }
+
+            $fullyBilled = $session->plug_out_at && $ledger->nothingLeft(
+                $session->id,
+                $session->plug_in_at->toDateString(),
+                $session->plug_out_at->toDateString(),
+            );
+
+            if ($fullyBilled && $session->status !== 'billed') {
+                $session->update(['status' => 'billed']);
+                continue;
+            }
+
+            // No longer fully covered — an invoice was cancelled or deleted.
+            if (! $fullyBilled && $session->status === 'billed') {
+                $session->update(['status' => $session->plug_out_at ? 'completed' : 'active']);
+            }
+        }
     }
 }
