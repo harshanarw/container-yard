@@ -38,7 +38,7 @@ class ReeferPriorBillingTest extends FeatureTestCase
 
     public function test_a_session_never_invoiced_has_nothing_billed(): void
     {
-        $session = $this->session();
+        $session = $this->makeSession();
 
         $ledger = ReeferPriorBilling::for([$session->id]);
 
@@ -54,7 +54,7 @@ class ReeferPriorBillingTest extends FeatureTestCase
     public function test_draft_issued_and_paid_invoices_all_reserve_their_days(): void
     {
         foreach (['draft', 'issued', 'paid'] as $status) {
-            $session = $this->session();
+            $session = $this->makeSession();
             $this->line($session, '2026-03-01', '2026-03-15', $status);
 
             $ledger = ReeferPriorBilling::for([$session->id]);
@@ -69,7 +69,7 @@ class ReeferPriorBillingTest extends FeatureTestCase
 
     public function test_a_cancelled_invoice_releases_its_days(): void
     {
-        $session = $this->session();
+        $session = $this->makeSession();
         $this->line($session, '2026-03-01', '2026-03-15', 'cancelled');
 
         $ledger = ReeferPriorBilling::for([$session->id]);
@@ -84,7 +84,7 @@ class ReeferPriorBillingTest extends FeatureTestCase
 
     public function test_the_invoice_being_edited_does_not_subtract_its_own_days(): void
     {
-        $session = $this->session();
+        $session = $this->makeSession();
         $line    = $this->line($session, '2026-03-01', '2026-03-31', 'draft');
 
         $ledger = ReeferPriorBilling::for([$session->id], $line->reefer_electricity_invoice_id);
@@ -96,7 +96,7 @@ class ReeferPriorBillingTest extends FeatureTestCase
     /** Adjacent months fuse: 1-15 and 16-31 leave no gap between the 15th and 16th. */
     public function test_touching_intervals_are_merged(): void
     {
-        $session = $this->session();
+        $session = $this->makeSession();
         $this->line($session, '2026-03-16', '2026-03-31', 'issued');
         $this->line($session, '2026-03-01', '2026-03-15', 'issued');
 
@@ -108,7 +108,7 @@ class ReeferPriorBillingTest extends FeatureTestCase
 
     public function test_it_reports_only_the_days_not_yet_billed(): void
     {
-        $session = $this->session();
+        $session = $this->makeSession();
         $this->line($session, '2026-03-01', '2026-03-10', 'issued');
 
         $ledger = ReeferPriorBilling::for([$session->id]);
@@ -122,7 +122,7 @@ class ReeferPriorBillingTest extends FeatureTestCase
     /** A line predating the billed_from column, and not backfilled, is not a claim on any day. */
     public function test_a_line_with_no_billed_window_is_ignored(): void
     {
-        $session = $this->session();
+        $session = $this->makeSession();
         $line    = $this->line($session, '2026-03-01', '2026-03-15', 'issued');
         $line->update(['billed_from' => null, 'billed_to' => null]);
 
@@ -133,8 +133,8 @@ class ReeferPriorBillingTest extends FeatureTestCase
 
     public function test_sessions_are_kept_apart(): void
     {
-        $a = $this->session();
-        $b = $this->session();
+        $a = $this->makeSession();
+        $b = $this->makeSession();
         $this->line($a, '2026-03-01', '2026-03-31', 'issued');
 
         $ledger = ReeferPriorBilling::for([$a->id, $b->id]);
@@ -154,7 +154,11 @@ class ReeferPriorBillingTest extends FeatureTestCase
 
     // ── Fixtures ────────────────────────────────────────────────────────────
 
-    private function session(): ReeferPlugSession
+    /**
+     * Not `session()`: Illuminate\Foundation\Testing\TestCase declares a public
+     * helper of that name, and narrowing it to private is a fatal.
+     */
+    private function makeSession(): ReeferPlugSession
     {
         $eqt = EquipmentType::all()->first(fn ($e) => $e->isReefer())
             ?? $this->fail('No reefer equipment type is seeded.');

@@ -48,7 +48,7 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
     /** A container still on power is billed for the period, to the period end. */
     public function test_a_container_still_on_power_is_billed_for_the_period(): void
     {
-        $this->session('2026-02-12 09:00:00', null);
+        $this->makeSession('2026-02-12 09:00:00', null);
 
         $preview = $this->preview('2026-02-01', '2026-02-28');
 
@@ -64,7 +64,7 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
     /** And the next period charges only the days the first one did not. */
     public function test_the_next_period_skips_the_days_already_billed(): void
     {
-        $this->session('2026-02-12 09:00:00', null);
+        $this->makeSession('2026-02-12 09:00:00', null);
 
         $this->invoice($this->preview('2026-02-01', '2026-02-28'), '2026-02-01', '2026-02-28');
 
@@ -78,7 +78,7 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
     /** Re-running a period that has been billed produces nothing to invoice. */
     public function test_a_billed_period_cannot_be_billed_again(): void
     {
-        $this->session('2026-02-12 09:00:00', null);
+        $this->makeSession('2026-02-12 09:00:00', null);
 
         $this->invoice($this->preview('2026-02-01', '2026-02-28'), '2026-02-01', '2026-02-28');
 
@@ -91,7 +91,7 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
     /** Three instalments, and they come to the same as billing the stay in one go. */
     public function test_the_instalments_sum_to_the_whole_stay(): void
     {
-        $session = $this->session('2026-02-12 09:00:00', null);
+        $session = $this->makeSession('2026-02-12 09:00:00', null);
 
         $feb = $this->preview('2026-02-01', '2026-02-28');
         $this->invoice($feb, '2026-02-01', '2026-02-28');
@@ -122,7 +122,7 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
      */
     public function test_a_session_crossing_a_month_boundary_is_billed_by_both(): void
     {
-        $this->session('2026-02-28 07:00:00', '2026-03-03 18:00:00');
+        $this->makeSession('2026-02-28 07:00:00', '2026-03-03 18:00:00');
 
         $feb = $this->preview('2026-02-01', '2026-02-28');
         $this->assertCount(1, $feb['lines'], 'February must see the day it was on power.');
@@ -140,7 +140,7 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
     public function test_free_days_are_consumed_across_periods_not_granted_each_one(): void
     {
         $this->tariff()->update(['free_days' => 5]);
-        $this->session('2026-02-12 09:00:00', null);
+        $this->makeSession('2026-02-12 09:00:00', null);
 
         $feb = $this->preview('2026-02-01', '2026-02-28');
         $this->assertSame(5, $feb['lines'][0]['free_days']);
@@ -157,7 +157,7 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
 
     public function test_cancelling_an_invoice_releases_its_days(): void
     {
-        $this->session('2026-02-12 09:00:00', null);
+        $this->makeSession('2026-02-12 09:00:00', null);
 
         $invoice = $this->invoice($this->preview('2026-02-01', '2026-02-28'), '2026-02-01', '2026-02-28');
         $this->assertCount(0, $this->preview('2026-02-01', '2026-02-28')['lines']);
@@ -173,7 +173,7 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
     /** An interim bill must not close a session that is still on power. */
     public function test_an_interim_invoice_leaves_the_session_active(): void
     {
-        $session = $this->session('2026-02-12 09:00:00', null);
+        $session = $this->makeSession('2026-02-12 09:00:00', null);
 
         $this->invoice($this->preview('2026-02-01', '2026-02-28'), '2026-02-01', '2026-02-28');
 
@@ -183,7 +183,7 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
 
     public function test_the_closing_invoice_marks_the_session_billed(): void
     {
-        $session = $this->session('2026-03-02 09:00:00', '2026-03-10 09:00:00');
+        $session = $this->makeSession('2026-03-02 09:00:00', '2026-03-10 09:00:00');
 
         $this->invoice($this->preview('2026-03-01', '2026-03-31'), '2026-03-01', '2026-03-31');
 
@@ -194,8 +194,8 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
 
     public function test_an_unticked_container_is_left_off_the_bill(): void
     {
-        $keep = $this->session('2026-03-02 09:00:00', null);
-        $drop = $this->session('2026-03-04 09:00:00', null);
+        $keep = $this->makeSession('2026-03-02 09:00:00', null);
+        $drop = $this->makeSession('2026-03-04 09:00:00', null);
 
         $preview = ReeferBillingService::preview(
             $this->customer->id, 'long_term', '2026-03-01', '2026-03-31',
@@ -210,7 +210,7 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
 
     public function test_a_session_never_plugged_in_still_never_prices(): void
     {
-        $session = $this->session('2026-03-02 09:00:00', null);
+        $session = $this->makeSession('2026-03-02 09:00:00', null);
         $session->update(['status' => 'not_plugged', 'plug_in_at' => null]);
 
         $this->assertCount(0, $this->preview('2026-03-01', '2026-03-31')['lines']);
@@ -219,7 +219,7 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
     /** Power not yet consumed is not billable: the period stops at today. */
     public function test_it_does_not_bill_beyond_today_when_no_period_end_is_given(): void
     {
-        $this->session('2026-05-01 09:00:00', null);
+        $this->makeSession('2026-05-01 09:00:00', null);
 
         $preview = ReeferBillingService::preview(
             $this->customer->id, 'long_term', '2026-05-01', null, 'LKR', 1.0, 0.0, 0.0,
@@ -250,7 +250,11 @@ class ReeferPeriodicBillingTest extends FeatureTestCase
         return ReeferBillingService::createInvoice($preview, $to, $from, $to, null);
     }
 
-    private function session(string $plugIn, ?string $plugOut): ReeferPlugSession
+    /**
+     * Not `session()`: Illuminate\Foundation\Testing\TestCase declares a public
+     * helper of that name, and narrowing it to private is a fatal.
+     */
+    private function makeSession(string $plugIn, ?string $plugOut): ReeferPlugSession
     {
         $eqt = EquipmentType::all()->first(fn ($e) => $e->isReefer())
             ?? $this->fail('No reefer equipment type is seeded.');

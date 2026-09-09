@@ -80,6 +80,25 @@ class MyFlowTest extends FeatureTestCase
 }
 ```
 
+### Fixture names that collide with the base class
+
+`Illuminate\Foundation\Testing\TestCase` declares public helpers, and PHP
+forbids narrowing an inherited method's visibility — so a `private function`
+of the same name is a **fatal error at class load**, not a test failure. No
+test in the file runs, and the message points at the fixture rather than the
+collision:
+
+```
+Access level to Tests\...\MyTest::session() must be public
+(as in class Illuminate\Foundation\Testing\TestCase)
+```
+
+`session()` is the one that keeps catching people out — it seeds session data
+for a request, and it is also the obvious name for a fixture that builds a
+reefer plug session. Name such fixtures `makeSession()`. The same applies to
+`get`, `post`, `put`, `patch`, `delete`, `json`, `call`, `from`, `withHeaders`,
+`followingRedirects`, `artisan`, `travel` and `app`.
+
 ## Coverage map
 
 **Phase 1** — harness + factories + CI, smoke across all screens, and E2E for
