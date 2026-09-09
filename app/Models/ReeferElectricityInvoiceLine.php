@@ -9,7 +9,7 @@ class ReeferElectricityInvoiceLine extends Model
     protected $fillable = [
         'reefer_electricity_invoice_id', 'plug_session_id',
         'container_id', 'container_no',
-        'plug_in_at', 'plug_out_at', 'billing_mode',
+        'plug_in_at', 'plug_out_at', 'billed_from', 'billed_to', 'is_interim', 'billing_mode',
         'total_hours', 'total_days', 'free_hours', 'free_days',
         'chargeable_hours', 'chargeable_days',
         'rate', 'currency', 'subtotal',
@@ -20,6 +20,9 @@ class ReeferElectricityInvoiceLine extends Model
     protected $casts = [
         'plug_in_at'       => 'datetime',
         'plug_out_at'      => 'datetime',
+        'billed_from'      => 'date',
+        'billed_to'        => 'date',
+        'is_interim'       => 'boolean',
         'total_hours'      => 'decimal:2',
         'free_hours'       => 'decimal:2',
         'chargeable_hours' => 'decimal:2',
