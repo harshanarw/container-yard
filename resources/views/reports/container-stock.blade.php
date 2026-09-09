@@ -33,6 +33,18 @@
         <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-printer me-1"></i>Print
         </button>
+        {{-- request()->query() carries the as-at date and every filter through,
+             so the file always describes the selection on screen. --}}
+        <a href="{{ route('reports.container-stock.export', array_merge(request()->query(), ['as_at' => $asAt])) }}"
+           class="btn btn-outline-success btn-sm">
+            <i class="bi bi-filetype-csv me-1"></i>Export CSV
+        </a>
+        @if(\App\Support\Export\TabularExport::supports('xlsx'))
+        <a href="{{ route('reports.container-stock.export', array_merge(request()->query(), ['as_at' => $asAt, 'format' => 'xlsx'])) }}"
+           class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+        </a>
+        @endif
     </div>
 </div>
 

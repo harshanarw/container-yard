@@ -215,7 +215,72 @@ class ContainerStockAsAtTest extends FeatureTestCase
             ->assertSee('19 Nov 2026');
     }
 
+    // ── Exports ─────────────────────────────────────────────────────────────
+
+    public function test_the_csv_carries_the_as_at_date_in_the_filename_and_every_row(): void
+    {
+        $c = $this->arrived('2026-09-01 08:00:00');
+
+        $response = $this->get(route('reports.container-stock.export', ['as_at' => self::AS_AT]));
+        $response->assertOk();
+
+        $this->assertStringContainsString(
+            'container-stock-as-at-2026-09-30',
+            $response->headers->get('content-disposition'),
+            'A stock file that has lost its date cannot be checked later.',
+        );
+
+        $csv = $response->streamedContent();
+        $this->assertStringContainsString('As At,Container No', $csv);
+        $this->assertStringContainsString('2026-09-30,' . $c->container_no, $csv);
+    }
+
+    /** The file must describe the same selection as the page it came from. */
+    public function test_the_export_applies_the_same_filters_as_the_screen(): void
+    {
+        $twenty = $this->arrived('2026-09-01 08:00:00', null, ['size' => '20']);
+        $forty  = $this->arrived('2026-09-02 08:00:00', null, ['size' => '40']);
+
+        $csv = $this->get(route('reports.container-stock.export', [
+            'as_at' => self::AS_AT,
+            'size'  => '20',
+        ]))->assertOk()->streamedContent();
+
+        $this->assertStringContainsString($twenty->container_no, $csv);
+        $this->assertStringNotContainsString($forty->container_no, $csv);
+    }
+
+    /** A container out by the as-at date is off the file, not just off the screen. */
+    public function test_the_export_excludes_what_the_report_excludes(): void
+    {
+        $gone = $this->arrived('2026-09-01 08:00:00');
+        $this->departed($gone, '2026-09-20 09:00:00');
+
+        $csv = $this->get(route('reports.container-stock.export', ['as_at' => self::AS_AT]))
+            ->assertOk()->streamedContent();
+
+        $this->assertStringNotContainsString($gone->container_no, $csv);
+    }
+
+    public function test_the_export_spells_out_what_the_screen_shows_as_a_badge(): void
+    {
+        $this->arrived('2026-09-01 08:00:00', null, ['condition' => 'require_repair']);
+
+        $csv = $this->get(route('reports.container-stock.export', ['as_at' => self::AS_AT]))
+            ->assertOk()->streamedContent();
+
+        $this->assertStringContainsString('Require Repair', $csv, 'A file has no colours to read.');
+    }
+
+    public function test_the_export_refuses_a_future_date(): void
+    {
+        $this->from(route('reports.container-stock'))
+            ->get(route('reports.container-stock.export', ['as_at' => '2026-12-25']))
+            ->assertSessionHasErrors('as_at');
+    }
+
     // ── Fixtures ────────────────────────────────────────────────────────────
+
 
     private function stockHas(Container $c, array $filters = []): bool
     {

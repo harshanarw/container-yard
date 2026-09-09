@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\EquipmentType;
 use App\Services\Reporting\ContainerStockAsAt;
+use App\Support\Export\TabularExport;
 use Illuminate\Http\Request;
 
 /**
@@ -29,26 +30,7 @@ class ContainerStockController extends Controller
 
     public function index(Request $request)
     {
-        $validated = $request->validate([
-            // Defaults to yesterday: today's stock is still moving, and the
-            // question is nearly always asked about a closed day.
-            'as_at'        => 'nullable|date|before_or_equal:' . now()->toDateString(),
-            'customer_id'  => 'nullable|exists:customers,id',
-            'size'         => 'nullable|in:20,40,45',
-            'type_code'    => 'nullable|string|max:4',
-            'cargo_status' => 'nullable|in:empty,laden',
-            'condition'    => 'nullable|in:sound,damaged,require_repair',
-        ], [], ['as_at' => 'as-at date']);
-
-        $asAt = $validated['as_at'] ?? now()->subDay()->toDateString();
-
-        $filters = [
-            'customer_id'  => $validated['customer_id']  ?? null,
-            'size'         => $validated['size']         ?? null,
-            'type_code'    => $validated['type_code']    ?? null,
-            'cargo_status' => $validated['cargo_status'] ?? null,
-            'condition'    => $validated['condition']    ?? null,
-        ];
+        [$asAt, $filters] = $this->parameters($request);
 
         $rows    = ContainerStockAsAt::rows($asAt, $filters);
         $summary = ContainerStockAsAt::summary($rows);
@@ -64,5 +46,99 @@ class ContainerStockController extends Controller
         return view('reports.container-stock', compact(
             'rows', 'summary', 'asAt', 'filters', 'customers', 'typeCodes', 'unplaceable',
         ));
+    }
+
+    /**
+     * The same stock, as a file.
+     *
+     * Mirrors the columns on screen with the badges resolved to the words they
+     * stand for -- a spreadsheet cannot show a colour, and "Require Repair" is
+     * what the person reading the file needs.
+     *
+     * The as-at date is carried twice on purpose: in the filename, so the file
+     * can be filed and found, and as the **first column of every row**, so it
+     * survives being sorted, filtered or pasted into another sheet. A stock file
+     * that has lost its date cannot be checked against anything later, which for
+     * a document sent to a customer is worse than not producing it.
+     */
+    public function export(Request $request)
+    {
+        [$asAt, $filters] = $this->parameters($request);
+
+        $rows      = ContainerStockAsAt::rows($asAt, $filters);
+        $asAtLabel = \Illuminate\Support\Carbon::parse($asAt)->format('Y-m-d');
+
+        return TabularExport::stream(
+            $request->input('format'),
+            'container-stock-as-at-' . $asAtLabel,
+            [
+                'As At', 'Container No', 'Size', 'Type', 'Cargo Status', 'Reefer Mode',
+                'Condition', 'Customer', 'Gate In', 'Days In Yard', 'Location',
+                'Job No', 'Job Type', 'Stage',
+            ],
+            function () use ($rows, $asAtLabel) {
+                foreach ($rows as $row) {
+                    yield [
+                        $asAtLabel,
+                        $row['container_no'],
+                        $row['size'],
+                        $row['type_code'],
+                        $this->words($row['cargo_status']),
+                        // Blank rather than "Operating" for a dry box: a reefer
+                        // mode on a general-purpose container would read as a
+                        // fact about it that is not true.
+                        $row['reefer_mode'] ? $this->words($row['reefer_mode']) : '',
+                        $this->words($row['condition']),
+                        $row['customer'],
+                        $row['gate_in_time']?->format('Y-m-d H:i'),
+                        $row['days_in_yard'],
+                        $row['location'],
+                        $row['job_no'],
+                        $row['job_type'],
+                        $this->words($row['stage']),
+                    ];
+                }
+            },
+        );
+    }
+
+    /**
+     * The date and filters, resolved once.
+     *
+     * Both the screen and the export read them from here so a file can never
+     * describe a different selection from the page it was downloaded off --
+     * the same reason `availableStockRows()` and `inventoryQuery()` exist.
+     *
+     * @return array{0: string, 1: array<string, mixed>}
+     */
+    private function parameters(Request $request): array
+    {
+        $validated = $request->validate([
+            // Defaults to yesterday: today's stock is still moving, and the
+            // question is nearly always asked about a closed day.
+            'as_at'        => 'nullable|date|before_or_equal:' . now()->toDateString(),
+            'customer_id'  => 'nullable|exists:customers,id',
+            'size'         => 'nullable|in:20,40,45',
+            'type_code'    => 'nullable|string|max:4',
+            'cargo_status' => 'nullable|in:empty,laden',
+            'condition'    => 'nullable|in:sound,damaged,require_repair',
+        ], [], ['as_at' => 'as-at date']);
+
+        return [
+            $validated['as_at'] ?? now()->subDay()->toDateString(),
+            [
+                'customer_id'  => $validated['customer_id']  ?? null,
+                'size'         => $validated['size']         ?? null,
+                'type_code'    => $validated['type_code']    ?? null,
+                'cargo_status' => $validated['cargo_status'] ?? null,
+                'condition'    => $validated['condition']    ?? null,
+            ],
+        ];
+    }
+
+    /** `require_repair` reads as "Require Repair" in a file with no badges. */
+    private function words(?string $value): string
+    {
+        return $value ? ucwords(str_replace('_', ' ', $value)) : '';
     }
 }

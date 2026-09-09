@@ -329,6 +329,7 @@ Route::middleware(['auth'])->group(function () {
         // controller rather than by this group's middleware, like Gate Data
         // Check and Weekly Revenue above.
         Route::get('/container-stock',                  [\App\Http\Controllers\ContainerStockController::class, 'index'])->name('container-stock');
+        Route::get('/container-stock/export',           [\App\Http\Controllers\ContainerStockController::class, 'export'])->name('container-stock.export');
         Route::get('/weekly-performance',               [ReportController::class, 'weeklyPerformance'])->name('weekly-performance');
         Route::get('/weekly-performance/export',        [ReportController::class, 'exportWeeklyPerformance'])->name('weekly-performance.export');
         Route::get('/weekly-performance/export/csv',    [ReportController::class, 'exportWeeklyPerformanceCsv'])->name('weekly-performance.export.csv');
