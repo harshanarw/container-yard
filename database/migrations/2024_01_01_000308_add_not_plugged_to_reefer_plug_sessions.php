@@ -32,26 +32,23 @@ return new class extends Migration
              ENUM('pending','active','completed','billed','not_plugged') NOT NULL DEFAULT 'pending'"
         );
 
-        // Re-label the history. A completed session with no plug-in never ran,
-        // whatever its status said — this changes the label, not the facts.
+        // **No backfill, deliberately.**
         //
-        // Deliberately keyed on plug_in_at alone: a session with a plug-in but
-        // no plug-out is a different problem (someone forgot to unplug it) and
-        // is not this migration's to reinterpret.
-        $relabelled = DB::table('reefer_plug_sessions')
-            ->where('status', 'completed')
-            ->whereNull('plug_in_at')
-            ->update(['status' => 'not_plugged', 'updated_at' => now()]);
-
-        if ($relabelled > 0) {
-            info("[reefer] {$relabelled} plug session(s) re-labelled completed → not_plugged.");
-        }
+        // The obvious next line is to re-label every completed session with no
+        // plug-in. On the yard that found this, that would have been seventeen
+        // sessions totalling 310 container-days, including stays of 35, 37 and
+        // 95 days — on *laden* reefers, whose cargo does not survive five weeks
+        // without power. They were plugged in. What was never recorded is the
+        // plug-in, and the screen agrees: Currently Active 0, Billed 0, so that
+        // step has not been used once.
+        //
+        // Stamping "not plugged" on unbilled electricity would bury it under a
+        // label that reads like a decision. `reefer:unplugged-sessions` lists
+        // them instead, so the yard can enter the times it can reconstruct and
+        // mark only the rest.
     }
 
-    /**
-     * Puts them back the way they were, wrong label and all, so the rollback is
-     * a true reversal rather than a second opinion.
-     */
+    /** Anything already marked not_plugged goes back to completed first. */
     public function down(): void
     {
         DB::table('reefer_plug_sessions')
