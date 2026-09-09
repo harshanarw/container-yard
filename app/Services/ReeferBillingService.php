@@ -125,11 +125,19 @@ class ReeferBillingService
     ): array {
         $customer = Customer::findOrFail($customerId);
 
-        // Only sessions of the requested bill type (PTI vs Long-Term).
+        // Only sessions of the requested bill type (PTI vs Long-Term), and only
+        // ones a charge can be computed from.
+        //
+        // `unbilled()` carries the timestamp guard. Selecting on the status
+        // alone pulled in sessions with no plug-in, which line() then dropped by
+        // returning null — so they vanished from the invoice with nothing said,
+        // and the only symptom was a container the yard expected to see on the
+        // bill and did not. Excluded here instead, where it is one condition
+        // rather than a silent discard further down.
         $sessionsQuery = ReeferPlugSession::with(['container.equipmentType'])
             ->where('customer_id', $customerId)
             ->where('service_type', $serviceType)
-            ->where('status', 'completed');
+            ->unbilled();
 
         if ($periodFrom) {
             $sessionsQuery->where('plug_in_at', '>=', $periodFrom . ' 00:00:00');

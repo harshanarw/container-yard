@@ -76,9 +76,25 @@ class ReeferPlugSession extends Model
         return $query->where('status', 'completed');
     }
 
+    /** Left the yard without a plug-in ever being recorded. */
+    public function scopeNotPlugged($query)
+    {
+        return $query->where('status', 'not_plugged');
+    }
+
+    /**
+     * Completed *and* actually chargeable.
+     *
+     * The timestamp guard is belt and braces alongside the `not_plugged`
+     * status: a completed session missing either end bills nothing, and it is
+     * better for a malformed row to be absent from the list than to sit in it
+     * producing a silent zero.
+     */
     public function scopeUnbilled($query)
     {
-        return $query->where('status', 'completed');
+        return $query->where('status', 'completed')
+            ->whereNotNull('plug_in_at')
+            ->whereNotNull('plug_out_at');
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -87,6 +103,21 @@ class ReeferPlugSession extends Model
     public function isActive(): bool    { return $this->status === 'active'; }
     public function isCompleted(): bool { return $this->status === 'completed'; }
     public function isBilled(): bool    { return $this->status === 'billed'; }
+    public function isNotPlugged(): bool { return $this->status === 'not_plugged'; }
+
+    /** Whether this session has the two timestamps a charge is computed from. */
+    public function isBillable(): bool
+    {
+        return $this->status === 'completed' && $this->plug_in_at && $this->plug_out_at;
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'not_plugged' => 'Not Plugged In',
+            default       => ucfirst(str_replace('_', ' ', (string) $this->status)),
+        };
+    }
 
     public function getStatusBadgeClassAttribute(): string
     {
@@ -95,6 +126,9 @@ class ReeferPlugSession extends Model
             'active'    => 'bg-success-subtle text-success border border-success-subtle',
             'completed' => 'bg-info-subtle text-info border border-info-subtle',
             'billed'    => 'bg-secondary-subtle text-secondary',
+            // Muted rather than red: not an error, just a reefer that was never
+            // plugged in — which for a NOR is the correct outcome.
+            'not_plugged' => 'bg-light text-muted border',
             default     => 'bg-light text-muted',
         };
     }

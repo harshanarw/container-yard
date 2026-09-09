@@ -56,6 +56,7 @@
             <option value="active"    {{ request('status') === 'active'    ? 'selected' : '' }}>Active</option>
             <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
             <option value="billed"    {{ request('status') === 'billed'    ? 'selected' : '' }}>Billed</option>
+            <option value="not_plugged" {{ request('status') === 'not_plugged' ? 'selected' : '' }}>Not Plugged In</option>
         </select>
     </div>
     <div class="col-auto">
@@ -123,7 +124,7 @@
                         @endif
                     </td>
                     <td>
-                        <span class="badge {{ $session->status_badge_class }}">{{ ucfirst($session->status) }}</span>
+                        <span class="badge {{ $session->status_badge_class }}">{{ $session->status_label }}</span>
                     </td>
                     <td class="text-end">
                         <a href="{{ route('yard.reefer.show', $session) }}" class="btn btn-sm btn-outline-secondary me-1" title="View">

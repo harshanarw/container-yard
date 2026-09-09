@@ -36,7 +36,10 @@ class ReeferController extends Controller
         $stats = [
             'pending'   => ReeferPlugSession::where('status', 'pending')->count(),
             'active'    => ReeferPlugSession::where('status', 'active')->count(),
-            'completed' => ReeferPlugSession::where('status', 'completed')->count(),
+            // Only sessions a bill can actually be raised from. Counting every
+            // 'completed' row overstated this: a session with no plug-in is
+            // unbillable, and the number is read as work waiting to be invoiced.
+            'completed' => ReeferPlugSession::unbilled()->count(),
             'billed'    => ReeferPlugSession::where('status', 'billed')->count(),
         ];
 
