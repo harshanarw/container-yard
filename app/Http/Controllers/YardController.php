@@ -1243,14 +1243,118 @@ class YardController extends Controller
             }
         }
 
-        $movement->delete();
+        // Deleting a gate-out has to undo what recording it did, in one
+        // transaction with the delete itself. Removing the movement while
+        // leaving the container `released` strands it: the movements list still
+        // shows it, the gate-out search — which reads `containers.status` — does
+        // not, and its storage stops accruing. That state is invisible to every
+        // check the system has, so it survives until someone needs the box.
+        $restored = DB::transaction(function () use ($movement) {
+            $restored = $this->restoreVisitAfterGateOutDelete($movement);
+            $movement->delete();
+
+            return $restored;
+        });
 
         $fallback  = route('yard.gate') . '?tab=' . $tab;
         $redirectTo = request('_redirect', $fallback);
 
         return redirect()
             ->to($redirectTo)
-            ->with('success', "Gate movement for {$ref} deleted. Verify the container status is correct.");
+            ->with('success', $restored
+                ? "Gate movement for {$ref} deleted. The container is back in the yard and its storage is accruing again."
+                : "Gate movement for {$ref} deleted.");
+    }
+
+    /**
+     * Put a container back in the yard after its gate-out is deleted.
+     *
+     * Recording a gate-out writes three things: the movement, `containers`
+     * (status and gate_out_date), and the `yard_storage` stay (closed, with its
+     * day counts). Deleting the movement used to reverse only the first.
+     *
+     * Safe to do here because an invoice makes the delete a hard block — a draft,
+     * issued or paid line for this cycle stops it in `buildDeleteBlocks()` — so
+     * reopening a stay can never contradict a live invoice.
+     *
+     * @return bool whether anything was restored, so the operator is told
+     */
+    private function restoreVisitAfterGateOutDelete(GateMovement $movement): bool
+    {
+        if ($movement->movement_type !== 'out' || ! $movement->container_id) {
+            return false;
+        }
+
+        $container = Container::find($movement->container_id);
+
+        if (! $container) {
+            return false;
+        }
+
+        // The arrival this gate-out closed: the newest gate-in at or before it.
+        $gateIn = GateMovement::where('container_id', $container->id)
+            ->where('movement_type', 'in')
+            ->whereNotNull('gate_in_time')
+            ->when($movement->gate_out_time, fn ($q) => $q->where('gate_in_time', '<=', $movement->gate_out_time))
+            ->orderByDesc('gate_in_time')
+            ->first();
+
+        // No arrival to come back to. `NO_GATE_IN` in Gate Data Check covers this
+        // shape already, and inventing an in-yard container here would be worse
+        // than leaving it for the operator to look at.
+        if (! $gateIn) {
+            return false;
+        }
+
+        // Another gate-out already closes the same visit, so the container did
+        // leave and this row was a duplicate.
+        $stillClosed = GateMovement::where('container_id', $container->id)
+            ->where('movement_type', 'out')
+            ->where('id', '!=', $movement->id)
+            ->whereNotNull('gate_out_time')
+            ->where('gate_out_time', '>=', $gateIn->gate_in_time)
+            ->exists();
+
+        if ($stillClosed) {
+            return false;
+        }
+
+        $restored = false;
+
+        // Only from `released`. A container someone has already put back by hand,
+        // or moved to `in_repair`, is not this method's to overwrite.
+        if ($container->status === 'released') {
+            $container->update([
+                'status'            => 'in_yard',
+                'gate_out_date'     => null,
+                'status_changed_at' => now(),
+            ]);
+            $restored = true;
+        }
+
+        // Reopen the stay this gate-out closed, back to the shape gate-in
+        // creates: open, with the day counts at zero. `free_days` and
+        // `daily_rate` were set at gate-in and are left alone.
+        if ($movement->gate_out_time) {
+            $storage = YardStorage::where('container_id', $container->id)
+                ->whereIn('hire_type', ['normal', 'resumed'])
+                ->whereDate('gate_out_date', $movement->gate_out_time->toDateString())
+                ->latest('gate_in_date')
+                ->first();
+
+            if ($storage) {
+                $storage->update([
+                    'gate_out_date'   => null,
+                    'total_days'      => 0,
+                    'chargeable_days' => 0,
+                    'subtotal'        => 0,
+                    'total_charge'    => 0,
+                ]);
+                $restored = true;
+            }
+        }
+
+        return $restored;
     }
 
     /** Build the blocks/warnings arrays used by both deleteCheck and destroyMovement. */

@@ -28,6 +28,7 @@ class GateDataCheck
     public const FUTURE_GATE_IN = 'future_gate_in';
     public const OUT_BEFORE_IN  = 'out_before_in';
     public const NO_GATE_IN     = 'no_gate_in';
+    public const RELEASED_IN_YARD = 'released_in_yard';
 
     /** @return array<string,string> */
     public static function labels(): array
@@ -36,6 +37,7 @@ class GateDataCheck
             self::FUTURE_GATE_IN => 'Gate-in in the future',
             self::OUT_BEFORE_IN  => 'Out before In',
             self::NO_GATE_IN     => 'No gate-in recorded',
+            self::RELEASED_IN_YARD => 'Released, but never gated out',
         ];
     }
 
@@ -133,6 +135,28 @@ class GateDataCheck
                 . ', with no arrival on record for this container.');
         }
 
+        // Marked as gone with nothing to show for it. Reached by deleting a
+        // gate-out before that delete put the container back — and by the
+        // release paths that never write a movement at all, such as a cargo
+        // transfer.
+        //
+        // Judged against the arrival, because that is the row still on file. The
+        // M&R ladder's `released_no_movement` rung does not cover this: it
+        // requires *no* gate-in, so a container with one falls through it, and
+        // through every other check here. That gap is why this shape can sit
+        // unnoticed for weeks — invisible to the gate-out search, which reads
+        // `containers.status`, while the movements list still shows it.
+        if ($movement->movement_type === 'in'
+            && $movement->container?->status === 'released'
+            && ! ($visit['gate_out'] ?? null)) {
+            return $this->finding($movement, self::RELEASED_IN_YARD,
+                'In ' . $movement->gate_in_time?->format('d M Y H:i')
+                . ', but the container is marked released with no departure on record'
+                . ($movement->container->gate_out_date
+                    ? ', dated ' . $movement->container->gate_out_date->format('d M Y') . '.'
+                    : '.'));
+        }
+
         return null;
     }
 
@@ -164,7 +188,7 @@ class GateDataCheck
     private function movements(array $filters)
     {
         return GateMovement::query()
-            ->with('customer:id,name')
+            ->with(['customer:id,name', 'container:id,status,gate_out_date'])
             ->when($filters['customer_id'] ?? null, fn ($q, $v) => $q->where('customer_id', $v))
             ->when($filters['from'] ?? null, fn ($q, $v) => $q->where(fn ($s) => $s
                 ->whereDate('gate_in_time', '>=', $v)->orWhereDate('gate_out_time', '>=', $v)))
