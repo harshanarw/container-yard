@@ -123,7 +123,10 @@ class GateOutShowsVisitCustomerTest extends FeatureTestCase
      */
     public function test_the_search_resolves_many_containers_without_a_query_per_row(): void
     {
-        foreach (['BAT1234567A', 'BAT1234567B', 'BAT1234567C'] as $no) {
+        // ISO 6346 shape: four letters then seven digits. The gate validates
+        // the format, so a fixture that ignores it never gets past gate-in and
+        // the test fails on the fixture rather than on what it is testing.
+        foreach (['BATA1234567', 'BATB1234567', 'BATC1234567'] as $no) {
             $this->driftedContainer($no);
         }
 
@@ -132,8 +135,8 @@ class GateOutShowsVisitCustomerTest extends FeatureTestCase
         // makes the test a tripwire for unrelated framework work. What matters
         // is that resolving the visit customer costs the same for three rows as
         // for one.
-        $one   = $this->queriesForSearch('BAT1234567A');
-        $three = $this->queriesForSearch('BAT123456');
+        $one   = $this->queriesForSearch('BATA1234567');
+        $three = $this->queriesForSearch('BAT');
 
         $this->assertSame(3, $three['rows'], 'All three containers should match the shorter query.');
         foreach ($three['results'] as $row) {
