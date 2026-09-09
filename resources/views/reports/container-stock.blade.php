@@ -26,13 +26,18 @@
     <div>
         <h4><i class="bi bi-clipboard-data me-2 text-primary"></i>Container Stock</h4>
         <p class="text-muted mb-0 small">
-            Containers in the yard as at <strong>{{ $asAtLabel }}</strong>, measured at end of day
+            @if($ran)
+                Containers in the yard as at <strong>{{ $asAtLabel }}</strong>, measured at end of day
+            @else
+                What was in the yard on a chosen date, by shipping line
+            @endif
         </p>
     </div>
     <div class="d-flex flex-wrap gap-2 no-print">
         <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-printer me-1"></i>Print
         </button>
+        @if($ran)
         {{-- request()->query() carries the as-at date and every filter through,
              so the file always describes the selection on screen. --}}
         <a href="{{ route('reports.container-stock.export', array_merge(request()->query(), ['as_at' => $asAt])) }}"
@@ -44,6 +49,7 @@
            class="btn btn-outline-success btn-sm">
             <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
         </a>
+        @endif
         @endif
     </div>
 </div>
@@ -104,6 +110,22 @@
         </form>
     </div>
 </div>
+
+@if(! $ran)
+    {{-- Deliberately empty until asked. The pairing pass reads every movement
+         of every container that ever arrived, so a bare page load would pay
+         for a result nobody has requested. --}}
+    <div class="card shadow-sm">
+        <div class="card-body text-center text-muted py-5">
+            <i class="bi bi-calendar-check fs-1 d-block mb-2 opacity-25"></i>
+            <div class="fw-medium">Choose an as-at date and press <strong>Show Stock</strong>.</div>
+            <div class="small mt-1">
+                Pick a customer to produce a statement for one shipping line, or leave it
+                blank for the whole yard.
+            </div>
+        </div>
+    </div>
+@else
 
 {{-- Summary --}}
 <div class="row g-3 mb-3">
@@ -236,5 +258,7 @@
         @endif
     </div>
 </div>
+
+@endif
 
 @endsection

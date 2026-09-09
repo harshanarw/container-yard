@@ -33,19 +33,30 @@ class ContainerStockController extends Controller
     {
         [$asAt, $filters] = $this->parameters($request);
 
-        $rows    = ContainerStockAsAt::rows($asAt, $filters);
-        $summary = ContainerStockAsAt::summary($rows);
+        // Nothing runs until a date is asked for.
+        //
+        // Opening the report from the menu should not fire the heaviest query
+        // in the module. The pairing pass reads every movement of every
+        // container that ever arrived -- history, not stock -- so its cost
+        // grows with the age of the yard, and a bare page load would pay it for
+        // a result nobody has asked for yet.
+        //
+        // The as-at date is the trigger rather than a separate flag, so a
+        // bookmarked or shared URL carrying a date still loads straight away.
+        $ran = $request->filled('as_at');
 
+        $rows        = $ran ? ContainerStockAsAt::rows($asAt, $filters) : collect();
+        $summary     = ContainerStockAsAt::summary($rows);
         // Containers whose movements cannot be placed in time are absent from
         // the rows. Saying so is the difference between a short count the
         // customer queries and one they can reconcile.
-        $unplaceable = ContainerStockAsAt::unplaceableCount();
+        $unplaceable = $ran ? ContainerStockAsAt::unplaceableCount() : 0;
 
         $customers = Customer::where('status', 'active')->orderBy('name')->get();
         $typeCodes = EquipmentType::orderBy('type_code')->pluck('type_code')->unique()->values();
 
         return view('reports.container-stock', compact(
-            'rows', 'summary', 'asAt', 'filters', 'customers', 'typeCodes', 'unplaceable',
+            'rows', 'summary', 'asAt', 'filters', 'customers', 'typeCodes', 'unplaceable', 'ran',
         ));
     }
 

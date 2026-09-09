@@ -209,11 +209,33 @@ class ContainerStockAsAtTest extends FeatureTestCase
             ->assertSessionHasErrors('as_at');
     }
 
-    public function test_the_screen_defaults_to_yesterday(): void
+    /**
+     * Opening the report runs nothing.
+     *
+     * The pairing pass reads every movement of every container that ever
+     * arrived, so a bare page load would pay the heaviest query in the module
+     * for a result nobody has asked for.
+     */
+    public function test_opening_the_report_loads_no_stock(): void
     {
+        $c = $this->arrived('2026-09-01 08:00:00');
+
         $this->get(route('reports.container-stock'))
             ->assertOk()
-            ->assertSee('19 Nov 2026');
+            ->assertSee('Show Stock')
+            ->assertDontSee($c->container_no)
+            // The date field is still pre-filled, so one click runs it.
+            ->assertSee('value="2026-11-19"', false);
+    }
+
+    /** A bookmarked or shared URL carrying a date still loads straight away. */
+    public function test_a_url_with_a_date_runs_without_a_second_click(): void
+    {
+        $c = $this->arrived('2026-09-01 08:00:00');
+
+        $this->get(route('reports.container-stock', ['as_at' => self::AS_AT]))
+            ->assertOk()
+            ->assertSee($c->container_no);
     }
 
     // ── Exports ─────────────────────────────────────────────────────────────

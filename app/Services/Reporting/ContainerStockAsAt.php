@@ -47,32 +47,30 @@ class ContainerStockAsAt
     {
         $cutoff = Carbon::parse($asAt)->endOfDay();
 
-        // Only containers that had arrived by the cutoff can be in stock, so the
-        // candidate set is narrowed in SQL before any pairing happens. The index
-        // from migration 000303 (movement_type + gate_in_time) covers this.
-        $containerIds = GateMovement::query()
-            ->where('movement_type', 'in')
-            ->whereNotNull('gate_in_time')
-            ->where('gate_in_time', '<=', $cutoff)
+        // ── Pass 1: pairing ──────────────────────────────────────────────────
+        //
+        // This pass touches every movement of every container that had arrived
+        // by the cutoff -- history, not stock -- so it has to stay cheap. Only
+        // the columns the matcher reads are selected, and no relations are
+        // loaded: hydrating a customer and an equipment type for every movement
+        // ever recorded is work thrown away for all but the open visits.
+        //
+        // `whereExists` rather than a plucked id list, which on a long-running
+        // yard would be tens of thousands of ids sent back into an IN clause.
+        $movements = GateMovement::query()
             ->whereNotNull('container_id')
-            ->distinct()
-            ->pluck('container_id');
-
-        if ($containerIds->isEmpty()) {
-            return collect();
-        }
-
-        $movements = GateMovement::with([
-                'container.equipmentType',
-                'customer',
-                'yardJob.jobType',
-            ])
-            ->whereIn('container_id', $containerIds)
-            ->get()
+            ->whereExists(fn ($q) => $q
+                ->selectRaw('1')
+                ->from('gate_movements as arrival')
+                ->whereColumn('arrival.container_id', 'gate_movements.container_id')
+                ->where('arrival.movement_type', 'in')
+                ->whereNotNull('arrival.gate_in_time')
+                ->where('arrival.gate_in_time', '<=', $cutoff))
+            ->get(['id', 'container_id', 'movement_type', 'gate_in_time', 'gate_out_time', 'yard_job_id'])
             ->groupBy('container_id');
 
-        $pairer = app(ContainerMrStatusService::class);
-        $rows   = [];
+        $pairer  = app(ContainerMrStatusService::class);
+        $openIds = [];
 
         foreach ($movements as $perContainer) {
             $gateIns  = $perContainer->where('movement_type', 'in')
@@ -91,9 +89,26 @@ class ContainerStockAsAt
             // eventually disagree with all three.
             $map = $pairer->pairGateOuts($gateIns, $gateOuts);
 
-            $open = static::visitOpenAt($gateIns, $map, $cutoff);
+            if ($open = static::visitOpenAt($gateIns, $map, $cutoff)) {
+                $openIds[] = $open->id;
+            }
+        }
 
-            if ($open && ($row = static::row($open, $cutoff, $filters))) {
+        if (! $openIds) {
+            return collect();
+        }
+
+        // ── Pass 2: the rows ─────────────────────────────────────────────────
+        //
+        // Relations are loaded only for the visits that were actually open, so
+        // this pass scales with the size of the yard rather than the size of its
+        // history.
+        $rows = [];
+
+        foreach (GateMovement::with(['container.equipmentType', 'customer', 'yardJob.jobType'])
+            ->whereIn('id', $openIds)
+            ->get() as $gateIn) {
+            if ($row = static::row($gateIn, $cutoff, $filters)) {
                 $rows[] = $row;
             }
         }
