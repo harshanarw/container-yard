@@ -79,15 +79,31 @@
                 </div>
 
                 <div class="col-6 col-md-1">
-                    <label class="form-label form-label-sm mb-1">Gate In From</label>
+                    <label class="form-label form-label-sm mb-1">Date From</label>
                     <input type="date" name="date_from" class="form-control form-control-sm"
                            value="{{ $filters['date_from'] ?? '' }}">
                 </div>
 
                 <div class="col-6 col-md-1">
-                    <label class="form-label form-label-sm mb-1">Gate In To</label>
+                    <label class="form-label form-label-sm mb-1">Date To</label>
                     <input type="date" name="date_to" class="form-control form-control-sm"
                            value="{{ $filters['date_to'] ?? '' }}">
+                </div>
+
+                {{-- Which gate the date range is measured against. The labels
+                     above used to say "Gate In From/To" because that is all the
+                     filter could do; a box that arrived in June and left in
+                     August was absent from an August search. --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label form-label-sm mb-1">Movement</label>
+                    <select name="movement_scope" class="form-select form-select-sm">
+                        @foreach(\App\Services\ContainerInquiryService::MOVEMENT_SCOPES as $value => $label)
+                            <option value="{{ $value }}"
+                                {{ ($filters['movement_scope'] ?? 'either') === $value ? 'selected' : '' }}>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
             </div>

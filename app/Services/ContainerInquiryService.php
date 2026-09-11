@@ -22,6 +22,101 @@ use Illuminate\Support\Collection;
 class ContainerInquiryService
 {
     /**
+     * Movement types the date window may be measured against.
+     *
+     * `either` is the default because "movements between these dates" means any
+     * movement in the window. The other two stay reachable: "which boxes
+     * arrived in August" is still a real question, and it was the only one this
+     * screen could answer before.
+     */
+    public const MOVEMENT_SCOPES = [
+        'either' => 'Arrived or departed',
+        'in'     => 'Arrived only',
+        'out'    => 'Departed only',
+    ];
+
+    /**
+     * The date window, measured against whichever gate the operator means.
+     *
+     * Both bounds used to test `gate_in_time`, so a search for August returned
+     * containers that *arrived* in August. A box that arrived in June and left
+     * in August -- whose gate-out is the very event being looked for -- was
+     * absent, and nothing said so. The same mistake as the reefer bill
+     * excluding sessions that crossed a period boundary: a period filter
+     * applied to one end of a two-ended thing.
+     *
+     * The gate-out half is expressed as the pairing rule in SQL: a departure
+     * belongs to this arrival when it shares the visit's job, or when it falls
+     * between this arrival and the container's next one. That mirrors
+     * {@see ContainerMrStatusService::pairGateOuts()}, which still does the
+     * authoritative pairing for display -- this only decides which rows are
+     * selected.
+     *
+     * The one thing SQL cannot mirror is "earliest *unused* gate-out": with two
+     * departures inside one window either will satisfy the predicate. The visit
+     * genuinely has a departure in the window either way, so the row belongs in
+     * the result; only which gate-out is shown is decided in PHP, and that stays
+     * with the matcher.
+     */
+    private function applyMovementWindow($query, array $filters): void
+    {
+        $from  = $filters['date_from'] ?? null;
+        $to    = $filters['date_to']   ?? null;
+        $scope = $filters['movement_scope'] ?? 'either';
+
+        if (! $from && ! $to) {
+            return;
+        }
+
+        if (! array_key_exists($scope, self::MOVEMENT_SCOPES)) {
+            $scope = 'either';
+        }
+
+        $arrivedInWindow = function ($q) use ($from, $to) {
+            $q->when($from, fn ($w) => $w->whereDate('gate_in_time', '>=', $from))
+              ->when($to,   fn ($w) => $w->whereDate('gate_in_time', '<=', $to));
+        };
+
+        $departedInWindow = function ($q) use ($from, $to) {
+            $q->whereExists(function ($sub) use ($from, $to) {
+                $sub->selectRaw('1')
+                    ->from('gate_movements as departure')
+                    ->whereColumn('departure.container_id', 'gate_movements.container_id')
+                    ->where('departure.movement_type', 'out')
+                    ->whereNotNull('departure.gate_out_time')
+                    ->when($from, fn ($w) => $w->whereDate('departure.gate_out_time', '>=', $from))
+                    ->when($to,   fn ($w) => $w->whereDate('departure.gate_out_time', '<=', $to))
+                    // Belongs to *this* visit: the shared job settles it
+                    // outright, otherwise it must fall at or after this arrival.
+                    ->where(function ($w) {
+                        $w->where(function ($j) {
+                            $j->whereNotNull('gate_movements.yard_job_id')
+                              ->whereColumn('departure.yard_job_id', 'gate_movements.yard_job_id');
+                        })->orWhereColumn('departure.gate_out_time', '>=', 'gate_movements.gate_in_time');
+                    })
+                    // ...and before the container's next arrival, which is what
+                    // stops a later visit's departure closing this one.
+                    ->whereRaw('departure.gate_out_time < COALESCE((
+                        SELECT MIN(nextIn.gate_in_time)
+                          FROM gate_movements as nextIn
+                         WHERE nextIn.container_id = gate_movements.container_id
+                           AND nextIn.movement_type = ?
+                           AND nextIn.gate_in_time > gate_movements.gate_in_time
+                    ), ?)', ['in', '9999-12-31 23:59:59']);
+            });
+        };
+
+        match ($scope) {
+            'in'  => $query->where($arrivedInWindow),
+            'out' => $query->where($departedInWindow),
+            // Either end inside the window puts the visit in the result.
+            default => $query->where(fn ($q) => $q
+                ->where($arrivedInWindow)
+                ->orWhere($departedInWindow)),
+        };
+    }
+
+    /**
      * Search gate-in movements with optional filters, one row per movement.
      */
     public function search(array $filters, int $perPage = 20): LengthAwarePaginator
@@ -45,8 +140,7 @@ class ContainerInquiryService
             ->when(!empty($filters['job_no']), function ($q) use ($filters) {
                 $q->whereHas('yardJob', fn ($sub) => $sub->where('job_no', 'LIKE', '%' . trim($filters['job_no']) . '%'));
             })
-            ->when(!empty($filters['date_from']), fn ($q) => $q->whereDate('gate_in_time', '>=', $filters['date_from']))
-            ->when(!empty($filters['date_to']),   fn ($q) => $q->whereDate('gate_in_time', '<=', $filters['date_to']))
+            ->tap(fn ($q) => $this->applyMovementWindow($q, $filters))
             ->when(!empty($filters['status']), function ($q) use ($filters) {
                 $q->whereHas('yardJob', fn ($sub) => $sub->where('status', $filters['status']));
             })

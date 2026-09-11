@@ -25,7 +25,7 @@ class ContainerInquiryController extends Controller
     {
         $filters = $request->only([
             'container_no', 'customer_id', 'job_type_code', 'job_no',
-            'date_from', 'date_to', 'status',
+            'date_from', 'date_to', 'movement_scope', 'status',
             'vessel_name', 'voyage_no', 'bl_number', 'seal_no', 'eir_ref',
             'mr_status', 'mr_status_group', 'export_ready', 'on_hold',
         ]);
