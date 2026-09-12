@@ -160,9 +160,16 @@ indexes it. `driver_name` stays a "contains" match, because a name is searched
 by any part of it, and is deliberately left unindexed: an index it cannot use is
 just a slower write.
 
-**Phase 3 — the row.** Add Vehicle, Driver, BL No and Days In Yard as columns,
-and Cargo Status. `MovementVisits` already returns `days` and `open` per
-movement, so the day count is a column, not a calculation.
+**Phase 3 — the row. Built.** Vehicle and driver sit **under each gate's time**
+rather than in columns of their own -- the truck that delivered a box and the one
+that collected it are different, and separating them across the table is how they
+get read as the same. BL No, Cargo and Days are their own columns, and an open
+visit reads "In Yard" rather than showing a blank gate-out.
+
+The day count is `App\Support\DaysInYard`, the calculation five screens already
+share, so this row cannot disagree with the inquiry screen or Daily Movements.
+It is **elapsed** time, not billable days: a box in and out the same day is 0
+here and 1 chargeable day on the invoice.
 
 **Phase 4 — the name.** Menu label, page title, breadcrumb, and a one-line
 pointer from Daily Movements saying it is the EDI export queue and naming where

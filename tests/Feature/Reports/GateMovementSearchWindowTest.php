@@ -237,6 +237,55 @@ class GateMovementSearchWindowTest extends FeatureTestCase
         $this->assertSame('2026-08-10', $rows->where('container_id', $c->id)->first()->gate_in_time->toDateString());
     }
 
+    // ── What the row carries ────────────────────────────────────────────────
+
+    /**
+     * Vehicle, driver, BL and the day count on the row itself.
+     *
+     * They were all on the detail screen, so answering "who carried it and on
+     * what BL" meant opening every container in turn -- which for a damage
+     * claim or a gate dispute is the whole job.
+     */
+    public function test_the_row_shows_both_gates_detail_and_the_day_count(): void
+    {
+        $c = $this->visit(
+            '2026-08-05 08:00:00',
+            '2026-08-20 09:00:00',
+            null,
+            ['vehicle_plate' => 'INTRUCK1', 'driver_name' => 'Kumara Perera', 'bl_number' => 'MAEU556677'],
+            ['vehicle_plate' => 'OUTRUCK9', 'driver_name' => 'Nimal Silva'],
+        );
+
+        $this->get(route('container-inquiry.index', [
+            'date_from' => self::FROM,
+            'date_to'   => self::TO,
+        ]))
+            ->assertOk()
+            ->assertSee($c->container_no)
+            ->assertSee('INTRUCK1')          // the truck that delivered it
+            ->assertSee('Kumara Perera')
+            ->assertSee('OUTRUCK9')          // and the one that collected it
+            ->assertSee('Nimal Silva')
+            ->assertSee('MAEU556677')
+            ->assertSee('Laden')
+            // 5 to 20 August is fifteen days.
+            ->assertSee('>15<', false);
+    }
+
+    /** A box still in the yard reads as such rather than as a blank cell. */
+    public function test_an_open_visit_is_marked_in_yard_on_the_row(): void
+    {
+        $c = $this->visit('2026-08-09 08:00:00', null);
+
+        $this->get(route('container-inquiry.index', [
+            'date_from' => self::FROM,
+            'date_to'   => self::TO,
+        ]))
+            ->assertOk()
+            ->assertSee($c->container_no)
+            ->assertSee('In Yard');
+    }
+
     // ── The filters that already worked still work ──────────────────────────
 
     public function test_the_customer_filter_still_narrows(): void

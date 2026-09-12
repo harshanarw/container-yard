@@ -284,6 +284,9 @@
                     <th>Job Type</th>
                     <th>Gate In</th>
                     <th>Gate Out</th>
+                    <th class="text-end">Days</th>
+                    <th>BL No</th>
+                    <th>Cargo</th>
                     <th>Job Status</th>
                     <th>M&amp;R Status</th>
                     <th class="text-center">Size</th>
@@ -332,11 +335,53 @@
                             <span class="text-muted">{{ $m->job_type_code ?? '-' }}</span>
                         @endif
                     </td>
-                    <td class="text-nowrap">{{ $m->gate_in_time?->format('d M Y H:i') ?? '-' }}</td>
+                    @php $matchedGateOut = $gateOutMap[$m->id] ?? null; @endphp
+                    {{-- Each gate's vehicle and driver sit under that gate's
+                         time rather than in columns of their own: the truck that
+                         delivered a box and the one that collected it are
+                         different, and separating them across the table is how
+                         they get read as the same. --}}
                     <td class="text-nowrap">
-                        @php $matchedGateOut = $gateOutMap[$m->id] ?? null; @endphp
+                        {{ $m->gate_in_time?->format('d M Y H:i') ?? '-' }}
+                        @if($m->vehicle_plate || $m->driver_name)
+                            <div class="text-muted" style="font-size:.7rem">
+                                @if($m->vehicle_plate)<i class="bi bi-truck me-1"></i>{{ $m->vehicle_plate }}@endif
+                                @if($m->driver_name)<span class="ms-1">{{ $m->driver_name }}</span>@endif
+                            </div>
+                        @endif
+                    </td>
+                    <td class="text-nowrap">
                         @if($matchedGateOut?->gate_out_time)
                             {{ $matchedGateOut->gate_out_time->format('d M Y H:i') }}
+                            @if($matchedGateOut->vehicle_plate || $matchedGateOut->driver_name)
+                                <div class="text-muted" style="font-size:.7rem">
+                                    @if($matchedGateOut->vehicle_plate)<i class="bi bi-truck me-1"></i>{{ $matchedGateOut->vehicle_plate }}@endif
+                                    @if($matchedGateOut->driver_name)<span class="ms-1">{{ $matchedGateOut->driver_name }}</span>@endif
+                                </div>
+                            @endif
+                        @else
+                            <span class="badge bg-success-subtle text-success" style="font-size:.65rem">In Yard</span>
+                        @endif
+                    </td>
+                    {{-- Elapsed time, not billable days: a box in and out the
+                         same day is 0 here and 1 chargeable day on the invoice.
+                         DaysInYard is the one calculation five screens share. --}}
+                    <td class="text-end">
+                        @php
+                            $days = \App\Support\DaysInYard::between(
+                                $m->gate_in_time,
+                                $matchedGateOut?->gate_out_time,
+                            );
+                        @endphp
+                        {{ $days === null ? '-' : $days }}
+                    </td>
+                    <td class="font-monospace" style="font-size:.75rem">
+                        {{ $m->bl_number ?: '-' }}
+                    </td>
+                    <td>
+                        @if($m->cargo_status)
+                            <span class="badge {{ $m->cargo_status === 'laden' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }}"
+                                  style="font-size:.7rem">{{ ucfirst($m->cargo_status) }}</span>
                         @else
                             <span class="text-muted">-</span>
                         @endif
