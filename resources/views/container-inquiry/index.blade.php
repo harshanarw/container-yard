@@ -311,6 +311,16 @@
 
                     $holds       = $m->container?->activeHolds ?? collect();
                     $ptiLapsed   = (bool) $m->container?->mrStatusHasExpired();
+
+                    $matchedGateOut = $gateOutMap[$m->id] ?? null;
+
+                    // Elapsed time, not billable days: a box in and out the same
+                    // day is 0 here and 1 chargeable day on the invoice.
+                    // DaysInYard is the one calculation five screens share.
+                    $days = \App\Support\DaysInYard::between(
+                        $m->gate_in_time,
+                        $matchedGateOut?->gate_out_time,
+                    );
                 @endphp
                 <tr>
                     <td class="ps-3 fw-semibold font-monospace">
@@ -335,7 +345,6 @@
                             <span class="text-muted">{{ $m->job_type_code ?? '-' }}</span>
                         @endif
                     </td>
-                    @php $matchedGateOut = $gateOutMap[$m->id] ?? null; @endphp
                     {{-- Each gate's vehicle and driver sit under that gate's
                          time rather than in columns of their own: the truck that
                          delivered a box and the one that collected it are
@@ -363,21 +372,8 @@
                             <span class="badge bg-success-subtle text-success" style="font-size:.65rem">In Yard</span>
                         @endif
                     </td>
-                    {{-- Elapsed time, not billable days: a box in and out the
-                         same day is 0 here and 1 chargeable day on the invoice.
-                         DaysInYard is the one calculation five screens share. --}}
-                    <td class="text-end">
-                        @php
-                            $days = \App\Support\DaysInYard::between(
-                                $m->gate_in_time,
-                                $matchedGateOut?->gate_out_time,
-                            );
-                        @endphp
-                        {{ $days === null ? '-' : $days }}
-                    </td>
-                    <td class="font-monospace" style="font-size:.75rem">
-                        {{ $m->bl_number ?: '-' }}
-                    </td>
+                    <td class="text-end">{{ $days === null ? '-' : $days }}</td>
+                    <td class="font-monospace" style="font-size:.75rem">{{ $m->bl_number ?: '-' }}</td>
                     <td>
                         @if($m->cargo_status)
                             <span class="badge {{ $m->cargo_status === 'laden' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }}"

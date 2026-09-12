@@ -268,8 +268,9 @@ class GateMovementSearchWindowTest extends FeatureTestCase
             ->assertSee('Nimal Silva')
             ->assertSee('MAEU556677')
             ->assertSee('Laden')
-            // 5 to 20 August is fifteen days.
-            ->assertSee('>15<', false);
+            // 5 to 20 August is fifteen days. Matched with the surrounding tags
+            // so it cannot pass on a stray 15 elsewhere in the page.
+            ->assertSee('<td class="text-end">15</td>', false);
     }
 
     /** A box still in the yard reads as such rather than as a blank cell. */
