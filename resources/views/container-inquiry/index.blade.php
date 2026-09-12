@@ -164,7 +164,8 @@
             {{-- Advanced filters toggle --}}
             @php
                 $hasAdvanced = !empty($filters['vessel_name']) || !empty($filters['voyage_no'])
-                    || !empty($filters['bl_number']) || !empty($filters['seal_no']) || !empty($filters['eir_ref']);
+                    || !empty($filters['bl_number']) || !empty($filters['seal_no']) || !empty($filters['eir_ref'])
+                    || !empty($filters['vehicle_plate']) || !empty($filters['driver_name']);
             @endphp
             <div class="row g-2 mt-1">
                 <div class="col-12">
@@ -208,6 +209,24 @@
                         <input type="number" name="eir_ref" class="form-control form-control-sm"
                                placeholder="Gate movement ID"
                                value="{{ $filters['eir_ref'] ?? '' }}">
+                    </div>
+
+                    {{-- Both are matched against either gate: the truck that
+                         delivered a box and the one that collected it are
+                         different vehicles, and either may be the one being
+                         looked for after a gate dispute or a damage claim. --}}
+                    <div class="col-12 col-md-2">
+                        <label class="form-label form-label-sm mb-1">Vehicle No</label>
+                        <input type="text" name="vehicle_plate" class="form-control form-control-sm text-uppercase"
+                               placeholder="e.g. ABC1234"
+                               value="{{ $filters['vehicle_plate'] ?? '' }}">
+                        <div class="form-text" style="font-size:.7rem">Matches from the start of the plate.</div>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label form-label-sm mb-1">Driver Name</label>
+                        <input type="text" name="driver_name" class="form-control form-control-sm"
+                               placeholder="Any part of the name"
+                               value="{{ $filters['driver_name'] ?? '' }}">
                     </div>
                 </div>
             </div>

@@ -36,6 +36,75 @@ class ContainerInquiryService
     ];
 
     /**
+     * Constrain on the departure that closes *this* visit.
+     *
+     * The pairing rule, expressed in SQL: a departure belongs to this arrival
+     * when it shares the visit's job, or when it falls between this arrival and
+     * the container's next one. Without that second clause a later visit's
+     * gate-out would answer for an earlier, already-closed one.
+     *
+     * Extracted because two filters need it -- the date window and the gate-side
+     * text filters -- and a second copy of a correlated subquery is a second
+     * place for the pairing rule to drift from
+     * {@see ContainerMrStatusService::pairGateOuts()}, which stays authoritative
+     * for what is actually displayed.
+     *
+     * @param callable $constrain receives the subquery to add its own conditions
+     */
+    private function whereDeparture($query, callable $constrain): void
+    {
+        $query->whereExists(function ($sub) use ($constrain) {
+            $sub->selectRaw('1')
+                ->from('gate_movements as departure')
+                ->whereColumn('departure.container_id', 'gate_movements.container_id')
+                ->where('departure.movement_type', 'out')
+                ->whereNotNull('departure.gate_out_time')
+                ->where(function ($w) {
+                    $w->where(function ($j) {
+                        $j->whereNotNull('gate_movements.yard_job_id')
+                          ->whereColumn('departure.yard_job_id', 'gate_movements.yard_job_id');
+                    })->orWhereColumn('departure.gate_out_time', '>=', 'gate_movements.gate_in_time');
+                })
+                ->whereRaw('departure.gate_out_time < COALESCE((
+                    SELECT MIN(nextIn.gate_in_time)
+                      FROM gate_movements as nextIn
+                     WHERE nextIn.container_id = gate_movements.container_id
+                       AND nextIn.movement_type = ?
+                       AND nextIn.gate_in_time > gate_movements.gate_in_time
+                ), ?)', ['in', '9999-12-31 23:59:59']);
+
+            $constrain($sub);
+        });
+    }
+
+    /**
+     * A column recorded at the gate, matched against **either** gate.
+     *
+     * The truck that delivered a box and the truck that collected it are
+     * different vehicles, and either may be the one being searched for -- after
+     * a gate dispute or a damage claim, "which boxes did ABC-1234 move last
+     * week" is not a question about arrivals only.
+     *
+     * `$prefix` decides how the value is matched, and it is not a style choice.
+     * A plate is typed from the front and the column is indexed, so a prefix
+     * match uses that index; a leading wildcard could not, whatever index
+     * existed. A name has to stay a "contains" match to be useful at all, and
+     * therefore scans -- which is why only the plate is indexed.
+     */
+    private function applyGateTextFilter($query, string $column, string $value, bool $prefix): void
+    {
+        $needle = ($prefix ? '' : '%') . trim($value) . '%';
+
+        $query->where(function ($q) use ($column, $needle) {
+            $q->where($column, 'LIKE', $needle)
+              ->orWhere(fn ($w) => $this->whereDeparture(
+                  $w,
+                  fn ($sub) => $sub->where('departure.' . $column, 'LIKE', $needle),
+              ));
+        });
+    }
+
+    /**
      * The date window, measured against whichever gate the operator means.
      *
      * Both bounds used to test `gate_in_time`, so a search for August returned
@@ -77,34 +146,10 @@ class ContainerInquiryService
               ->when($to,   fn ($w) => $w->whereDate('gate_in_time', '<=', $to));
         };
 
-        $departedInWindow = function ($q) use ($from, $to) {
-            $q->whereExists(function ($sub) use ($from, $to) {
-                $sub->selectRaw('1')
-                    ->from('gate_movements as departure')
-                    ->whereColumn('departure.container_id', 'gate_movements.container_id')
-                    ->where('departure.movement_type', 'out')
-                    ->whereNotNull('departure.gate_out_time')
-                    ->when($from, fn ($w) => $w->whereDate('departure.gate_out_time', '>=', $from))
-                    ->when($to,   fn ($w) => $w->whereDate('departure.gate_out_time', '<=', $to))
-                    // Belongs to *this* visit: the shared job settles it
-                    // outright, otherwise it must fall at or after this arrival.
-                    ->where(function ($w) {
-                        $w->where(function ($j) {
-                            $j->whereNotNull('gate_movements.yard_job_id')
-                              ->whereColumn('departure.yard_job_id', 'gate_movements.yard_job_id');
-                        })->orWhereColumn('departure.gate_out_time', '>=', 'gate_movements.gate_in_time');
-                    })
-                    // ...and before the container's next arrival, which is what
-                    // stops a later visit's departure closing this one.
-                    ->whereRaw('departure.gate_out_time < COALESCE((
-                        SELECT MIN(nextIn.gate_in_time)
-                          FROM gate_movements as nextIn
-                         WHERE nextIn.container_id = gate_movements.container_id
-                           AND nextIn.movement_type = ?
-                           AND nextIn.gate_in_time > gate_movements.gate_in_time
-                    ), ?)', ['in', '9999-12-31 23:59:59']);
-            });
-        };
+        $departedInWindow = fn ($q) => $this->whereDeparture($q, function ($sub) use ($from, $to) {
+            $sub->when($from, fn ($w) => $w->whereDate('departure.gate_out_time', '>=', $from))
+                ->when($to,   fn ($w) => $w->whereDate('departure.gate_out_time', '<=', $to));
+        });
 
         match ($scope) {
             'in'  => $query->where($arrivedInWindow),
@@ -150,6 +195,13 @@ class ContainerInquiryService
             ->when(!empty($filters['bl_number']),   fn ($q) => $q->where('bl_number',   'LIKE', '%' . trim($filters['bl_number'])   . '%'))
             ->when(!empty($filters['seal_no']),     fn ($q) => $q->where('seal_no',     'LIKE', '%' . trim($filters['seal_no'])     . '%'))
             ->when(!empty($filters['eir_ref']),     fn ($q) => $q->where('id', (int) $filters['eir_ref']))
+            // Both recorded at each gate, so both are matched against each gate.
+            ->when(!empty($filters['vehicle_plate']), fn ($q) => $this->applyGateTextFilter(
+                $q, 'vehicle_plate', strtoupper($filters['vehicle_plate']), prefix: true,
+            ))
+            ->when(!empty($filters['driver_name']), fn ($q) => $this->applyGateTextFilter(
+                $q, 'driver_name', $filters['driver_name'], prefix: false,
+            ))
             // ── M&R status ───────────────────────────────────────────────────
             // Plain indexed WHEREs on the table already being paginated. This is
             // what the second projection bought: deriving the status live would

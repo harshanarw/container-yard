@@ -156,6 +156,87 @@ class GateMovementSearchWindowTest extends FeatureTestCase
             'Collapsing them would lose a gate-out.');
     }
 
+    // ── Vehicle and driver, matched against either gate ─────────────────────
+
+    /** The truck that brought it in. */
+    public function test_the_vehicle_filter_matches_the_arrival_plate(): void
+    {
+        $c = $this->visit('2026-08-05 08:00:00', null, null, ['vehicle_plate' => 'ABC1234']);
+        $other = $this->visit('2026-08-06 08:00:00', null, null, ['vehicle_plate' => 'XYZ9999']);
+
+        $rows = $this->rows(['vehicle_plate' => 'ABC1234']);
+
+        $this->assertTrue($rows->contains('container_id', $c->id));
+        $this->assertFalse($rows->contains('container_id', $other->id));
+    }
+
+    /**
+     * And the truck that collected it.
+     *
+     * The whole point of matching both gates: after a gate dispute, "which
+     * boxes did this truck move" is not a question about arrivals only.
+     */
+    public function test_the_vehicle_filter_matches_the_departure_plate(): void
+    {
+        $c = $this->visit('2026-08-05 08:00:00', '2026-08-20 09:00:00',
+            null, ['vehicle_plate' => 'IN0001'], ['vehicle_plate' => 'OUT7777']);
+
+        $this->assertTrue($this->rows(['vehicle_plate' => 'OUT7777'])->contains('container_id', $c->id),
+            'The collecting truck is on the gate-out, not the gate-in.');
+    }
+
+    /** A plate is typed from the front, and the column is indexed for it. */
+    public function test_the_vehicle_filter_matches_a_prefix(): void
+    {
+        $c = $this->visit('2026-08-05 08:00:00', null, null, ['vehicle_plate' => 'ABC1234']);
+
+        $this->assertTrue($this->rows(['vehicle_plate' => 'ABC'])->contains('container_id', $c->id));
+        $this->assertFalse($this->rows(['vehicle_plate' => '1234'])->contains('container_id', $c->id),
+            'A prefix match, so the index can be used.');
+    }
+
+    public function test_the_vehicle_filter_is_case_insensitive(): void
+    {
+        $c = $this->visit('2026-08-05 08:00:00', null, null, ['vehicle_plate' => 'ABC1234']);
+
+        $this->assertTrue($this->rows(['vehicle_plate' => 'abc1234'])->contains('container_id', $c->id));
+    }
+
+    /** A name is searched by any part of it, so this one stays a contains match. */
+    public function test_the_driver_filter_matches_part_of_a_name(): void
+    {
+        $c = $this->visit('2026-08-05 08:00:00', null, null, ['driver_name' => 'Kumara Perera']);
+        $other = $this->visit('2026-08-06 08:00:00', null, null, ['driver_name' => 'Nimal Silva']);
+
+        $rows = $this->rows(['driver_name' => 'Perera']);
+
+        $this->assertTrue($rows->contains('container_id', $c->id));
+        $this->assertFalse($rows->contains('container_id', $other->id));
+    }
+
+    public function test_the_driver_filter_matches_the_departure_driver(): void
+    {
+        $c = $this->visit('2026-08-05 08:00:00', '2026-08-20 09:00:00',
+            null, ['driver_name' => 'Arrived Driver'], ['driver_name' => 'Departed Driver']);
+
+        $this->assertTrue($this->rows(['driver_name' => 'Departed'])->contains('container_id', $c->id));
+    }
+
+    /** A plate on a *later* visit's gate-out must not match this visit. */
+    public function test_the_vehicle_filter_respects_the_visit_pairing(): void
+    {
+        $c = $this->visit('2026-08-01 08:00:00', '2026-08-05 09:00:00',
+            null, ['vehicle_plate' => 'FIRST01'], ['vehicle_plate' => 'FIRST02']);
+        $this->arrive($c, '2026-08-10 08:00:00', null, ['vehicle_plate' => 'SECOND1']);
+        $this->depart($c, '2026-08-15 09:00:00', null, ['vehicle_plate' => 'SECOND2']);
+
+        $rows = $this->rows(['vehicle_plate' => 'SECOND2']);
+
+        $this->assertCount(1, $rows->where('container_id', $c->id),
+            'Only the visit that truck actually closed.');
+        $this->assertSame('2026-08-10', $rows->where('container_id', $c->id)->first()->gate_in_time->toDateString());
+    }
+
     // ── The filters that already worked still work ──────────────────────────
 
     public function test_the_customer_filter_still_narrows(): void
@@ -198,8 +279,13 @@ class GateMovementSearchWindowTest extends FeatureTestCase
             ->contains('container_id', $c->id);
     }
 
-    private function visit(string $in, ?string $out, ?Customer $customer = null): Container
-    {
+    private function visit(
+        string $in,
+        ?string $out,
+        ?Customer $customer = null,
+        array $inAttributes = [],
+        array $outAttributes = [],
+    ): Container {
         $customer ??= $this->customer;
 
         $container = Container::factory()->create([
@@ -207,30 +293,35 @@ class GateMovementSearchWindowTest extends FeatureTestCase
             'status'      => $out ? 'released' : 'in_yard',
         ]);
 
-        $this->arrive($container, $in, $customer);
+        $this->arrive($container, $in, $customer, $inAttributes);
 
         if ($out) {
-            $this->depart($container, $out, $customer);
+            $this->depart($container, $out, $customer, $outAttributes);
         }
 
         return $container;
     }
 
-    private function arrive(Container $c, string $at, ?Customer $customer = null): GateMovement
+    private function arrive(Container $c, string $at, ?Customer $customer = null, array $attributes = []): GateMovement
     {
-        return $this->movement($c, 'in', $at, $customer);
+        return $this->movement($c, 'in', $at, $customer, $attributes);
     }
 
-    private function depart(Container $c, string $at, ?Customer $customer = null): GateMovement
+    private function depart(Container $c, string $at, ?Customer $customer = null, array $attributes = []): GateMovement
     {
-        return $this->movement($c, 'out', $at, $customer);
+        return $this->movement($c, 'out', $at, $customer, $attributes);
     }
 
-    private function movement(Container $c, string $direction, string $at, ?Customer $customer = null): GateMovement
-    {
+    private function movement(
+        Container $c,
+        string $direction,
+        string $at,
+        ?Customer $customer = null,
+        array $attributes = [],
+    ): GateMovement {
         $customer ??= $this->customer;
 
-        return GateMovement::create([
+        return GateMovement::create(array_merge([
             'container_id'    => $c->id,
             'container_no'    => $c->container_no,
             'customer_id'     => $customer->id,
@@ -243,6 +334,6 @@ class GateMovementSearchWindowTest extends FeatureTestCase
             'gate_out_time'   => $direction === 'out' ? $at : null,
             'movement_status' => 'done',
             'created_by'      => auth()->id(),
-        ]);
+        ], $attributes));
     }
 }

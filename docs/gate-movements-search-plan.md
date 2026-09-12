@@ -147,11 +147,18 @@ behaviour should remain reachable rather than removed.
 
 This is the phase that changes results, so it goes out on its own with tests.
 
-**Phase 2 — the vehicle and driver filters.** `vehicle_plate` and `driver_name`,
-matched against **both** gates: a truck that delivered a box is as likely to be
-the thing being searched for as the one that collected it. Needs an index on
-`gate_movements.vehicle_plate` — the column is unindexed and a `LIKE '%…%'` scan
-over the whole movement table is what makes a search screen feel broken.
+**Phase 2 — the vehicle and driver filters. Built.** `vehicle_plate` and
+`driver_name`, matched against **both** gates through the same correlated
+subquery the date window uses, which is now extracted so the pairing rule has
+one home.
+
+The index note above was half right and worth correcting: an index on
+`vehicle_plate` cannot help `LIKE '%…%'`, because a leading wildcard defeats it.
+So the plate is matched as a **prefix** — which is how plates are typed, and how
+`container_no` is already matched in the same search — and migration 000310
+indexes it. `driver_name` stays a "contains" match, because a name is searched
+by any part of it, and is deliberately left unindexed: an index it cannot use is
+just a slower write.
 
 **Phase 3 — the row.** Add Vehicle, Driver, BL No and Days In Yard as columns,
 and Cargo Status. `MovementVisits` already returns `days` and `open` per
