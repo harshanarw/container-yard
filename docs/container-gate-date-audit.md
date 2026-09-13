@@ -110,7 +110,7 @@ No arithmetic that leaves the screen, or arithmetic used only for a badge.
 
 Neither is in scope for a mechanical move, and both are worth recording.
 
-**`yard/gate.blade.php` 1050–1051 mixes the two sources.**
+**`yard/gate.blade.php` 1050–1051 mixes the two sources.** *(Fixed — step 2.)*
 
 ```php
 $stayed = (int) $mv->gate_out_time->diffInDays($mv->container->gate_in_date);
@@ -169,8 +169,28 @@ edited again a commit later.
 
 Covered by `tests/Feature/Yard/DaysInYardConsistencyTest.php`.
 
-**Step 2 — the gate screen's mixed calculation.** Fix §5's first item properly
-by pairing the movement, not by patching the subtraction.
+**Step 2 — the gate screen's mixed calculation. Done.**
+
+Fixed by pairing the movement, not by patching the subtraction.
+`ContainerVisitDates::visitsForMovements()` returns both ends of the visit each
+movement belongs to, keyed under **both** the arrival and the departure, so the
+two rows that describe one stay cannot disagree. The panel then asks
+`DaysInYard::between()` and labels the result by whether the visit has closed.
+
+Both branches were wrong, not just the one in §5:
+
+- The **departure** branch mixed sources. For a container that had since
+  returned, `containers.gate_in_date` held the *later* visit's arrival — so a
+  March departure was measured against a September arrival and the badge read
+  `195d stayed`.
+- The **arrival** branch always counted to `now()` and always said "in yard", so
+  a gate-in row for a box that left weeks ago kept accruing days and claimed it
+  was still here. It now reads `5d stayed`.
+
+A testing note worth keeping: the old departure output, `195d stayed`, *contains*
+`5d stayed`. The first version of the test asserted the short form and would
+have passed against the bug it was written for. The assertions are now anchored
+on the badge's own boundaries (`>5d stayed<`).
 
 **Step 3 — display readers to `ContainerVisitDates`.** The eleven sites in §3.
 Mechanical, no billing exposure, and it buys real timestamps on screens that

@@ -4,6 +4,7 @@ namespace Tests\Feature\Yard;
 
 use App\Models\Container;
 use App\Models\Customer;
+use App\Models\GateMovement;
 use Illuminate\Support\Carbon;
 use Tests\Support\FeatureTestCase;
 
@@ -162,6 +163,77 @@ class DaysInYardConsistencyTest extends FeatureTestCase
             'The distance to an arrival that has not happened is not a stay.');
     }
 
+    // ── The gate screen's recent-movements panel ────────────────────────────
+
+    /**
+     * A departure is measured against the arrival it actually closed.
+     *
+     * The old line subtracted `containers.gate_in_date` from the movement's
+     * `gate_out_time`. For a container that has since come back, the master
+     * holds the *later* visit's arrival — so a departure in March was measured
+     * against an arrival in September and the badge read in the hundreds.
+     */
+    public function test_a_departure_is_measured_against_its_own_arrival(): void
+    {
+        $c = $this->container(['gate_in_date' => '2026-09-18']);
+
+        $this->arrive($c, '2026-03-01 08:00:00');
+        $this->depart($c, '2026-03-06 09:00:00');
+        $this->arrive($c, '2026-09-18 08:00:00');
+
+        $this->get(route('yard.gate', ['search' => $c->container_no]))
+            ->assertOk()
+            // Anchored on the badge's own boundaries. The old branch
+            // produced "195d stayed" here -- measuring the March departure
+            // against the master's September arrival -- and a bare
+            // assertSee('5d stayed') matches that as a substring, so it would
+            // have passed against the very bug it is meant to catch.
+            ->assertSee('>5d stayed<', false)
+            ->assertSee('>2d in yard<', false);
+    }
+
+    /**
+     * An arrival row for a visit that has closed says "stayed", not "in yard".
+     *
+     * The old arrival branch always counted to `now()` and always said "in
+     * yard", so a gate-in row for a box that left two weeks ago kept accruing
+     * days and claimed it was still here.
+     */
+    public function test_an_arrival_row_stops_counting_once_the_visit_closes(): void
+    {
+        $c = $this->container();
+
+        $this->arrive($c, '2026-09-01 08:00:00');
+        $this->depart($c, '2026-09-06 09:00:00');
+
+        $this->get(route('yard.gate', ['search' => $c->container_no]))
+            ->assertOk()
+            ->assertSee('>5d stayed<', false)
+            ->assertDontSee('>19d in yard<', false);
+    }
+
+    public function test_an_open_visit_still_counts_to_today(): void
+    {
+        $c = $this->container();
+        $this->arrive($c, '2026-09-05 08:00:00');
+
+        $this->get(route('yard.gate', ['search' => $c->container_no]))
+            ->assertOk()
+            ->assertSee('>15d in yard<', false);
+    }
+
+    /** A departure with no arrival on record gets no badge rather than a guess. */
+    public function test_a_departure_with_no_arrival_shows_no_count(): void
+    {
+        $c = $this->container(['gate_in_date' => '2026-09-01']);
+        $this->depart($c, '2026-09-10 09:00:00');
+
+        $this->get(route('yard.gate', ['search' => $c->container_no]))
+            ->assertOk()
+            ->assertSee($c->container_no)
+            ->assertDontSee('d stayed<', false);
+    }
+
     // ── Fixtures ────────────────────────────────────────────────────────────
 
     /** The one table row on the yard page that belongs to this container. */
@@ -206,5 +278,33 @@ class DaysInYardConsistencyTest extends FeatureTestCase
             'customer_id' => $this->customer->id,
             'status'      => 'in_yard',
         ], $attributes));
+    }
+
+    private function arrive(Container $c, string $at): GateMovement
+    {
+        return $this->movement($c, 'in', $at);
+    }
+
+    private function depart(Container $c, string $at): GateMovement
+    {
+        return $this->movement($c, 'out', $at);
+    }
+
+    private function movement(Container $c, string $direction, string $at): GateMovement
+    {
+        return GateMovement::create([
+            'container_id'    => $c->id,
+            'container_no'    => $c->container_no,
+            'customer_id'     => $this->customer->id,
+            'movement_type'   => $direction,
+            'size'            => '40',
+            'container_type'  => 'HC',
+            'condition'       => 'sound',
+            'cargo_status'    => 'empty',
+            'gate_in_time'    => $direction === 'in'  ? $at : null,
+            'gate_out_time'   => $direction === 'out' ? $at : null,
+            'movement_status' => 'done',
+            'created_by'      => auth()->id(),
+        ]);
     }
 }

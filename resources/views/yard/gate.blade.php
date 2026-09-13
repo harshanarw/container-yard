@@ -1044,16 +1044,36 @@
                     @forelse($recentMovements as $mv)
                     @php
                         $mvTime = $mv->gate_in_time ?? $mv->gate_out_time;
-                        if ($mv->movement_type === 'in' && $mv->gate_in_time) {
-                            $daysLabel = $mv->gate_in_time->diffInDays(now()) . 'd in yard';
-                            $daysColor = $mv->gate_in_time->diffInDays(now()) >= 30 ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary';
-                        } elseif ($mv->movement_type === 'out' && $mv->gate_out_time && $mv->container?->gate_in_date) {
-                            $stayed = (int) $mv->gate_out_time->diffInDays($mv->container->gate_in_date);
-                            $daysLabel = $stayed . 'd stayed';
-                            $daysColor = 'bg-success-subtle text-success';
-                        } else {
-                            $daysLabel = null;
-                        }
+
+                        // Both ends of *this row's own visit*, paired from the
+                        // gate ledger. The departure branch used to subtract
+                        // `containers.gate_in_date` from the movement's
+                        // gate-out time -- one operand from the ledger, one
+                        // from the projection -- so a drifted master gave a
+                        // number neither source would produce alone, and for a
+                        // container that had since returned the master held a
+                        // *different visit's* arrival: a March departure
+                        // measured against a September arrival.
+                        //
+                        // The arrival branch was wrong in its own way. It
+                        // always counted to now() and always said "in yard",
+                        // so a gate-in row for a box that left weeks ago kept
+                        // accruing days and claimed it was still here.
+                        $visit     = $movementVisits[$mv->id] ?? null;
+                        $arrival   = $visit['arrival']   ?? null;
+                        $departure = $visit['departure'] ?? null;
+
+                        $days = \App\Support\DaysInYard::between($arrival, $departure);
+
+                        // Elapsed time, not billable days: in and out the same
+                        // day is 0 here and 1 chargeable day on the invoice.
+                        $daysLabel = $days === null
+                            ? null
+                            : $days . 'd ' . ($departure ? 'stayed' : 'in yard');
+
+                        $daysColor = $departure
+                            ? 'bg-success-subtle text-success'
+                            : ($days >= 30 ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary');
                     @endphp
                     <div class="list-group-item px-3 py-2">
                         <div class="d-flex align-items-center gap-2">

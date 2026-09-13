@@ -20,6 +20,7 @@ use App\Models\YardJobType;
 use App\Models\YardStorage;
 use App\Services\NotificationService;
 use App\Services\NumberSequenceService;
+use App\Services\Reporting\ContainerVisitDates;
 use App\Support\DaysInYard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -122,6 +123,12 @@ class YardController extends Controller
             ->take($search ? 100 : 20)
             ->get();
 
+        // Each row's own visit, from the gate ledger. The panel used to measure
+        // a departure against `containers.gate_in_date` -- one operand from the
+        // ledger, the other from the projection, and for a container that had
+        // since returned the master held a different visit's arrival entirely.
+        $movementVisits = ContainerVisitDates::visitsForMovements($recentMovements);
+
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
         $transporters   = Customer::whereHas('types', fn($q) => $q->where('name', 'Transporter'))
                             ->where('status', 'active')->orderBy('name')->get();
@@ -171,7 +178,7 @@ class YardController extends Controller
             ->orderBy('zone')->orderBy('row')->orderBy('bay')->orderBy('tier')
             ->get();
 
-        return view('yard.gate', compact('recentMovements', 'search', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones', 'prefill', 'guardCapture', 'jobTypes', 'gateOutPurposes', 'openBookings', 'emptySlots'));
+        return view('yard.gate', compact('recentMovements', 'movementVisits', 'search', 'customers', 'transporters', 'equipmentTypes', 'grades', 'zones', 'prefill', 'guardCapture', 'jobTypes', 'gateOutPurposes', 'openBookings', 'emptySlots'));
     }
 
     public function gateIn(Request $request)

@@ -102,4 +102,76 @@ class ContainerVisitDates
     {
         return static::forContainers($containers->pluck('id')->all());
     }
+
+    /**
+     * The visit each of these movements belongs to, keyed by movement id.
+     *
+     * A movement list shows one row per gate event, but "how long was it here"
+     * is a question about the **visit** — so each row needs both ends of its
+     * own stay, not just its own timestamp.
+     *
+     * The gate screen's recent-movements panel did this by subtracting
+     * `containers.gate_in_date` from a movement's `gate_out_time`: one operand
+     * from the ledger, the other from the projection. Where the master had
+     * drifted the result was a number neither source would produce alone, and
+     * for a container that had since returned the master held a *different
+     * visit's* arrival entirely — so a departure in March was measured against
+     * an arrival in September.
+     *
+     * Both ends are keyed under both movements, so an arrival row and the
+     * departure row that closes it read the same stay.
+     *
+     * @param  Collection<int, GateMovement> $movements
+     * @return array<int, array{arrival: ?\Illuminate\Support\Carbon, departure: ?\Illuminate\Support\Carbon}>
+     */
+    public static function visitsForMovements(Collection $movements): array
+    {
+        $containerIds = $movements->pluck('container_id')->filter()->unique()->values()->all();
+
+        if (! $containerIds) {
+            return [];
+        }
+
+        $all = GateMovement::query()
+            ->whereIn('container_id', $containerIds)
+            ->get(['id', 'container_id', 'movement_type', 'gate_in_time', 'gate_out_time', 'yard_job_id'])
+            ->groupBy('container_id');
+
+        $pairer = app(ContainerMrStatusService::class);
+        $visits = [];
+
+        foreach ($all as $perContainer) {
+            $gateIns = $perContainer->where('movement_type', 'in')
+                ->filter(fn ($m) => $m->gate_in_time !== null)
+                ->values();
+
+            if ($gateIns->isEmpty()) {
+                continue;
+            }
+
+            $map = $pairer->pairGateOuts($gateIns, $perContainer->where('movement_type', 'out')->values());
+
+            foreach ($gateIns as $gateIn) {
+                $out   = $map[$gateIn->id] ?? null;
+                $visit = [
+                    'arrival'   => $gateIn->gate_in_time,
+                    // A gate-out with no time cannot be placed, so it does not
+                    // close the visit. Gate Data Check reports that shape.
+                    'departure' => $out?->gate_out_time,
+                ];
+
+                $visits[$gateIn->id] = $visit;
+
+                if ($out) {
+                    $visits[$out->id] = $visit;
+                }
+            }
+        }
+
+        // Only the movements asked about, and present for every one of them so
+        // a caller can tell "no visit" from "not looked up".
+        return $movements->mapWithKeys(fn ($m) => [
+            $m->id => $visits[$m->id] ?? ['arrival' => null, 'departure' => null],
+        ])->all();
+    }
 }
