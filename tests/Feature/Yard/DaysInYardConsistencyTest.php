@@ -16,11 +16,20 @@ use Tests\Support\FeatureTestCase;
  * way for a figure to be wrong, because it looks right until somebody compares
  * two screens.
  *
- * The disagreement that matters: `diffInDays()` returns the *distance* between
- * two moments by default, so a container recorded as leaving before it arrived
- * came back as a confident positive number. Nothing validates the master's two
- * dates against each other -- `UpdateContainerRequest` has an
- * `after_or_equal`, but the gate writes bypass it -- so the shape is reachable.
+ * Two disagreements matter.
+ *
+ * **The old line never read `gate_out_date`.** It was always
+ * `gate_in_date->diffInDays(today())`, so a box whose departure had been
+ * recorded while the master still said in-yard kept accruing days -- the drift
+ * `containers:fix-gate-custody` repairs, displayed as a real stay.
+ *
+ * **And an unsigned `diffInDays()` is version-dependent.** Carbon 2 returns the
+ * absolute distance, Carbon 3 a signed difference, so an arrival dated in the
+ * future read as `15` on one and `-15` on the other. Both are wrong; the point
+ * of `DaysInYard` is that it passes the flag explicitly and clamps, which is
+ * why its own docblock calls this out. Nothing validates the master's two dates
+ * against each other either -- `UpdateContainerRequest` has an `after_or_equal`,
+ * but the gate writes bypass it -- so the shape is reachable, not theoretical.
  *
  * `Container::getDaysInYardAttribute()` was deleted in the same pass. Nothing
  * called it, it was not in `$appends`, and it disagreed with `DaysInYard`
@@ -65,30 +74,41 @@ class DaysInYardConsistencyTest extends FeatureTestCase
     }
 
     /**
-     * The defect, on the endpoint that feeds the gate screen's badge.
+     * An arrival dated in the future, which is the shape that separates the two
+     * calculations here.
      *
-     * Fifteen days apart, but the wrong way round. A bare `diffInDays()` gives
-     * a confident 15; a plausible number on contradictory data is worse than a
-     * negative one, because a negative at least looks like a fault.
+     * The old line was `gate_in_date->diffInDays(today())`, with no sign flag,
+     * so what an arrival fifteen days ahead produced depended on the Carbon
+     * major version: `15` on 2 (absolute default) and `-15` on 3 (signed).
+     * Either way the gate screen's picker offered "N days in yard" for a box
+     * that has not arrived. `DaysInYard` passes the flag and clamps, so the
+     * answer is 0 on both.
      */
-    public function test_the_in_yard_search_clamps_a_reversed_pair(): void
+    public function test_the_in_yard_search_clamps_an_arrival_dated_in_the_future(): void
     {
-        $c = $this->container([
-            'gate_in_date'  => '2026-09-20',
-            'gate_out_date' => '2026-09-05',
-        ]);
+        $c = $this->container(['gate_in_date' => '2026-10-05']);
 
-        $this->assertSame(0, $this->searchDays($c), 'Not the fifteen-day distance.');
+        $this->assertSame(0, $this->searchDays($c),
+            'Not the fifteen-day distance to an arrival that has not happened.');
     }
 
-    public function test_the_in_yard_search_counts_to_the_departure_once_it_has_left(): void
+    /**
+     * A departure recorded while the master still says in-yard.
+     *
+     * The old line never read `gate_out_date` at all — it always counted to
+     * today — so a box that left on the 6th kept accruing days. Exactly the
+     * drift `containers:fix-gate-custody` repairs, displayed as if it were a
+     * real stay.
+     */
+    public function test_the_in_yard_search_counts_to_the_departure_not_to_today(): void
     {
         $c = $this->container([
             'gate_in_date'  => '2026-09-01',
-            'gate_out_date' => '2026-09-11',
+            'gate_out_date' => '2026-09-06',
         ]);
 
-        $this->assertSame(10, $this->searchDays($c), 'To the gate-out, not to today.');
+        $this->assertSame(5, $this->searchDays($c),
+            'Five days to the departure, not nineteen to today.');
     }
 
     public function test_a_container_with_no_arrival_counts_nothing(): void
@@ -102,12 +122,9 @@ class DaysInYardConsistencyTest extends FeatureTestCase
     // ── The container lookup JSON ───────────────────────────────────────────
 
     /** The badge on the gate-out form reads `days_in_yard` from this payload. */
-    public function test_the_container_lookup_clamps_a_reversed_pair(): void
+    public function test_the_container_lookup_clamps_an_arrival_dated_in_the_future(): void
     {
-        $c = $this->container([
-            'gate_in_date'  => '2026-09-20',
-            'gate_out_date' => '2026-09-05',
-        ]);
+        $c = $this->container(['gate_in_date' => '2026-10-05']);
 
         $this->assertSame(0, $this->lookupDays($c));
     }
@@ -128,26 +145,38 @@ class DaysInYardConsistencyTest extends FeatureTestCase
     public function test_the_yard_list_does_not_show_a_phantom_count(): void
     {
         $this->container([
-            'container_no'  => 'REVR0000001',
-            'gate_in_date'  => '2026-09-20',
-            'gate_out_date' => '2026-09-05',
+            'container_no' => 'REVR0000001',
+            'gate_in_date' => '2026-10-05',   // fifteen days from now
         ]);
 
-        $html = $this->get(route('yard.index'))
-            ->assertOk()
-            ->assertSee('REVR0000001')
-            ->getContent();
+        $row = $this->yardRowFor('REVR0000001');
 
-        // Anchored to the badge rather than searched for loose: "0d" and "15d"
-        // are two and three characters and would match inside a hex colour
-        // anywhere in the markup, so a bare assertSee could pass or fail for
-        // reasons that have nothing to do with this count.
-        $this->assertMatchesRegularExpression('/rounded-pill[^>]*>\s*0d/', $html);
-        $this->assertDoesNotMatchRegularExpression('/rounded-pill[^>]*>\s*15d/', $html,
-            'The fifteen-day distance between two reversed dates is not a stay.');
+        // Scoped to this container's own row, and anchored to the badge.
+        // FeatureTestCase runs the full DatabaseSeeder, so the page carries
+        // sample containers with day counts of their own -- a page-wide
+        // assertion would be answering for them too. And "0d" / "15d" are two
+        // and three characters, so a loose search would match inside a hex
+        // colour anywhere in the markup.
+        $this->assertMatchesRegularExpression('/rounded-pill[^>]*>\s*0d/', $row);
+        $this->assertDoesNotMatchRegularExpression('/rounded-pill[^>]*>\s*15d/', $row,
+            'The distance to an arrival that has not happened is not a stay.');
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────
+
+    /** The one table row on the yard page that belongs to this container. */
+    private function yardRowFor(string $containerNo): string
+    {
+        $html = $this->get(route('yard.index'))->assertOk()->getContent();
+
+        foreach (preg_split('/<tr[\s>]/', $html) as $chunk) {
+            if (str_contains($chunk, $containerNo)) {
+                return $chunk;
+            }
+        }
+
+        $this->fail("{$containerNo} was not listed on the yard page.");
+    }
 
     private function searchDays(Container $c): ?int
     {

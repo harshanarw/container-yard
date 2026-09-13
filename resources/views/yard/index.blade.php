@@ -328,10 +328,13 @@
                 <tbody>
                 @forelse($inYardContainers as $c)
                 @php
-                    // The one calculation the yard shares, rather than a bare
-                    // diffInDays(): that returns the *distance* between two
-                    // moments, so a container with reversed dates reads as a
-                    // confident positive here and 0 everywhere else.
+                    // The one calculation the yard shares. The bare
+                    // diffInDays(today()) this replaces never read gate_out_date
+                    // at all, so a box whose departure was recorded while the
+                    // master still said in-yard kept accruing days; and unsigned
+                    // it is version-dependent -- Carbon 2 absolute, Carbon 3
+                    // signed -- so a future-dated arrival read 15 on one and -15
+                    // on the other. The badge is coloured by this number.
                     $days = \App\Support\DaysInYard::between($c->gate_in_date, $c->gate_out_date);
                     $condCls = match($c->condition) {
                         'sound'          => 'success',

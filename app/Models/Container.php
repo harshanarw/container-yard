@@ -319,9 +319,10 @@ class Container extends Model
      * was a fifth definition of a count {@see \App\Support\DaysInYard} already
      * owns, and it disagreed with that one twice: it defaulted a missing
      * arrival to `now()` and returned 0, where the honest answer is that the
-     * container has no arrival to count from; and it used a bare
-     * `diffInDays()`, which returns the *distance* between two moments, so a
-     * reversed pair came back as a confident positive number.
+     * container has no arrival to count from; and it used an unsigned
+     * `diffInDays()`, whose result depends on the Carbon major version --
+     * absolute on 2, signed on 3 -- so reversed dates gave a confident
+     * positive or a negative day count depending on the installed release.
      *
      * Left as a note rather than silently deleted because an unused helper
      * with the obvious name is exactly what the next person reaches for.

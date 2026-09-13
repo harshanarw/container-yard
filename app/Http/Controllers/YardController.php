@@ -2180,9 +2180,11 @@ class YardController extends Controller
         // needs is how much free time has been consumed. Without one there is
         // no billing context, so it falls back to elapsed time since arrival.
         //
-        // The fallback used a bare diffInDays(); it now goes through the
-        // calculation the rest of the yard shares, so a reversed pair reads 0
-        // here as it does everywhere else instead of a confident positive.
+        // The fallback used a bare diffInDays(today()), which ignored
+        // gate_out_date entirely and was unsigned -- Carbon 2 returns the
+        // absolute distance, Carbon 3 a signed one, so a future-dated arrival
+        // read 15 on one and -15 on the other. It now goes through the
+        // calculation the rest of the yard shares.
         $daysInYard = $storage
             ? max(0, (int) $storage->billing_gate_in_date->diffInDays(today()))
             : DaysInYard::between($container->gate_in_date, $container->gate_out_date);

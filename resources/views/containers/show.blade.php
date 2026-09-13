@@ -452,11 +452,11 @@
                     <dt class="col-6 text-muted">Days in Yard</dt>
                     <dd class="col-6">
                         @php
-                            // The one calculation the yard shares. A bare
-                            // diffInDays() returns the *distance* between two
-                            // moments, so a container whose dates are reversed
-                            // read as a confident positive number here and 0 on
-                            // every screen that goes through DaysInYard.
+                            // The one calculation the yard shares. The bare
+                            // diffInDays(today()) this replaces ignored
+                            // gate_out_date, so a departed box kept accruing
+                            // days, and unsigned it was version-dependent:
+                            // Carbon 2 absolute, Carbon 3 signed.
                             $days = \App\Support\DaysInYard::between(
                                 $container->gate_in_date,
                                 $container->gate_out_date,
