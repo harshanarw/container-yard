@@ -199,7 +199,17 @@ class ReportController extends Controller
                         // are `date`, so they could not say a box arrived at
                         // 22:40 and left at 06:15 the next morning.
                         $gateIn?->format('Y-m-d H:i') ?? '-',
-                        $gateOut?->format('Y-m-d H:i') ?? 'In Yard',
+                        // "In Yard" only where there is an arrival to be in the
+                        // yard since. With no gate records at all the honest
+                        // answer is that we do not know, and claiming custody
+                        // of a box on no evidence is how a stock count goes
+                        // wrong. The screen already guarded this; the file did
+                        // not.
+                        match (true) {
+                            (bool) $gateOut => $gateOut->format('Y-m-d H:i'),
+                            (bool) $gateIn  => 'In Yard',
+                            default         => '-',
+                        },
                         $days ?? '-',
                         $c->status,
                         $c->mr_status ? MrStatusCatalogue::label($c->mr_status, $c->mr_lane) : '-',

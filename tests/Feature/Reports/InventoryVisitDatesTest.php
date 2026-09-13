@@ -5,6 +5,8 @@ namespace Tests\Feature\Reports;
 use App\Models\Container;
 use App\Models\Customer;
 use App\Models\GateMovement;
+use App\Models\YardJob;
+use App\Models\YardJobType;
 use Illuminate\Support\Carbon;
 use Tests\Support\FeatureTestCase;
 
@@ -121,23 +123,54 @@ class InventoryVisitDatesTest extends FeatureTestCase
     // ── The day count ───────────────────────────────────────────────────────
 
     /**
-     * A reversed pair is zero, not a confident positive number.
+     * A stray departure dated before the arrival does not close the visit.
      *
-     * `diffInDays()` returns the *distance* between two moments by default, so
-     * a box recorded as leaving before it arrived read as a plausible day count
-     * here and 0 on every other screen. Nothing validates a gate-out as being
-     * after its gate-in, so this shape is reachable, not theoretical.
+     * The matcher only pairs a gate-out at or after its gate-in
+     * (`$ts >= $from` in `pairGateOuts()`), so this movement is left unpaired
+     * and the box reads as still here -- which is the right answer: it has an
+     * arrival and no departure that can be believed. Gate Data Check reports
+     * the orphaned movement for correction.
+     *
+     * Asserted through the file rather than the page: "0d" and "3d" are two
+     * characters and would match a hex colour anywhere in the markup, so a
+     * screen assertion could pass or fail for the wrong reason.
      */
-    public function test_a_reversed_pair_counts_zero_days(): void
+    public function test_a_departure_before_its_arrival_does_not_close_the_visit(): void
     {
         $c = $this->container();
         $this->arrive($c, '2026-09-10 08:00:00');
         $this->depart($c, '2026-09-07 09:00:00');   // three days *before* arrival
 
-        // Asserted through the file rather than the page: "3d" and "0d" are two
-        // characters and would match a hex colour anywhere in the markup, so a
-        // screen assertion here could pass or fail for the wrong reason.
-        $this->assertSame('0', $this->rowFor($this->export(), $c->container_no)[10],
+        $row = $this->rowFor($this->export(), $c->container_no);
+
+        $this->assertSame('In Yard', $row[9],
+            'An impossible departure is not evidence the box left.');
+        $this->assertSame('10', $row[10], 'Counted from its arrival to today.');
+    }
+
+    /**
+     * The one path where a reversed pair does reach the day count.
+     *
+     * Pairing by shared job has no time check -- an explicit job link is taken
+     * as authoritative -- so a gate-out backdated before its gate-in on the
+     * same job pairs, and the subtraction is reversed. `diffInDays()` returns
+     * the *distance* between two moments by default, which would make that a
+     * confident "3 days in yard": a plausible number on contradictory data,
+     * which is worse than a negative one because a negative looks like a fault.
+     * `DaysInYard` clamps it to zero.
+     */
+    public function test_a_reversed_pair_on_one_job_counts_zero_days(): void
+    {
+        $c   = $this->container();
+        $job = $this->job($c);
+
+        $this->arrive($c, '2026-09-10 08:00:00', $job->id);
+        $this->depart($c, '2026-09-07 09:00:00', $job->id);
+
+        $row = $this->rowFor($this->export(), $c->container_no);
+
+        $this->assertSame('2026-09-07 09:00', $row[9], 'The job link pairs them.');
+        $this->assertSame('0', $row[10],
             'Not the three-day distance between the two moments.');
     }
 
@@ -287,22 +320,23 @@ class InventoryVisitDatesTest extends FeatureTestCase
         ], $attributes));
     }
 
-    private function arrive(Container $c, string $at): GateMovement
+    private function arrive(Container $c, string $at, ?int $jobId = null): GateMovement
     {
-        return $this->movement($c, 'in', $at);
+        return $this->movement($c, 'in', $at, $jobId);
     }
 
-    private function depart(Container $c, string $at): GateMovement
+    private function depart(Container $c, string $at, ?int $jobId = null): GateMovement
     {
-        return $this->movement($c, 'out', $at);
+        return $this->movement($c, 'out', $at, $jobId);
     }
 
-    private function movement(Container $c, string $direction, string $at): GateMovement
+    private function movement(Container $c, string $direction, string $at, ?int $jobId = null): GateMovement
     {
         return GateMovement::create([
             'container_id'    => $c->id,
             'container_no'    => $c->container_no,
             'customer_id'     => $this->customer->id,
+            'yard_job_id'     => $jobId,
             'movement_type'   => $direction,
             'size'            => '40',
             'container_type'  => 'HC',
@@ -311,6 +345,28 @@ class InventoryVisitDatesTest extends FeatureTestCase
             'gate_in_time'    => $direction === 'in'  ? $at : null,
             'gate_out_time'   => $direction === 'out' ? $at : null,
             'movement_status' => 'done',
+            'created_by'      => auth()->id(),
+        ]);
+    }
+
+    /** A real job, because gate_movements.yard_job_id is a foreign key. */
+    private function job(Container $c): YardJob
+    {
+        $type = YardJobType::where('movement_direction', 'gate_in')
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        ['job_no' => $no, 'job_seq' => $seq] = YardJob::generateJobNo($type);
+
+        return YardJob::create([
+            'job_no'          => $no,
+            'job_seq'         => $seq,
+            'job_type_id'     => $type->id,
+            'job_type_code'   => $type->job_type_code,
+            'type_short_code' => $type->type_short_code,
+            'customer_id'     => $c->customer_id,
+            'status'          => 'open',
+            'started_at'      => now(),
             'created_by'      => auth()->id(),
         ]);
     }
