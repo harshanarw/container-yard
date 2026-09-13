@@ -31,6 +31,19 @@
     <div>
         <h4><i class="bi bi-arrow-left-right me-2 text-primary"></i>Daily Movements Report</h4>
         <p class="text-muted mb-0 small">Gate In / Gate Out movements grouped by Container Operator / Liner</p>
+        {{-- This screen looks like a movement search but is the CODECO/EDI
+             export queue: one row per movement because one movement is one EDI
+             message, filtered by export status. Operators kept coming here for
+             "which boxes moved last month" and getting a box listed twice, so
+             it now says where that question is answered. --}}
+        <p class="text-muted mb-0 small mt-1">
+            <i class="bi bi-info-circle me-1"></i>
+            One row per movement, for CODECO / EDI export.
+            @can('container-inquiry.view')
+                To list each container once with both gates on a line, use
+                <a href="{{ route('container-inquiry.index', ['movement_scope' => 'either']) }}">Gate Movements</a>.
+            @endcan
+        </p>
     </div>
     <div class="d-flex gap-2 flex-wrap no-print">
         <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">

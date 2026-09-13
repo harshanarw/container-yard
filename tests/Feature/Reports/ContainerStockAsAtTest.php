@@ -328,10 +328,22 @@ class ContainerStockAsAtTest extends FeatureTestCase
             $path,
         );
 
-        // An xlsx is a zip; the strings live in sharedStrings.xml.
+        // An xlsx is a zip of XML parts, and every part is read rather than
+        // `xl/sharedStrings.xml` alone: openspout writes cell text **inline**
+        // into the worksheet and leaves shared strings an empty stub. Reading
+        // only that one handed every assertion below an empty haystack, so
+        // this test failed on any host that could write the workbook at all.
         $zip = new \ZipArchive();
         $this->assertTrue($zip->open($path) === true, 'The workbook must be a readable xlsx.');
-        $strings = $zip->getFromName('xl/sharedStrings.xml') ?: '';
+
+        $strings = '';
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if (str_ends_with($name, '.xml')) {
+                $strings .= $zip->getFromName($name);
+            }
+        }
+
         $zip->close();
         @unlink($path);
 

@@ -8,6 +8,7 @@ use App\Models\GateMovement;
 use App\Models\YardJobType;
 use App\Services\ContainerInquiryService;
 use App\Services\ContainerMrStatusService;
+use App\Support\Export\GateMovementWorkbook;
 use App\Support\Export\TabularExport;
 use App\Support\MrStatusCatalogue;
 use Illuminate\Http\JsonResponse;
@@ -21,19 +22,41 @@ class ContainerInquiryController extends Controller
         $this->middleware('can:container-inquiry.view');
     }
 
-    public function index(Request $request)
+    /**
+     * Every filter the screen offers, in one place.
+     *
+     * It used to be written out twice -- once here and once in `export()` --
+     * and the second copy fell three filters behind: `movement_scope`,
+     * `vehicle_plate` and `driver_name` were never read, so setting them
+     * narrowed the screen and did nothing to the file. A list repeated is a list
+     * that goes stale, so there is now one.
+     *
+     * @return array<string, mixed>
+     */
+    private function filters(Request $request): array
     {
-        $filters = $request->only([
+        return $request->only([
             'container_no', 'customer_id', 'job_type_code', 'job_no',
             'date_from', 'date_to', 'movement_scope', 'status',
             'vessel_name', 'voyage_no', 'bl_number', 'seal_no', 'eir_ref',
             'vehicle_plate', 'driver_name',
             'mr_status', 'mr_status_group', 'export_ready', 'on_hold',
         ]);
+    }
+
+    public function index(Request $request)
+    {
+        $filters = $this->filters($request);
 
         $movements  = null;
         $gateOutMap = [];
-        $searched   = $request->hasAny(array_keys($filters));
+
+        // `movement_scope` is excluded deliberately: on its own it narrows
+        // nothing -- it only says which gate the dates are measured against --
+        // so arriving with it set is not a search. The Gate Movements menu
+        // entry does exactly that, and without this it would load every
+        // movement ever recorded on a bare page open.
+        $searched = $request->hasAny(array_diff(array_keys($filters), ['movement_scope']));
 
         if ($searched) {
             $movements  = $this->service->search($filters);
@@ -118,12 +141,8 @@ class ContainerInquiryController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $filters  = $request->only([
-            'container_no', 'customer_id', 'job_type_code', 'job_no',
-            'date_from', 'date_to', 'status',
-            'vessel_name', 'voyage_no', 'bl_number', 'seal_no', 'eir_ref',
-            'mr_status', 'mr_status_group', 'export_ready', 'on_hold',
-        ]);
+        $filters = $this->filters($request);
+
         return TabularExport::stream($request->input('format'), 'container-inquiry', [
             'EIR Ref', 'Container No', 'Customer', 'Job No', 'Job Type',
             'Gate In', 'Gate Out', 'Days In Yard',
@@ -132,57 +151,28 @@ class ContainerInquiryController extends Controller
             'Condition On Arrival', 'Size', 'Cargo Status',
             'Vessel', 'Voyage No', 'BL Number', 'Seal No',
         ], function () use ($filters) {
-            $query = GateMovement::with(['yardJob.jobType', 'customer',
-                                'container:id,export_ready,mr_status_expires_at',
-                                'container.activeHolds:id,container_id,hold_type'])
-                ->where('movement_type', 'in')
-                ->when(!empty($filters['container_no']), fn ($q) => $q->where('container_no', 'LIKE', strtoupper(trim($filters['container_no'])) . '%'))
-                ->when(!empty($filters['customer_id']),  fn ($q) => $q->where('customer_id', $filters['customer_id']))
-                ->when(!empty($filters['job_type_code']), fn ($q) => $q->where('job_type_code', $filters['job_type_code']))
-                ->when(!empty($filters['job_no']),       fn ($q) => $q->whereHas('yardJob', fn ($s) => $s->where('job_no', 'LIKE', '%' . trim($filters['job_no']) . '%')))
-                ->when(!empty($filters['date_from']),    fn ($q) => $q->whereDate('gate_in_time', '>=', $filters['date_from']))
-                ->when(!empty($filters['date_to']),      fn ($q) => $q->whereDate('gate_in_time', '<=', $filters['date_to']))
-                ->when(!empty($filters['status']),       fn ($q) => $q->whereHas('yardJob', fn ($s) => $s->where('status', $filters['status'])))
-                ->when(!empty($filters['vessel_name']),  fn ($q) => $q->where('vessel_name', 'LIKE', '%' . trim($filters['vessel_name']) . '%'))
-                ->when(!empty($filters['voyage_no']),    fn ($q) => $q->where('voyage_no',   'LIKE', '%' . trim($filters['voyage_no'])   . '%'))
-                ->when(!empty($filters['bl_number']),    fn ($q) => $q->where('bl_number',   'LIKE', '%' . trim($filters['bl_number'])   . '%'))
-                ->when(!empty($filters['seal_no']),      fn ($q) => $q->where('seal_no',     'LIKE', '%' . trim($filters['seal_no'])     . '%'))
-                ->when(!empty($filters['eir_ref']),      fn ($q) => $q->where('id', (int) $filters['eir_ref']))
-                ->when(!empty($filters['mr_status']),       fn ($q) => $q->where('mr_status', $filters['mr_status']))
-                ->when(!empty($filters['mr_status_group']), fn ($q) => $q->where('mr_status_group', $filters['mr_status_group']))
-                ->when(!empty($filters['export_ready']), fn ($q) => $q->whereHas('container', fn ($s) => $s->exportReady()))
-                ->when(!empty($filters['on_hold']),      fn ($q) => $q->whereHas('container', fn ($s) => $s->held()))
-                ->orderBy('gate_in_time', 'desc');
+            $query = $this->service->query($filters)
+                ->with(['yardJob.jobType', 'customer',
+                        'container:id,export_ready,mr_status_expires_at',
+                        'container.activeHolds:id,container_id,hold_type']);
 
             // A chunk at a time, not a row at a time: the gate-out lookup below
             // is batched per chunk, and flattening this to one row per query
             // would turn the export into an N+1.
-            foreach ($query->lazy(200)->chunk(200) as $items) {
-                // Batch-fetch gate-outs for this chunk
-                $containerNos = $items->pluck('container_no')->unique()->values()->all();
-                $gateOuts = GateMovement::where('movement_type', 'out')
-                    ->whereIn('container_no', $containerNos)
-                    ->orderBy('gate_out_time', 'asc')
-                    ->get()
-                    ->groupBy('container_no');
+            foreach ($query->lazy(200)->chunk(200) as $chunk) {
+                // `lazy()->chunk()` yields LazyCollections, and the matcher
+                // needs a materialised one -- it walks each container's
+                // gate-ins twice to bound them by the next arrival.
+                $items = $chunk->collect();
+
+                // The same matcher the screen uses, batched over the chunk. The
+                // copy that stood here paired greedily with no record of which
+                // gate-outs it had already spent, so a container with two visits
+                // inside one chunk had the earlier departure answer for both.
+                $gateOutMap = $this->service->matchGateOutsForPage($items);
 
                 foreach ($items as $m) {
-                    // Find the matching gate-out by yard_job_id or closest chronological
-                    $cGateOuts = $gateOuts->get($m->container_no, collect());
-                    $gateOut   = null;
-
-                    if (!is_null($m->yard_job_id)) {
-                        $gateOut = $cGateOuts->firstWhere('yard_job_id', $m->yard_job_id);
-                    }
-                    if (!$gateOut) {
-                        $from = $m->gate_in_time?->timestamp ?? 0;
-                        foreach ($cGateOuts as $go) {
-                            if (is_null($go->yard_job_id) && ($go->gate_out_time?->timestamp ?? 0) >= $from) {
-                                $gateOut = $go;
-                                break;
-                            }
-                        }
-                    }
+                    $gateOut = $gateOutMap[$m->id] ?? null;
 
                     $gateInTime  = $m->gate_in_time?->format('Y-m-d H:i') ?? '-';
                     $gateOutTime = $gateOut?->gate_out_time?->format('Y-m-d H:i') ?? '-';
@@ -222,5 +212,146 @@ class ContainerInquiryController extends Controller
                 }
             }
         });
+    }
+
+    /**
+     * The same search, exported for the other audience.
+     *
+     * `export()` above is the M&R file: stage age, export readiness, holds.
+     * This one is the gate log -- both trucks, both drivers, the BL and the day
+     * count -- for whoever is settling a damage claim or a gate dispute. One
+     * query, one set of rows, two column sets, because those are two jobs and
+     * neither reader wants the other's columns.
+     *
+     * Deliberately not a second screen: the filters, the pairing and the
+     * customer resolution stay in one place, which is the whole reason the
+     * report was extended rather than duplicated.
+     */
+    public function gateLog(Request $request): StreamedResponse
+    {
+        $filters = $this->filters($request);
+
+        if (! GateMovementWorkbook::available()) {
+            // An older openspout on the host means no styling, not no file.
+            return $this->export($request);
+        }
+
+        $query = fn () => $this->service->query($filters);
+
+        return GateMovementWorkbook::stream(
+            $this->gateLogRows($query()),
+            [
+                'period'  => $this->periodLabel($filters),
+                'scope'   => ContainerInquiryService::MOVEMENT_SCOPES[$filters['movement_scope'] ?? 'either']
+                    ?? ContainerInquiryService::MOVEMENT_SCOPES['either'],
+                'filters' => $this->filterSummary($filters),
+                // A COUNT over the same conditions. The rows themselves are
+                // streamed, so they cannot be counted without being held.
+                'visits'  => $query()->count(),
+            ],
+        );
+    }
+
+    /**
+     * One positional row per visit, matching GateMovementWorkbook::HEADINGS.
+     *
+     * @return \Generator<int, array<int, mixed>>
+     */
+    private function gateLogRows($query): \Generator
+    {
+        $query = $query->with(['yardJob.jobType', 'customer']);
+
+        foreach ($query->lazy(200)->chunk(200) as $chunk) {
+            $items      = $chunk->collect();
+            $gateOutMap = $this->service->matchGateOutsForPage($items);
+
+            foreach ($items as $m) {
+                $out  = $gateOutMap[$m->id] ?? null;
+                $days = \App\Support\DaysInYard::between($m->gate_in_time, $out?->gate_out_time);
+
+                yield [
+                    $m->container_no,
+                    $m->size ?? '',
+                    $m->container_type ?? '',
+                    $m->cargo_status ? ucfirst($m->cargo_status) : '',
+                    $m->customer?->name ?? '',
+                    $m->yardJob?->job_no ?? '',
+                    $m->yardJob?->jobType?->job_type_name ?? $m->job_type_code ?? '',
+                    $m->gate_in_time?->format('Y-m-d H:i') ?? '',
+                    $m->vehicle_plate ?? '',
+                    $m->driver_name ?? '',
+                    $out?->gate_out_time?->format('Y-m-d H:i') ?? '',
+                    $out?->vehicle_plate ?? '',
+                    $out?->driver_name ?? '',
+                    // A real number so the column sums and sorts; blank rather
+                    // than zero where there is no departure to count to, since
+                    // a 0 would read as "in and out the same day".
+                    $days === null ? '' : (int) $days,
+                    $out ? 'Departed' : 'In Yard',
+                    $m->bl_number ?? '',
+                    trim(($m->vessel_name ?? '') . ' ' . ($m->voyage_no ?? '')),
+                ];
+            }
+        }
+    }
+
+    /** The date window in words, for the sheet's header block. */
+    private function periodLabel(array $filters): string
+    {
+        $from = $filters['date_from'] ?? null;
+        $to   = $filters['date_to']   ?? null;
+
+        $fmt = fn ($d) => \Illuminate\Support\Carbon::parse($d)->format('d M Y');
+
+        return match (true) {
+            $from && $to => $fmt($from) . '  to  ' . $fmt($to),
+            (bool) $from => 'From ' . $fmt($from),
+            (bool) $to   => 'Up to ' . $fmt($to),
+            default      => 'All dates',
+        };
+    }
+
+    /**
+     * The non-date filters, named, so a forwarded sheet still says what it is.
+     *
+     * A spreadsheet that has been emailed on twice has lost the screen it came
+     * from, and "why is this box missing" is unanswerable without knowing what
+     * was narrowed.
+     */
+    private function filterSummary(array $filters): string
+    {
+        $labels = [
+            'container_no'  => 'Container',
+            'job_no'        => 'Job No',
+            'job_type_code' => 'Job Type',
+            'status'        => 'Job Status',
+            'vessel_name'   => 'Vessel',
+            'voyage_no'     => 'Voyage',
+            'bl_number'     => 'BL',
+            'seal_no'       => 'Seal',
+            'vehicle_plate' => 'Vehicle',
+            'driver_name'   => 'Driver',
+            'mr_status'     => 'M&R Status',
+        ];
+
+        $parts = [];
+
+        if (! empty($filters['customer_id'])) {
+            $parts[] = 'Customer: ' . (Customer::find($filters['customer_id'])?->name ?? $filters['customer_id']);
+        }
+
+        foreach ($labels as $key => $label) {
+            if (! empty($filters[$key])) {
+                $parts[] = $label . ': ' . $filters[$key];
+            }
+        }
+
+        foreach (['export_ready' => 'Export ready', 'on_hold' => 'On hold'] as $key => $label) {
+            if (! empty($filters[$key])) {
+                $parts[] = $label;
+            }
+        }
+
+        return implode('   |   ', $parts);
     }
 }

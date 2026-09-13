@@ -1616,8 +1616,23 @@
                 @can('container-inquiry.view')
                 <li class="nav-item">
                     <a href="{{ route('container-inquiry.index') }}"
-                       class="nav-link {{ request()->routeIs('container-inquiry.*') ? 'active' : '' }}">
+                       class="nav-link {{ request()->routeIs('container-inquiry.*') && ! request()->has('movement_scope') ? 'active' : '' }}">
                         <i class="bi bi-search"></i><span>Container Inquiry</span>
+                    </a>
+                </li>
+                {{-- Two doors, one screen. "Container Inquiry" is the right name
+                     for the drill-down behind it -- job cycles, estimates, work
+                     orders, invoices, timeline -- but it reads as a
+                     single-container lookup, which is why nobody found the
+                     period search living on the same page. Renaming the module
+                     would have mislabelled the good half to fix the other one,
+                     so the search gets its own entry into the same route with
+                     the window pre-set instead. Same controller, same
+                     permission, no second query to drift. --}}
+                <li class="nav-item">
+                    <a href="{{ route('container-inquiry.index', ['movement_scope' => 'either']) }}"
+                       class="nav-link {{ request()->routeIs('container-inquiry.index') && request()->has('movement_scope') ? 'active' : '' }}">
+                        <i class="bi bi-truck"></i><span>Gate Movements</span>
                     </a>
                 </li>
                 @endcan

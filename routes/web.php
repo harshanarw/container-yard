@@ -411,6 +411,8 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('container-inquiry')->name('container-inquiry.')->group(function () {
         Route::get('/',                             [ContainerInquiryController::class, 'index'])->name('index');
         Route::get('/export',                       [ContainerInquiryController::class, 'export'])->name('export');
+        // Same search, gate-log columns. See ContainerInquiryController::gateLog().
+        Route::get('/gate-log',                     [ContainerInquiryController::class, 'gateLog'])->name('gate-log');
         Route::get('/autocomplete',                 [ContainerInquiryController::class, 'autocomplete'])->name('autocomplete');
         Route::get('/{containerNo}/print',          [ContainerInquiryController::class, 'print'])->name('print');
         Route::get('/{containerNo}',                [ContainerInquiryController::class, 'show'])->name('show');

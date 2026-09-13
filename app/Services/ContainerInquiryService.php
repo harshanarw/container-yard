@@ -16,6 +16,7 @@ use App\Models\StorageInvoice;
 use App\Models\StorageInvoiceDetail;
 use App\Models\WorkOrder;
 use App\Models\YardStorage;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -162,19 +163,24 @@ class ContainerInquiryService
     }
 
     /**
-     * Search gate-in movements with optional filters, one row per movement.
+     * The search itself, without the eager loads, so the screen and the export
+     * select the same rows.
+     *
+     * They did not. The export carried its own copy of this chain, and when the
+     * date window changed from containment to overlap only the screen's copy was
+     * updated -- so an operator who searched August, saw a box that arrived in
+     * June and left in August, and pressed Export got a file without it. Silent,
+     * and exactly the drift that argued against building a second report in the
+     * first place; it had simply already happened inside this one.
+     *
+     * Eager loads stay with the callers, because the two want different sets --
+     * the screen needs `createdBy` and the container number for its links, the
+     * export needs neither -- and hoisting the union here would make each pay
+     * for the other's relations on every row.
      */
-    public function search(array $filters, int $perPage = 20): LengthAwarePaginator
+    public function query(array $filters): Builder
     {
-        return GateMovement::with([
-                'yardJob.jobType', 'customer', 'createdBy',
-                // The M&R status itself is a column on this row, so the badge
-                // costs nothing. The container is loaded for the hold chip and
-                // export-ready marker — two queries for the whole page, not per
-                // row.
-                'container:id,container_no,status,export_ready,mr_status_expires_at',
-                'container.activeHolds:id,container_id,hold_type',
-            ])
+        return GateMovement::query()
             ->where('movement_type', 'in')
             // Basic filters
             ->when(!empty($filters['container_no']), function ($q) use ($filters) {
@@ -215,7 +221,24 @@ class ContainerInquiryService
             // container instead.
             ->when(!empty($filters['export_ready']), fn ($q) => $q->whereHas('container', fn ($sub) => $sub->exportReady()))
             ->when(!empty($filters['on_hold']),      fn ($q) => $q->whereHas('container', fn ($sub) => $sub->held()))
-            ->orderBy('gate_in_time', 'desc')
+            ->orderBy('gate_in_time', 'desc');
+    }
+
+    /**
+     * Search gate-in movements with optional filters, one row per movement.
+     */
+    public function search(array $filters, int $perPage = 20): LengthAwarePaginator
+    {
+        return $this->query($filters)
+            ->with([
+                'yardJob.jobType', 'customer', 'createdBy',
+                // The M&R status itself is a column on this row, so the badge
+                // costs nothing. The container is loaded for the hold chip and
+                // export-ready marker — two queries for the whole page, not per
+                // row.
+                'container:id,container_no,status,export_ready,mr_status_expires_at',
+                'container.activeHolds:id,container_id,hold_type',
+            ])
             ->paginate($perPage);
     }
 

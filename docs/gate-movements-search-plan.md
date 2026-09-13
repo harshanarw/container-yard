@@ -114,11 +114,28 @@ Mapped to the request:
 
 Two things follow from that, and one of them is not code.
 
-**Rename it.** "Container Inquiry" reads as a single-container lookup, which is
-why the screen that already answers this question was not found. **Gate Movements
-Search** — or "Gate Log" — describes what it does, and the name is the cheapest
-part of this whole piece of work. The route, permission and service keep their
-names; only the menu label, the page title and the breadcrumb change.
+**~~Rename it.~~ Give it a second door.** *Revised — the original
+recommendation was wrong, and the correction came from the yard.*
+
+The reasoning was: "Container Inquiry" reads as a single-container lookup, which
+is why the screen that already answers this question was not found. That part
+holds. The conclusion did not, because it was drawn from the index screen alone.
+
+`ContainerInquiryController::show()` builds cycles, estimates, work orders,
+storage records, reefer sessions, four invoice families and a timeline. That is
+a **container dossier**, and "Container Inquiry" is the correct name for it. The
+index also carries `mr_status`, `mr_status_group`, `export_ready` and `on_hold`
+— an M&R work queue, not a gate log. One accurate name over two audiences.
+Renaming the module would have mislabelled the half that was right to fix the
+half that was not.
+
+So the screen keeps its name, and the search gets its **own Reports entry** into
+the same route with `movement_scope` pre-set: same controller, same permission,
+no second query to drift. `$searched` ignores `movement_scope`, because a scope
+with no dates narrows nothing and arriving with it set must not load every
+movement ever recorded.
+
+**What was actually missing was not a name but a file.** See Phase 5.
 
 **Fix the date semantics**, which is the only change that alters what the screen
 returns.
@@ -171,12 +188,43 @@ share, so this row cannot disagree with the inquiry screen or Daily Movements.
 It is **elapsed** time, not billable days: a box in and out the same day is 0
 here and 1 chargeable day on the invoice.
 
-**Phase 4 — the name.** Menu label, page title, breadcrumb, and a one-line
-pointer from Daily Movements saying it is the EDI export queue and naming where
-to search instead.
+**Phase 4 — findability, without a rename. Built.** A second Reports entry
+("Gate Movements") into the same route, a page subtitle that names what can be
+searched, and a one-line pointer from Daily Movements saying it is the EDI
+export queue. See the revision in §4 for why the rename was dropped.
 
-**Phase 5 — the export**, styled like the stock workbook: header block naming
-the period, the filters and the row count. Same reason — it gets sent to people.
+**Phase 5 — the export. Built, and it started with a defect.**
+
+`ContainerInquiryController::export()` carried its **own copy** of the filter
+chain. When Phase 1 moved the date window from containment to overlap, only the
+screen's copy changed — so an operator could search August, see the June-to-August
+box on screen, press Export and get a file without it. Nothing reported a
+discrepancy; the file was simply short a row. Its `$request->only()` also omitted
+`movement_scope`, `vehicle_plate` and `driver_name` entirely, so those three
+filters narrowed the screen and did nothing to the file, and its inline pairing
+had no upper bound and no record of which gate-outs it had spent — where a
+gate-out was missed, a later departure closed the earlier visit too.
+
+This is the exact drift the plan cites as the reason not to build a second
+report. It had already happened *inside* this one. The fix: `search()` is split
+into `query()` + eager loads, and both the screen and the export select through
+`query()` and pair through `matchGateOutsForPage()`. The filter list lives in
+one place.
+
+Then the file itself. The flat CSV keeps its 20 M&R columns, because that
+audience is real and its file is in use. `GateMovementWorkbook` is the gate-log
+set alongside it — both trucks, both drivers, BL, days, status — styled like the
+stock workbook with a header block naming the period, the scope, the filters and
+the visit count. Rows stream as an iterable: this covers a date range rather
+than one day's stock, so materialising a year first is how it would run out of
+memory. Both gates' vehicle and driver are **separate columns** here where the
+screen stacks them, because a spreadsheet gets sorted and a stacked cell cannot be.
+
+**A testing note worth keeping.** openspout writes cell text **inline** into
+`xl/worksheets/sheet1.xml` and leaves `xl/sharedStrings.xml` an empty stub. The
+stock workbook test read shared strings alone, which handed every assertion an
+empty haystack — so it failed on any host that could write a workbook at all.
+Both workbook tests now read every XML part in the zip.
 
 ---
 

@@ -12,7 +12,13 @@
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
         <h4><i class="bi bi-search me-2 text-primary"></i>Container Inquiry</h4>
-        <p class="text-muted mb-0 small">Search all container history, job cycles, and workflow activities</p>
+        {{-- Names what can actually be searched. The old subtitle described the
+             drill-down only, so the gate-movement search nobody could find was
+             not advertised by the page that holds it. --}}
+        <p class="text-muted mb-0 small">
+            Search gate movements by date, customer, job, BL, vessel, vehicle or driver &mdash;
+            then open a container for its full job, repair and billing history
+        </p>
     </div>
     @if($searched && $movements && $movements->total() > 0)
     <div class="d-flex gap-2 no-print">
@@ -21,8 +27,18 @@
         </a>
         @if(\App\Support\Export\TabularExport::supports('xlsx'))
         <a href="{{ route('container-inquiry.export', array_merge(request()->query(), ['format' => 'xlsx'])) }}"
-           class="btn btn-outline-success btn-sm">
+           class="btn btn-outline-success btn-sm"
+           title="Every column, including M&amp;R status, stage age, export readiness and holds.">
             <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+        </a>
+        @endif
+        @if(\App\Support\Export\GateMovementWorkbook::available())
+        {{-- The other audience for the same rows: both trucks, both drivers,
+             the BL and the day count, with no M&R columns in the way. --}}
+        <a href="{{ route('container-inquiry.gate-log', request()->query()) }}"
+           class="btn btn-outline-primary btn-sm"
+           title="Both gates with vehicle, driver, BL and days in yard — for gate and damage queries.">
+            <i class="bi bi-truck me-1"></i>Gate Movements (Excel)
         </a>
         @endif
     </div>
