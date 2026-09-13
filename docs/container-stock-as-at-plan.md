@@ -173,8 +173,42 @@ summary tiles, the rows.
 date in the filename and in the sheet header — a stock file with no date on it
 is worse than no file.
 
-**Phase 4 — the label fix on Inventory.** Rename its date filters to "Arrived
-between", and add a line pointing at this report for as-at questions.
+**Phase 4 — Inventory reads the gate ledger. Built, and it grew.**
+
+The plan was a label fix: rename the date filters to "Arrived between" and point
+at this report for as-at questions. Both were done. But relabelling a filter to
+describe what it measures only helps if what it measures is true, and
+`containers.gate_in_date` is not:
+
+1. **It is `date`, not `datetime`.** The master cannot say a box arrived at
+   22:40 and left at 06:15, so a same-day turnaround could not even be ordered.
+2. **It drifts.** Nothing in the schema keeps it in step with `gate_movements`;
+   it is written by hand in `YardController`, `CargoTransferService` and the
+   gate-time edit screen, and a missed write leaves the master claiming a box is
+   still here. That drift is exactly what `containers:fix-gate-custody` repairs.
+   Inventory believed the stale copy while every other report read the ledger.
+3. **It holds one visit**, so it cannot describe the other four.
+
+So Inventory's In/Out dates, its day count, its date filter and its ordering now
+all come from `gate_movements`, through `ContainerVisitDates` — which pairs via
+`ContainerMrStatusService::pairGateOuts()`, the same matcher as M&R status, the
+gate search and this report. The screen gained a **Gate Out** column, because a
+ledger has two ends where the projection effectively had one.
+
+The filter matches the **current** visit, not any arrival ever: Inventory is a
+live list and the row shows the current visit, so that is what the filter must
+mean. A box that came in during March, left, and returned in September is a
+September box here. "Did it ever arrive in March" is the gate search's question.
+
+The day count moved to `DaysInYard`. The two inline `diffInDays()` calls it
+replaced returned the *distance* between two moments, so a container recorded as
+leaving before it arrived read as a confident positive number on Inventory and
+`0` on every other screen.
+
+**The master columns stay.** Gate operations, storage billing, hires and cargo
+transfer still write and read them; unpicking that is a separate piece of work
+and a much larger one. This change covers the screens that only *display* the
+dates, where reading the ledger is free of consequence and simply correct.
 
 **Not in scope:** a movements-between-dates report (opening balance, in, out,
 closing balance). That is a genuinely useful second report and the same service

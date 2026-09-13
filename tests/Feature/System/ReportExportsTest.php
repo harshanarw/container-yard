@@ -68,22 +68,33 @@ class ReportExportsTest extends FeatureTestCase
 
     // ── Inventory ────────────────────────────────────────────────────────────
 
+    /**
+     * Updated with the move off the container master.
+     *
+     * This fixture used to set `gate_in_date` on the container and assert it
+     * back out of the file, which pinned Inventory to a hand-maintained `date`
+     * column that holds only the latest visit and drifts whenever a gate write
+     * is missed. The report now reads `gate_movements`, so the fixture records
+     * an actual arrival -- and the file gained a Gate Out column, because a
+     * ledger has two ends where the master's projection effectively had one.
+     */
     public function test_the_inventory_export_carries_the_columns_on_screen(): void
     {
-        Container::factory()->create([
+        $container = Container::factory()->create([
             'container_no' => 'INVE0000001',
             'customer_id'  => $this->bringer->id,
             'status'       => 'in_yard',
             'condition'    => 'require_repair',
             'cargo_status' => 'empty',
-            'gate_in_date' => '2026-06-10',
         ]);
+
+        $this->arrived($container, '2026-06-10 07:30:00');
 
         $rows = $this->export('reports.inventory.export');
 
         $this->assertSame([
             'Container No', 'Size', 'Type', 'Customer Code', 'Customer',
-            'Condition', 'Cargo', 'Location', 'Gate In Date', 'Days In Yard',
+            'Condition', 'Cargo', 'Location', 'Gate In', 'Gate Out', 'Days In Yard',
             'Status', 'M&R Status', 'Stage',
         ], $rows[0]);
 
@@ -94,8 +105,28 @@ class ReportExportsTest extends FeatureTestCase
         $this->assertSame('Require Repair', $row[5],
             'The badge on screen resolves to the words it stands for - a spreadsheet has no colour.');
         $this->assertSame('Empty', $row[6]);
-        $this->assertSame('2026-06-10', $row[8]);
-        $this->assertSame('5', $row[9], 'Five days in yard, counted to today.');
+        $this->assertSame('2026-06-10 07:30', $row[8],
+            'The arrival as the gate recorded it, to the minute.');
+        $this->assertSame('In Yard', $row[9], 'No departure, and the file says so.');
+        $this->assertSame('5', $row[10], 'Five days in yard, counted to today.');
+    }
+
+    /** Records an arrival in the gate ledger, which is what Inventory now reads. */
+    private function arrived(Container $container, string $at): void
+    {
+        \App\Models\GateMovement::create([
+            'container_id'    => $container->id,
+            'container_no'    => $container->container_no,
+            'customer_id'     => $container->customer_id,
+            'movement_type'   => 'in',
+            'size'            => $container->size,
+            'container_type'  => $container->type_code,
+            'condition'       => $container->condition,
+            'cargo_status'    => $container->cargo_status,
+            'gate_in_time'    => $at,
+            'movement_status' => 'done',
+            'created_by'      => auth()->id(),
+        ]);
     }
 
     public function test_the_inventory_export_honours_the_screens_filters(): void

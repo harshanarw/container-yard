@@ -198,12 +198,18 @@
                         @endforeach
                     </select>
                 </div>
+                {{-- Named for what they measure. Unlabelled "From/To" reads as
+                     a period filter, so an operator sets August and believes
+                     they are looking at August's yard. They are not: this
+                     narrows by arrival date, so a box that arrived in July and
+                     was still here all August is absent. Container Stock (As
+                     At) is the report that answers the period question. --}}
                 <div class="col-6 col-md-1">
-                    <label class="form-label form-label-sm mb-1">From</label>
+                    <label class="form-label form-label-sm mb-1">Arrived From</label>
                     <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}">
                 </div>
                 <div class="col-6 col-md-1">
-                    <label class="form-label form-label-sm mb-1">To</label>
+                    <label class="form-label form-label-sm mb-1">Arrived To</label>
                     <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request('date_to') }}">
                 </div>
                 <div class="col-auto">
@@ -216,6 +222,16 @@
                 </div>
             </div>
         </form>
+
+        <div class="small text-muted mt-2 pt-2 border-top">
+            <i class="bi bi-info-circle me-1"></i>
+            This is a <strong>live</strong> list: every column describes the container as it stands
+            today, and the date filter narrows by <strong>arrival</strong>, not by period.
+            @can('container-stock.view')
+                For what was in the yard on a past date, use
+                <a href="{{ route('reports.container-stock') }}">Container Stock (As At)</a>.
+            @endcan
+        </div>
     </div>
 </div>
 
@@ -237,7 +253,8 @@
                         <th>Condition</th>
                         <th>Cargo</th>
                         <th>Location</th>
-                        <th>Gate In Date</th>
+                        <th>Gate In</th>
+                        <th>Gate Out</th>
                         <th>Days in Yard</th>
                         <th>Status</th>
                         <th>M&amp;R Status</th>
@@ -245,6 +262,20 @@
                 </thead>
                 <tbody>
                     @forelse($containers as $i => $container)
+                    @php
+                        // From the gate ledger, not containers.gate_in_date.
+                        // The master columns are `date`, hold only the latest
+                        // visit, and drift when a gate write is missed — which
+                        // is what containers:fix-gate-custody repairs.
+                        $visit   = $visits[$container->id] ?? null;
+                        $gateIn  = $visit['gate_in']  ?? null;
+                        $gateOut = $visit['gate_out'] ?? null;
+
+                        // The one calculation five screens share. Elapsed time,
+                        // not billable days: in and out the same day is 0 here
+                        // and 1 chargeable day on the invoice.
+                        $days = \App\Support\DaysInYard::between($gateIn, $gateOut);
+                    @endphp
                     <tr>
                         <td class="ps-3 text-muted">{{ $i + 1 }}</td>
                         <td>
@@ -291,17 +322,25 @@
                                 -
                             @endif
                         </td>
-                        <td>{{ $container->gate_in_date ? $container->gate_in_date->format('d M Y') : '-' }}</td>
+                        <td class="text-nowrap">{{ $gateIn ? $gateIn->format('d M Y H:i') : '-' }}</td>
+                        <td class="text-nowrap">
+                            @if($gateOut)
+                                {{ $gateOut->format('d M Y H:i') }}
+                            @elseif($gateIn)
+                                <span class="badge bg-success-subtle text-success">In Yard</span>
+                            @else
+                                -
+                            @endif
+                        </td>
                         <td>
-                            @if($container->gate_in_date && !$container->gate_out_date)
-                                @php $days = $container->gate_in_date->diffInDays(now()); @endphp
+                            @if($days === null)
+                                -
+                            @elseif($gateOut)
+                                {{ $days }}d
+                            @else
                                 <span class="{{ $days > 30 ? 'text-danger fw-semibold' : ($days > 14 ? 'text-warning' : '') }}">
                                     {{ $days }} day{{ $days != 1 ? 's' : '' }}
                                 </span>
-                            @elseif($container->gate_out_date)
-                                {{ $container->gate_in_date->diffInDays($container->gate_out_date) }}d
-                            @else
-                                -
                             @endif
                         </td>
                         <td>
@@ -337,7 +376,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="11" class="text-center py-5 text-muted">
+                        <td colspan="12" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                             No containers found matching your filters.
                         </td>

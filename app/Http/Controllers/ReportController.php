@@ -7,13 +7,16 @@ use App\Models\Customer;
 use App\Models\GateMovement;
 use App\Models\YardStorage;
 use App\Services\ContainerMrStatusService;
+use App\Services\Reporting\ContainerVisitDates;
 use App\Services\Reporting\MovementVisits;
 use App\Services\Reporting\WeekBreakdown;
 use App\Services\Reporting\WeeklyPerformanceReport;
+use App\Support\DaysInYard;
 use App\Support\Export\TabularExport;
 use App\Support\Export\WeeklyPerformanceWorkbook;
 use App\Support\MrStatusCatalogue;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -39,9 +42,67 @@ class ReportController extends Controller
             ->when($request->size,        fn ($q, $v) => $q->where('size', $v))
             ->when($request->condition,   fn ($q, $v) => $q->where('condition', $v))
             ->when($request->mr_status_group, fn ($q, $v) => $q->where('mr_status_group', $v))
-            ->when($request->date_from,   fn ($q, $v) => $q->whereDate('gate_in_date', '>=', $v))
-            ->when($request->date_to,     fn ($q, $v) => $q->whereDate('gate_in_date', '<=', $v))
-            ->orderBy('gate_in_date', 'desc');
+            ->tap(fn ($q) => $this->arrivedBetween($q, $request->date_from, $request->date_to))
+            // Ordered by the ledger too. Ordering on the master column while
+            // displaying the ledger's dates is how a list ends up looking
+            // unsorted to the person reading it. Containers with no arrival
+            // sort last, which is where an incomplete record belongs.
+            ->orderByRaw(self::LATEST_ARRIVAL . ' DESC', ['in'])
+            ->orderBy('container_no');
+    }
+
+    /**
+     * The container's most recent arrival, from the gate ledger.
+     *
+     * Written once and used for both the ordering and the date filter, so the
+     * rows selected, the order they arrive in and the dates displayed are all
+     * the same visit. Two copies of this would be two definitions of "current",
+     * and they would not stay equal.
+     */
+    private const LATEST_ARRIVAL = '(SELECT MAX(arrival.gate_in_time)
+          FROM gate_movements as arrival
+         WHERE arrival.container_id = containers.id
+           AND arrival.movement_type = ?
+           AND arrival.gate_in_time IS NOT NULL)';
+
+    /**
+     * "Arrived between", measured against the gate ledger.
+     *
+     * Both bounds used to test `containers.gate_in_date` -- a `date` column on
+     * the master, hand-maintained at every gate operation, holding only the
+     * latest visit. It loses the time of day, so a same-day turnaround cannot
+     * be ordered; it drifts whenever a write is missed, which is what
+     * `containers:fix-gate-custody` exists to repair; and a filtered list built
+     * on it disagrees with every other report in the system.
+     *
+     * Matched against the **current** visit rather than any arrival ever,
+     * because Inventory is a live list and the dates on the row are the current
+     * visit's. A container that arrived in March, left, and came back in
+     * September is a September box here -- which is what the row shows, so it
+     * is what the filter has to mean. "Did it ever arrive in March" is a
+     * different question, and the gate movement search answers it.
+     *
+     * A container with no arrival at all yields NULL from the subquery, and
+     * NULL fails both comparisons -- so it drops out of a dated search rather
+     * than appearing with nothing to justify it.
+     */
+    private function arrivedBetween($query, ?string $from, ?string $to): void
+    {
+        // Compared against datetime bounds rather than wrapped in DATE(): the
+        // subquery already returns a timestamp, and `<= end of day` includes
+        // everything that arrived on the closing date without a function call
+        // around it.
+        if ($from) {
+            $query->whereRaw(self::LATEST_ARRIVAL . ' >= ?', [
+                'in', Carbon::parse($from)->startOfDay()->toDateTimeString(),
+            ]);
+        }
+
+        if ($to) {
+            $query->whereRaw(self::LATEST_ARRIVAL . ' <= ?', [
+                'in', Carbon::parse($to)->endOfDay()->toDateTimeString(),
+            ]);
+        }
     }
 
     public function inventory(Request $request)
@@ -72,7 +133,15 @@ class ReportController extends Controller
         $customers      = Customer::where('status', 'active')->orderBy('name')->get();
         $mrStatusGroups = MrStatusCatalogue::groups();
 
-        return view('reports.inventory', compact('containers', 'summary', 'customers', 'mrSummary', 'mrStatusGroups'));
+        // In and out times come from the gate ledger, not the master's two
+        // date columns. One batched pass for the whole page, keyed by
+        // container id; a container with no usable arrival is simply absent
+        // and the row says so rather than showing a confident blank.
+        $visits = ContainerVisitDates::forCollection($containers);
+
+        return view('reports.inventory', compact(
+            'containers', 'summary', 'customers', 'mrSummary', 'mrStatusGroups', 'visits'
+        ));
     }
 
     /**
@@ -88,42 +157,55 @@ class ReportController extends Controller
 
         return TabularExport::stream($request->input('format'), 'inventory', [
             'Container No', 'Size', 'Type', 'Customer Code', 'Customer',
-            'Condition', 'Cargo', 'Location', 'Gate In Date', 'Days In Yard',
+            'Condition', 'Cargo', 'Location', 'Gate In', 'Gate Out', 'Days In Yard',
             'Status', 'M&R Status', 'Stage',
         ], function () use ($query) {
-            foreach ($query->lazy(200) as $c) {
-                // The screen counts to today while a box is still here, and to
-                // the gate-out once it has left.
-                $days = match (true) {
-                    $c->gate_in_date && ! $c->gate_out_date => (int) $c->gate_in_date->diffInDays(now()),
-                    (bool) $c->gate_out_date                => (int) $c->gate_in_date?->diffInDays($c->gate_out_date),
-                    default                                 => null,
-                };
+            // A chunk at a time, so the visit lookup is batched rather than
+            // run per row.
+            foreach ($query->lazy(200)->chunk(200) as $chunk) {
+                $items  = $chunk->collect();
+                $visits = ContainerVisitDates::forCollection($items);
 
-                $location = $c->location_row
-                    ? $c->location_row . $c->location_bay . '-T' . $c->location_tier
-                    : '-';
+                foreach ($items as $c) {
+                    $visit   = $visits[$c->id] ?? null;
+                    $gateIn  = $visit['gate_in']  ?? null;
+                    $gateOut = $visit['gate_out'] ?? null;
 
-                yield [
-                    $c->container_no,
-                    $c->size ?? '-',
-                    $c->type_code ?? '-',
-                    $c->customer->code ?? '-',
-                    $c->customer->name ?? '-',
-                    match ($c->condition) {
-                        'sound'          => 'Sound',
-                        'damaged'        => 'Damaged',
-                        'require_repair' => 'Require Repair',
-                        default          => ucfirst((string) $c->condition),
-                    },
-                    $c->cargo_status === 'empty' ? 'Empty' : 'Laden',
-                    $location,
-                    $c->gate_in_date?->format('Y-m-d') ?? '-',
-                    $days ?? '-',
-                    $c->status,
-                    $c->mr_status ? MrStatusCatalogue::label($c->mr_status, $c->mr_lane) : '-',
-                    MrStatusCatalogue::groups()[$c->mr_status_group] ?? ($c->mr_status_group ?? '-'),
-                ];
+                    // The one calculation the yard shares. A bare diffInDays()
+                    // returns the *distance* between two moments, so a box
+                    // recorded as leaving before it arrived came back as a
+                    // confident positive number here and 0 on every other screen.
+                    $days = DaysInYard::between($gateIn, $gateOut);
+
+                    $location = $c->location_row
+                        ? $c->location_row . $c->location_bay . '-T' . $c->location_tier
+                        : '-';
+
+                    yield [
+                        $c->container_no,
+                        $c->size ?? '-',
+                        $c->type_code ?? '-',
+                        $c->customer->code ?? '-',
+                        $c->customer->name ?? '-',
+                        match ($c->condition) {
+                            'sound'          => 'Sound',
+                            'damaged'        => 'Damaged',
+                            'require_repair' => 'Require Repair',
+                            default          => ucfirst((string) $c->condition),
+                        },
+                        $c->cargo_status === 'empty' ? 'Empty' : 'Laden',
+                        $location,
+                        // Real timestamps from the ledger. The master columns
+                        // are `date`, so they could not say a box arrived at
+                        // 22:40 and left at 06:15 the next morning.
+                        $gateIn?->format('Y-m-d H:i') ?? '-',
+                        $gateOut?->format('Y-m-d H:i') ?? 'In Yard',
+                        $days ?? '-',
+                        $c->status,
+                        $c->mr_status ? MrStatusCatalogue::label($c->mr_status, $c->mr_lane) : '-',
+                        MrStatusCatalogue::groups()[$c->mr_status_group] ?? ($c->mr_status_group ?? '-'),
+                    ];
+                }
             }
         });
     }
