@@ -142,11 +142,32 @@ sitting unused is a trap for whoever reaches for it next.
 
 ## 6. Recommended sequence
 
-**Step 1 — `DaysInYard` everywhere.** Four display sites compute the day count
-by hand: `containers/show.blade.php` 455, `yard/index.blade.php` 331,
-`YardController` 2347, `yard/gate.blade.php` 1051. Routing them through
-`DaysInYard::between()` is a small change with a visible effect only on
-contradictory data. Delete the dead accessor in the same pass.
+**Step 1 — `DaysInYard` everywhere. Done.** Four hand-rolled counts on the
+master now go through `DaysInYard::between()`:
+
+- `containers/show.blade.php` — the Days in Yard field
+- `yard/index.blade.php` — the coloured badge on the in-yard list
+- `YardController::inYardSearch()` — the `days` key, which the gate screen's
+  container picker renders
+- `YardController::containerLookup()` — the `days_in_yard` key behind the
+  gate-out form's badge. Only the **fallback** branch changed: with a storage
+  record this deliberately counts from `billing_gate_in_date`, the free-day
+  anchor, which on a resumed hire is earlier than the physical arrival. Two
+  different quantities under one label, and that part is intentional.
+
+`Container::getDaysInYardAttribute()` is deleted, with a note left in its place
+so the next person reaching for the obvious name finds the reason instead of a
+gap. It was uncalled and not in `$appends`, and disagreed with `DaysInYard`
+twice — a bare `diffInDays()`, and a missing arrival defaulted to `now()`,
+returning 0 where the answer is "no arrival to count from".
+
+`yard/gate.blade.php` 1048–1051 was **not** touched, and is now the whole of
+step 2. Routing its subtraction through `DaysInYard` would have corrected the
+sign while leaving the real defect — one operand from the ledger, the other
+from the projection — and left an adjacent line in the same `@php` block to be
+edited again a commit later.
+
+Covered by `tests/Feature/Yard/DaysInYardConsistencyTest.php`.
 
 **Step 2 — the gate screen's mixed calculation.** Fix §5's first item properly
 by pairing the movement, not by patching the subtraction.

@@ -20,6 +20,7 @@ use App\Models\YardJobType;
 use App\Models\YardStorage;
 use App\Services\NotificationService;
 use App\Services\NumberSequenceService;
+use App\Support\DaysInYard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -2172,9 +2173,19 @@ class YardController extends Controller
             ->latest('gate_in_time')
             ->first();
 
+        // Two different quantities under one label, and that is deliberate:
+        // with a storage record this counts from the **free-day anchor**
+        // (`billing_gate_in_date`, which on a resumed hire is earlier than the
+        // physical arrival), because on the gate-out form what the operator
+        // needs is how much free time has been consumed. Without one there is
+        // no billing context, so it falls back to elapsed time since arrival.
+        //
+        // The fallback used a bare diffInDays(); it now goes through the
+        // calculation the rest of the yard shares, so a reversed pair reads 0
+        // here as it does everywhere else instead of a confident positive.
         $daysInYard = $storage
-            ? max(0, $storage->billing_gate_in_date->diffInDays(today()))
-            : ($container->gate_in_date ? $container->gate_in_date->diffInDays(today()) : null);
+            ? max(0, (int) $storage->billing_gate_in_date->diffInDays(today()))
+            : DaysInYard::between($container->gate_in_date, $container->gate_out_date);
 
         // Can this container actually be gated out right now? Mirrors the gate-out
         // validation so the form can warn at selection time instead of on save.
@@ -2344,7 +2355,10 @@ class YardController extends Controller
                 'text'     => $c->container_no,
                 'customer' => $names[$visitCustomers[$c->id] ?? null] ?? ($c->customer->name ?? 'Unknown'),
                 'eqt_code' => $c->equipmentType?->eqt_code,
-                'days'     => $c->gate_in_date ? (int) $c->gate_in_date->diffInDays(today()) : null,
+                // Shared calculation, not a bare diffInDays(): the badge this
+                // feeds sits beside others drawn from DaysInYard, and two of
+                // them disagreeing on one screen is worse than either.
+                'days'     => DaysInYard::between($c->gate_in_date, $c->gate_out_date),
             ]),
         ]);
     }

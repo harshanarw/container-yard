@@ -451,8 +451,19 @@
                     <dd class="col-6">{{ $container->gate_out_date?->format('d M Y') ?? '-' }}</dd>
                     <dt class="col-6 text-muted">Days in Yard</dt>
                     <dd class="col-6">
-                        @if($container->status === 'in_yard' && $container->gate_in_date)
-                            {{ $container->gate_in_date->diffInDays(\Carbon\Carbon::today()) }}
+                        @php
+                            // The one calculation the yard shares. A bare
+                            // diffInDays() returns the *distance* between two
+                            // moments, so a container whose dates are reversed
+                            // read as a confident positive number here and 0 on
+                            // every screen that goes through DaysInYard.
+                            $days = \App\Support\DaysInYard::between(
+                                $container->gate_in_date,
+                                $container->gate_out_date,
+                            );
+                        @endphp
+                        @if($container->status === 'in_yard' && $days !== null)
+                            {{ $days }}
                         @else
                             -
                         @endif

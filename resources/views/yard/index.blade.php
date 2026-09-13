@@ -328,7 +328,11 @@
                 <tbody>
                 @forelse($inYardContainers as $c)
                 @php
-                    $days = $c->gate_in_date ? $c->gate_in_date->diffInDays(today()) : null;
+                    // The one calculation the yard shares, rather than a bare
+                    // diffInDays(): that returns the *distance* between two
+                    // moments, so a container with reversed dates reads as a
+                    // confident positive here and 0 everywhere else.
+                    $days = \App\Support\DaysInYard::between($c->gate_in_date, $c->gate_out_date);
                     $condCls = match($c->condition) {
                         'sound'          => 'success',
                         'damaged'        => 'danger',

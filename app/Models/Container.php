@@ -310,12 +310,23 @@ class Container extends Model
     }
 
     // Helpers
-    public function getDaysInYardAttribute(): int
-    {
-        $start = $this->gate_in_date ?? now();
-        $end   = $this->gate_out_date ?? now();
-        return (int) $start->diffInDays($end);
-    }
+
+    /*
+     * `getDaysInYardAttribute()` was removed here.
+     *
+     * Nothing called `->days_in_yard` on a Container anywhere in the codebase,
+     * and it was not in `$appends`, so it never reached a payload either. It
+     * was a fifth definition of a count {@see \App\Support\DaysInYard} already
+     * owns, and it disagreed with that one twice: it defaulted a missing
+     * arrival to `now()` and returned 0, where the honest answer is that the
+     * container has no arrival to count from; and it used a bare
+     * `diffInDays()`, which returns the *distance* between two moments, so a
+     * reversed pair came back as a confident positive number.
+     *
+     * Left as a note rather than silently deleted because an unused helper
+     * with the obvious name is exactly what the next person reaches for.
+     * Use `DaysInYard::between($gateIn, $gateOut)`.
+     */
 
     /** Ventilation type: container's own value, or falls back to its EQT master. */
     public function getEffectiveVentilationTypeAttribute(): ?string
