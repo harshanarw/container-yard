@@ -44,6 +44,8 @@ class Container extends Model
         'customer_id',
         'status', 'condition', 'cargo_status',
         'location_zone', 'location_row', 'location_bay', 'location_tier',
+        // `gate_in_date` / `gate_out_date` are a **projection, not a source of
+        // truth**. See the note below the casts before reading either.
         'seal_no', 'gate_in_date', 'gate_out_date', 'csc_plate_valid',
     ];
 
@@ -89,6 +91,40 @@ class Container extends Model
         'export_ready'         => 'boolean',
         'mr_status_expires_at' => 'date',
     ];
+
+    /**
+     * `gate_in_date` and `gate_out_date` are a cache. Do not read them.
+     *
+     * **Use {@see \App\Services\Reporting\ContainerVisitDates} instead.**
+     * `gate_movements` is the ledger; these two columns are a hand-maintained
+     * copy of the latest visit, and they are wrong in three ways that no
+     * amount of care fixes:
+     *
+     * 1. They are `date`, so they cannot say a box arrived at 22:40 and left
+     *    at 06:15 — a same-day turnaround cannot even be ordered.
+     * 2. They hold **one** visit. A container in and out five times has four
+     *    the master cannot describe.
+     * 3. They drift. Seven places write them — gate-in, gate-out, gate-out
+     *    delete, the gate-time edit, `CargoTransferService`,
+     *    `LessorOnHireService`, `ResetTransactions` — with nothing in the
+     *    schema keeping them in step. A missed write leaves the master
+     *    claiming a box is still here, which is what
+     *    `containers:fix-gate-custody` exists to repair.
+     *
+     * Every screen that used to read them now goes through the ledger. As of
+     * that change `gate_in_date` has **no readers at all**, and `gate_out_date`
+     * has exactly one: `GateDataCheck`, which prints it on a
+     * `RELEASED_IN_YARD` finding. That read is deliberate and is the only
+     * correct kind — where the master says *released* and the ledger has no
+     * departure, this column is the sole record of when somebody thought the
+     * box left, so the diagnostic shows it **as the evidence of the
+     * disagreement**, not as a fact.
+     *
+     * They are kept rather than dropped because removing them would mean
+     * editing the gate write path — the most critical code in the system — to
+     * save seven lines, would blind that diagnostic, and could break consumers
+     * outside this application that nothing here can see.
+     */
 
     /**
      * The derived M&R status columns.

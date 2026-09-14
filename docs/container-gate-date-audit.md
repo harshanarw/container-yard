@@ -114,12 +114,32 @@ Three were worth more than the rest, and all three are now fixed:
   treated as belonging to the previous cycle.
 
 
-## 4. Must keep reading the master
+## 4. What still reads the master — corrected
 
-| Where | Why |
-| --- | --- |
-| `GateDataCheck` 155–156, 191 | its job is to *compare* master against ledger and report the disagreement. Moving it to the ledger would make it compare the ledger with itself and report nothing. |
-| `StoreContainerRequest` / `UpdateContainerRequest` | the container edit form writes these columns directly |
+Two claims in the first draft of this section were wrong, and step 3 exposed
+both.
+
+**"The container edit form writes these columns."** It does not. The form has no
+input for them, `ContainerController`'s inline validation rules do not include
+them, and `StoreContainerRequest` / `UpdateContainerRequest` — which *do* list
+them — are dead code, referenced nowhere in the application.
+
+**"Gate Data Check needs them to detect drift."** Only half true. Its detection
+compares `containers.status` against the ledger; `gate_out_date` merely adds a
+date to the finding's message.
+
+The accurate position after step 3:
+
+| Column | Readers | Writers |
+| --- | --- | --- |
+| `containers.gate_in_date` | **none** | 5 |
+| `containers.gate_out_date` | **1** (`GateDataCheck:155`) | 7 |
+
+That single read is legitimate, and it is the only correct way to read a column
+like this. The `RELEASED_IN_YARD` finding fires when the master says *released*
+and the ledger has no departure — in which case `gate_out_date` is the sole
+record of when somebody thought the box left. The diagnostic prints it **as the
+evidence of the disagreement**, not as a fact.
 
 ---
 
@@ -213,12 +233,29 @@ on the badge's own boundaries (`>5d stayed<`).
 in §3, plus a `forContainer()` convenience for the single-container screens and
 `forCollection()` for the lists. No billing exposure, as §1 established.
 
-**Step 4 — decide what the master columns are *for*.** Once nothing reads them
-for display, they are a cache with two remaining consumers: Gate Data Check,
-which wants them precisely because they can be wrong, and the container edit
-form. That is a reasonable place to stop. Dropping them would mean rewriting
-seven write sites and the two form requests for no functional gain, and the
-columns are useful as the thing the diagnostics check against.
+**Step 4 — decide what the columns are for. Decided: keep them, and say so.**
+
+Not a code change but the question steps 1–3 raise. With `gate_in_date` down to
+zero readers, these are effectively write-only, which normally means delete.
+
+Three options were weighed. **Leave everything** costs nothing but leaves a trap:
+the next reader sees two date columns on the master and assumes they are
+authoritative, which is exactly the mistake that produced steps 1–3. **Drop the
+columns** means a migration plus editing seven writes in the gate path — the
+most critical code in the system — for a gain of about seven lines; it would
+blind the one diagnostic described in §4; and it risks breaking consumers
+outside this application (a BI tool, a report, raw SQL) that nothing in here can
+see.
+
+Taken: **keep them and document them.** A docblock on `Container` states that
+they are a projection, names `ContainerVisitDates` as the replacement, lists the
+three ways they are wrong, and explains why the single remaining read is
+correct. The danger was never the columns existing — it was code believing
+them, and steps 1–3 removed that. A comment fixes the rest for a fraction of the
+cost.
+
+Revisit only if something forces it: a schema change, or confirmation that
+nothing outside the application reads either column.
 
 **Not recommended:** touching `yard_storage`, `storage_invoice_details` or
 `storage_handling_invoice_lines`. The first is the billing source of truth with
