@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Container;
 use App\Models\WorkOrder;
+use App\Services\Reporting\ContainerVisitDates;
 use App\Services\ContainerStatusService;
 use Illuminate\Console\Command;
 
@@ -50,8 +51,16 @@ class FixStaleContainerConditionCommand extends Command
             return self::SUCCESS;
         }
 
+        // Arrivals from the gate ledger, batched. The guard below decides
+        // whether a QC pass predates the container's current arrival, so it has
+        // to read the arrival the gate actually recorded: the master's column
+        // is a `date` -- which made a same-day QC ambiguous -- and it drifts
+        // when a gate write is missed, which would make this command skip a
+        // container it should fix or fix one it should skip.
+        $visits = ContainerVisitDates::forCollection($candidates);
+
         $rows  = [];
-        $stale = $candidates->filter(function (Container $c) use (&$rows) {
+        $stale = $candidates->filter(function (Container $c) use (&$rows, $visits) {
             // Still under repair — the condition is accurate, leave it alone.
             $open = WorkOrder::where('container_id', $c->id)
                 ->whereNotIn('status', ['closed', 'cancelled'])
@@ -77,7 +86,9 @@ class FixStaleContainerConditionCommand extends Command
 
             // Repaired in an earlier cycle, then gated back in damaged — the
             // newer arrival snapshot wins.
-            if ($c->gate_in_date && $qcAt->lt($c->gate_in_date->startOfDay())) {
+            $arrival = $visits[$c->id]['gate_in'] ?? null;
+
+            if ($arrival && $qcAt->lt($arrival)) {
                 return false;
             }
 
@@ -85,7 +96,7 @@ class FixStaleContainerConditionCommand extends Command
                 $c->container_no,
                 $c->condition,
                 $qcAt->format('d M Y H:i'),
-                $c->gate_in_date?->format('d M Y') ?? '-',
+                $arrival?->format('d M Y H:i') ?? '-',
                 $c->status,
             ];
 

@@ -445,25 +445,24 @@
                             <span class="text-muted">-</span>
                         @endif
                     </dd>
+                    @php
+                    // The current visit, from the gate ledger. `containers.gate_in_date` /
+                    // `gate_out_date` are a hand-maintained projection of it: `date` columns,
+                    // so no time of day; only the latest visit; and they drift whenever a gate
+                    // write is missed, which is what containers:fix-gate-custody repairs.
+                    $visit     = \App\Services\Reporting\ContainerVisitDates::forContainer($container->id);
+                    $gateIn    = $visit['gate_in'];
+                    $gateOut   = $visit['gate_out'];
+                    $daysInYard = \App\Support\DaysInYard::between($gateIn, $gateOut);
+                    @endphp
                     <dt class="col-6 text-muted">Gate In</dt>
-                    <dd class="col-6">{{ $container->gate_in_date?->format('d M Y') ?? '-' }}</dd>
+                    <dd class="col-6">{{ $gateIn?->format('d M Y H:i') ?? '-' }}</dd>
                     <dt class="col-6 text-muted">Gate Out</dt>
-                    <dd class="col-6">{{ $container->gate_out_date?->format('d M Y') ?? '-' }}</dd>
+                    <dd class="col-6">{{ $gateOut?->format('d M Y H:i') ?? '-' }}</dd>
                     <dt class="col-6 text-muted">Days in Yard</dt>
                     <dd class="col-6">
-                        @php
-                            // The one calculation the yard shares. The bare
-                            // diffInDays(today()) this replaces ignored
-                            // gate_out_date, so a departed box kept accruing
-                            // days, and unsigned it was version-dependent:
-                            // Carbon 2 absolute, Carbon 3 signed.
-                            $days = \App\Support\DaysInYard::between(
-                                $container->gate_in_date,
-                                $container->gate_out_date,
-                            );
-                        @endphp
-                        @if($container->status === 'in_yard' && $days !== null)
-                            {{ $days }}
+                        @if($container->status === 'in_yard' && $daysInYard !== null)
+                            {{ $daysInYard }}
                         @else
                             -
                         @endif

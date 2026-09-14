@@ -449,10 +449,20 @@
                         <dd class="col-6">{{ ucfirst(str_replace('_',' ',$container->condition ?? '')) ?: '-' }}</dd>
                         <dt class="col-6 text-muted fw-normal">Cargo</dt>
                         <dd class="col-6">{{ $container->cargo_status === 'empty' ? 'Empty' : ($container->cargo_status ? 'Laden' : '-') }}</dd>
+                        @php
+                        // The current visit, from the gate ledger. `containers.gate_in_date` /
+                        // `gate_out_date` are a hand-maintained projection of it: `date` columns,
+                        // so no time of day; only the latest visit; and they drift whenever a gate
+                        // write is missed, which is what containers:fix-gate-custody repairs.
+                        $visit     = \App\Services\Reporting\ContainerVisitDates::forContainer($container->id);
+                        $gateIn    = $visit['gate_in'];
+                        $gateOut   = $visit['gate_out'];
+                        $daysInYard = \App\Support\DaysInYard::between($gateIn, $gateOut);
+                        @endphp
                         <dt class="col-6 text-muted fw-normal">Gate In</dt>
-                        <dd class="col-6">{{ $container->gate_in_date?->format('d M Y') ?? '-' }}</dd>
+                        <dd class="col-6">{{ $gateIn?->format('d M Y H:i') ?? '-' }}</dd>
                         <dt class="col-6 text-muted fw-normal">Gate Out</dt>
-                        <dd class="col-6">{{ $container->gate_out_date?->format('d M Y') ?? '-' }}</dd>
+                        <dd class="col-6">{{ $gateOut?->format('d M Y H:i') ?? '-' }}</dd>
                         <dt class="col-6 text-muted fw-normal">Gate cycles</dt>
                         <dd class="col-6">{{ $container->gateMovements()->count() }}</dd>
                     </dl>

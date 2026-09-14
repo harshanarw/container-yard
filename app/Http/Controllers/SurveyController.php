@@ -76,8 +76,11 @@ class SurveyController extends Controller
                 $c->gate_movement_ref = $latestGateIn
                     ? 'GI-' . str_pad($latestGateIn->id, 5, '0', STR_PAD_LEFT)
                     : null;
-                $c->gate_movement_date = $latestGateIn?->gate_in_time?->toDateString()
-                    ?? $c->gate_in_date?->toDateString();
+                // No fallback to containers.gate_in_date. If there is no
+                // arrival in the ledger there is no arrival: the master's copy
+                // would only ever be a date the gate never recorded, and a
+                // survey stamped with it reads as evidence.
+                $c->gate_movement_date = $latestGateIn?->gate_in_time?->toDateString();
 
                 // Preview the yard job that a survey on this container would inherit
                 // (same resolution store() uses), so the operator sees the Job No /

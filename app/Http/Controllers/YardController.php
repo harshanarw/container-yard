@@ -108,7 +108,11 @@ class YardController extends Controller
             'reserved'  => YardLocation::where('status', 'reserved')->count(),
         ];
 
-        return view('yard.index', compact('zones', 'allLocations', 'inYardContainers', 'summary'));
+        // Arrival and departure per container, from the gate ledger. One
+        // batched pass for the list rather than a query per row.
+        $visits = ContainerVisitDates::forCollection($inYardContainers);
+
+        return view('yard.index', compact('zones', 'allLocations', 'inYardContainers', 'summary', 'visits'));
     }
 
     // -------------------------------------------------------------------------
@@ -279,8 +283,9 @@ class YardController extends Controller
 
         // Check 1: container is currently in the yard (any present disposition)
         if ($existingContainer && in_array($existingContainer->status, Container::IN_YARD_STATUSES, true)) {
-            $since = $existingContainer->gate_in_date
-                ? ' (since ' . $existingContainer->gate_in_date->format('d M Y') . ')'
+            $arrival = ContainerVisitDates::forContainer($existingContainer->id)['gate_in'];
+            $since = $arrival
+                ? ' (since ' . $arrival->format('d M Y H:i') . ')'
                 : '';
             return $this->validationResponse($request, ['container_no' => [
                 "{$validated['container_no']} is already in the yard{$since}. "
@@ -2192,9 +2197,11 @@ class YardController extends Controller
         // absolute distance, Carbon 3 a signed one, so a future-dated arrival
         // read 15 on one and -15 on the other. It now goes through the
         // calculation the rest of the yard shares.
+        $visit = ContainerVisitDates::forContainer($container->id);
+
         $daysInYard = $storage
             ? max(0, (int) $storage->billing_gate_in_date->diffInDays(today()))
-            : DaysInYard::between($container->gate_in_date, $container->gate_out_date);
+            : DaysInYard::between($visit['gate_in'], $visit['gate_out']);
 
         // Can this container actually be gated out right now? Mirrors the gate-out
         // validation so the form can warn at selection time instead of on save.
@@ -2245,7 +2252,10 @@ class YardController extends Controller
                 $container->location_bay  ? 'Bay ' . $container->location_bay  : null,
                 $container->location_tier ? 'T'    . $container->location_tier : null,
             ])),
-            'gate_in_date'     => $container->gate_in_date?->format('d M Y'),
+            // Both from the same movement. This payload used to answer with
+            // the master's date here and the ledger's timestamp on the next
+            // line, so one response could carry two different arrivals.
+            'gate_in_date'     => $gateInMovement?->gate_in_time?->format('d M Y'),
             'gate_in_time'     => $gateInMovement?->gate_in_time?->format('d M Y, H:i'),
             'days_in_yard'     => $daysInYard,
             'gate_in_movement_id' => $gateInMovement?->id,
@@ -2358,6 +2368,11 @@ class YardController extends Controller
         $visitCustomers = app(\App\Services\ContainerCustodyService::class)->visitCustomerIdsFor($containers);
         $names = Customer::whereIn('id', array_filter($visitCustomers))->pluck('name', 'id');
 
+        // Arrivals and departures from the ledger, batched for the page. Same
+        // reasoning as the customer above: the master holds only the latest
+        // visit and drifts when a gate write is missed.
+        $visits = ContainerVisitDates::forCollection($containers);
+
         return response()->json([
             'results' => $containers->map(fn ($c) => [
                 'id'       => $c->container_no,
@@ -2367,7 +2382,10 @@ class YardController extends Controller
                 // Shared calculation, not a bare diffInDays(): the badge this
                 // feeds sits beside others drawn from DaysInYard, and two of
                 // them disagreeing on one screen is worse than either.
-                'days'     => DaysInYard::between($c->gate_in_date, $c->gate_out_date),
+                'days'     => DaysInYard::between(
+                    $visits[$c->id]['gate_in']  ?? null,
+                    $visits[$c->id]['gate_out'] ?? null,
+                ),
             ]),
         ]);
     }
@@ -2541,7 +2559,10 @@ class YardController extends Controller
             'customer_from_visit' => $visitCustomerId !== null
                 && $visitCustomerId !== (int) $container->customer_id,
             'location'           => "{$container->location_zone}-{$container->location_row}{$container->location_bay}-T{$container->location_tier}",
-            'gate_in_date'       => $container->gate_in_date?->toDateString(),
+            // From the gate ledger, like the customer above it: the master's
+            // column is a `date`, holds only the latest visit, and drifts when
+            // a gate write is missed.
+            'gate_in_date'       => ContainerVisitDates::forContainer($container->id)['gate_in']?->toDateString(),
         ]);
     }
 }

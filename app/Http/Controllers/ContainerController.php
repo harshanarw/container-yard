@@ -279,7 +279,9 @@ class ContainerController extends Controller
             'csc_plate_no'            => $container->csc_plate_no,
             'csc_expiry_date'         => $container->csc_expiry_date?->format('Y-m-d'),
             'status'                  => $container->status,
-            'gate_in_date'            => $container->gate_in_date?->format('d M Y'),
+            // The arrival the gate actually recorded, not the master's cached
+            // `date` copy of it.
+            'gate_in_date'            => \App\Services\Reporting\ContainerVisitDates::forContainer($container->id)['gate_in']?->format('d M Y'),
             'customer_id'             => $container->customer_id,
             // Effective ventilation: container's own value, or EQT default
             'ventilation_type'        => $container->effective_ventilation_type,

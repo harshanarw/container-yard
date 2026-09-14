@@ -60,7 +60,8 @@ class ContainerOcrController extends Controller
                 // Any present disposition (in_yard / available / in_repair / reserved) counts.
                 if (in_array($master->status, \App\Models\Container::IN_YARD_STATUSES, true)) {
                     $inYard      = true;
-                    $inYardSince = $master->gate_in_date?->format('d M Y');
+                    $inYardSince = \App\Services\Reporting\ContainerVisitDates::forContainer($master->id)['gate_in']
+                        ?->format('d M Y');
                 }
             }
 

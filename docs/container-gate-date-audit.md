@@ -1,7 +1,8 @@
 # `containers.gate_in_date` / `gate_out_date` — who reads them, and what breaks
 
-An audit before any further change. Nothing in this document has been altered;
-it exists to decide what is safe to move and what is not.
+Written as an audit before any change, to decide what was safe to move and what
+was not. **Steps 1–3 have since been carried out**, and the sections below are
+updated to say so; §6 carries the sequence and where it stopped.
 
 **The headline: no money is computed from the container master.** Every charge
 in the system reads `yard_storage`, or a snapshot captured on an issued invoice.
@@ -76,26 +77,42 @@ they drift.
 
 ---
 
-## 3. Display-only readers — safe to move
+## 3. Display-only readers — all moved (step 3)
 
-No arithmetic that leaves the screen, or arithmetic used only for a badge.
+Thirteen call sites across eleven files. None did arithmetic that left the
+screen, so each was wrong only where the master had drifted — but that is the
+condition `containers:fix-gate-custody` exists for, so it is not rare.
 
-| Where | What it shows | Note |
+| Where | What it shows | Now reads |
 | --- | --- | --- |
-| `resources/views/containers/show.blade.php` 449–455 | both dates, plus `diffInDays(today())` | bypasses `DaysInYard` |
-| `resources/views/containers/_form.blade.php` 453–455 | both dates | read-only panel |
-| `resources/views/container-inquiry/show.blade.php` 125–134 | both dates | the *header* only; the cycle table already reads movements |
-| `resources/views/container-inquiry/print.blade.php` 125–134 | both dates | same |
-| `resources/views/yard/index.blade.php` 331, 373 | arrival + `diffInDays(today())` | bypasses `DaysInYard` |
-| `resources/views/yard/gate.blade.php` 1050–1051 | "stayed N days" | **see §5** |
-| `YardController` 274–275 | "already in yard (since …)" warning | |
-| `YardController` 2228, 2347, 2521 | JSON for the gate screen | 2347 bypasses `DaysInYard` |
-| `ContainerController` 282 | JSON | |
-| `ContainerOcrController` 63 | "in yard since" on an OCR match | |
-| `SurveyController` 80 | survey date fallback | |
-| `FixStaleContainerConditionCommand` 80, 88 | guards a QC backdate, prints a column | compares against a `date`, so same-day cases are coarse |
+| `containers/show.blade.php` | Gate In / Gate Out / Days in Yard on the profile | `ContainerVisitDates::forContainer()` |
+| `containers/_form.blade.php` | the same fields, read-only on the edit form | same |
+| `container-inquiry/show.blade.php` | Last Gate In / Out in the header | `$cycles->first()` — already loaded, so free |
+| `container-inquiry/print.blade.php` | the same, printed | same |
+| `yard/index.blade.php` | Gate In column and the day badge | `$visits` map, batched in the controller |
+| `YardController::gate()` warning | "already in yard (since …)" | `forContainer()` |
+| `YardController::containerLookup()` | `gate_in_date`, `days_in_yard` | the latest gate-in movement, and `forContainer()` |
+| `YardController::lookup()` | `gate_in_date` | `forContainer()` |
+| `YardController::inYardSearch()` | `days` | `forCollection()`, batched |
+| `ContainerController::masterLookup()` | `gate_in_date` | `forContainer()` |
+| `ContainerOcrController` | "in yard since …" on an OCR match | `forContainer()` |
+| `SurveyController` | the survey's gate reference date | the movement only — the master fallback is **removed** |
+| `FixStaleContainerConditionCommand` | the QC-predates-arrival guard, and its printed column | `forCollection()`, batched |
 
----
+Three were worth more than the rest, and all three are now fixed:
+
+- **`containerLookup` contradicted itself.** It returned `gate_in_date` from the
+  master and `gate_in_time` from the movement in the *same payload*, so one
+  response could carry two different arrivals.
+- **The inquiry header contradicted the table below it.** The cycle list has
+  always read movements; the header read the master. On a container that had
+  been in and out more than once they described different visits on one screen.
+- **The stale-condition command changed behaviour, not display.** Its guard asks
+  whether a QC pass predates the container's current arrival. Against a `date`
+  column a same-day QC was ambiguous; it now compares against the real arrival
+  timestamp, so a QC at 10:00 on a box that arrived at 14:00 is correctly
+  treated as belonging to the previous cycle.
+
 
 ## 4. Must keep reading the master
 
@@ -192,10 +209,9 @@ A testing note worth keeping: the old departure output, `195d stayed`, *contains
 have passed against the bug it was written for. The assertions are now anchored
 on the badge's own boundaries (`>5d stayed<`).
 
-**Step 3 — display readers to `ContainerVisitDates`.** The eleven sites in §3.
-Mechanical, no billing exposure, and it buys real timestamps on screens that
-currently show bare dates. Worth doing in two or three commits by area
-(container screens, yard screens, JSON endpoints) rather than one sweep.
+**Step 3 — display readers to `ContainerVisitDates`. Done.** All thirteen sites
+in §3, plus a `forContainer()` convenience for the single-container screens and
+`forCollection()` for the lists. No billing exposure, as §1 established.
 
 **Step 4 — decide what the master columns are *for*.** Once nothing reads them
 for display, they are a cache with two remaining consumers: Gate Data Check,

@@ -36,6 +36,10 @@ use Tests\Support\FeatureTestCase;
  * called it, it was not in `$appends`, and it disagreed with `DaysInYard`
  * twice: a bare `diffInDays()`, and a missing arrival defaulted to `now()` so
  * it returned 0 where the answer is "no arrival to count from".
+ *
+ * **A later pass moved the source as well as the calculation**, so these
+ * fixtures record real gate movements and give the master a *different* date
+ * on purpose: a screen still reading `containers.gate_in_date` fails them.
  */
 class DaysInYardConsistencyTest extends FeatureTestCase
 {
@@ -69,7 +73,10 @@ class DaysInYardConsistencyTest extends FeatureTestCase
 
     public function test_the_in_yard_search_counts_from_arrival(): void
     {
-        $c = $this->container(['gate_in_date' => '2026-09-05']);
+        // The master is given a different date on purpose: if the endpoint
+        // still read it, this would be 200-odd days rather than 15.
+        $c = $this->container(['gate_in_date' => '2026-01-01']);
+        $this->arrive($c, '2026-09-05 08:00:00');
 
         $this->assertSame(15, $this->searchDays($c));
     }
@@ -87,7 +94,8 @@ class DaysInYardConsistencyTest extends FeatureTestCase
      */
     public function test_the_in_yard_search_clamps_an_arrival_dated_in_the_future(): void
     {
-        $c = $this->container(['gate_in_date' => '2026-10-05']);
+        $c = $this->container();
+        $this->arrive($c, '2026-10-05 08:00:00');
 
         $this->assertSame(0, $this->searchDays($c),
             'Not the fifteen-day distance to an arrival that has not happened.');
@@ -103,10 +111,9 @@ class DaysInYardConsistencyTest extends FeatureTestCase
      */
     public function test_the_in_yard_search_counts_to_the_departure_not_to_today(): void
     {
-        $c = $this->container([
-            'gate_in_date'  => '2026-09-01',
-            'gate_out_date' => '2026-09-06',
-        ]);
+        $c = $this->container();
+        $this->arrive($c, '2026-09-01 08:00:00');
+        $this->depart($c, '2026-09-06 09:00:00');
 
         $this->assertSame(5, $this->searchDays($c),
             'Five days to the departure, not nineteen to today.');
@@ -114,10 +121,13 @@ class DaysInYardConsistencyTest extends FeatureTestCase
 
     public function test_a_container_with_no_arrival_counts_nothing(): void
     {
-        $c = $this->container(['gate_in_date' => null]);
+        // A master date with nothing in the ledger behind it. Before step 3
+        // this reported a confident day count from a date the gate never
+        // recorded.
+        $c = $this->container(['gate_in_date' => '2026-09-05']);
 
         $this->assertNull($this->searchDays($c),
-            'Null, not zero: there is no arrival to count from.');
+            'Null, not zero: the ledger has no arrival to count from.');
     }
 
     // ── The container lookup JSON ───────────────────────────────────────────
@@ -125,16 +135,38 @@ class DaysInYardConsistencyTest extends FeatureTestCase
     /** The badge on the gate-out form reads `days_in_yard` from this payload. */
     public function test_the_container_lookup_clamps_an_arrival_dated_in_the_future(): void
     {
-        $c = $this->container(['gate_in_date' => '2026-10-05']);
+        $c = $this->container();
+        $this->arrive($c, '2026-10-05 08:00:00');
 
         $this->assertSame(0, $this->lookupDays($c));
     }
 
     public function test_the_container_lookup_counts_from_arrival(): void
     {
-        $c = $this->container(['gate_in_date' => '2026-09-05']);
+        $c = $this->container(['gate_in_date' => '2026-01-01']);
+        $this->arrive($c, '2026-09-05 08:00:00');
 
         $this->assertSame(15, $this->lookupDays($c));
+    }
+
+    /**
+     * One payload, one arrival.
+     *
+     * `gate_in_date` came from the master and `gate_in_time` from the latest
+     * movement, side by side in the same response — so a drifted master made
+     * this endpoint answer the same question two ways at once.
+     */
+    public function test_the_container_lookup_agrees_with_itself_about_the_arrival(): void
+    {
+        $c = $this->container(['gate_in_date' => '2026-01-01']);
+        $this->arrive($c, '2026-09-05 22:40:00');
+
+        $json = $this->get(route('yard.container-lookup', ['container_no' => $c->container_no]))
+            ->assertOk()->json();
+
+        $this->assertSame('05 Sep 2026', $json['gate_in_date']);
+        $this->assertSame('05 Sep 2026, 22:40', $json['gate_in_time']);
+        $this->assertStringStartsWith($json['gate_in_date'], $json['gate_in_time']);
     }
 
     // ── The yard list ───────────────────────────────────────────────────────
@@ -145,10 +177,8 @@ class DaysInYardConsistencyTest extends FeatureTestCase
      */
     public function test_the_yard_list_does_not_show_a_phantom_count(): void
     {
-        $this->container([
-            'container_no' => 'REVR0000001',
-            'gate_in_date' => '2026-10-05',   // fifteen days from now
-        ]);
+        $c = $this->container(['container_no' => 'REVR0000001']);
+        $this->arrive($c, '2026-10-05 08:00:00');   // fifteen days from now
 
         $row = $this->yardRowFor('REVR0000001');
 
@@ -232,6 +262,45 @@ class DaysInYardConsistencyTest extends FeatureTestCase
             ->assertOk()
             ->assertSee($c->container_no)
             ->assertDontSee('d stayed<', false);
+    }
+
+    // ── The container profile and the inquiry header ────────────────────────
+
+    /**
+     * The profile shows the arrival the gate recorded, to the minute.
+     *
+     * The master's columns are `date`, so this is information they could never
+     * hold however well maintained they were.
+     */
+    public function test_the_container_profile_shows_the_ledger_arrival(): void
+    {
+        $c = $this->container(['gate_in_date' => '2026-01-01']);
+        $this->arrive($c, '2026-09-05 22:40:00');
+
+        $this->get(route('containers.show', $c))
+            ->assertOk()
+            ->assertSee('05 Sep 2026 22:40')
+            ->assertDontSee('01 Jan 2026');
+    }
+
+    /**
+     * The inquiry header stops contradicting the table underneath it.
+     *
+     * The cycle list on that page has always read movements; the header read
+     * the master. On a container that had been in and out more than once the
+     * two described different visits on the same screen.
+     */
+    public function test_the_inquiry_header_agrees_with_the_cycle_table(): void
+    {
+        $c = $this->container(['gate_in_date' => '2026-01-01']);
+        $this->arrive($c, '2026-03-01 08:00:00');
+        $this->depart($c, '2026-03-06 09:00:00');
+        $this->arrive($c, '2026-09-05 22:40:00');
+
+        $this->get(route('container-inquiry.show', $c->container_no))
+            ->assertOk()
+            ->assertSee('05 Sep 2026 22:40')
+            ->assertDontSee('01 Jan 2026');
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────

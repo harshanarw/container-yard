@@ -122,16 +122,27 @@
                 </div>
             </div>
             @endif
-            @if($container->gate_in_date)
+            @php
+            // The latest visit, from the ledger. $cycles is already loaded and ordered
+            // newest first, so this costs nothing and -- more to the point -- makes the
+            // header agree with the cycle table below it, which has always read
+            // movements. It used to read containers.gate_in_date / gate_out_date: a
+            // `date`, so no time of day; holding only the latest visit; and drifting
+            // whenever a gate write was missed.
+            $latestVisit = $cycles->first();
+            $lastGateIn  = $latestVisit['gate_in']?->gate_in_time ?? null;
+            $lastGateOut = $latestVisit['gate_out']?->gate_out_time ?? null;
+            @endphp
+            @if($lastGateIn)
             <div class="col-6 col-md-3 col-lg-2">
                 <div class="text-muted small">Last Gate In</div>
-                <div>{{ $container->gate_in_date->format('d M Y') }}</div>
+                <div>{{ $lastGateIn->format('d M Y H:i') }}</div>
             </div>
             @endif
-            @if($container->gate_out_date)
+            @if($lastGateOut)
             <div class="col-6 col-md-3 col-lg-2">
                 <div class="text-muted small">Last Gate Out</div>
-                <div>{{ $container->gate_out_date->format('d M Y') }}</div>
+                <div>{{ $lastGateOut->format('d M Y H:i') }}</div>
             </div>
             @endif
         </div>

@@ -104,6 +104,26 @@ class ContainerVisitDates
     }
 
     /**
+     * One container's current visit, always shaped, never missing.
+     *
+     * Returns nulls rather than an absent key for a container with no usable
+     * arrival, so a caller can render it without a guard and cannot
+     * accidentally read a neighbour's visit off a missing index.
+     *
+     * @return array{gate_in: ?\Illuminate\Support\Carbon, gate_out: ?\Illuminate\Support\Carbon, movement_id: ?int}
+     */
+    public static function forContainer(?int $containerId): array
+    {
+        $blank = ['gate_in' => null, 'gate_out' => null, 'movement_id' => null];
+
+        if (! $containerId) {
+            return $blank;
+        }
+
+        return static::forContainers([$containerId])[$containerId] ?? $blank;
+    }
+
+    /**
      * The visit each of these movements belongs to, keyed by movement id.
      *
      * A movement list shows one row per gate event, but "how long was it here"

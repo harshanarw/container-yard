@@ -328,14 +328,19 @@
                 <tbody>
                 @forelse($inYardContainers as $c)
                 @php
+                    // Both from the gate ledger. The master's two `date`
+                    // columns hold only the latest visit, carry no time of day,
+                    // and drift whenever a gate write is missed -- which is what
+                    // containers:fix-gate-custody repairs.
+                    $arrival   = $visits[$c->id]['gate_in']  ?? null;
+                    $departure = $visits[$c->id]['gate_out'] ?? null;
+
                     // The one calculation the yard shares. The bare
-                    // diffInDays(today()) this replaces never read gate_out_date
-                    // at all, so a box whose departure was recorded while the
-                    // master still said in-yard kept accruing days; and unsigned
-                    // it is version-dependent -- Carbon 2 absolute, Carbon 3
-                    // signed -- so a future-dated arrival read 15 on one and -15
-                    // on the other. The badge is coloured by this number.
-                    $days = \App\Support\DaysInYard::between($c->gate_in_date, $c->gate_out_date);
+                    // diffInDays(today()) this replaces never read the departure
+                    // at all, so a box that had left kept accruing days; and
+                    // unsigned it is version-dependent -- Carbon 2 absolute,
+                    // Carbon 3 signed. The badge is coloured by this number.
+                    $days = \App\Support\DaysInYard::between($arrival, $departure);
                     $condCls = match($c->condition) {
                         'sound'          => 'success',
                         'damaged'        => 'danger',
@@ -376,8 +381,9 @@
                         @endif
                     </td>
                     <td class="small font-monospace">{{ $location ?: '-' }}</td>
-                    <td class="small text-muted">
-                        {{ $c->gate_in_date?->format('d M Y') ?? '-' }}
+                    <td class="small text-muted text-nowrap">
+                        {{-- From the ledger, like the day count beside it. --}}
+                        {{ $arrival?->format('d M Y H:i') ?? '-' }}
                     </td>
                     <td class="text-center">
                         @if($days !== null)
