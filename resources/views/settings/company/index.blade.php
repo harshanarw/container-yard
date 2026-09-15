@@ -490,6 +490,28 @@
             <div class="d-flex align-items-start gap-3 mt-3">
                 <div class="form-check form-switch mt-1">
                     {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
+                    <input type="hidden" name="enforce_reefer_plug_session" value="0">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="enforceReeferPlugSession" name="enforce_reefer_plug_session" value="1"
+                           {{ old('enforce_reefer_plug_session', $settings->enforce_reefer_plug_session) ? 'checked' : '' }}>
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="enforceReeferPlugSession">
+                        Require a recorded plug-in before releasing a reefer
+                    </label>
+                    <div class="form-text mt-1">
+                        A laden reefer gated in under a plug service opens a <strong>pending</strong> plug
+                        session. If nobody records the plug-in, that session closes as
+                        <em>Not Plugged In</em> and is <strong>excluded from electricity billing</strong>.
+                        When enabled, the release is <strong>blocked</strong> until the plug-in and plug-out
+                        times are recorded — or the session is cancelled if the box genuinely never ran.
+                        When disabled, the release proceeds with a warning naming the container.
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-start gap-3 mt-3">
+                <div class="form-check form-switch mt-1">
+                    {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
                     <input type="hidden" name="require_seal_for_laden" value="0">
                     <input class="form-check-input" type="checkbox" role="switch"
                            id="requireSealForLaden" name="require_seal_for_laden" value="1"

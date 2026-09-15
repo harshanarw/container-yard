@@ -2394,7 +2394,10 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     setInfoBox('danger',
                         '<div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-x-octagon-fill fs-5"></i>' +
                         '<strong class="font-monospace fs-6">' + data.container_no + '</strong></div>' +
-                        '<div><strong>Cannot be gated out.</strong> ' + data.release_block + '</div>'
+                        '<div><strong>Cannot be gated out.</strong> ' + data.release_block +
+                        (data.plug_session_url
+                            ? ' <a href="' + data.plug_session_url + '" target="_blank">Record plug-in →</a>'
+                            : '') + '</div>'
                     );
                 } else {
                     lookupDone = true;
@@ -2415,6 +2418,20 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                               (data.job_status ? ' <span class="badge bg-' + (jobStatusColor[data.job_status]||'secondary') + '-subtle text-' + (jobStatusColor[data.job_status]||'secondary') + ' border" style="font-size:.68rem;">' + (jobStatusMap[data.job_status]||data.job_status) + '</span>' : '') +
                           '</div>'
                         : '';
+                    // No plug-in recorded: releasing now forfeits the electricity
+                    // charge, so it is said here rather than in a flash message
+                    // after the release has already happened.
+                    const plugWarn = data.plug_warning
+                        ? '<div class="col-12 pt-1 mt-1" style="border-top:1px solid rgba(0,0,0,.08);">' +
+                              '<span class="badge bg-warning text-dark me-1">No Plug-In</span>' +
+                              '<span class="small">' + data.plug_warning +
+                              (data.plug_session_url
+                                  ? ' <a href="' + data.plug_session_url + '" target="_blank">Record plug-in →</a>'
+                                  : '') +
+                              '</span>' +
+                          '</div>'
+                        : '';
+
                     // On Hire warning banner
                     const onHireInfo = data.on_hire
                         ? '<div class="col-12 pt-1 mt-1" style="border-top:1px solid rgba(0,0,0,.08);">' +
@@ -2436,6 +2453,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                             ventInfo +
                             jobInfo +
                             onHireInfo +
+                            plugWarn +
                         '</div>'
                     );
                     if (gradeSelect) {

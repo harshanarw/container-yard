@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Models\Estimate;
 use App\Models\GateMovement;
 use App\Models\Inquiry;
+use App\Models\ReeferPlugSession;
 use App\Models\StorageZone;
 use App\Models\YardLocation;
 use App\Support\MrStatusCatalogue;
@@ -43,6 +44,13 @@ class DashboardController extends Controller
                                         ->whereBetween('created_at', [now()->startOfWeek(), now()])->count(),
             'pending_estimates' => Estimate::where('status', 'draft')->count(),
             'unallocated'       => Container::whereIn('status', ['in_yard', 'available'])->whereNull('location_row')->count(),
+            // Reefers gated in under a plug service whose plug-in was never
+            // recorded. Each one is an electricity charge the yard forfeits the
+            // moment the box leaves: gate-out closes a pending session as
+            // `not_plugged`, which the billing query excludes by two separate
+            // conditions. Surfaced here because the cost of missing it is only
+            // visible weeks later, in a reconciliation.
+            'pending_reefer_plugs' => ReeferPlugSession::pending()->count(),
         ];
 
         // M&R roll-up — one grouped query over the projection, for containers

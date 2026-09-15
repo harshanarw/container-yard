@@ -118,6 +118,26 @@ class YardController extends Controller
     // -------------------------------------------------------------------------
     // Gate Operations
     // -------------------------------------------------------------------------
+    /**
+     * A plug session opened at gate-in that never had a plug-in recorded.
+     *
+     * One definition, read by both the gate-out check and the lookup that warns
+     * on the form before submitting. Two copies of this would be two answers to
+     * "can this reefer be released", and the form would eventually stop
+     * agreeing with the gate.
+     *
+     * Scoped to the container rather than the visit on purpose: that is exactly
+     * what the close in `gateOut()` acts on, so the warning cannot name a
+     * session the release will not touch.
+     */
+    private function pendingPlugSession(Container $container): ?ReeferPlugSession
+    {
+        return ReeferPlugSession::pending()
+            ->where('container_id', $container->id)
+            ->orderBy('id')
+            ->first();
+    }
+
     public function gate(Request $request)
     {
         $search = strtoupper(trim($request->get('search', '')));
@@ -990,6 +1010,37 @@ class YardController extends Controller
                 ]]);
             }
             session()->flash('warning', "Reefer {$container->container_no} was released without a valid PTI.");
+        }
+
+        // ── Reefer plug session gate ─────────────────────────────────────────
+        // A laden reefer gated in under a plug service opens a `pending`
+        // session. Gate-out used to close it as `not_plugged` in silence -- and
+        // `not_plugged` is excluded from electricity billing by two separate
+        // conditions, so the container never reached an invoice and nothing
+        // said so.
+        //
+        // `pending` here means one of two things and the system cannot tell
+        // them apart: the box was never physically plugged, in which case
+        // billing nothing is right; or it ran on power all stay and nobody
+        // recorded it, which is revenue lost. The operator at the gate is the
+        // only person who knows, so the question gets asked here.
+        //
+        // An `active` session is deliberately not caught: it has a plug-in, and
+        // the close below stamps its plug-out, so it bills correctly.
+        if ($pending = $this->pendingPlugSession($container)) {
+            if ((bool) (\App\Models\CompanySetting::current()->enforce_reefer_plug_session ?? false)) {
+                return $this->validationResponse($request, ['container_no' => [
+                    "Reefer {$container->container_no} has a plug session with no plug-in recorded, "
+                    . 'so it cannot be billed for electricity. Record the plug-in and plug-out times in '
+                    . 'Reefer Sessions before releasing it — or cancel the session if the container '
+                    . 'never ran on power.',
+                ]]);
+            }
+
+            session()->flash('warning',
+                "Reefer {$container->container_no} left with no plug-in recorded, so it will not be "
+                . 'billed for electricity. If it was running, record the times in Reefer Sessions '
+                . '(the session is now marked "Not Plugged In") and the charge can still be raised.');
         }
 
         // Seal policy: a laden gate-out must carry a seal, or a documented no-seal
@@ -2223,10 +2274,41 @@ class YardController extends Controller
             $releaseBlock = "It is on hold ({$holds}). Clear the hold first - a Customs Release clears a customs hold.";
         }
 
+        // A plug session with no plug-in recorded. Surfaced here, before the
+        // form is submitted, because that is while the operator can still
+        // answer the question -- the truck is at the gate and somebody knows
+        // whether the box was on power. Discovering it afterwards means going
+        // back through the paperwork, which is how 310 container-days went
+        // unbilled before anyone looked.
+        //
+        // Same rule as the gate-out check, from one method, so the form cannot
+        // drift from what the release will actually do.
+        $pendingPlug = $this->pendingPlugSession($container);
+        $enforcePlug = (bool) (\App\Models\CompanySetting::current()->enforce_reefer_plug_session ?? false);
+
+        if ($pendingPlug && $enforcePlug) {
+            // A hard stop, so it belongs with the other blocks rather than as a
+            // warning the operator can read past.
+            $releaseBlock ??= 'Its reefer plug session has no plug-in recorded, so it cannot be billed '
+                . 'for electricity. Record the times in Reefer Sessions, or cancel the session if it '
+                . 'never ran on power.';
+        }
+
         return response()->json([
             'found'            => true,
             'releasable'       => is_null($releaseBlock),
             'release_block'    => $releaseBlock,
+            // Shown as a caution on the form when enforcement is off, so the
+            // operator sees the consequence before releasing rather than in a
+            // flash message afterwards. Null when it is already a hard block
+            // above — the same point twice reads as two problems.
+            'plug_warning'     => $pendingPlug && ! $enforcePlug
+                ? 'No plug-in recorded for this reefer. Releasing now closes the session as '
+                  . '"Not Plugged In" and it will not be billed for electricity.'
+                : null,
+            // The action, not just the diagnosis: one click to the form that
+            // fixes it, so the operator does not have to go and find it.
+            'plug_session_url' => $pendingPlug ? route('yard.reefer.plug-in', $pendingPlug) : null,
             'container_no'     => $container->container_no,
             'size'             => $container->size,
             'type_code'        => $container->type_code,

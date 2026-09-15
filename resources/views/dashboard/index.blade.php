@@ -146,6 +146,40 @@
         </div>
     </div>
 
+    {{-- Reefers gated in under a plug service whose plug-in was never recorded.
+         Each one is an electricity charge the yard forfeits the moment the box
+         leaves: gate-out closes a pending session as "Not Plugged In", which
+         the billing query excludes twice over. The whole point of the tile is
+         that this is only actionable *before* the container gates out --
+         afterwards it is a reconciliation, not a fix. Amber while any are
+         outstanding, muted at zero. --}}
+    @can('yard.reefer.view')
+    <div class="col-sm-6 col-xl-3">
+        <a href="{{ route('yard.reefer.index', ['status' => 'pending']) }}"
+           class="text-decoration-none text-reset">
+            <div class="card stat-card h-100 kpi-animate {{ $stats['pending_reefer_plugs'] > 0 ? 'border-warning' : '' }}"
+                 style="animation-delay:.32s">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="card-icon {{ $stats['pending_reefer_plugs'] > 0 ? 'bg-warning-subtle text-warning' : 'bg-secondary-subtle text-secondary' }}">
+                        <i class="bi bi-plug"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Reefer Plug-Ins Pending</div>
+                        <div class="fs-4 fw-bold count-up" data-target="{{ $stats['pending_reefer_plugs'] }}">0</div>
+                        <div class="small {{ $stats['pending_reefer_plugs'] > 0 ? 'trend-down' : 'text-muted' }}">
+                            @if($stats['pending_reefer_plugs'] > 0)
+                                <i class="bi bi-exclamation-triangle me-1"></i>Unbilled if gated out
+                            @else
+                                <i class="bi bi-check2 me-1"></i>All sessions recorded
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    @endcan
+
 </div>
 
 <!-- ── M&R status roll-up ──────────────────────────────────────────────────
