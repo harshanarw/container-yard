@@ -144,10 +144,10 @@ class ReeferPlugSessionGateOutWarningTest extends FeatureTestCase
     public function test_a_non_reefer_release_is_untouched(): void
     {
         $this->enforce(true);
-        $this->gateInDryBox('PLAIN000001');
+        $this->gateInDryBox('PLAN0000001');
 
         $this->from(route('yard.gate'))
-            ->post(route('yard.gate.out'), $this->gateOutPayload('PLAIN000001'))
+            ->post(route('yard.gate.out'), $this->gateOutPayload('PLAN0000001'))
             ->assertSessionHasNoErrors();
     }
 
