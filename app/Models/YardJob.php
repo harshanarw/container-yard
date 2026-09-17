@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class YardJob extends Model
 {
     protected $fillable = [
+        'parent_job_id',
         'job_no', 'job_seq',
         'job_type_id', 'job_type_code', 'type_short_code',
         'customer_id',
@@ -55,6 +56,43 @@ class YardJob extends Model
     }
 
     // ── Relationships ─────────────────────────────────────────────────────────
+
+    /**
+     * The job this one happens inside, if any.
+     *
+     * A sub-job is something with its own counterparty, dates and P&L that
+     * occurs during another job's lifetime — the yard taking a box on hire from
+     * the line, sub-hiring it onward, or transferring cargo into a substitute.
+     * Each keeps its own ledger lines; the parent rolls them up.
+     */
+    public function parentJob()
+    {
+        return $this->belongsTo(YardJob::class, 'parent_job_id');
+    }
+
+    /** The sub-jobs opened during this job. */
+    public function subJobs()
+    {
+        return $this->hasMany(YardJob::class, 'parent_job_id');
+    }
+
+    /** True when this job happens inside another. */
+    public function isSubJob(): bool
+    {
+        return $this->parent_job_id !== null;
+    }
+
+    /**
+     * Jobs with no parent.
+     *
+     * Listings default to this: a sub-hire appearing beside the stay it belongs
+     * to reads as two unrelated jobs on the same container, which is how a
+     * count of "jobs this month" ends up double.
+     */
+    public function scopeTopLevel($query)
+    {
+        return $query->whereNull('parent_job_id');
+    }
 
     public function jobType()
     {

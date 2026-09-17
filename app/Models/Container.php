@@ -335,6 +335,14 @@ class Container extends Model
         return $this->hasMany(ContainerHire::class);
     }
 
+    /**
+     * The open **sub-hire** — the yard as lessor, box out to a customer.
+     *
+     * Resolves to {@see ContainerHire}, the AR direction. It is *not* the
+     * yard's own lease-in from a shipping line; that is {@see LessorOnHire},
+     * keyed by container with its own job, and a container can have both at
+     * once. The name predates the distinction.
+     */
     public function activeHire()
     {
         return $this->hasOne(ContainerHire::class)->where('status', 'active');

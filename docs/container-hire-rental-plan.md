@@ -2,6 +2,8 @@
 
 A review of what the system already does against the requirement, then a plan.
 
+("§" below is the section sign — "§5" means "section 5 of this document".)
+
 **Headline: roughly 60% of this exists, split across two subsystems that point in
 opposite commercial directions and are both called "hire".** The largest single
 gap is not a missing feature — it is that one of those subsystems *forbids* the
@@ -192,11 +194,31 @@ Everything below is touched, directly or by consequence.
 These need answers before building. They are business decisions, not technical
 ones.
 
-1. **When a container is sub-hired and leaves the yard, is it still "in the
-   yard" for stock purposes?** Three defensible answers: no (it is off-site);
-   yes (the yard still holds it from the line and owes it back); or a separate
-   "on hire — off site" stock state. This decides `ContainerStockAsAt`,
-   Inventory, and what the shipping line sees on a stock statement.
+1. ~~**When a container is sub-hired and leaves the yard, is it still "in the
+   yard" for stock purposes?**~~ **Answered.**
+
+   **It stays on the shipping line's stock, labelled `On-Hired`, and accrues no
+   storage until it is off-hired and assigned back to the line.**
+
+   This is the right answer commercially: the box is still the line's, the yard
+   still owes it back, and a stock statement that silently drops it would have
+   the line chasing containers the yard is holding. Labelling it rather than
+   removing it keeps the count honest and says why the storage column is zero.
+
+   Consequences, which are larger than they look:
+
+   - `ContainerStockAsAt` counts a physically absent container. Its rule today
+     is *"a gate-in at or before D whose paired gate-out is absent or later
+     than D"* — a hire-out departure would fail that, so hire periods need
+     excluding from the pairing, not just labelling in the output.
+   - Every stock surface needs the label: the As At report, its CSV and
+     workbook, Inventory, and the yard list.
+   - Storage billing must already be suspended for the period. The existing
+     `ContainerHireService` storage split does this; the lease-in side does not
+     and must (phase 2).
+   - **TEU and occupancy must not count it.** A box off-site occupies no slot,
+     so a stock count that includes it and an occupancy figure that includes it
+     are two different questions with two different answers.
 
 2. **Can the yard sub-hire a box it does not own and has not leased in?** i.e.
    is B always downstream of A, or can the yard sub-hire a customer's own
@@ -264,10 +286,21 @@ half-supports.
 
 ## 7. Recommended first step
 
-**Phase 0, then stop and answer §5.**
+**Phase 0. Done.** Safe, unblocks requirements 1.5 and 4, and depended on none
+of the open questions.
 
-Phase 0 is safe, unblocks two requirements, and does not depend on any of the
-open questions. Phases 1–7 all move depending on §5.1 in particular — whether a
-sub-hired container off-site counts as yard stock changes the data model, not
-just the screens, and getting it wrong after Phase 4 means unpicking gate
-movements.
+Delivered: `parent_job_id` on `yard_jobs` (migration 000312) with
+`parentJob()` / `subJobs()` / `isSubJob()` / `scopeTopLevel()`, and
+`JobPnlService::computeWithSubJobs()` returning own / sub-jobs / combined.
+
+The class rename in the original phase 0 was **not** done. `LessorOnHire` and
+`ContainerHire` keep their names; `$container->activeHire` has 35 call sites and
+renaming it would have been a large, risky diff for a clarity gain that a
+docblock delivers at no risk. Instead both models, and that relation, now carry
+docblocks stating the direction, the counterparty, the ledger side, and a
+pointer to the other class.
+
+**Next: phase 1 (rates), which nothing else can proceed without.** Question 1 is
+now answered, so phase 4 is unblocked in principle — but it should still follow
+1–3, because releasing a box on hire with no rate captured produces exactly the
+silent revenue loss this system already has a history of.

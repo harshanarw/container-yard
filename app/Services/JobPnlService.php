@@ -141,6 +141,69 @@ class JobPnlService
     }
 
     /**
+     * This job's own P&L, plus its sub-jobs', plus the two combined.
+     *
+     * A sub-job is something with its own counterparty that happens inside this
+     * job's lifetime: the yard takes a box on hire from the line (a cost), then
+     * sub-hires it onward to a customer (a revenue). Those are two parties and
+     * two agreements, so they stay two jobs with two P&Ls — collapsing them into
+     * one figure is exactly what loses the margin the yard is trying to see.
+     *
+     * But the question "what did this container's stay earn" has to include
+     * them, so `combined` sums the tree. Both views are returned because they
+     * answer different questions and the screen needs both.
+     *
+     * Only `realized` and the accruals are summed. `revenue_by_account` and
+     * `cost_by_account` stay per-job: merging two jobs' account breakdowns
+     * produces a list that reconciles to nothing.
+     *
+     * One level deep, deliberately. A sub-job of a sub-job is not a shape this
+     * yard has, and supporting it would mean recursion nobody can read against
+     * a depth nobody needs.
+     *
+     * @return array{own:array, sub_jobs:\Illuminate\Support\Collection, combined:array}
+     */
+    public function computeWithSubJobs(YardJob $yardJob): array
+    {
+        $own = $this->compute($yardJob);
+
+        $subJobs = $yardJob->subJobs()->with('jobType', 'customer')->get()
+            ->map(fn (YardJob $sub) => [
+                'job'          => $sub,
+                'job_no'       => $sub->job_no,
+                'job_type'     => $sub->jobType?->name ?? $sub->job_type_code,
+                'customer'     => $sub->customer?->name,
+                'status'       => $sub->status,
+                'pnl'          => $this->compute($sub),
+            ]);
+
+        $sum = fn (string $key) => round(
+            $own[$key] + $subJobs->sum(fn ($s) => $s['pnl'][$key]),
+            2,
+        );
+
+        $combinedRevenue = $sum('realized_revenue');
+        $combinedCost    = $sum('realized_cost');
+
+        return [
+            'own'      => $own,
+            'sub_jobs' => $subJobs,
+            'combined' => [
+                'realized_revenue' => $combinedRevenue,
+                'realized_cost'    => $combinedCost,
+                'realized_margin'  => round($combinedRevenue - $combinedCost, 2),
+                'pending_revenue'  => $sum('pending_revenue'),
+                'pending_cost'     => $sum('pending_cost'),
+                'storage_accrued'  => $sum('storage_accrued'),
+                'lessor_accrued'   => $sum('lessor_accrued'),
+                'sub_job_count'    => $subJobs->count(),
+                'has_data'         => $own['has_data']
+                    || $subJobs->contains(fn ($s) => $s['pnl']['has_data']),
+            ],
+        ];
+    }
+
+    /**
      * Cross-job margin roll-up for the report screen. One aggregate query per
      * source (posted GL, draft AR, draft AP, draft vouchers) — no per-job N+1.
      *

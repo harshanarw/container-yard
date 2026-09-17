@@ -5,8 +5,30 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * On-hire FROM a lessor (yard as lessee). See the 000274 migration for context.
- * Each record has its own YardJob so the on-hire→off-hire period is a costed job.
+ * **Lease-in: the yard is the LESSEE. The yard pays. This is AP.**
+ *
+ * The yard takes a container on hire from a shipping line or leasing company
+ * (`lessor_id`) for a period. Each record has its own `YardJob`, so the
+ * on-hire→off-hire window carries its own P&L: the lessor's fee is the cost,
+ * and anything earned from using the box is the revenue.
+ * {@see \App\Services\JobPnlService} already accrues `per_diem_rate` daily as
+ * WIP cost until the supplier invoice lands.
+ *
+ * **Do not confuse this with {@see ContainerHire}, which is the opposite
+ * direction.** Both are called "hire" and both have an `on_hire_date`:
+ *
+ *   - `LessorOnHire`  — the yard takes a box FROM a shipping line. Yard as
+ *                       lessee. The yard **pays**. AP.  ← this class
+ *   - `ContainerHire` — the yard gives a box TO a customer. Yard as lessor.
+ *                       The yard **is paid**. AR.
+ *
+ * Both can be live on the same container at once, and that is the normal case:
+ * the yard leases a box in here and sub-hires it onward there. The margin is
+ * that class's revenue minus this one's cost.
+ *
+ * Note: `onHire()` currently *creates* a gate-in movement, so it models a box
+ * arriving on hire — not one already on the ground being taken on hire, which
+ * is the commoner case. See docs/container-hire-rental-plan.md, phase 2.
  */
 class LessorOnHire extends Model
 {
