@@ -31,6 +31,10 @@ class CustomerTypeSeeder extends Seeder
             ['name' => 'Beneficiary',          'description' => 'Beneficiary party in a trade transaction',         'sort_order' => 19],
             ['name' => 'Warehouse Operator',   'description' => 'Warehouse or cold-chain storage operator',         'sort_order' => 20],
             ['name' => 'Other',                'description' => 'Any other customer category',                      'sort_order' => 21],
+            // The yard itself. Held by InternalPartyService, which stamps it on
+            // the party record representing this company — needed wherever the
+            // yard is a party to a job, such as holding a container on hire.
+            ['name' => 'Internal',             'description' => 'This company / the yard itself',                   'sort_order' => 22],
         ];
 
         foreach ($types as $type) {

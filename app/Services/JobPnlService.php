@@ -105,8 +105,31 @@ class JobPnlService
             || $pendingRevenue > 0 || $pendingCost > 0 || $totalInvoiced > 0
             || $lessorAccrued > 0;
 
+        // The direction does **not** enter the arithmetic, and that is worth
+        // stating because it looks like it should. Revenue already comes from
+        // AR documents and income accounts; cost from AP documents and expense
+        // accounts. A lease-in fee posted to an expense account is a cost
+        // whatever the job says. Reading `billing_direction` here as well would
+        // be a second source of truth for the same fact, and the two would
+        // eventually disagree.
+        //
+        // It is reported so screens can label the job — "we owe" reads very
+        // differently from "they owe" against the same negative margin — and so
+        // a contradiction can be surfaced.
+        $directionWarning = $yardJob->isPayable() && ($realizedRevenue > 0 || $pendingRevenue > 0)
+            ? 'This job is marked payable — the counterparty bills the yard — but it carries '
+              . 'its own sales revenue. Revenue from re-letting the container belongs on a '
+              . 'sub-job of this one, not on the lease itself.'
+            : null;
+
         return [
             'container_count'   => $containerIds->count(),
+
+            // Which way this job points, and who is holding the box.
+            'billing_direction' => $yardJob->billing_direction ?? YardJob::DIRECTION_RECEIVABLE,
+            'is_payable'        => $yardJob->isPayable(),
+            'held_by'           => $yardJob->heldBy?->name,
+            'direction_warning' => $directionWarning,
 
             // Realized (reconciled to the GL)
             'realized_revenue'  => $realizedRevenue,

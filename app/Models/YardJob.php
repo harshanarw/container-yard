@@ -12,12 +12,22 @@ class YardJob extends Model
         'job_no', 'job_seq',
         'job_type_id', 'job_type_code', 'type_short_code',
         'customer_id',
+        // Which way the money flows, and who is holding the box. See the
+        // constants below — a lease-in is the case that separates them.
+        'billing_direction',
+        'held_by_customer_id',
         'status',
         'started_at', 'completed_at',
         'remarks',
         'return_reason',
         'created_by', 'closed_by',
     ];
+
+    /** The yard bills the counterparty. Every ordinary job. */
+    public const DIRECTION_RECEIVABLE = 'ar';
+
+    /** The counterparty bills the yard. A lease-in from a shipping line. */
+    public const DIRECTION_PAYABLE = 'ap';
 
     public static function returnReasons(): array
     {
@@ -56,6 +66,52 @@ class YardJob extends Model
     }
 
     // ── Relationships ─────────────────────────────────────────────────────────
+
+    /**
+     * Who has physical custody during this job, when it is not the counterparty.
+     *
+     * The lease-in is what separates the two questions:
+     *
+     *   Gate In    counterparty: the line       held by: the line
+     *   Lease-In   counterparty: the line (AP)  held by: the yard
+     *   Rental     counterparty: a customer     held by: that customer
+     *
+     * Null means the counterparty holds it, which is true of every ordinary
+     * job — so null is the honest default rather than a missing value.
+     */
+    public function heldBy()
+    {
+        return $this->belongsTo(Customer::class, 'held_by_customer_id');
+    }
+
+    /** The party physically holding the container during this job. */
+    public function holder(): ?Customer
+    {
+        return $this->heldBy ?? $this->customer;
+    }
+
+    /** True when the counterparty invoices the yard rather than the reverse. */
+    public function isPayable(): bool
+    {
+        return $this->billing_direction === self::DIRECTION_PAYABLE;
+    }
+
+    public function isReceivable(): bool
+    {
+        return ! $this->isPayable();
+    }
+
+    /** Jobs the yard is billed for — lease-in fees and the like. */
+    public function scopePayable($query)
+    {
+        return $query->where('billing_direction', self::DIRECTION_PAYABLE);
+    }
+
+    /** Jobs the yard bills out. The default, and nearly everything. */
+    public function scopeReceivable($query)
+    {
+        return $query->where('billing_direction', self::DIRECTION_RECEIVABLE);
+    }
 
     /**
      * The job this one happens inside, if any.
