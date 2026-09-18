@@ -22,8 +22,18 @@ use Tests\Support\FeatureTestCase;
  * is trying to see disappears. Kept as unrelated top-level jobs, "what did this
  * container's stay earn" cannot be answered at all.
  *
+ * The tree is genuinely three deep, which an earlier version of this code got
+ * wrong:
+ *
+ *   Gate In            the shipping line   — the container's stay
+ *     └─ Lease-In      the line (AP)       — the yard takes it on hire
+ *          ├─ Rental   a customer (AR)     — re-let, box leaves the yard
+ *          └─ Rental   a customer (AR)     — re-let again, later in the lease
+ *
+ * A lease-in can be re-let many times over its life, so the roll-up recurses.
+ *
  * This pins the spine only — the parent link, the relations, and the roll-up.
- * Nothing yet creates a sub-job; the services that will are phases 2 and 4 of
+ * Nothing yet creates a sub-job; the services that will are phase 2 of
  * docs/container-hire-rental-plan.md.
  */
 class SubJobPnlTest extends FeatureTestCase
@@ -110,6 +120,73 @@ class SubJobPnlTest extends FeatureTestCase
 
         $this->assertCount(2, $pnl['sub_jobs']);
         $this->assertSame(2, $pnl['combined']['sub_job_count']);
+    }
+
+    // ── Three levels deep ───────────────────────────────────────────────────
+
+    /**
+     * The shape the yard actually has: a lease-in under the stay, and several
+     * re-lets under the lease-in. An earlier version stopped at one level and
+     * would have missed every rental.
+     */
+    public function test_the_roll_up_reaches_grandchildren(): void
+    {
+        $stay    = $this->job();                 // the shipping line's gate-in
+        $leaseIn = $this->job($stay);            // the yard takes it on hire
+        $this->job($leaseIn);                    // re-let once
+        $this->job($leaseIn);                    // re-let again
+
+        $pnl = app(JobPnlService::class)->computeWithSubJobs($stay);
+
+        $this->assertCount(1, $pnl['sub_jobs'], 'One child: the lease-in.');
+        $this->assertCount(2, $pnl['sub_jobs'][0]['sub_jobs'], 'Two re-lets under it.');
+        $this->assertSame(3, $pnl['combined']['sub_job_count'],
+            'The whole subtree counts, not just the children.');
+    }
+
+    /** Asked about the lease-in itself, the re-lets are its children. */
+    public function test_a_middle_job_rolls_up_its_own_children(): void
+    {
+        $stay    = $this->job();
+        $leaseIn = $this->job($stay);
+        $this->job($leaseIn);
+
+        $pnl = app(JobPnlService::class)->computeWithSubJobs($leaseIn);
+
+        $this->assertSame(1, $pnl['combined']['sub_job_count']);
+    }
+
+    /**
+     * `parent_job_id` is self-referential and nothing in the schema stops a
+     * cycle, so a mis-set parent must not hang the P&L screen.
+     */
+    public function test_a_parent_cycle_does_not_recurse_forever(): void
+    {
+        $a = $this->job();
+        $b = $this->job($a);
+
+        // Close the loop: A's parent becomes B, so A -> B -> A.
+        $a->update(['parent_job_id' => $b->id]);
+
+        $pnl = app(JobPnlService::class)->computeWithSubJobs($a->fresh());
+
+        $this->assertSame(1, $pnl['combined']['sub_job_count'],
+            'B is counted once; the branch stops rather than looping back to A.');
+    }
+
+    public function test_depth_is_bounded(): void
+    {
+        $root = $this->job();
+        $node = $root;
+
+        for ($i = 0; $i < 8; $i++) {
+            $node = $this->job($node);
+        }
+
+        $pnl = app(JobPnlService::class)->computeWithSubJobs($root, maxDepth: 3);
+
+        $this->assertSame(3, $pnl['combined']['sub_job_count'],
+            'Three levels walked, and the rest left rather than followed.');
     }
 
     /**

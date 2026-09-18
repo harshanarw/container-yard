@@ -141,44 +141,51 @@ class JobPnlService
     }
 
     /**
-     * This job's own P&L, plus its sub-jobs', plus the two combined.
+     * This job's own P&L, its sub-job tree, and the two combined.
      *
      * A sub-job is something with its own counterparty that happens inside this
-     * job's lifetime: the yard takes a box on hire from the line (a cost), then
-     * sub-hires it onward to a customer (a revenue). Those are two parties and
-     * two agreements, so they stay two jobs with two P&Ls — collapsing them into
-     * one figure is exactly what loses the margin the yard is trying to see.
+     * job's lifetime, and the tree is genuinely three deep:
      *
-     * But the question "what did this container's stay earn" has to include
-     * them, so `combined` sums the tree. Both views are returned because they
+     *   Gate In            customer: the shipping line   — the container's stay
+     *     └─ Lease-In      counterparty: the line (AP)   — the yard takes it on hire
+     *          ├─ Rental   counterparty: a customer (AR) — re-let, box leaves
+     *          └─ Rental   counterparty: a customer (AR) — re-let again
+     *
+     * Those are three parties and three agreements, so they stay three jobs
+     * with three P&Ls: collapsing them loses the very margin the yard is trying
+     * to see, which is the lease-in job's *combined* figure — its AP cost to
+     * the line, netted against every rental's AR revenue underneath it.
+     *
+     * But "what did this container's stay earn" has to include the lot, so
+     * `combined` sums the whole subtree. Both views are returned because they
      * answer different questions and the screen needs both.
      *
      * Only `realized` and the accruals are summed. `revenue_by_account` and
-     * `cost_by_account` stay per-job: merging two jobs' account breakdowns
+     * `cost_by_account` stay per-job: merging account breakdowns across jobs
      * produces a list that reconciles to nothing.
      *
-     * One level deep, deliberately. A sub-job of a sub-job is not a shape this
-     * yard has, and supporting it would mean recursion nobody can read against
-     * a depth nobody needs.
+     * **This used to be one level deep**, and the docblock claimed a sub-job of
+     * a sub-job was "not a shape this yard has". It is exactly the shape — a
+     * lease-in can be re-let many times over its life, each re-let its own
+     * sub-job. The column was self-referential all along, so only this
+     * calculation was wrong.
+     *
+     * `$maxDepth` and the visited set are guards, not features:
+     * `parent_job_id` is self-referential and nothing in the schema prevents a
+     * cycle, so a mis-set parent must not hang the P&L screen.
      *
      * @return array{own:array, sub_jobs:\Illuminate\Support\Collection, combined:array}
      */
-    public function computeWithSubJobs(YardJob $yardJob): array
+    public function computeWithSubJobs(YardJob $yardJob, int $maxDepth = 5): array
     {
-        $own = $this->compute($yardJob);
+        $own  = $this->compute($yardJob);
+        $tree = $this->subJobTree($yardJob, $maxDepth, [$yardJob->id => true]);
 
-        $subJobs = $yardJob->subJobs()->with('jobType', 'customer')->get()
-            ->map(fn (YardJob $sub) => [
-                'job'          => $sub,
-                'job_no'       => $sub->job_no,
-                'job_type'     => $sub->jobType?->name ?? $sub->job_type_code,
-                'customer'     => $sub->customer?->name,
-                'status'       => $sub->status,
-                'pnl'          => $this->compute($sub),
-            ]);
+        // Every descendant, flattened, so the sums do not have to recurse too.
+        $all = $this->flatten($tree);
 
         $sum = fn (string $key) => round(
-            $own[$key] + $subJobs->sum(fn ($s) => $s['pnl'][$key]),
+            $own[$key] + $all->sum(fn ($s) => $s['pnl'][$key]),
             2,
         );
 
@@ -187,7 +194,7 @@ class JobPnlService
 
         return [
             'own'      => $own,
-            'sub_jobs' => $subJobs,
+            'sub_jobs' => $tree,
             'combined' => [
                 'realized_revenue' => $combinedRevenue,
                 'realized_cost'    => $combinedCost,
@@ -196,11 +203,52 @@ class JobPnlService
                 'pending_cost'     => $sum('pending_cost'),
                 'storage_accrued'  => $sum('storage_accrued'),
                 'lessor_accrued'   => $sum('lessor_accrued'),
-                'sub_job_count'    => $subJobs->count(),
+                // The whole subtree, not just the children: a lease-in with
+                // four re-lets under it counts as five.
+                'sub_job_count'    => $all->count(),
                 'has_data'         => $own['has_data']
-                    || $subJobs->contains(fn ($s) => $s['pnl']['has_data']),
+                    || $all->contains(fn ($s) => $s['pnl']['has_data']),
             ],
         ];
+    }
+
+    /**
+     * The sub-job tree below a job, each node carrying its own P&L.
+     *
+     * @param  array<int,bool> $seen  job ids already on this branch
+     * @return \Illuminate\Support\Collection<int, array<string,mixed>>
+     */
+    private function subJobTree(YardJob $job, int $depthLeft, array $seen)
+    {
+        if ($depthLeft <= 0) {
+            return collect();
+        }
+
+        return $job->subJobs()->with('jobType', 'customer')->get()
+            // A job that is its own ancestor would recurse forever. Nothing in
+            // the schema prevents it, so it is dropped here rather than trusted.
+            ->reject(fn (YardJob $sub) => isset($seen[$sub->id]))
+            ->map(function (YardJob $sub) use ($depthLeft, $seen) {
+                $seen[$sub->id] = true;
+
+                return [
+                    'job'       => $sub,
+                    'job_no'    => $sub->job_no,
+                    'job_type'  => $sub->jobType?->name ?? $sub->job_type_code,
+                    'customer'  => $sub->customer?->name,
+                    'status'    => $sub->status,
+                    'pnl'       => $this->compute($sub),
+                    'sub_jobs'  => $this->subJobTree($sub, $depthLeft - 1, $seen),
+                ];
+            })
+            ->values();
+    }
+
+    /** Depth-first flatten, so the sums see every descendant exactly once. */
+    private function flatten($nodes)
+    {
+        return $nodes->flatMap(fn (array $node) => collect([$node])
+            ->merge($this->flatten($node['sub_jobs'])));
     }
 
     /**

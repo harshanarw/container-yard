@@ -237,8 +237,10 @@ ones.
    settles how long a monthly tier is. Which calendar days count as hire days
    is still open and belongs with phase 2.)*
 
-6. **What happens to a sub-hire if the head lease is off-hired early?** Block,
-   warn, or cascade?
+6. ~~**What happens to a sub-hire if the head lease is off-hired early?**~~
+   **Answered: allow.** The lease is open-ended by design — an end date often
+   cannot be agreed up front — so a rental running past an *expected* lease end
+   is neither blocked nor warned. The lease period is editable instead.
 
 ---
 
@@ -296,10 +298,62 @@ has a history of.
 
 Nothing bills from it yet — phases 3 and 5 do that.
 
-**Phase 2 — lease-in of a box already in the yard.** `LessorOnHireService` gains
-a path that takes an existing in-yard container on hire *without* fabricating a
-gate-in: close the current storage, open a lease-in period, open the job. Mirrors
-`ContainerHireService`'s storage split, which already does this correctly.
+**Phase 2 — lease-in, and re-letting under it.** Larger than first scoped, once
+the real structure was described. The tree is **three deep**:
+
+```
+Gate In          customer: the shipping line     main job, open for the whole stay
+  └─ Lease-In    counterparty: the line (AP)     the yard takes it on hire
+       ├─ Rental counterparty: a customer (AR)   re-let, box leaves and returns
+       └─ Rental counterparty: a customer (AR)   re-let again, same lease
+```
+
+A lease-in can be re-let **many times** over its life, each re-let its own
+sub-job. One rule falls out and is worth stating in code: **a job creates gate
+movements only when the container physically moves** — the main job on arrival
+and final return, each rental when the box leaves and comes back, and the
+lease-in *never*, because only commercial custody changes.
+
+*2a — the roll-up recurses. Done.* `computeWithSubJobs()` was one level deep and
+its docblock claimed a sub-job of a sub-job was "not a shape this yard has". It
+is exactly the shape. The column was self-referential all along, so only the
+calculation was wrong. Now walks the tree with a depth bound and a visited set,
+because `parent_job_id` admits a cycle and a mis-set parent must not hang the
+P&L screen.
+
+*2b — two parties on a job.* The lease-in inverts the usual direction: the
+shipping line is still the counterparty, but they **bill the yard**. Three
+fields:
+
+| Field | Meaning |
+| --- | --- |
+| `customer_id` | the counterparty — unchanged |
+| `billing_direction` | `ar` (default, every existing job) or `ap` |
+| `held_by_customer_id` | who holds the box during this job — the yard's own contact on a lease-in, the renter on a rental |
+
+The direction must be explicit or a job list sums to nonsense. `held_by` is what
+makes requirements 5 and 6 answerable: naming the renting party at the gate
+cannot be derived from the job type without guessing the moment a new type
+appears. The yard gets its own `Customer` contact, tagged internal.
+
+*2c — lease-in of a box already on the ground.* No gate movements in either
+direction. Parented to the stay's job. Storage closed at on-hire and reopened at
+off-hire, preserving the free-day anchor, mirroring what `ContainerHireService`
+already does correctly. `MrStatusContext` taught about `LessorOnHire` so the
+label reaches Container Inquiry, the stock reports and the yard list.
+
+*2d — rental sub-jobs.* Repeatable under one lease-in, each with **real** gate
+movements, the renting party recorded on both. Absorbs what was Phase 4.
+
+**Stock states — three, not two:** `In Yard`, `On Hire`, `On Hire — Rented Out`.
+The line keeps seeing their box, sees the yard holds it on hire, and sees when
+it is physically away with a renter.
+
+**The lease is open-ended.** `off_hire_date` stays nullable and an *expected* end
+date is separate and editable. A rental running past the expected lease end is
+**allowed** — not blocked, not warned. This reverses the earlier note in §3 that
+a sub-hire must not outlive the head lease: sound for a fixed-term lease, wrong
+for an open one.
 
 **Phase 3 — the lessor rental calculation and supplier invoice.** Date range in,
 amount out, against the captured rate; `hire` charge-code category; the result
