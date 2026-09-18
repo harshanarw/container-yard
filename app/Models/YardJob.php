@@ -29,6 +29,19 @@ class YardJob extends Model
     /** The counterparty bills the yard. A lease-in from a shipping line. */
     public const DIRECTION_PAYABLE = 'ap';
 
+    /**
+     * The database default again, in memory.
+     *
+     * A column default only applies to the *row*; the model `create()` hands
+     * back still has the attribute unset, so `$job->billing_direction` reads
+     * null until something refetches it. Every caller would then need a
+     * `?? 'ar'`, and the one that forgot would treat an ordinary job as
+     * neither direction.
+     */
+    protected $attributes = [
+        'billing_direction' => self::DIRECTION_RECEIVABLE,
+    ];
+
     public static function returnReasons(): array
     {
         return [

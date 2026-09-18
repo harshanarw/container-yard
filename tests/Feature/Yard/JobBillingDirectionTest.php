@@ -58,7 +58,16 @@ class JobBillingDirectionTest extends FeatureTestCase
     {
         $job = $this->job();
 
-        $this->assertSame(YardJob::DIRECTION_RECEIVABLE, $job->billing_direction);
+        // Both halves, because they were not the same thing. The column default
+        // applies to the row; the model `create()` returns had the attribute
+        // unset, so this read null in memory and 'ar' from the database. Any
+        // caller reading it straight after creating a job would have seen a job
+        // that was neither direction.
+        $this->assertSame(YardJob::DIRECTION_RECEIVABLE, $job->billing_direction,
+            'In memory, without a refetch.');
+        $this->assertSame(YardJob::DIRECTION_RECEIVABLE, $job->fresh()->billing_direction,
+            'And in the row.');
+
         $this->assertTrue($job->isReceivable());
         $this->assertFalse($job->isPayable());
     }
