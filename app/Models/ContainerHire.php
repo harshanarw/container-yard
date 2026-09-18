@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasHireRateTiers;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -34,6 +35,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ContainerHire extends Model
 {
+    use HasHireRateTiers;
+
     protected $fillable = [
         'container_id',
         'original_customer_id',
@@ -45,6 +48,9 @@ class ContainerHire extends Model
         'on_hire_notes',
         'off_hire_notes',
         'status',
+        // Tiered-rate agreement terms. See HasHireRateTiers.
+        'partial_tier_rule',
+        'hire_currency',
         'original_yard_storage_id',
         'hire_yard_storage_id',
         'resumed_yard_storage_id',

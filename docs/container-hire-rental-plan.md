@@ -129,10 +129,11 @@ fully tested" matches what is there.
 
 ## 3. Industry practice, and where the requirement matches it
 
-- **Per-diem is the unit.** Container leases bill per container per day, with the
-  monthly figure usually a convenience derived from it. Supporting "monthly or
-  daily or both" is correct, but store **one canonical rate** plus a basis, and
-  derive the other — two independently-entered rates will disagree.
+- ~~**Per-diem is the unit**, with the monthly figure derived from it.~~
+  **Corrected.** True of plain per-diem leases, but not of the tiered agreements
+  this yard writes. There a monthly rate is a **block price** deliberately
+  cheaper than 30 x the daily rate, and deriving one from the other would remove
+  the incentive the pricing exists to create. Store both.
 - **The off-hire date is when the box is *accepted*, not when it is returned.**
   A lessor's interchange can sit days behind physical redelivery, and the gap is
   the single most common dispute. The model needs `off_hire_date` (commercial)
@@ -232,7 +233,9 @@ ones.
    own sequence? The first reads better on an invoice; the second is simpler.
 
 5. **Day-count convention** for hire: on-hire inclusive / off-hire exclusive, or
-   both inclusive? Must be settable.
+   both inclusive? Must be settable. *(Partly answered: `hire_month_days`
+   settles how long a monthly tier is. Which calendar days count as hire days
+   is still open and belongs with phase 2.)*
 
 6. **What happens to a sub-hire if the head lease is off-hired early?** Block,
    warn, or cascade?
@@ -251,10 +254,47 @@ both pointing at each other. Add `parent_job_id` to `yard_jobs` with the
 relations and a roll-up in `JobPnlService`. This is the foundation for
 requirements 1.5 and 4 and it is safe to ship alone.
 
-**Phase 1 — rates.** The missing foundation. A `hire_rates` concept carrying a
-canonical per-diem, an optional monthly figure with its derivation basis, a
-currency, free days, and effective dates — attached to both the lease-in and the
-sub-hire. Nothing bills from it yet. Includes the day-count setting from §5.5.
+**Phase 1 — rates. Done.**
+
+The original sketch here was **wrong and has been replaced.** It proposed "a
+canonical per-diem plus a monthly figure derived from it", on the reasoning that
+two independently-entered rates will disagree. That reasoning does not survive
+contact with how these agreements are actually priced: *a monthly rate is a
+block price, not thirty daily rates*. Where 30 days cost 30,000 and day 31
+onward costs 1,200, the implied daily rate inside the block is 1,000 — cheaper
+on purpose, because that is the incentive to take a longer hire. Deriving either
+from the other destroys exactly the structure being priced. **Both are stored;
+neither is derived.**
+
+What was built instead — **tiers by elapsed duration**:
+
+- `hire_rate_tiers` (000313), polymorphic across both directions: ordered
+  `sequence`, `unit` (monthly | daily), `rate`, and `max_units` where null means
+  "everything left". 37 days against [1 month @ 30,000][daily @ 1,200] is
+  38,400 — one month plus seven days.
+- Duration tiers, **not calendar date ranges**, and that is the point: the
+  off-hire date is usually unknown when the agreement is written, and a duration
+  tier stays correct whether the box returns on day 20 or day 200.
+- Either unit may come first, so "7 days daily, then monthly" is expressible.
+  A free introductory period is a tier priced at zero.
+- `partial_tier_rule` on each agreement (000314): `daily_fallback` (default),
+  `whole_block`, `pro_rata`. The same 20-day hire costs 24,000 / 30,000 / 20,000
+  under the three, which is why it is a stored contract term rather than a
+  choice made when somebody opens the billing screen — and why a long hire with
+  an unknown end can still be billed **unattended**. An override at billing time
+  comes with phase 5, recorded: who, when, from what, and why.
+- `hire_currency` per agreement; `hire_month_days` as a company setting (30).
+- `HireTierPricing` — plain numbers in, plain numbers out, no model or query,
+  the same rule `ManualPricing` follows. `HasHireRateTiers` gives both hire
+  models `rateTiers()` and `priceFor($days)` from one implementation, so the
+  margin is one minus the other rather than the difference between two bugs.
+
+It **never bills silently short**: days falling outside every tier are returned
+as `unpriced_days` with a warning, and a daily fallback with no later tier
+charges the block and says so. Billing zero quietly is the failure this system
+has a history of.
+
+Nothing bills from it yet — phases 3 and 5 do that.
 
 **Phase 2 — lease-in of a box already in the yard.** `LessorOnHireService` gains
 a path that takes an existing in-yard container on hire *without* fabricating a

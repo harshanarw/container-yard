@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasHireRateTiers;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -32,6 +33,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class LessorOnHire extends Model
 {
+    use HasHireRateTiers;
+
     protected $fillable = [
         'yard_job_id',
         'container_id',
@@ -40,8 +43,13 @@ class LessorOnHire extends Model
         'on_hire_date',
         'off_hire_date',
         'hire_reference',
+        // Superseded by the rate tiers for billing; kept because
+        // JobPnlService still accrues WIP cost from it.
         'per_diem_rate',
         'status',
+        // Tiered-rate agreement terms. See HasHireRateTiers.
+        'partial_tier_rule',
+        'hire_currency',
         'notes',
         'created_by',
         'updated_by',

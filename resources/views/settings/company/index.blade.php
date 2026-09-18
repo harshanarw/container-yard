@@ -510,6 +510,28 @@
                 </div>
             </div>
             <div class="d-flex align-items-start gap-3 mt-3">
+                <div style="width:5.5rem;" class="flex-shrink-0">
+                    <input type="number" min="1" max="366"
+                           class="form-control form-control-sm @error('hire_month_days') is-invalid @enderror"
+                           id="hireMonthDays" name="hire_month_days"
+                           value="{{ old('hire_month_days', $settings->hire_month_days ?? 30) }}">
+                    @error('hire_month_days')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="hireMonthDays">
+                        Days in a month, for container hire rates
+                    </label>
+                    <div class="form-text mt-1">
+                        A hire agreement can be priced in tiers — say the first month at a monthly rate,
+                        then daily thereafter. This is how many days a <strong>monthly</strong> tier covers.
+                        At 30, a 37-day hire is one month plus seven days. Set it higher only if your
+                        lessors count a calendar month, which from the 15th runs 31 days.
+                        <strong>It does not affect storage billing</strong>, which counts inclusive days
+                        net of free time and is a separate calculation.
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-start gap-3 mt-3">
                 <div class="form-check form-switch mt-1">
                     {{-- Always submit this field so an unchecked box is "off", not "absent". --}}
                     <input type="hidden" name="require_seal_for_laden" value="0">

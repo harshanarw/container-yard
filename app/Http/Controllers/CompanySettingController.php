@@ -82,6 +82,7 @@ class CompanySettingController extends Controller
             'enforce_export_booking'   => ['nullable', 'boolean'],
             'enforce_reefer_pti'       => ['nullable', 'boolean'],
             'enforce_reefer_plug_session' => ['nullable', 'boolean'],
+            'hire_month_days'          => ['nullable', 'integer', 'min:1', 'max:366'],
             'require_seal_for_laden'   => ['nullable', 'boolean'],
             'require_ot_receipt'       => ['nullable', 'boolean'],
             'enable_gatepass_whatsapp' => ['nullable', 'boolean'],
