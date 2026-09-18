@@ -41,13 +41,17 @@ class LeaseInStatusLabelTest extends FeatureTestCase
     {
         parent::setUp();
         Carbon::setTestNow('2026-09-18 10:00:00');
+
+        // Signed in first: the arrival below stamps created_by, which is NOT
+        // NULL on gate_movements, and auth()->id() is null until this runs.
+        $this->actingAsSystemAdmin();
+
         $this->line      = Customer::factory()->create(['name' => 'Maersk Line']);
         $this->container = Container::factory()->create([
             'customer_id' => $this->line->id,
             'status'      => 'in_yard',
         ]);
         $this->arrive();
-        $this->actingAsSystemAdmin();
     }
 
     protected function tearDown(): void
@@ -196,6 +200,7 @@ class LeaseInStatusLabelTest extends FeatureTestCase
             'cargo_status'    => 'empty',
             'gate_in_time'    => '2026-09-01 08:00:00',
             'movement_status' => 'done',
+            'created_by'      => auth()->id(),
         ]);
     }
 }

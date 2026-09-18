@@ -117,6 +117,23 @@ than the collision.** If a whole test file dies before a single test runs and
 the message mentions a method you wrote, the name is the problem — rename it
 and move on.
 
+### Sign in before creating anything audited
+
+`setUp()` commonly builds a customer or two before calling
+`actingAsSystemAdmin()`, and that is fine — those models have no required
+author. It is not fine for anything carrying a **NOT NULL `created_by`**:
+`gate_movements`, `yard_jobs`, `reefer_plug_sessions`, `yard_storage` and the
+hire records. `auth()->id()` is null until the acting call, so the insert fails
+with a message about the column rather than about the ordering:
+
+```
+SQLSTATE[HY000]: General error: 1364 Field 'created_by' doesn't have a default value
+```
+
+Call `actingAsSystemAdmin()` first when the fixture creates any of those, and
+pass `'created_by' => auth()->id()` explicitly — the models do not fill it for
+you.
+
 ## Coverage map
 
 **Phase 1** — harness + factories + CI, smoke across all screens, and E2E for
