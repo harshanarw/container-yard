@@ -40,8 +40,17 @@ class LessorOnHire extends Model
         'container_id',
         'lessor_id',
         'gate_movement_id',
+        // Which shape this lease is: a box arriving on hire, or one already on
+        // the ground taken on hire. See LessorOnHireService.
+        'on_hire_mode',
         'on_hire_date',
+        'expected_off_hire_date',
         'off_hire_date',
+        // The storage this lease suspended and the row that resumed it. Null on
+        // an `arrival` lease, which suspends none.
+        'original_yard_storage_id',
+        'resumed_yard_storage_id',
+        'original_gate_in_date',
         'hire_reference',
         // Superseded by the rate tiers for billing; kept because
         // JobPnlService still accrues WIP cost from it.
@@ -56,10 +65,30 @@ class LessorOnHire extends Model
     ];
 
     protected $casts = [
-        'on_hire_date'  => 'date',
-        'off_hire_date' => 'date',
+        'on_hire_date'           => 'date',
+        'expected_off_hire_date' => 'date',
+        'off_hire_date'          => 'date',
+        'original_gate_in_date'  => 'date',
         'per_diem_rate' => 'decimal:2',
     ];
+
+    /** True when this lease took a container that was already in the yard. */
+    public function isInYardLease(): bool
+    {
+        return $this->on_hire_mode === 'in_yard';
+    }
+
+    /**
+     * True when the lease has no agreed end.
+     *
+     * Common enough to be the normal case: a lease is often opened without an
+     * end date, which is exactly why the rate tiers are measured in elapsed
+     * duration rather than against the calendar.
+     */
+    public function isOpenEnded(): bool
+    {
+        return $this->expected_off_hire_date === null && $this->off_hire_date === null;
+    }
 
     public function yardJob()
     {
