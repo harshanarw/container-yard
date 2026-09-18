@@ -39,6 +39,11 @@ class ContainerHire extends Model
 
     protected $fillable = [
         'container_id',
+        // The re-let's own job, and the lease it happens under. Both nullable:
+        // the yard also re-lets boxes it has not leased in, and an internal
+        // re-let has no counterparty to open a job for.
+        'yard_job_id',
+        'lessor_on_hire_id',
         'original_customer_id',
         'hire_customer_id',
         'on_hire_date',
@@ -69,6 +74,30 @@ class ContainerHire extends Model
     public function container()
     {
         return $this->belongsTo(Container::class);
+    }
+
+    /** This letting's own job, carrying its revenue. */
+    public function yardJob()
+    {
+        return $this->belongsTo(YardJob::class);
+    }
+
+    /**
+     * The lease this letting runs inside, when there is one.
+     *
+     * Derivable through the job tree — this job's parent is the lease's job —
+     * but a re-let asks "which lease am I under" constantly, and a two-hop walk
+     * for it would end up cached somewhere and go stale.
+     */
+    public function lessorOnHire()
+    {
+        return $this->belongsTo(LessorOnHire::class);
+    }
+
+    /** True when the yard is re-letting a box it holds on hire from a line. */
+    public function isUnderLease(): bool
+    {
+        return $this->lessor_on_hire_id !== null;
     }
 
     public function originalCustomer()

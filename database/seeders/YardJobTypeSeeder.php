@@ -195,6 +195,18 @@ class YardJobTypeSeeder extends Seeder
                 'approval'    => false, 'damage_capture' => false,
                 'next_status' => 'in_storage',
             ],
+            [
+                'code'        => 'CONTAINER_RELET',
+                'short_code'  => 'RL',
+                'name'        => 'Re-let (yard as lessor)',
+                'description' => 'The yard puts a container out to a customer for a period. Opened as a sub-job of the lease it happens inside, so the lease sees its own margin: the lessor fee is the cost on the parent, this job carries the rental revenue. Repeatable - one lease can be re-let many times - and each re-let closes when the box comes back.',
+                'sort_order'  => 16,
+                'handling'    => true,  'survey'   => false, 'estimate' => false,
+                'repair'      => false, 'storage'  => false, 'wash'     => false,
+                'reefer'      => true,  'customs'  => false, 'cargo_transfer' => false,
+                'approval'    => false, 'damage_capture' => false,
+                'next_status' => 'in_storage',
+            ],
         ];
 
         // Gate-out purposes — mirror the gate-in set where meaningful. Only

@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Models\Container;
 use App\Models\ContainerHire;
+use App\Models\LessorOnHire;
+use App\Models\YardJob;
+use App\Models\YardJobType;
 use App\Models\YardStorage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -32,15 +35,38 @@ class ContainerHireService
         $this->guardOnHire($container, $onHireDate);
 
         return DB::transaction(function () use ($container, $data, $onHireDate, $userId) {
-            // Find the open YardStorage belonging to the original customer
+            $lease = LessorOnHire::where('container_id', $container->id)
+                ->where('status', 'active')->first();
+
+            // The open YardStorage belonging to the original customer.
+            //
+            // **Absent under a lease, and that is correct.** A lease-in already
+            // suspended the line's storage and left a zero-rated `lease_in` row
+            // in its place, so there is no billable stay for this letting to
+            // split — and none should be created. Storage stays suspended for
+            // the whole lease whether the box is out with a renter or sitting
+            // on the ground, because the line is not billed either way.
+            //
+            // Without a lease there must be one: a letting that cannot find the
+            // stay it is interrupting would leave the original customer being
+            // billed storage while somebody else has the container.
             $originalStorage = YardStorage::where('container_id', $container->id)
                 ->whereNull('gate_out_date')
                 ->whereIn('hire_type', ['normal', 'resumed'])
                 ->latest('gate_in_date')
-                ->firstOrFail();
+                ->first();
 
-            $originalCustomerId = $originalStorage->customer_id;
-            $originalGateIn     = $originalStorage->billing_gate_in_date; // respects chained hires
+            if (! $originalStorage && ! $lease) {
+                throw new \RuntimeException(
+                    "Container {$container->container_no} has no open storage record to suspend, "
+                    . 'and is not on hire from a lessor. Check its gate-in before letting it out.'
+                );
+            }
+
+            $originalCustomerId = $originalStorage?->customer_id
+                ?? $lease?->yardJob?->customer_id;
+            $originalGateIn     = $originalStorage?->billing_gate_in_date
+                ?? $lease?->original_gate_in_date;
 
             // 1. Close the original customer's storage the day before hire starts.
             //    For a same-day hire this is gate_in − 1 — a zero-length (empty)
@@ -48,15 +74,17 @@ class ContainerHireService
             //    customer accrues no storage. Keeping the split (rather than
             //    repurposing) preserves the original record intact so cancel and
             //    off-hire behave identically to a normal hire.
-            $originalStorage->update([
+            $originalStorage?->update([
                 'gate_out_date' => $onHireDate->copy()->subDay()->toDateString(),
                 'updated_at'    => now(),
             ]);
 
-            // 2. Open a hire-period storage record
+            // 2. Open a hire-period storage record, unless a lease already
+            //    suspended storage — a second zero-rated row would say nothing
+            //    the first does not.
             //    customer_id is null for internal hires — this prevents the original
             //    customer from being billed for the hire period via WHERE customer_id = ?
-            $hireStorage = YardStorage::create([
+            $hireStorage = $originalStorage === null ? null : YardStorage::create([
                 'container_id'  => $container->id,
                 'customer_id'   => $data['hire_customer_id'] ?? null,
                 'gate_in_date'  => $onHireDate->toDateString(),
@@ -66,8 +94,24 @@ class ContainerHireService
                 'hire_type'     => 'on_hire',
             ]);
 
-            // 3. Create the ContainerHire record
+            // 3. The re-let's own job, under whatever it happens inside.
+            //
+            //    A lease first, if there is one: the yard took the box on hire
+            //    and is now putting it out, so the lease's margin is its own
+            //    cost netted against this job's revenue. Failing that, the
+            //    stay's job, so the re-let still sits inside the visit rather
+            //    than floating beside it.
+            $lease   = LessorOnHire::where('container_id', $container->id)
+                ->where('status', 'active')->first();
+            $stayJob = $lease?->yardJob
+                ?? app(ContainerCustodyService::class)->visitJob($container);
+
+            $job = $this->openReletJob($container, $stayJob, $data, $onHireDate, $userId);
+
+            // 4. Create the ContainerHire record
             $hire = ContainerHire::create([
+                'yard_job_id'              => $job?->id,
+                'lessor_on_hire_id'        => $lease?->id,
                 'container_id'             => $container->id,
                 'original_customer_id'     => $originalCustomerId,
                 'hire_customer_id'         => $data['hire_customer_id'] ?? null,
@@ -77,21 +121,75 @@ class ContainerHireService
                 'hire_reference'           => $data['hire_reference'] ?? null,
                 'on_hire_notes'            => $data['on_hire_notes'] ?? null,
                 'status'                   => 'active',
-                'original_yard_storage_id' => $originalStorage->id,
-                'hire_yard_storage_id'     => $hireStorage->id,
+                'original_yard_storage_id' => $originalStorage?->id,
+                'hire_yard_storage_id'     => $hireStorage?->id,
                 'created_by'               => $userId,
                 'updated_by'               => $userId,
             ]);
 
-            // Back-fill hire_id on both storage records
-            $originalStorage->update(['hire_id' => $hire->id]);
-            $hireStorage->update(['hire_id' => $hire->id]);
+            // Back-fill hire_id on both storage records, where they exist.
+            $originalStorage?->update(['hire_id' => $hire->id]);
+            $hireStorage?->update(['hire_id' => $hire->id]);
 
             return $hire->fresh([
                 'container', 'originalCustomer', 'hireCustomer',
                 'originalYardStorage', 'hireYardStorage',
             ]);
         });
+    }
+
+    /**
+     * The job a re-let runs under.
+     *
+     * Its counterparty is the renting customer and the yard bills them, so the
+     * direction stays receivable — the opposite of the lease above it, which is
+     * the whole point of keeping them as separate jobs. `held_by` is the renter
+     * too: they physically take the box away, and the gate needs to name them
+     * at both ends without guessing from a job type code.
+     *
+     * Null for an internal re-let with no counterparty at all — the yard using
+     * its own leased box for storage. `yard_jobs.customer_id` is not nullable,
+     * and inventing a party to satisfy the column would put a fictional name on
+     * a P&L.
+     */
+    private function openReletJob(
+        Container $container,
+        ?YardJob $parent,
+        array $data,
+        Carbon $onHireDate,
+        int $userId,
+    ): ?YardJob {
+        $hirer = $data['hire_customer_id'] ?? null;
+
+        if (! $hirer) {
+            return null;
+        }
+
+        $type = YardJobType::where('job_type_code', 'CONTAINER_RELET')->first();
+
+        if (! $type) {
+            // The job type is seeded, not migrated. A yard that has not run the
+            // seeder should still be able to re-let a container; it simply does
+            // so without a costed job, exactly as it did before this change.
+            return null;
+        }
+
+        ['job_no' => $jobNo, 'job_seq' => $jobSeq] = YardJob::generateJobNo($type);
+
+        return YardJob::create([
+            'parent_job_id'       => $parent?->id,
+            'job_no'              => $jobNo,
+            'job_seq'             => $jobSeq,
+            'job_type_id'         => $type->id,
+            'job_type_code'       => $type->job_type_code,
+            'type_short_code'     => $type->type_short_code,
+            'customer_id'         => $hirer,
+            'billing_direction'   => YardJob::DIRECTION_RECEIVABLE,
+            'held_by_customer_id' => $hirer,
+            'status'              => 'open',
+            'started_at'          => $onHireDate,
+            'created_by'          => $userId,
+        ]);
     }
 
     /**
@@ -131,10 +229,32 @@ class ContainerHireService
                 throw new \RuntimeException('Only active hires can be off-hired.');
             }
 
-            // Load the open hire storage
-            $hireStorage = YardStorage::where('id', $hire->hire_yard_storage_id)
-                ->lockForUpdate()
-                ->firstOrFail();
+            // Load the open hire storage. Absent on a letting made under a
+            // lease: the lease had already suspended storage, so the letting
+            // opened none of its own and there is none to close or resume.
+            $hireStorage = $hire->hire_yard_storage_id
+                ? YardStorage::where('id', $hire->hire_yard_storage_id)->lockForUpdate()->firstOrFail()
+                : null;
+
+            if (! $hireStorage) {
+                // Nothing to unwind on the storage side. The box is back with
+                // the yard, which still holds it on hire from the line, so
+                // storage stays suspended until the lease itself ends.
+                $hire->yardJob?->update([
+                    'status'       => 'completed',
+                    'closed_by'    => $userId,
+                    'completed_at' => now(),
+                ]);
+
+                $hire->update([
+                    'off_hire_date'  => $offHireDate->toDateString(),
+                    'off_hire_notes' => $data['off_hire_notes'] ?? null,
+                    'status'         => 'completed',
+                    'updated_by'     => $userId,
+                ]);
+
+                return $hire->fresh(['container', 'originalCustomer', 'hireCustomer', 'yardJob']);
+            }
 
             // Determine the original physical gate-in date (for free-day continuity).
             // Primary: denormalised date on hire record (survives original storage deletion).
@@ -162,7 +282,16 @@ class ContainerHireService
                 'effective_gate_in_date' => $originalGateInDate->toDateString(),
             ]);
 
-            // 3. Mark hire as completed
+            // 3. Close the re-let's job: this letting is over. The lease above
+            //    it stays open -- the box can be re-let again tomorrow, and
+            //    that will be a new sub-job under the same lease.
+            $hire->yardJob?->update([
+                'status'       => 'completed',
+                'closed_by'    => $userId,
+                'completed_at' => now(),
+            ]);
+
+            // 4. Mark hire as completed
             $hire->update([
                 'off_hire_date'           => $offHireDate->toDateString(),
                 'off_hire_notes'          => $data['off_hire_notes'] ?? null,

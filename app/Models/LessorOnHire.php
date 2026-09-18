@@ -90,6 +90,25 @@ class LessorOnHire extends Model
         return $this->expected_off_hire_date === null && $this->off_hire_date === null;
     }
 
+    /**
+     * The lettings made during this lease.
+     *
+     * Many, over one lease: the yard takes a box on hire and puts it out to a
+     * succession of customers, each letting its own sub-job opening and closing
+     * inside the lease's life.
+     */
+    public function reLets()
+    {
+        return $this->hasMany(ContainerHire::class, 'lessor_on_hire_id');
+    }
+
+    /** The letting currently running, if the box is out with someone. */
+    public function activeReLet()
+    {
+        return $this->hasOne(ContainerHire::class, 'lessor_on_hire_id')
+            ->where('status', 'active');
+    }
+
     public function yardJob()
     {
         return $this->belongsTo(YardJob::class);
