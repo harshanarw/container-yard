@@ -99,6 +99,24 @@ reefer plug session. Name such fixtures `makeSession()`. The same applies to
 `get`, `post`, `put`, `patch`, `delete`, `json`, `call`, `from`, `withHeaders`,
 `followingRedirects`, `artisan`, `travel` and `app`.
 
+**A second, separate trap: PHPUnit's own `final` methods.** These fail for a
+different reason and with a different message, so the fix above does not
+help — making the fixture public changes nothing:
+
+```
+Cannot override final method PHPUnit\Framework\TestCase::status()
+```
+
+`status()` is the one seen in practice: it is the natural name for a fixture
+that resolves a container's M&R status, a job status or an invoice status.
+Prefix it with what it is about — `mrStatus()`, `jobStatus()` — rather than
+reaching for the bare noun.
+
+The general shape of both: **a fatal at class load, naming your fixture rather
+than the collision.** If a whole test file dies before a single test runs and
+the message mentions a method you wrote, the name is the problem — rename it
+and move on.
+
 ## Coverage map
 
 **Phase 1** — harness + factories + CI, smoke across all screens, and E2E for

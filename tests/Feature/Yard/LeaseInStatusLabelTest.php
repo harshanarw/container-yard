@@ -60,14 +60,14 @@ class LeaseInStatusLabelTest extends FeatureTestCase
 
     public function test_a_container_with_no_lease_is_not_labelled_on_hire(): void
     {
-        $this->assertNotContains($this->status(), [Cat::LEASED_IN, Cat::LEASED_IN_RENTED_OUT]);
+        $this->assertNotContains($this->mrStatus(), [Cat::LEASED_IN, Cat::LEASED_IN_RENTED_OUT]);
     }
 
     public function test_a_leased_in_container_reads_on_hire(): void
     {
         $this->lease();
 
-        $this->assertSame(Cat::LEASED_IN, $this->status());
+        $this->assertSame(Cat::LEASED_IN, $this->mrStatus());
         $this->assertSame('On hire', Cat::label(Cat::LEASED_IN));
     }
 
@@ -80,7 +80,7 @@ class LeaseInStatusLabelTest extends FeatureTestCase
         $this->lease();
         $this->reLet();
 
-        $this->assertSame(Cat::LEASED_IN_RENTED_OUT, $this->status());
+        $this->assertSame(Cat::LEASED_IN_RENTED_OUT, $this->mrStatus());
         $this->assertSame('On hire - rented out', Cat::label(Cat::LEASED_IN_RENTED_OUT));
     }
 
@@ -92,7 +92,7 @@ class LeaseInStatusLabelTest extends FeatureTestCase
     {
         $this->reLet();
 
-        $this->assertSame(Cat::ON_HIRE, $this->status());
+        $this->assertSame(Cat::ON_HIRE, $this->mrStatus());
     }
 
     public function test_off_hiring_clears_the_label(): void
@@ -103,7 +103,7 @@ class LeaseInStatusLabelTest extends FeatureTestCase
             $hire, ['off_hire_date' => '2026-10-20'], auth()->id(),
         );
 
-        $this->assertNotContains($this->status(), [Cat::LEASED_IN, Cat::LEASED_IN_RENTED_OUT]);
+        $this->assertNotContains($this->mrStatus(), [Cat::LEASED_IN, Cat::LEASED_IN_RENTED_OUT]);
     }
 
     // ── What the label implies ──────────────────────────────────────────────
@@ -153,7 +153,8 @@ class LeaseInStatusLabelTest extends FeatureTestCase
 
     // ── Fixtures ────────────────────────────────────────────────────────────
 
-    private function status(): string
+    /** Named `mrStatus`, not `status`: PHPUnit declares `status()` final. */
+    private function mrStatus(): string
     {
         return app(ContainerMrStatusService::class)
             ->forContainer($this->container->fresh())
