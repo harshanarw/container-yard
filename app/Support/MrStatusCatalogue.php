@@ -64,6 +64,19 @@ final class MrStatusCatalogue
     public const IN_STORAGE           = 'in_storage';
     public const TRANSFER_IN_PROGRESS = 'transfer_in_progress';
     public const ON_HIRE              = 'on_hire';
+
+    /**
+     * The yard has taken the box on hire from its line and is holding it.
+     *
+     * Distinct from ON_HIRE, which is the other direction — the yard has given
+     * a box *to* a customer. Both are "committed", neither is the yard's to
+     * work on, and they are told apart because the shipping line's stock
+     * statement has to say which.
+     */
+    public const LEASED_IN            = 'leased_in';
+
+    /** Leased in from the line, and currently re-let and away with a renter. */
+    public const LEASED_IN_RENTED_OUT = 'leased_in_rented_out';
     public const RESERVED             = 'reserved';
     public const AWAITING_DISPOSITION = 'awaiting_disposition';
     public const GATED_OUT            = 'gated_out';
@@ -109,6 +122,8 @@ final class MrStatusCatalogue
         self::IN_STORAGE           => ['In storage',                     'idle',        self::LANE_STORAGE],
         self::TRANSFER_IN_PROGRESS => ['Cargo transfer in progress',     'in_progress', self::LANE_TRANSFER],
         self::ON_HIRE              => ['On hire',                        'committed',   null],
+        self::LEASED_IN            => ['On hire',                        'committed',   null],
+        self::LEASED_IN_RENTED_OUT => ['On hire - rented out',           'committed',   null],
         self::RESERVED             => ['Reserved to booking',            'committed',   null],
         self::AWAITING_DISPOSITION => ['In yard - awaiting disposition', 'idle',        self::LANE_HANDLING],
         self::GATED_OUT            => ['Gated out',                      'closed',      null],

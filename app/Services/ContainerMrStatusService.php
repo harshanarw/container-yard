@@ -126,7 +126,24 @@ class ContainerMrStatusService
             return [Cat::CONDEMNED, null, $inq?->inspection_date ?? $inq?->created_at];
         }
 
-        // 3 — Out on hire: committed to a customer, not the yard's to work on.
+        // 3 — Committed elsewhere, and not the yard's to work on. Three states,
+        //     because a shipping line's stock statement has to say which:
+        //
+        //       leased in + re-let — the yard took it from the line and has
+        //                            since put it out with a renter, so it is
+        //                            not even on the ground
+        //       leased in          — the yard has it, on hire from the line
+        //       on hire            — the yard gave it to a customer
+        //
+        //     The first two are tested before the third because a leased-in box
+        //     that is also re-let is both, and "On hire" alone would not tell
+        //     the line their container has left the yard.
+        if ($ctx->isLeasedIn()) {
+            return $ctx->isOnHire()
+                ? [Cat::LEASED_IN_RENTED_OUT, null, $ctx->activeHire?->on_hire_date]
+                : [Cat::LEASED_IN, null, $ctx->activeLeaseIn?->on_hire_date];
+        }
+
         if ($ctx->isOnHire()) {
             return [Cat::ON_HIRE, null, $ctx->activeHire?->on_hire_date];
         }
@@ -320,7 +337,11 @@ class ContainerMrStatusService
             return false;
         }
 
-        if ($ctx->isHeld() || $ctx->isOnHire()) {
+        // Belt and braces alongside the group check above: a committed box
+        // never resolves to a READY code today, but if a future rung moved
+        // above the commitment rungs this would still be the right answer.
+        // Leased in counts -- the box is the yard's to use, not to release.
+        if ($ctx->isHeld() || $ctx->isOnHire() || $ctx->isLeasedIn()) {
             return false;
         }
 
@@ -595,6 +616,8 @@ class ContainerMrStatusService
             workOrders:      $this->cycleScoped(WorkOrder::where('container_id', $container->id), 'created_at', $from, $until)->get(),
             activeHolds:     ContainerHold::where('container_id', $container->id)->whereNull('cleared_at')->get(),
             activeHire:      ContainerHire::where('container_id', $container->id)->where('status', 'active')->first(),
+            activeLeaseIn:   \App\Models\LessorOnHire::where('container_id', $container->id)
+                                 ->where('status', 'active')->first(),
             activeTransfer:  $this->activeTransferFor($container),
             ptiValid:        $pti['valid'] ?? false,
             washCategoryIds: $this->washCategoryIds(),
@@ -649,6 +672,12 @@ class ContainerMrStatusService
         $hires = ContainerHire::whereIn('container_id', $containerIds)
             ->where('status', 'active')->get()->keyBy('container_id');
 
+        // One query for the page, like the hires above. A container can carry
+        // both at once -- leased in from the line and re-let onward -- and the
+        // ladder needs both to tell those two states apart.
+        $leases = \App\Models\LessorOnHire::whereIn('container_id', $containerIds)
+            ->where('status', 'active')->get()->keyBy('container_id');
+
         $transfers = CargoTransfer::where('status', 'active')
             ->where(fn ($q) => $q->whereIn('source_container_id', $containerIds)
                                  ->orWhereIn('substitute_container_id', $containerIds))
@@ -681,6 +710,7 @@ class ContainerMrStatusService
                 workOrders:      $this->within($workOrders->get($cno), 'created_at', $from, $until),
                 activeHolds:     $holds->get($container->id) ?? collect(),
                 activeHire:      $hires->get($container->id),
+                activeLeaseIn:   $leases->get($container->id),
                 activeTransfer:  $transfers->first(fn ($t) => (int) $t->source_container_id === (int) $container->id
                                                           || (int) $t->substitute_container_id === (int) $container->id),
                 ptiValid:        $ptiState[$container->id]['valid'] ?? false,

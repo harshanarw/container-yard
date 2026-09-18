@@ -6,6 +6,7 @@ use App\Models\CargoTransfer;
 use App\Models\Container;
 use App\Models\ContainerHire;
 use App\Models\GateMovement;
+use App\Models\LessorOnHire;
 use App\Models\WorkOrder;
 use App\Models\YardJobType;
 use Illuminate\Support\Carbon;
@@ -48,6 +49,10 @@ final class MrStatusContext
         ?Collection $workOrders = null,
         ?Collection $activeHolds = null,
         public readonly ?ContainerHire $activeHire = null,
+        // The yard's own lease of this box from its line. The opposite
+        // direction from $activeHire, and the two can be live at once: the
+        // yard leases a box in and re-lets it onward.
+        public readonly ?LessorOnHire $activeLeaseIn = null,
         public readonly ?CargoTransfer $activeTransfer = null,
         public readonly bool $ptiValid = false,
         public readonly array $washCategoryIds = [],
@@ -269,9 +274,16 @@ final class MrStatusContext
         return $this->activeHolds->isNotEmpty();
     }
 
+    /** Re-let: the yard has given this box to a customer. */
     public function isOnHire(): bool
     {
         return $this->activeHire !== null;
+    }
+
+    /** Leased in: the yard has taken this box from its line. */
+    public function isLeasedIn(): bool
+    {
+        return $this->activeLeaseIn !== null;
     }
 
     /** Hold types currently on the container, for the chip row. */
