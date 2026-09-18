@@ -375,24 +375,39 @@ class ContainerHireService
             );
         }
 
-        // Must have an open YardStorage record to split
+        // A lease-in has already suspended the line's storage and left a
+        // zero-rated `lease_in` row in its place, so a letting made under one
+        // has no billable stay to split -- and needs none. Storage stays
+        // suspended for the whole lease whether the box is out with a renter or
+        // on the ground.
+        $lease = LessorOnHire::where('container_id', $container->id)
+            ->where('status', 'active')->first();
+
+        // Without a lease there must be an open stay to split. A letting that
+        // cannot find the stay it is interrupting would leave the original
+        // customer billed for storage while somebody else has the container.
         $hasOpenStorage = YardStorage::where('container_id', $container->id)
             ->whereNull('gate_out_date')
             ->whereIn('hire_type', ['normal', 'resumed'])
             ->exists();
 
-        if (! $hasOpenStorage) {
+        if (! $hasOpenStorage && ! $lease) {
             throw new \RuntimeException(
                 'No open storage record found for this container. '
                 . 'Ensure the container has been gated in before initiating a hire.'
             );
         }
 
-        // On-hire date may equal the gate-in date (same-day hire) but not precede it.
-        $earliestGateIn = YardStorage::where('container_id', $container->id)
-            ->whereNull('gate_out_date')
-            ->whereIn('hire_type', ['normal', 'resumed'])
-            ->min('gate_in_date');
+        // On-hire date may equal the gate-in date (same-day hire) but not
+        // precede it. Under a lease the comparison is against the lease's own
+        // start: the `normal` row it replaced is closed, so asking that row for
+        // the earliest gate-in would find nothing and skip the check.
+        $earliestGateIn = $hasOpenStorage
+            ? YardStorage::where('container_id', $container->id)
+                ->whereNull('gate_out_date')
+                ->whereIn('hire_type', ['normal', 'resumed'])
+                ->min('gate_in_date')
+            : $lease?->on_hire_date?->toDateString();
 
         if ($earliestGateIn && $onHireDate->lt(Carbon::parse($earliestGateIn))) {
             throw new \RuntimeException(
