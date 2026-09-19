@@ -214,13 +214,24 @@ class InternalPartyMappingTest extends FeatureTestCase
     }
 
     /**
-     * `code != 'SELF'` is unknown, not true, for a row whose code is null — so
-     * without the null arm every contact without a code vanishes from every
-     * dropdown in the system.
+     * The scope excludes one reserved code with a plain `!=`, which is only
+     * safe because every contact has a code. `customers.code` is `NOT NULL` and
+     * unique (migration 000001); were it ever made nullable, `code != 'SELF'`
+     * would be *unknown* rather than true for a null row and every contact
+     * without a code would vanish from every dropdown in the system.
+     *
+     * Pinned here so that change cannot be made without this failing first.
      */
-    public function test_contacts_without_a_code_are_still_selectable(): void
+    public function test_every_contact_has_a_code_which_is_what_makes_the_scope_safe(): void
     {
-        $plain = Customer::factory()->create(['code' => null]);
+        $this->expectException(\Illuminate\Database\QueryException::class);
+
+        Customer::factory()->create(['code' => null]);
+    }
+
+    public function test_an_ordinary_contact_is_selectable(): void
+    {
+        $plain = Customer::factory()->create(['code' => 'ABCD']);
 
         $this->assertContains($plain->id, Customer::selectable()->pluck('id')->all());
     }

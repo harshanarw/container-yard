@@ -145,14 +145,14 @@ class Customer extends Model
      * for internal storage or inter-company billing — and hiding it would take
      * away a party they have been selecting all along.
      *
-     * The null check is not decoration: `code != 'SELF'` is unknown, not true,
-     * for a row whose code is null, so without it every contact without a code
-     * would vanish from every dropdown in the system.
+     * A plain `!=` is safe here only because `customers.code` is `NOT NULL` and
+     * unique (migration 000001) — every contact has one. Were it ever made
+     * nullable, `code != 'SELF'` would be *unknown* rather than true for a null
+     * row and every contact without a code would vanish from every dropdown in
+     * the system, so this comparison has to be revisited with the column.
      */
     public function scopeSelectable($query)
     {
-        return $query->where(fn ($q) => $q
-            ->whereNull('code')
-            ->orWhere('code', '!=', \App\Services\InternalPartyService::CODE));
+        return $query->where('code', '!=', \App\Services\InternalPartyService::CODE);
     }
 }
