@@ -383,8 +383,33 @@ container off its owner's statement mid-hire. `On hire — rented out` now
 survives the departure, which is requirement 5: on-hire status and
 inside/outside-yard status answered separately, at any moment.
 
-Still open in 2d: the stock and inventory readers have not been re-verified for
-a container that is *released* and *leased* at once.
+*2d-iii — the stock readers. Done.* The one case 2d-ii created: a container
+that is `released` and leased at once.
+
+**Inventory** needed nothing. It has no status filter, so a rented-out box was
+still listed, and the ladder change above already labels it.
+
+**Container Stock (As At)** dropped it. Its rule — *in the yard at D if it has
+an arrival at or before D whose paired departure is absent or later* — is right
+about the ground and wrong about the books: the rental departure is real and
+correctly recorded, so the box fell off the report while the yard was paying
+rent on it. It now carries a `custody` beside `stage`, answering the two
+questions separately:
+
+| | `stage` (where it stands) | `custody` (whose it is) |
+| --- | --- | --- |
+| ordinary | In Yard | In yard |
+| leased in | In Yard | On hire |
+| leased in + let out | Released | On hire - rented out |
+
+An agreement running at the cutoff keeps the container on stock, on the
+**stay's** arrival — so the days count from when the box actually got here, not
+from the rental. The yard slot is blanked when it is not on the ground, because
+a slot the box is not standing in sends somebody to look for it. Custody is
+selected on **dates, not `status`**: a lease closed in November was running in
+September, and reading the live status would rewrite last month's stock every
+time an agreement ended. The summary now states `on_ground` and `rented_out`
+separately, so the headline count is not read as a yard census.
 
 **Stock states — three, not two:** `In Yard`, `On Hire`, `On Hire — Rented Out`.
 The line keeps seeing their box, sees the yard holds it on hire, and sees when
@@ -400,9 +425,8 @@ for an open one.
 amount out, against the captured rate; `hire` charge-code category; the result
 tagged to the lease-in job as an AP line. Requirement 1.3.
 
-**Phase 4 — sub-hire that leaves the yard. Absorbed into 2d-ii, done.** What
-remains of it is the re-verification of §4's second table against a container
-that is released and leased at once.
+**Phase 4 — sub-hire that leaves the yard. Absorbed into 2d-ii and 2d-iii,
+done.**
 
 **Phase 5 — sub-hire billing.** Customer invoice from the Phase 1 rate, over the
 hire period, on the sub-job. Requirement 3.

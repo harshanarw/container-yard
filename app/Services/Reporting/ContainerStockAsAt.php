@@ -31,6 +31,19 @@ use Illuminate\Support\Collection;
 class ContainerStockAsAt
 {
     /**
+     * How a row's custody reads on the report.
+     *
+     * The words the shipping line uses, not the yard's internal ones: from
+     * their side the yard has their box "on hire", and what they most want to
+     * know is when it has gone out to somebody else.
+     */
+    public const CUSTODY_LABELS = [
+        'in_yard'    => 'In yard',
+        'on_hire'    => 'On hire',
+        'rented_out' => 'On hire - rented out',
+    ];
+
+    /**
      * Stock at the end of the given day.
      *
      * **End of day**, so a container that gated out at 14:00 on the as-at date
@@ -72,7 +85,11 @@ class ContainerStockAsAt
         $pairer  = app(ContainerMrStatusService::class);
         $openIds = [];
 
-        foreach ($movements as $perContainer) {
+        // Who was holding each container on that date. Read here because it
+        // decides presence as well as labelling — see custodyAt().
+        $custody = static::custodyAt($cutoff);
+
+        foreach ($movements as $containerId => $perContainer) {
             $gateIns  = $perContainer->where('movement_type', 'in')
                 ->filter(fn ($m) => $m->gate_in_time !== null)
                 ->values();
@@ -89,7 +106,9 @@ class ContainerStockAsAt
             // eventually disagree with all three.
             $map = $pairer->pairGateOuts($gateIns, $gateOuts);
 
-            if ($open = static::visitOpenAt($gateIns, $map, $cutoff)) {
+            $held = $custody[(int) $containerId] ?? null;
+
+            if ($open = static::visitOpenAt($gateIns, $map, $cutoff, $held !== null)) {
                 $openIds[] = $open->id;
             }
         }
@@ -108,7 +127,7 @@ class ContainerStockAsAt
         foreach (GateMovement::with(['container.equipmentType', 'customer', 'yardJob.jobType'])
             ->whereIn('id', $openIds)
             ->get() as $gateIn) {
-            if ($row = static::row($gateIn, $cutoff, $filters)) {
+            if ($row = static::row($gateIn, $cutoff, $filters, $custody[$gateIn->container_id] ?? null)) {
                 $rows[] = $row;
             }
         }
@@ -121,9 +140,21 @@ class ContainerStockAsAt
      *
      * Latest arrival first: a container in and out twice and back again appears
      * once, for the stay it was actually on at the time -- not once per visit.
+     *
+     * `$underHire` keeps a box on its owner's stock through a departure. A
+     * container the yard has taken on hire and re-let physically leaves — a
+     * real gate-out, correctly recorded — but the yard still owes it back, and
+     * dropping it here would have the shipping line chasing containers the
+     * yard is holding and paying rent on. The row that stays is the *stay's*
+     * arrival, so the days count from when the box actually got here rather
+     * than restarting at the rental.
      */
-    private static function visitOpenAt(Collection $gateIns, array $map, Carbon $cutoff): ?GateMovement
-    {
+    private static function visitOpenAt(
+        Collection $gateIns,
+        array $map,
+        Carbon $cutoff,
+        bool $underHire = false,
+    ): ?GateMovement {
         foreach ($gateIns->sortByDesc('gate_in_time') as $gateIn) {
             if ($gateIn->gate_in_time > $cutoff) {
                 continue;   // had not arrived yet
@@ -138,17 +169,70 @@ class ContainerStockAsAt
                 return $gateIn;
             }
 
-            // This visit had closed by the cutoff, and it is the latest one that
-            // had begun, so the container was out.
-            return null;
+            // This visit had closed by the cutoff. The container is off stock
+            // unless an agreement was still running, in which case it is off
+            // the *ground* but not off the owner's books.
+            return $underHire ? $gateIn : null;
         }
 
         return null;
     }
 
-    /** @return array<string,mixed>|null null when a filter excludes it */
-    private static function row(GateMovement $gateIn, Carbon $cutoff, array $filters): ?array
+    /**
+     * Who was holding each container on the as-at date.
+     *
+     * Two agreements, either of which means the box is not simply the owner's
+     * to count as ordinary stock:
+     *
+     *   on_hire     the yard has taken it on hire from its line
+     *   rented_out  and has put it out with a renting customer
+     *
+     * Selected on **dates, not status**. An as-at report has to answer for the
+     * date asked about, and a lease that has since been off-hired was still
+     * running then; reading `status = 'active'` would quietly rewrite last
+     * month's stock every time an agreement closed. Cancelled agreements are
+     * excluded because they never ran at all.
+     *
+     * `off_hire_date > asAt` rather than `>=`: a box returned on the as-at date
+     * is back on the ground by the end of that day, which is the same end-of-day
+     * convention the rest of this report and the storage bill use.
+     *
+     * @return array<int,string> container_id => custody label
+     */
+    private static function custodyAt(Carbon $cutoff): array
     {
+        $asAt = $cutoff->toDateString();
+
+        $running = fn ($q) => $q
+            ->where('status', '!=', 'cancelled')
+            ->whereDate('on_hire_date', '<=', $asAt)
+            ->where(fn ($w) => $w->whereNull('off_hire_date')
+                                 ->orWhereDate('off_hire_date', '>', $asAt));
+
+        $custody = [];
+
+        foreach (\App\Models\LessorOnHire::where($running)->pluck('container_id') as $id) {
+            $custody[(int) $id] = 'on_hire';
+        }
+
+        // Applied second: a box both leased in and re-let is both, and "on
+        // hire" alone would not tell the line their container has left the
+        // yard. A letting with no lease behind it lands here too — the yard
+        // letting out a box of its own.
+        foreach (\App\Models\ContainerHire::where($running)->pluck('container_id') as $id) {
+            $custody[(int) $id] = 'rented_out';
+        }
+
+        return $custody;
+    }
+
+    /** @return array<string,mixed>|null null when a filter excludes it */
+    private static function row(
+        GateMovement $gateIn,
+        Carbon $cutoff,
+        array $filters,
+        ?string $custody = null,
+    ): ?array {
         $container = $gateIn->container;
 
         // Per-visit facts come from the movement, not the master: a box that
@@ -187,11 +271,22 @@ class ContainerStockAsAt
             // report rather than a list, and the easiest thing to get wrong.
             'days_in_yard'   => (int) $gateIn->gate_in_time->copy()->startOfDay()
                 ->diffInDays($cutoff->copy()->startOfDay()),
-            'location'       => static::location($gateIn),
+            // A slot the box is not standing in is worse than no slot: the
+            // yard releases the location at gate-out, so the arrival's snapshot
+            // would send someone to look for a container that is with a renter.
+            'location'       => $custody === 'rented_out' ? null : static::location($gateIn),
             'job_no'         => $gateIn->yardJob?->job_no,
             'job_type'       => $gateIn->yardJob?->jobType?->name,
             'stage'          => $container?->status,
             'movement_id'    => $gateIn->id,
+
+            // Two different questions, answered separately, because during a
+            // hire they have different answers: `custody` is whose the box is
+            // commercially, `on_ground` is whether it is physically here. A
+            // rented-out container is on the line's stock and off the yard.
+            'custody'        => $custody ?? 'in_yard',
+            'custody_label'  => static::CUSTODY_LABELS[$custody ?? 'in_yard'],
+            'on_ground'      => $custody !== 'rented_out',
         ];
     }
 
@@ -249,6 +344,12 @@ class ContainerStockAsAt
             'total'  => $rows->count(),
             'laden'  => $rows->where('cargo_status', 'laden')->count(),
             'empty'  => $rows->where('cargo_status', 'empty')->count(),
+            // Of the total, how many are the yard's responsibility but not on
+            // its ground. Stated rather than left to be inferred: a count that
+            // silently mixes the two is what starts a dispute.
+            'on_hire'    => $rows->where('custody', 'on_hire')->count(),
+            'rented_out' => $rows->where('custody', 'rented_out')->count(),
+            'on_ground'  => $rows->where('on_ground', true)->count(),
             'by_size' => $rows->groupBy('size')
                 ->map->count()
                 ->sortKeys()

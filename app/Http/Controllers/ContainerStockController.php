@@ -124,6 +124,9 @@ class ContainerStockController extends Controller
                         $row['job_no'],
                         $row['job_type'],
                         $this->words($row['stage']),
+                        // Whose the box is commercially, beside `Stage`, which
+                        // is where it physically stands.
+                        $row['custody_label'] ?? '',
                     ];
                 }
             },

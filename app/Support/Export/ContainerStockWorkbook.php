@@ -39,12 +39,12 @@ class ContainerStockWorkbook
     private const FILL_HEADER = 'FFD9D9D9';
 
     /** Column count, so the title block can be merged across the table. */
-    private const COLS = 14;
+    private const COLS = 15;
 
     public const HEADINGS = [
         'As At', 'Container No', 'Size', 'Type', 'Cargo Status', 'Reefer Mode',
         'Condition', 'Customer', 'Gate In', 'Days In Yard', 'Location',
-        'Job No', 'Job Type', 'Stage',
+        'Job No', 'Job Type', 'Stage', 'Custody',
     ];
 
     /**
@@ -161,6 +161,11 @@ class ContainerStockWorkbook
                     Cell::fromValue($row['job_no'] ?? '', $cell),
                     Cell::fromValue($row['job_type'] ?? '', $cell),
                     Cell::fromValue(self::words($row['stage']), $cell),
+                    // Whose the box is commercially, beside `Stage`, which is
+                    // where it physically stands. A rented-out container reads
+                    // "Released" under one and "On hire - rented out" under the
+                    // other, and both are true.
+                    Cell::fromValue($row['custody_label'] ?? '', $cell),
                 ]));
             }
 

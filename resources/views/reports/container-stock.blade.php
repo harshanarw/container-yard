@@ -134,8 +134,17 @@
             <div class="card-body py-3 d-flex align-items-center gap-3">
                 <div class="card-icon bg-primary-subtle text-primary"><i class="bi bi-box-seam"></i></div>
                 <div>
-                    <div class="text-muted small">In Yard as at {{ $asAtLabel }}</div>
+                    <div class="text-muted small">On Stock as at {{ $asAtLabel }}</div>
                     <div class="fs-4 fw-bold">{{ $summary['total'] }}</div>
+                    @if(($summary['rented_out'] ?? 0) > 0)
+                        {{-- Still the owner's containers and still the yard's
+                             responsibility, but not on the ground. Said here so
+                             the headline count is not read as a yard census. --}}
+                        <div class="small text-muted">
+                            {{ $summary['on_ground'] }} on ground ·
+                            {{ $summary['rented_out'] }} rented out
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -205,6 +214,10 @@
                     <th>Location</th>
                     <th>Job</th>
                     <th>Stage</th>
+                    {{-- Whose the box is commercially, beside Stage, which is
+                         where it physically stands. During a hire the two
+                         differ, and both are true. --}}
+                    <th>Custody</th>
                 </tr>
             </thead>
             <tbody>
@@ -231,10 +244,19 @@
                     <td class="small">{{ $row['location'] ?? '-' }}</td>
                     <td class="small">{{ $row['job_no'] ?? '-' }}</td>
                     <td class="small text-muted">{{ ucwords(str_replace('_', ' ', $row['stage'] ?? '-')) }}</td>
+                    <td class="small">
+                        @if(($row['custody'] ?? 'in_yard') === 'in_yard')
+                            <span class="text-muted">In yard</span>
+                        @else
+                            <span class="badge {{ $row['custody'] === 'rented_out' ? 'bg-primary' : 'bg-info text-dark' }}">
+                                {{ $row['custody_label'] }}
+                            </span>
+                        @endif
+                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="10" class="text-center text-muted py-4">
+                    <td colspan="11" class="text-center text-muted py-4">
                         <i class="bi bi-inbox fs-3 d-block mb-1 opacity-25"></i>
                         No containers were in the yard on {{ $asAtLabel }} for this selection.
                     </td>

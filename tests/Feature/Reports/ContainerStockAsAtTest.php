@@ -381,6 +381,163 @@ class ContainerStockAsAtTest extends FeatureTestCase
     }
 
 
+    // ── On hire: the yard's responsibility, not always on its ground ────────
+
+    /**
+     * A container the yard has taken on hire is still the line's, and still
+     * here. It stays on the statement, labelled, so the zero in the storage
+     * column has a reason beside it.
+     */
+    public function test_a_leased_in_container_stays_on_stock_and_says_so(): void
+    {
+        $c = $this->arrived('2026-09-01 08:00:00');
+        $this->leased($c, '2026-09-10');
+
+        $row = $this->rowFor($c);
+
+        $this->assertSame('on_hire', $row['custody']);
+        $this->assertSame('On hire', $row['custody_label']);
+        $this->assertTrue($row['on_ground']);
+    }
+
+    /**
+     * The case the rental gate flow created. The box physically leaves on a
+     * real, correctly recorded gate-out — but the yard owes it back and is
+     * paying rent on it, so dropping it here would have the line chasing
+     * containers the yard is holding.
+     */
+    public function test_a_rented_out_container_stays_on_the_lines_stock(): void
+    {
+        $c = $this->arrived('2026-09-01 08:00:00');
+        $this->leased($c, '2026-09-10');
+        $this->rented($c, '2026-09-15');
+        $this->departed($c, '2026-09-15 09:00:00');
+
+        $row = $this->rowFor($c);
+
+        $this->assertSame('rented_out', $row['custody']);
+        $this->assertSame('On hire - rented out', $row['custody_label']);
+        $this->assertFalse($row['on_ground'], 'It is the yard\'s, but it is not here.');
+    }
+
+    /** Counted from the arrival, not restarted by the rental. */
+    public function test_a_rented_out_container_counts_days_from_its_arrival(): void
+    {
+        $c = $this->arrived('2026-09-01 08:00:00');
+        $this->leased($c, '2026-09-10');
+        $this->rented($c, '2026-09-15');
+        $this->departed($c, '2026-09-15 09:00:00');
+
+        $this->assertSame(29, $this->rowFor($c)['days_in_yard'], '1 Sep to 30 Sep.');
+    }
+
+    /** A slot the box is not standing in would send somebody to look for it. */
+    public function test_a_rented_out_container_shows_no_yard_location(): void
+    {
+        $c = $this->arrived('2026-09-01 08:00:00', null, [
+            'location_row' => 'A', 'location_bay' => 3, 'location_tier' => 1,
+        ]);
+        $this->leased($c, '2026-09-10');
+        $this->rented($c, '2026-09-15');
+        $this->departed($c, '2026-09-15 09:00:00');
+
+        $this->assertNull($this->rowFor($c)['location']);
+    }
+
+    /**
+     * Selected on dates, not on `status`. An as-at report has to answer for the
+     * date asked about: a lease closed in November was running in September,
+     * and reading the current status would quietly rewrite last month's stock
+     * every time an agreement ended.
+     */
+    public function test_a_hire_that_ended_after_the_as_at_date_still_counts(): void
+    {
+        $c = $this->arrived('2026-09-01 08:00:00');
+        $this->leased($c, '2026-09-10', offHire: '2026-10-20', status: 'completed');
+        $this->rented($c, '2026-09-15', offHire: '2026-10-20', status: 'completed');
+        $this->departed($c, '2026-09-15 09:00:00');
+
+        $this->assertSame('rented_out', $this->rowFor($c)['custody']);
+    }
+
+    /** One that had already ended does not. The box left and stayed left. */
+    public function test_a_hire_that_ended_before_the_as_at_date_does_not(): void
+    {
+        $c = $this->arrived('2026-09-01 08:00:00');
+        $this->leased($c, '2026-09-05', offHire: '2026-09-20', status: 'completed');
+        $this->departed($c, '2026-09-25 09:00:00');
+
+        $this->assertFalse($this->stockHas($c),
+            'No agreement was running on the as-at date, so an ordinary departure applies.');
+    }
+
+    /** A cancelled agreement never ran, so it holds nothing on stock. */
+    public function test_a_cancelled_hire_holds_nothing_on_stock(): void
+    {
+        $c = $this->arrived('2026-09-01 08:00:00');
+        $this->leased($c, '2026-09-10', status: 'cancelled');
+        $this->departed($c, '2026-09-15 09:00:00');
+
+        $this->assertFalse($this->stockHas($c));
+    }
+
+    /** The headline count is not a yard census while boxes are out on hire. */
+    public function test_the_summary_separates_on_ground_from_rented_out(): void
+    {
+        $here = $this->arrived('2026-09-01 08:00:00');
+        $out  = $this->arrived('2026-09-02 08:00:00');
+        $this->leased($out, '2026-09-10');
+        $this->rented($out, '2026-09-15');
+        $this->departed($out, '2026-09-15 09:00:00');
+
+        $rows    = ContainerStockAsAt::rows(self::AS_AT);
+        $summary = ContainerStockAsAt::summary($rows);
+
+        $this->assertSame(2, $summary['total']);
+        $this->assertSame(1, $summary['on_ground']);
+        $this->assertSame(1, $summary['rented_out']);
+
+        $this->assertSame(
+            $here->id,
+            $rows->firstWhere('on_ground', true)['container_id'],
+            'The one actually standing in the yard is the one that is not let out.',
+        );
+    }
+
+    private function leased(
+        Container $c,
+        string $on,
+        ?string $offHire = null,
+        string $status = 'active',
+    ): \App\Models\LessorOnHire {
+        return \App\Models\LessorOnHire::create([
+            'container_id' => $c->id,
+            'lessor_id'    => $this->customer->id,
+            'on_hire_mode' => 'in_yard',
+            'on_hire_date' => $on,
+            'off_hire_date'=> $offHire,
+            'status'       => $status,
+            'created_by'   => auth()->id(),
+        ]);
+    }
+
+    private function rented(
+        Container $c,
+        string $on,
+        ?string $offHire = null,
+        string $status = 'active',
+    ): \App\Models\ContainerHire {
+        return \App\Models\ContainerHire::create([
+            'container_id'         => $c->id,
+            'original_customer_id' => $this->customer->id,
+            'hire_customer_id'     => Customer::factory()->create()->id,
+            'on_hire_date'         => $on,
+            'off_hire_date'        => $offHire,
+            'status'               => $status,
+            'created_by'           => auth()->id(),
+        ]);
+    }
+
     private function stockHas(Container $c, array $filters = []): bool
     {
         return ContainerStockAsAt::rows(self::AS_AT, $filters)
