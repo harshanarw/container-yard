@@ -45,6 +45,29 @@ class ManualPricing
     }
 
     /**
+     * Tax on one net amount.
+     *
+     * **VAT compounds on SSCL** — the second tax is charged on the first tax's
+     * base plus the first tax, not on the net alone. That one rule is why this
+     * exists as a function: it was written out separately in the storage flow,
+     * the tariff flow and the AP invoice, and three copies of a compounding
+     * rule is three places for it to stop compounding.
+     *
+     * @return array{sscl: float, vat: float, gross: float}
+     */
+    public static function taxOn(float $net, float $tax1Rate, float $tax2Rate): array
+    {
+        $sscl = round($net * $tax1Rate / 100, 2);
+        $vat  = round(($net + $sscl) * $tax2Rate / 100, 2);
+
+        return [
+            'sscl'  => $sscl,
+            'vat'   => $vat,
+            'gross' => round($net + $sscl + $vat, 2),
+        ];
+    }
+
+    /**
      * Tax and totals for one line.
      *
      * Storage and handling are taxed separately because they carry different
@@ -62,10 +85,8 @@ class ManualPricing
         float $handlingTax1,
         float $handlingTax2
     ): array {
-        $storageSscl  = round($storageSubtotal * $storageTax1 / 100, 2);
-        $storageVat   = round(($storageSubtotal + $storageSscl) * $storageTax2 / 100, 2);
-        $handlingSscl = round($handlingSubtotal * $handlingTax1 / 100, 2);
-        $handlingVat  = round(($handlingSubtotal + $handlingSscl) * $handlingTax2 / 100, 2);
+        ['sscl' => $storageSscl,  'vat' => $storageVat]  = self::taxOn($storageSubtotal,  $storageTax1,  $storageTax2);
+        ['sscl' => $handlingSscl, 'vat' => $handlingVat] = self::taxOn($handlingSubtotal, $handlingTax1, $handlingTax2);
 
         $lineTotal = round($storageSubtotal + $handlingSubtotal, 2);
         $lineSscl  = round($storageSscl + $handlingSscl, 2);

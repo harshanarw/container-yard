@@ -11,6 +11,14 @@ class SupplierInvoiceLine extends Model
         'supplier_invoice_id',
         'yard_job_id',
         'container_id',
+        // The lease this line paid rent on, and which of its days. See
+        // App\Services\Billing\HirePriorBilling — an open-ended lease is billed
+        // in instalments, and without the window the next one has nothing to
+        // subtract.
+        'lessor_on_hire_id',
+        'billed_from',
+        'billed_to',
+        'is_interim',
         'charge_code_id',
         'tax_code_id',
         'description',
@@ -24,6 +32,9 @@ class SupplierInvoiceLine extends Model
     ];
 
     protected $casts = [
+        'billed_from'  => 'date',
+        'billed_to'    => 'date',
+        'is_interim'   => 'boolean',
         'amount'       => 'decimal:2',
         'tax1_rate'    => 'decimal:4',
         'tax2_rate'    => 'decimal:4',
@@ -61,5 +72,11 @@ class SupplierInvoiceLine extends Model
     public function container(): BelongsTo
     {
         return $this->belongsTo(Container::class);
+    }
+
+    /** The lease this line paid rent on, where it is a hire charge. */
+    public function lessorOnHire(): BelongsTo
+    {
+        return $this->belongsTo(LessorOnHire::class);
     }
 }

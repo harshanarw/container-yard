@@ -459,9 +459,51 @@ date is separate and editable. A rental running past the expected lease end is
 a sub-hire must not outlive the head lease: sound for a fixed-term lease, wrong
 for an open one.
 
-**Phase 3 — the lessor rental calculation and supplier invoice.** Date range in,
-amount out, against the captured rate; `hire` charge-code category; the result
-tagged to the lease-in job as an AP line. Requirement 1.3.
+**Phase 3 — the lessor rental calculation and supplier invoice. Done.**
+Requirement 1.3.
+
+`Finance → Payables → Container Hire Charges`: a period in, one **draft**
+supplier invoice per shipping line out, each line tagged to its lease's job so
+the cost lands on that job's P&L. Draft and never posted — agreeing a debt is a
+person's decision, and the existing approve-and-post flow applies unchanged.
+
+The `hire` charge-code category carries two codes, `LHIRE` (payable) and
+`SHIRE` (receivable, for phase 5). Kept apart deliberately: netted into one the
+margin on a lease could not be read at all, because the cost and the revenue
+would land in the same bucket.
+
+**A month cannot be priced on its own.** The rates are tiered by elapsed
+duration from the start of the lease — "the first 30 days monthly, daily
+thereafter" — so days 31 to 60 are not priced like days 1 to 30, and billing
+each month in isolation would charge the opening monthly rate every time. What
+is owed is the price of the lease *to date*, less what has already been
+invoiced for it:
+
+```
+owed = price(days billed before + days being billed) − already invoiced
+```
+
+Two properties fall out of expressing it that way, and both are pinned by
+tests:
+
+- **the instalments always sum to the price of the whole**, because each is a
+  difference of cumulative prices — no arrangement of period boundaries can
+  make the total come out wrong;
+- **an earlier over-charge corrects itself.** Under `daily_fallback` a
+  part-used monthly block is charged daily, and daily is dearer than the block
+  by design, so 29 days genuinely costs more than 30. The next instalment then
+  owes nothing until the cumulative price catches up, instead of compounding.
+
+Working from the amount already invoiced rather than from the day count is what
+makes the second property hold.
+
+`HirePriorBilling` (000319: `lessor_on_hire_id`, `billed_from`, `billed_to`,
+`is_interim` on `supplier_invoice_lines`) is the AP counterpart of
+`ReeferPriorBilling` and follows the same shape — all the querying there, all
+the arithmetic in `DateWindow`. Draft invoices reserve their days, so two people
+cannot bill the same month at once, and cancelling releases them, which is how a
+correction is made. The window is clipped to the days the yard actually held the
+box, and the amount is re-priced at save rather than trusted from the form.
 
 **Phase 4 — sub-hire that leaves the yard. Absorbed into 2d-ii and 2d-iii,
 done.**

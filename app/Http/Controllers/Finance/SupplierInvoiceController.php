@@ -125,12 +125,13 @@ class SupplierInvoiceController extends Controller
             };
 
             foreach ($validated['lines'] as $line) {
-                $net   = (float) $line['amount'];
-                $t1    = (float) ($line['tax1_rate'] ?? 0);
-                $t2    = (float) ($line['tax2_rate'] ?? 0);
-                $sscl  = round($net * $t1 / 100, 2);
-                $vat   = round(($net + $sscl) * $t2 / 100, 2);
-                $gross = round($net + $sscl + $vat, 2);
+                $net = (float) $line['amount'];
+                $t1  = (float) ($line['tax1_rate'] ?? 0);
+                $t2  = (float) ($line['tax2_rate'] ?? 0);
+
+                // VAT compounds on SSCL, from the one definition of that rule.
+                ['sscl' => $sscl, 'vat' => $vat, 'gross' => $gross]
+                    = \App\Services\Billing\ManualPricing::taxOn($net, $t1, $t2);
 
                 $subtotal  += $net;
                 $ssclTotal += $sscl;
@@ -292,12 +293,13 @@ class SupplierInvoiceController extends Controller
             };
 
             foreach ($validated['lines'] as $line) {
-                $net   = (float) $line['amount'];
-                $t1    = (float) ($line['tax1_rate'] ?? 0);
-                $t2    = (float) ($line['tax2_rate'] ?? 0);
-                $sscl  = round($net * $t1 / 100, 2);
-                $vat   = round(($net + $sscl) * $t2 / 100, 2);
-                $gross = round($net + $sscl + $vat, 2);
+                $net = (float) $line['amount'];
+                $t1  = (float) ($line['tax1_rate'] ?? 0);
+                $t2  = (float) ($line['tax2_rate'] ?? 0);
+
+                // VAT compounds on SSCL, from the one definition of that rule.
+                ['sscl' => $sscl, 'vat' => $vat, 'gross' => $gross]
+                    = \App\Services\Billing\ManualPricing::taxOn($net, $t1, $t2);
 
                 $subtotal  += $net;
                 $ssclTotal += $sscl;

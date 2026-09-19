@@ -92,6 +92,16 @@ class ChargeCodeSeeder extends Seeder
             ['category' => 'documentation', 'code' => 'HOLD',  'description' => 'Customs / Authority Hold Fee',   'rate_type' => 'per_day',       'tax_code_id' => $vat18sscl],
             ['category' => 'documentation', 'code' => 'CERT',  'description' => 'Certificate / Report Fee',       'rate_type' => 'flat_rate',     'tax_code_id' => $vat18sscl],
 
+            // ── Hire / rental ───────────────────────────────────────────────────
+            // Both directions of the same trade, and they are kept apart on
+            // purpose: the lease-in is what the yard *pays* a shipping line for
+            // a container it has taken on hire, the sub-hire is what it *is
+            // paid* when it lets that container out again. Netted into one code
+            // the margin on a lease could not be read at all — the cost and the
+            // revenue would land in the same bucket.
+            ['category' => 'hire', 'code' => 'LHIRE', 'description' => 'Container Lease / On-Hire Fee (payable to lessor)', 'rate_type' => 'per_day', 'tax_code_id' => $vat18sscl],
+            ['category' => 'hire', 'code' => 'SHIRE', 'description' => 'Container Rental / Sub-Hire (receivable from renter)', 'rate_type' => 'per_day', 'tax_code_id' => $vat18sscl],
+
             // ── Miscellaneous ───────────────────────────────────────────────────
             ['category' => 'miscellaneous', 'code' => 'SUR',   'description' => 'Miscellaneous Surcharge',        'rate_type' => 'flat_rate',     'tax_code_id' => $vat18sscl],
             ['category' => 'miscellaneous', 'code' => 'CANC',  'description' => 'Cancellation / Abortive Fee',    'rate_type' => 'flat_rate',     'tax_code_id' => $vat18sscl],

@@ -223,3 +223,33 @@ Two related guards ship with it:
   `nullOnDelete` while `holder()` falls back to the counterparty — deleting it
   turned every lease-in from *held by the yard* into *held by the shipping
   line*, across the whole history, with nothing said at the time.
+
+### Container hire charges — the payable side (migration 000319)
+
+The AP half of the rental trade. A lease has carried its own job since it was
+written and `JobPnlService` accrues the per-diem as WIP cost, but nothing ever
+turned that into a bill — a completed lease produced no payable at all.
+
+```bash
+php artisan migrate --force                              # 000319
+php artisan db:seed --class=ChargeCodeSeeder --force     # adds the `hire` category
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+```
+
+`ChargeCodeSeeder` upserts by code and is idempotent. It adds two codes, kept
+apart on purpose — netted into one, the margin on a lease could not be read at
+all, because the cost and the revenue would land in the same bucket:
+
+| Code | Direction | Meaning |
+| --- | --- | --- |
+| `LHIRE` | payable | what the yard pays a line for a box it holds on hire |
+| `SHIRE` | receivable | what the yard is paid for letting that box out (phase 5) |
+
+**One manual step, and the screen refuses to raise anything without it:** map an
+expense account to `LHIRE` under *Finance → Account Mappings* (`charge_expense`).
+A cost with nowhere to post is refused rather than raised half-formed.
+
+Then *Finance → Payables → Container Hire Charges*: pick a period, review what
+is owed on each open lease, and raise one **draft** supplier invoice per
+shipping line. Draft, never posted — agreeing a debt is a person's decision, and
+the existing approve-and-post flow applies unchanged from there.

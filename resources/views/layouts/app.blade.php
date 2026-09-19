@@ -920,6 +920,12 @@
                         </a>
                     </li>
                     <li class="nav-item sub-item">
+                        <a href="{{ route('finance.ap.hire-billing.index') }}"
+                           class="nav-link {{ request()->routeIs('finance.ap.hire-billing.*') ? 'active' : '' }}">
+                            <i class="bi bi-arrow-down-left-circle"></i><span>Container Hire Charges</span>
+                        </a>
+                    </li>
+                    <li class="nav-item sub-item">
                         <a href="{{ route('finance.ap.aging') }}"
                            class="nav-link {{ request()->routeIs('finance.ap.aging') ? 'active' : '' }}">
                             <i class="bi bi-clock-history"></i><span>AP Aging</span>

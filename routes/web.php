@@ -866,6 +866,12 @@ Route::middleware(['auth'])->group(function () {
         // AP / Supplier Invoices — the supplier/contact master is the unified
         // Customer (Contact) model; AP simply tags & bills the same parties.
         Route::prefix('ap')->name('ap.')->group(function () {
+            // Container lease / on-hire charges, raised from the agreements
+            // rather than typed in by hand. Produces ordinary draft supplier
+            // invoices, which then follow the existing approve-and-post flow.
+            Route::get('hire-billing',  [\App\Http\Controllers\Finance\LessorHireBillingController::class, 'index'])->name('hire-billing.index');
+            Route::post('hire-billing', [\App\Http\Controllers\Finance\LessorHireBillingController::class, 'store'])->name('hire-billing.store');
+
             Route::get('invoices',                          [SupplierInvoiceController::class, 'index'])->name('invoices.index');
             Route::get('invoices/create',                   [SupplierInvoiceController::class, 'create'])->name('invoices.create');
             Route::post('invoices',                         [SupplierInvoiceController::class, 'store'])->name('invoices.store');
