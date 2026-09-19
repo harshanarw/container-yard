@@ -40,15 +40,26 @@ class ContainerInquiryService
      * Constrain on the departure that closes *this* visit.
      *
      * The pairing rule, expressed in SQL: a departure belongs to this arrival
-     * when it shares the visit's job, or when it falls between this arrival and
-     * the container's next one. Without that second clause a later visit's
-     * gate-out would answer for an earlier, already-closed one.
+     * when it falls between this arrival and the container's next one. Without
+     * that upper bound a later visit's gate-out would answer for an earlier,
+     * already-closed one.
+     *
+     * The lower bound used to be an alternative to a shared-job match rather
+     * than a condition on it — "same job, *or* after this arrival". That let a
+     * departure close an arrival that had not happened yet, which a rental
+     * round trip produces routinely: the return carries the same job as the
+     * departure it is returning from. A departure can never close a later
+     * arrival whatever job they share, so the time bound now applies to every
+     * candidate, and the job clause it used to guard falls away with it.
+     *
+     * This decides only *whether* a qualifying departure exists, which is all a
+     * filter needs. Choosing *which* one closes a visit stays with
+     * {@see \App\Support\VisitPairing}, which is authoritative for display and
+     * can do the one thing SQL cannot: use each departure once.
      *
      * Extracted because two filters need it -- the date window and the gate-side
      * text filters -- and a second copy of a correlated subquery is a second
-     * place for the pairing rule to drift from
-     * {@see ContainerMrStatusService::pairGateOuts()}, which stays authoritative
-     * for what is actually displayed.
+     * place for the pairing rule to drift.
      *
      * @param callable $constrain receives the subquery to add its own conditions
      */
@@ -60,12 +71,7 @@ class ContainerInquiryService
                 ->whereColumn('departure.container_id', 'gate_movements.container_id')
                 ->where('departure.movement_type', 'out')
                 ->whereNotNull('departure.gate_out_time')
-                ->where(function ($w) {
-                    $w->where(function ($j) {
-                        $j->whereNotNull('gate_movements.yard_job_id')
-                          ->whereColumn('departure.yard_job_id', 'gate_movements.yard_job_id');
-                    })->orWhereColumn('departure.gate_out_time', '>=', 'gate_movements.gate_in_time');
-                })
+                ->whereColumn('departure.gate_out_time', '>=', 'gate_movements.gate_in_time')
                 ->whereRaw('departure.gate_out_time < COALESCE((
                     SELECT MIN(nextIn.gate_in_time)
                       FROM gate_movements as nextIn
@@ -115,12 +121,10 @@ class ContainerInquiryService
      * excluding sessions that crossed a period boundary: a period filter
      * applied to one end of a two-ended thing.
      *
-     * The gate-out half is expressed as the pairing rule in SQL: a departure
-     * belongs to this arrival when it shares the visit's job, or when it falls
-     * between this arrival and the container's next one. That mirrors
-     * {@see ContainerMrStatusService::pairGateOuts()}, which still does the
-     * authoritative pairing for display -- this only decides which rows are
-     * selected.
+     * The gate-out half is expressed as the pairing rule in SQL -- see
+     * {@see self::whereDeparture()}. {@see \App\Support\VisitPairing} still
+     * does the authoritative pairing for display; this only decides which rows
+     * are selected.
      *
      * The one thing SQL cannot mirror is "earliest *unused* gate-out": with two
      * departures inside one window either will satisfy the predicate. The visit
@@ -469,53 +473,18 @@ class ContainerInquiryService
     /**
      * Pair each gate-in movement to its gate-out.
      *
-     * Tier 1: yard_job_id match (modern records).
-     * Tier 2: chronological proximity for older records without yard_job_id.
-     *         Gate-ins are processed oldest-first so the greedy assignment
-     *         stays temporally correct.
+     * The rule itself is {@see \App\Support\VisitPairing}, which
+     * ContainerMrStatusService also calls. It used to be written out here and
+     * again there, each with a comment saying it mirrored the other — and two
+     * copies of a rule this subtle is a promise nobody can keep, because
+     * getting them different puts a cycle's status on one row of this very
+     * screen and its dates on another.
      *
      * @return array<int, GateMovement>  keyed by gate_in.id
      */
     private function buildGateOutMap(Collection $gateIns, Collection $gateOuts): array
     {
-        $map     = [];
-        $usedIds = [];
-
-        $byJobId = $gateOuts
-            ->filter(fn ($go) => !is_null($go->yard_job_id))
-            ->keyBy('yard_job_id');
-
-        $orphans = $gateOuts
-            ->filter(fn ($go) => is_null($go->yard_job_id))
-            ->sortBy('gate_out_time')
-            ->values();
-
-        $sorted = $gateIns->sortBy('gate_in_time')->values();
-
-        foreach ($sorted as $i => $gi) {
-            if (!is_null($gi->yard_job_id) && $byJobId->has($gi->yard_job_id)) {
-                $go = $byJobId->get($gi->yard_job_id);
-                $map[$gi->id]     = $go;
-                $usedIds[$go->id] = true;
-            } else {
-                $from  = $gi->gate_in_time?->timestamp ?? 0;
-                $until = $sorted->get($i + 1)?->gate_in_time?->timestamp ?? PHP_INT_MAX;
-
-                foreach ($orphans as $go) {
-                    if (isset($usedIds[$go->id])) {
-                        continue;
-                    }
-                    $ts = $go->gate_out_time?->timestamp ?? 0;
-                    if ($ts >= $from && $ts < $until) {
-                        $map[$gi->id]     = $go;
-                        $usedIds[$go->id] = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        return $map;
+        return \App\Support\VisitPairing::pair($gateIns, $gateOuts);
     }
 
     /**

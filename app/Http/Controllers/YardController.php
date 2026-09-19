@@ -293,13 +293,39 @@ class YardController extends Controller
 
         $jobType = YardJobType::findOrFail($validated['job_type_id']);
 
+        $existingContainer = Container::where('container_no', $validated['container_no'])->first();
+
+        // ── Hire / rental context ───────────────────────────────────────────
+        // A container arriving while a letting is open is the renting customer
+        // bringing it back. That is not a new stay — the box never stopped
+        // belonging to the stay it left on — so this arrival carries the
+        // letting's job rather than opening one of its own, and the purpose
+        // follows from the rental status instead of being asked for.
+        //
+        // Found from the container number alone, which is all the gate officer
+        // has when the truck arrives, and from the same service the gate-out
+        // and the gate form use.
+        $hire = $existingContainer
+            ? app(\App\Services\HireGateService::class)->forContainer($existingContainer)
+            : new \App\Support\HireGateState();
+
+        $isHireReturn = $hire->isCommercialLetting();
+
+        if ($isHireReturn) {
+            $returnType = YardJobType::where('job_type_code', \App\Support\HireGateState::PURPOSE_IN)->first();
+
+            // Seeded, not migrated: a yard that has not re-run the seeder keeps
+            // the operator's choice rather than being unable to take the box
+            // back at all.
+            $jobType = $returnType ?? $jobType;
+        }
+
         // Return reason is required for Empty Return job type
         if ($jobType->job_type_code === 'EMPTY_RETURN' && empty($validated['return_reason'])) {
             return $this->validationResponse($request, ['return_reason' => ['Please select a return reason for Empty Return.']]);
         }
 
         // ── Duplicate Gate-In guard ──────────────────────────────────────────
-        $existingContainer = Container::where('container_no', $validated['container_no'])->first();
 
         // Check 1: container is currently in the yard (any present disposition)
         if ($existingContainer && in_array($existingContainer->status, Container::IN_YARD_STATUSES, true)) {
@@ -553,42 +579,102 @@ class YardController extends Controller
             : 0;
 
         // Create storage record — use actual gate-in date so billing calculations are correct
-        YardStorage::create([
-            'container_id'     => $container->id,
-            // Identifies THIS stay. gate_in_date alone cannot: a container gated out
-            // and back in on one date produces two rows sharing the date.
-            'gate_movement_id' => $movement->id,
-            'customer_id'      => $validated['customer_id'],
-            'gate_in_date'     => $gateInDate,
-            'free_days'        => $freeDays,
-            'daily_rate'       => $dailyRate,
-        ]);
+        //
+        // Not on a hire return. Storage for this container is already suspended
+        // — by the lease, which left a zero-rated `lease_in` row, or by the
+        // letting itself, which left an `on_hire` one — and opening a billable
+        // `normal` row here would start charging the shipping line again for a
+        // box the yard is still paying *them* rent on. The suspension ends when
+        // the hire does, and ContainerHireService::offHire() opens the resumed
+        // row then, carrying the original free-day anchor.
+        if (! $isHireReturn) {
+            YardStorage::create([
+                'container_id'     => $container->id,
+                // Identifies THIS stay. gate_in_date alone cannot: a container gated out
+                // and back in on one date produces two rows sharing the date.
+                'gate_movement_id' => $movement->id,
+                'customer_id'      => $validated['customer_id'],
+                'gate_in_date'     => $gateInDate,
+                'free_days'        => $freeDays,
+                'daily_rate'       => $dailyRate,
+            ]);
+        }
 
         // Auto-create a Yard Job and link this movement to it
         $yardJobNo = null;
         $yardJob   = null;
         try {
-            ['job_no' => $jobNo, 'job_seq' => $jobSeq] = YardJob::generateJobNo($jobType);
+            if ($isHireReturn) {
+                // The box is coming back off a letting, so it has a job
+                // already: the rent job it left on. Opening a second one would
+                // split one round trip across two, leaving the departure and
+                // the return unpairable and the rental days on neither.
+                $yardJob   = $hire->lettingJob;
+                $yardJobNo = $yardJob?->job_no;
 
-            $yardJob = YardJob::create([
-                'job_no'          => $jobNo,
-                'job_seq'         => $jobSeq,
-                'job_type_id'     => $jobType->id,
-                'job_type_code'   => $jobType->job_type_code,
-                'type_short_code' => $jobType->type_short_code,
-                'customer_id'     => $validated['customer_id'],
-                'status'          => 'open',
-                'started_at'      => $gateInTime,
-                'return_reason'   => $jobType->job_type_code === 'EMPTY_RETURN'
-                                        ? ($validated['return_reason'] ?? null)
-                                        : null,
-                'created_by'      => auth()->id(),
-            ]);
+                $movement->update(['yard_job_id' => $yardJob?->id]);
+            } else {
+                ['job_no' => $jobNo, 'job_seq' => $jobSeq] = YardJob::generateJobNo($jobType);
 
-            $movement->update(['yard_job_id' => $yardJob->id]);
-            $yardJobNo = $yardJob->job_no;
+                $yardJob = YardJob::create([
+                    'job_no'          => $jobNo,
+                    'job_seq'         => $jobSeq,
+                    'job_type_id'     => $jobType->id,
+                    'job_type_code'   => $jobType->job_type_code,
+                    'type_short_code' => $jobType->type_short_code,
+                    'customer_id'     => $validated['customer_id'],
+                    'status'          => 'open',
+                    'started_at'      => $gateInTime,
+                    'return_reason'   => $jobType->job_type_code === 'EMPTY_RETURN'
+                                            ? ($validated['return_reason'] ?? null)
+                                            : null,
+                    'created_by'      => auth()->id(),
+                ]);
+
+                $movement->update(['yard_job_id' => $yardJob->id]);
+                $yardJobNo = $yardJob->job_no;
+            }
         } catch (\Throwable $e) {
             \Log::error('[GateIn] Yard job creation failed: ' . $e->getMessage());
+        }
+
+        // ── Close the letting ───────────────────────────────────────────────
+        // The renter has brought the box back, so the letting is over: its job
+        // completes and, where the letting suspended storage of its own, the
+        // original customer's resumes. The lease above it stays open — the box
+        // can be let again tomorrow, and that will be a new sub-job under the
+        // same lease.
+        //
+        // Non-blocking, like the other post-movement steps. The arrival is a
+        // fact once it is recorded; a failure to close the paperwork must not
+        // send the truck away again.
+        $hireWarning = null;
+
+        if ($isHireReturn) {
+            try {
+                if ($hire->letting->on_hire_date->gte($gateInTime->copy()->startOfDay())) {
+                    // offHire() requires the period to span at least a day, so a
+                    // same-day return cannot be closed automatically. Left open
+                    // rather than forced, because shortening a rental to nothing
+                    // is a commercial decision and not a gate one.
+                    $hireWarning = "Container {$container->container_no} came back on the day it went out, so "
+                        . 'its hire could not be closed automatically. Close it on the Hire screen with the '
+                        . 'agreed period.';
+                } else {
+                    app(\App\Services\ContainerHireService::class)->offHire(
+                        $hire->letting,
+                        [
+                            'off_hire_date'  => $gateInDate,
+                            'off_hire_notes' => 'Closed automatically at gate-in ' . $movement->eir_no,
+                        ],
+                        auth()->id(),
+                    );
+                }
+            } catch (\Throwable $e) {
+                \Log::error('[GateIn] Hire close failed: ' . $e->getMessage());
+                $hireWarning = "Container {$container->container_no} was gated in, but its hire could not be "
+                    . 'closed automatically: ' . $e->getMessage() . ' Close it on the Hire screen.';
+            }
         }
 
         // Auto-create a pending reefer plug session for laden reefer containers
@@ -657,6 +743,11 @@ class YardController extends Controller
         }
         if ($w = $this->noGuardCaptureWarning($request)) {
             $warnings[] = $w;
+        }
+        // Collected here rather than flashed where it arises: the redirect below
+        // sets `warning` wholesale, so a flash written earlier is overwritten.
+        if ($hireWarning) {
+            $warnings[] = $hireWarning;
         }
         if ($warnings) {
             $redirect->with('warning', implode('  ', $warnings));
@@ -907,11 +998,25 @@ class YardController extends Controller
 
         $container = Container::where('container_no', $validated['container_no'])->firstOrFail();
 
-        // Block gate-out while container is on active hire — the hire must be completed first
-        if ($container->activeHire()->exists()) {
+        // ── Hire / rental context ───────────────────────────────────────────
+        // What this container's agreements mean at the gate: whether the yard
+        // holds it on hire from its line, whether it is let out to a renting
+        // customer, and — the part that reaches every report — which job a
+        // movement for it must carry.
+        //
+        // This used to be a flat refusal of any container with an active hire.
+        // That was right when a hire was a paper record with no job behind it,
+        // and wrong now: a letting exists precisely so the renter can drive the
+        // box away, and blocking the release left the yard unable to perform
+        // the agreement it had just recorded. See HireGateState::releaseBlock().
+        //
+        // The same object answers the gate *form* in containerLookup(), so the
+        // warning on screen and the decision on submit cannot disagree.
+        $hire = app(\App\Services\HireGateService::class)->forContainer($container);
+
+        if ($hireBlock = $hire->releaseBlock()) {
             return $this->validationResponse($request, ['container_no' => [
-                "Container {$container->container_no} is currently on hire. "
-                . 'Complete or cancel the hire before gating it out.',
+                "Container {$container->container_no} cannot be gated out. {$hireBlock}",
             ]]);
         }
 
@@ -920,7 +1025,13 @@ class YardController extends Controller
         // pre-reserved, or via reserve-at-gate (a booking chosen now, matching an
         // open line by size/type). Export-Release purposes expect a booking; the
         // enforce_export_booking setting makes that a hard rule instead of a warning.
-        $purposeCode  = $validated['gate_out_purpose'] ?? null;
+        //
+        // A container leaving under an open letting is leaving with its renter;
+        // there is no second reading of that movement, so the purpose is
+        // settled here rather than trusted from the form. The form preselects
+        // and locks the same value, so this only bites on a stale tab or an API
+        // client that guessed.
+        $purposeCode  = $hire->suggestedOutPurpose() ?? $validated['gate_out_purpose'] ?? null;
         $purpose      = $purposeCode
             ? \App\Models\YardJobType::where('job_type_code', $purposeCode)->where('movement_direction', 'gate_out')->first()
             : null;
@@ -979,8 +1090,25 @@ class YardController extends Controller
         // gate-out has no job (see ContainerInquiryService::buildGateOutMap).
         $custody      = app(\App\Services\ContainerCustodyService::class);
         $visitGateIn  = $custody->latestGateIn($container);
-        $visitJobId   = $visitGateIn?->yard_job_id;
         $visitCustomer = $custody->visitCustomerId($container);
+
+        // Which job this departure belongs to.
+        //
+        // Ordinarily the stay's — the box arrived under the line's job and is
+        // leaving under it. But when the container is out on a letting, the
+        // stay's job says the shipping line took their own container away,
+        // which is the opposite of what happened. The letting's job says the
+        // renter did, and `movement -> job -> holder` then names them with no
+        // column of its own, so the gate log, Container Inquiry and the P&L
+        // roll-up all report it correctly without being taught about hires.
+        //
+        // The stay is not lost: the letting's job is a sub-job of the lease,
+        // whose own parent is the stay, so the whole chain is one walk up
+        // `parent_job_id` from the movement.
+        //
+        // With no letting running this is exactly the old expression, so every
+        // ordinary release is unchanged.
+        $visitJobId   = $hire->lettingJob?->id ?? $visitGateIn?->yard_job_id;
 
         // ── Reefer PTI gate ──────────────────────────────────────────────────
         // A reefer released for export must carry a valid (passing, unexpired) PTI.
@@ -2203,7 +2331,9 @@ class YardController extends Controller
             return response()->json(['found' => false, 'message' => 'Container number is required.']);
         }
 
-        $container = Container::with(['customer', 'equipmentType', 'grade', 'activeHire.hireCustomer'])
+        // The hire is loaded by HireGateService below, which also resolves the
+        // lease and the job chain, so it is not eager-loaded here.
+        $container = Container::with(['customer', 'equipmentType', 'grade'])
             ->where('container_no', $no)
             ->first();
 
@@ -2254,6 +2384,11 @@ class YardController extends Controller
             ? max(0, (int) $storage->billing_gate_in_date->diffInDays(today()))
             : DaysInYard::between($visit['gate_in'], $visit['gate_out']);
 
+        // The container's hire agreements, from the same service the gate-out
+        // save uses — so what this form says about a rented container and what
+        // the release actually does are one rule, not two.
+        $hire = app(\App\Services\HireGateService::class)->forContainer($container);
+
         // Can this container actually be gated out right now? Mirrors the gate-out
         // validation so the form can warn at selection time instead of on save.
         $releaseBlock = null;
@@ -2266,8 +2401,11 @@ class YardController extends Controller
             } else {
                 $releaseBlock = "Its status is '{$container->status}'.";
             }
-        } elseif ($container->activeHire) {
-            $releaseBlock = 'It is currently on hire - complete or cancel the hire before gating out.';
+        } elseif ($hireBlock = $hire->releaseBlock()) {
+            // Only an internal letting blocks now. A letting with a renting
+            // customer behind it is the reason the box is leaving, so it is
+            // reported below as context rather than as an obstacle.
+            $releaseBlock = $hireBlock;
         } elseif ($container->isHeld()) {
             $holds = $container->activeHolds()->pluck('hold_type')
                 ->map(fn ($t) => str_replace('_', ' ', $t))->implode(', ');
@@ -2354,10 +2492,42 @@ class YardController extends Controller
                 ? ((\App\Models\EquipmentType::VENTILATION_TYPES[$container->effective_ventilation_type] ?? $container->effective_ventilation_type)
                     . ($container->effective_vent_count > 0 ? ' · ' . $container->effective_vent_count . ' vents' : ''))
                 : null,
-            'on_hire'          => $container->activeHire ? [
-                'hire_party'   => $container->activeHire->hire_party_name,
-                'on_hire_date' => $container->activeHire->on_hire_date->format('d M Y'),
-                'hire_url'     => route('yard.hires.show', $container->activeHire),
+            'on_hire'          => $hire->letting ? [
+                'hire_party'   => $hire->letting->hire_party_name,
+                'on_hire_date' => $hire->letting->on_hire_date->format('d M Y'),
+                'hire_url'     => route('yard.hires.show', $hire->letting),
+            ] : null,
+
+            // ── Rental release context ──────────────────────────────────────
+            // Everything the gate officer needs the moment the container number
+            // is entered: that the box is on hire from its line, who is renting
+            // it, and which purpose the release therefore is. Keyed on the
+            // container number, because that is all the officer has when the
+            // truck is at the barrier.
+            //
+            // `suggested_purpose` is not a hint the form may ignore. A container
+            // leaving under an open letting is leaving with its renter, and
+            // gateOut() settles the same value server-side, so the select is
+            // preselected and locked to match rather than left to be got right.
+            'hire_release'     => $hire->isCommercialLetting() ? [
+                'renter'           => $hire->holderName(),
+                'on_hire_date'     => $hire->letting->on_hire_date->format('d M Y'),
+                'hire_url'         => route('yard.hires.show', $hire->letting),
+                'rent_job_no'      => $hire->lettingJob?->job_no,
+                'lease_job_no'     => $hire->lease?->yardJob?->job_no,
+                'lessor'           => $hire->lease?->lessor?->name,
+                'under_lease'      => $hire->isLeased(),
+                'suggested_purpose'=> $hire->suggestedOutPurpose(),
+                'job_chain'        => $hire->jobChain(),
+            ] : null,
+
+            // On hire from the line but not currently out with anyone — the box
+            // is on the ground between lettings. Worth saying, because storage
+            // is suspended and a release here is not a rental release.
+            'lease_only'       => (! $hire->isCommercialLetting() && $hire->isLeased()) ? [
+                'lessor'       => $hire->lease?->lessor?->name,
+                'lease_job_no' => $hire->lease?->yardJob?->job_no,
+                'on_hire_date' => $hire->lease?->on_hire_date?->format('d M Y'),
             ] : null,
         ]);
     }

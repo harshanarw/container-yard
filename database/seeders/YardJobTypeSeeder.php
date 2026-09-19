@@ -12,6 +12,10 @@ class YardJobTypeSeeder extends Seeder
         // Workflow flag matrix derived from SRS Section 13 + CARGO_RENTAL_IN extension.
         // Columns: handling, survey, estimate, repair, storage, wash, reefer, customs,
         //          cargo_transfer, approval_required, damage_capture_required
+        //
+        // `direction` defaults to the list a row appears in. Set it to
+        // 'commercial' for a job type that is never a gate purpose — see the
+        // note on LESSOR_ONHIRE below.
         $types = [
             [
                 'code'        => 'EMPTY_RETURN',
@@ -41,7 +45,7 @@ class YardJobTypeSeeder extends Seeder
                 'code'        => 'OFFHIRE_IN',
                 'short_code'  => 'OH',
                 'name'        => 'Off-Hire In',
-                'description' => 'Container enters yard at end of lease or hire period. Triggers off-hire inspection, damage recording, and repair estimate.',
+                'description' => 'Container arrives from a lessee at the end of a lease the yard did not grant - typically redelivered to the depot on the owner\'s behalf. Triggers off-hire inspection, damage recording, and repair estimate. Not the same as Hire Return In, which is a box the yard itself let out coming back.',
                 'sort_order'  => 3,
                 'handling'    => true,  'survey'   => true,  'estimate' => true,
                 'repair'      => true,  'storage'  => true,  'wash'     => true,
@@ -187,8 +191,13 @@ class YardJobTypeSeeder extends Seeder
                 'code'        => 'LESSOR_ONHIRE',
                 'short_code'  => 'LH',
                 'name'        => 'Lessor On-Hire (yard as lessee)',
-                'description' => 'The yard takes a container ON HIRE from a shipping line / lessor for a period. The lessor\'s fee is captured as an expense against this job; any revenue from using the box (storage, sub-hire) is tagged to the same job - so the on-hire→off-hire period has its own P&L.',
+                'description' => 'The yard takes a container ON HIRE from a shipping line / lessor for a period. The lessor\'s fee is captured as an expense against this job; any revenue from using the box (storage, sub-hire) is tagged to the same job - so the on-hire→off-hire period has its own P&L. Opened by the On-Hire screen, never at a gate: taking a container on hire changes who owes what, not where the box is.',
                 'sort_order'  => 15,
+                // Not a gate purpose. A lease-in moves no container, so offering
+                // it in the gate-in dropdown invites an operator to record an
+                // arrival that never happened — the exact phantom movement
+                // migration 000316 exists to prevent.
+                'direction'   => 'commercial',
                 'handling'    => true,  'survey'   => false, 'estimate' => false,
                 'repair'      => false, 'storage'  => true,  'wash'     => false,
                 'reefer'      => true,  'customs'  => false, 'cargo_transfer' => false,
@@ -199,13 +208,29 @@ class YardJobTypeSeeder extends Seeder
                 'code'        => 'CONTAINER_RELET',
                 'short_code'  => 'RL',
                 'name'        => 'Re-let (yard as lessor)',
-                'description' => 'The yard puts a container out to a customer for a period. Opened as a sub-job of the lease it happens inside, so the lease sees its own margin: the lessor fee is the cost on the parent, this job carries the rental revenue. Repeatable - one lease can be re-let many times - and each re-let closes when the box comes back.',
+                'description' => 'The yard puts a container out to a customer for a period. Opened as a sub-job of the lease it happens inside, so the lease sees its own margin: the lessor fee is the cost on the parent, this job carries the rental revenue. Repeatable - one lease can be re-let many times, to different customers for different purposes - and each re-let closes when the box comes back. Opened by the Hire screen; the box then leaves on an On-Hire Out and returns on a Hire Return In, both carrying this job.',
                 'sort_order'  => 16,
                 'handling'    => true,  'survey'   => false, 'estimate' => false,
                 'repair'      => false, 'storage'  => false, 'wash'     => false,
                 'reefer'      => true,  'customs'  => false, 'cargo_transfer' => false,
                 'approval'    => false, 'damage_capture' => false,
                 'next_status' => 'in_storage',
+                // Not a gate purpose, for the same reason as LESSOR_ONHIRE: the
+                // agreement is struck on the Hire screen. The physical movements
+                // it causes are ONHIRE_OUT and HIRE_RETURN_IN.
+                'direction'   => 'commercial',
+            ],
+            [
+                'code'        => 'HIRE_RETURN_IN',
+                'short_code'  => 'HR',
+                'name'        => 'Hire Return In (rented container back)',
+                'description' => 'A container the yard let out on hire is brought back by the renting customer. Closes that re-let; the lease above it stays open, because the box can be let again tomorrow. Triggers the return inspection - damage during a hire is the renter\'s, and the estimate has to be raised while the evidence is at the gate.',
+                'sort_order'  => 17,
+                'handling'    => true,  'survey'   => true,  'estimate' => true,
+                'repair'      => true,  'storage'  => true,  'wash'     => true,
+                'reefer'      => true,  'customs'  => false, 'cargo_transfer' => false,
+                'approval'    => false, 'damage_capture' => true,
+                'next_status' => 'pending_survey',
             ],
         ];
 
@@ -219,8 +244,8 @@ class YardJobTypeSeeder extends Seeder
              'description' => 'Full / laden container leaves the yard.', 'handling' => true],
             ['code' => 'OFFHIRE_OUT',       'short_code' => 'OO', 'name' => 'Off-Hire Out (return to lessor)', 'sort_order' => 3,
              'description' => 'Container redelivered to the leasing company at end of hire.', 'handling' => true],
-            ['code' => 'ONHIRE_OUT',        'short_code' => 'OU', 'name' => 'On-Hire Out', 'sort_order' => 4,
-             'description' => 'Container released to a customer under hire / lease.', 'handling' => true],
+            ['code' => 'ONHIRE_OUT',        'short_code' => 'OU', 'name' => 'On-Hire Out (rented to customer)', 'sort_order' => 4,
+             'description' => 'Container released to the customer renting it, under an open re-let. The movement carries the re-let\'s job, not the stay\'s, so the renting party is named by the movement and the rental days start at this gate. The box comes back on a Hire Return In.', 'handling' => true],
             ['code' => 'STORAGE_OUT',       'short_code' => 'SO', 'name' => 'Storage Out', 'sort_order' => 5,
              'description' => 'Stored container collected by its owner; ends the storage period.', 'handling' => true, 'storage' => true],
             ['code' => 'REEFER_OUT',        'short_code' => 'FO', 'name' => 'Reefer Out', 'sort_order' => 6,
@@ -244,7 +269,7 @@ class YardJobTypeSeeder extends Seeder
                 [
                     'type_short_code'           => $row['short_code'],
                     'job_type_name'             => $row['name'],
-                    'movement_direction'        => $direction,
+                    'movement_direction'        => $row['direction'] ?? $direction,
                     'description'               => $row['description'],
                     'sort_order'                => $row['sort_order'],
                     'is_active'                 => true,
@@ -273,6 +298,13 @@ class YardJobTypeSeeder extends Seeder
             $upsert($row, 'gate_out');
         }
 
-        $this->command->info('  ✔  Seeded ' . count($types) . ' gate-in and ' . count($gateOutTypes) . ' gate-out job types.');
+        $commercial = count(array_filter($types, fn ($r) => ($r['direction'] ?? null) === 'commercial'));
+
+        $this->command->info(sprintf(
+            '  ✔  Seeded %d gate-in, %d gate-out and %d commercial (non-gate) job types.',
+            count($types) - $commercial,
+            count($gateOutTypes),
+            $commercial,
+        ));
     }
 }

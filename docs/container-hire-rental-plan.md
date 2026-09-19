@@ -345,6 +345,47 @@ label reaches Container Inquiry, the stock reports and the yard list.
 *2d — rental sub-jobs.* Repeatable under one lease-in, each with **real** gate
 movements, the renting party recorded on both. Absorbs what was Phase 4.
 
+*2d-i — the letting gets a job. Done.* `container_hires.yard_job_id` and
+`lessor_on_hire_id` (000317). A `CONTAINER_RELET` sub-job per letting,
+receivable from the renter and `held_by` them, parented to the lease or, absent
+one, to the stay.
+
+*2d-ii — the gate. Done.* The round trip, both ends:
+
+| | |
+| --- | --- |
+| **Release** | No longer refused. `HireGateState::releaseBlock()` permits a letting that has a renter and a job, and refuses only an *internal* one — which has no party to release to and no job to book against. The departure carries the **letting's** job, so `movement → job → holder` names the renter with no column of its own, and the purpose is settled as `ONHIRE_OUT` from the rental status rather than asked for. |
+| **Return** | A container arriving while a letting is open is the renter bringing it back. The arrival carries the same letting job, the type is `HIRE_RETURN_IN`, no new stay job is opened, **no billable storage row is created** — storage is still suspended and a `normal` row would restart the line's charges mid-lease — and the letting closes. The lease above it stays open, ready to be let again. |
+| **Both gates** | `HireGateService` answers both the form and the save from one place, so the warning on screen and the decision on submit cannot drift. The form names the renter, shows the whole job chain (stay → lease → rent), and preselects and locks the purpose. |
+
+Two things had to change underneath it:
+
+- **Job types.** `LESSOR_ONHIRE` and `CONTAINER_RELET` were seeded as `gate_in`
+  and so appeared in the gate-in dropdown — inviting an operator to record the
+  arrival that migration 000316 exists to prevent. A third `movement_direction`,
+  `commercial`, marks a job type that is never a gate purpose. `HIRE_RETURN_IN`
+  is new: the renter's return had no purpose to arrive on, and requirement 4
+  asks for one to be auto-selected.
+- **Visit pairing.** A rental round trip puts three movements on one container
+  and the job link alone mis-pairs them: the return carries the same job as the
+  departure it is returning from, so it paired with a gate-out that had already
+  happened, while the stay looked as though the box never left. The rule now
+  lives once, in `App\Support\VisitPairing` — Container Inquiry and
+  `ContainerMrStatusService` had a copy each, with comments promising they
+  matched — and the job link is bounded by the visit at both ends. A departure
+  the job link cannot place now falls to the clock instead of being discarded,
+  which is what lets the rental departure close the stay it actually ended.
+
+And one in the status ladder: the commitment rung moved **above** the
+closed-cycle rung. A rented box physically leaves, so its cycle closes — but the
+yard is still paying the line rent on it, so reading "Gated out" would drop the
+container off its owner's statement mid-hire. `On hire — rented out` now
+survives the departure, which is requirement 5: on-hire status and
+inside/outside-yard status answered separately, at any moment.
+
+Still open in 2d: the stock and inventory readers have not been re-verified for
+a container that is *released* and *leased* at once.
+
 **Stock states — three, not two:** `In Yard`, `On Hire`, `On Hire — Rented Out`.
 The line keeps seeing their box, sees the yard holds it on hire, and sees when
 it is physically away with a renter.
@@ -359,12 +400,9 @@ for an open one.
 amount out, against the captured rate; `hire` charge-code category; the result
 tagged to the lease-in job as an AP line. Requirement 1.3.
 
-**Phase 4 — sub-hire that leaves the yard.** The central change, and the one
-that needs §5.1 answered first. Replace the blanket `activeHire` release block
-with a rule that permits release *to the hire party*, records that party on the
-gate movement, and re-admits it at gate-in. Requirements 2.2, 5, 6, 7. Carries
-the reefer plug-session close, the stock decision, and re-verification of every
-module in §4's second table.
+**Phase 4 — sub-hire that leaves the yard. Absorbed into 2d-ii, done.** What
+remains of it is the re-verification of §4's second table against a container
+that is released and leased at once.
 
 **Phase 5 — sub-hire billing.** Customer invoice from the Phase 1 rate, over the
 hire period, on the sub-job. Requirement 3.

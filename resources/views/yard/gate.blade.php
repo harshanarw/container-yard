@@ -104,6 +104,8 @@
                             @endforeach
                         </select>
                         <div id="jobTypeDesc" class="form-text text-muted mt-1" style="min-height:1.2em;"></div>
+                        {{-- Filled by applyHireReturnJobType() when the container is coming back off a letting. --}}
+                        <div id="jobTypeHireNote" class="form-text text-primary d-none mt-1" style="font-size:.75rem;"></div>
                         <div id="jobTypeAlerts" class="mt-2"></div>
                         @error('job_type_id')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -845,6 +847,8 @@
                                             <option value="{{ $p->job_type_code }}" data-booking="{{ $p->booking_applicable ? '1' : '0' }}">{{ $p->job_type_name }}</option>
                                         @endforeach
                                     </select>
+                                    {{-- Filled by applyRentalPurpose() when the container is out on a letting. --}}
+                                    <div id="purposeRentalNote" class="form-text text-primary d-none mt-1" style="font-size:.75rem;"></div>
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label fw-semibold">Booking / EDO <span class="text-muted small fw-normal">(export release)</span></label>
@@ -1663,7 +1667,8 @@ btnOut.addEventListener('click', activateOut);
                 // Block early if the container is physically present under any
                 // disposition (in_yard / available / in_repair / reserved) — it must
                 // be gated out before a new gate-in.
-                if (['in_yard', 'available', 'in_repair', 'reserved'].includes(data.status)) {
+                const alreadyInYard = ['in_yard', 'available', 'in_repair', 'reserved'].includes(data.status);
+                if (alreadyInYard) {
                     const since = data.gate_in_date ? ' since ' + data.gate_in_date : '';
                     infoBox.className = 'mt-1 small';
                     infoBox.innerHTML =
@@ -1672,10 +1677,39 @@ btnOut.addEventListener('click', activateOut);
                         '<strong>Already in yard' + since + ' (' + data.status.replace('_', ' ') + ').</strong> ' +
                         'Gate-Out must be completed before a new Gate-In.' +
                         '</div>';
+                } else if (data.hire_return) {
+                    // The renting customer is bringing the box back. Said here,
+                    // at the moment the number is typed, because the purpose
+                    // and the job both follow from it and the officer should
+                    // see why before saving rather than after.
+                    const chain = (data.hire_return.job_chain || []).map(function (j) {
+                        return '<div><span class="text-muted">' + j.label + ':</span> ' +
+                            '<strong class="font-monospace">' + j.job_no + '</strong>' +
+                            (j.party ? ' <span class="text-muted">· ' + j.party + '</span>' : '') + '</div>';
+                    }).join('');
+
+                    infoBox.className = 'mt-1 small';
+                    infoBox.innerHTML =
+                        '<div class="alert alert-primary py-2 mb-0 small">' +
+                        '<div class="mb-1"><span class="badge bg-primary me-1">' +
+                            (data.hire_return.under_lease ? 'On Hire · Rented Out' : 'Rented Out') +
+                        '</span>Return from <strong>' + data.hire_return.renter + '</strong>' +
+                        ' · out since ' + data.hire_return.on_hire_date +
+                        ' &nbsp;<a href="' + data.hire_return.hire_url + '" target="_blank" style="font-size:.72rem;">View Hire →</a></div>' +
+                        chain +
+                        '<div class="mt-1"><i class="bi bi-info-circle me-1"></i>Job type set to <strong>Hire Return In</strong>; ' +
+                        'the arrival is recorded on the rent job and the hire closes automatically.</div>' +
+                        '</div>';
                 } else {
                     infoBox.className = 'mt-1 small text-success';
                     infoBox.innerHTML = '<i class="bi bi-check-circle me-1"></i>Found in Container Master - profile pre-filled.';
                 }
+
+                // Job type follows the rental status rather than being asked
+                // for; gateIn() settles the same value server-side, so locking
+                // the control only keeps the two in step. Never locked on a
+                // container that cannot be gated in at all.
+                applyHireReturnJobType(alreadyInYard ? null : (data.hire_return || null));
                 // Pre-select equipment type if available
                 if (data.equipment_type_id) {
                     if (typeof $ !== 'undefined') {
@@ -1711,16 +1745,72 @@ btnOut.addEventListener('click', activateOut);
             } else {
                 infoBox.className = 'mt-1 small text-muted';
                 infoBox.innerHTML = '<i class="bi bi-info-circle me-1"></i>New container - a master record will be created automatically.';
+                applyHireReturnJobType(null);
             }
         } catch (e) {
             infoBox.className = 'd-none';
         }
     }
 
+    /**
+     * Select and lock the Hire Return job type, or hand the control back.
+     *
+     * Called on every lookup, including the misses, so a lock set for one
+     * container cannot follow the next one into the form.
+     */
+    function applyHireReturnJobType(ret) {
+        const sel = document.getElementById('jobTypeSelect');
+        if (!sel) return;
+
+        const note = document.getElementById('jobTypeHireNote');
+
+        if (ret && ret.suggested_purpose) {
+            const opt = sel.querySelector('option[data-job-code="' + ret.suggested_purpose + '"]');
+            if (opt) {
+                if (typeof $ !== 'undefined') $(sel).val(opt.value).trigger('change');
+                else { sel.value = opt.value; sel.dispatchEvent(new Event('change')); }
+
+                // Select2 replaces the control, so disabling the element is not
+                // enough; the plugin has its own flag. The value travels in a
+                // hidden twin either way, because a disabled control posts
+                // nothing.
+                if (typeof $ !== 'undefined') $(sel).prop('disabled', true).trigger('change.select2');
+                else sel.disabled = true;
+
+                let hidden = document.getElementById('jobTypeLocked');
+                if (!hidden) {
+                    hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.id   = 'jobTypeLocked';
+                    hidden.name = 'job_type_id';
+                    sel.parentNode.appendChild(hidden);
+                }
+                hidden.value = opt.value;
+
+                if (note) {
+                    note.innerHTML = '<i class="bi bi-info-circle me-1"></i>Set automatically: returning from hire with <strong>'
+                        + ret.renter + '</strong>'
+                        + (ret.rent_job_no ? ' on rent job <span class="font-monospace">' + ret.rent_job_no + '</span>' : '')
+                        + '.';
+                    note.classList.remove('d-none');
+                }
+                return;
+            }
+        }
+
+        if (typeof $ !== 'undefined') $(sel).prop('disabled', false).trigger('change.select2');
+        else sel.disabled = false;
+        document.getElementById('jobTypeLocked')?.remove();
+        if (note) { note.innerHTML = ''; note.classList.add('d-none'); }
+    }
+
     inp.addEventListener('input', function () {
         if (this.value.length < 11) {
             infoBox.className = 'd-none';
             lastVal = '';
+            // Hand the job type back: the number no longer identifies a
+            // container, so nothing justifies holding the control.
+            applyHireReturnJobType(null);
             // Reset equipment type
             if (typeof $ !== 'undefined') {
                 $(eqtSel).val(null).trigger('change');
@@ -2372,6 +2462,60 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             infoBox.classList.remove('d-none');
         }
 
+        /**
+         * Set the gate-out purpose from the container's rental status, or hand
+         * the control back when there is none.
+         *
+         * Called on every lookup, including the failed and blocked ones, so a
+         * lock left over from the previous container cannot follow the next one
+         * into the form.
+         */
+        function applyRentalPurpose(rent) {
+            const sel  = document.querySelector('select[name="gate_out_purpose"]');
+            const note = document.getElementById('purposeRentalNote');
+            if (!sel) return;
+
+            if (rent && rent.suggested_purpose) {
+                sel.value = rent.suggested_purpose;
+                // Disabled controls post nothing, so the value travels in a
+                // hidden twin. gateOut() settles the purpose itself either way;
+                // this is so the operator sees what will be recorded.
+                sel.disabled = true;
+                let hidden = document.getElementById('gateOutPurposeLocked');
+                if (!hidden) {
+                    hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.id   = 'gateOutPurposeLocked';
+                    hidden.name = 'gate_out_purpose';
+                    sel.parentNode.appendChild(hidden);
+                }
+                hidden.value = rent.suggested_purpose;
+                // The purpose lives inside the collapsed Export Information
+                // panel. Setting a value the operator cannot see would be worse
+                // than asking for one, so open it.
+                const exp = document.getElementById('outExportSection');
+                if (exp && !exp.classList.contains('show')) {
+                    if (window.bootstrap && bootstrap.Collapse) {
+                        bootstrap.Collapse.getOrCreateInstance(exp).show();
+                    } else {
+                        exp.classList.add('show');
+                    }
+                }
+                if (note) {
+                    note.innerHTML = '<i class="bi bi-info-circle me-1"></i>Set automatically: this container is '
+                        + 'rented out to <strong>' + rent.renter + '</strong>'
+                        + (rent.rent_job_no ? ' under rent job <span class="font-monospace">' + rent.rent_job_no + '</span>' : '')
+                        + '.';
+                    note.classList.remove('d-none');
+                }
+                return;
+            }
+
+            sel.disabled = false;
+            document.getElementById('gateOutPurposeLocked')?.remove();
+            if (note) { note.innerHTML = ''; note.classList.add('d-none'); }
+        }
+
         async function doLookup() {
             const val = ($(inp).val() || '').trim().toUpperCase();
             if (val.length < 11) { setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Select a container from the list first.'); return; }
@@ -2380,6 +2524,10 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             try {
                 const res = await fetch('{{ route("yard.container-lookup") }}?container_no=' + encodeURIComponent(val));
                 const data = await res.json();
+                // A lock set for the previous container must not follow the next
+                // one into the form; the success branch sets it again.
+                applyRentalPurpose(null);
+
                 if (!data.found) {
                     lookupDone = false;
                     lookupBlocked = false;
@@ -2432,15 +2580,59 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                           '</div>'
                         : '';
 
-                    // On Hire warning banner
-                    const onHireInfo = data.on_hire
-                        ? '<div class="col-12 pt-1 mt-1" style="border-top:1px solid rgba(0,0,0,.08);">' +
-                              '<span class="badge bg-warning text-dark me-1">On Hire</span>' +
-                              '<span class="text-muted small">Hire party: <strong>' + data.on_hire.hire_party + '</strong>' +
-                              ' · since ' + data.on_hire.on_hire_date +
-                              ' &nbsp;<a href="' + data.on_hire.hire_url + '" target="_blank" style="font-size:.72rem;">View Hire →</a></span>' +
-                          '</div>'
+                    // ── Rental release ──────────────────────────────────────
+                    // The box is out to a renting customer. This is not a
+                    // warning: it is who the container is leaving with, and the
+                    // whole reason the release is allowed. The job chain is
+                    // shown in full — the line's gate-in job, the yard's lease,
+                    // and this rent job — so "who is this container for" has
+                    // one answer on screen instead of three in three modules.
+                    const rent = data.hire_release;
+                    const chainRows = rent && rent.job_chain
+                        ? rent.job_chain.map(function (j) {
+                              return '<div class="col-12 small">' +
+                                  '<span class="text-muted">' + j.label + ':</span> ' +
+                                  '<strong class="font-monospace">' + j.job_no + '</strong>' +
+                                  (j.party ? ' <span class="text-muted">· ' + j.party + '</span>' : '') +
+                              '</div>';
+                          }).join('')
                         : '';
+
+                    const onHireInfo = rent
+                        ? '<div class="col-12 pt-1 mt-1" style="border-top:1px solid rgba(0,0,0,.08);">' +
+                              '<div class="mb-1">' +
+                                  '<span class="badge bg-primary me-1">' +
+                                      (rent.under_lease ? 'On Hire · Rented Out' : 'Rented Out') +
+                                  '</span>' +
+                                  '<span class="small">Releasing to <strong>' + rent.renter + '</strong>' +
+                                  ' · on hire since ' + rent.on_hire_date +
+                                  ' &nbsp;<a href="' + rent.hire_url + '" target="_blank" style="font-size:.72rem;">View Hire →</a></span>' +
+                              '</div>' +
+                              '<div class="row g-1">' + chainRows + '</div>' +
+                          '</div>'
+                        : (data.lease_only
+                            ? '<div class="col-12 pt-1 mt-1" style="border-top:1px solid rgba(0,0,0,.08);">' +
+                                  '<span class="badge bg-info text-dark me-1">On Hire</span>' +
+                                  '<span class="text-muted small">The yard holds this box on hire from <strong>' +
+                                  (data.lease_only.lessor || '-') + '</strong> since ' +
+                                  (data.lease_only.on_hire_date || '-') +
+                                  '. Storage is suspended; it is not currently rented out.</span>' +
+                              '</div>'
+                            : (data.on_hire
+                                ? '<div class="col-12 pt-1 mt-1" style="border-top:1px solid rgba(0,0,0,.08);">' +
+                                      '<span class="badge bg-warning text-dark me-1">On Hire</span>' +
+                                      '<span class="text-muted small">Hire party: <strong>' + data.on_hire.hire_party + '</strong>' +
+                                      ' · since ' + data.on_hire.on_hire_date +
+                                      ' &nbsp;<a href="' + data.on_hire.hire_url + '" target="_blank" style="font-size:.72rem;">View Hire →</a></span>' +
+                                  '</div>'
+                                : ''));
+
+                    // The purpose follows from the rental status rather than
+                    // being asked for: a container leaving under an open letting
+                    // is leaving with its renter, and there is no second
+                    // reading. gateOut() settles the same value server-side, so
+                    // locking the control here only keeps the two in step.
+                    applyRentalPurpose(rent);
                     setInfoBox('success',
                         '<div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-check-circle-fill text-success fs-5"></i><strong class="font-monospace fs-6">' + data.container_no + '</strong>' + daysBadge + '</div>' +
                         '<div class="row g-1 small">' +

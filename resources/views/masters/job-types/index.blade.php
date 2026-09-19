@@ -92,7 +92,7 @@
             {{-- direction --}}
             <td class="text-center">
                 <span class="badge {{ $jt->directionBadge($jt->movement_direction) }}" style="font-size:.68rem;">
-                    {{ $jt->movement_direction === 'gate_in' ? 'Gate In' : 'Gate Out' }}
+                    {{ \App\Models\YardJobType::directionLabel($jt->movement_direction) }}
                 </span>
             </td>
             {{-- workflow flags --}}
@@ -205,6 +205,8 @@
                             <select name="movement_direction" class="form-select" required>
                                 <option value="gate_in" selected>Gate In</option>
                                 <option value="gate_out">Gate Out</option>
+                                {{-- An agreement rather than a movement: never offered as a gate purpose. --}}
+                                <option value="commercial">Commercial (no gate)</option>
                             </select>
                         </div>
                         <div class="col-12">
@@ -303,6 +305,7 @@
                             <select name="movement_direction" id="edit_direction" class="form-select" required>
                                 <option value="gate_in">Gate In</option>
                                 <option value="gate_out">Gate Out</option>
+                                <option value="commercial">Commercial (no gate)</option>
                             </select>
                         </div>
                         <div class="col-12">

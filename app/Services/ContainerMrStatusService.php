@@ -102,6 +102,47 @@ class ContainerMrStatusService
      */
     private function ladder(MrStatusContext $ctx): array
     {
+        // 0 — Committed elsewhere, and not the yard's to work on. Three states,
+        //     because a shipping line's stock statement has to say which:
+        //
+        //       leased in + re-let — the yard took it from the line and has
+        //                            since put it out with a renter, so it is
+        //                            not even on the ground
+        //       leased in          — the yard has it, on hire from the line
+        //       on hire            — the yard gave it to a customer
+        //
+        //     The first two are tested before the third because a leased-in box
+        //     that is also re-let is both, and "On hire" alone would not tell
+        //     the line their container has left the yard.
+        //
+        //     This sits above the closed-cycle rung, which is otherwise the
+        //     first thing tested, because the two questions a shipping line
+        //     asks about its container — "is it on your ground?" and "is it
+        //     still with you?" — have different answers during a rental. The
+        //     yard holds the box on hire from the line, re-lets it to a
+        //     customer, and the customer drives it away: there is a real
+        //     gate-out, so the cycle is closed, and yet the container is very
+        //     much still the yard's responsibility and must keep appearing on
+        //     the line's stock with storage suspended and the reason showing.
+        //
+        //     Before the gate allowed a rented container out this could not
+        //     arise — the release was refused — so the closed rung was reached
+        //     first and read GATED_OUT, which for a box the yard is paying rent
+        //     on would drop it off the line's statement mid-lease.
+        //
+        //     Only an *active* agreement reaches here. Once the lease is
+        //     off-hired and the letting closed, an ordinary gate-out falls
+        //     straight through to rung 1 exactly as it always did.
+        if ($ctx->isLeasedIn()) {
+            return $ctx->isOnHire()
+                ? [Cat::LEASED_IN_RENTED_OUT, null, $ctx->activeHire?->on_hire_date]
+                : [Cat::LEASED_IN, null, $ctx->activeLeaseIn?->on_hire_date];
+        }
+
+        if ($ctx->isOnHire()) {
+            return [Cat::ON_HIRE, null, $ctx->activeHire?->on_hire_date];
+        }
+
         // 1 — The cycle is over. Whatever happened during it is now history.
         //     Two ways to be over. A recorded gate-out is the ordinary one. The
         //     other is a container the master calls released with no movement
@@ -126,27 +167,8 @@ class ContainerMrStatusService
             return [Cat::CONDEMNED, null, $inq?->inspection_date ?? $inq?->created_at];
         }
 
-        // 3 — Committed elsewhere, and not the yard's to work on. Three states,
-        //     because a shipping line's stock statement has to say which:
-        //
-        //       leased in + re-let — the yard took it from the line and has
-        //                            since put it out with a renter, so it is
-        //                            not even on the ground
-        //       leased in          — the yard has it, on hire from the line
-        //       on hire            — the yard gave it to a customer
-        //
-        //     The first two are tested before the third because a leased-in box
-        //     that is also re-let is both, and "On hire" alone would not tell
-        //     the line their container has left the yard.
-        if ($ctx->isLeasedIn()) {
-            return $ctx->isOnHire()
-                ? [Cat::LEASED_IN_RENTED_OUT, null, $ctx->activeHire?->on_hire_date]
-                : [Cat::LEASED_IN, null, $ctx->activeLeaseIn?->on_hire_date];
-        }
-
-        if ($ctx->isOnHire()) {
-            return [Cat::ON_HIRE, null, $ctx->activeHire?->on_hire_date];
-        }
+        // 3 — (The commitment tests were here and now run as rung 0, above the
+        //     closed-cycle test. See the note there.)
 
         // 4 — QC rejected it. The one state where a container looks finished and
         //     is not, so it outranks every completed-work branch below.
@@ -730,15 +752,14 @@ class ContainerMrStatusService
     /**
      * Pair each gate-in with the gate-out that closed its visit.
      *
-     * Mirrors ContainerInquiryService::buildGateOutMap() on purpose, including
-     * its precedence: an explicit shared yard_job_id wins, and only unpaired
-     * gate-outs fall back to the time window running up to the next gate-in.
+     * The rule itself is {@see \App\Support\VisitPairing}, which Container
+     * Inquiry also calls. It used to be written out here and again there, each
+     * with a comment saying it mirrored the other — and two copies of a rule
+     * this subtle is a promise nobody can keep, because getting them different
+     * puts a cycle's status on one row and its dates on another.
      *
-     * The naive "first gate-out after this gate-in" is wrong here, and wrong in
-     * a way this yard actually sees: a box that goes out and back in on the
-     * same day gives two visits whose time windows collapse, and the job link
-     * is the only thing that still separates them. Getting this different from
-     * the inquiry screen would put a cycle's status on the wrong row.
+     * Kept as a method because it is part of this service's public surface and
+     * its tests exercise the pairing through it.
      *
      * @param  Collection<int,GateMovement> $gateIns
      * @param  Collection<int,GateMovement> $gateOuts
@@ -746,48 +767,7 @@ class ContainerMrStatusService
      */
     public function pairGateOuts(Collection $gateIns, Collection $gateOuts): array
     {
-        $map     = [];
-        $usedIds = [];
-
-        $byJobId = $gateOuts
-            ->filter(fn ($go) => ! is_null($go->yard_job_id))
-            ->keyBy('yard_job_id');
-
-        $orphans = $gateOuts
-            ->filter(fn ($go) => is_null($go->yard_job_id))
-            ->sortBy('gate_out_time')
-            ->values();
-
-        $sorted = $gateIns->sortBy('gate_in_time')->values();
-
-        foreach ($sorted as $i => $gateIn) {
-            if (! is_null($gateIn->yard_job_id) && $byJobId->has($gateIn->yard_job_id)) {
-                $go = $byJobId->get($gateIn->yard_job_id);
-                $map[$gateIn->id] = $go;
-                $usedIds[$go->id] = true;
-
-                continue;
-            }
-
-            $from  = $gateIn->gate_in_time?->timestamp ?? 0;
-            $until = $sorted->get($i + 1)?->gate_in_time?->timestamp ?? PHP_INT_MAX;
-
-            foreach ($orphans as $go) {
-                if (isset($usedIds[$go->id])) {
-                    continue;
-                }
-
-                $ts = $go->gate_out_time?->timestamp ?? 0;
-
-                if ($ts >= $from && $ts < $until) {
-                    $map[$gateIn->id] = $go;
-                    $usedIds[$go->id] = true;
-                    break;
-                }
-            }
-        }
-
-        return $map;
+        return \App\Support\VisitPairing::pair($gateIns, $gateOuts);
     }
 
     /** The job type behind a gate-in, without lazy-loading during resolution. */

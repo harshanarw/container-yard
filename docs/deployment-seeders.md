@@ -159,3 +159,35 @@ Blade only — no migration, no seeder.
 ```bash
 php artisan view:clear
 ```
+
+### Container hire / rental — the gate (2d-ii)
+
+No new migration. The change is code plus one seeder, and the seeder is the part
+that must not be skipped: the rental gate flow selects job types by code, and
+two existing types change direction.
+
+```bash
+php artisan db:seed --class=YardJobTypeSeeder --force
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+chown -R nginx:nginx storage bootstrap/cache
+systemctl restart php-fpm
+```
+
+`YardJobTypeSeeder` upserts by `job_type_code`, so it is idempotent and removes
+nothing. It makes three changes:
+
+| Code | Change |
+| --- | --- |
+| `HIRE_RETURN_IN` | **new** gate-in type — the renting customer brings a let container back |
+| `LESSOR_ONHIRE` | `gate_in` → `commercial`; it leaves the gate-in dropdown |
+| `CONTAINER_RELET` | `gate_in` → `commercial`; likewise |
+
+`commercial` is a third value for `movement_direction`, meaning *never a gate
+purpose*. Both of those job types are agreements rather than movements — they
+are opened by their own screens, which also handle the storage split and the
+parent job — and offering them at a gate invited an operator to record an
+arrival that never happened. Existing `yard_jobs` rows pointing at either type
+are unaffected; only which dropdowns the type appears in changes.
+
+**Never run a bare `php artisan db:seed`** on this database: `HandlingTariffSeeder`
+has no guard and would duplicate every tariff.

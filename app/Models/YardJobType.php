@@ -67,6 +67,42 @@ class YardJobType extends Model
         return $query->where('movement_direction', 'gate_out');
     }
 
+    /**
+     * Job types that are never a gate purpose.
+     *
+     * A lease-in and a re-let are agreements, not movements: the yard's custody
+     * of the box changes, the box does not. Offering them in a gate dropdown
+     * invites an operator to record an arrival that never happened, which is the
+     * phantom movement migration 000316 was written to eliminate. They are
+     * opened by their own services, which also handle the storage split and the
+     * parent job — neither of which a gate form knows to do.
+     *
+     * `forGateIn()` and `forGateOut()` match on the exact value, so they exclude
+     * these already; this scope exists to name the set rather than leave it as
+     * "whatever is left over".
+     */
+    public function scopeCommercial(Builder $query): Builder
+    {
+        return $query->where('movement_direction', 'commercial');
+    }
+
+    /** True when this type may be chosen as a purpose at a gate. */
+    public function isGatePurpose(): bool
+    {
+        return in_array($this->movement_direction, ['gate_in', 'gate_out'], true);
+    }
+
+    /** Human label for a direction value. */
+    public static function directionLabel(string $direction): string
+    {
+        return match ($direction) {
+            'gate_in'    => 'Gate In',
+            'gate_out'   => 'Gate Out',
+            'commercial' => 'Commercial (no gate)',
+            default      => ucfirst(str_replace('_', ' ', $direction)),
+        };
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**

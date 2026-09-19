@@ -287,7 +287,44 @@ class ContainerController extends Controller
             'ventilation_type'        => $container->effective_ventilation_type,
             'vent_count'              => $container->effective_vent_count,
             'ventilation_type_source' => $container->ventilation_type ? 'container' : 'eqt',
+
+            // ── Hire return ─────────────────────────────────────────────────
+            // An arrival for a container that is out on a letting is the
+            // renting customer bringing it back. The gate-in form reads this to
+            // name the renter, show the job the box left on, and select the
+            // purpose — all from the container number, which is all the officer
+            // has when the truck pulls up.
+            //
+            // From the same service the gate-in save uses, so the form and the
+            // save cannot disagree about what this arrival is.
+            'hire_return'             => $this->hireReturn($container),
         ]);
+    }
+
+    /**
+     * The rental context of an arriving container, or null when there is none.
+     *
+     * @return array<string,mixed>|null
+     */
+    private function hireReturn(Container $container): ?array
+    {
+        $hire = app(\App\Services\HireGateService::class)->forContainer($container);
+
+        if (! $hire->isCommercialLetting()) {
+            return null;
+        }
+
+        return [
+            'renter'            => $hire->holderName(),
+            'on_hire_date'      => $hire->letting->on_hire_date->format('d M Y'),
+            'hire_url'          => route('yard.hires.show', $hire->letting),
+            'rent_job_no'       => $hire->lettingJob?->job_no,
+            'lease_job_no'      => $hire->lease?->yardJob?->job_no,
+            'lessor'            => $hire->lease?->lessor?->name,
+            'under_lease'       => $hire->isLeased(),
+            'suggested_purpose' => $hire->suggestedInPurpose(),
+            'job_chain'         => $hire->jobChain(),
+        ];
     }
 
     private function rules(?int $exceptId = null): array

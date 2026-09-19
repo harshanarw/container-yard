@@ -274,10 +274,18 @@ class MrStatusResolutionTest extends TestCase
                 'A scrapped box must never read as work in progress.',
             ],
 
-            'rung 3 - active hire' => [
+            'rung 0 - active hire' => [
                 Cat::ON_HIRE,
                 ['hire' => true],
                 'Out on hire is committed to a customer, not the yard to work on.',
+            ],
+
+            'rung 0 - a hire outranks a closed cycle' => [
+                Cat::ON_HIRE,
+                ['hire' => true, 'gateOut' => true],
+                'A rented box physically leaves, so its cycle closes - but the yard is still '
+                . 'answerable for it and the owner must still see why. Reading "Gated out" here '
+                . 'would drop the container off its line\'s statement mid-hire.',
             ],
 
             'rung 4 - work order rejected at QC' => [
