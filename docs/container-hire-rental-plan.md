@@ -372,9 +372,24 @@ Two things had to change underneath it:
   happened, while the stay looked as though the box never left. The rule now
   lives once, in `App\Support\VisitPairing` — Container Inquiry and
   `ContainerMrStatusService` had a copy each, with comments promising they
-  matched — and the job link is bounded by the visit at both ends. A departure
-  the job link cannot place now falls to the clock instead of being discarded,
-  which is what lets the rental departure close the stay it actually ended.
+  matched — and runs in three passes, in descending order of trust:
+
+  1. **the job link, inside the visit** — the strongest evidence there is, and
+     the only thing that separates two visits opened at the same instant and
+     closed out of order;
+  2. **the clock, inside the visit** — what the link could not place, including
+     departures carrying a job of their own. This is where the rental departure
+     closes the stay it actually ended; before, a departure with an unmatched
+     job was excluded from the fallback and simply discarded;
+  3. **the job link, however the dates fall** — a departure recorded *before*
+     its arrival is a data-entry error, not a visit, and Gate Data Check can
+     only report it as `out_before_in` if the two are paired at all. Running it
+     last means a well-formed visit is never given up to a broken one.
+
+  The SQL mirror in `ContainerInquiryService::whereDeparture()` reproduces the
+  first two passes and deliberately not the third, which turns on a departure
+  being left over once the real visits have taken theirs — something a
+  correlated subquery cannot know.
 
 And one in the status ladder: the commitment rung moved **above** the
 closed-cycle rung. A rented box physically leaves, so its cycle closes — but the

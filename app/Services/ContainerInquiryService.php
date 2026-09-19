@@ -44,13 +44,21 @@ class ContainerInquiryService
      * that upper bound a later visit's gate-out would answer for an earlier,
      * already-closed one.
      *
-     * The lower bound used to be an alternative to a shared-job match rather
-     * than a condition on it — "same job, *or* after this arrival". That let a
+     * The lower bound used to be an *alternative* to a shared-job match rather
+     * than a condition on it — "same job, or after this arrival". That let a
      * departure close an arrival that had not happened yet, which a rental
      * round trip produces routinely: the return carries the same job as the
-     * departure it is returning from. A departure can never close a later
-     * arrival whatever job they share, so the time bound now applies to every
-     * candidate, and the job clause it used to guard falls away with it.
+     * departure it is returning from, so a box sitting in the yard reported as
+     * having departed. The time bound now applies to every candidate.
+     *
+     * **This deliberately does not mirror the matcher's third pass**, which
+     * pairs a departure recorded *before* its arrival so that Gate Data Check
+     * can report the error. SQL cannot reproduce that pass, because it turns on
+     * a departure being left over once the real visits have taken theirs, and
+     * nothing here knows what another row already claimed. Including the job
+     * clause to approximate it would bring back the rental bug above — the
+     * common case — to catch a broken one. A backwards visit is still found by
+     * its arrival; only "departed between these dates" passes it over.
      *
      * This decides only *whether* a qualifying departure exists, which is all a
      * filter needs. Choosing *which* one closes a visit stays with
