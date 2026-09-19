@@ -128,6 +128,31 @@ class Customer extends Model
      */
     public function scopeApContacts($query)
     {
-        return $query->where('status', 'active')->orderBy('name');
+        return $query->selectable()->where('status', 'active')->orderBy('name');
+    }
+
+    /**
+     * Contacts an operator may choose from a dropdown.
+     *
+     * Everything except the managed placeholder that
+     * {@see \App\Services\InternalPartyService} creates to represent the yard
+     * itself. That record exists so a lease-in has a holder to name; it is not
+     * a party anyone gates a container in for or raises an invoice to, and
+     * offering it invites both.
+     *
+     * A contact the operator *mapped* as the yard is deliberately still listed.
+     * They chose a record they already trade with — most yards have one, used
+     * for internal storage or inter-company billing — and hiding it would take
+     * away a party they have been selecting all along.
+     *
+     * The null check is not decoration: `code != 'SELF'` is unknown, not true,
+     * for a row whose code is null, so without it every contact without a code
+     * would vanish from every dropdown in the system.
+     */
+    public function scopeSelectable($query)
+    {
+        return $query->where(fn ($q) => $q
+            ->whereNull('code')
+            ->orWhere('code', '!=', \App\Services\InternalPartyService::CODE));
     }
 }

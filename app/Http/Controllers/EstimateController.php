@@ -54,7 +54,7 @@ class EstimateController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         $pendingApprovalCount = Estimate::whereIn('status', ['sent', 'under_review'])->count();
 
@@ -63,7 +63,7 @@ class EstimateController extends Controller
 
     public function create(Request $request)
     {
-        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers      = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $containers     = Container::whereIn('status', ['in_yard', 'in_repair'])
             ->with('customer')
             ->orderBy('container_no')
@@ -284,7 +284,7 @@ class EstimateController extends Controller
             return back()->with('error', 'Approved or completed estimates cannot be edited.');
         }
 
-        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers      = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $containers     = Container::whereIn('status', ['in_yard', 'in_repair'])
             ->with('customer')->orderBy('container_no')->get();
         $equipmentTypes = EquipmentType::active()->get();

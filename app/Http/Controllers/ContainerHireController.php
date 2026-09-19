@@ -48,7 +48,7 @@ class ContainerHireController extends Controller
         }
 
         $hires     = $query->paginate(25)->withQueryString();
-        $customers = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name']);
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get(['id', 'name']);
 
         return view('yard.hires.index', compact('hires', 'customers'));
     }
@@ -77,7 +77,7 @@ class ContainerHireController extends Controller
             ->get(['id', 'container_no', 'customer_id', 'size', 'type_code',
                    'mr_status', 'mr_lane', 'export_ready', 'mr_status_expires_at']);
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name']);
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get(['id', 'name']);
 
         return view('yard.hires.create', compact('container', 'inYardContainers', 'customers'));
     }

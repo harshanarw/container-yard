@@ -16,6 +16,8 @@ class CompanySetting extends Model
     protected $fillable = [
         'company_name',
         'company_prefix',
+        // The contact that represents this yard. See InternalPartyService.
+        'internal_customer_id',
         'tagline',
         'address',
         'city',

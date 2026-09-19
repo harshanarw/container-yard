@@ -58,7 +58,7 @@ class ContainerController extends Controller
 
     public function create()
     {
-        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers      = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->orderBy('sort_order')->get();
         $grades         = ContainerGrade::active()->orderBy('sort_order')->get();
 
@@ -208,7 +208,7 @@ class ContainerController extends Controller
 
     public function edit(Container $container)
     {
-        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers      = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->orderBy('sort_order')->get();
         $grades         = ContainerGrade::active()->orderBy('sort_order')->get();
 

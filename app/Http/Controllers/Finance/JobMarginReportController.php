@@ -36,7 +36,7 @@ class JobMarginReportController extends Controller
             return $this->exportCsv($data['rows'], $request->input('format'));
         }
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name']);
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get(['id', 'name']);
         $jobTypes  = YardJobType::orderBy('sort_order')->get(['id', 'job_type_name', 'job_type_code']);
 
         return view('finance.reports.job-margin', [

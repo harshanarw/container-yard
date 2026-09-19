@@ -209,6 +209,28 @@ class CustomerController extends Controller
             return back()->with('error', 'Cannot delete customer with existing containers.');
         }
 
+        // The contact that represents the yard itself.
+        //
+        // It normally holds no containers, so the guard above lets it through —
+        // and `yard_jobs.held_by_customer_id` is `nullOnDelete`, while
+        // `YardJob::holder()` falls back to the counterparty. Deleting it
+        // therefore turned every lease-in from *held by the yard* into *held by
+        // the shipping line*, which is exactly backwards, across the whole
+        // history, with nothing said at the time.
+        if (\App\Services\InternalPartyService::isInternal($customer)) {
+            return back()->with('error',
+                'This contact represents the yard itself and cannot be deleted. '
+                . 'Map a different contact in Company Settings first — the on-hire '
+                . 'history will move with it.');
+        }
+
+        // Any other contact still holding containers on a job. Same failure
+        // mode, arrived at from the other direction.
+        if (\App\Models\YardJob::where('held_by_customer_id', $customer->id)->exists()) {
+            return back()->with('error',
+                'Cannot delete a contact that is recorded as holding containers on a job.');
+        }
+
         if ($customer->logo) {
             app(\App\Services\StorageService::class)->delete('public', $customer->logo);
         }

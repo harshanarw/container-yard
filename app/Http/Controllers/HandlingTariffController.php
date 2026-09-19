@@ -30,7 +30,7 @@ class HandlingTariffController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         return view('masters.handling-tariff.index', compact('tariffs', 'customers'));
     }
@@ -66,7 +66,7 @@ class HandlingTariffController extends Controller
 
         // All sizes available — same size allowed for both laden and empty
         $allSizes  = self::SIZES;
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $chargeCodes = ChargeCode::with('taxCode')->where('is_active', true)->orderBy('sort_order')->get();
 
         return view('masters.handling-tariff.show',

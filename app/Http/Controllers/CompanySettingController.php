@@ -35,8 +35,18 @@ class CompanySettingController extends Controller
         // the screen shows what is actually in force rather than blanks.
         $mrThresholds = app(\App\Services\ContainerMrStatusService::class)->ageThresholds();
 
+        // Contacts the yard may be mapped to, and what represents it today.
+        // `selectable()` is deliberately not used: the managed placeholder is
+        // hidden from ordinary pickers precisely so it cannot be chosen by
+        // accident, but this is the screen where choosing is the point, and an
+        // operator has to be able to see the record they are replacing.
+        $contacts    = \App\Models\Customer::where('status', 'active')
+            ->orderBy('name')->get(['id', 'code', 'name']);
+        $yardContact = \App\Services\InternalPartyService::existing();
+
         return view('settings.company.index', compact(
-            'settings', 'currencies', 'countries', 'storageUsage', 'mrThresholds'
+            'settings', 'currencies', 'countries', 'storageUsage', 'mrThresholds',
+            'contacts', 'yardContact'
         ));
     }
 
@@ -66,6 +76,9 @@ class CompanySettingController extends Controller
         $validated = $request->validate([
             'company_name'   => ['required', 'string', 'max:200'],
             'company_prefix' => ['nullable', 'string', 'max:10', 'alpha_num'],
+            // The contact that represents this yard. Blank falls back to the
+            // managed placeholder, which is today's behaviour.
+            'internal_customer_id' => ['nullable', 'integer', 'exists:customers,id'],
             'tagline'        => ['nullable', 'string', 'max:200'],
             'address'      => ['nullable', 'string'],
             'city'         => ['nullable', 'string', 'max:100'],
@@ -187,10 +200,49 @@ class CompanySettingController extends Controller
             $data['product_icon_path'] = $storage->store($request->file('product_icon'), 'company', 'company', $settings);
         }
 
+        // ── The yard's own contact ──────────────────────────────────────────
+        //
+        // Only when the picker was submitted *and* the value actually changed.
+        // Both halves matter. The three upload forms on this page post neither
+        // the picker nor the thresholds, so writing an absent key would unmap
+        // the contact every time somebody changed the logo; and re-saving the
+        // page with the picker untouched must not create the placeholder on a
+        // yard that has never taken a container on hire.
+        $changed = $request->has('internal_customer_id')
+            && (int) $settings->internal_customer_id !== (int) ($data['internal_customer_id'] ?? 0);
+
+        // Resolved *before* the setting changes: afterwards there is no way to
+        // ask which record used to be the yard. `existing()` never creates one,
+        // so a first-time mapping has nothing to move and says so.
+        $remapFrom = $changed ? \App\Services\InternalPartyService::existing() : null;
+
         $settings->update($data);
         CompanySetting::flushCache();
 
-        return back()->with('success', 'Company settings saved successfully.');
+        $moved = 0;
+
+        if ($changed) {
+            // Move the identity, and the history with it. An installation that
+            // has been running already has lease jobs held by whatever
+            // represented the yard before; without this the setting would
+            // change the answer for future leases and leave every past one
+            // pointing at a record that is no longer the yard.
+            //
+            // Re-resolved here so it reads the new setting — including the
+            // cleared case, where it falls back to the managed placeholder,
+            // which is what "no contact chosen" has always meant.
+            $moved = \App\Services\InternalPartyService::remap(
+                $remapFrom,
+                \App\Services\InternalPartyService::customer(),
+            );
+        }
+
+        $note = $moved > 0
+            ? ' The yard contact was changed, and ' . $moved . ' on-hire '
+                . \Illuminate\Support\Str::plural('job', $moved) . ' moved with it.'
+            : '';
+
+        return back()->with('success', 'Company settings saved successfully.' . $note);
     }
 
     public function deleteLogo()

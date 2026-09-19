@@ -336,6 +336,29 @@ makes requirements 5 and 6 answerable: naming the renting party at the gate
 cannot be derived from the job type without guessing the moment a new type
 appears. The yard gets its own `Customer` contact, tagged internal.
 
+*2b-i — which contact is the yard. Done.* Creating one was the right fallback
+and the wrong default: a yard that has been running for years usually already
+has a contact for itself, and a second record for the same company splits its
+history across two ledgers. `company_settings.internal_customer_id` (000318)
+points at the one they have. Unset, the behaviour is exactly as before.
+
+Changing the mapping **moves the on-hire history with it** — an existing
+installation's past leases are held by whatever represented the yard before,
+and a setting that only changed the answer for future leases would leave them
+pointing at a record that is no longer the yard. The repoint is narrowed to
+`LESSOR_ONHIRE` jobs, which is correctness rather than caution: a mapped
+contact can be an ordinary customer that genuinely rents containers, and a
+blanket rewrite of `held_by_customer_id` would move its real rentals too.
+
+Two guards came with it. The managed placeholder is hidden from customer
+dropdowns (`Customer::selectable()`); a contact an operator mapped is not,
+because they chose a party they already trade with. And the contact
+representing the yard can no longer be deleted — it holds no containers, so the
+existing guard let it through, and with `held_by_customer_id` set to
+`nullOnDelete` and `holder()` falling back to the counterparty, deleting it
+turned every lease-in from *held by the yard* into *held by the shipping line*,
+across the whole history, silently.
+
 *2c — lease-in of a box already on the ground.* No gate movements in either
 direction. Parented to the stay's job. Storage closed at on-hire and reopened at
 off-hire, preserving the free-day anchor, mirroring what `ContainerHireService`

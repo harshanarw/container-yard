@@ -436,7 +436,7 @@ class ArCreditNoteController extends Controller
 
     private function formOptions(): array
     {
-        $customers       = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name', 'currency']);
+        $customers       = Customer::selectable()->where('status', 'active')->orderBy('name')->get(['id', 'name', 'currency']);
         $revenueAccounts = Account::where('classification', 'income')->where('is_posting', true)
             ->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']);
         $chargeCodes     = ChargeCode::where('is_active', true)->orderBy('code')->get(['id', 'code', 'description']);

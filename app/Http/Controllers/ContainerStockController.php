@@ -52,7 +52,7 @@ class ContainerStockController extends Controller
         // customer queries and one they can reconcile.
         $unplaceable = $ran ? ContainerStockAsAt::unplaceableCount() : 0;
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $typeCodes = EquipmentType::orderBy('type_code')->pluck('type_code')->unique()->values();
 
         return view('reports.container-stock', compact(

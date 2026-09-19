@@ -31,7 +31,7 @@ class MrTariffController extends Controller
             ->orderByDesc('valid_from')
             ->get();
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         return view('masters.mr-tariff.index', compact('tariffs', 'customers'));
     }
@@ -77,7 +77,7 @@ class MrTariffController extends Controller
         $damageCodes    = MrCode::ofType('damage')->active()->orderBy('sort_order')->get();
         $repairCodes    = MrCode::ofType('repair')->active()->orderBy('sort_order')->get();
         $materialCodes  = MrCode::ofType('material')->active()->orderBy('sort_order')->get();
-        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers      = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $operationTypes = MrTariffItem::OPERATION_TYPES;
         $unitTypes      = MrTariffItem::UNIT_TYPES;
 

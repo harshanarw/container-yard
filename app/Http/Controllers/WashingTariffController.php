@@ -36,7 +36,7 @@ class WashingTariffController extends Controller
             ->orderBy('container_size')
             ->get();
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         return view('masters.washing-tariff.index', compact('tariffs', 'customers'));
     }
@@ -45,7 +45,7 @@ class WashingTariffController extends Controller
     {
         return view('masters.washing-tariff.edit', [
             'tariff'      => new WashingTariff(['wash_scope' => 'internal', 'wash_type' => 'standard', 'currency' => 'USD', 'is_active' => true]),
-            'customers'   => Customer::where('status', 'active')->orderBy('name')->get(),
+            'customers'   => Customer::selectable()->where('status', 'active')->orderBy('name')->get(),
             'chargeCodes' => $this->cleaningChargeCodes(),
             'taxCodes'    => TaxCode::where('is_active', true)->orderBy('sort_order')->get(),
         ]);
@@ -67,7 +67,7 @@ class WashingTariffController extends Controller
     {
         return view('masters.washing-tariff.edit', [
             'tariff'      => $washingTariff,
-            'customers'   => Customer::where('status', 'active')->orderBy('name')->get(),
+            'customers'   => Customer::selectable()->where('status', 'active')->orderBy('name')->get(),
             'chargeCodes' => $this->cleaningChargeCodes(),
             'taxCodes'    => TaxCode::where('is_active', true)->orderBy('sort_order')->get(),
         ]);

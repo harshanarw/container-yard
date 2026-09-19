@@ -44,7 +44,7 @@ class GeneralInvoiceController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         return view('billing.general.index', compact('invoices', 'customers'));
     }
@@ -335,7 +335,7 @@ class GeneralInvoiceController extends Controller
 
         return [
             'invoice'         => $invoice,
-            'customers'       => Customer::where('status', 'active')->orderBy('name')->get(),
+            'customers'       => Customer::selectable()->where('status', 'active')->orderBy('name')->get(),
             'jobs'            => \App\Models\YardJob::pickerData(),
             'chargeCodes'     => $chargeCodes,
             'taxCodes'        => TaxCode::where('is_active', true)->orderBy('sort_order')->get(),

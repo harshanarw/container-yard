@@ -45,7 +45,7 @@ class StorageBillingController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         $stats = [
             'total'    => StorageInvoice::count(),

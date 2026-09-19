@@ -36,7 +36,7 @@ class ContainerBookingController extends Controller
         }
 
         $bookings   = $query->paginate(20)->withQueryString();
-        $customers  = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name']);
+        $customers  = Customer::selectable()->where('status', 'active')->orderBy('name')->get(['id', 'name']);
 
         return view('container-bookings.index', compact('bookings', 'customers'));
     }
@@ -207,7 +207,7 @@ class ContainerBookingController extends Controller
 
     private function formOptions(): array
     {
-        $customers      = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name']);
+        $customers      = Customer::selectable()->where('status', 'active')->orderBy('name')->get(['id', 'name']);
         $grades         = ContainerGrade::where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']);
         $equipmentTypes = EquipmentType::query()->orderBy('size')->orderBy('type_code')
             ->get(['id', 'size', 'type_code'])

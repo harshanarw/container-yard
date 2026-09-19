@@ -52,7 +52,7 @@ class ReeferController extends Controller
             'billed'    => ReeferPlugSession::where('status', 'billed')->count(),
         ];
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         return view('yard.reefer.index', compact('sessions', 'stats', 'customers'));
     }

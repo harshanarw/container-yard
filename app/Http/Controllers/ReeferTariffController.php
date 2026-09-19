@@ -23,7 +23,7 @@ class ReeferTariffController extends Controller
         $tariffs   = ReeferElectricityTariff::with(['customer', 'chargeCode', 'createdBy', 'updatedBy'])
             ->orderByDesc('id')
             ->get();
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $chargeCodes = $this->reeferChargeCodes();
 
         return view('masters.reefer-tariff.index', compact('tariffs', 'customers', 'chargeCodes'));
@@ -73,7 +73,7 @@ class ReeferTariffController extends Controller
     public function show(ReeferElectricityTariff $reeferTariff)
     {
         $reeferTariff->load(['customer', 'chargeCode', 'createdBy', 'updatedBy']);
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $chargeCodes = $this->reeferChargeCodes();
 
         return view('masters.reefer-tariff.show', compact('reeferTariff', 'customers', 'chargeCodes'));

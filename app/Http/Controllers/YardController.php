@@ -153,7 +153,7 @@ class YardController extends Controller
         // since returned the master held a different visit's arrival entirely.
         $movementVisits = ContainerVisitDates::visitsForMovements($recentMovements);
 
-        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers      = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $transporters   = Customer::whereHas('types', fn($q) => $q->where('name', 'Transporter'))
                             ->where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->get();
@@ -1821,7 +1821,7 @@ class YardController extends Controller
     public function editMovement(GateMovement $movement)
     {
         $movement->load(['container', 'customer', 'transporter', 'createdBy', 'approvalRequest.actions.actionedBy', 'approvalRequest.initiatedBy', 'approvalRequest.cancelledBy']);
-        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers      = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $transporters   = Customer::whereHas('types', fn($q) => $q->where('name', 'Transporter'))
                             ->where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->get();
@@ -2285,7 +2285,7 @@ class YardController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers      = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $equipmentTypes = EquipmentType::active()->orderBy('sort_order')->get();
 
         return view('yard.storage', compact('storageRecords', 'customers', 'equipmentTypes'));

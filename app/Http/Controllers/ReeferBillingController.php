@@ -39,7 +39,7 @@ class ReeferBillingController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         $stats = [
             'total'    => ReeferElectricityInvoice::count(),
@@ -57,7 +57,7 @@ class ReeferBillingController extends Controller
     {
         $customers       = Customer::with('billingParty')
             ->where('status', 'active')->orderBy('name')->get();
-        $allCustomers    = Customer::where('status', 'active')->orderBy('name')->get();
+        $allCustomers    = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $defaultCurrency = CurrencyService::defaultCurrency();
         $exchangeRate    = CurrencyService::usdToDefault() ?? 1.0;
 

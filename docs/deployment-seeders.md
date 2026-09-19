@@ -191,3 +191,35 @@ are unaffected; only which dropdowns the type appears in changes.
 
 **Never run a bare `php artisan db:seed`** on this database: `HandlingTariffSeeder`
 has no guard and would duplicate every tariff.
+
+### The yard's own contact (migration 000318)
+
+A lease-in is the one job where the counterparty and the holder differ: the
+shipping line is still who the agreement is with, but for the length of the
+lease the yard holds the box. Until now the yard was represented by a contact
+the system created for itself, with the reserved code `SELF`.
+
+```bash
+php artisan migrate --force        # 000318 — company_settings.internal_customer_id
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+```
+
+**Nothing is required afterwards.** Left unset, the behaviour is exactly what it
+was: the placeholder is created the first time a container is taken on hire.
+
+**On an installation that already has one**, go to *Settings → Company →
+This Yard's Contact* and pick the contact you already use for the company.
+Saving moves the existing on-hire history to it and reports how many jobs
+moved; the previous record loses its *Internal* tag and becomes an ordinary
+contact again. Only `LESSOR_ONHIRE` jobs are repointed, so a contact that also
+rents containers keeps its own rentals.
+
+Two related guards ship with it:
+
+- the managed placeholder no longer appears in customer dropdowns (a contact
+  you map yourself still does — you chose a party you already trade with);
+- the contact representing the yard can no longer be deleted. It holds no
+  containers, so the old guard let it through, and `held_by_customer_id` is
+  `nullOnDelete` while `holder()` falls back to the counterparty — deleting it
+  turned every lease-in from *held by the yard* into *held by the shipping
+  line*, across the whole history, with nothing said at the time.

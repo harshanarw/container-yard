@@ -243,6 +243,41 @@
                            placeholder="e.g. Container Yard Management System">
                     @error('tagline')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
+                {{-- Which contact represents this yard.
+
+                     A lease-in is the one job where the counterparty and the
+                     holder differ: the shipping line is still who the agreement
+                     is with, but for the length of the lease the yard holds the
+                     box. Most yards already keep a contact for themselves, so
+                     this points at it rather than creating a second record for
+                     the same company. --}}
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">
+                        This Yard's Contact
+                        <i class="bi bi-info-circle text-muted ms-1"
+                           title="The contact record that represents this company. Used where the yard itself is a party to a job — for example while holding a container on hire from a shipping line."></i>
+                    </label>
+                    <select name="internal_customer_id"
+                            class="form-select select2 @error('internal_customer_id') is-invalid @enderror">
+                        <option value="">- Use a managed placeholder -</option>
+                        @foreach($contacts as $contact)
+                            <option value="{{ $contact->id }}"
+                                {{ (string) old('internal_customer_id', $settings->internal_customer_id) === (string) $contact->id ? 'selected' : '' }}>
+                                {{ $contact->name }}@if($contact->code) ({{ $contact->code }})@endif
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="form-text">
+                        @if($yardContact)
+                            Currently: <strong>{{ $yardContact->name }}</strong>.
+                            Changing this moves the on-hire history with it.
+                        @else
+                            None yet. Leave blank and one is created automatically the
+                            first time a container is taken on hire.
+                        @endif
+                    </div>
+                    @error('internal_customer_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
                 <div class="col-12">
                     <label class="form-label fw-semibold">Address</label>
                     <textarea name="address"

@@ -59,7 +59,7 @@ class StorageHandlingController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $shippingLines = Customer::where('status', 'active')->orderBy('name')->get();
+        $shippingLines = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         $stats = [
             'total'    => StorageHandlingInvoice::count(),
@@ -80,7 +80,7 @@ class StorageHandlingController extends Controller
             ->orderBy('name')
             ->get();
 
-        $allCustomers = Customer::where('status', 'active')->orderBy('name')->get();
+        $allCustomers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         $billType = in_array($request->query('bill_type'), [
             StorageHandlingInvoice::BILL_STORAGE_HANDLING,

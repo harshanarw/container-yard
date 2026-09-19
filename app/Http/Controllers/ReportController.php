@@ -130,7 +130,7 @@ class ReportController extends Controller
             ])
             ->except([MrStatusCatalogue::GROUP_CLOSED]);
 
-        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers      = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $mrStatusGroups = MrStatusCatalogue::groups();
 
         // In and out times come from the gate ledger, not the master's two
@@ -375,7 +375,7 @@ class ReportController extends Controller
             ->paginate(50)
             ->withQueryString();
 
-        $customers        = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers        = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $mrStatusesByLane = MrStatusCatalogue::codesByLane();
         $mrStatusGroups   = MrStatusCatalogue::groups();
 
@@ -474,7 +474,7 @@ class ReportController extends Controller
             'avg_stay'         => $storageRecords->avg('total_days'),
         ];
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         return view('reports.billing', compact('storageRecords', 'summary', 'customers'));
     }
@@ -655,7 +655,7 @@ class ReportController extends Controller
         // Group by customer (Container Operator / Liner)
         $grouped = $movements->groupBy(fn ($m) => $m->customer_id ?? 0);
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         // The other half of each movement. One query for the whole page, and
         // deliberately not restricted to the filtered rows — see MovementVisits.

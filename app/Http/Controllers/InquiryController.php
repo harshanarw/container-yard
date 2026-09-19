@@ -38,14 +38,14 @@ class InquiryController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         return view('inquiries.index', compact('inquiries', 'customers'));
     }
 
     public function create(Request $request)
     {
-        $customers      = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers      = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $inspectors     = User::where('role', 'inspector')->where('status', 'active')->get();
         $containers     = Container::whereIn('status', ['in_yard', 'in_repair'])
             ->with('customer')

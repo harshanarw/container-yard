@@ -45,7 +45,7 @@ class YardJobController extends Controller
 
         $jobs      = $query->latest()->paginate(25)->withQueryString();
         $jobTypes  = YardJobType::active()->forGateIn()->orderBy('sort_order')->get();
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
         $stats = [
             'total'       => YardJob::count(),

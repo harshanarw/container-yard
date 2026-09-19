@@ -63,7 +63,7 @@ class ContainerInquiryController extends Controller
             $gateOutMap = $this->service->matchGateOutsForPage($movements->getCollection());
         }
 
-        $customers = Customer::where('status', 'active')->orderBy('name')->get();
+        $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
         $jobTypes  = YardJobType::active()->orderBy('sort_order')->get();
 
         // Grouped by lane so the dropdown reads as the workflow it describes,

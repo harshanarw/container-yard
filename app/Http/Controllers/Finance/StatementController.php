@@ -115,7 +115,7 @@ class StatementController extends Controller
             'to'       => 'nullable|date|after_or_equal:from',
         ]);
 
-        $parties = Customer::where('status', 'active')->orderBy('name')->get(['id', 'code', 'name']);
+        $parties = Customer::selectable()->where('status', 'active')->orderBy('name')->get(['id', 'code', 'name']);
         $from = $request->input('from', now()->startOfMonth()->toDateString());
         $to   = $request->input('to', now()->toDateString());
 

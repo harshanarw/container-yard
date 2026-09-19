@@ -62,7 +62,7 @@ class ReceiptController extends Controller
     {
         $this->authorize('finance.receipts.create');
 
-        $customers    = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name', 'currency']);
+        $customers    = Customer::selectable()->where('status', 'active')->orderBy('name')->get(['id', 'name', 'currency']);
         $bankAccounts = BankAccount::where('is_active', true)->orderBy('bank_name')->get();
         $currencies   = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
         $baseCurrency = CompanySetting::baseCurrency();
@@ -110,7 +110,7 @@ class ReceiptController extends Controller
     {
         $this->authorize('finance.receipts.create');
 
-        $customers    = Customer::where('status', 'active')->orderBy('name')->get(['id', 'name', 'currency']);
+        $customers    = Customer::selectable()->where('status', 'active')->orderBy('name')->get(['id', 'name', 'currency']);
         $bankAccounts = BankAccount::where('is_active', true)->orderBy('bank_name')->get();
         $currencies   = Currency::where('is_active', true)->orderBy('sort_order')->orderBy('code')->get();
         $baseCurrency = CompanySetting::baseCurrency();
