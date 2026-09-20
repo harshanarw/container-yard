@@ -231,9 +231,13 @@
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold">Empty / Laden</label>
+                            {{-- old() on purpose: the reefer-machinery default below
+                                 is derived from this, so a validation bounce that
+                                 forgot the cargo status would also silently flip an
+                                 empty reefer back to Operating. --}}
                             <select name="cargo_status" id="cargoStatusIn" class="form-select">
-                                <option value="empty">Empty</option>
-                                <option value="laden">Laden</option>
+                                <option value="empty" @selected(old('cargo_status', 'empty') === 'empty')>Empty</option>
+                                <option value="laden" @selected(old('cargo_status') === 'laden')>Laden</option>
                             </select>
                         </div>
                         <div class="col-4">
@@ -670,13 +674,30 @@
                          reefer may genuinely be running on a feeder movement.
                          The default follows what arrived -- laden is operating,
                          empty is not -- and either can be changed. --}}
+                    @php
+                        // The default the comment above describes, actually applied.
+                        //
+                        // This markup hard-coded `operating`, whatever the cargo
+                        // status was, and only the browser corrected it. Any path
+                        // that did not fire that sync -- a script error earlier on
+                        // the page, a field filled programmatically -- submitted an
+                        // *empty* reefer as operating. The server then honours what
+                        // it is sent, so its own "empty defaults to NOR" rule never
+                        // ran, and the box demanded a PTI nobody was ever going to
+                        // perform on machinery nobody was going to switch on.
+                        //
+                        // Both ends now read the same rule: laden runs, empty does
+                        // not, and the operator can say otherwise either way.
+                        $cargoIn      = old('cargo_status', 'empty');
+                        $reeferModeIn = old('reefer_mode', $cargoIn === 'laden' ? 'operating' : 'non_operating');
+                    @endphp
                     <div id="reeferModeBlock" class="mt-3 d-none">
                         <label class="form-label fw-semibold">Reefer Machinery</label>
                         <div class="d-flex flex-column gap-1">
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="reefer_mode"
                                        id="reeferModeOperating" value="operating"
-                                       @checked(old('reefer_mode', 'operating') === 'operating')>
+                                       @checked($reeferModeIn === 'operating')>
                                 <label class="form-check-label" for="reeferModeOperating">
                                     <strong>Operating</strong>
                                     <span class="text-muted small d-block">
@@ -687,7 +708,7 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="reefer_mode"
                                        id="reeferModeNor" value="non_operating"
-                                       @checked(old('reefer_mode') === 'non_operating')>
+                                       @checked($reeferModeIn === 'non_operating')>
                                 <label class="form-check-label" for="reeferModeNor">
                                     <strong>Non-Operating (NOR)</strong>
                                     <span class="text-muted small d-block">

@@ -107,6 +107,13 @@ class AppServiceProvider extends ServiceProvider
             WorkOrder::class,
             \App\Models\ContainerHold::class,
             \App\Models\ContainerHire::class,
+            // Both directions of a hire change what a container is committed
+            // to, and both have a status to show for it. `ContainerHire` was
+            // here from the start; `LessorOnHire` was not, so taking a box on
+            // hire from its line moved nothing on the board — the container
+            // kept whatever the gate-in had written, and the "On hire" label
+            // the ladder can produce never actually appeared.
+            \App\Models\LessorOnHire::class,
             \App\Models\CargoTransfer::class,
             \App\Models\ReeferPtiInspection::class,
         ] as $model) {

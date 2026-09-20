@@ -253,3 +253,41 @@ Then *Finance → Payables → Container Hire Charges*: pick a period, review wh
 is owed on each open lease, and raise one **draft** supplier invoice per
 shipping line. Draft, never posted — agreeing a debt is a person's decision, and
 the existing approve-and-post flow applies unchanged from there.
+
+### Empty reefers reading "PTI due"
+
+Code only — no migration, no seeder.
+
+```bash
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+systemctl restart php-fpm
+```
+
+Two defects, which compounded:
+
+- The gate form hard-coded **Operating** as the checked reefer-machinery radio
+  whatever the cargo status was. The controller has always defaulted an *empty*
+  reefer to NOR, but only when the field is absent — and the form always sent
+  one, so the server's rule never ran. Only the browser corrected it, so any
+  path that did not fire that sync recorded an empty box as running, and it
+  then sat on the board demanding a PTI for machinery nobody was going to
+  switch on.
+- `LessorOnHire` was missing from the M&R projection observer, so taking a
+  container on hire from its line recomputed nothing. The container kept
+  whatever the gate-in had written — which is why the wrong status was still
+  showing on the Container Hires screen, and why the "On hire" label never
+  appeared.
+
+Both are fixed going forward. For containers already recorded:
+
+```bash
+php artisan reefer:empty-operating                  # report — check against the paperwork
+php artisan reefer:empty-operating --fix            # then rewrite and refresh the status
+php artisan containers:reconcile-mr-status          # report any other drift
+php artisan containers:reconcile-mr-status --fix
+```
+
+`reefer:empty-operating` **reports by default and does not repair.** An empty
+reefer genuinely can be running — a feeder movement, or pre-cooling before
+stuffing — and those look identical in the data to the ones the form got wrong.
+Only the yard knows which is which.
