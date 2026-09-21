@@ -329,3 +329,47 @@ shipping line's storage, so the yard has been billing that line for storing a
 container it is simultaneously paying them rent for. Removing the movement does
 not undo that — check what was invoiced for the affected period and raise a
 credit if it was.
+
+### Phase 4b — who is billed for the lift
+
+Code only — no migration, no seeder.
+
+```bash
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+systemctl restart php-fpm
+```
+
+Handling selected gate movements by `customer_id`. A rental release correctly
+records the *visit* customer there — the box is on the shipping line's stay, and
+`containers:fix-gate-custody` exists to force that back when it drifts — so the
+yard lifted a container onto a renting customer's truck and invoiced the
+shipping line for it.
+
+**The party holding the container now pays for the lift**, read from the job's
+`held_by_customer_id`: the renter on a re-let, null on everything else. Null
+falls through to `customer_id`, so every ordinary movement is billed exactly as
+it was.
+
+| Movement | Handling billed to |
+| --- | --- |
+| ordinary gate-in / gate-out | the visit customer — unchanged |
+| rental release (`ONHIRE_OUT`) | the renter |
+| rental return (`HIRE_RETURN_IN`) | the renter |
+
+The storage selection on the same screen also gained the explicit
+`nonHire()` filter the other three billing readers already had. It was correct
+before, but only because a lease's storage row happens to carry a null customer
+— an accident of one column, on the query that decides what a shipping line is
+invoiced.
+
+For leases recorded before the in-yard fix, storage was never suspended at all:
+
+```bash
+php artisan leases:phantom-movements --fix --fix-storage
+```
+
+`--fix-storage` closes the line's stay at `on_hire_date − 1` and opens the
+zero-rated lease row. **It refuses any lease whose period is already invoiced**
+and names it: rewriting a storage row behind an issued invoice would leave the
+document describing days the ledger says were never stored. Raise the credit
+first, then re-run.

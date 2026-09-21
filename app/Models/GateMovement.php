@@ -211,4 +211,42 @@ class GateMovement extends Model
             ? asset('storage/' . $this->plate_ocr_image_path)
             : null;
     }
+
+    /**
+     * Movements this party should be billed the lift for.
+     *
+     * **The party holding the container pays for the lift.** For nearly every
+     * movement that is the visit customer, and `customer_id` says so directly.
+     * A rental is the exception: the yard lifts the box onto a renter's truck,
+     * and the renter is not the party whose visit it is.
+     *
+     * The movement deliberately keeps the *visit* customer in `customer_id` —
+     * the box is on the shipping line's stay, that is a real fact, and
+     * `containers:fix-gate-custody` exists to force it back when it drifts. Who
+     * is holding the box is a different question, answered by the job:
+     * `held_by_customer_id` is the renter on a re-let, the yard on a lease-in,
+     * and null on everything else.
+     *
+     * So handling selected by `customer_id` alone billed the shipping line for
+     * lifting a container onto the truck of a customer renting it from the
+     * yard — a party the line has no relationship with.
+     *
+     * Null `held_by` falls through to `customer_id`, so every ordinary movement
+     * is selected exactly as it was before this existed.
+     */
+    public function scopeBillableTo($query, ?int $customerId)
+    {
+        if (! $customerId) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function ($q) use ($customerId) {
+            // The job names a holder, and it is this party.
+            $q->whereHas('yardJob', fn ($j) => $j->where('held_by_customer_id', $customerId))
+              // Or no holder is named, and the visit is this party's.
+              ->orWhere(fn ($w) => $w
+                  ->where('customer_id', $customerId)
+                  ->whereDoesntHave('yardJob', fn ($j) => $j->whereNotNull('held_by_customer_id')));
+        });
+    }
 }

@@ -7,6 +7,8 @@ use App\Models\GateMovement;
 use App\Models\LessorOnHire;
 use App\Models\ReeferPlugSession;
 use App\Models\YardStorage;
+use App\Services\Billing\DateWindow;
+use App\Services\Billing\PriorBilling;
 use App\Services\ContainerMrStatusService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -42,6 +44,7 @@ class PhantomLeaseMovementsCommand extends Command
 {
     protected $signature = 'leases:phantom-movements
                             {--fix : delete the fabricated arrivals and convert the leases to in-yard}
+                            {--fix-storage : also suspend the line\'s storage for the lease period}
                             {--id=* : limit to specific lessor on-hire ids}';
 
     protected $description = 'Lease-ins that fabricated a gate-in for a container already in the yard';
@@ -135,7 +138,94 @@ class PhantomLeaseMovementsCommand extends Command
             $this->warn("{$skipped} left alone — something else references their movement.");
         }
 
+        if ($this->option('fix-storage')) {
+            $this->suspendStorage($leases);
+        } else {
+            $this->newLine();
+            $this->line('Storage is still running on these leases. Add --fix-storage to suspend it.');
+        }
+
         return self::SUCCESS;
+    }
+
+    /**
+     * Suspend the line's storage for the lease period, retroactively.
+     *
+     * The second half of the problem, and the half removing a movement does not
+     * touch. An `arrival` lease never closed the shipping line's storage, so the
+     * yard has gone on billing them for holding a container it is simultaneously
+     * paying them rent for.
+     *
+     * **Refuses where the days are already invoiced.** Rewriting a storage row
+     * that sits behind an issued invoice is worse than the error it corrects:
+     * the invoice would then describe days the ledger says were never stored,
+     * and no report would agree with the document the customer holds. Those are
+     * named and left, so the credit note is raised deliberately.
+     */
+    private function suspendStorage($leases): void
+    {
+        $this->newLine();
+        $this->line('Suspending storage...');
+
+        $prior   = PriorBilling::for($leases->pluck('container_id')->filter()->unique()->all());
+        $done    = 0;
+        $blocked = 0;
+
+        foreach ($leases as $lease) {
+            $open = YardStorage::where('container_id', $lease->container_id)
+                ->whereNull('gate_out_date')
+                ->whereIn('hire_type', ['normal', 'resumed'])
+                ->latest('gate_in_date')
+                ->first();
+
+            if (! $open) {
+                continue;   // already suspended, or never had a billable stay
+            }
+
+            $closeOn = $lease->on_hire_date->copy()->subDay()->toDateString();
+            $from    = $lease->on_hire_date->toDateString();
+            $to      = ($lease->off_hire_date ?? now())->toDateString();
+
+            // Anything invoiced inside the lease period is money already
+            // claimed for days that should never have been billable.
+            if (DateWindow::days($prior->unbilledStorage($lease->container_id, $from, $to))
+                < DateWindow::days([[$from, $to]])) {
+                $this->warn("  lease {$lease->id} ({$lease->container?->container_no}): "
+                    . "part of {$from} to {$to} is already invoiced — left alone. "
+                    . 'Raise a credit for those days, then re-run.');
+                $blocked++;
+
+                continue;
+            }
+
+            DB::transaction(function () use ($lease, $open, $closeOn) {
+                $open->update(['gate_out_date' => $closeOn]);
+
+                YardStorage::create([
+                    'container_id'  => $lease->container_id,
+                    'customer_id'   => null,
+                    'yard_job_id'   => $lease->yard_job_id,
+                    'gate_in_date'  => $lease->on_hire_date->toDateString(),
+                    'gate_out_date' => $lease->off_hire_date?->toDateString(),
+                    'free_days'     => 0,
+                    'daily_rate'    => 0,
+                    'hire_type'     => 'lease_in',
+                ]);
+
+                $lease->update([
+                    'original_yard_storage_id' => $open->id,
+                    'original_gate_in_date'    => $open->billing_gate_in_date?->toDateString(),
+                ]);
+            });
+
+            $done++;
+        }
+
+        $this->info("Suspended storage on {$done} lease(s).");
+
+        if ($blocked) {
+            $this->warn("{$blocked} left alone — already invoiced for part of the lease period.");
+        }
     }
 
     /**

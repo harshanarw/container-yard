@@ -155,6 +155,13 @@ class StorageHandlingController extends Controller
         // ── Storage records active during period (only when storage is billed) ──
         $storageRecords = $wantsStorage
             ? YardStorage::with(['container.equipmentType'])
+                // Billable stays only. The zero-rated rows a hire leaves behind
+                // — `lease_in` while the yard holds the box on hire from the
+                // line, `on_hire` while a renter has it — are excluded by name
+                // rather than by their customer happening to be null, which is
+                // how StorageBillingController and the billing report already
+                // do it. One stated rule beats three implicit ones.
+                ->nonHire()
                 ->where('customer_id', $shippingLine->id)
                 ->where('gate_in_date', '<=', $periodTo)
                 ->where(fn ($q) => $q->whereNull('gate_out_date')
@@ -164,8 +171,16 @@ class StorageHandlingController extends Controller
             : collect();
 
         // ── Gate movements → Lift Off / Lift On (only when handling is billed) ──
+        //
+        // `billableTo`, not `customer_id`: the party *holding* the container
+        // pays for the lift. For nearly every movement that is the visit
+        // customer and the two are the same, but a rental release puts a box on
+        // a renter's truck while the movement still — correctly — records the
+        // shipping line's visit. Selecting on `customer_id` billed the line for
+        // lifting a container onto the truck of a party they have no
+        // relationship with.
         $liftOffByContainer = $wantsHandling
-            ? GateMovement::where('customer_id', $shippingLine->id)
+            ? GateMovement::billableTo($shippingLine->id)
                 ->where('movement_type', 'in')
                 ->whereBetween('gate_in_time', [$periodFrom, $periodToEod])
                 ->get()
@@ -173,7 +188,7 @@ class StorageHandlingController extends Controller
             : collect();
 
         $liftOnByContainer = $wantsHandling
-            ? GateMovement::where('customer_id', $shippingLine->id)
+            ? GateMovement::billableTo($shippingLine->id)
                 ->where('movement_type', 'out')
                 ->whereBetween('gate_out_time', [$periodFrom, $periodToEod])
                 ->get()
@@ -185,7 +200,10 @@ class StorageHandlingController extends Controller
         // Both come off the same movement deliberately: they describe one
         // visit, and reading them from different places is how a container ends
         // up priced as a laden box on one axis and an empty one on the other.
-        $gateInByContainer = GateMovement::where('customer_id', $shippingLine->id)
+        // Scoped the same way as the lifts above, so the box is priced as the
+        // arrival *this party* is being billed against describes it. For a
+        // renter that is the hire return; for the line, their own stay.
+        $gateInByContainer = GateMovement::billableTo($shippingLine->id)
             ->where('movement_type', 'in')
             ->orderByDesc('gate_in_time')
             ->get()
