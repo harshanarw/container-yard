@@ -450,7 +450,15 @@
             <tr>
                 <td colspan="2">
                     <div class="cell-lbl">Customer / Consignee</div>
-                    <div class="cell-val">{{ $movement->customer?->name ?: '-' }}</div>
+                    {{-- The party at the gate. On a hire return that is the
+                         renter bringing the box back, not the line whose stay
+                         it belongs to. --}}
+                    <div class="cell-val">{{ $movement->holdingParty()?->name ?: '-' }}</div>
+                    @if($movement->heldByAnotherParty())
+                        <div class="cell-val" style="font-size:7.5pt;color:#555;">
+                            On hire from {{ $movement->customer?->name }}
+                        </div>
+                    @endif
                 </td>
                 <td colspan="2">
                     <div class="cell-lbl">Transporter</div>
@@ -625,7 +633,15 @@
             <tr>
                 <td style="width:24%">
                     <div class="cell-lbl">Customer / Consignee</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?: '-' }}</div>
+                    {{-- The party at the gate. On a hire return that is the
+                         renter bringing the box back, not the line whose stay
+                         it belongs to. --}}
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->holdingParty()?->name ?: '-' }}</div>
+                    @if($movement->heldByAnotherParty())
+                        <div class="cell-val" style="font-size:7.5pt;color:#555;">
+                            On hire from {{ $movement->customer?->name }}
+                        </div>
+                    @endif
                 </td>
                 <td style="width:28%">
                     <div class="cell-lbl">Ex. Vessel / Voyage</div>

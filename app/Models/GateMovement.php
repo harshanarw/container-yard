@@ -213,6 +213,34 @@ class GateMovement extends Model
     }
 
     /**
+     * The party taking or returning the container at this gate.
+     *
+     * The counterpart of {@see scopeBillableTo()} for a single movement, and
+     * the same rule: the job's holder, falling back to the visit customer. On
+     * an ordinary movement `held_by` is null and this simply *is* the visit
+     * customer; on a rental release or return it is the renter.
+     *
+     * `customer_id` stays the visit customer — the box is on the shipping
+     * line's stay, which is a fact worth keeping and which
+     * `containers:fix-gate-custody` exists to protect. Who is standing at the
+     * gate is a different question, and this answers it.
+     */
+    public function holdingParty(): ?Customer
+    {
+        return $this->yardJob?->holder() ?? $this->customer;
+    }
+
+    /** True when the party at the gate is not the party whose visit this is. */
+    public function heldByAnotherParty(): bool
+    {
+        $holder = $this->holdingParty();
+
+        return $holder !== null
+            && $this->customer_id !== null
+            && (int) $holder->id !== (int) $this->customer_id;
+    }
+
+    /**
      * Movements this party should be billed the lift for.
      *
      * **The party holding the container pays for the lift.** For nearly every

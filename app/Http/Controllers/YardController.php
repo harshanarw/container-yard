@@ -2067,7 +2067,15 @@ class YardController extends Controller
             ? $request->query('format')
             : $defaultFormat;
 
-        $movement->load(['container', 'customer', 'transporter', 'createdBy', 'approvalRequest.actions.actionedBy']);
+        // `yardJob.heldBy` so the pass can name the party actually at the gate.
+        // On a rental release that is the renter, not the shipping line whose
+        // visit the box is on — and the driver holding this document works for
+        // them, not the line.
+        $movement->load([
+            'container', 'customer', 'transporter', 'createdBy',
+            'yardJob.heldBy', 'yardJob.customer',
+            'approvalRequest.actions.actionedBy',
+        ]);
 
         if ($movement->movement_type === 'in') {
             return view('yard.gate-pass-inward', compact('movement', 'format'));
@@ -2239,7 +2247,15 @@ class YardController extends Controller
             ? ($companySetting->default_gate_in_format  ?: 'full')
             : ($companySetting->default_gate_out_format ?: 'full');
 
-        $movement->load(['container', 'customer', 'transporter', 'createdBy', 'approvalRequest.actions.actionedBy']);
+        // `yardJob.heldBy` so the pass can name the party actually at the gate.
+        // On a rental release that is the renter, not the shipping line whose
+        // visit the box is on — and the driver holding this document works for
+        // them, not the line.
+        $movement->load([
+            'container', 'customer', 'transporter', 'createdBy',
+            'yardJob.heldBy', 'yardJob.customer',
+            'approvalRequest.actions.actionedBy',
+        ]);
 
         if ($movement->movement_type === 'in') {
             return view('yard.gate-pass-inward', [

@@ -464,7 +464,16 @@
             <tr>
                 <td colspan="3">
                     <div class="cell-lbl">Customer</div>
-                    <div class="cell-val">{{ $movement->customer?->name ?: '-' }}</div>
+                    {{-- The party at the gate, not the party whose visit it is.
+                         They are the same on every ordinary movement; on a rental
+                         release the renter is taking delivery and the driver
+                         holding this pass works for them. --}}
+                    <div class="cell-val">{{ $movement->holdingParty()?->name ?: '-' }}</div>
+                    @if($movement->heldByAnotherParty())
+                        <div class="cell-val" style="font-size:7.5pt;color:#555;">
+                            On hire from {{ $movement->customer?->name }}
+                        </div>
+                    @endif
                 </td>
                 <td colspan="3">
                     <div class="cell-lbl">Shipper</div>
@@ -671,7 +680,16 @@
             <tr>
                 <td colspan="3">
                     <div class="cell-lbl">Customer</div>
-                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->customer?->name ?: '-' }}</div>
+                    {{-- The party at the gate, not the party whose visit it is.
+                         They are the same on every ordinary movement; on a rental
+                         release the renter is taking delivery and the driver
+                         holding this pass works for them. --}}
+                    <div class="cell-val" style="font-size:8.5pt;">{{ $movement->holdingParty()?->name ?: '-' }}</div>
+                    @if($movement->heldByAnotherParty())
+                        <div class="cell-val" style="font-size:7.5pt;color:#555;">
+                            On hire from {{ $movement->customer?->name }}
+                        </div>
+                    @endif
                 </td>
                 <td colspan="3">
                     <div class="cell-lbl">Shipper</div>
@@ -847,7 +865,16 @@
             <tr>
                 <td style="width:30%">
                     <div class="cell-lbl">Customer</div>
-                    <div class="cell-val" style="font-size:9pt;">{{ $movement->customer?->name ?: '-' }}</div>
+                    {{-- The party at the gate, not the party whose visit it is.
+                         They are the same on every ordinary movement; on a rental
+                         release the renter is taking delivery and the driver
+                         holding this pass works for them. --}}
+                    <div class="cell-val" style="font-size:9pt;">{{ $movement->holdingParty()?->name ?: '-' }}</div>
+                    @if($movement->heldByAnotherParty())
+                        <div class="cell-val" style="font-size:7.5pt;color:#555;">
+                            On hire from {{ $movement->customer?->name }}
+                        </div>
+                    @endif
                 </td>
                 <td style="width:23%">
                     <div class="cell-lbl">Truck / Vehicle No.</div>

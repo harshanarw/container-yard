@@ -373,3 +373,32 @@ zero-rated lease row. **It refuses any lease whose period is already invoiced**
 and names it: rewriting a storage row behind an issued invoice would leave the
 document describing days the ledger says were never stored. Raise the credit
 first, then re-run.
+
+### The gate pass names the party at the barrier
+
+Blade and model only — no migration, no seeder.
+
+```bash
+php artisan view:clear
+systemctl restart php-fpm
+```
+
+The pass printed `$movement->customer` as the Customer, which is the *visit*
+customer — on a rental release, the shipping line whose stay the box is on. The
+renter, whose driver is holding the document, appeared nowhere on it.
+
+Two fields answering two different questions, and both are kept:
+
+| Field | Question | On a rental release |
+| --- | --- | --- |
+| Owner / Shipping Line | whose container is it | the line — unchanged |
+| Customer | who is taking delivery | **the renter** |
+
+When they differ the pass adds a line reading *"On hire from &lt;line&gt;"*, so
+the guard can see why rather than query it.
+
+Applied to all three outward formats and both inward formats, and to the driver
+view as well as the printable one. The rule is `GateMovement::holdingParty()` —
+the job's holder falling back to the visit customer, the same rule the handling
+charge uses — so on every ordinary movement the two are the same party and the
+pass reads exactly as it always did.
