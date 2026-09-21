@@ -41,6 +41,22 @@ use Illuminate\Support\Facades\DB;
 class LessorOnHireService
 {
     /**
+     * **Legacy: a box arriving on hire. Do not wire a screen to this.**
+     *
+     * It fabricates a gate-in, because it models a container that is not here
+     * yet turning up already on hire. Against a container already on the ground
+     * — which is every container the Lessor On-Hire screen offers — that puts a
+     * second arrival in the ledger for a movement that never happened, and
+     * every report reads that ledger: Container Inquiry shows two movements,
+     * and the stock reports read it as the start of a new stay.
+     *
+     * {@see onHireInYard()} is the method for that, and the controller calls
+     * it. This one is kept solely so leases already recorded in the `arrival`
+     * shape can still be unwound by {@see offHire()}, which closes the pairing
+     * with the matching gate-out. Nothing creates new ones.
+     *
+     * @deprecated Use onHireInYard(). Retained for pre-existing `arrival` rows.
+     *
      * @param array $data container_id, lessor_id, on_hire_date, hire_reference?,
      *                     per_diem_rate?, notes?
      */

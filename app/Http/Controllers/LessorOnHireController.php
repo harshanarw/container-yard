@@ -51,7 +51,22 @@ class LessorOnHireController extends Controller
         ]);
 
         try {
-            $hire = $this->service->onHire($validated, auth()->id() ?? 1);
+            // The in-yard shape, always. This screen only offers containers
+            // that are already on the ground — see create() — so taking one on
+            // hire moves nothing: the box stays where it is and only who
+            // commercially holds it changes.
+            //
+            // It used to call onHire(), which *fabricates a gate-in* because it
+            // models a box arriving on hire. Against a container already here
+            // that put a second arrival in the ledger for a movement that never
+            // happened, which Container Inquiry then showed as two movements
+            // and the stock reports read as a new stay. The in-yard method was
+            // written for this in 2c and the screen was never pointed at it.
+            $hire = $this->service->onHireInYard(
+                Container::findOrFail($validated['container_id']),
+                $validated,
+                auth()->id() ?? 1,
+            );
         } catch (\RuntimeException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
@@ -81,12 +96,26 @@ class LessorOnHireController extends Controller
         ]);
 
         try {
-            $this->service->offHire($lessorHire, $validated, auth()->id() ?? 1);
+            // Unwound the way it was wound. A lease recorded in the old
+            // `arrival` shape owns a fabricated gate-in, and only offHire()
+            // closes that pairing with its matching gate-out; an `in_yard`
+            // lease has no movements at all and must not acquire a departure
+            // for a box that never left.
+            //
+            // This is what `on_hire_mode` was added for (migration 000316):
+            // which shape a lease is, recorded rather than inferred from a null
+            // `gate_movement_id`.
+            $lessorHire->isInYardLease()
+                ? $this->service->offHireInYard($lessorHire, $validated, auth()->id() ?? 1)
+                : $this->service->offHire($lessorHire, $validated, auth()->id() ?? 1);
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
 
         return redirect()->route('yard.lessor-hires.show', $lessorHire)
-            ->with('success', 'Off-hired - the container was returned to the lessor and the job closed.');
+            ->with('success', $lessorHire->fresh()->isInYardLease()
+                ? 'Off-hired - the container was returned to the shipping line and the lease closed. '
+                    . 'It stays in the yard, and its storage resumes from today.'
+                : 'Off-hired - the container was returned to the lessor and the job closed.');
     }
 }

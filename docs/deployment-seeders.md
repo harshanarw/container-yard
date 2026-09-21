@@ -291,3 +291,41 @@ php artisan containers:reconcile-mr-status --fix
 reefer genuinely can be running — a feeder movement, or pre-cooling before
 stuffing — and those look identical in the data to the ones the form got wrong.
 Only the yard knows which is which.
+
+### Lessor On-Hire recorded a gate-in that never happened
+
+Code only — no migration, no seeder.
+
+```bash
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+systemctl restart php-fpm
+```
+
+`LessorOnHireService::onHire()` models a box turning up *already* on hire, so it
+fabricates a gate-in to anchor the job. `onHireInYard()` was written for the
+real case — a container already on the ground — and creates no movements, but
+**the controller was never pointed at it**. So every lease raised through the
+screen recorded a second arrival for a movement that never happened: Container
+Inquiry showed two movements for one stay, and the stock reports read the
+phantom as the start of a new one.
+
+The screen now calls `onHireInYard()`, and off-hire dispatches on
+`on_hire_mode` so a lease recorded in the old shape is still unwound the old way
+— its fabricated arrival needs its matching departure, or the visit never
+closes.
+
+For leases already recorded:
+
+```bash
+php artisan leases:phantom-movements          # report
+php artisan leases:phantom-movements --fix    # delete the arrivals, convert to in-yard
+```
+
+It skips any movement something else references (a storage row, a reefer
+session) and names what blocked it.
+
+**The arrival is only half of it.** An `arrival` lease never suspended the
+shipping line's storage, so the yard has been billing that line for storing a
+container it is simultaneously paying them rent for. Removing the movement does
+not undo that — check what was invoiced for the affected period and raise a
+credit if it was.
