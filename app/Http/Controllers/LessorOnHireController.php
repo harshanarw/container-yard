@@ -81,9 +81,26 @@ class LessorOnHireController extends Controller
         $this->authorize('yard.lessor-hire.view');
 
         $lessorHire->load(['lessor', 'container', 'yardJob.jobType', 'gateMovement', 'createdBy']);
-        $pnl = app(\App\Services\JobPnlService::class)->compute($lessorHire->yardJob);
 
-        return view('yard.lessor-hires.show', ['hire' => $lessorHire, 'pnl' => $pnl]);
+        $service = app(\App\Services\JobPnlService::class);
+        $pnl     = $service->compute($lessorHire->yardJob);
+
+        // The lettings made during this lease, netted against its cost.
+        //
+        // This is the one screen the whole sub-job structure exists for: the
+        // lease is what the yard pays the line, each re-let beneath it is what
+        // a renter pays the yard, and the margin is one minus the other. On its
+        // own figures alone a lease can only ever read as a loss, because the
+        // income it was incurred to earn sits on its children.
+        $rollUp = $lessorHire->yardJob && $lessorHire->yardJob->subJobs()->exists()
+            ? $service->computeWithSubJobs($lessorHire->yardJob)
+            : null;
+
+        return view('yard.lessor-hires.show', [
+            'hire'   => $lessorHire,
+            'pnl'    => $pnl,
+            'rollUp' => $rollUp,
+        ]);
     }
 
     public function offHire(Request $request, LessorOnHire $lessorHire)

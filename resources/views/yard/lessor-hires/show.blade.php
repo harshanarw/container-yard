@@ -80,6 +80,42 @@
                 @if($pnl['pending_cost'] > 0 || $pnl['pending_revenue'] > 0)
                     <div class="text-muted mt-1" style="font-size:.72rem;"><i class="bi bi-hourglass-split me-1"></i>Pending (draft): +{{ number_format($pnl['pending_revenue'], 2) }} rev · −{{ number_format($pnl['pending_cost'], 2) }} cost</div>
                 @endif
+
+                {{-- The lettings made during this lease, netted against its cost.
+
+                     The figures above are the lease's own: what the yard pays
+                     the line, and nothing else. The income it was incurred to
+                     earn sits on the re-lets beneath it, so on its own a lease
+                     can only ever read as a loss. This is the number the whole
+                     sub-job structure exists to produce. --}}
+                @if($rollUp ?? null)
+                @php $c = $rollUp['combined']; @endphp
+                <div class="mt-2 p-2 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold" style="font-size:.72rem;">
+                            <i class="bi bi-diagram-3 me-1 text-primary"></i>With lettings
+                        </span>
+                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.66rem;">
+                            {{ $c['sub_job_count'] }} letting{{ $c['sub_job_count'] === 1 ? '' : 's' }}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted">Rental revenue</span>
+                        <span class="font-monospace text-success">{{ number_format($c['realized_revenue'], 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted">Lease cost</span>
+                        <span class="font-monospace text-danger">({{ number_format($c['realized_cost'], 2) }})</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-top fw-semibold">
+                        <span>Margin on this lease</span>
+                        <span class="font-monospace {{ $c['realized_margin'] < 0 ? 'text-danger' : 'text-success' }}">
+                            {{ number_format($c['realized_margin'], 2) }}
+                        </span>
+                    </div>
+                </div>
+                @endif
+
                 <hr class="my-2">
                 <div class="text-muted" style="font-size:.72rem;">
                     Add the lessor's fee as a supplier invoice / voucher tagged to job

@@ -70,7 +70,24 @@ class YardJobController extends Controller
 
         $pnlData = $pnl->compute($yardJob);
 
-        return view('yard.jobs.show', compact('yardJob', 'pnlData'));
+        // And the sub-jobs beneath it, where there are any.
+        //
+        // A job can now hold others — a lease-in under a stay, a re-let under
+        // that lease — and the whole reason they are separate jobs is that the
+        // directions differ: the lease is what the yard pays the line, each
+        // re-let is what a renter pays the yard. A lease showing only its own
+        // figures displays the cost with none of the revenue it was incurred to
+        // earn, which reads as a pure loss.
+        //
+        // Passed *beside* `$pnlData` rather than replacing it: the view reads
+        // that array key by key in the shape `compute()` returns, and the
+        // roll-up is a different shape. Null for a job with no children, so an
+        // ordinary job renders exactly as before.
+        $rollUp = $yardJob->subJobs()->exists()
+            ? $pnl->computeWithSubJobs($yardJob)
+            : null;
+
+        return view('yard.jobs.show', compact('yardJob', 'pnlData', 'rollUp'));
     }
 
     public function update(Request $request, YardJob $yardJob): RedirectResponse

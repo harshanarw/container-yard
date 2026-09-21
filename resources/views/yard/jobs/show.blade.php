@@ -233,6 +233,46 @@
             </div>
             <div class="card-body py-2 px-3">
 
+                {{-- The sub-jobs beneath this one, where there are any.
+
+                     A lease-in is a cost and each re-let under it is revenue,
+                     which is the whole reason they are separate jobs. Showing
+                     the lease's own figures alone displays the cost with none
+                     of the income it was incurred to earn — a pure loss on
+                     screen, and the opposite of what the structure is for. --}}
+                @if($rollUp ?? null)
+                @php $c = $rollUp['combined']; @endphp
+                <div class="mb-3 p-2 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold" style="font-size:.72rem;">
+                            <i class="bi bi-diagram-3 me-1 text-primary"></i>With sub-jobs
+                        </span>
+                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.66rem;">
+                            {{ $c['sub_job_count'] }} sub-job{{ $c['sub_job_count'] === 1 ? '' : 's' }}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="small text-muted">Combined revenue</span>
+                        <span class="small font-monospace text-success">{{ number_format($c['realized_revenue'], 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="small text-muted">Combined cost</span>
+                        <span class="small font-monospace text-danger">({{ number_format($c['realized_cost'], 2) }})</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-top">
+                        @php $cm = $c['realized_margin']; @endphp
+                        <span class="small fw-semibold">Combined margin</span>
+                        <span class="small font-monospace fw-semibold {{ $cm < 0 ? 'text-danger' : 'text-success' }}">
+                            {{ number_format($cm, 2) }}
+                        </span>
+                    </div>
+                    <div class="text-muted mt-1" style="font-size:.66rem;">
+                        This job netted against everything beneath it — for a lease, the fee paid to
+                        the line against what each letting earned.
+                    </div>
+                </div>
+                @endif
+
                 @if(!$pnlData['has_data'])
                 <div class="text-center text-muted py-3 small">
                     <i class="bi bi-inbox me-1"></i>No revenue data yet for this job.

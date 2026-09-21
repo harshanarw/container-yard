@@ -125,12 +125,17 @@ class ContainerHireController extends Controller
             'updatedBy',
         ]);
 
-        // Container hires have no owning job column; resolve the on-hire gate-in
-        // visit's job for display (best-effort — labelled as the on-hire job).
-        $hireJobId = \App\Services\JobResolver::forContainerVisit(
-            $hire->container_id, $hire->original_gate_in_date
-        );
-        $hireJob = $hireJobId ? \App\Models\YardJob::with('jobType')->find($hireJobId) : null;
+        // The hire's own job, since migration 000317 gave it one.
+        //
+        // This used to resolve the *stay's* job by container and date and label
+        // it "the on-hire job" — a best-effort guess, and the comment said so,
+        // because there was nothing better to read. There is now: a re-let
+        // carries `yard_job_id`, and that job is the one holding this hire's
+        // revenue. The guess would name the shipping line's job instead, which
+        // is the party the box is being let out *from*, not to.
+        $hireJob = $hire->yard_job_id
+            ? \App\Models\YardJob::with(['jobType', 'customer', 'parentJob.jobType'])->find($hire->yard_job_id)
+            : null;
 
         return view('yard.hires.show', compact('hire', 'hireJob'));
     }
