@@ -92,6 +92,27 @@ class HireBillingPartyTest extends FeatureTestCase
             'The renter took the box away; the lift is part of what they hired.');
     }
 
+    /**
+     * The renter holds no billable stay — storage stays suspended for the whole
+     * lease, because the yard is paying the line rent for the box. So their
+     * line is a lift and nothing else.
+     *
+     * This is what the combined bill type could not express: its spine was
+     * storage records alone, so a party with a lift and no stay produced no
+     * line at all and the charge reached nobody.
+     */
+    public function test_the_renter_is_billed_the_lift_and_no_storage(): void
+    {
+        $this->lease();
+        $this->reLet();
+        $this->release();
+
+        $lines = collect($this->preview($this->renter, '2026-03-01', '2026-03-31')->json('lines'));
+
+        $this->assertCount(1, $lines);
+        $this->assertSame(0, (int) $lines->first()['storage_chargeable_days']);
+    }
+
     /** An ordinary release is untouched — no holder, so nothing changes. */
     public function test_an_ordinary_lift_is_still_billed_to_the_visit_customer(): void
     {

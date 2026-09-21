@@ -289,7 +289,38 @@ class StorageHandlingController extends Controller
                               ->filter(fn ($u) => $u['container']);
         } else {
             $spine = $storageRecords->map(fn ($s) => ['container' => $s->container, 'storage' => $s])
-                                    ->filter(fn ($u) => $u['container']);
+                                    ->filter(fn ($u) => $u['container'])
+                                    ->values();
+
+            // A lift with no storage record behind it still has to reach a
+            // line. On the combined bill type the spine was storage records
+            // alone, so a container that was lifted in the period but holds no
+            // billable stay for this party produced nothing at all — the charge
+            // left the shipping line and arrived nowhere.
+            //
+            // A renter is exactly that party: they take the box away and bring
+            // it back, and storage stays suspended throughout, because the yard
+            // is paying the line rent for it. The handling-only branch above
+            // already worked this way; it just was not generalised.
+            if ($wantsHandling) {
+                $seen = $spine->map(fn ($u) => (int) $u['container']->id)->unique();
+
+                $extraIds = $liftOffByContainer->keys()
+                    ->merge($liftOnByContainer->keys())
+                    ->unique()
+                    ->reject(fn ($id) => $seen->contains((int) $id))
+                    ->values();
+
+                if ($extraIds->isNotEmpty()) {
+                    // Appended rather than merged into a keyed map: a container
+                    // can legitimately hold two storage rows in one period — a
+                    // stay closed mid-period and a resumed one after it — and
+                    // keying by container id would silently drop a line.
+                    foreach (Container::with('equipmentType')->whereIn('id', $extraIds)->get() as $c) {
+                        $spine->push(['container' => $c, 'storage' => null]);
+                    }
+                }
+            }
         }
 
         // ── What has already been invoiced ────────────────────────────────────
