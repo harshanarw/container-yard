@@ -399,7 +399,7 @@
                             <td>
                                 {{ $mv->gate_in_time?->format('d M Y H:i') ?? $mv->gate_out_time?->format('d M Y H:i') ?? '-' }}
                             </td>
-                            <td>{{ $mv->customer?->name ?? '-' }}</td>
+                            <td><x-movement-party :movement="$mv" /></td>
                             <td class="text-muted">
                                 @if($mv->location_zone)
                                     {{ $mv->location_zone }}-{{ $mv->location_row }}{{ $mv->location_bay }}-T{{ $mv->location_tier }}

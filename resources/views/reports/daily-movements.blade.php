@@ -222,15 +222,30 @@
         </div>
     </div>
 
-    {{-- ── Movements grouped by Operator ── --}}
+    {{-- ── Movements grouped by the party at the gate ──
+
+         Not the visit customer. This report answers "who moved what today", and
+         on a rental release the renter moved it. Grouping by the visit customer
+         filed the lift under the shipping line, who was not there and is not
+         invoiced for it. --}}
     @foreach($grouped as $customerId => $group)
-    @php $operator = $group->first()->customer; @endphp
+    @php
+        $first    = $group->first();
+        $operator = $first->holdingParty();
+        $onHire   = $first->heldByAnotherParty();
+    @endphp
     <div class="card content-card mb-3">
         <div class="operator-header d-flex align-items-center justify-content-between">
             <div>
                 <strong><i class="bi bi-building me-2"></i>{{ $operator->name ?? '(Unknown Operator)' }}</strong>
                 @if($operator?->code)
                 <span class="badge bg-primary-subtle text-primary ms-2">{{ $operator->code }}</span>
+                @endif
+                @if($onHire)
+                {{-- Says why a party is here who does not own the boxes. --}}
+                <span class="badge bg-primary-subtle text-primary ms-1" style="font-size:.66rem;">
+                    On hire from {{ $first->customer?->name }}
+                </span>
                 @endif
             </div>
             <div class="d-flex gap-2 align-items-center">

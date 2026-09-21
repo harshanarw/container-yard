@@ -241,6 +241,70 @@ class GateMovement extends Model
     }
 
     /**
+     * The party, in words, for a screen or a file.
+     *
+     * One string, so ten surfaces cannot each decide how to say it. Where the
+     * holder and the visit customer are the same — every ordinary movement —
+     * this is just the customer's name and reads exactly as it always did.
+     */
+    public function partyLabel(): string
+    {
+        $holder = $this->holdingParty();
+
+        if (! $holder) {
+            return '-';
+        }
+
+        return $this->heldByAnotherParty()
+            ? $holder->name . ' (on hire from ' . ($this->customer?->name ?? 'owner') . ')'
+            : $holder->name;
+    }
+
+    /**
+     * Every job this movement sits under, outermost first.
+     *
+     * A rental puts three jobs on one container and the movement carries only
+     * the innermost. The rest are one walk up `parent_job_id`:
+     *
+     *   Gate-in job          the shipping line's stay
+     *     On-hire (lease)    the yard holds it from the line
+     *       Rent job         a customer has it out
+     *
+     * Bounded and cycle-guarded for the same reason
+     * {@see \App\Services\JobPnlService::computeWithSubJobs()} is: the column is
+     * self-referential, and a mis-set parent must not hang a screen.
+     *
+     * @return array<int,array{label:string,job_no:string,job_type:?string,party:?string}>
+     */
+    public function jobChain(int $maxDepth = 5): array
+    {
+        $chain   = [];
+        $visited = [];
+        $job     = $this->yardJob;
+
+        while ($job && count($chain) < $maxDepth && ! isset($visited[$job->id])) {
+            $visited[$job->id] = true;
+
+            $chain[] = [
+                'label'    => match ($job->job_type_code) {
+                    'CONTAINER_RELET' => 'Rent job',
+                    'LESSOR_ONHIRE'   => 'On-hire (lease) job',
+                    default           => 'Gate-in job',
+                },
+                'job_no'   => $job->job_no,
+                'job_type' => $job->job_type_code,
+                // The holder, not the counterparty: on a lease the line is
+                // still who the agreement is with, but the yard is holding it.
+                'party'    => $job->holder()?->name,
+            ];
+
+            $job = $job->parentJob;
+        }
+
+        return array_reverse($chain);
+    }
+
+    /**
      * Movements this party should be billed the lift for.
      *
      * **The party holding the container pays for the lift.** For nearly every

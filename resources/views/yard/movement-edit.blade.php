@@ -89,8 +89,13 @@
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
-                                <div class="text-muted">Customer</div>
-                                <div class="fw-semibold">{{ $movement->customer?->name ?? '-' }}</div>
+                                {{-- The party at the gate, and the jobs behind it.
+                                     This read `$movement->customer` — the visit
+                                     customer, which on a rental release is the
+                                     shipping line whose stay the box is on, not
+                                     the renter who actually drove it away. --}}
+                                <div class="text-muted">Party at gate</div>
+                                <x-movement-party :movement="$movement" :chain="true" />
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="text-muted">Location</div>
@@ -126,7 +131,15 @@
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Customer / Owner</label>
+                            {{-- The *visit* customer: whose stay this container is
+                                 on. Deliberately distinct from the party at the
+                                 gate shown above — on a hire they differ, and
+                                 `containers:fix-gate-custody` exists to keep this
+                                 one pointing at the visit. --}}
+                            <label class="form-label fw-semibold">
+                                Customer / Owner
+                                <span class="text-muted fw-normal small">(whose visit this is)</span>
+                            </label>
                             <select name="customer_id" class="form-select s2-code" data-s2-sel="name">
                                 @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}"

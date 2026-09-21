@@ -637,8 +637,12 @@
                                     @endcan
                                 </div>
                                 <div class="row g-1" style="font-size:.8rem">
-                                    <div class="col-6"><span class="text-muted">Customer:</span>
-                                        <span class="ms-1">{{ optional($gateIn->customer)->name ?? '-' }}</span></div>
+                                    {{-- The party at the gate, with the jobs behind
+                                         it. Reconstructing what happened is the
+                                         point of this screen, and on a hire the
+                                         visit customer alone does not tell it. --}}
+                                    <div class="col-12"><span class="text-muted">Party:</span>
+                                        <span class="ms-1"><x-movement-party :movement="$gateIn" :chain="true" /></span></div>
                                     <div class="col-6"><span class="text-muted">On arrival:</span>
                                         <span class="ms-1">{{ ucfirst(str_replace('_',' ', $gateIn->condition ?? '-')) }}</span></div>
                                     <div class="col-6"><span class="text-muted">Cargo:</span>
@@ -698,6 +702,12 @@
                                     @endcan
                                 </div>
                                 <div class="row g-1" style="font-size:.8rem">
+                                    {{-- The departure named no party at all, which is
+                                         where a rental release most needs one: the box
+                                         left with a renter, and the row said only which
+                                         lorry took it. --}}
+                                    <div class="col-12"><span class="text-muted">Party:</span>
+                                        <span class="ms-1"><x-movement-party :movement="$gateOut" :chain="true" /></span></div>
                                     <div class="col-6"><span class="text-muted">Vehicle:</span>
                                         <span class="ms-1 font-monospace">{{ $gateOut->vehicle_plate ?? '-' }}</span></div>
                                     <div class="col-6"><span class="text-muted">Driver:</span>

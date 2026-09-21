@@ -290,6 +290,13 @@ class ContainerInquiryController extends Controller
                     $out ? 'Departed' : 'In Yard',
                     $m->bl_number ?? '',
                     trim(($m->vessel_name ?? '') . ' ' . ($m->voyage_no ?? '')),
+                    // Read from the *departure*: the rental is what took the box
+                    // out, and the arrival that opened the visit knows nothing
+                    // about it. Blank on every ordinary visit.
+                    $out?->heldByAnotherParty() ? $out->holdingParty()?->name : '',
+                    $out?->yardJob?->job_type_code === 'CONTAINER_RELET'
+                        ? $out->yardJob->job_no
+                        : '',
                 ];
             }
         }

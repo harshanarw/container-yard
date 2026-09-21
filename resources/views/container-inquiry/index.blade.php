@@ -345,7 +345,7 @@
                             {{ $m->container_no }}
                         </a>
                     </td>
-                    <td>{{ optional($m->customer)->name ?? '-' }}</td>
+                    <td><x-movement-party :movement="$m" /></td>
                     <td class="font-monospace">
                         @if($yardJob)
                             <span class="badge bg-light text-dark border">{{ $yardJob->job_no }}</span>

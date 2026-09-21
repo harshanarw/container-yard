@@ -43,7 +43,7 @@ class GateMovementWorkbook
     private const FILL_HEADER = 'FFD9D9D9';
 
     /** Column count, so the title block can be merged across the table. */
-    private const COLS = 17;
+    private const COLS = 19;
 
     public const HEADINGS = [
         'Container No', 'Size', 'Type', 'Cargo', 'Customer',
@@ -52,10 +52,15 @@ class GateMovementWorkbook
         'Gate Out', 'Out Vehicle', 'Out Driver',
         'Days In Yard', 'Status',
         'BL Number', 'Vessel',
+        // Appended, never inserted, so a file someone already has keeps its
+        // column positions. `Customer` above stays the visit customer — the
+        // party whose stay the container is on — and these describe a rental
+        // that happened inside it. Blank on every ordinary visit.
+        'Rented To', 'Rent Job',
     ];
 
     /** Widths, in the same order as HEADINGS. */
-    private const WIDTHS = [16, 7, 8, 9, 28, 16, 18, 18, 14, 20, 18, 14, 20, 13, 11, 18, 22];
+    private const WIDTHS = [16, 7, 8, 9, 28, 16, 18, 18, 14, 20, 18, 14, 20, 13, 11, 18, 22, 24, 16];
 
     public static function available(): bool
     {

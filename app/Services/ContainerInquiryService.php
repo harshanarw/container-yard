@@ -270,7 +270,11 @@ class ContainerInquiryService
 
         $containerNos = $gateIns->pluck('container_no')->unique()->values()->all();
 
-        $allGateOuts = GateMovement::where('movement_type', 'out')
+        // The job comes with them: a rental departure carries the re-let's job,
+        // which is how the gate log names the renting party without a query per
+        // row.
+        $allGateOuts = GateMovement::with(['yardJob.heldBy'])
+            ->where('movement_type', 'out')
             ->whereIn('container_no', $containerNos)
             ->orderBy('gate_out_time', 'asc')
             ->get()

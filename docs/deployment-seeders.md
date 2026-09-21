@@ -402,3 +402,39 @@ view as well as the printable one. The rule is `GateMovement::holdingParty()` �
 the job's holder falling back to the visit customer, the same rule the handling
 charge uses — so on every ordinary movement the two are the same party and the
 pass reads exactly as it always did.
+
+### Phase 4c — the party at the gate, on every surface
+
+Code and blade only — no migration, no seeder.
+
+```bash
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+systemctl restart php-fpm
+```
+
+Eleven surfaces read `gate_movements.customer_id` directly. That is the *visit*
+customer — whose stay the container is on — and it is right for every ordinary
+movement, because the party at the gate is the same party. A rental release is
+where they come apart: the box goes out with a renting customer on the re-let's
+job, while the visit stays the shipping line's.
+
+`GateMovement::holdingParty()` states the rule once — the job's `held_by`,
+falling back to the visit customer — and the screens ask for it through a
+shared `<x-movement-party>` component. `held_by` is null on everything except a
+hire, so every ordinary movement renders exactly as it did.
+
+| Surface | Change |
+| --- | --- |
+| Movement edit | shows the party at the gate and the full job chain; the editable Customer select is now labelled *(whose visit this is)* |
+| Container Inquiry — cycles | party + job chain on **both** halves; the departure named no party at all before |
+| Container Inquiry — list | party at the gate |
+| Container detail — history | party at the gate |
+| Gate screen — recent movements | party at the gate |
+| Gate pass verify | party at the gate |
+| **Daily Movements** | **grouped by the party at the gate**, with the customer filter following. A container's arrival and its rental departure now land in different blocks — they are different parties, and the block agrees with the handling invoice |
+| Daily Movements CSV | **appends** `Party At Gate`; `Container Operator` keeps meaning the shipping line |
+| Gate log workbook / CSV | **appends** `Rented To` and `Rent Job`; `Customer` and `Job No` keep their meaning |
+| CODECO export | **unchanged, deliberately** — it is an EDI message to the line about their container, and the line is the right party |
+
+Both exports append rather than repurpose, so a file someone already has keeps
+its column positions and its columns keep their meanings.

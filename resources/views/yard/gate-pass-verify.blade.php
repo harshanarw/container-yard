@@ -242,7 +242,7 @@
     </div>
     <div class="vfy-row">
         <div class="vfy-row-lbl">{{ $isInward ? 'Owner / Shipping Line' : 'Customer' }}</div>
-        <div class="vfy-row-val">{{ $movement->customer?->name ?: ($gateIn?->customer?->name ?: '-') }}</div>
+        <div class="vfy-row-val">{{ $movement->partyLabel() }}</div>
     </div>
     @if($isInward && $movement->vessel_name)
     <div class="vfy-row">

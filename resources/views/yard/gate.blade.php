@@ -1130,7 +1130,8 @@
                                     @endif
                                 </div>
                                 <div class="text-muted text-truncate" style="font-size:.7rem;">
-                                    {{ $mv->customer?->name }}@if($mv->vehicle_plate) &nbsp;·&nbsp; {{ $mv->vehicle_plate }}@endif
+                                    {{-- partyLabel(), not the visit customer: a rental release went out with a renter. --}}
+                                    {{ $mv->partyLabel() }}@if($mv->vehicle_plate) &nbsp;·&nbsp; {{ $mv->vehicle_plate }}@endif
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-1 flex-shrink-0">

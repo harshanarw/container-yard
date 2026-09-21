@@ -610,8 +610,12 @@ class ReportController extends Controller
     {
         $exportFilter = $request->input('export_status', 'pending');
 
-        $query = GateMovement::with(['customer', 'createdBy'])
-            ->when($request->customer_id,  fn ($q, $v) => $q->where('customer_id', $v))
+        $query = GateMovement::with(['customer', 'createdBy', 'yardJob.heldBy', 'yardJob.customer'])
+            // Filtered by the party at the gate, so the filter agrees with the
+            // grouping below and with the handling invoice this report gets
+            // reconciled against. On every ordinary movement that party *is*
+            // the visit customer, so the filter behaves as it always did.
+            ->when($request->customer_id,  fn ($q, $v) => $q->billableTo((int) $v))
             ->when($request->movement_type, fn ($q, $v) => $q->where('movement_type', $v))
             ->when($request->date_from, function ($q, $v) {
                 $q->where(function ($sub) use ($v) {
@@ -652,8 +656,18 @@ class ReportController extends Controller
 
         $movements = $query->orderBy('gate_in_time', 'desc')->get();
 
-        // Group by customer (Container Operator / Liner)
-        $grouped = $movements->groupBy(fn ($m) => $m->customer_id ?? 0);
+        // Grouped by the party at the gate, not by the visit customer.
+        //
+        // The report answers "who moved what today", and on a rental release the
+        // renter moved it — the box went out on their job, on their truck, and
+        // the handling for that lift is invoiced to them. Grouping by the visit
+        // customer filed it under the shipping line, who was not there.
+        //
+        // A container's arrival and its rental departure therefore land in
+        // different blocks. That is the point: they are different parties.
+        // `holdingParty()` falls back to the visit customer whenever no hire is
+        // running, so every ordinary movement groups exactly as before.
+        $grouped = $movements->groupBy(fn ($m) => $m->holdingParty()?->id ?? 0);
 
         $customers = Customer::selectable()->where('status', 'active')->orderBy('name')->get();
 
@@ -673,7 +687,7 @@ class ReportController extends Controller
             return back()->with('error', 'No movements selected for export.');
         }
 
-        $movements = GateMovement::with(['customer', 'createdBy'])
+        $movements = GateMovement::with(['customer', 'createdBy', 'yardJob.heldBy', 'yardJob.customer'])
             ->whereIn('id', $ids)
             ->orderBy('customer_id')
             ->orderBy('gate_in_time')
@@ -707,6 +721,12 @@ class ReportController extends Controller
             // their existing meaning: the row's own event, blank on the other
             // half. These three describe the visit the movement belongs to.
             'Visit Gate In', 'Visit Gate Out', 'Days In Yard', 'Reefer Mode',
+            // Who was actually at the barrier. `Container Operator` above stays
+            // the shipping line, because that is what the term means and what a
+            // reader of this file expects; on a rental release the box goes out
+            // with a renter, and that is a different fact needing its own column
+            // rather than a quiet change of meaning in an existing one.
+            'Party At Gate',
         ], function () use ($movements, $visitContext) {
             // Already loaded: this export covers the rows the operator ticked,
             // so it is bounded by the selection rather than by the table.
@@ -745,6 +765,7 @@ class ReportController extends Controller
                     // column existed — reading a blank as "operating" is a rule
                     // the app applies, not a fact to assert in an export.
                     $m->reefer_mode,
+                    $m->partyLabel(),
                 ];
             }
         });
