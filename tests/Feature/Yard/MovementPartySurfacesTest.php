@@ -221,17 +221,51 @@ class MovementPartySurfacesTest extends FeatureTestCase
         $this->assertStringContainsString('Maersk Line', $csv, 'The operator column is unchanged.');
     }
 
+    /**
+     * The gate log is always a workbook, so this reads the xlsx rather than a
+     * string — and reads *every* XML part in it, because openspout writes cell
+     * text inline into `xl/worksheets/sheet1.xml` and leaves the shared-strings
+     * part an empty stub. Asserting against the streamed bytes finds nothing:
+     * the zip is deflated, so no cell text appears in it literally.
+     */
     public function test_the_gate_log_export_names_the_renter_and_the_rent_job(): void
     {
         $this->rentOut();
 
-        $csv = $this->get(route('container-inquiry.gate-log', [
-            'date_from' => '2026-03-01', 'date_to' => '2026-03-31',
-        ]))->streamedContent();
+        $text = $this->workbookText();
 
-        $this->assertStringContainsString('Rented To', $csv);
-        $this->assertStringContainsString('Rent Job', $csv);
-        $this->assertStringContainsString('ABC Traders', $csv);
+        $this->assertStringContainsString('Rented To', $text);
+        $this->assertStringContainsString('Rent Job', $text);
+        $this->assertStringContainsString('ABC Traders', $text);
+        $this->assertStringContainsString('Maersk Line', $text,
+            'The Customer column still names the visit customer.');
+    }
+
+    /** Every XML part of the gate-log workbook, as one string. */
+    private function workbookText(): string
+    {
+        $response = $this->get(route('container-inquiry.gate-log', [
+            'date_from' => '2026-03-01', 'date_to' => '2026-03-31',
+        ]))->assertOk();
+
+        $path = tempnam(sys_get_temp_dir(), 'gate-log-party-');
+        file_put_contents($path, $response->streamedContent());
+
+        $zip = new \ZipArchive();
+        $this->assertTrue($zip->open($path) === true, 'The workbook must be a readable xlsx.');
+
+        $text = '';
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if (str_ends_with($name, '.xml')) {
+                $text .= $zip->getFromName($name);
+            }
+        }
+
+        $zip->close();
+        @unlink($path);
+
+        return $text;
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────
