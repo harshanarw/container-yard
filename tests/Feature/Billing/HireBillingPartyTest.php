@@ -136,6 +136,54 @@ class HireBillingPartyTest extends FeatureTestCase
             'The box arrived on the line\'s job, whatever happened to it later.');
     }
 
+    // ── One lift, one charge ────────────────────────────────────────────────
+
+    /**
+     * The round trip leaves the shipping line with **two** storage rows: the
+     * stay closed when the yard took the box on hire, and the resumed one
+     * opened when it gave it back. Both are theirs, both land in the billing
+     * spine, and the arrival lift-off was attached to each by container id —
+     * so one lift produced two charges on one invoice.
+     *
+     * Across invoices it was never possible: `liftOffBilled()` is keyed on
+     * container and date. The repeat was inside a single bill.
+     */
+    public function test_the_arrival_lift_is_charged_once_after_a_round_trip(): void
+    {
+        $lease = $this->lease('2026-03-05');
+        $this->reLet('2026-03-06');
+        $this->release();
+
+        Carbon::setTestNow('2026-03-15 10:00:00');
+        $this->returnBox();
+
+        app(LessorOnHireService::class)->offHireInYard(
+            $lease->fresh(), ['off_hire_date' => '2026-03-16'], auth()->id(),
+        );
+
+        $lines = collect($this->preview($this->line, '2026-03-01', '2026-03-31')->json('lines'));
+
+        $this->assertGreaterThan(1, YardStorage::where('container_id', $this->container->id)
+            ->whereIn('hire_type', ['normal', 'resumed'])->count(),
+            'The premise: the round trip really does leave two billable stays.');
+
+        $this->assertCount(1, $lines->where('has_lift_off', true),
+            'One arrival, one lift-off, however many stays it was split across.');
+    }
+
+    /** Two genuine visits are two genuine lifts, and must stay so. */
+    public function test_two_real_arrivals_are_charged_twice(): void
+    {
+        $this->release();
+
+        Carbon::setTestNow('2026-03-10 10:00:00');
+        $this->returnBox();
+
+        $lines = collect($this->preview($this->line, '2026-03-01', '2026-03-31')->json('lines'));
+
+        $this->assertNotEmpty($lines->where('has_lift_off', true));
+    }
+
     // ── Storage stops for the lease ─────────────────────────────────────────
 
     public function test_the_line_is_not_billed_storage_during_the_lease(): void
@@ -215,6 +263,20 @@ class HireBillingPartyTest extends FeatureTestCase
             ['on_hire_date' => $on, 'hire_customer_id' => $this->renter->id],
             auth()->id(),
         );
+    }
+
+    private function returnBox(): void
+    {
+        $this->post(route('yard.gate.in'), [
+            'job_type_id'       => \App\Models\YardJobType::where('job_type_code', 'EMPTY_RETURN')->value('id'),
+            'return_reason'     => 'agent_return',
+            'container_no'      => $this->container->container_no,
+            'equipment_type_id' => $this->container->equipment_type_id,
+            'customer_id'       => $this->line->id,
+            'condition'         => 'sound',
+            'cargo_status'      => 'empty',
+            'vehicle_plate'     => 'WXY-1234',
+        ])->assertRedirect();
     }
 
     private function release(): \Illuminate\Testing\TestResponse

@@ -334,6 +334,20 @@ class StorageHandlingController extends Controller
             $excludeInvoiceId
         );
 
+        // A lift is one event, so it may appear on one line — and the spine can
+        // legitimately hold *two* rows for the same container. A stay split
+        // mid-period leaves a closed `normal` row and an open `resumed` one,
+        // which is exactly what a hire produces: storage is suspended when the
+        // yard takes the box on hire and resumes when it gives it back. Both
+        // rows belong to the shipping line, both land in the spine, and the
+        // lift was attached to each of them by container id — so the arrival
+        // lift-off was charged once per row.
+        //
+        // Keyed by container and direction, in spine order, so the earliest row
+        // carries it. Across invoices this was never possible: `liftOffBilled()`
+        // is keyed on container and date. The repeat was inside one bill.
+        $liftCharged = ['off' => [], 'on' => []];
+
         foreach ($spine as $unit) {
             $container = $unit['container'];
             $storage   = $unit['storage'];
@@ -479,8 +493,21 @@ class StorageHandlingController extends Controller
             $liftOffDate = $liftOffMove?->gate_in_time?->toDateString();
             $liftOnDate  = $liftOnMove?->gate_out_time?->toDateString();
 
-            $hasLiftOff = $liftOffMove !== null && ! $prior->liftOffBilled($container->id, $liftOffDate);
-            $hasLiftOn  = $liftOnMove  !== null && ! $prior->liftOnBilled($container->id, $liftOnDate);
+            $hasLiftOff = $liftOffMove !== null
+                && ! isset($liftCharged['off'][$container->id])
+                && ! $prior->liftOffBilled($container->id, $liftOffDate);
+
+            $hasLiftOn  = $liftOnMove !== null
+                && ! isset($liftCharged['on'][$container->id])
+                && ! $prior->liftOnBilled($container->id, $liftOnDate);
+
+            if ($hasLiftOff) {
+                $liftCharged['off'][$container->id] = true;
+            }
+
+            if ($hasLiftOn) {
+                $liftCharged['on'][$container->id] = true;
+            }
 
             // A container with nothing left — every day invoiced and every lift
             // already charged — is dropped rather than shown as an empty line.
