@@ -145,6 +145,40 @@ class YardJob extends Model
         return $this->hasMany(YardJob::class, 'parent_job_id');
     }
 
+    /**
+     * The outermost job this one happens inside — itself, for most jobs.
+     *
+     * The visit belongs to the top of the tree. A lease-in and a re-let are
+     * agreements that happen *during* a stay, with their own counterparties:
+     * the line billing the yard, the renter paying it. Reading the visit
+     * customer off one of those would say the container's stay belongs to a
+     * party who merely borrowed it for part of it.
+     *
+     * Bounded and cycle-guarded like {@see \App\Services\JobPnlService}'s
+     * walk: `parent_job_id` is self-referential and a mis-set parent must not
+     * spin.
+     */
+    public function rootJob(int $maxDepth = 5): self
+    {
+        $job     = $this;
+        $visited = [$job->id => true];
+
+        while ($job->parent_job_id
+            && count($visited) < $maxDepth
+            && ! isset($visited[$job->parent_job_id])) {
+            $parent = $job->parentJob;
+
+            if (! $parent) {
+                break;
+            }
+
+            $visited[$parent->id] = true;
+            $job = $parent;
+        }
+
+        return $job;
+    }
+
     /** True when this job happens inside another. */
     public function isSubJob(): bool
     {

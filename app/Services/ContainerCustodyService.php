@@ -58,8 +58,18 @@ class ContainerCustodyService
     {
         $gateIn = $this->latestGateIn($container);
 
+        // Through the *root* job, not the movement's own.
+        //
+        // A hire return arrives on the letting's job, whose customer is the
+        // renter — so from that moment this reported the renter as the
+        // container's visit customer, and every later gate-out would have been
+        // stamped with them. The visit belongs to the top of the tree: the
+        // line's stay, which never closed.
+        //
+        // An ordinary gate-in's job has no parent, so the root is itself and
+        // nothing changes.
         $fromJob = $gateIn?->yard_job_id
-            ? YardJob::whereKey($gateIn->yard_job_id)->value('customer_id')
+            ? YardJob::find($gateIn->yard_job_id)?->rootJob()?->customer_id
             : null;
 
         return self::resolveCustomerId(
@@ -165,8 +175,15 @@ class ContainerCustodyService
             ->groupBy('container_id')
             ->map(fn ($group) => $group->first());
 
-        $jobCustomers = YardJob::whereIn('id', $gateIns->pluck('yard_job_id')->filter()->unique()->values())
-            ->pluck('customer_id', 'id');
+        // Root jobs, for the reason given in visitCustomerId(): a hire return
+        // arrives on the letting's job, and the visit belongs to the stay above
+        // it. `parentJob` is walked in PHP rather than joined, because the tree
+        // is at most three deep and the page has already been narrowed to one
+        // job per container.
+        $jobCustomers = YardJob::with('parentJob.parentJob')
+            ->whereIn('id', $gateIns->pluck('yard_job_id')->filter()->unique()->values())
+            ->get()
+            ->mapWithKeys(fn ($job) => [$job->id => $job->rootJob()->customer_id]);
 
         $out = [];
 

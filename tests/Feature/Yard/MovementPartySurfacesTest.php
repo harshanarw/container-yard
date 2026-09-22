@@ -130,6 +130,56 @@ class MovementPartySurfacesTest extends FeatureTestCase
         $this->assertLessThanOrEqual(5, count($this->departure()->fresh()->jobChain()));
     }
 
+    // ── The visit survives the round trip ───────────────────────────────────
+
+    /**
+     * The return arrives on the *letting's* job, whose customer is the renter —
+     * so asking the movement's own job "whose visit is this?" answered with the
+     * party who merely borrowed the box for part of it, and every gate-out
+     * after the return would have been stamped with them.
+     *
+     * The visit belongs to the top of the tree: the line's stay, which never
+     * closed.
+     */
+    public function test_the_visit_customer_survives_a_hire_return(): void
+    {
+        $this->rentOut();
+
+        Carbon::setTestNow('2026-03-25 10:00:00');
+        $this->returnBox();
+
+        $this->assertSame(
+            $this->line->id,
+            app(\App\Services\ContainerCustodyService::class)
+                ->visitCustomerId($this->container->fresh()),
+            'The box came back onto the line\'s stay, not onto the renter\'s.',
+        );
+    }
+
+    /** And the final departure to the line is recorded against the line. */
+    public function test_the_final_departure_is_recorded_against_the_line(): void
+    {
+        $this->rentOut();
+
+        Carbon::setTestNow('2026-03-25 10:00:00');
+        $this->returnBox();
+
+        Carbon::setTestNow('2026-03-28 10:00:00');
+        $this->release();
+
+        $this->assertSame($this->line->id, $this->departure()->customer_id);
+    }
+
+    /** An ordinary job has no parent, so the root is itself. */
+    public function test_an_ordinary_visit_resolves_as_before(): void
+    {
+        $this->assertSame(
+            $this->line->id,
+            app(\App\Services\ContainerCustodyService::class)
+                ->visitCustomerId($this->container->fresh()),
+        );
+    }
+
     // ── The screens ─────────────────────────────────────────────────────────
 
     public function test_the_movement_edit_screen_names_the_renter(): void
@@ -295,6 +345,20 @@ class MovementPartySurfacesTest extends FeatureTestCase
             'vehicle_plate' => 'WXY-1234',
             'driver_name'   => 'D Perera',
             'driver_ic'     => '901234567V',
+        ])->assertRedirect();
+    }
+
+    private function returnBox(): void
+    {
+        $this->post(route('yard.gate.in'), [
+            'job_type_id'       => YardJobType::where('job_type_code', 'EMPTY_RETURN')->value('id'),
+            'return_reason'     => 'agent_return',
+            'container_no'      => $this->container->container_no,
+            'equipment_type_id' => $this->container->equipment_type_id,
+            'customer_id'       => $this->line->id,
+            'condition'         => 'sound',
+            'cargo_status'      => 'empty',
+            'vehicle_plate'     => 'WXY-1234',
         ])->assertRedirect();
     }
 
