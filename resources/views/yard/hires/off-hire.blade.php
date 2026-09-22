@@ -4,7 +4,7 @@
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('yard.index') }}">Yard</a></li>
-    <li class="breadcrumb-item"><a href="{{ route('yard.hires.index') }}">Container Hires</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('yard.hires.index') }}">Rent Out</a></li>
     <li class="breadcrumb-item"><a href="{{ route('yard.hires.show', $hire) }}">{{ $hire->container->container_no }}</a></li>
     <li class="breadcrumb-item active">Off Hire</li>
 @endsection

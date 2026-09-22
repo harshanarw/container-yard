@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title', 'Lessor On-Hire')
+@section('title', 'On-Hire In')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('yard.index') }}">Yard</a></li>
-    <li class="breadcrumb-item active">Lessor On-Hire</li>
+    <li class="breadcrumb-item active">On-Hire In</li>
 @endsection
 
 @section('content')
 
 <div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-2">
     <div>
-        <h4 class="mb-0"><i class="bi bi-box-arrow-in-down-right me-2 text-primary"></i>Lessor On-Hire <span class="text-muted fw-normal">(yard as lessee)</span></h4>
+        <h4 class="mb-0"><i class="bi bi-box-arrow-in-down-right me-2 text-primary"></i>On-Hire In <span class="text-muted fw-normal">(yard as lessee)</span></h4>
         <p class="text-muted mb-0 small">Boxes taken on hire from a shipping line / lessor. Each is a costed job - tag the lessor fee to it, and its P&amp;L shows the margin.</p>
     </div>
     @can('yard.lessor-hire.create')

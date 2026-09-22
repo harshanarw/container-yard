@@ -49,6 +49,10 @@ class RolePermissionSeeder extends Seeder
             'containers.*',
             'customers.view',
             'reports.view',
+            // The driver master. Granted to exactly the roles the old role-list
+            // check allowed, so nobody gains or loses access in the move from
+            // that check to a permission.
+            'masters.drivers.*',
         ],
 
         'gate_officer' => [

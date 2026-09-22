@@ -187,6 +187,17 @@ return [
         'actions' => ['view', 'create', 'edit', 'delete'],
     ],
 
+    // The driver master. DriverController gated on `users.role` — the label
+    // column — because these were never seeded, while every other screen
+    // resolves permissions from the `user_roles` pivot. The two can disagree,
+    // and a menu item that appears for one and 403s on the other is how that
+    // shows up.
+    'masters.drivers' => [
+        'label'   => 'Drivers',
+        'section' => 'Masters - Operations',
+        'actions' => ['view', 'edit', 'delete'],
+    ],
+
     // ── Masters — Reference Data ──────────────────────────────────────────────
 
     'masters.charge-codes' => [

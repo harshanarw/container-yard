@@ -10,22 +10,25 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
- * Driver master admin (Phase 2): list / search, view movement history, edit, and
- * merge duplicate records. Gated to operations-management roles (the granular
- * masters.* permissions aren't seeded for this new master, so we gate by role).
+ * Driver master admin: list / search, view movement history, edit, and merge
+ * duplicate records.
+ *
+ * Gated on `masters.drivers.*`, like every other master.
+ *
+ * It used to check `users.role` against a list, because the granular
+ * permissions had never been seeded for this master. That column is a *label*:
+ * permissions resolve from the `user_roles` pivot, so the two could disagree,
+ * and a user could hold the role name while the permission system said
+ * otherwise — or the reverse, which is worse, because the menu is drawn from
+ * permissions and the controller was not.
  */
 class DriverController extends Controller
 {
-    private const MANAGE_ROLES = ['yard_supervisor', 'administrator', 'system_administrator'];
-
     public function __construct()
     {
-        $this->middleware(function ($request, $next) {
-            if (! in_array(auth()->user()->role ?? null, self::MANAGE_ROLES, true)) {
-                abort(403, 'Operations management access required.');
-            }
-            return $next($request);
-        });
+        $this->middleware('can:masters.drivers.view')->only(['index', 'show']);
+        $this->middleware('can:masters.drivers.edit')->only(['update', 'merge']);
+        $this->middleware('can:masters.drivers.delete')->only('destroy');
     }
 
     public function index(Request $request)

@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Lessor On-Hire')
+@section('title', 'On-Hire In')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('yard.index') }}">Yard</a></li>
-    <li class="breadcrumb-item"><a href="{{ route('yard.lessor-hires.index') }}">Lessor On-Hire</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('yard.lessor-hires.index') }}">On-Hire In</a></li>
     <li class="breadcrumb-item active">#{{ $hire->id }}</li>
 @endsection
 
@@ -12,7 +12,7 @@
 
 <div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-2">
     <div>
-        <h4 class="mb-1"><i class="bi bi-box-arrow-in-down-right me-2 text-primary"></i>Lessor On-Hire
+        <h4 class="mb-1"><i class="bi bi-box-arrow-in-down-right me-2 text-primary"></i>On-Hire In
             <span class="badge bg-{{ $hire->status === 'active' ? 'success' : ($hire->status === 'completed' ? 'secondary' : 'danger') }} ms-2" style="font-size:.7rem;">{{ ucfirst($hire->status) }}</span>
         </h4>
         <p class="text-muted mb-0 small">

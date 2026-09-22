@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title', 'Container Hires')
+@section('title', 'Rent Out')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('yard.index') }}">Yard</a></li>
-    <li class="breadcrumb-item active">Container Hires</li>
+    <li class="breadcrumb-item active">Rent Out</li>
 @endsection
 
 @section('content')
 
 <div class="page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
     <div>
-        <h4 class="mb-0"><i class="bi bi-arrow-left-right me-2 text-warning"></i>Container Hires</h4>
+        <h4 class="mb-0"><i class="bi bi-arrow-left-right me-2 text-warning"></i>Rent Out</h4>
         <p class="text-muted mb-0 small">On Hire / Off Hire history for all containers</p>
     </div>
     @can('yard.hire.create')

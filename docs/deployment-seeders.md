@@ -438,3 +438,51 @@ hire, so every ordinary movement renders exactly as it did.
 
 Both exports append rather than repurpose, so a file someone already has keeps
 its column positions and its columns keep their meanings.
+
+### Sidebar: the Yard section reorganised
+
+```bash
+php artisan permissions:sync                                  # masters.drivers.*
+php artisan db:seed --class=RolePermissionSeeder --force      # grants them
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+systemctl restart php-fpm
+```
+
+**Operations → Yard**, in the order the work happens:
+
+```
+Gate In / Gate Out
+Yard Overview
+On-Hire In          (was "Lessor On-Hire")
+Rent Out            (was "Container Hires")
+Cargo Transfers
+Reefer Plug Sessions
+Yard Jobs
+```
+
+The two hire modules are named for the **direction** now. Both are hires,
+opposite ways round — the yard pays its line for the first and is paid by a
+renter for the second — and side by side in a menu the old labels
+distinguished nothing. The page titles, breadcrumbs and headings follow; the
+index heading keeps its *(yard as lessee)* note, because on a page there is
+room to spell it out.
+
+**Two items moved out**, and the permission work is the part that matters:
+
+| Item | To | Why the gate changed |
+| --- | --- | --- |
+| Storage Calculator | Billing, first | Gated `yard.view`, but the Billing section is gated on `billing.*`. The section gate now includes `yard.view` and `$billingActive` includes `yard.storage*`, or a gate clerk would lose a screen they may use and the section would snap shut when they opened it |
+| Drivers | Setup → Gate Operations | It is master data — the routes are already `masters.drivers.*` — and the group's gate now admits either permission |
+
+**`DriverController` no longer gates on `users.role`.** It checked that column
+against a list because the granular permissions had never been seeded; that
+column is a *label*, while permissions resolve from the `user_roles` pivot, so
+the two could disagree — and the menu is drawn from permissions while the
+controller was not. It now uses `masters.drivers.view` / `.edit` / `.delete`,
+granted to `yard_supervisor` explicitly and to `administrator` through `*`.
+`system_administrator` bypasses RBAC as before, so the three roles the old list
+allowed are exactly the three that still have it.
+
+`StorageReportController` still carries the same `users.role` pattern. Left
+alone here — it is a different screen and not part of this change — but it is
+the same latent inconsistency.

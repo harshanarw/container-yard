@@ -674,26 +674,26 @@
                             <i class="bi bi-map"></i><span>Yard Overview</span>
                         </a>
                     </li>
+                    @endcan
+                    {{-- The hire pair, in the order the trade happens: the yard
+                         takes a box on hire from its line, then rents it out.
+                         Named for the direction rather than for the class behind
+                         them -- "Lessor On-Hire" and "Container Hires" are both
+                         hires, opposite ways round, and the old labels said so
+                         to nobody. --}}
+                    @can('yard.lessor-hire.view')
                     <li class="nav-item sub-item">
-                        <a href="{{ route('yard.storage') }}"
-                           class="nav-link {{ request()->routeIs('yard.storage*') ? 'active' : '' }}">
-                            <i class="bi bi-calculator"></i><span>Storage Calculator</span>
+                        <a href="{{ route('yard.lessor-hires.index') }}"
+                           class="nav-link {{ request()->routeIs('yard.lessor-hires.*') ? 'active' : '' }}">
+                            <i class="bi bi-box-arrow-in-down-right"></i><span>On-Hire In</span>
                         </a>
                     </li>
                     @endcan
-                    @if(in_array(Auth::user()->role, ['yard_supervisor', 'administrator', 'system_administrator'], true))
-                    <li class="nav-item sub-item">
-                        <a href="{{ route('masters.drivers.index') }}"
-                           class="nav-link {{ request()->routeIs('masters.drivers.*') ? 'active' : '' }}">
-                            <i class="bi bi-person-badge"></i><span>Drivers</span>
-                        </a>
-                    </li>
-                    @endif
                     @can('yard.hire.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('yard.hires.index') }}"
                            class="nav-link {{ request()->routeIs('yard.hires.*') ? 'active' : '' }}">
-                            <i class="bi bi-arrow-left-right"></i><span>Container Hires</span>
+                            <i class="bi bi-arrow-left-right"></i><span>Rent Out</span>
                         </a>
                     </li>
                     @endcan
@@ -705,11 +705,11 @@
                         </a>
                     </li>
                     @endcan
-                    @can('yard.lessor-hire.view')
+                    @can('yard.reefer.view')
                     <li class="nav-item sub-item">
-                        <a href="{{ route('yard.lessor-hires.index') }}"
-                           class="nav-link {{ request()->routeIs('yard.lessor-hires.*') ? 'active' : '' }}">
-                            <i class="bi bi-box-arrow-in-down-right"></i><span>Lessor On-Hire</span>
+                        <a href="{{ route('yard.reefer.index') }}"
+                           class="nav-link {{ request()->routeIs('yard.reefer.*') ? 'active' : '' }}">
+                            <i class="bi bi-plug-fill"></i><span>Reefer Plug Sessions</span>
                         </a>
                     </li>
                     @endcan
@@ -718,14 +718,6 @@
                         <a href="{{ route('yard.jobs.index') }}"
                            class="nav-link {{ request()->routeIs('yard.jobs.*') ? 'active' : '' }}">
                             <i class="bi bi-briefcase"></i><span>Yard Jobs</span>
-                        </a>
-                    </li>
-                    @endcan
-                    @can('yard.reefer.view')
-                    <li class="nav-item sub-item">
-                        <a href="{{ route('yard.reefer.index') }}"
-                           class="nav-link {{ request()->routeIs('yard.reefer.*') ? 'active' : '' }}">
-                            <i class="bi bi-plug-fill"></i><span>Reefer Plug Sessions</span>
                         </a>
                     </li>
                     @endcan
@@ -1101,8 +1093,11 @@
         @endif
 
         {{-- ── BILLING ── --}}
-        @if(Auth::user()->can('billing.storage.view') || Auth::user()->can('billing.storage-handling.view') || Auth::user()->can('billing.reefer.view') || Auth::user()->can('billing.repair.view') || Auth::user()->can('billing.general.view'))
-        @php $billingActive = request()->routeIs('billing.*') || request()->routeIs('repair-invoices.*'); @endphp
+        {{-- `yard.view` is in the gate because the Storage Calculator lives here
+             now and is gated on it. Without it a gate clerk who may run the
+             calculator would not see the section that holds it. --}}
+        @if(Auth::user()->can('billing.storage.view') || Auth::user()->can('billing.storage-handling.view') || Auth::user()->can('billing.reefer.view') || Auth::user()->can('billing.repair.view') || Auth::user()->can('billing.general.view') || Auth::user()->can('yard.view'))
+        @php $billingActive = request()->routeIs('billing.*') || request()->routeIs('repair-invoices.*') || request()->routeIs('yard.storage*'); @endphp
         <button class="nav-section-label"
                 data-bs-toggle="collapse" data-bs-target="#nav-section-billing"
                 aria-expanded="{{ $billingActive ? 'true' : 'false' }}" aria-controls="nav-section-billing">
@@ -1110,6 +1105,18 @@
         </button>
         <div class="collapse {{ $billingActive ? 'show' : '' }}" id="nav-section-billing">
             <ul class="nav flex-column">
+                {{-- First, because it is the thing you run before raising a
+                     bill rather than a document you raise. Keeps its own
+                     `yard.view` gate: the controller requires it, so a billing
+                     clerk without it would get a 403 from a visible link. --}}
+                @can('yard.view')
+                <li class="nav-item">
+                    <a href="{{ route('yard.storage') }}"
+                       class="nav-link {{ request()->routeIs('yard.storage*') ? 'active' : '' }}">
+                        <i class="bi bi-calculator"></i><span>Storage Calculator</span>
+                    </a>
+                </li>
+                @endcan
                 @can('billing.storage.view')
                 <li class="nav-item">
                     <a href="{{ route('billing.index') }}"
@@ -1205,23 +1212,39 @@
         </button>
         <div class="collapse" id="nav-section-setup">
             {{-- Gate Operations sub-group --}}
-            @if(Auth::user()->can('masters.job-types.view'))
+            @php $gateOpsOpen = request()->routeIs('masters.job-types.*') || request()->routeIs('masters.drivers.*'); @endphp
+            {{-- Both permissions in the gate: someone who may manage drivers but
+                 not job types must still see the group that holds them. --}}
+            @if(Auth::user()->can('masters.job-types.view') || Auth::user()->can('masters.drivers.view'))
             <button class="nav-sub-toggle"
                     data-bs-toggle="collapse" data-bs-target="#nav-sub-setup-gate-ops"
-                    aria-expanded="{{ request()->routeIs('masters.job-types.*') ? 'true' : 'false' }}"
+                    aria-expanded="{{ $gateOpsOpen ? 'true' : 'false' }}"
                     aria-controls="nav-sub-setup-gate-ops">
                 <i class="bi bi-signpost-split nav-sub-icon"></i>
                 <span>Gate Operations</span>
                 <i class="bi bi-chevron-down sub-chevron"></i>
             </button>
-            <div class="collapse {{ request()->routeIs('masters.job-types.*') ? 'show' : '' }}" id="nav-sub-setup-gate-ops">
+            <div class="collapse {{ $gateOpsOpen ? 'show' : '' }}" id="nav-sub-setup-gate-ops">
                 <ul class="nav flex-column">
+                    @can('masters.job-types.view')
                     <li class="nav-item sub-item">
                         <a href="{{ route('masters.job-types.index') }}"
                            class="nav-link {{ request()->routeIs('masters.job-types.*') ? 'active' : '' }}">
                             <i class="bi bi-signpost-split"></i><span>Job Types</span>
                         </a>
                     </li>
+                    @endcan
+                    {{-- Master data, not an operations screen: the routes are
+                         already `masters.drivers.*`, and what it does is edit
+                         and merge records rather than move containers. --}}
+                    @can('masters.drivers.view')
+                    <li class="nav-item sub-item">
+                        <a href="{{ route('masters.drivers.index') }}"
+                           class="nav-link {{ request()->routeIs('masters.drivers.*') ? 'active' : '' }}">
+                            <i class="bi bi-person-badge"></i><span>Drivers</span>
+                        </a>
+                    </li>
+                    @endcan
                 </ul>
             </div>
             @endif

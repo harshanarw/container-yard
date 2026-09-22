@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title', 'New Lessor On-Hire')
+@section('title', 'New On-Hire In')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('yard.index') }}">Yard</a></li>
-    <li class="breadcrumb-item"><a href="{{ route('yard.lessor-hires.index') }}">Lessor On-Hire</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('yard.lessor-hires.index') }}">On-Hire In</a></li>
     <li class="breadcrumb-item active">New</li>
 @endsection
 
 @section('content')
 
 <div class="page-header">
-    <h4 class="mb-0"><i class="bi bi-box-arrow-in-down-right me-2 text-primary"></i>New Lessor On-Hire</h4>
+    <h4 class="mb-0"><i class="bi bi-box-arrow-in-down-right me-2 text-primary"></i>New On-Hire In</h4>
     <p class="text-muted mb-0 small">Take a container on hire from a lessor. This opens a dedicated job so the on-hire→off-hire period is costed on its own P&amp;L.</p>
 </div>
 
