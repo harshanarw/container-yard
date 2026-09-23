@@ -116,9 +116,27 @@ class CargoTransferController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('yard.cargo-transfers.show', $cargoTransfer)
+        $redirect = redirect()->route('yard.cargo-transfers.show', $cargoTransfer)
             ->with('success', 'Cargo transfer completed - storage and reefer closed'
                 . ($request->boolean('release_box') ? ', and the substitute box released.' : ' (box kept as empty stock).'));
+
+        // A leased box that has just left the yard is still costing the yard
+        // money: the per-diem runs until the lease is off-hired, and the lease
+        // does not end because the cargo was collected. Nobody watching the
+        // gate would think to check, so it is said at the moment the box goes.
+        $lease = $cargoTransfer->fresh()->lessorOnHire;
+
+        if ($request->boolean('release_box') && $lease && $lease->status === 'active') {
+            $redirect->with('warning', sprintf(
+                'Container %s has left the yard but is still on hire from %s since %s. '
+                . 'The per-diem keeps accruing until it is off-hired on the On-Hire In screen.',
+                $cargoTransfer->substituteContainer?->container_no ?? 'the substitute',
+                $lease->lessor?->name ?? 'the lessor',
+                $lease->on_hire_date?->format('d M Y') ?? '-',
+            ));
+        }
+
+        return $redirect;
     }
 
     public function show(CargoTransfer $cargoTransfer)

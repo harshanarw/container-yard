@@ -511,8 +511,34 @@ done.**
 **Phase 5 — sub-hire billing.** Customer invoice from the Phase 1 rate, over the
 hire period, on the sub-job. Requirement 3.
 
-**Phase 6 — substitution under hire.** Finish and properly test
-`CargoTransferService` for the `on_hired` path. Requirement 2.1.
+**Phase 6 — substitution under hire. Done.** Requirement 2.1.
+
+`substitute_source` has had an `on_hired` value since 000270, which added
+`container_hire_id` beside it "for a later phase". Nothing ever wrote that
+column, and it points at the wrong model: `ContainerHire` is the yard as
+*lessor*, a box going out to a renting customer, where a substitute the yard
+holds on hire is the opposite direction. So the enum was whatever the operator
+picked on the form, with nothing to check it against — and ticking the wrong box
+hid the cost side of the substitution's margin.
+
+`lessor_on_hire_id` (000320) links the lease, and `substitute_source` is derived
+from it rather than typed. `container_hire_id` is left in place, unused and
+documented, because dropping a column live rows might carry buys nothing.
+
+**A correction to what this plan said.** I recorded that
+`CargoTransferService` "still carries the `normal`/`resumed` assumption" at two
+sites and would misbehave on a leased container. The code is as described and
+the conclusion was wrong. On a leased-in substitute the only open row *is* the
+`lease_in` one, so the close is a no-op and the cargo row opens beside it —
+which is correct, not an oversight. The lease row says the yard is paying the
+line for this box, which stays true while it holds somebody's cargo, and the
+two rows are the two sides of the margin. Billing reads only `normal`/`resumed`,
+so the zero-rated row reaches no invoice. It is commented now rather than left
+to be re-diagnosed.
+
+What was genuinely missing, beyond the link: a leased box released at
+completion leaves the yard while its per-diem goes on accruing, and nothing
+said so. The completion now warns, naming the lessor and the on-hire date.
 
 **Phase 7 — internal hire.** Requirement 2.3. Smallest: a sub-hire with no
 counterparty and no invoice, which the existing null-customer handling already

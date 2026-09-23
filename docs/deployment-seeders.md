@@ -486,3 +486,27 @@ allowed are exactly the three that still have it.
 `StorageReportController` still carries the same `users.role` pattern. Left
 alone here — it is a different screen and not part of this change — but it is
 the same latent inconsistency.
+
+### Substitution under hire (migration 000320)
+
+```bash
+php artisan migrate --force        # 000320 — cargo_transfers.lessor_on_hire_id
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+```
+
+No seeder, no manual step.
+
+A substitution can use a container the yard holds on hire from a shipping line:
+the yard bills the cargo customer storage on it and pays the line rent for it,
+and the margin is the difference. `substitute_source` has had an `on_hired`
+value since the table was written, but nothing ever wrote the link beside it —
+so the value was whatever the operator picked on the form, and ticking the wrong
+box hid the cost side of that margin. It is derived from the lease now.
+
+Completing a transfer that **releases** a leased box warns that the box has left
+the yard while the lease is still running: the per-diem does not stop because
+the cargo was collected, and it keeps accruing until the box is off-hired on the
+On-Hire In screen.
+
+Existing `cargo_transfers` rows keep whatever `substitute_source` they were
+given; the new column is null on them. Nothing reads it retrospectively.

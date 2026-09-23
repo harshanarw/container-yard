@@ -25,7 +25,13 @@ class CargoTransfer extends Model
         'source_gate_out_movement_id',
         'substitute_container_id',
         'substitute_source',
+        // Unused. 000270 added it "for a later phase", pointing at
+        // ContainerHire — the yard as *lessor*, a box going out to a renting
+        // customer. A substitute the yard holds **on hire** is the opposite
+        // direction, so the link is `lessor_on_hire_id` below. Kept because
+        // live rows may carry it; do not wire anything new to it.
         'container_hire_id',
+        'lessor_on_hire_id',
         'substitute_yard_storage_id',
         'substitute_gate_out_movement_id',
         'reefer_plug_session_id',
@@ -84,9 +90,16 @@ class CargoTransfer extends Model
         return $this->belongsTo(GateMovement::class, 'substitute_gate_out_movement_id');
     }
 
+    /** @deprecated Unused — see the note on the fillable list. */
     public function containerHire()
     {
         return $this->belongsTo(ContainerHire::class);
+    }
+
+    /** The lease the substitute box is held under, when it is held under one. */
+    public function lessorOnHire()
+    {
+        return $this->belongsTo(LessorOnHire::class);
     }
 
     public function substituteYardStorage()
@@ -116,6 +129,13 @@ class CargoTransfer extends Model
         return $this->status === 'active';
     }
 
+    /**
+     * Was the substitute box one the yard is paying rent on?
+     *
+     * `substitute_source` is derived from the lease link at transfer time
+     * rather than typed on the form, so this and {@see lessorOnHire()} cannot
+     * disagree about the same box.
+     */
     public function isOnHired(): bool
     {
         return $this->substitute_source === self::SOURCE_ON_HIRED;

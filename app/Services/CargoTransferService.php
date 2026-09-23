@@ -41,7 +41,18 @@ class CargoTransferService
         $customerId = $sourceMovement->customer_id ?? $source->customer_id;
         $isReefer   = in_array($substitute->type_code, ['RF', 'RH'], true);
 
-        return DB::transaction(function () use ($sourceMovement, $source, $substitute, $data, $transferDate, $userId, $job, $customerId, $isReefer) {
+        // Whether the yard is paying rent on the substitute is a fact about the
+        // box, not a choice on a form. `substitute_source` used to be whatever
+        // the operator picked, and nothing wrote `container_hire_id`, so it
+        // could read `on_hired` for a box the yard owns outright — or, worse,
+        // `yard_owned` for one it is paying a shipping line for, hiding the
+        // cost side of the substitution's margin.
+        $lease = \App\Models\LessorOnHire::where('container_id', $substitute->id)
+            ->where('status', 'active')
+            ->latest('on_hire_date')
+            ->first();
+
+        return DB::transaction(function () use ($sourceMovement, $source, $substitute, $data, $transferDate, $userId, $job, $customerId, $isReefer, $lease) {
             // Storage rate for the substitute box (customer + equipment tariff).
             $dailyRate = isset($data['daily_rate']) && $data['daily_rate'] !== null && $data['daily_rate'] !== ''
                 ? (float) $data['daily_rate']
@@ -53,7 +64,10 @@ class CargoTransferService
                 'source_container_id'     => $source->id,
                 'source_gate_movement_id' => $sourceMovement->id,
                 'substitute_container_id' => $substitute->id,
-                'substitute_source'       => $data['substitute_source'] ?? CargoTransfer::SOURCE_YARD_OWNED,
+                'substitute_source'       => $lease
+                    ? CargoTransfer::SOURCE_ON_HIRED
+                    : CargoTransfer::SOURCE_YARD_OWNED,
+                'lessor_on_hire_id'       => $lease?->id,
                 'is_reefer'               => $isReefer,
                 'transfer_date'           => $transferDate->toDateString(),
                 'cargo_description'       => $data['cargo_description'] ?? null,
@@ -65,6 +79,15 @@ class CargoTransferService
             ]);
 
             // Close any open (non-hire) storage the substitute box already had.
+            //
+            // A lease's own `lease_in` row is deliberately untouched, and on a
+            // leased-in substitute it is the only open row there is — so this
+            // closes nothing and the cargo row below opens beside it. That is
+            // correct, not an oversight: the lease row says the yard is paying
+            // the line for this box, which stays true while the box holds
+            // somebody's cargo, and the two rows are the two sides of the
+            // margin. Billing reads only `normal`/`resumed`, so the zero-rated
+            // lease row reaches no invoice.
             YardStorage::where('container_id', $substitute->id)
                 ->whereNull('gate_out_date')
                 ->whereIn('hire_type', ['normal', 'resumed'])
