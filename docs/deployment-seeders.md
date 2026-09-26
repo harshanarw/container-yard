@@ -48,6 +48,10 @@ nothing duplicate. These carry the master data the app needs to function.
 | `Finance\DefaultCoaSeeder`, `Finance\AccountMappingSeeder` | Chart of accounts, GL mappings |
 | `PermissionSeeder`, `RoleSeeder`, `SystemAdminSeeder` | Access control baseline |
 
+**`RolePermissionSeeder` is not in that list, and must not be run on live.** It
+`sync()`s each role's permissions to exactly what it declares, revoking anything
+granted by hand. Use `permissions:sync` plus the Roles & Permissions screen.
+
 ### Never on live — demo / sample transaction data
 
 Idempotent or not, these fabricate business records.
@@ -443,10 +447,34 @@ its column positions and its columns keep their meanings.
 
 ```bash
 php artisan permissions:sync                                  # masters.drivers.*
-php artisan db:seed --class=RolePermissionSeeder --force      # grants them
 php artisan view:clear && php artisan route:clear && php artisan config:clear
 systemctl restart php-fpm
 ```
+
+Then grant **Drivers** to the roles that should have it, in *Settings → Roles &
+Permissions*. `yard_supervisor` and `administrator` are the ones the old role
+check allowed.
+
+> ### Do not run `RolePermissionSeeder` on a live instance
+>
+> An earlier version of this note said to. It is wrong, and the reason is
+> `sync()`:
+>
+> ```php
+> $role->permissions()->sync($ids);
+> ```
+>
+> That **replaces** each role's permission set with exactly what the seeder
+> declares, so every grant made by hand since the install is revoked. On this
+> instance that includes at least `container-stock.view`, `weekly-revenue.view`
+> and `gate-check.view` — all present in `config/modules.php`, none named in the
+> seeder, and matched by none of its wildcards. `administrator` survives because
+> it holds `*`; every other role loses them silently, and the first anyone knows
+> is a 403 on a report that worked yesterday.
+>
+> The seeder is for establishing a fresh install's baseline. On a running
+> instance, add new permissions with `permissions:sync` — which is additive —
+> and grant them through the UI.
 
 **Operations → Yard**, in the order the work happens:
 
