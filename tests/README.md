@@ -93,11 +93,24 @@ Access level to Tests\...\MyTest::session() must be public
 (as in class Illuminate\Foundation\Testing\TestCase)
 ```
 
-`session()` is the one that keeps catching people out — it seeds session data
-for a request, and it is also the obvious name for a fixture that builds a
-reefer plug session. Name such fixtures `makeSession()`. The same applies to
-`get`, `post`, `put`, `patch`, `delete`, `json`, `call`, `from`, `withHeaders`,
-`followingRedirects`, `artisan`, `travel` and `app`.
+Two have actually bitten, and both are words this domain uses constantly:
+
+| Fixture name | What it collides with | Call it |
+| --- | --- | --- |
+| `session()` | seeds session data for a request | `makeSession()` |
+| `seed()` | runs database seeders | `seedBoxes()`, `seedSource()` |
+
+`session()` is the obvious name for a fixture that builds a reefer plug
+session; `seed()` is the obvious name for one that builds the rows a test needs
+— which is exactly what the framework's own `seed()` does, from a different
+angle. The same applies to `get`, `post`, `put`, `patch`, `delete`, `json`,
+`call`, `from`, `withHeaders`, `followingRedirects`, `artisan`, `travel` and
+`app`.
+
+The pattern worth internalising: the framework already owns the plain verb for
+anything a test does to set itself up. **Say what the fixture builds, not what
+it does** — `seedBoxes`, `makeSession`, `arriveEmptyReefer` — and the collision
+cannot arise.
 
 **A second, separate trap: PHPUnit's own `final` methods.** These fail for a
 different reason and with a different message, so the fix above does not

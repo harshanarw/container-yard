@@ -57,7 +57,7 @@ class SubstitutionUnderHireTest extends FeatureTestCase
 
     public function test_a_leased_substitute_is_recorded_as_on_hired(): void
     {
-        [$sourceIn, $substitute] = $this->seed(lease: true);
+        [$sourceIn, $substitute] = $this->seedBoxes(lease: true);
 
         $this->transfer($sourceIn, $substitute)->assertRedirect();
 
@@ -70,7 +70,7 @@ class SubstitutionUnderHireTest extends FeatureTestCase
     /** And the lease itself is linked, which is what makes the margin readable. */
     public function test_the_lease_is_linked_to_the_transfer(): void
     {
-        [$sourceIn, $substitute] = $this->seed(lease: true);
+        [$sourceIn, $substitute] = $this->seedBoxes(lease: true);
         $lease = LessorOnHire::where('container_id', $substitute->id)->firstOrFail();
 
         $this->transfer($sourceIn, $substitute);
@@ -80,7 +80,7 @@ class SubstitutionUnderHireTest extends FeatureTestCase
 
     public function test_a_yard_owned_substitute_is_recorded_as_yard_owned(): void
     {
-        [$sourceIn, $substitute] = $this->seed(lease: false);
+        [$sourceIn, $substitute] = $this->seedBoxes(lease: false);
 
         $this->transfer($sourceIn, $substitute);
 
@@ -97,7 +97,7 @@ class SubstitutionUnderHireTest extends FeatureTestCase
      */
     public function test_the_form_cannot_contradict_the_data(): void
     {
-        [$sourceIn, $substitute] = $this->seed(lease: true);
+        [$sourceIn, $substitute] = $this->seedBoxes(lease: true);
 
         $this->transfer($sourceIn, $substitute, ['substitute_source' => 'yard_owned']);
 
@@ -118,7 +118,7 @@ class SubstitutionUnderHireTest extends FeatureTestCase
      */
     public function test_the_lease_row_survives_and_the_cargo_row_opens_beside_it(): void
     {
-        [$sourceIn, $substitute] = $this->seed(lease: true);
+        [$sourceIn, $substitute] = $this->seedBoxes(lease: true);
 
         $this->transfer($sourceIn, $substitute);
 
@@ -132,7 +132,7 @@ class SubstitutionUnderHireTest extends FeatureTestCase
 
     public function test_completing_closes_the_cargo_row_and_not_the_lease(): void
     {
-        [$sourceIn, $substitute] = $this->seed(lease: true);
+        [$sourceIn, $substitute] = $this->seedBoxes(lease: true);
         $this->transfer($sourceIn, $substitute);
 
         Carbon::setTestNow('2026-04-20 10:00:00');
@@ -155,7 +155,7 @@ class SubstitutionUnderHireTest extends FeatureTestCase
      */
     public function test_releasing_a_leased_box_warns_that_the_lease_is_still_running(): void
     {
-        [$sourceIn, $substitute] = $this->seed(lease: true);
+        [$sourceIn, $substitute] = $this->seedBoxes(lease: true);
         $this->transfer($sourceIn, $substitute);
 
         Carbon::setTestNow('2026-04-20 10:00:00');
@@ -165,7 +165,7 @@ class SubstitutionUnderHireTest extends FeatureTestCase
 
     public function test_a_yard_owned_release_says_nothing_about_a_lease(): void
     {
-        [$sourceIn, $substitute] = $this->seed(lease: false);
+        [$sourceIn, $substitute] = $this->seedBoxes(lease: false);
         $this->transfer($sourceIn, $substitute);
 
         Carbon::setTestNow('2026-04-20 10:00:00');
@@ -176,7 +176,7 @@ class SubstitutionUnderHireTest extends FeatureTestCase
     /** Off the ground, still the yard's responsibility — as the stock reports say. */
     public function test_the_released_box_still_reads_on_hire(): void
     {
-        [$sourceIn, $substitute] = $this->seed(lease: true);
+        [$sourceIn, $substitute] = $this->seedBoxes(lease: true);
         $this->transfer($sourceIn, $substitute);
 
         Carbon::setTestNow('2026-04-20 10:00:00');
@@ -191,7 +191,7 @@ class SubstitutionUnderHireTest extends FeatureTestCase
     // ── Fixtures ────────────────────────────────────────────────────────────
 
     /** @return array{0: GateMovement, 1: Container} */
-    private function seed(bool $lease): array
+    private function seedBoxes(bool $lease): array
     {
         $jobType = YardJobType::where('job_type_code', 'CARGO_RENTAL_IN')->firstOrFail();
 
