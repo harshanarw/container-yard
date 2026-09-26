@@ -249,6 +249,17 @@ all, because the cost and the revenue would land in the same bucket:
 | `LHIRE` | payable | what the yard pays a line for a box it holds on hire |
 | `SHIRE` | receivable | what the yard is paid for letting that box out (phase 5) |
 
+**Idempotent is not the same as non-destructive.** The upsert rewrites
+`description`, `category`, `rate_type`, `tax_code_id` and `sort_order` on *every*
+code it lists, so a description or tax code an operator changed on the master
+screen goes back to the seeder's value. On an instance where those were tuned,
+add the two codes by hand instead — *Masters → Charge Codes*, category **Hire &
+Rental**, rate type **Per Day** — and skip the seeder. Check first:
+
+```bash
+php artisan tinker --execute="\App\Models\ChargeCode::whereIn('code',['LHIRE','SHIRE'])->get(['code','category'])->each(fn(\$c)=>print(\$c->code.' '.\$c->category.PHP_EOL));"
+```
+
 **One manual step, and the screen refuses to raise anything without it:** map an
 expense account to `LHIRE` under *Finance → Account Mappings* (`charge_expense`).
 A cost with nowhere to post is refused rather than raised half-formed.

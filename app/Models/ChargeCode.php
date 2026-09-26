@@ -30,6 +30,13 @@ class ChargeCode extends Model
         'special'       => 'Special Cargo',
         'penalty'       => 'Penalties & Demurrage',
         'documentation' => 'Documentation',
+        // Both directions of the hire trade — LHIRE payable to a lessor, SHIRE
+        // receivable from a renter. The category has to be listed here and not
+        // only in the seeder: ChargeCodeController validates it against these
+        // keys and the edit form builds its dropdown from them, so a code
+        // seeded into a category the model does not know is a code whose
+        // category an operator cannot see and cannot save back.
+        'hire'          => 'Hire & Rental',
         'miscellaneous' => 'Miscellaneous',
     ];
 
@@ -45,6 +52,7 @@ class ChargeCode extends Model
         'special'       => 'bg-danger-subtle text-danger border border-danger-subtle',
         'penalty'       => 'bg-danger text-white',
         'documentation' => 'bg-primary-subtle text-primary border border-primary-subtle',
+        'hire'          => 'bg-success-subtle text-success border border-success-subtle',
         'miscellaneous' => 'bg-light border text-muted',
     ];
 
