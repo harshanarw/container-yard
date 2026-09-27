@@ -53,21 +53,68 @@ Check the dump is not empty and ends with a `-- Dump completed` line:
 tail -2 /root/pre-hire-deploy-*.sql
 ```
 
-## 2. Refresh the autoloader
+## 2. The autoloader — usually nothing to do
 
 This batch adds ~20 new classes (`app/Support/VisitPairing.php`,
 `app/Support/HireGateState.php`, `app/Services/HireGateService.php`, the billing
-services, three console commands). If the optimised classmap is in use, they do
-not exist until it is rebuilt.
+services, three console commands), all under `App\`, which is a PSR-4 prefix.
 
-`composer.json` and `composer.lock` did **not** change, so no `composer install`
-is needed.
+**No `composer install`, and normally no dump either.** This repository does not
+contain `composer.json`, `composer.lock`, `vendor/` or `bootstrap/` — they exist
+only on the server — so no pull can change the dependency set. And
+`composer dump-autoload -o` builds a classmap while *keeping* the PSR-4 fallback,
+so a new file under `app/` is found at runtime whether or not the classmap knows
+about it.
+
+The one setup that needs a dump is an **authoritative** classmap, where the
+fallback is switched off and a class absent from the map does not exist:
+
+```bash
+grep -riE 'classmap-authoritative|apcu-autoloader' composer.json deploy* 2>/dev/null
+```
+
+If that matches, and only then:
 
 ```bash
 cd /var/www/container-yard
-composer dump-autoload -o --no-dev
+composer dump-autoload -o
 chown -R nginx:nginx vendor/composer
 ```
+
+> ### Never `--no-dev` on this server
+>
+> An earlier version of this runbook said `composer dump-autoload -o --no-dev`.
+> It takes the site down:
+>
+> ```
+> In ProviderRepository.php line 206:
+>   Class "Laravel\Sail\SailServiceProvider" not found
+> ```
+>
+> `--no-dev` regenerates the map from the non-dev dependency set, so
+> `Laravel\Sail\` is dropped from `autoload_psr4.php`. Sail is still in
+> `vendor/` and still listed in `vendor/composer/installed.json`, so Laravel's
+> package manifest goes on registering `SailServiceProvider` — a provider the
+> autoloader can no longer resolve. Every request and every artisan command then
+> fatals. The autoload files are written *before* the failing
+> `package:discover`, so the error message is the damage already applied, not a
+> refusal.
+>
+> Recover by dumping again without the flag:
+>
+> ```bash
+> rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+> composer dump-autoload -o
+> php artisan --version
+> chown -R nginx:nginx vendor/composer bootstrap/cache
+> systemctl restart php-fpm
+> ```
+>
+> A vendor tree genuinely without dev packages is a different operation —
+> `composer install --no-dev --optimize-autoloader`, which removes them from
+> `vendor/` and from `installed.json` together, so the manifest stops naming
+> them. That is a deliberate change to what is deployed, not a step in the
+> middle of a migration run.
 
 ## 3. Run the migrations
 
