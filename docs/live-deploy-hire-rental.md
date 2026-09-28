@@ -408,12 +408,31 @@ rent for.
 
 ### 10b. Empty reefers reading "PTI due"
 
+**Do part 9e first.** `--fix` rewrites `gate_movements.reefer_mode` from
+`operating` to `non_operating` on existing arrivals, and a NOR prices from its
+own storage tariff row. Run it before that row exists and the containers it
+touches stop resolving a storage rate — the PTI is fixed and the billing breaks
+in the same step.
+
 ```bash
 php artisan reefer:empty-operating
 php artisan reefer:empty-operating --fix
 ```
 
-Records them as non-operating and refreshes the M&R status.
+Records them as non-operating and refreshes the M&R status. Read the table it
+prints before using `--fix`: an empty reefer genuinely can be running — a feeder
+movement, pre-cooling before a stuffing — and those look identical in the data to
+the ones the gate form got wrong.
+
+There is no `--unfix`, and `reefer_mode` is set at the gate-in form and nowhere
+else — no movement-edit screen exposes it. To put one back:
+
+```sql
+UPDATE gate_movements SET reefer_mode = 'operating'
+WHERE container_no = 'MSCU1234567' AND movement_type = 'in' AND gate_in_time = '2026-09-21 08:30:00';
+```
+
+Then `php artisan containers:reconcile-mr-status --container=MSCU1234567 --fix`.
 
 ### 10c. Stale condition and stranded repair status
 
