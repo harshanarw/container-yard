@@ -596,7 +596,13 @@ class StorageHandlingController extends Controller
             // Manual mode has no tariff to be missing — a blank rate there is the
             // operator's still-empty box, and the screen chases it instead.
             if (! $manual) {
-                $storageReason = TariffRateGuard::storageReason($chargeableDays > 0, $storageRate, (bool) $storageTariff, (bool) $detail);
+                $storageReason = TariffRateGuard::storageReason(
+                    $chargeableDays > 0,
+                    $storageRate,
+                    (bool) $storageTariff,
+                    (bool) $detail,
+                    $reeferModeByContainer[$container->id] ?? null,
+                );
                 if ($storageReason) {
                     $guard->flag('storage', $eqtCode, $cargoStatus, $storageReason, $container->container_no, $storageFixUrl, $storageFixLabel);
                 }
@@ -1205,6 +1211,17 @@ class StorageHandlingController extends Controller
             ->latest('valid_from')
             ->first();
 
+        // Resolved server-side, because the posted line is not trusted and
+        // because `lines.*.reefer_mode` is not even validated — the preview
+        // sends it for display only. Without it this guard resolved the tariff
+        // by equipment type and cargo status alone, found the operating row for
+        // a non-operating box, and passed a line the preview had already priced
+        // at zero. The two are supposed to share one definition of "missing".
+        $guardReeferModes = GateMovement::reeferModeByContainer(
+            collect($v['lines'])->pluck('container_id')->filter()->unique()->values(),
+            (int) $v['shipping_line_id'],
+        );
+
         $guard = new TariffRateGuard();
         $storageFixUrl    = $storageTariff ? route('masters.storage-tariff.show', $storageTariff->id) : route('masters.storage-tariff.index');
         $storageFixLabel  = $storageTariff ? 'Edit storage tariff' : 'Set up storage tariff';
@@ -1218,14 +1235,15 @@ class StorageHandlingController extends Controller
 
             // Storage portion
             if ((int) ($line['storage_chargeable_days'] ?? 0) > 0) {
-                $eqtId  = ($line['equipment_type_id'] ?? null) ?: null;
-                $detail = $storageTariff
-                    ? $storageTariff->details->where('equipment_type_id', $eqtId)->where('cargo_status', $cargo)->first()
+                $eqtId      = ($line['equipment_type_id'] ?? null) ?: null;
+                $reeferMode = $guardReeferModes[$line['container_id'] ?? null] ?? null;
+                $detail     = $storageTariff
+                    ? \App\Models\StorageMasterDetail::resolve($storageTariff->details, $eqtId, $cargo, $reeferMode)
                     : null;
                 $rate = $storageTariff
                     ? (float) ($detail->storage_rate ?? 0)
                     : (float) ($line['storage_daily_rate'] ?? 0);
-                $reason = TariffRateGuard::storageReason(true, $rate, (bool) $storageTariff, (bool) $detail);
+                $reason = TariffRateGuard::storageReason(true, $rate, (bool) $storageTariff, (bool) $detail, $reeferMode);
                 if ($reason) {
                     $guard->flag('storage', $line['equipment_type'] ?? null, $cargo, $reason, $containerNo, $storageFixUrl, $storageFixLabel);
                 }

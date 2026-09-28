@@ -326,6 +326,43 @@ class GateMovement extends Model
      * Null `held_by` falls through to `customer_id`, so every ordinary movement
      * is selected exactly as it was before this existed.
      */
+    /**
+     * The reefer mode each container's arrival was recorded with.
+     *
+     * A reefer prices from a different tariff row depending on whether its
+     * machinery is running, so a rate guard that resolves the tariff without
+     * this dimension reaches a different row from the preview that priced the
+     * line — and the guard exists precisely to agree with the preview.
+     *
+     * Keyed the same way the previews key it: ordered newest first, so the
+     * *oldest* arrival wins the key. That is the stay the storage row belongs
+     * to, and the same movement cargo status is read from, which is what keeps
+     * a box from being priced as laden on one axis and empty on the other.
+     *
+     * `$billableTo` scopes to the party being billed where that matters — the
+     * combined storage-and-handling bill, where a rental return arrival belongs
+     * to the renter and not to the line. Omitted, every arrival for the
+     * container counts, which is what the storage-only bill has always done.
+     *
+     * @param  iterable<int>  $containerIds
+     * @return \Illuminate\Support\Collection<int,?string>
+     */
+    public static function reeferModeByContainer($containerIds, ?int $billableTo = null): \Illuminate\Support\Collection
+    {
+        $query = static::query()
+            ->whereIn('container_id', $containerIds)
+            ->where('movement_type', 'in');
+
+        if ($billableTo !== null) {
+            $query->billableTo($billableTo);
+        }
+
+        return $query->orderByDesc('gate_in_time')
+            ->get()
+            ->keyBy('container_id')
+            ->map(fn ($m) => $m->reefer_mode);
+    }
+
     public function scopeBillableTo($query, ?int $customerId)
     {
         if (! $customerId) {

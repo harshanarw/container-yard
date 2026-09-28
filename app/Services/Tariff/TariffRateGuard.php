@@ -25,9 +25,23 @@ class TariffRateGuard
     /**
      * Why a chargeable storage line resolved to no usable rate, or null if fine.
      * Only chargeable lines (qty > 0) can be a blocking miss.
+     *
+     * `$reeferMode` is named in the message when there is one, and the reason it
+     * has to be is that a reefer rate is keyed on three things rather than two.
+     * A tariff carrying only the operating row prices nothing for a box recorded
+     * as non-operating — while "no storage rate line for this equipment type &
+     * cargo status" sends the operator to a tariff screen where a row for that
+     * equipment type and cargo status is plainly sitting there. They conclude
+     * the message is wrong. It was not wrong, it was incomplete, and the
+     * dimension it left out is the whole reason the row did not match.
      */
-    public static function storageReason(bool $billable, float $resolvedRate, bool $headerExists, bool $detailExists): ?string
-    {
+    public static function storageReason(
+        bool $billable,
+        float $resolvedRate,
+        bool $headerExists,
+        bool $detailExists,
+        ?string $reeferMode = null,
+    ): ?string {
         if (! $billable || $resolvedRate > 0) {
             return null;
         }
@@ -35,9 +49,18 @@ class TariffRateGuard
             return 'No active storage tariff and no stored rate for this container.';
         }
         if (! $detailExists) {
-            return 'No storage rate line for this equipment type & cargo status.';
+            return $reeferMode
+                ? 'No storage rate line for this equipment type & cargo status in '
+                    . self::reeferModeLabel($reeferMode) . ' mode.'
+                : 'No storage rate line for this equipment type & cargo status.';
         }
         return 'Storage rate is set to zero.';
+    }
+
+    /** As the tariff screen and the gate label it, so the operator can match them up. */
+    private static function reeferModeLabel(string $reeferMode): string
+    {
+        return $reeferMode === 'non_operating' ? 'non-operating (NOR)' : 'operating';
     }
 
     /**

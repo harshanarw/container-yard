@@ -258,7 +258,8 @@ class StorageBillingController extends Controller
                 $chargeableDays > 0,
                 $dailyRate,
                 (bool) $tariffHeader,
-                (bool) $detail
+                (bool) $detail,
+                $gateInReeferMode[$container->id] ?? null,
             );
             if ($reason) {
                 $guard->flag('storage', $eqtCode, $cargoStatus, $reason, $container->container_no, $tariffFixUrl, $tariffFixLabel);
@@ -484,15 +485,25 @@ class StorageBillingController extends Controller
         $fixUrl   = $header ? route('masters.storage-tariff.show', $header->id) : route('masters.storage-tariff.index');
         $fixLabel = $header ? 'Edit storage tariff' : 'Set up storage tariff';
 
+        // The third dimension of a reefer rate, resolved from the arrival rather
+        // than taken from the posted line — the same rule, and the same source,
+        // the preview priced from. Unscoped by party, as the preview is: this
+        // bill is one customer's storage, and every arrival for the container is
+        // theirs.
+        $guardReeferModes = \App\Models\GateMovement::reeferModeByContainer(
+            collect($validated['lines'])->pluck('container_id')->filter()->unique()->values(),
+        );
+
         foreach ($validated['lines'] as $line) {
             if ((int) ($line['chargeable_days'] ?? 0) <= 0) {
                 continue;
             }
 
-            $eqtId  = ($line['equipment_type_id'] ?? null) ?: null;
-            $cargo  = $line['cargo_status'] ?? null;
-            $detail = $header
-                ? $header->details->where('equipment_type_id', $eqtId)->where('cargo_status', $cargo)->first()
+            $eqtId      = ($line['equipment_type_id'] ?? null) ?: null;
+            $cargo      = $line['cargo_status'] ?? null;
+            $reeferMode = $guardReeferModes[$line['container_id'] ?? null] ?? null;
+            $detail     = $header
+                ? \App\Models\StorageMasterDetail::resolve($header->details, $eqtId, $cargo, $reeferMode)
                 : null;
 
             // Authoritative rate: from the tariff detail when a tariff exists; the
@@ -501,7 +512,7 @@ class StorageBillingController extends Controller
                 ? (float) ($detail->storage_rate ?? 0)
                 : (float) ($line['daily_rate'] ?? 0);
 
-            $reason = TariffRateGuard::storageReason(true, $resolvedRate, (bool) $header, (bool) $detail);
+            $reason = TariffRateGuard::storageReason(true, $resolvedRate, (bool) $header, (bool) $detail, $reeferMode);
             if ($reason) {
                 $guard->flag('storage', $line['equipment_type'] ?? null, $cargo, $reason, $line['container_no'] ?? null, $fixUrl, $fixLabel);
             }

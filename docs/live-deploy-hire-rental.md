@@ -323,6 +323,58 @@ when the agreement is recorded.
 Leave *Require a reefer plug session* (Company Settings) **off** for now. It
 ships off deliberately; turn it on once the gate staff are recording sessions.
 
+### 9e. Every reefer storage tariff needs **both** modes — check this one
+
+This batch changed the gate's reefer-mode default: an **empty** reefer now
+pre-selects *non-operating*, where the markup used to hard-code *operating*
+whatever arrived. A NOR prices from its own tariff row, so an empty reefer gated
+in after this deploy needs a `(equipment type, empty, non_operating)` row on the
+customer's storage tariff. Without one the line resolves to **no rate at all** —
+which on the invoice looks exactly like the rate not picking up.
+
+Migration 000307 created a non-operating twin, at the same figure, for every
+reefer rate row that existed **when it ran**. Rows added since have no twin.
+
+This lists every combination where one mode prices nothing:
+
+```sql
+SELECT c.name AS customer, e.eqt_code, d.cargo_status,
+       SUM(d.reefer_mode = 'operating')     AS has_operating,
+       SUM(d.reefer_mode = 'non_operating') AS has_nor,
+       SUM(d.reefer_mode IS NULL)           AS has_any_mode
+FROM storage_master_details d
+JOIN storage_master_headers h ON h.id = d.storage_master_header_id
+JOIN customers c              ON c.id = h.customer_id
+JOIN equipment_types e        ON e.id = d.equipment_type_id
+WHERE e.type_code IN ('RF', 'RH')
+GROUP BY h.id, c.name, e.eqt_code, d.cargo_status
+HAVING has_any_mode = 0 AND (has_operating = 0 OR has_nor = 0);
+```
+
+**Every row it returns is a container that will bill nothing in one mode.** Add
+the missing row in *Masters → Storage Tariff* → the customer's tariff → the
+reefer-mode radio beside cargo status. A `has_any_mode` of 1 is not a gap: a row
+that leaves the mode null prices both, which is what keeps an un-migrated tariff
+working.
+
+If the query returns nothing at all, check the column is even there — it means
+000306 and 000307 never ran:
+
+```bash
+php artisan migrate:status | grep -E '0030[567]'
+```
+
+To see what a single container will resolve against, read the mode off its
+arrival and compare:
+
+```sql
+SELECT container_no, movement_type, cargo_status, reefer_mode,
+       gate_in_time, gate_out_time, customer_id
+FROM gate_movements
+WHERE container_no = 'MSCU1234567'
+ORDER BY id;
+```
+
 ---
 
 ## 10. Correcting the records this batch changed the meaning of
