@@ -115,15 +115,27 @@ class ContainerCustodyService
      * it together, or the two ends drift apart again — which is exactly how the
      * original defect arose, via an edit that touched only one end.
      *
+     * **And the stay's storage is one of those ends.** Gate-in writes
+     * `yard_storage.customer_id` from the same field as the movement
+     * (`YardController::gateIn`), and the storage bill selects on it. Moving the
+     * movements without it splits one visit between two parties: the lifts
+     * follow to the corrected customer and the days stay with the mis-keyed one.
+     * That is not a visible error anywhere — the corrected customer's bill
+     * simply has no stay to price, and the days sit on an account nobody is
+     * billing. It is how a container comes to show a lift charge and a blank
+     * storage line on the same invoice.
+     *
      * @return bool true when something was actually changed.
      */
     public function reassignVisit(GateMovement $gateIn, int $customerId): bool
     {
         if (! $gateIn->yard_job_id) {
-            // No job to anchor the visit: correct the movement alone. Nothing
-            // else shares the value, so nothing can drift from it.
+            // No job to anchor the visit: correct the movement alone, and the
+            // storage row it opened.
+            $moved = $this->moveStay([$gateIn->id], $customerId);
+
             if ((int) $gateIn->customer_id === $customerId) {
-                return false;
+                return $moved;
             }
 
             $gateIn->update(['customer_id' => $customerId]);
@@ -137,13 +149,39 @@ class ContainerCustodyService
             $job->update(['customer_id' => $customerId]);
         }
 
+        $movementIds = GateMovement::where('yard_job_id', $gateIn->yard_job_id)->pluck('id');
+
         // Both gates carry a denormalised copy for reporting and indexed
         // filtering; the job is the writer, so they are refreshed from it.
-        $changed = GateMovement::where('yard_job_id', $gateIn->yard_job_id)
+        $changed = GateMovement::whereIn('id', $movementIds)
             ->where('customer_id', '!=', $customerId)
             ->update(['customer_id' => $customerId]);
 
-        return $changed > 0;
+        $moved = $this->moveStay($movementIds, $customerId);
+
+        return $changed > 0 || $moved;
+    }
+
+    /**
+     * Re-point the billable storage this visit opened.
+     *
+     * Anchored on `gate_movement_id`, which gate-in sets for exactly this
+     * purpose — "identifies THIS stay", where the date alone cannot, because a
+     * container gated out and back in on one day produces two rows sharing it.
+     *
+     * Hire rows are deliberately left where they are. An `on_hire` row belongs
+     * to the renting customer and a `lease_in` row to the yard; neither is the
+     * visit customer, and moving them would bill a shipping line for a box the
+     * yard is paying *them* rent on.
+     *
+     * @param  iterable<int>  $movementIds
+     */
+    private function moveStay($movementIds, int $customerId): bool
+    {
+        return \App\Models\YardStorage::whereIn('gate_movement_id', $movementIds)
+            ->nonHire()
+            ->where('customer_id', '!=', $customerId)
+            ->update(['customer_id' => $customerId]) > 0;
     }
 
     /**

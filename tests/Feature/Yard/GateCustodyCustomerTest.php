@@ -183,6 +183,66 @@ class GateCustodyCustomerTest extends FeatureTestCase
             'The job is the writer, so it moves too.');
     }
 
+    /**
+     * And the stay's storage moves with it.
+     *
+     * Gate-in writes `yard_storage.customer_id` from the same field as the
+     * movement, and the storage bill selects on it. Leaving it behind splits one
+     * visit between two parties with nothing to show for it: handling reads the
+     * movement, so the lifts follow the correction; storage reads this column,
+     * so the days stay with the mis-keyed customer. The corrected party's
+     * invoice then shows a lift charge and a blank storage line for the same
+     * container, and the days reach nobody's invoice at all.
+     */
+    public function test_correcting_the_customer_moves_the_storage_too(): void
+    {
+        $this->gateIn('CUST0000009');
+
+        [$in] = $this->movements('CUST0000009');
+
+        $this->patch(route('yard.movements.update', $in), [
+            'customer_id' => $this->other->id,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            $this->other->id,
+            (int) \App\Models\YardStorage::where('gate_movement_id', $in->id)->value('customer_id'),
+            'The days and the lifts have to end up on the same invoice.',
+        );
+    }
+
+    /**
+     * A hire row is not the visit's, and does not move.
+     *
+     * `on_hire` belongs to the renting customer and `lease_in` to the yard.
+     * Re-pointing either would bill a shipping line for storing a box the yard
+     * is simultaneously paying *them* rent on.
+     */
+    public function test_a_hire_storage_row_stays_where_it_is(): void
+    {
+        $this->gateIn('CUST0000010');
+
+        [$in] = $this->movements('CUST0000010');
+
+        $renter = Customer::factory()->create(['name' => 'Renting Party']);
+
+        $hireRow = \App\Models\YardStorage::create([
+            'container_id'     => $in->container_id,
+            'gate_movement_id' => $in->id,
+            'customer_id'      => $renter->id,
+            'gate_in_date'     => now()->toDateString(),
+            'free_days'        => 0,
+            'daily_rate'       => 0,
+            'hire_type'        => 'on_hire',
+        ]);
+
+        $this->patch(route('yard.movements.update', $in), [
+            'customer_id' => $this->other->id,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame($renter->id, (int) $hireRow->fresh()->customer_id);
+    }
+
     // ── Owner is a separate thing ────────────────────────────────────────────
 
     public function test_the_owner_is_independent_of_who_is_at_the_gate(): void

@@ -462,6 +462,33 @@ then:
 php artisan containers:fix-gate-custody --fix
 ```
 
+### 10d-ii. Storage rows left behind when a customer was corrected
+
+**Run this before raising any storage bill.** It is not part of the hire work —
+it is older — but the hire work is what made it visible.
+
+Gate-in writes the same customer onto the job, the gate movement and the
+`yard_storage` row. Correcting a mis-keyed customer on the movement edit screen
+moved the job and both gates and **not** the storage. One visit then sits on two
+parties: handling selects on the movement, so the lifts follow the correction;
+storage selects on `yard_storage.customer_id`, so the days stay with the
+mis-keyed party — usually a catch-all account nobody bills. On the corrected
+customer's invoice that container shows a lift charge and a blank storage line.
+
+```bash
+php artisan containers:fix-storage-custody
+php artisan containers:fix-storage-custody --fix
+```
+
+The report names both parties per row and flags any period a live invoice
+already covers — re-pointing a row does not move an invoice, so credit and
+re-raise those separately. Rows with no `gate_movement_id` are counted and left
+alone: they predate the anchor, and matching them by date could move revenue to
+the wrong account. Hire rows are never touched.
+
+`reassignVisit()` moves the storage from now on, so this is a one-off for the
+rows already split.
+
 ### 10e. M&R status — last, so it recomputes from the corrected data
 
 ```bash
