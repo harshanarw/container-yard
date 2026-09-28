@@ -597,6 +597,24 @@ function norBadge(l) {
          + ' title="Non-Operating Reefer \u2014 dry cargo, machinery off">NOR</span>';
 }
 
+// A line that carries only a lift: the container was gated in or out during the
+// period but holds no billable stay for this party, because it is out on hire or
+// because the stay belongs to somebody else. Its storage columns are the
+// placeholders the NOT NULL columns need, and printing them as 0.00 beside a
+// tariff that plainly lists a rate for that equipment type reads as a broken
+// tariff. Nothing about storage was looked up for this container at all.
+//
+// `storage_applicable` is absent on an older cached preview payload, so the
+// check is explicit rather than falsy.
+function noStorage(l) {
+    return l.storage_applicable === false;
+}
+
+function escText(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function fmtEqt(l) {
     if (!l.eqt_code) return l.equipment_type || '-';
     const isReefer = l.type_code && ['RF','RH'].includes(l.type_code);
@@ -1204,6 +1222,10 @@ function renderPreview(data) {
             <td class="small">${fmtEqt(l)}</td>
             <td class="small">${l.cargo_status ? '<span class="badge ' + (l.cargo_status === 'laden' ? 'bg-warning-subtle text-warning' : 'bg-info-subtle text-info') + ' border" style="font-size:.7rem;">' + (l.cargo_status.charAt(0).toUpperCase() + l.cargo_status.slice(1)) + '</span>' : '-'}${norBadge(l)}</td>
             <td class="small">${fmtDate(l.gate_in_date)}</td>
+            ${noStorage(l) ? `
+            <td class="text-center small text-muted" colspan="3">
+                <span class="badge bg-light border text-muted" style="font-size:.66rem;">${escText(l.storage_note || 'No storage in this period')}</span>
+            </td>` : `
             <td class="text-center small">${fmtDate(l.storage_from)}</td>
             <td class="text-center small">${fmtDate(l.storage_to)}</td>
             <td class="text-center">
@@ -1211,7 +1233,7 @@ function renderPreview(data) {
                 ${l.already_billed_days > 0 ? `<span class="badge bg-secondary-subtle text-secondary border ms-1"
                        style="font-size:.62rem;" title="Already invoiced by another bill for this period">
                        +${l.already_billed_days}d billed</span>` : ''}
-            </td>`;
+            </td>`}`;
 
     document.getElementById('storageBody').innerHTML = previewLines.map((l, i) => MANUAL ? `
         <tr id="sRow-${i}">
@@ -1229,6 +1251,9 @@ function renderPreview(data) {
     ` : `
         <tr class="${l.storage_chargeable_days == 0 ? 'text-muted' : ''}">
             ${storageHead(l, i)}
+            ${noStorage(l) ? `
+            <td class="text-center" colspan="7">&mdash;</td>
+            <td class="text-end pe-2 small text-muted">&mdash;</td>` : `
             <td class="text-center text-success">${l.storage_free_days}d</td>
             <td class="text-center ${l.storage_chargeable_days > 0 ? 'text-danger fw-semibold' : 'text-success'}">${l.storage_chargeable_days}d</td>
             <td class="text-end bg-warning-subtle small">${fmt(l.storage_daily_rate_usd ?? 0)}</td>
@@ -1236,7 +1261,7 @@ function renderPreview(data) {
             <td class="text-end bg-warning-subtle small text-muted">${fmt(l.exchange_rate ?? 1)}</td>
             <td class="text-end bg-warning-subtle fw-semibold small">${fmt(l.storage_daily_rate)}</td>
             <td class="text-end fw-semibold ${l.storage_subtotal == 0 ? 'text-success' : ''}">${fmtAmt(l.storage_subtotal)}</td>
-            <td class="text-end pe-2 small text-muted">${fmtVal(l.storage_subtotal)}</td>
+            <td class="text-end pe-2 small text-muted">${fmtVal(l.storage_subtotal)}</td>`}
         </tr>
     `).join('');
 

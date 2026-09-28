@@ -312,12 +312,32 @@ class StorageHandlingController extends Controller
                     ->values();
 
                 if ($extraIds->isNotEmpty()) {
+                    // Why the stay is not billable, so the line can say so. A
+                    // storage column reading 0.00 on a bill whose tariff plainly
+                    // carries a rate for that equipment type is read as a broken
+                    // tariff, and it is not one — nothing about storage was
+                    // consulted for this container at all.
+                    $suspended = YardStorage::whereIn('container_id', $extraIds)
+                        ->whereIn('hire_type', ['on_hire', 'lease_in'])
+                        ->where('gate_in_date', '<=', $periodTo)
+                        ->where(fn ($q) => $q->whereNull('gate_out_date')
+                                             ->orWhere('gate_out_date', '>=', $periodFrom))
+                        ->pluck('container_id')
+                        ->unique()
+                        ->flip();
+
                     // Appended rather than merged into a keyed map: a container
                     // can legitimately hold two storage rows in one period — a
                     // stay closed mid-period and a resumed one after it — and
                     // keying by container id would silently drop a line.
                     foreach (Container::with('equipmentType')->whereIn('id', $extraIds)->get() as $c) {
-                        $spine->push(['container' => $c, 'storage' => null]);
+                        $spine->push([
+                            'container'    => $c,
+                            'storage'      => null,
+                            'storage_note' => $suspended->has($c->id)
+                                ? 'On hire - storage suspended'
+                                : 'No billable stay in this period',
+                        ]);
                     }
                 }
             }
@@ -352,6 +372,14 @@ class StorageHandlingController extends Controller
             $container = $unit['container'];
             $storage   = $unit['storage'];
 
+            // A line carrying only a lift. Its storage columns are structural
+            // zeros — no window, no rate resolved, nothing looked up — and the
+            // preview renders them as blanks rather than as figures, because a
+            // zero rate and an inapplicable rate mean different things and only
+            // one of them is a problem with the tariff.
+            $storageApplies = $wantsStorage && $storage !== null;
+            $storageNote    = $storageApplies ? null : ($unit['storage_note'] ?? null);
+
             $eqtId       = $container->equipment_type_id;
             $cargoStatus = $cargoStatusByContainer[$container->id] ?? 'empty';
 
@@ -377,7 +405,7 @@ class StorageHandlingController extends Controller
             // billing_gate_in_date is the free-day anchor (original physical gate-in).
             // fromDate uses gate_in_date so resumed records aren't billed before they exist.
             // toDate is capped at gate_out_date for records closed mid-period.
-            if ($wantsStorage && $storage) {
+            if ($storageApplies) {
                 $gateIn   = $storage->billing_gate_in_date;
                 $fromDate = $storage->gate_in_date->gt($periodFrom)
                     ? $storage->gate_in_date->copy()
@@ -633,6 +661,11 @@ class StorageHandlingController extends Controller
                 'reefer_mode'              => $reeferModeByContainer[$container->id] ?? null,
                 'gate_in_date'             => $gateInStr,
                 'gate_out_date'            => $gateOutStr,
+                // False when the line carries only a lift. The dates, days and
+                // rates below are then placeholders the NOT NULL columns need,
+                // not figures anybody computed.
+                'storage_applicable'       => $storageApplies,
+                'storage_note'             => $storageNote,
                 'storage_from'             => $fromStr,
                 'storage_to'               => $toStr,
                 'storage_total_days'       => $totalDays,

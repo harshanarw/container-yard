@@ -113,6 +113,38 @@ class HireBillingPartyTest extends FeatureTestCase
         $this->assertSame(0, (int) $lines->first()['storage_chargeable_days']);
     }
 
+    /**
+     * And the line says *why* it carries no storage, rather than printing zeros.
+     *
+     * The zeros are structural — no window was computed and no tariff row was
+     * looked up — but they render in the same columns as a resolved rate. A
+     * "Tariff Rate 0.00" against a tariff that visibly lists a rate for that
+     * equipment type reads as a broken tariff, and the first thing anyone does
+     * is go and check the tariff, which is fine.
+     */
+    public function test_a_lift_only_line_is_marked_as_carrying_no_storage(): void
+    {
+        $this->lease();
+        $this->reLet();
+        $this->release();
+
+        $line = collect($this->preview($this->renter, '2026-03-01', '2026-03-31')->json('lines'))->first();
+
+        $this->assertFalse($line['storage_applicable']);
+        $this->assertSame('On hire - storage suspended', $line['storage_note']);
+    }
+
+    /** A line with a real stay is not marked, and prices as it always did. */
+    public function test_a_line_with_a_stay_is_not_marked(): void
+    {
+        $this->release();
+
+        $line = collect($this->preview($this->line, '2026-03-01', '2026-03-31')->json('lines'))->first();
+
+        $this->assertTrue($line['storage_applicable']);
+        $this->assertNull($line['storage_note']);
+    }
+
     /** An ordinary release is untouched — no holder, so nothing changes. */
     public function test_an_ordinary_lift_is_still_billed_to_the_visit_customer(): void
     {
