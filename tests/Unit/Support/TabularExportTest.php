@@ -4,6 +4,7 @@ namespace Tests\Unit\Support;
 
 use App\Support\Export\TabularExport;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\ReadsWorkbooks;
 use Tests\TestCase;
 
 /**
@@ -25,6 +26,8 @@ use Tests\TestCase;
  */
 class TabularExportTest extends TestCase
 {
+    use ReadsWorkbooks;
+
     // ── Ordinary report values pass through untouched ────────────────────────
 
     #[DataProvider('untouchedValues')]
@@ -218,10 +221,13 @@ class TabularExportTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'assert-');
         file_put_contents($path, $bytes);
 
-        $zip = new \ZipArchive();
-        $zip->open($path);
-        $strings = (string) $zip->getFromName('xl/sharedStrings.xml') . (string) $zip->getFromName('xl/worksheets/sheet1.xml');
-        $zip->close();
+        // Entity-decoded, and that is the whole point of this assertion. An
+        // apostrophe is written `&#039;` in the XML, so searching the raw bytes
+        // for "'=1+1" could never have found one — the guard would have passed
+        // just as happily if the writer *had* added the apostrophe it is here
+        // to forbid. A negative assertion over an encoding that cannot produce
+        // the thing it looks for is not a guard.
+        $strings = $this->workbookText($path);
         @unlink($path);
 
         $this->assertStringNotContainsString("'=1+1", $strings,

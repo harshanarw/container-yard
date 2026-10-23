@@ -10,6 +10,7 @@ use App\Services\Reporting\ContainerStockAsAt;
 use App\Support\Export\ContainerStockWorkbook;
 use Illuminate\Support\Carbon;
 use Tests\Support\FeatureTestCase;
+use Tests\Support\ReadsWorkbooks;
 
 /**
  * What was in the yard on a given date.
@@ -24,6 +25,8 @@ use Tests\Support\FeatureTestCase;
  */
 class ContainerStockAsAtTest extends FeatureTestCase
 {
+    use ReadsWorkbooks;
+
     private Customer $customer;
 
     private const AS_AT = '2026-09-30';
@@ -328,23 +331,9 @@ class ContainerStockAsAtTest extends FeatureTestCase
             $path,
         );
 
-        // An xlsx is a zip of XML parts, and every part is read rather than
-        // `xl/sharedStrings.xml` alone: openspout writes cell text **inline**
-        // into the worksheet and leaves shared strings an empty stub. Reading
-        // only that one handed every assertion below an empty haystack, so
-        // this test failed on any host that could write the workbook at all.
-        $zip = new \ZipArchive();
-        $this->assertTrue($zip->open($path) === true, 'The workbook must be a readable xlsx.');
-
-        $strings = '';
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $name = $zip->getNameIndex($i);
-            if (str_ends_with($name, '.xml')) {
-                $strings .= $zip->getFromName($name);
-            }
-        }
-
-        $zip->close();
+        // Every XML part, entity-decoded — see ReadsWorkbooks for why both
+        // halves of that matter.
+        $strings = $this->workbookText($path);
         @unlink($path);
 
         $this->assertStringContainsString('Container Stock as at 30 Sep 2026', $strings);
@@ -353,6 +342,48 @@ class ContainerStockAsAtTest extends FeatureTestCase
         $this->assertStringContainsString('end of day', $strings, 'And by which convention.');
         $this->assertStringContainsString($c->container_no, $strings, 'The rows are still there.');
         $this->assertStringContainsString('Days In Yard', $strings, 'And so are the headings.');
+    }
+
+    /**
+     * A customer whose name needs escaping in XML.
+     *
+     * This test exists because the one above failed on a run that changed
+     * nothing: Faker produced `O'Kon LLC`, the workbook quite correctly wrote
+     * `O&#039;Kon LLC`, and the assertion compared the raw name against the raw
+     * bytes. Apostrophes and ampersands are ordinary in company names — Abans,
+     * O'Brien, "Smith & Sons" — so the previous green runs were luck, not
+     * evidence.
+     *
+     * Named explicitly here so the escaping is covered on every run rather than
+     * on the runs where the dice land on it.
+     */
+    public function test_a_name_that_needs_escaping_still_reads_out_of_the_workbook(): void
+    {
+        if (! ContainerStockWorkbook::available()) {
+            $this->markTestSkipped('This host cannot write a styled workbook.');
+        }
+
+        $this->customer->forceFill(['name' => "O'Kon & Sons <Lanka>"])->save();
+
+        $this->arrived('2026-09-01 08:00:00');
+
+        $path = tempnam(sys_get_temp_dir(), 'stock-escape-test-');
+
+        ContainerStockWorkbook::write(
+            ContainerStockAsAt::rows(self::AS_AT),
+            [
+                'asAt'     => self::AS_AT,
+                'customer' => $this->customer->name,
+                'filters'  => 'Size 40 - Laden',
+                'summary'  => ContainerStockAsAt::summary(ContainerStockAsAt::rows(self::AS_AT)),
+            ],
+            $path,
+        );
+
+        $strings = $this->workbookText($path);
+        @unlink($path);
+
+        $this->assertStringContainsString("O'Kon & Sons <Lanka>", $strings);
     }
 
     public function test_the_export_refuses_a_future_date(): void

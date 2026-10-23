@@ -9,6 +9,7 @@ use App\Services\ContainerInquiryService;
 use App\Support\Export\GateMovementWorkbook;
 use Illuminate\Support\Carbon;
 use Tests\Support\FeatureTestCase;
+use Tests\Support\ReadsWorkbooks;
 
 /**
  * The date window on the gate movement search.
@@ -24,6 +25,8 @@ use Tests\Support\FeatureTestCase;
  */
 class GateMovementSearchWindowTest extends FeatureTestCase
 {
+    use ReadsWorkbooks;
+
     private Customer $customer;
 
     private const FROM = '2026-08-01';
@@ -500,24 +503,7 @@ class GateMovementSearchWindowTest extends FeatureTestCase
             'date_to'   => self::TO,
         ], $extra)))->assertOk();
 
-        $path = tempnam(sys_get_temp_dir(), 'gate-log-test-');
-        file_put_contents($path, $response->streamedContent());
-
-        $zip = new \ZipArchive();
-        $this->assertTrue($zip->open($path) === true, 'The workbook must be a readable xlsx.');
-
-        $text = '';
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $name = $zip->getNameIndex($i);
-            if (str_ends_with($name, '.xml')) {
-                $text .= $zip->getFromName($name);
-            }
-        }
-
-        $zip->close();
-        @unlink($path);
-
-        return $text;
+        return $this->workbookTextFromResponse($response, 'gate-log-test-');
     }
 
     /** @return array<int,array<int,string>> parsed export rows, headings first */

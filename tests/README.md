@@ -147,6 +147,28 @@ Call `actingAsSystemAdmin()` first when the fixture creates any of those, and
 pass `'created_by' => auth()->id()` explicitly — the models do not fill it for
 you.
 
+### Reading a generated .xlsx
+
+Use `Tests\Support\ReadsWorkbooks` — `workbookText($path)` or
+`workbookTextFromResponse($response)`. Do not write the zip loop by hand; there
+are two traps in it and a hand-written loop usually falls into both.
+
+**Read every XML part, not just shared strings.** openspout writes cell text
+*inline* into `xl/worksheets/sheet1.xml` and leaves `xl/sharedStrings.xml` an
+empty stub, so a test reading only the latter gets an empty haystack and every
+`assertStringContainsString` against it fails.
+
+**Decode the entities.** The parts are XML, so a customer called `O'Kon LLC` is
+written `O&#039;Kon LLC` and asserting the raw name against the raw bytes fails.
+This one hides: it only bites when a fixture happens to contain an apostrophe or
+an ampersand, which Faker company names produce regularly — so the test passes
+for months and then fails on a run that changed nothing.
+
+It is worse for a **negative** assertion. `assertStringNotContainsString("'=1+1",
+...)` over raw bytes can never find what it is looking for, so it passes whether
+or not the writer does the thing it forbids. A guard over an encoding that
+cannot produce the string it searches for is not a guard.
+
 ## Coverage map
 
 **Phase 1** — harness + factories + CI, smoke across all screens, and E2E for

@@ -14,6 +14,7 @@ use App\Services\ContainerHireService;
 use App\Services\LessorOnHireService;
 use Illuminate\Support\Carbon;
 use Tests\Support\FeatureTestCase;
+use Tests\Support\ReadsWorkbooks;
 
 /**
  * Who a gate movement is *for*, on every screen that says so.
@@ -40,6 +41,8 @@ use Tests\Support\FeatureTestCase;
  */
 class MovementPartySurfacesTest extends FeatureTestCase
 {
+    use ReadsWorkbooks;
+
     private Customer $line;
     private Customer $renter;
     private Container $container;
@@ -298,24 +301,7 @@ class MovementPartySurfacesTest extends FeatureTestCase
             'date_from' => '2026-03-01', 'date_to' => '2026-03-31',
         ]))->assertOk();
 
-        $path = tempnam(sys_get_temp_dir(), 'gate-log-party-');
-        file_put_contents($path, $response->streamedContent());
-
-        $zip = new \ZipArchive();
-        $this->assertTrue($zip->open($path) === true, 'The workbook must be a readable xlsx.');
-
-        $text = '';
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $name = $zip->getNameIndex($i);
-            if (str_ends_with($name, '.xml')) {
-                $text .= $zip->getFromName($name);
-            }
-        }
-
-        $zip->close();
-        @unlink($path);
-
-        return $text;
+        return $this->workbookTextFromResponse($response, 'gate-log-party-');
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────
