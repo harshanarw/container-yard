@@ -220,10 +220,53 @@ class ContainerController extends Controller
         $validated = $request->validate($this->rules($container->id));
         $validated = $this->deriveEquipmentFields($validated);
 
+        // Changing the equipment type on a container that has been through the
+        // gate is a correction, not an edit — it re-prices every unbilled stay,
+        // because storage resolves its rate row from this field at preview time.
+        //
+        // This screen changed it freely for a long time, with no billing check
+        // and without touching the gate movements, so a master record and its
+        // own movements could silently disagree. The gate-in movement has a
+        // guarded endpoint for this now; without the same refusal here, that
+        // guard would have an open door beside it.
+        if ($err = $this->equipmentChangeError($container, $validated)) {
+            return back()->withInput()->withErrors(['equipment_type_id' => $err]);
+        }
+
         $container->update($validated);
 
         return redirect()->route('containers.show', $container)
             ->with('success', 'Container master record updated successfully.');
+    }
+
+    /**
+     * Why this container's equipment type may not be changed here, or null.
+     *
+     * Deliberately a redirect to the gate movement rather than a second copy of
+     * the rules: the movement is where the visit, its billing and both gate rows
+     * are known, and the correction has to reach all three.
+     */
+    private function equipmentChangeError(Container $container, array $validated): ?string
+    {
+        $target = $validated['equipment_type_id'] ?? null;
+
+        if (! $target || (int) $target === (int) $container->equipment_type_id) {
+            return null;
+        }
+
+        $gateIn = $container->gateMovements()
+            ->where('movement_type', 'in')
+            ->latest('gate_in_time')
+            ->first();
+
+        if (! $gateIn) {
+            return null;   // never gated in: nothing is billed and nothing to keep in step
+        }
+
+        return 'This container has gate movements, so its equipment type is corrected from the '
+             . 'gate-in rather than here - that way the correction reaches the movements and is '
+             . 'checked against what has already been billed. Open Yard - Movements - '
+             . $container->container_no . ' and use the edit icon beside Size / Type.';
     }
 
     public function destroy(Container $container)

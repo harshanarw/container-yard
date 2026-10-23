@@ -1761,72 +1761,11 @@ class YardController extends Controller
 
         // Invoices — block if a draft, issued, or paid invoice exists for this cycle.
         // Only cancelled invoices are non-blocking.
-        if ($movement->container_id) {
-            $cycleDate = $isIn
-                ? $movement->gate_in_time?->toDateString()
-                : $movement->gate_out_time?->toDateString();
-            $dateField = $isIn ? 'gate_in_date' : 'gate_out_date';
-
-            $invoiceTypes = [];
-
-            // Storage & Handling invoice lines — block unless invoice is cancelled
-            if ($cycleDate && \App\Models\StorageHandlingInvoiceLine::where('container_id', $movement->container_id)
-                    ->whereDate($dateField, $cycleDate)
-                    ->whereHas('invoice', fn($q) => $q->whereIn('status', ['draft', 'issued', 'paid']))
-                    ->exists()) {
-                $invoiceTypes[] = 'Storage & Handling';
-            }
-
-            // Storage invoice details (gate_in_date only — gate-out uses paired gate-in date).
-            // Block unless parent invoice is cancelled.
-            if ($isIn && $cycleDate) {
-                if (\App\Models\StorageInvoiceDetail::where('container_id', $movement->container_id)
-                        ->whereDate('gate_in_date', $cycleDate)
-                        ->whereHas('invoice', fn($q) => $q->whereIn('status', ['draft', 'issued', 'paid']))
-                        ->exists()) {
-                    $invoiceTypes[] = 'Storage';
-                }
-            } elseif (!$isIn) {
-                $pairedIn = GateMovement::where('container_id', $movement->container_id)
-                    ->where('movement_type', 'in')
-                    ->where('gate_in_time', '<=', $movement->gate_out_time)
-                    ->latest('gate_in_time')
-                    ->first(['gate_in_time']);
-                if ($pairedIn?->gate_in_time &&
-                    \App\Models\StorageInvoiceDetail::where('container_id', $movement->container_id)
-                        ->whereDate('gate_in_date', $pairedIn->gate_in_time->toDateString())
-                        ->whereHas('invoice', fn($q) => $q->whereIn('status', ['draft', 'issued', 'paid']))
-                        ->exists()) {
-                    $invoiceTypes[] = 'Storage';
-                }
-            }
-
-            // Reefer electricity invoice lines — block unless invoice is cancelled
-            $cycleStart = $isIn ? $movement->gate_in_time : null;
-            $cycleEnd   = !$isIn ? $movement->gate_out_time : now();
-            if ($cycleStart && \App\Models\ReeferElectricityInvoiceLine::where('container_id', $movement->container_id)
-                    ->where('plug_in_at', '>=', $cycleStart)
-                    ->when($cycleEnd, fn($q) => $q->where('plug_in_at', '<=', $cycleEnd))
-                    ->whereHas('invoice', fn($q) => $q->whereIn('status', ['draft', 'issued', 'paid']))
-                    ->exists()) {
-                $invoiceTypes[] = 'Reefer Electricity';
-            }
-
-            // Repair invoices — block unless cancelled
-            if ($movement->survey_id &&
-                \App\Models\RepairInvoice::where('container_id', $movement->container_id)
-                    ->whereIn('estimate_id', \App\Models\Estimate::where('inquiry_id', $movement->survey_id)->pluck('id'))
-                    ->whereIn('status', ['draft', 'issued', 'paid'])
-                    ->exists()) {
-                $invoiceTypes[] = 'Repair';
-            }
-
-            if (!empty($invoiceTypes)) {
-                $blocks[] = [
-                    'icon'    => 'bi-receipt-cutoff',
-                    'message' => implode(', ', $invoiceTypes) . ' invoice(s) exist for this container cycle (draft, issued, or paid). Cancel the invoice(s) before removing the movement.',
-                ];
-            }
+        if ($invoiceTypes = $this->cycleBilling($movement)) {
+            $blocks[] = [
+                'icon'    => 'bi-receipt-cutoff',
+                'message' => implode(', ', $invoiceTypes) . ' invoice(s) exist for this container cycle (draft, issued, or paid). Cancel the invoice(s) before removing the movement.',
+            ];
         }
 
         // Raw storage billing record (yard_storage) — block if any non-cancelled invoice
@@ -1857,6 +1796,186 @@ class YardController extends Controller
         }
 
         return [$blocks, $warnings];
+    }
+
+    /**
+     * Billing that is priced from the container's size or equipment type.
+     *
+     * Storage resolves its rate row by `equipment_type_id`; the lift rates on a
+     * handling tariff resolve by `container_size`; a washing line on an estimate
+     * resolved by size when it was raised. Everything else — reefer electricity,
+     * the repair work itself — is priced by other things entirely, so a size
+     * correction does not invalidate it.
+     *
+     * Keys of {@see cycleBilling()}, so the two cannot drift apart.
+     */
+    private const SIZE_PRICED_BILLING = ['storage_handling', 'storage', 'washing'];
+
+    /**
+     * The billing that already exists for this movement's cycle.
+     *
+     * Draft, issued and paid all count; a cancelled invoice does not, which is
+     * what makes cancel-and-re-raise the way to correct one.
+     *
+     * Lifted out of `buildDeleteBlocks()` so the equipment-type correction can
+     * ask the same question — because it *is* the same question, "has anything
+     * been billed against this visit yet", and a second copy of it would be a
+     * second copy to keep in step.
+     *
+     * @return array<string,string> code => label, empty when nothing is billed
+     */
+    private function cycleBilling(GateMovement $movement): array
+    {
+        if (! $movement->container_id) {
+            return [];
+        }
+
+        $isIn      = $movement->movement_type === 'in';
+        $cycleDate = $isIn
+            ? $movement->gate_in_time?->toDateString()
+            : $movement->gate_out_time?->toDateString();
+        $dateField = $isIn ? 'gate_in_date' : 'gate_out_date';
+
+        $types = [];
+
+        // Storage & Handling lines carry both halves of that bill — the stay's
+        // days and the lifts. One model, one check.
+        if ($cycleDate && \App\Models\StorageHandlingInvoiceLine::where('container_id', $movement->container_id)
+                ->whereDate($dateField, $cycleDate)
+                ->whereHas('invoice', fn ($q) => $q->whereIn('status', ['draft', 'issued', 'paid']))
+                ->exists()) {
+            $types['storage_handling'] = 'Storage & Handling';
+        }
+
+        // Storage-only invoices are keyed on the gate-in date in both
+        // directions, so a gate-out has to find its arrival first.
+        $storageDate = $isIn
+            ? $cycleDate
+            : GateMovement::where('container_id', $movement->container_id)
+                ->where('movement_type', 'in')
+                ->where('gate_in_time', '<=', $movement->gate_out_time)
+                ->latest('gate_in_time')
+                ->value('gate_in_time')?->toDateString();
+
+        if ($storageDate && \App\Models\StorageInvoiceDetail::where('container_id', $movement->container_id)
+                ->whereDate('gate_in_date', $storageDate)
+                ->whereHas('invoice', fn ($q) => $q->whereIn('status', ['draft', 'issued', 'paid']))
+                ->exists()) {
+            $types['storage'] = 'Storage';
+        }
+
+        $cycleStart = $isIn ? $movement->gate_in_time : null;
+        $cycleEnd   = ! $isIn ? $movement->gate_out_time : now();
+
+        if ($cycleStart && \App\Models\ReeferElectricityInvoiceLine::where('container_id', $movement->container_id)
+                ->where('plug_in_at', '>=', $cycleStart)
+                ->when($cycleEnd, fn ($q) => $q->where('plug_in_at', '<=', $cycleEnd))
+                ->whereHas('invoice', fn ($q) => $q->whereIn('status', ['draft', 'issued', 'paid']))
+                ->exists()) {
+            $types['reefer'] = 'Reefer Electricity';
+        }
+
+        if ($movement->survey_id) {
+            $estimateIds = \App\Models\Estimate::where('inquiry_id', $movement->survey_id)->pluck('id');
+
+            if ($estimateIds->isNotEmpty()) {
+                if (\App\Models\RepairInvoice::where('container_id', $movement->container_id)
+                        ->whereIn('estimate_id', $estimateIds)
+                        ->whereIn('status', ['draft', 'issued', 'paid'])
+                        ->exists()) {
+                    $types['repair'] = 'Repair';
+                }
+
+                // Washing is not its own invoice — it is a line on an estimate,
+                // and `WashingTariff::resolve()` chose its rate by container
+                // size when that line was raised. So what to look for is the
+                // line, not an invoice: it was priced by size whether or not the
+                // estimate has been billed yet.
+                if (\App\Models\EstimateLineItem::whereIn('estimate_id', $estimateIds)
+                        ->whereNotNull('washing_tariff_id')
+                        ->exists()) {
+                    $types['washing'] = 'Washing (priced on a repair estimate)';
+                }
+            }
+        }
+
+        return $types;
+    }
+
+    /**
+     * Whether this movement's equipment type may be corrected to the given one.
+     *
+     * Read-only, and the modal calls it on every change of the picker, so the
+     * operator sees the consequences before the Apply button is live rather
+     * than after pressing it.
+     */
+    public function equipmentCheck(Request $request, GateMovement $movement): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate([
+            'equipment_type_id' => ['required', 'exists:equipment_types,id'],
+        ]);
+
+        $target    = EquipmentType::findOrFail($data['equipment_type_id']);
+        $container = $movement->container;
+
+        $result = app(\App\Services\EquipmentTypeCorrectionService::class)->check(
+            $movement,
+            $target,
+            array_values(array_intersect_key(
+                $this->cycleBilling($movement),
+                array_flip(self::SIZE_PRICED_BILLING),
+            )),
+        );
+
+        return response()->json($result + [
+            'container_no' => $movement->container_no,
+            'current'      => [
+                'movement' => trim(($movement->size ?? '') . "' " . ($movement->container_type ?? '')),
+                'master'   => $container
+                    ? trim(($container->size ?? '') . "' " . ($container->type_code ?? ''))
+                    : null,
+            ],
+            'target' => $target->eqt_code . ' - ' . $target->description,
+        ]);
+    }
+
+    /**
+     * Apply the correction, having checked it again on the server.
+     *
+     * The modal checked before offering the button; this checks before acting.
+     * They are not the same moment, and the billing can have arrived in between.
+     */
+    public function equipmentUpdate(Request $request, GateMovement $movement)
+    {
+        $data = $request->validate([
+            'equipment_type_id' => ['required', 'exists:equipment_types,id'],
+            'reason'            => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $target  = EquipmentType::findOrFail($data['equipment_type_id']);
+        $service = app(\App\Services\EquipmentTypeCorrectionService::class);
+
+        $result = $service->check(
+            $movement,
+            $target,
+            array_values(array_intersect_key(
+                $this->cycleBilling($movement),
+                array_flip(self::SIZE_PRICED_BILLING),
+            )),
+        );
+
+        if (! $result['safe']) {
+            return back()->with('error', 'Equipment type not corrected: '
+                . collect($result['blocks'])->pluck('message')->implode(' · '));
+        }
+
+        $touched = $service->apply($movement, $target, $data['reason'] ?? null);
+
+        app(\App\Services\ContainerMrStatusService::class)->refresh($movement->container->fresh());
+
+        return back()->with('success',
+            'Equipment type corrected to ' . $target->eqt_code . ' - the container master and '
+            . $touched . ' gate movement' . ($touched === 1 ? '' : 's') . ' were updated.');
     }
 
     // Gate Movement Edit
@@ -1892,7 +2011,6 @@ class YardController extends Controller
         ];
 
         if ($movement->movement_type === 'in') {
-            $rules['equipment_type_id']  = ['nullable', 'exists:equipment_types,id'];
             $rules['customer_id']        = ['nullable', 'exists:customers,id'];
             $rules['transporter_id']     = ['nullable', 'exists:customers,id'];
             $rules['driver_name']        = ['nullable', 'string', 'max:255'];
@@ -1972,11 +2090,13 @@ class YardController extends Controller
         }
 
         if ($movement->movement_type === 'in') {
-            if (!empty($validated['equipment_type_id'])) {
-                $eqt = EquipmentType::find($validated['equipment_type_id']);
-                $updateData['size']            = $eqt->size;
-                $updateData['container_type']  = $eqt->type_code;
-            }
+            // `equipment_type_id` is deliberately NOT accepted here. It used to
+            // be, and it rewrote this movement's size with no check on whether
+            // the visit had been billed and no corresponding change to the
+            // container master — correcting one end of a record that has three.
+            // No field on the form ever posted it, so it was reachable only by
+            // constructing the request. It has its own endpoint now, which
+            // checks first and writes all three: see `equipmentUpdate()`.
             // Correcting the customer moves the whole visit — the job and both
             // gate movements — not just this row. Editing one end is how the
             // gate-in and gate-out parties drifted apart in the first place.

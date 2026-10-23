@@ -591,3 +591,46 @@ survived a save that reported success.
 Two rules reach the edit screen for the first time in this change. The laden
 rule (`require_seal_for_laden`) was enforced at both gates and not there, so it
 could be stepped around by saving a movement and then editing it.
+
+### Correcting an equipment type picked wrongly at the gate
+
+No migration, no seeder. One permission, and one manual grant.
+
+```bash
+php artisan permissions:sync --dry-run    # expect yard.equipment-type-change
+php artisan permissions:sync
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+chown -R nginx:nginx storage bootstrap/cache
+systemctl restart php-fpm
+```
+
+Then grant **Yard Gate Operations → Equipment type change** in *Settings → Roles
+& Permissions*, to the roles that should hold it. It is separate from
+`movement-edit` on purpose: this one reaches the container master and re-prices
+every unbilled stay, which editing a movement does not.
+
+Do **not** run `RolePermissionSeeder` — see the warning near the top of this
+file. `permissions:sync` is additive and is the whole automated part.
+
+An edit icon appears beside **Size / Type** on a gate-in movement. It opens a
+modal that checks the correction before offering to apply it, and refuses when:
+
+| Refused because | |
+| --- | --- |
+| Storage & Handling, Storage, or a washing line on a repair estimate exists for the cycle | those were priced from the old size |
+| The change crosses the reefer boundary and plug sessions exist for the visit | `GP → RF` changes what the box *is*, not what it costs |
+
+Applied, it writes the container master, the gate-in and the paired gate-out, in
+one transaction, with the before and after on the audit trail. Nothing else:
+`yard_storage` carries no equipment columns, and an unbilled stay re-prices by
+itself the next time a bill is previewed, because storage resolves the type from
+the master.
+
+**Two doors closed in the same change.** `updateMovement` accepted
+`equipment_type_id` and rewrote the movement's size from it — no form posted it,
+nothing checked whether the visit had been billed, and the container master was
+left behind. And the Container Master screen changed the same field freely, with
+no billing check and no movement sync, so a master and its own movements could
+silently disagree. That screen now redirects the operator to the gate-in for a
+container that has movements; a container that has never been to the gate is
+still freely editable.

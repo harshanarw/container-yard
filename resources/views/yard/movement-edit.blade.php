@@ -86,6 +86,20 @@
                                 <div class="fw-semibold">
                                     {{ $movement->size }}'
                                     <span class="badge {{ in_array($movement->container_type, ['RF','RH']) ? 'badge-reefer' : 'bg-secondary-subtle text-secondary' }}">{{ $movement->container_type }}</span>
+                                    {{-- Not a dropdown on the form, deliberately. Correcting this
+                                         reaches the container master and re-prices an unbilled
+                                         stay, so it is refused once anything has been billed from
+                                         the old size — and a field that silently refuses to save
+                                         is worse than one that asks first. --}}
+                                    @if($movement->movement_type === 'in')
+                                    @can('yard.equipment-type-change')
+                                    <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline"
+                                            data-bs-toggle="modal" data-bs-target="#eqtCorrectModal"
+                                            title="Correct the equipment type">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    @endcan
+                                    @endif
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
@@ -630,6 +644,71 @@
     </div>
 </div>
 
+@if($movement->movement_type === 'in')
+@can('yard.equipment-type-change')
+{{-- Correcting the equipment type.
+     Separate from the form around it because it is a different kind of act: the
+     form edits this movement, and this reaches the container master and both
+     ends of the visit. It is also refusable, which a field on a form cannot
+     express — the check runs as soon as a type is picked, and Apply stays
+     disabled until it comes back clean. --}}
+<div class="modal fade" id="eqtCorrectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('yard.movements.equipment-update', $movement) }}" id="eqtCorrectForm">
+                @csrf
+                @method('PATCH')
+                <div class="modal-header py-2">
+                    <h6 class="modal-title">
+                        <i class="bi bi-pencil-square me-2 text-primary"></i>Correct the equipment type
+                        <span class="text-muted fw-normal ms-1" style="font-size:.8rem;">{{ $movement->container_no }}</span>
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body small">
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <div class="text-muted" style="font-size:.72rem;">Recorded on this movement</div>
+                            <div class="fw-semibold">{{ $movement->size }}' {{ $movement->container_type }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted" style="font-size:.72rem;">On the container master</div>
+                            <div class="fw-semibold">
+                                {{ $movement->container?->size }}' {{ $movement->container?->type_code }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <label class="form-label fw-semibold small">Correct equipment type <span class="text-danger">*</span></label>
+                    <select name="equipment_type_id" id="eqtCorrectSelect" class="form-select" required>
+                        <option value="">- Select the correct type -</option>
+                        @foreach($equipmentTypes as $eqt)
+                            <option value="{{ $eqt->id }}" @selected((int) $movement->container?->equipment_type_id === $eqt->id)>
+                                {{ $eqt->dropdown_label }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <label class="form-label fw-semibold small mt-3">Reason</label>
+                    <input type="text" name="reason" class="form-control" maxlength="255"
+                           placeholder="e.g. 20GP picked in error, EIR and photos show 40HC">
+                    <div class="form-text">Recorded on the audit trail with the before and after.</div>
+
+                    <div id="eqtCheckResult" class="mt-3"></div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="eqtApplyBtn" disabled>
+                        <i class="bi bi-check2 me-1"></i>Apply correction
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endcan
+@endif
+
 @endsection
 
 @push('styles')
@@ -848,5 +927,83 @@
         document.getElementById('ocrImageModalImg').src = link.dataset.src;
     });
 })();
+
+@if($movement->movement_type === 'in')
+@can('yard.equipment-type-change')
+// ── Equipment type correction ────────────────────────────────────────────────
+// The check runs on every change of the picker, and Apply stays disabled until
+// it answers clean. The server checks again before acting — the two are not the
+// same moment, and an invoice can arrive in between.
+(function () {
+    const sel    = document.getElementById('eqtCorrectSelect');
+    const out    = document.getElementById('eqtCheckResult');
+    const apply  = document.getElementById('eqtApplyBtn');
+    const url    = @json(route('yard.movements.equipment-check', $movement));
+    if (!sel || !out || !apply) return;
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function row(item, kind) {
+        return '<div class="d-flex gap-2 align-items-start ' + kind + '">'
+             + '<i class="bi ' + esc(item.icon) + ' mt-1 flex-shrink-0"></i>'
+             + '<span>' + esc(item.message) + '</span></div>';
+    }
+
+    let seq = 0;
+
+    async function check() {
+        const id = sel.value;
+        apply.disabled = true;
+
+        if (!id) { out.innerHTML = ''; return; }
+
+        const mine = ++seq;
+        out.innerHTML = '<div class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Checking…</div>';
+
+        try {
+            const res  = await fetch(url + '?equipment_type_id=' + encodeURIComponent(id),
+                                     { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const data = await res.json();
+
+            // A slower earlier request must not overwrite a newer answer.
+            if (mine !== seq) return;
+
+            let html = '';
+
+            if ((data.blocks || []).length) {
+                html += '<div class="alert alert-danger py-2 px-3 mb-2 small">'
+                      + '<div class="fw-semibold mb-1">This correction cannot be applied</div>'
+                      + data.blocks.map(b => row(b, 'mb-1')).join('') + '</div>';
+            }
+
+            if ((data.warnings || []).length) {
+                html += '<div class="alert alert-warning py-2 px-3 mb-0 small">'
+                      + '<div class="fw-semibold mb-1">Before you apply this</div>'
+                      + data.warnings.map(w => row(w, 'mb-1')).join('') + '</div>';
+            }
+
+            if (data.safe && !(data.warnings || []).length) {
+                html += '<div class="alert alert-success py-2 px-3 mb-0 small">'
+                      + '<i class="bi bi-check2-circle me-1"></i>Nothing has been billed from the current '
+                      + 'size. The container master and this visit\'s gate movements will be corrected.</div>';
+            }
+
+            out.innerHTML = html;
+            apply.disabled = !data.safe;
+        } catch (e) {
+            if (mine !== seq) return;
+            out.innerHTML = '<div class="alert alert-danger py-2 px-3 mb-0 small">'
+                          + 'Could not check this correction. Try again.</div>';
+            apply.disabled = true;
+        }
+    }
+
+    sel.addEventListener('change', check);
+})();
+@endcan
+@endif
 </script>
 @endpush

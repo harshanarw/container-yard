@@ -59,7 +59,7 @@ return [
     'yard' => [
         'label'   => 'Yard Gate Operations',
         'section' => 'Yard',
-        'actions' => ['view', 'gate-in', 'gate-out', 'movement-edit', 'movement-delete', 'backdate'],
+        'actions' => ['view', 'gate-in', 'gate-out', 'movement-edit', 'movement-delete', 'backdate', 'equipment-type-change'],
     ],
 
     'yard.jobs' => [

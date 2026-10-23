@@ -226,6 +226,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/ocr-scan',       [ContainerOcrController::class, 'process'])->name('ocr-scan');
         Route::post('/ocr-plate',      [PlateOcrController::class,   'process'])->name('ocr-plate');
         Route::get('/movements/{movement}/edit',            [YardController::class, 'editMovement'])->name('movements.edit');
+        // Correcting an equipment type picked wrongly at the gate. Its own
+        // endpoints and its own permission: it reaches the container master and
+        // re-prices an unbilled stay, which movement-edit does not.
+        Route::get('/movements/{movement}/equipment-check', [YardController::class, 'equipmentCheck'])
+            ->middleware('can:yard.equipment-type-change')->name('movements.equipment-check');
+        Route::patch('/movements/{movement}/equipment',     [YardController::class, 'equipmentUpdate'])
+            ->middleware('can:yard.equipment-type-change')->name('movements.equipment-update');
         Route::get('/movements/{movement}/delete-check',  [YardController::class, 'deleteCheck'])->name('movements.delete-check');
         Route::patch('/movements/{movement}',             [YardController::class, 'updateMovement'])->name('movements.update');
         Route::delete('/movements/{movement}',            [YardController::class, 'destroyMovement'])->name('movements.destroy');
