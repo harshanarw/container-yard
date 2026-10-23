@@ -586,6 +586,46 @@
                     </div>
                 </div>
             </div>
+            <div class="d-flex align-items-start gap-3 mt-3">
+                <div class="form-check form-switch mt-1">
+                    <input type="hidden" name="block_seal_on_empty_in" value="0">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="blockSealOnEmptyIn" name="block_seal_on_empty_in" value="1"
+                           {{ old('block_seal_on_empty_in', $settings->block_seal_on_empty_in) ? 'checked' : '' }}>
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="blockSealOnEmptyIn">
+                        Block a seal number on an empty container - Gate In
+                    </label>
+                    <div class="form-text mt-1">
+                        An empty box has nothing to seal, so a seal number on one is either a seal typed
+                        into the wrong row or a cargo status left at <strong>Empty</strong> on a box that is
+                        actually loaded. The second is the costly one: cargo status picks the storage and
+                        handling tariff rows, so a laden box recorded as empty is billed at the empty rate
+                        for its whole stay. The save is <strong>blocked</strong> until the operator says
+                        which it was - clear the seal, or change Laden / Empty.
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-start gap-3 mt-3">
+                <div class="form-check form-switch mt-1">
+                    <input type="hidden" name="block_seal_on_empty_out" value="0">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="blockSealOnEmptyOut" name="block_seal_on_empty_out" value="1"
+                           {{ old('block_seal_on_empty_out', $settings->block_seal_on_empty_out) ? 'checked' : '' }}>
+                </div>
+                <div>
+                    <label class="form-check-label fw-semibold" for="blockSealOnEmptyOut">
+                        Block a seal number on an empty container - Gate Out
+                    </label>
+                    <div class="form-text mt-1">
+                        The same rule at the release gate, kept separate because the two gates are not the
+                        same event: an arrival is a box the yard is taking on and its cargo status drives
+                        the billing, while a departure is usually made against a release order that already
+                        says what is inside.
+                    </div>
+                </div>
+            </div>
             <div class="d-flex align-items-start gap-3 mt-3" id="otPolicy">
                 <div class="form-check form-switch mt-1">
                     {{-- Always submit this field so an unchecked box is "off", not "absent". --}}

@@ -10,6 +10,33 @@ use Illuminate\Support\Facades\Storage;
 
 class CompanySettingController extends Controller
 {
+    /**
+     * Every boolean setting the update action may write.
+     *
+     * A constant rather than an array literal inside `update()`, because
+     * `CompanySettingsPartialUpdateTest` guards exactly this list — that an
+     * upload-only submit cannot switch any of them off — and when the list
+     * lived in two places the test's copy fell behind. It was missing
+     * `enforce_reefer_plug_session`, so the flag it was there to protect was
+     * the one flag nothing checked.
+     *
+     * One list, two readers.
+     */
+    public const BOOLEAN_FLAGS = [
+        'enable_digital_approvals',
+        'enable_guard_post',
+        'enforce_export_booking',
+        'enforce_reefer_pti',
+        'enforce_reefer_plug_session',
+        'require_seal_for_laden',
+        'block_seal_on_empty_in',
+        'block_seal_on_empty_out',
+        'require_ot_receipt',
+        'enable_gatepass_whatsapp',
+        'guardpost_warn_no_capture',
+        'enforce_storage_limit',
+    ];
+
     public function __construct()
     {
         $this->middleware('can:settings.company.view')->only(['index']);
@@ -97,6 +124,8 @@ class CompanySettingController extends Controller
             'enforce_reefer_plug_session' => ['nullable', 'boolean'],
             'hire_month_days'          => ['nullable', 'integer', 'min:1', 'max:366'],
             'require_seal_for_laden'   => ['nullable', 'boolean'],
+            'block_seal_on_empty_in'   => ['nullable', 'boolean'],
+            'block_seal_on_empty_out'  => ['nullable', 'boolean'],
             'require_ot_receipt'       => ['nullable', 'boolean'],
             'enable_gatepass_whatsapp' => ['nullable', 'boolean'],
             'guardpost_warn_no_capture' => ['nullable', 'boolean'],
@@ -126,18 +155,7 @@ class CompanySettingController extends Controller
         //
         // The main form now submits a hidden 0 alongside every checkbox, so an
         // unchecked box is still *present* and can still be turned off.
-        foreach ([
-            'enable_digital_approvals',
-            'enable_guard_post',
-            'enforce_export_booking',
-            'enforce_reefer_pti',
-            'enforce_reefer_plug_session',
-            'require_seal_for_laden',
-            'require_ot_receipt',
-            'enable_gatepass_whatsapp',
-            'guardpost_warn_no_capture',
-            'enforce_storage_limit',
-        ] as $flag) {
+        foreach (self::BOOLEAN_FLAGS as $flag) {
             if ($request->has($flag)) {
                 $data[$flag] = $request->boolean($flag);
             }

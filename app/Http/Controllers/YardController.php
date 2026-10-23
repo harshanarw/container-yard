@@ -406,8 +406,10 @@ class YardController extends Controller
         }
 
         // Seal policy: a laden gate-in must carry a seal, or a documented no-seal
-        // reason, when the company enables the requirement (off by default).
-        if ($err = $this->sealRequirementError(
+        // reason, when the company enables the requirement; and an empty one must
+        // carry none at all.
+        if ($err = $this->sealPolicyError(
+            'in',
             $validated['cargo_status'] === 'laden',
             $validated['seal_no'],
             $validated['no_seal_reason'] ?? null
@@ -914,12 +916,52 @@ class YardController extends Controller
             ?? ['gate_in' => null, 'gate_out' => null, 'days' => null, 'open' => false];
     }
 
-    private function sealRequirementError(bool $isLaden, ?string $sealNo, ?string $reason): ?string
+    /**
+     * Seal policy for one gate movement, both directions of the rule.
+     *
+     * **A laden box should carry a seal** — optional until a yard turns
+     * `require_seal_for_laden` on, and satisfiable with a documented no-seal
+     * reason, because a laden box legitimately moves unsealed (LCL, a customs
+     * examination, a seal found broken).
+     *
+     * **An empty box must not.** There is nothing to seal, so a seal number on
+     * one is always a mistake, and which mistake matters: either a seal typed
+     * into the wrong row, or a cargo status left at Empty on a box that is
+     * actually loaded. The second is the expensive one — `cargo_status` selects
+     * the storage and handling tariff rows, so a laden box recorded as empty is
+     * billed at the empty rate for its whole stay, and the seal in the field
+     * beside it is the only evidence anything is wrong.
+     *
+     * Which is why this refuses the save rather than clearing the seal.
+     * Clearing it would destroy the one hint that the cargo status is the thing
+     * at fault, and do it silently. The operator is asked to say which it was.
+     *
+     * `$direction` picks the setting: the two gates are separately switchable,
+     * because an arrival's cargo status drives what the stay is billed while a
+     * departure is usually made against a release order that already says what
+     * is inside.
+     *
+     * @param  'in'|'out'  $direction
+     */
+    private function sealPolicyError(string $direction, bool $isLaden, ?string $sealNo, ?string $reason): ?string
     {
+        $settings = \App\Models\CompanySetting::current();
+
         if (! $isLaden) {
-            return null; // empties are never sealed
+            $enforced = $direction === 'out'
+                ? $settings->block_seal_on_empty_out
+                : $settings->block_seal_on_empty_in;
+
+            if (! $enforced || blank($sealNo)) {
+                return null;
+            }
+
+            return 'This container is recorded as Empty but carries Seal Number "' . $sealNo . '". '
+                 . 'An empty container has nothing to seal. Clear the seal number - or, if the box is '
+                 . 'actually loaded, change Laden / Empty to Laden so it is billed correctly.';
         }
-        if (! \App\Models\CompanySetting::current()->require_seal_for_laden) {
+
+        if (! $settings->require_seal_for_laden) {
             return null; // policy off
         }
         if (filled($sealNo) || filled($reason)) {
@@ -1172,9 +1214,10 @@ class YardController extends Controller
         }
 
         // Seal policy: a laden gate-out must carry a seal, or a documented no-seal
-        // reason, when the company enables the requirement (off by default). Laden
-        // status comes from the container record, not the form.
-        if ($err = $this->sealRequirementError(
+        // reason, when the company enables the requirement; and an empty one must
+        // carry none. Laden status comes from the container record, not the form.
+        if ($err = $this->sealPolicyError(
+            'out',
             $container->cargo_status === 'laden',
             $validated['seal_no'] ?? null,
             $validated['no_seal_reason'] ?? null
@@ -1888,15 +1931,45 @@ class YardController extends Controller
 
         $validated = $request->validate($rules);
 
+        // The same seal policy the gates apply. It was never applied here, so
+        // the laden-needs-a-seal rule could be stepped around by saving the
+        // movement and then editing it — and an empty-with-a-seal correction
+        // made on this screen has to be checked where it is made.
+        //
+        // Read from what is submitted, falling back to what is stored for a
+        // field this form did not send.
+        $sealAfter  = array_key_exists('seal_no', $validated) ? $validated['seal_no'] : $movement->seal_no;
+        $cargoAfter = $validated['cargo_status'] ?? $movement->cargo_status;
+
+        if ($err = $this->sealPolicyError(
+            $movement->movement_type === 'out' ? 'out' : 'in',
+            $cargoAfter === 'laden',
+            $sealAfter,
+            $movement->no_seal_reason,
+        )) {
+            return back()->withInput()->withErrors(['seal_no' => $err]);
+        }
+
         $updateData = array_filter([
             'vehicle_plate'    => $validated['vehicle_plate'] ?? null,
             'remarks'          => $validated['remarks'] ?? null,
             'condition'        => $validated['condition'] ?? null,
             'cargo_status'     => $validated['cargo_status'] ?? null,
-            'seal_no'          => $validated['seal_no'] ?? null,
             'ventilation_type' => $validated['ventilation_type'] ?? null,
             'vent_count'       => isset($validated['vent_count']) ? (int) $validated['vent_count'] : null,
         ], fn ($v) => $v !== null);
+
+        // The seal is handled apart from the filter above, because a blank one
+        // has to mean "clear it" rather than "not submitted". Clearing the seal
+        // is exactly the correction the empty-with-a-seal rule asks for, and
+        // inside the filter it was impossible: the field arrives null, the
+        // filter drops it, the stored seal survives — so the operator would do
+        // as the message said, see the save succeed, and leave the movement in
+        // the state the rule exists to prevent. Same pattern as the driver and
+        // transporter fields below.
+        if ($request->has('seal_no')) {
+            $updateData['seal_no'] = $validated['seal_no'] ?: null;
+        }
 
         if ($movement->movement_type === 'in') {
             if (!empty($validated['equipment_type_id'])) {

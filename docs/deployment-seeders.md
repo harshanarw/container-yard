@@ -549,3 +549,45 @@ On-Hire In screen.
 
 Existing `cargo_transfers` rows keep whatever `substitute_source` they were
 given; the new column is null on them. Nothing reads it retrospectively.
+
+### A seal number on an empty container (migration 000321)
+
+```bash
+php artisan migrate --force        # 000321 — two company_settings flags
+php artisan cache:clear            # the settings model is memoised for an hour
+php artisan view:clear && php artisan config:clear
+```
+
+No seeder. No permission.
+
+An empty box has nothing to seal, so a seal number on one is either a seal typed
+into the wrong row or a cargo status left at **Empty** on a box that is actually
+loaded. The second is the costly reading: `cargo_status` selects the storage and
+handling tariff rows, so a laden container recorded as empty bills at the empty
+rate for its whole stay, and the seal beside it is the only sign anything is
+wrong. The save is refused rather than the seal quietly cleared — clearing it
+would destroy the one hint that the cargo status is the thing at fault.
+
+Two flags, **both shipping on**: `block_seal_on_empty_in` and
+`block_seal_on_empty_out`, under *Settings → Company Settings*. Separate per
+gate, because an arrival's cargo status drives the billing while a departure is
+usually made against a release order that already says what is inside.
+
+**Count what is already there before anyone meets the rule.** It reads what is
+submitted, so an existing empty-with-a-seal movement is refused the first time
+somebody saves it from the edit screen:
+
+```sql
+SELECT movement_type, COUNT(*) FROM gate_movements
+WHERE cargo_status = 'empty' AND seal_no IS NOT NULL AND seal_no <> ''
+GROUP BY movement_type;
+```
+
+The fix is in the same form — clear the seal, or set Laden — and clearing it now
+works, which it did not before: `updateMovement` built its payload through a
+null filter, so a blank seal was read as "not submitted" and the stored seal
+survived a save that reported success.
+
+Two rules reach the edit screen for the first time in this change. The laden
+rule (`require_seal_for_laden`) was enforced at both gates and not there, so it
+could be stepped around by saving a movement and then editing it.

@@ -25,18 +25,15 @@ use Tests\Support\FeatureTestCase;
  */
 class CompanySettingsPartialUpdateTest extends FeatureTestCase
 {
-    /** Every flag the update action can write. */
-    private const FLAGS = [
-        'enable_digital_approvals',
-        'enable_guard_post',
-        'enforce_export_booking',
-        'enforce_reefer_pti',
-        'require_seal_for_laden',
-        'require_ot_receipt',
-        'enable_gatepass_whatsapp',
-        'guardpost_warn_no_capture',
-        'enforce_storage_limit',
-    ];
+    /**
+     * Every flag the update action can write — read from the action itself.
+     *
+     * This used to be a copy, and the copy fell behind: it was missing
+     * `enforce_reefer_plug_session`, so the one flag added since the test was
+     * written was the one flag the test did not protect. A list maintained in
+     * two places guards whichever subset somebody remembered.
+     */
+    private const FLAGS = \App\Http\Controllers\CompanySettingController::BOOLEAN_FLAGS;
 
     private function settingsWithEverythingOn(): CompanySetting
     {

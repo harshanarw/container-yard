@@ -247,6 +247,10 @@
                                 @endif
                             </label>
                             <input type="text" name="seal_no" id="sealNoIn" class="form-control" placeholder="{{ $companySetting?->require_seal_for_laden ? 'Seal number' : 'Optional' }}">
+                            {{-- Said at the field as soon as the combination exists, rather than
+                                 only on submit. The server refuses it either way; this is so the
+                                 operator finds out while the box is still at the gate. --}}
+                            <div class="d-none text-danger mt-1" id="emptySealErrIn" style="font-size:.74rem;"></div>
                             @if($companySetting?->require_seal_for_laden)
                             <div class="mt-2 d-none" id="noSealWrapIn">
                                 <label class="form-label fw-semibold small mb-1">No-seal reason
@@ -3263,6 +3267,58 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
     cargo.addEventListener('change', sync);
     sync(); // reflect the initial cargo-status value on load
 })();
+
+// ── Empty must not carry a seal (gate-in) ─────────────────────────────────────
+// A separate block from the one above, and not inside it, because that one
+// returns early when `require_seal_for_laden` is off — these are two different
+// policies with two different switches.
+//
+// The server refuses this combination whatever the browser does. What this adds
+// is the moment: the operator finds out while the box is still at the gate and
+// the driver is still standing there, rather than after filling the rest of the
+// form. The message names both ways out, because the costly reading is the
+// second one — a laden box recorded as Empty is billed at the empty rate for
+// its whole stay, and the seal is the only sign anything is wrong.
+@if($companySetting?->block_seal_on_empty_in)
+(function () {
+    const cargo = document.getElementById('cargoStatusIn');
+    const seal  = document.getElementById('sealNoIn');
+    const err   = document.getElementById('emptySealErrIn');
+    const form  = document.getElementById('gateInForm');
+    if (!cargo || !seal || !err) return;
+
+    function offending() {
+        return cargo.value !== 'laden' && seal.value.trim() !== '';
+    }
+
+    function sync() {
+        const bad = offending();
+        err.classList.toggle('d-none', !bad);
+        seal.classList.toggle('is-invalid', bad);
+        if (bad) {
+            err.textContent = 'An empty container has nothing to seal. Clear the seal number, '
+                            + 'or change Laden / Empty to Laden if the box is loaded.';
+        }
+        return bad;
+    }
+
+    cargo.addEventListener('change', sync);
+    seal.addEventListener('input', sync);
+
+    // Capture phase, so this runs before the form's own submit handler starts
+    // building the FormData and firing the request.
+    form?.addEventListener('submit', function (e) {
+        if (sync()) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            seal.focus();
+            err.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+    }, true);
+
+    sync();
+})();
+@endif
 
 // ── Driver master typeahead ───────────────────────────────────────────────────
 // Typing in any of the three driver fields (name / NIC / phone) queries the
