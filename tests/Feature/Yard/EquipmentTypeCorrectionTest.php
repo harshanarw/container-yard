@@ -88,10 +88,19 @@ class EquipmentTypeCorrectionTest extends FeatureTestCase
         return $this->gateIn;
     }
 
+    /**
+     * `assertOk()` before `json()`, so a broken endpoint says so.
+     *
+     * Without it a 500 came back as `{"message": "Server Error"}` and every
+     * caller failed with `Undefined array key "safe"` — eleven tests all naming
+     * the array instead of the exception that produced it.
+     */
     private function check(EquipmentType $target): array
     {
         return $this->getJson(route('yard.movements.equipment-check', $this->gateIn)
-            . '?equipment_type_id=' . $target->id)->json();
+            . '?equipment_type_id=' . $target->id)
+            ->assertOk()
+            ->json();
     }
 
     private function correct(EquipmentType $target, string $reason = 'Picked in error')

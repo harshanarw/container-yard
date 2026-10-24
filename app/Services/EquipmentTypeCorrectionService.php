@@ -248,7 +248,12 @@ class EquipmentTypeCorrectionService
         if (! $gateIn->yard_job_id) {
             return GateMovement::where('container_id', $gateIn->container_id)
                 ->where(function ($q) use ($gateIn) {
-                    $q->whereKey($gateIn->id)
+                    // Plain column comparisons, not `whereKey()`. The closure is
+                    // handed a query builder, and the key helpers live on the
+                    // Eloquent builder — `orWhereKey()` does not exist on either,
+                    // which is a BadMethodCallException rendered as a 500 and a
+                    // JSON body with none of the keys the caller reads.
+                    $q->where('id', $gateIn->id)
                       ->orWhere(fn ($w) => $w->where('movement_type', 'out')
                           ->where('gate_out_time', '>=', $gateIn->gate_in_time));
                 })
@@ -277,7 +282,8 @@ class EquipmentTypeCorrectionService
         }
 
         return GateMovement::where('container_id', $gateIn->container_id)
-            ->where(fn ($q) => $q->whereIn('yard_job_id', $jobIds->unique())->orWhereKey($gateIn->id))
+            ->where(fn ($q) => $q->whereIn('yard_job_id', $jobIds->unique()->all())
+                ->orWhere('id', $gateIn->id))
             ->pluck('id');
     }
 
