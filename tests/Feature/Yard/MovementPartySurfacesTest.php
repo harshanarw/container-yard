@@ -285,7 +285,7 @@ class MovementPartySurfacesTest extends FeatureTestCase
     {
         $this->rentOut();
 
-        $text = $this->workbookText();
+        $text = $this->gateLogText();
 
         $this->assertStringContainsString('Rented To', $text);
         $this->assertStringContainsString('Rent Job', $text);
@@ -294,8 +294,16 @@ class MovementPartySurfacesTest extends FeatureTestCase
             'The Customer column still names the visit customer.');
     }
 
-    /** Every XML part of the gate-log workbook, as one string. */
-    private function workbookText(): string
+    /**
+     * The gate-log workbook for March, as one searchable string.
+     *
+     * Named for what it fetches, not for what it does with it. It was
+     * `workbookText()`, which is also the name of the shared reader in
+     * `ReadsWorkbooks` — and a class's own method wins over a trait's silently,
+     * so the trait's helper called back into this one and recursed until the
+     * process ran out of memory.
+     */
+    private function gateLogText(): string
     {
         $response = $this->get(route('container-inquiry.gate-log', [
             'date_from' => '2026-03-01', 'date_to' => '2026-03-31',

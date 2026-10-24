@@ -130,6 +130,29 @@ than the collision.** If a whole test file dies before a single test runs and
 the message mentions a method you wrote, the name is the problem — rename it
 and move on.
 
+#### The same collision with a *trait* is silent, and much worse
+
+The two above at least stop the run. A class's own method simply wins over a
+trait's — no error, no signature check, no warning — so a test that already has
+a private `workbookText()` keeps it, and the trait's other methods calling
+`$this->workbookText()` reach the test's version instead of their own.
+
+That is not theoretical. `ReadsWorkbooks::workbookTextFromResponse()` called
+`$this->workbookText($path)`; `MovementPartySurfacesTest` had a private
+`workbookText()` that fetched the export and called the trait back. Mutual
+recursion about 2,670 levels deep, which surfaced first as a 1 GB memory
+exhaustion on the whole file and then, on a single test, as `tempnam()`
+complaining — the temp directory had filled with files the `finally` never got
+to delete, because the call never returned. 465 seconds for one test.
+
+Two habits that avoid it:
+
+- **Before adding a trait to an existing test, grep for its method names in
+  that file.** One line, and it is the only reliable check.
+- **Inside a trait, route internals through a name no test would pick.** The
+  public helpers are `workbookText()` and `workbookTextFromResponse()`; both
+  delegate to `readXlsxParts()`, which nothing is going to shadow by accident.
+
 ### Sign in before creating anything audited
 
 `setUp()` commonly builds a customer or two before calling

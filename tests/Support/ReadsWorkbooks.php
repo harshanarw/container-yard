@@ -31,6 +31,41 @@ trait ReadsWorkbooks
      */
     protected function workbookText(string $path): string
     {
+        return $this->readXlsxParts($path);
+    }
+
+    /** The same, for a streamed download, cleaning up the temp file it needs. */
+    protected function workbookTextFromResponse($response, string $prefix = 'workbook-test-'): string
+    {
+        $path = tempnam(sys_get_temp_dir(), $prefix);
+        file_put_contents($path, $response->streamedContent());
+
+        try {
+            return $this->readXlsxParts($path);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    /**
+     * The actual read, under a name a test is unlikely to have taken.
+     *
+     * Both methods above delegate here rather than to each other, and that is
+     * not tidiness. A class's own method always wins over a trait's, with no
+     * error and no signature check — so a test that already had a private
+     * `workbookText()` of its own silently kept it, and
+     * `workbookTextFromResponse()` calling `$this->workbookText()` reached the
+     * test's version instead. That version fetched the export and called back
+     * in: mutual recursion about 2,670 levels deep, which surfaced first as a
+     * 1 GB memory exhaustion and then as `tempnam()` complaining, because the
+     * `finally` that removes the temp file never runs on a call that never
+     * returns.
+     *
+     * Nothing can stop a class shadowing a trait method. What helps is not
+     * routing the trait's internals through a name a test would plausibly use.
+     */
+    private function readXlsxParts(string $path): string
+    {
         $zip = new \ZipArchive();
 
         $this->assertTrue($zip->open($path) === true, 'The workbook must be a readable xlsx.');
@@ -48,18 +83,5 @@ trait ReadsWorkbooks
         $zip->close();
 
         return html_entity_decode($text, ENT_QUOTES | ENT_XML1, 'UTF-8');
-    }
-
-    /** The same, for a streamed download, cleaning up the temp file it needs. */
-    protected function workbookTextFromResponse($response, string $prefix = 'workbook-test-'): string
-    {
-        $path = tempnam(sys_get_temp_dir(), $prefix);
-        file_put_contents($path, $response->streamedContent());
-
-        try {
-            return $this->workbookText($path);
-        } finally {
-            @unlink($path);
-        }
     }
 }
