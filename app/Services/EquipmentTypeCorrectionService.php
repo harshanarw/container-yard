@@ -45,6 +45,9 @@ use Illuminate\Support\Facades\DB;
  */
 class EquipmentTypeCorrectionService
 {
+    /** A stay has a lease beneath it and a lease has lettings beneath that. */
+    private const MAX_JOB_DEPTH = 5;
+
     /**
      * Whether a correction may proceed, and what the operator should know.
      *
@@ -75,9 +78,20 @@ class EquipmentTypeCorrectionService
             return ['safe' => false, 'blocks' => $blocks, 'warnings' => $warnings];
         }
 
-        if ((int) $container->equipment_type_id === $target->id
-            && $movement->size === $target->size
-            && $movement->container_type === $target->type_code) {
+        // "Nothing to correct" has to mean the *whole visit* already reads this
+        // way, not just the master and this one row. A visit left half-corrected
+        // — which the job-scoped update produced, reaching the arrival and
+        // missing a rental departure — would otherwise be refused the very
+        // re-run that repairs it, on the grounds that the arrival is already
+        // right. The arrival being right is the problem.
+        $stale = GateMovement::whereIn('id', $this->visitMovementIds($movement))
+            ->where(fn ($q) => $q->where('size', '!=', $target->size)
+                ->orWhere('container_type', '!=', $target->type_code)
+                ->orWhereNull('size')
+                ->orWhereNull('container_type'))
+            ->count();
+
+        if ((int) $container->equipment_type_id === $target->id && $stale === 0) {
             $blocks[] = [
                 'icon'    => 'bi-check2',
                 'message' => 'This is already the recorded equipment type - nothing to correct.',
@@ -157,11 +171,6 @@ class EquipmentTypeCorrectionService
     /**
      * Apply the correction.
      *
-     * The gate-out is found by the visit's job where there is one, and by time
-     * where there is not — the same precedence the rest of the system uses for
-     * pairing, because a job link survives dates that do not look right and a
-     * container with no job still has a departure that belongs to this arrival.
-     *
      * @return int how many gate movements were rewritten
      */
     public function apply(GateMovement $movement, EquipmentType $target, ?string $reason = null): int
@@ -181,15 +190,7 @@ class EquipmentTypeCorrectionService
                 'type_code'         => $target->type_code,
             ])->save();
 
-            $movementIds = $movement->yard_job_id
-                ? GateMovement::where('yard_job_id', $movement->yard_job_id)->pluck('id')
-                : GateMovement::where('container_id', $container->id)
-                    ->where(function ($q) use ($movement) {
-                        $q->whereKey($movement->id)
-                          ->orWhere(fn ($w) => $w->where('movement_type', 'out')
-                              ->where('gate_out_time', '>=', $movement->gate_in_time));
-                    })
-                    ->pluck('id');
+            $movementIds = $this->visitMovementIds($movement);
 
             $touched = GateMovement::whereIn('id', $movementIds)->update([
                 'size'           => $target->size,
@@ -219,6 +220,65 @@ class EquipmentTypeCorrectionService
 
             return $touched;
         });
+    }
+
+    /**
+     * Every movement of the visit this arrival opened.
+     *
+     * **The whole job tree, not the arrival's own job.** This was scoped to
+     * `where('yard_job_id', $gateIn->yard_job_id)` and that is wrong for
+     * precisely the case the rental work exists for: `YardController:1153`
+     * gives a departure `$hire->lettingJob?->id ?? $visitGateIn?->yard_job_id`,
+     * so a box released to a renting customer leaves on the **letting** job —
+     * a child of the stay. Scoped to the arrival's job alone, the correction
+     * reached the gate-in and left the gate-out reading the old size, which is
+     * exactly the split this method exists to prevent.
+     *
+     * So: up to the root, then down through every descendant. A stay has a
+     * lease beneath it and a lease has its lettings beneath that, three deep at
+     * most, and all of them are the same physical box on the same stay.
+     *
+     * With no job at all — an older movement from before jobs were linked —
+     * the fallback is the clock: this arrival, and any departure after it.
+     *
+     * @return \Illuminate\Support\Collection<int,int>
+     */
+    private function visitMovementIds(GateMovement $gateIn): \Illuminate\Support\Collection
+    {
+        if (! $gateIn->yard_job_id) {
+            return GateMovement::where('container_id', $gateIn->container_id)
+                ->where(function ($q) use ($gateIn) {
+                    $q->whereKey($gateIn->id)
+                      ->orWhere(fn ($w) => $w->where('movement_type', 'out')
+                          ->where('gate_out_time', '>=', $gateIn->gate_in_time));
+                })
+                ->pluck('id');
+        }
+
+        $job = \App\Models\YardJob::find($gateIn->yard_job_id);
+
+        if (! $job) {
+            return collect([$gateIn->id]);
+        }
+
+        $jobIds   = collect([$job->rootJob()->id]);
+        $frontier = $jobIds->all();
+
+        // Bounded and breadth-first. The tree is three deep by design; the
+        // limit is there so a parent cycle in bad data cannot spin, the same
+        // reason `rootJob()` carries one walking the other way.
+        for ($depth = 0; $depth < self::MAX_JOB_DEPTH && $frontier; $depth++) {
+            $frontier = \App\Models\YardJob::whereIn('parent_job_id', $frontier)
+                ->pluck('id')
+                ->reject(fn ($id) => $jobIds->contains($id))
+                ->all();
+
+            $jobIds = $jobIds->merge($frontier);
+        }
+
+        return GateMovement::where('container_id', $gateIn->container_id)
+            ->where(fn ($q) => $q->whereIn('yard_job_id', $jobIds->unique())->orWhereKey($gateIn->id))
+            ->pluck('id');
     }
 
     /** The movement stores a type code, not an equipment type, so ask it directly. */

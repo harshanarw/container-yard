@@ -216,6 +216,65 @@ class EquipmentTypeCorrectionTest extends FeatureTestCase
         $this->assertSame($to->type_code, $gateOut->container_type);
     }
 
+    /**
+     * The case the ordinary one above missed: a **rental** release.
+     *
+     * `YardController:1153` gives a departure
+     * `$hire->lettingJob?->id ?? $visitGateIn?->yard_job_id`, so a box released
+     * to a renting customer leaves on the **letting** job — a child of the stay,
+     * not the stay itself. Scoped to the arrival's own job id, the correction
+     * reached the gate-in and left the rental gate-out reading the old size:
+     * the arrival said 40' RH and the departure said 20' RF for the same box, on
+     * the same screen, which is the exact split this correction exists to stop.
+     *
+     * The test above passed throughout, because an ordinary release shares the
+     * arrival's job. It proved the path I was thinking about rather than the one
+     * the feature was built for.
+     */
+    public function test_a_rental_gate_out_is_corrected_too(): void
+    {
+        $from = $this->dry();
+        $this->gateIn($from);
+
+        $renter = Customer::factory()->create(['name' => 'ABC Traders']);
+
+        app(\App\Services\LessorOnHireService::class)->onHireInYard(
+            $this->container->fresh(),
+            ['lessor_id' => $this->line->id, 'on_hire_date' => now()->toDateString()],
+            auth()->id(),
+        );
+
+        app(\App\Services\ContainerHireService::class)->onHire(
+            $this->container->fresh(),
+            ['on_hire_date' => now()->toDateString(), 'hire_customer_id' => $renter->id],
+            auth()->id(),
+        );
+
+        // The renter drives it away: a gate-out on the letting job.
+        $this->post(route('yard.gate.out'), [
+            'container_no'  => $this->container->container_no,
+            'vehicle_plate' => 'TRUCK09',
+            'driver_name'   => 'D Perera',
+            'driver_ic'     => '901234567V',
+        ])->assertSessionHasNoErrors();
+
+        $gateOut = GateMovement::where('container_id', $this->container->id)
+            ->where('movement_type', 'out')->firstOrFail();
+
+        $this->assertNotSame(
+            (int) $this->gateIn->yard_job_id,
+            (int) $gateOut->yard_job_id,
+            'The premise: a rental departure is on a different job from the arrival.',
+        );
+
+        $to = $this->otherDry($from);
+        $this->correct($to)->assertSessionHas('success');
+
+        $this->assertSame($to->size, $gateOut->fresh()->size,
+            'The departure has to move with the arrival - it is the same box.');
+        $this->assertSame($to->type_code, $gateOut->fresh()->container_type);
+    }
+
     public function test_the_correction_is_recorded_on_the_audit_trail(): void
     {
         $from = $this->dry();
@@ -266,6 +325,51 @@ class EquipmentTypeCorrectionTest extends FeatureTestCase
         $this->gateIn($from);
 
         $this->assertFalse($this->check($from)['safe']);
+    }
+
+    /**
+     * Unless the visit is only *half* that type.
+     *
+     * A departure left on the old size — which the job-scoped update produced
+     * for every rental release — must not be refused the re-run that repairs
+     * it. "Already correct" is a statement about the whole visit, and a visit
+     * whose arrival is right and whose departure is wrong is not correct; the
+     * arrival being right is the problem.
+     */
+    public function test_a_half_corrected_visit_can_still_be_repaired(): void
+    {
+        $from = $this->dry();
+        $this->gateIn($from);
+
+        $this->post(route('yard.gate.out'), [
+            'container_no'  => $this->container->container_no,
+            'vehicle_plate' => 'TRUCK01',
+            'driver_name'   => 'D Perera',
+            'driver_ic'     => '901234567V',
+            'release_order' => 'RO-EQT-2',
+        ])->assertSessionHasNoErrors();
+
+        $to = $this->otherDry($from);
+
+        // The state the old job-scoped update left behind: master and arrival
+        // corrected, departure untouched.
+        $this->container->forceFill([
+            'equipment_type_id' => $to->id,
+            'size'              => $to->size,
+            'type_code'         => $to->type_code,
+        ])->save();
+
+        GateMovement::whereKey($this->gateIn->id)
+            ->update(['size' => $to->size, 'container_type' => $to->type_code]);
+
+        $this->assertTrue($this->check($to)['safe'], 'A half-corrected visit is not "already correct".');
+
+        $this->correct($to)->assertSessionHas('success');
+
+        $gateOut = GateMovement::where('container_id', $this->container->id)
+            ->where('movement_type', 'out')->firstOrFail();
+
+        $this->assertSame($to->size, $gateOut->size);
     }
 
     // ── The reefer boundary ──────────────────────────────────────────────────
