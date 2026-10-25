@@ -42,6 +42,27 @@ Three consequences worth being plain about:
   — `.claude/` — so `vendor/`, `node_modules/`, `.env`, `storage/`,
   `bootstrap/` and the rest all show as untracked. Thousands of entries.
 
+### And the CI has never once run
+
+`.github/workflows/tests.yml` is a complete, correct GitHub Actions workflow:
+PHP 8.4 with the right extensions, MySQL 8.0, the `container_yard_testing`
+database, `composer install`, then the suite. It has **failed on every push ever
+recorded** — the last hundred runs, without exception — for one reason:
+
+```
+Composer could not find a composer.json file in /home/runner/work/container-yard/container-yard
+```
+
+It cannot install dependencies for a project whose dependency list is not in the
+repository, so it dies about forty seconds in, every time, and has never reached
+a test.
+
+This raises the value of the next few steps considerably. Committing the
+skeleton does not only make the repository clonable — **it switches on a test
+suite that runs itself on every push**, on Linux, against MySQL 8, without
+anybody asking for it. That also catches the class of defect a
+case-insensitive laptop filesystem hides and a case-sensitive server does not.
+
 That last one is why **`.gitignore` comes first**. With it in place, `git status`
 becomes a short list of exactly the files that should be added, and you can add
 them deliberately instead of running `git add .` and hoping.
@@ -422,6 +443,105 @@ Practically: use the web session for planning, for analysing live data you paste
 in, and for writing things down. Use the local session for anything that needs
 to be **run** — which, going by the record, is where most of the defects have
 been found.
+
+---
+
+## macOS (Apple Silicon)
+
+Everything above applies unchanged except the shell. Steps 1–5 — the `.gitignore`,
+the comparison against live, adding the skeleton, `.env.example`, the push — are
+**done once, from whichever machine already holds the skeleton files**, which is
+the Windows laptop. Do them there first.
+
+After that the Mac needs no repository surgery at all. Its setup *is* the clone
+test from Step 6, which is the neatest way to prove the fix worked.
+
+### Install what CI says the project needs
+
+`.github/workflows/tests.yml` is the authority, and it asks for PHP **8.4** with
+`mbstring, pdo_mysql, bcmath, gd, intl, dom, fileinfo`, and MySQL **8.0**.
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+brew install php@8.4 mysql@8.0 composer node
+brew services start mysql@8.0
+
+echo 'export PATH="/opt/homebrew/opt/php@8.4/bin:$PATH"' >> ~/.zshrc
+echo 'export PATH="/opt/homebrew/opt/mysql@8.0/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+php -v          # expect 8.4
+php -m          # the seven extensions above should all be listed
+```
+
+Homebrew's PHP bottle includes most of those; `intl` and `gd` are the two worth
+checking in `php -m` before moving on.
+
+### Clone and run
+
+```bash
+git clone https://github.com/harshanarw/container-yard.git
+cd container-yard
+git checkout claude/reload-container-yard-project-0yXNt
+
+composer install
+cp .env.example .env
+php artisan key:generate
+```
+
+Create both databases — the app's, and the one the tests use:
+
+```bash
+mysql -u root -e "CREATE DATABASE container_yard CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -e "CREATE DATABASE container_yard_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+Point `.env` at the first, and `.env.testing` (copied from
+`.env.testing.example`) at the second. Then:
+
+```bash
+php artisan migrate --seed
+php artisan serve
+php artisan test
+```
+
+The first test will take about 70 seconds — that is the migrate-and-seed, not a
+hang. The full suite runs in roughly four minutes.
+
+### Two differences that matter
+
+**APFS is case-insensitive by default, and so is Windows.** The live server is
+not. A Blade view referenced as `yard.gatePass` when the file is `gate-pass`,
+or a class in a file whose name differs only in case, works on both your
+machines and fails on the server. Neither laptop will ever catch it — the CI
+run will, once it can start, because it runs on Ubuntu.
+
+**No `chown` locally.** The `chown -R nginx:nginx storage bootstrap/cache` step
+belongs to the server only; on a Mac you own the files already. Running
+`php artisan serve` needs no web server configuration at all.
+
+### The PowerShell bits, in zsh
+
+If you do end up doing Steps 1–5 from the Mac instead, these are the equivalents:
+
+```bash
+# Step 3 — the .gitkeep files
+for d in bootstrap/cache storage/app storage/app/public storage/logs \
+         storage/framework/cache storage/framework/sessions \
+         storage/framework/views storage/framework/testing; do
+    mkdir -p "$d" && touch "$d/.gitkeep"
+done
+
+# Step 4 — .env.example, values stripped
+sed -E 's/^([A-Za-z_][A-Za-z0-9_]*)=.*/\1=/' .env > .env.example
+
+# Step 2 — comparing against the server
+diff live/composer.json composer.json
+```
+
+As on Windows: **read `.env.example` line by line before committing it.** The
+`sed` blanks `KEY=value` and will not catch a credential sitting in a comment.
 
 ---
 
