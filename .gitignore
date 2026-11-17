@@ -1,1 +1,47 @@
+# ── Claude Code workspace ───────────────────────────────────────
 .claude/
+
+# ── Dependencies — restored by composer/npm, never committed ────
+/vendor/
+/node_modules/
+
+# ── Environment and secrets ─────────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.testing.example
+
+# ── Laravel runtime state ───────────────────────────────────────
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/framework/testing/*
+!/storage/framework/testing/.gitkeep
+/storage/debugbar/
+/storage/app/*
+!/storage/app/.gitkeep
+!/storage/app/public/
+/storage/app/public/*
+!/storage/app/public/.gitkeep
+
+# ── Public ──────────────────────────────────────────────────────
+/public/storage
+/public/hot
+/public/build/
+
+# ── Tooling ─────────────────────────────────────────────────────
+/.phpunit.result.cache
+/.phpunit.cache/
+/.idea/
+/.vscode/
+npm-debug.log
+yarn-error.log
+Thumbs.db
+.DS_Store
