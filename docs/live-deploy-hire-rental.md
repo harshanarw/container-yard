@@ -60,8 +60,11 @@ This batch adds ~20 new classes (`app/Support/VisitPairing.php`,
 services, three console commands), all under `App\`, which is a PSR-4 prefix.
 
 **No `composer install`, and normally no dump either.** This repository does not
-contain `composer.json`, `composer.lock`, `vendor/` or `bootstrap/` — they exist
-only on the server — so no pull can change the dependency set. And
+contained `composer.json`, `composer.lock`, `vendor/` or `bootstrap/` at the
+time this runbook was written — they existed only on the server. (Commit
+`c122085` has since added everything but `vendor/`, so a pull can now change the
+dependency manifest. Check `git diff` on `composer.lock` before deploying.) The
+dependency set is still not changed by the pull this runbook covers — so no pull can change the dependency set. And
 `composer dump-autoload -o` builds a classmap while *keeping* the PSR-4 fallback,
 so a new file under `app/` is found at runtime whether or not the classmap knows
 about it.

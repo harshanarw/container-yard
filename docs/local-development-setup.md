@@ -3,10 +3,26 @@
 Getting this repository runnable on a Windows laptop, with Claude Code attached
 to it, without committing anything that should not be committed.
 
-Read the first section before running anything. The repository is not shaped the
-way a Laravel repository usually is, and that changes the order of the steps.
+**See the note below first — the gap this document was written to close has
+since been closed.**
 
 ---
+
+> ## Resolved — 17 November 2026
+>
+> Everything in the next three sections describes the repository **before**
+> commit `c122085`, which added the Laravel skeleton: `composer.json`,
+> `composer.lock`, `artisan`, `bootstrap/`, the HTTP and console kernels, the
+> base `Controller`, the middleware, fifteen `config/*.php` files, three core
+> migrations and `.env.example` — 75 files in all.
+>
+> **A clone of this repository now runs.** `git clone`, `composer install`,
+> copy `.env.example`, set the database, `php artisan migrate --seed`. CI has
+> passed since that commit.
+>
+> The sections below are kept because they record how the gap was found and
+> what had to be decided along the way, and because the same questions come up
+> when setting up a second machine. Read them as history, not as current state.
 
 ## What this repository actually contains
 
