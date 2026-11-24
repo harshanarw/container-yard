@@ -438,6 +438,9 @@
                 <td style="width:24%">
                     <div class="cell-lbl">Seal No.</div>
                     <div class="cell-val">{{ $movement->seal_no ?: '-' }}</div>
+                    @if($movement->seal_change_reason)
+                        <div style="font-size:7pt;line-height:1.2;">Seal changed at gate-out: {{ $movement->seal_change_reason }}</div>
+                    @endif
                 </td>
                 <td style="width:24%">
                     <div class="cell-lbl">Yard Location</div>
@@ -646,6 +649,9 @@
                 <td style="width:24%">
                     <div class="cell-lbl">Seal No.</div>
                     <div class="cell-val" style="font-size:8.5pt;">{{ $movement->seal_no ?: '-' }}</div>
+                    @if($movement->seal_change_reason)
+                        <div style="font-size:7pt;line-height:1.2;">Seal changed at gate-out: {{ $movement->seal_change_reason }}</div>
+                    @endif
                 </td>
                 <td style="width:38%">
                     <div class="cell-lbl">Release Order Ref.</div>
@@ -832,6 +838,9 @@
                 <td style="width:22%">
                     <div class="cell-lbl">Seal No.</div>
                     <div class="cell-val" style="font-size:9pt;">{{ $movement->seal_no ?: '-' }}</div>
+                    @if($movement->seal_change_reason)
+                        <div style="font-size:7pt;line-height:1.2;">Seal changed at gate-out: {{ $movement->seal_change_reason }}</div>
+                    @endif
                 </td>
                 <td style="width:22%">
                     <div class="cell-lbl">Release Order Ref.</div>

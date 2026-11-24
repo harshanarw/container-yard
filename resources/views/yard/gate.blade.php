@@ -907,6 +907,21 @@
                                 <div class="col-6">
                                     <label class="form-label fw-semibold">Seal Number</label>
                                     <input type="text" name="seal_no" id="sealNoOut" class="form-control" placeholder="Optional">
+                                    {{-- Where the pre-filled seal came from (the visit's gate-in). --}}
+                                    <div class="form-text d-none" id="sealSourceOut"></div>
+                                    {{-- Shown only when the clerk changes the seal the box arrived with (D9). --}}
+                                    <div class="mt-2 d-none" id="sealChangeWrapOut">
+                                        <div class="alert alert-warning py-1 px-2 small mb-1">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            This box arrived with seal <strong class="font-monospace" id="sealChangeArrivalOut"></strong>.
+                                            A different seal at gate-out needs a reason.
+                                        </div>
+                                        <label class="form-label fw-semibold small mb-1" for="sealChangeReasonOut">
+                                            Reason the seal is different <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" name="seal_change_reason" id="sealChangeReasonOut" class="form-control form-control-sm"
+                                               maxlength="255" placeholder="e.g. customs examination, seal broken, re-sealed by the line">
+                                    </div>
                                     @if($companySetting?->require_seal_for_laden)
                                     <div class="mt-2 d-none" id="noSealWrapOut">
                                         <label class="form-label fw-semibold small mb-1">No-seal reason
@@ -2542,11 +2557,64 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             if (note) { note.innerHTML = ''; note.classList.add('d-none'); }
         }
 
+        // ── Seal carried over from the visit's gate-in (D9) ───────────────────
+        // The seal is pre-filled from the arrival rather than retyped, and a
+        // reason is asked for only when the clerk changes it. Compared without
+        // case or spaces, the same way gateOut() compares.
+        let arrivalSeal = null;
+        const sealOutInput   = document.getElementById('sealNoOut');
+        const sealSourceOut  = document.getElementById('sealSourceOut');
+        const sealChangeWrap = document.getElementById('sealChangeWrapOut');
+        const sealChangeIn   = document.getElementById('sealChangeReasonOut');
+        const normSeal = s => String(s || '').replace(/\s+/g, '').toUpperCase();
+
+        function refreshSealChange() {
+            if (!sealChangeWrap) return;
+            const changed = !!arrivalSeal && normSeal(sealOutInput?.value) !== normSeal(arrivalSeal);
+            sealChangeWrap.classList.toggle('d-none', !changed);
+            if (sealChangeIn) sealChangeIn.required = changed;
+            if (!changed && sealChangeIn) sealChangeIn.value = '';
+        }
+
+        function applyVisitSeal(data) {
+            arrivalSeal = (data && data.cargo_status === 'laden' && data.seal_no) ? data.seal_no : null;
+            if (sealOutInput) sealOutInput.value = arrivalSeal || '';
+            const arr = document.getElementById('sealChangeArrivalOut');
+            if (arr) arr.textContent = arrivalSeal || '';
+            const reasonSel = document.getElementById('noSealReasonOut');
+            if (reasonSel) reasonSel.value = (!arrivalSeal && data && data.no_seal_reason) ? data.no_seal_reason : '';
+            if (sealSourceOut) {
+                let note = '';
+                if (arrivalSeal && data.seal_source) {
+                    note = '<i class="bi bi-link-45deg me-1"></i>From ' + data.seal_source;
+                } else if (data && data.cargo_from_transfer) {
+                    note = '<i class="bi bi-arrow-left-right me-1"></i>Cargo status from the cargo transfer on this box.';
+                }
+                sealSourceOut.innerHTML = note;
+                sealSourceOut.classList.toggle('d-none', !note);
+            }
+            refreshSealChange();
+        }
+        sealOutInput?.addEventListener('input', refreshSealChange);
+
+        // No-seal reason: only for a laden box whose seal number is blank.
+        let outLaden = false;
+        function syncNoSealOut() {
+            const w = document.getElementById('noSealWrapOut');
+            if (!w) return;
+            const show = outLaden && !String(sealOutInput?.value || '').trim();
+            w.classList.toggle('d-none', !show);
+            if (!show) { const r = document.getElementById('noSealReasonOut'); if (r) r.value = ''; }
+        }
+        sealOutInput?.addEventListener('input', syncNoSealOut);
+
         async function doLookup() {
             const val = ($(inp).val() || '').trim().toUpperCase();
             if (val.length < 11) { setInfoBox('warning', '<i class="bi bi-exclamation-triangle me-1"></i>Select a container from the list first.'); return; }
             const sealWrapOut = document.getElementById('noSealWrapOut');
             if (sealWrapOut) sealWrapOut.classList.add('d-none'); // reset until cargo status is known
+            outLaden = false;
+            applyVisitSeal(null);
             try {
                 const res = await fetch('{{ route("yard.container-lookup") }}?container_no=' + encodeURIComponent(val));
                 const data = await res.json();
@@ -2680,24 +2748,23 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                         else gradeSelect.value = gv;
                     }
                     gradeRow.classList.remove('d-none');
-                    // Seal policy: reveal the No-seal reason only for a laden container.
-                    if (sealWrapOut) {
-                        const laden = data.cargo_status === 'laden' || data.cargo_status === 'full';
-                        sealWrapOut.classList.toggle('d-none', !laden);
-                        if (laden) {
-                            // The seal / no-seal reason lives inside the collapsed
-                            // Export Information section — open it so the operator can
-                            // see and complete it for the laden release.
-                            const exp = document.getElementById('outExportSection');
-                            if (exp && !exp.classList.contains('show')) {
-                                if (window.bootstrap && bootstrap.Collapse) {
-                                    bootstrap.Collapse.getOrCreateInstance(exp).show();
-                                } else {
-                                    exp.classList.add('show');
-                                }
+                    const laden = data.cargo_status === 'laden' || data.cargo_status === 'full';
+                    // The seal from the visit's gate-in, pre-filled; then the
+                    // No-seal reason shows only for a laden box with no seal.
+                    outLaden = laden;
+                    applyVisitSeal(data);
+                    syncNoSealOut();
+                    if (laden) {
+                        // The seal / no-seal reason lives inside the collapsed
+                        // Export Information section — open it so the operator can
+                        // see the carried-over seal and complete the laden release.
+                        const exp = document.getElementById('outExportSection');
+                        if (exp && !exp.classList.contains('show')) {
+                            if (window.bootstrap && bootstrap.Collapse) {
+                                bootstrap.Collapse.getOrCreateInstance(exp).show();
+                            } else {
+                                exp.classList.add('show');
                             }
-                        } else {
-                            const r = document.getElementById('noSealReasonOut'); if (r) r.value = '';
                         }
                     }
                 }
@@ -2718,6 +2785,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             gradeRow.classList.add('d-none');
             infoBox.className = 'mb-3 d-none';
             infoBox.innerHTML = '';
+            applyVisitSeal(null);
         });
 
         // OCR path: search button click still triggers lookup (button is hidden but clickable via JS)
@@ -3252,19 +3320,21 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
 })();
 
 // ── Seal / no-seal reason (gate-in) ───────────────────────────────────────────
-// Show the No-seal reason picker only when the box is Laden (hidden for Empty).
+// Show the No-seal reason picker only for a Laden box with a blank seal number.
 // Enforcement is server-side on save; this just keeps the form uncluttered.
 (function () {
     const cargo = document.getElementById('cargoStatusIn');
     const wrap  = document.getElementById('noSealWrapIn');
+    const seal  = document.getElementById('sealNoIn');
     if (!cargo || !wrap) return; // policy off → wrap absent
 
     function sync() {
-        const laden = cargo.value === 'laden';
-        wrap.classList.toggle('d-none', !laden);
-        if (!laden) { const r = document.getElementById('noSealReasonIn'); if (r) r.value = ''; }
+        const show = cargo.value === 'laden' && !(seal && seal.value.trim());
+        wrap.classList.toggle('d-none', !show);
+        if (!show) { const r = document.getElementById('noSealReasonIn'); if (r) r.value = ''; }
     }
     cargo.addEventListener('change', sync);
+    seal?.addEventListener('input', sync);
     sync(); // reflect the initial cargo-status value on load
 })();
 

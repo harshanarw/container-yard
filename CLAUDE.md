@@ -46,7 +46,7 @@ before you start, push before you stop, one environment active at a time.**
 - **The first test in a file takes about 70 seconds.** That is
   `RefreshDatabase` migrating the schema and running the full `DatabaseSeeder`
   (`$seed = true` in `Tests\Support\FeatureTestCase`). It is not a hang.
-- **Full suite: about 5 minutes, 1,273 passing, 1 skipped.** Fewer passing
+- **Full suite: about 6 minutes, 1,286 passing, 1 skipped.** Fewer passing
   means a regression; do not report it as "mostly green". More skips usually
   means a missing dependency on this host (several export tests
   `markTestSkipped` when openspout is absent or cannot write a styled
@@ -182,6 +182,16 @@ dispatches on it.
 - A seal number on an **Empty** container is refused (`block_seal_on_empty_in` /
   `_out`, migration 000321). `cargo_status` selects the tariff row, so a laden
   box recorded as empty under-bills. The rule fires on the submitted value.
+- **Gate-out reads Laden / Empty and the seal from the visit**, through
+  `App\Support\ContainerVisitState`: a cargo transfer since the arrival, else
+  the arrival movement, else (no arrival recorded) the master. Never read
+  `containers.cargo_status` or `seal_no` for a box on a visit. A seal different
+  from the arrival's needs `seal_change_reason` (migration 000322).
+  `movements:cargo-mismatch` reports departures that disagree with their
+  arrival (report only). Condition, grade and location still come from the
+  master until Phase 3 of `docs/architecture-gap-plan.md`.
+- `docs/architecture-principles.md` holds the nine business rules; every gate,
+  job, storage, hire or billing change states which invariant it serves.
 - Reefer storage tariffs need a row for each `reefer_mode` (operating /
   non_operating), or a null mode. An empty reefer defaults to NOR.
 - `CompanySetting::current()` is cached for an hour. Run `php artisan cache:clear`
@@ -203,7 +213,7 @@ dispatches on it.
   (`.claude/settings.local.json`, permission allowlists) stay under `.claude/`,
   which `.gitignore` excludes. Keep `git commit`, `git push` and anything
   touching `.env` out of those allowlists.
-- Migrations are numbered `2024_01_01_000NNN_*`; the latest is 000321.
+- Migrations are numbered `2024_01_01_000NNN_*`; the latest is 000322.
   Laravel tracks migrations but not seeders, so which seeders a release needs
   comes from the release notes in `docs/deployment-seeders.md`.
 - `docs/*-plan.md` files are design records: findings, decisions, phases.

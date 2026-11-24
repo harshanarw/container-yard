@@ -634,3 +634,55 @@ no billing check and no movement sync, so a master and its own movements could
 silently disagree. That screen now redirects the operator to the gate-in for a
 container that has movements; a container that has never been to the gate is
 still freely editable.
+
+### Gate-out reads cargo status and seal from the visit (migration 000322)
+
+Phase 1 of `docs/architecture-gap-plan.md`. One migration, no seeder, no
+permission, no manual UI step.
+
+```bash
+php artisan migrate --force        # 000322 — gate_movements.seal_change_reason
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+chown -R nginx:nginx storage bootstrap/cache
+systemctl restart php-fpm
+```
+
+**What changes at the gate.**
+
+- **Laden / Empty is read from the visit.** Gate-out used to read it from the
+  container master, which gate-in writes once and the movement edit screen
+  never reaches. So a gate-in corrected on the edit screen (Empty → Laden, or a
+  seal added) still left under the old values. Gate-out now reads the arrival
+  movement, or the cargo transfer since, through `App\Support\ContainerVisitState`.
+  A box with no recorded arrival still falls back to the master.
+- **The seal is pre-filled** from the gate-in, marked *From Gate In …*.
+- **A different seal needs a reason.** If the clerk changes the seal, the form
+  asks *Reason the seal is different*. The save refuses without one. The reason
+  is stored on the departure (`seal_change_reason`), printed on the gate pass
+  under the seal, and written to the audit trail as *Seal changed at gate-out*.
+  Retyping the same seal in another case or with spaces is not a change. Giving
+  a seal to a box that arrived without one needs no reason.
+- **The movement edit screen** can now record a *No-seal reason*. Before, an
+  Empty → Laden correction on a box with no seal was a dead end when
+  `require_seal_for_laden` is on. On a gate-out, changing the seal away from
+  the arrival's asks for the same reason as the gate.
+
+Condition, grade and yard location are still read from the master. Each is
+changed mid-visit only there today (repair, yard shift, master edit), and they
+move to the job in Phase 3.
+
+**After deploying, run the report** (read-only; there is no `--fix`):
+
+```bash
+php artisan movements:cargo-mismatch                      # every visit
+php artisan movements:cargo-mismatch --since=2026-10-01
+php artisan movements:cargo-mismatch --container=FFAU6736115
+```
+
+It lists visits whose departure's Laden / Empty disagrees with the arrival,
+with the cargo-status edits from the audit trail. On the reference copy of live
+(24 Nov 2026) it lists **15**, including FFAU6736115, CRXU9897525, ONEU7537739
+and EGSU8156383. Someone who knows the boxes decides which end is wrong and
+corrects it on the movement edit screen. Where a CODECO went out for the
+departure, re-send it. The *CODECO* column reads `codeco_exported_at`, which is
+not set on any of the 15, so check the EDI log as well.

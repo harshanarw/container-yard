@@ -220,9 +220,8 @@ be restructured without migrating data.
 - Equipment-type correction: the billing check misses a separately billed
   lift-on (e.g. a renter's); the no-job fallback rewrites later visits'
   departures.
-- Movement edit: no no-seal-reason field (Empty → Laden with no seal is a dead
-  end); an old laden-no-seal movement cannot be re-saved; cargo-status edits
-  are not checked against billing.
+- Movement edit: ~~no no-seal-reason field~~ (fixed in Phase 1); cargo-status
+  edits are not checked against billing.
 
 ---
 
@@ -233,23 +232,40 @@ deployable, ships with tests that pin the invariants it serves, and has a
 deploy note in `docs/deployment-seeders.md` (migration / seeder / permission /
 manual step).
 
-### Phase 1 — The seal complaint, first (Rule 4, part)
+### Phase 1 — The seal complaint, first (Rule 4, part) — built 24 Nov 2026
 
 The live pain, fixable without waiting for the rest.
 
-- `ContainerVisitState`: one resolver for the open visit's state — arrival via
-  `VisitPairing`, then in-yard events (cargo transfer, repair), party from
-  `visitCustomerId()`; bulk variant for lists; master fallback only while
-  legacy rows lack values.
-- Gate-out reads only the resolver: seal rule, cargo, condition, grade; seal
-  pre-filled "from Gate In", editable.
+- **`App\Support\ContainerVisitState`:** one resolver for what the box is
+  carrying on its open visit, in this order:
+  1. an in-yard event after the arrival (today a cargo transfer: the
+     substitute is laden while it holds the cargo, empty once emptied and
+     kept);
+  2. the arrival movement (the visit's gate-in, or the return from a rental);
+  3. the master, only when no arrival is recorded or it has no cargo status.
+
+  A bulk variant is left until a list needs it (Phase 3).
+- **Gate-out and both lookups read the resolver** for Laden / Empty, the seal
+  rule and the departure's cargo status. The seal is pre-filled *from Gate In*
+  and editable.
+- **Condition, grade and location stay on the master in this phase.** Each is
+  changed mid-visit only on the master today (repair marks the box sound, a
+  yard shift moves it, the master form regrades it). Reading the arrival
+  instead would lose those changes, so they move with their writers in
+  Phase 3a / 3c.
 - **Seal changed at gate-out (D9):** allowed, with a warning and a **mandatory
-  reason**. The reason is stored on the departure (`seal_change_reason`),
-  audited, and shown on the gate pass and the movement history.
-- Report command (no `--fix`): departures whose cargo status disagrees with
-  their arrival, with the audit history — the CODECO cases — for the yard to
-  correct on the edit screen.
-- *Deploy:* migration (`seal_change_reason`), code.
+  reason**. It is enforced at the gate and on the gate-out edit screen,
+  ignoring case and spaces. It is stored on the departure (`seal_change_reason`,
+  migration 000322), given its own audit line, and printed on the gate pass.
+- **Movement edit** takes a *No-seal reason* (from "found on the way"), so an
+  Empty → Laden correction on an unsealed box is no longer a dead end.
+- **Report** `movements:cargo-mismatch` (no `--fix`): departures whose
+  Laden / Empty disagrees with their arrival, with the cargo-status edits from
+  the audit trail, for the yard to correct on the edit screen. It skips boxes
+  emptied or filled by a cargo transfer. **15 on the reference copy.**
+- Tests: `tests/Feature/Yard/GateOutFromVisitTest.php`.
+- *Deploy:* migration 000322, code; then read the report. See
+  `docs/deployment-seeders.md`.
 
 ### Phase 2 — Job life cycle (Rules 2, 3.2, 5.1–5.3)
 

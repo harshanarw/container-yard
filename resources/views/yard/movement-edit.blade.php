@@ -183,6 +183,15 @@
                             <label class="form-label fw-semibold">Seal Number <span class="text-muted fw-normal">(Optional)</span></label>
                             <input type="text" name="seal_no" class="form-control"
                                    value="{{ old('seal_no', $movement->seal_no) }}" placeholder="Optional">
+                            <div class="js-no-seal-wrap">
+                            <label class="form-label fw-semibold small mt-2 mb-1">No-seal reason <span class="text-muted fw-normal">(a laden box with no seal)</span></label>
+                            <select name="no_seal_reason" class="form-select form-select-sm">
+                                <option value="">- None -</option>
+                                @foreach(['lcl' => 'LCL / groupage', 'customs_exam' => 'Customs examination', 'broken_missing' => 'Seal broken / missing', 'special_equipment' => 'Special equipment (flat rack / open top / tank)', 'other' => 'Other'] as $code => $label)
+                                    <option value="{{ $code }}" @selected(old('no_seal_reason', $movement->no_seal_reason) === $code)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            </div>
                         </div>
                         <div class="col-6">
                             <label class="form-label fw-semibold">Truck / Vehicle Plate</label>
@@ -487,6 +496,25 @@
                                     </label>
                                     <input type="text" name="seal_no" class="form-control"
                                            value="{{ old('seal_no', $movement->seal_no) }}" placeholder="Optional">
+                                    <div class="js-no-seal-wrap">
+                                    <label class="form-label fw-semibold small mt-2 mb-1">No-seal reason <span class="text-muted fw-normal">(a laden box with no seal)</span></label>
+                                    <select name="no_seal_reason" class="form-select form-select-sm">
+                                        <option value="">- None -</option>
+                                        @foreach(['lcl' => 'LCL / groupage', 'customs_exam' => 'Customs examination', 'broken_missing' => 'Seal broken / missing', 'special_equipment' => 'Special equipment (flat rack / open top / tank)', 'other' => 'Other'] as $code => $label)
+                                            <option value="{{ $code }}" @selected(old('no_seal_reason', $movement->no_seal_reason) === $code)>{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    </div>
+                                </div>
+                                {{-- Why the seal differs from the gate-in's, when it does (D9). --}}
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">
+                                        Seal change reason
+                                        <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">Only when the seal differs from the gate-in</span>
+                                    </label>
+                                    <input type="text" name="seal_change_reason" class="form-control" maxlength="255"
+                                           value="{{ old('seal_change_reason', $movement->seal_change_reason) }}"
+                                           placeholder="e.g. customs examination, seal broken, re-sealed by the line">
                                 </div>
                             </div>
                         </div>
@@ -757,6 +785,26 @@
 
 @push('scripts')
 <script>
+// ── No-seal reason: only for a Laden box with a blank seal number ───────────
+(function () {
+    document.querySelectorAll('.js-no-seal-wrap').forEach(function (wrap) {
+        var form  = wrap.closest('form');
+        var cargo = form && form.querySelector('[name="cargo_status"]');
+        var seal  = form && form.querySelector('[name="seal_no"]');
+        var reason = wrap.querySelector('select');
+        if (!cargo) return;
+        function sync() {
+            var show = cargo.value === 'laden' && !(seal && seal.value.trim());
+            wrap.classList.toggle('d-none', !show);
+            if (!show && reason) reason.value = '';
+        }
+        cargo.addEventListener('change', sync);
+        if (window.jQuery) jQuery(cargo).on('change', sync);
+        if (seal) seal.addEventListener('input', sync);
+        sync();
+    });
+})();
+
 // ── Initialize AirDatepicker on datetime inputs ─────────────────────────────
 (function () {
     if (typeof AirDatepicker === 'undefined') return;

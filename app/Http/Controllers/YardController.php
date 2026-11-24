@@ -1010,6 +1010,7 @@ class YardController extends Controller
             'release_order'  => ['nullable', 'string', 'max:50'],
             'seal_no'        => ['nullable', 'string', 'max:20'],
             'no_seal_reason' => ['nullable', 'string', 'in:' . implode(',', self::NO_SEAL_REASONS)],
+            'seal_change_reason' => ['nullable', 'string', 'max:255'],
             'grade_id'       => ['nullable', 'exists:container_grades,id'],
             // Purpose + booking (export release)
             'gate_out_purpose'     => ['nullable', 'string', 'max:30'],
@@ -1213,16 +1214,44 @@ class YardController extends Controller
                 . '(the session is now marked "Not Plugged In") and the charge can still be raised.');
         }
 
+        // What the box is carrying, read from the visit, not the master
+        // (Rule 4). Gate-in writes the master's cargo status and seal once,
+        // and a correction on the movement edit screen never reaches it. So a
+        // laden box gated in without a seal and given one afterwards was
+        // refused here with the seal field empty.
+        $visitState = \App\Support\ContainerVisitState::for($container);
+
+        // The seal this departure records. A request that does not send the
+        // field at all (an API client, an older form) carries the arrival's
+        // seal over rather than recording none. A seal that *is* sent, blank
+        // included, is the clerk's, and is compared with the arrival below.
+        $sealOut = $request->has('seal_no')
+            ? ($validated['seal_no'] ?? null)
+            : $visitState->sealNo;
+
         // Seal policy: a laden gate-out must carry a seal, or a documented no-seal
         // reason, when the company enables the requirement; and an empty one must
-        // carry none. Laden status comes from the container record, not the form.
+        // carry none. Laden status comes from the visit, not the form.
         if ($err = $this->sealPolicyError(
             'out',
-            $container->cargo_status === 'laden',
-            $validated['seal_no'] ?? null,
+            $visitState->isLaden(),
+            $sealOut,
             $validated['no_seal_reason'] ?? null
         )) {
             return $this->validationResponse($request, ['seal_no' => [$err]]);
+        }
+
+        // A laden box leaving with a different seal from the one it arrived
+        // with: allowed, because seals are replaced (customs examination, a
+        // broken seal), but only with a reason (D9). The form pre-fills the
+        // arrival's seal, so this asks only when someone actually changed it.
+        $sealChanged = $visitState->sealChangedTo($sealOut);
+
+        if ($sealChanged && blank($validated['seal_change_reason'] ?? null)) {
+            return $this->validationResponse($request, ['seal_change_reason' => [
+                "Container {$container->container_no} arrived with seal {$visitState->sealNo}. "
+                . 'Give the reason the seal is different at gate-out, or restore the original seal.',
+            ]]);
         }
 
         // Resolve actual gate-out datetime — admin can override, others use now()
@@ -1238,7 +1267,7 @@ class YardController extends Controller
         }
 
         // Record gate movement
-        $movement = DB::transaction(function () use ($container, $validated, $gateOutTime, $purposeCode, $gateLine, $visitJobId, $visitCustomer, $departingReeferMode) {
+        $movement = DB::transaction(function () use ($container, $validated, $gateOutTime, $purposeCode, $gateLine, $visitJobId, $visitCustomer, $departingReeferMode, $visitState, $sealChanged, $sealOut) {
             return GateMovement::create([
                 'container_id'     => $container->id,
                 'container_no'     => $container->container_no,
@@ -1257,7 +1286,9 @@ class YardController extends Controller
                 'location_tier'   => $container->location_tier,
                 'condition'       => $container->condition,
                 'grade_id'        => $validated['grade_id'] ?? $container->grade_id,
-                'cargo_status'    => $container->cargo_status,
+                // From the visit (arrival, or a cargo transfer since), so the
+                // departure and the CODECO sent from it agree with the arrival.
+                'cargo_status'    => $visitState->cargoStatus,
                 // How the box is leaving. The PTI gate above read this, and the
                 // Daily Movements screen shows it, so a departure that differs
                 // from its arrival is visible rather than inferred.
@@ -1267,8 +1298,9 @@ class YardController extends Controller
                 'driver_ic'       => $validated['driver_ic'],
                 'driver_phone'    => $validated['driver_phone'] ?? null,
                 'release_order'   => $validated['release_order'],
-                'seal_no'         => $validated['seal_no'] ?? null,
+                'seal_no'         => $sealOut,
                 'no_seal_reason'  => $validated['no_seal_reason'] ?? null,
+                'seal_change_reason' => $sealChanged ? trim($validated['seal_change_reason']) : null,
                 'gate_out_time'   => $gateOutTime,
                 'movement_status' => 'done',
                 'remarks'         => $validated['remarks'],
@@ -1286,6 +1318,24 @@ class YardController extends Controller
 
         // Save OCR-captured images
         $this->saveMovementOcrImages($movement, $validated);
+
+        // A changed seal gets its own audit line, so it can be found by
+        // searching the trail rather than by diffing a creation snapshot.
+        if ($sealChanged) {
+            \App\Services\AuditService::log(
+                event: 'gate-out',
+                module: 'yard',
+                description: "Seal changed at gate-out - {$container->container_no}: "
+                    . "{$visitState->sealNo} at gate-in, " . ($movement->seal_no ?: 'none') . ' at gate-out. '
+                    . "Reason: {$movement->seal_change_reason}",
+                reference: $container->container_no,
+                subject: $movement,
+                properties: [
+                    'old' => ['seal_no' => $visitState->sealNo, 'gate_in_movement_id' => $visitState->arrival?->id],
+                    'new' => ['seal_no' => $movement->seal_no, 'seal_change_reason' => $movement->seal_change_reason],
+                ],
+            );
+        }
 
         // Remember the driver in the master (best-effort — never break the gate flow).
         $this->rememberDriver($validated['driver_name'] ?? null, $validated['driver_ic'] ?? null, $validated['driver_phone'] ?? null);
@@ -2006,6 +2056,10 @@ class YardController extends Controller
             'condition'        => ['nullable', 'in:sound,damaged,require_repair'],
             'cargo_status'     => ['nullable', 'in:empty,laden'],
             'seal_no'          => ['nullable', 'string', 'max:20'],
+            // Editable here so a laden box with no seal is not a dead end: an
+            // Empty → Laden correction on a box that truly has no seal needs
+            // the documented reason the gates accept.
+            'no_seal_reason'   => ['nullable', 'string', 'in:' . implode(',', self::NO_SEAL_REASONS)],
             'ventilation_type' => ['nullable', 'in:none,passive,cross,mechanical,reefer,controlled_atm'],
             'vent_count'       => ['nullable', 'integer', 'min:0', 'max:99'],
         ];
@@ -2042,6 +2096,7 @@ class YardController extends Controller
             $rules['loading_voyage']  = ['nullable', 'string', 'max:50'];
             $rules['sailing_date']    = ['nullable', 'date'];
             $rules['shipper']         = ['nullable', 'string', 'max:150'];
+            $rules['seal_change_reason'] = ['nullable', 'string', 'max:255'];
             if ($isAdmin) {
                 $rules['gate_out_time'] = ['nullable', 'string', 'max:20'];
             }
@@ -2058,14 +2113,41 @@ class YardController extends Controller
         // field this form did not send.
         $sealAfter  = array_key_exists('seal_no', $validated) ? $validated['seal_no'] : $movement->seal_no;
         $cargoAfter = $validated['cargo_status'] ?? $movement->cargo_status;
+        $noSealAfter = $request->has('no_seal_reason')
+            ? ($validated['no_seal_reason'] ?? null)
+            : $movement->no_seal_reason;
 
         if ($err = $this->sealPolicyError(
             $movement->movement_type === 'out' ? 'out' : 'in',
             $cargoAfter === 'laden',
             $sealAfter,
-            $movement->no_seal_reason,
+            $noSealAfter,
         )) {
             return back()->withInput()->withErrors(['seal_no' => $err]);
+        }
+
+        // The departure's seal against the arrival's, the rule gateOut()
+        // applies (D9): a laden box leaving with a different seal says why.
+        // Checked here too, or the reason could be stepped around by saving
+        // the gate-out and then changing its seal.
+        $sealChangeAfter = null;
+        if ($movement->movement_type === 'out') {
+            $sealChangeAfter = $request->has('seal_change_reason')
+                ? (trim((string) ($validated['seal_change_reason'] ?? '')) ?: null)
+                : $movement->seal_change_reason;
+
+            $arrival = $this->visitCounterpart($movement)['gate_in'] ?? null;
+            $arrival = $arrival ? GateMovement::find($arrival->id) : null;
+            $arrivalSeal = ($arrival && $arrival->cargo_status === 'laden') ? trim((string) $arrival->seal_no) : '';
+            $norm = fn ($s) => strtoupper(preg_replace('/\s+/', '', (string) $s));
+
+            if ($cargoAfter === 'laden' && $arrivalSeal !== ''
+                && $norm($sealAfter) !== $norm($arrivalSeal)
+                && $sealChangeAfter === null) {
+                return back()->withInput()->withErrors(['seal_change_reason' =>
+                    "This box arrived with seal {$arrivalSeal}. Give the reason the seal is different at gate-out, or restore the original seal.",
+                ]);
+            }
         }
 
         $updateData = array_filter([
@@ -2087,6 +2169,12 @@ class YardController extends Controller
         // transporter fields below.
         if ($request->has('seal_no')) {
             $updateData['seal_no'] = $validated['seal_no'] ?: null;
+        }
+        if ($request->has('no_seal_reason')) {
+            $updateData['no_seal_reason'] = $validated['no_seal_reason'] ?? null;
+        }
+        if ($movement->movement_type === 'out' && $request->has('seal_change_reason')) {
+            $updateData['seal_change_reason'] = $sealChangeAfter;
         }
 
         if ($movement->movement_type === 'in') {
@@ -2633,6 +2721,8 @@ class YardController extends Controller
         $pendingPlug = $this->pendingPlugSession($container);
         $enforcePlug = (bool) (\App\Models\CompanySetting::current()->enforce_reefer_plug_session ?? false);
 
+        $visitState = \App\Support\ContainerVisitState::for($container);
+
         if ($pendingPlug && $enforcePlug) {
             // A hard stop, so it belongs with the other blocks rather than as a
             // warning the operator can read past.
@@ -2674,7 +2764,15 @@ class YardController extends Controller
                 ? \App\Support\MrStatusCatalogue::label($container->mr_status, $container->mr_lane)
                 : null,
             'export_ready'     => (bool) $container->export_ready && ! $container->mrStatusHasExpired(),
-            'cargo_status'     => $container->cargo_status,
+            // From the visit, the same resolver gateOut() decides with, so the
+            // laden badge and the seal rule on the form match the save. The
+            // seal is pre-filled from the arrival; the form asks for a reason
+            // only if the clerk changes it.
+            'cargo_status'     => $visitState->cargoStatus,
+            'seal_no'          => $visitState->sealNo,
+            'no_seal_reason'   => $visitState->noSealReason,
+            'seal_source'      => $visitState->sealSourceLabel(),
+            'cargo_from_transfer' => $visitState->source === \App\Support\ContainerVisitState::FROM_CARGO_TRANSFER,
             'location'         => implode(' ', array_filter([
                 $container->location_zone ? 'Zone ' . $container->location_zone : null,
                 $container->location_row,
@@ -3010,7 +3108,8 @@ class YardController extends Controller
             'size'               => $container->size,
             'type_code'          => $container->type_code,
             'condition'          => $container->condition,
-            'cargo_status'       => $container->cargo_status,
+            // The visit's cargo status, as gate-out records it (Rule 4).
+            'cargo_status'       => \App\Support\ContainerVisitState::for($container)->cargoStatus,
             'status'             => $container->status,
             'customer_id'        => $visitCustomerId ?? $container->customer_id,
             'customer_name'      => $visitCustomer?->name ?? $container->customer?->name,

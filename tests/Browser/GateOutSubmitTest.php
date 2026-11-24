@@ -118,4 +118,46 @@ class GateOutSubmitTest extends BrowserTestCase
                 ->assertVisible('#noSealWrapOut');
         });
     }
+
+    /**
+     * The seal comes over from the visit's gate-in (Phase 1, D9): pre-filled,
+     * and a reason is asked for only when the clerk changes it.
+     */
+    public function test_seal_is_carried_from_the_gate_in_and_a_change_asks_for_a_reason(): void
+    {
+        $admin     = User::factory()->systemAdmin()->create();
+        // The master says Empty with no seal; only the visit knows better.
+        $container = $this->inYardContainer('SEAL7654321', ['cargo_status' => 'empty', 'seal_no' => null]);
+
+        \App\Models\GateMovement::create([
+            'container_id'   => $container->id,
+            'container_no'   => $container->container_no,
+            'customer_id'    => $container->customer_id,
+            'movement_type'  => 'in',
+            'size'           => $container->size,
+            'container_type' => $container->type_code,
+            'cargo_status'   => 'laden',
+            'seal_no'        => 'SL-88001',
+            'gate_in_time'   => now()->subDay(),
+            'created_by'     => $admin->id,
+        ]);
+
+        $this->browse(function (Browser $browser) use ($admin, $container) {
+            $browser->loginAs($admin)->visit('/yard/gate')->waitFor('#gateInCard');
+            $this->openGateOutAndLookup($browser, $container->container_no);
+
+            $browser->waitUntil("document.getElementById('sealNoOut').value === 'SL-88001'")
+                ->assertVisible('#sealSourceOut')
+                ->assertMissing('#sealChangeWrapOut');
+
+            // A different seal reveals the reason field...
+            $browser->clear('#sealNoOut')->type('#sealNoOut', 'SL-99002')
+                ->waitFor('#sealChangeWrapOut')
+                ->assertVisible('#sealChangeWrapOut');
+
+            // ...and the same seal retyped in lower case hides it again.
+            $browser->clear('#sealNoOut')->type('#sealNoOut', 'sl-88001')
+                ->waitUntilMissing('#sealChangeWrapOut');
+        });
+    }
 }
