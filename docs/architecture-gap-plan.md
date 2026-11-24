@@ -411,12 +411,35 @@ a second stay, storage and job split, contrary to "storage continues on the same
 job"); **rewriting every recorded number** to the new one (falsifies the gate-in
 EIR and the CODECO already sent under the old number).
 
-**8a — Identity by id (prerequisite, no behaviour change).** Convert the 17 files
-that match by number text to `container_id`; add one resolver,
-`ContainerNumbers::find($typed)`: current number first, then history (→ "now
-MSCU…, renumbered on …"). Test: change a master's number directly and the box's
-cycles, M&R status and invoices still read as one container. Can ship any time,
-and closes the split G7.1 causes today.
+**8a — Identity by id (prerequisite, no behaviour change) — built 24 Nov 2026.**
+
+- **`App\Support\ContainerNumbers`**, the one place a typed number becomes a
+  container:
+  - `find()` / `findOrFail()`: today the current number; 8c adds the
+    history here and nowhere else;
+  - `whereBelongsTo()` / `groupByContainer()`: find and group a box's rows
+    by `container_id`. A row with no id still matches by the container's
+    current number, so nothing that matched before stops matching.
+- **Converted from number text to the box:**
+  - Container Inquiry: the history page (movements, surveys, estimates,
+    work orders, storage, S&H, repair and reefer invoices) and the list's
+    gate-out pairing;
+  - the M&R status batch (movements, surveys, estimates, work orders);
+  - every exact lookup at the gate (gate-in, gate-out, both lookups,
+    calculator, guard-post prefill), the OCR lookup and the Container
+    Master lookup;
+  - the movement filters of `containers:reconcile-mr-status`, `reefer:empty-operating`
+    and `movements:cargo-mismatch`.
+- **Left as they are, on purpose:**
+  - the "contains" searches on list screens (`LIKE '%…%'`) and the Inquiry
+    autocomplete. They search the number recorded on each row; extending
+    them to former numbers is 8d;
+  - the commands' `--container` filters on the master table itself, which
+    is the identity.
+- Tests: `tests/Feature/Yard/ContainerIdentityTest.php` renumbers a master
+  directly mid-visit. Inquiry history, the list pairing and the M&R status
+  all read it as one visit, closed by its departure.
+- *Deploy:* code only.
 
 **8b — Owner and custody (Rule 8, prerequisite for 8c).**
 
@@ -498,6 +521,8 @@ Visit (main job — the line / its agent, as gate-in Customer)   storage, plug, 
 
 - Gate-out lookup accepts the former number and answers with the current one;
   the departure records the current (new) number.
+- The list searches and the Inquiry autocomplete (left on number text in 8a)
+  also match a former number, through `ContainerNumbers`.
 - Gate pass / EIR, Container Inquiry, invoice lines and the Container Master show
   `NEW (ex OLD)` through one component; Inquiry shows the number timeline.
 - Exports **append** `Former Container No`; existing columns keep their meaning.
@@ -630,7 +655,7 @@ Main job CCD-CT-00012   Customer: ABC Traders                    (gate-in type C
 | Order | Phase | Size | Why here |
 | --- | --- | --- | --- |
 | 1 | 1 — seal / gate-out from visit, seal-change reason (D9) | small–medium | live complaint, CODECO errors |
-| 2 | 8a — identity by id | small–medium | no behaviour change; closes today's split from G7.1 |
+| 2 | 8a — identity by id **(built 24 Nov)** | small–medium | no behaviour change; closes today's split from G7.1 |
 | 3 | 2 — job life cycle, gate-out sub-job warning (D5), open-sub-jobs dashboard (D3), sub-job numbering (D7/D20) | medium | every later phase needs a trustworthy job tree |
 | 4 | 8b — owner and custody | small–medium | renumbering needs a known owner (only 3 of 1,930 linked today); needs the prefix list entered (D18) |
 | 5 | 8c–8g — renumbering flow | medium | needs 8a, 8b and the sub-job life cycle; its charge is already job-costed (general invoice lines carry `yard_job_id`) |

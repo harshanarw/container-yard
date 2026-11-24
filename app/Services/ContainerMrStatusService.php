@@ -665,16 +665,20 @@ class ContainerMrStatusService
         }
 
         $containerIds = $gateIns->pluck('container_id')->filter()->unique()->values();
-        $containerNos = $gateIns->pluck('container_no')->filter()->unique()->values();
 
         $containers = Container::whereIn('id', $containerIds)->get()->keyBy('id');
+
+        // Everything below is found and grouped by container, not by number
+        // text (Rule 7.1), so a box renumbered mid-visit is still one box.
+        $ofBoxes = fn (string $model) => \App\Support\ContainerNumbers::groupByContainer(
+            \App\Support\ContainerNumbers::whereBelongsTo($model::query(), $containers)->get(),
+            $containers,
+        );
 
         // Every movement for these containers, not just the page's gate-ins:
         // which gate-out closed a visit depends on the visits around it, so a
         // page-local view would mis-pair the first and last rows on the page.
-        $movements = GateMovement::whereIn('container_no', $containerNos)
-            ->get()
-            ->groupBy('container_no');
+        $movements = $ofBoxes(GateMovement::class);
 
         $gateOutMap = [];
         foreach ($movements as $perContainer) {
@@ -684,9 +688,9 @@ class ContainerMrStatusService
             );
         }
 
-        $inquiries  = Inquiry::whereIn('container_no', $containerNos)->get()->groupBy('container_no');
-        $estimates  = Estimate::whereIn('container_no', $containerNos)->get()->groupBy('container_no');
-        $workOrders = WorkOrder::whereIn('container_no', $containerNos)->get()->groupBy('container_no');
+        $inquiries  = $ofBoxes(Inquiry::class);
+        $estimates  = $ofBoxes(Estimate::class);
+        $workOrders = $ofBoxes(WorkOrder::class);
 
         $holds = ContainerHold::whereIn('container_id', $containerIds)
             ->whereNull('cleared_at')->get()->groupBy('container_id');
@@ -717,7 +721,6 @@ class ContainerMrStatusService
                 continue;
             }
 
-            $cno     = $gateIn->container_no;
             $from    = $gateIn->gate_in_time;
             $gateOut = $gateOutMap[$gateIn->id] ?? null;
             $until   = $gateOut?->gate_out_time;
@@ -727,9 +730,9 @@ class ContainerMrStatusService
                 gateIn:          $gateIn,
                 gateOut:         $gateOut,
                 jobType:         $this->jobTypeFor($gateIn),
-                inquiries:       $this->within($inquiries->get($cno), 'created_at', $from, $until),
-                estimates:       $this->within($estimates->get($cno), 'estimate_date', $from, $until),
-                workOrders:      $this->within($workOrders->get($cno), 'created_at', $from, $until),
+                inquiries:       $this->within($inquiries->get($container->id), 'created_at', $from, $until),
+                estimates:       $this->within($estimates->get($container->id), 'estimate_date', $from, $until),
+                workOrders:      $this->within($workOrders->get($container->id), 'created_at', $from, $until),
                 activeHolds:     $holds->get($container->id) ?? collect(),
                 activeHire:      $hires->get($container->id),
                 activeLeaseIn:   $leases->get($container->id),

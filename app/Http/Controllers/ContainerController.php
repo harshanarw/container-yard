@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Container;
+use App\Support\ContainerNumbers;
 use App\Models\ContainerGrade;
 use App\Models\Customer;
 use App\Models\ContainerHold;
@@ -297,9 +298,7 @@ class ContainerController extends Controller
             return response()->json(['found' => false]);
         }
 
-        $container = Container::with('equipmentType')
-            ->where('container_no', $no)
-            ->first();
+        $container = ContainerNumbers::find($no)?->load('equipmentType');
 
         if (!$container) {
             return response()->json(['found' => false]);

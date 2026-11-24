@@ -686,3 +686,21 @@ and EGSU8156383. Someone who knows the boxes decides which end is wrong and
 corrects it on the movement edit screen. Where a CODECO went out for the
 departure, re-send it. The *CODECO* column reads `codeco_exported_at`, which is
 not set on any of the 15, so check the EDI log as well.
+
+### Containers found by their record, not their number text (Phase 8a)
+
+No migration, no seeder, no permission, no manual step. Code only.
+
+```bash
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+systemctl restart php-fpm
+```
+
+Nothing changes on screen. Container Inquiry and the M&R status used to collect
+a box's movements, surveys, estimates, work orders and invoices by the number
+text, so a box whose number was changed on the Container Master read as two
+boxes: a visit that never closed and a departure with no arrival. They now go
+through `container_id`, which every one of those rows carries (none is missing
+on live). Exact lookups at the gate, OCR and the Container Master go through one
+resolver, `App\Support\ContainerNumbers`, where renumbering (8c) will add
+former numbers.

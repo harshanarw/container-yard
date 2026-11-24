@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Container;
+use App\Support\ContainerNumbers;
 use App\Models\GateMovement;
 use App\Services\ContainerMrStatusService;
 use Illuminate\Console\Command;
@@ -45,7 +46,7 @@ class EmptyOperatingReefersCommand extends Command
             ->where('movement_type', 'in')
             ->where('cargo_status', 'empty')
             ->where('reefer_mode', 'operating')
-            ->when($this->option('container'), fn ($q, $nos) => $q->whereIn('container_no', $nos))
+            ->when($this->option('container'), fn ($q, $nos) => ContainerNumbers::whereBelongsTo($q, collect($nos)->map(fn ($n) => ContainerNumbers::find($n))->filter()))
             ->with('container')
             // Only reefers. `reefer_mode` is null on a dry box, so the filter
             // above has already excluded them, but a container whose equipment

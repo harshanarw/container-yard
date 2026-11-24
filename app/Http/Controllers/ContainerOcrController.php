@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Container;
+use App\Support\ContainerNumbers;
 use App\Models\EquipmentType;
 use App\Services\ContainerOcrService;
 use Illuminate\Http\JsonResponse;
@@ -46,7 +47,7 @@ class ContainerOcrController extends Controller
 
         if ($containerNo) {
             // Container master lookup
-            $master = Container::where('container_no', $containerNo)->first();
+            $master = ContainerNumbers::find($containerNo);
 
             if ($master) {
                 $masterData = [

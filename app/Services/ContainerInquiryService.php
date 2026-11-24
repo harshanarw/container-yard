@@ -16,6 +16,7 @@ use App\Models\StorageInvoice;
 use App\Models\StorageInvoiceDetail;
 use App\Models\WorkOrder;
 use App\Models\YardStorage;
+use App\Support\ContainerNumbers;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -268,21 +269,26 @@ class ContainerInquiryService
             return [];
         }
 
-        $containerNos = $gateIns->pluck('container_no')->unique()->values()->all();
+        // By container, not by number text (Rule 7.1): a box renumbered
+        // mid-visit arrives under one number and leaves under another, and
+        // grouping by the text would split its visit in two.
+        $containers = Container::whereIn('id', $gateIns->pluck('container_id')->filter()->unique())
+            ->get(['id', 'container_no']);
 
         // The job comes with them: a rental departure carries the re-let's job,
         // which is how the gate log names the renting party without a query per
         // row.
-        $allGateOuts = GateMovement::with(['yardJob.heldBy'])
-            ->where('movement_type', 'out')
-            ->whereIn('container_no', $containerNos)
-            ->orderBy('gate_out_time', 'asc')
-            ->get()
-            ->groupBy('container_no');
+        $allGateOuts = ContainerNumbers::groupByContainer(
+            ContainerNumbers::whereBelongsTo(
+                GateMovement::with(['yardJob.heldBy'])->where('movement_type', 'out'),
+                $containers,
+            )->orderBy('gate_out_time', 'asc')->get(),
+            $containers,
+        );
 
         $map = [];
-        foreach ($gateIns->groupBy('container_no') as $cno => $cGateIns) {
-            $cGateOuts = $allGateOuts->get($cno, collect());
+        foreach (ContainerNumbers::groupByContainer($gateIns, $containers) as $containerId => $cGateIns) {
+            $cGateOuts = $allGateOuts->get($containerId, collect());
             $map += $this->buildGateOutMap($cGateIns, $cGateOuts);
         }
 
@@ -298,36 +304,40 @@ class ContainerInquiryService
      */
     public function getContainerHistory(string $containerNo): array
     {
-        $containerNo = strtoupper(trim($containerNo));
+        $containerNo = ContainerNumbers::normalise($containerNo);
 
-        $container = Container::where('container_no', $containerNo)
-            ->with(['customer', 'equipmentType', 'grade'])
-            ->first();
+        $container = ContainerNumbers::find($containerNo)?->load(['customer', 'equipmentType', 'grade']);
 
-        $gateIns = GateMovement::with(['yardJob.jobType', 'customer', 'grade', 'createdBy'])
-            ->where('container_no', $containerNo)
+        // Every record of the box, found through the box (Rule 7.1): by
+        // container_id, so records made under a former number stay in its
+        // history. With no master on file (a number seen only on old
+        // movements), fall back to matching the number as typed.
+        $ofBox = fn (Builder $q) => $container
+            ? ContainerNumbers::whereBelongsTo($q, $container)
+            : $q->where('container_no', $containerNo);
+
+        $gateIns = $ofBox(GateMovement::with(['yardJob.jobType', 'customer', 'grade', 'createdBy']))
             ->where('movement_type', 'in')
             ->orderBy('gate_in_time', 'desc')
             ->get();
 
-        $allGateOuts = GateMovement::with(['customer', 'createdBy'])
-            ->where('container_no', $containerNo)
+        $allGateOuts = $ofBox(GateMovement::with(['customer', 'createdBy']))
             ->where('movement_type', 'out')
             ->orderBy('gate_out_time', 'asc')
             ->get();
 
         $gateOutMap = $this->buildGateOutMap($gateIns, $allGateOuts);
 
-        $inquiries = Inquiry::where('container_no', $containerNo)
+        $inquiries = $ofBox(Inquiry::query())
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $estimates = Estimate::where('container_no', $containerNo)
+        $estimates = $ofBox(Estimate::query())
             ->with(['createdBy'])
             ->orderBy('estimate_date', 'desc')
             ->get();
 
-        $workOrders = WorkOrder::where('container_no', $containerNo)
+        $workOrders = $ofBox(WorkOrder::query())
             ->with(['createdBy'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -407,23 +417,23 @@ class ContainerInquiryService
         ]);
 
         // Storage-only invoices (via line items)
-        $storageInvoiceIds = StorageInvoiceDetail::where('container_no', $containerNo)
+        $storageInvoiceIds = $ofBox(StorageInvoiceDetail::query())
             ->distinct()->pluck('storage_invoice_id');
         $storageInvoices = StorageInvoice::whereIn('id', $storageInvoiceIds)
             ->orderBy('invoice_date', 'desc')->get();
 
         // Storage + Handling invoices (via line items)
-        $handlingInvoiceIds = StorageHandlingInvoiceLine::where('container_no', $containerNo)
+        $handlingInvoiceIds = $ofBox(StorageHandlingInvoiceLine::query())
             ->distinct()->pluck('invoice_id');
         $handlingInvoices = StorageHandlingInvoice::whereIn('id', $handlingInvoiceIds)
             ->orderBy('invoice_date', 'desc')->get();
 
         // Repair invoices (container_no directly on header)
-        $repairInvoices = RepairInvoice::where('container_no', $containerNo)
+        $repairInvoices = $ofBox(RepairInvoice::query())
             ->orderBy('invoice_date', 'desc')->get();
 
         // Reefer electricity invoices (via line items)
-        $reeferInvoiceIds = ReeferElectricityInvoiceLine::where('container_no', $containerNo)
+        $reeferInvoiceIds = $ofBox(ReeferElectricityInvoiceLine::query())
             ->distinct()->pluck('reefer_electricity_invoice_id');
         $reeferInvoices = ReeferElectricityInvoice::whereIn('id', $reeferInvoiceIds)
             ->orderBy('invoice_date', 'desc')->get();
@@ -471,7 +481,7 @@ class ContainerInquiryService
 
         return [
             'container'    => $container,
-            'container_no' => $containerNo,
+            'container_no' => $container?->container_no ?? $containerNo,
             'cycles'       => $cycles,
             'total_visits' => $gateIns->count(),
             'stats'        => $stats,

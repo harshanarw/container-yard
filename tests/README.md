@@ -214,6 +214,7 @@ user↔role linkage.
 | Container hire lifecycle | `Yard/ContainerHireFlowTest` | on-hire → storage split + gate-out blocked; off-hire → resumed + completed |
 | Cargo substitution (cross-stuff) | `Yard/CargoTransferFlowTest` | laden box in → reefer/dry substitute; empty box out; 0-free-day storage + reefer session, one job; completion gates substitute out + closes storage/reefer; guards |
 | Gate-out from the visit | `Yard/GateOutFromVisitTest` | seal / Laden corrected on the gate-in edit reach the gate-out (master left stale as precondition); seal pre-filled by lookup; changed seal needs a reason (gate + edit), audited; no-seal reason on edit; cargo-transfer and master fallbacks; `movements:cargo-mismatch` report |
+| Container identity (8a) | `Yard/ContainerIdentityTest` | master renumbered mid-visit: Inquiry history, list pairing and M&R status read one visit; former-number records stay with the box; no-id rows fall back to the current number |
 
 Bugs these tests surfaced and fixed: repair-invoice route-model binding
 (issue/cancel/payment silently failed); undefined-key fatals on partial

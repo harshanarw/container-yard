@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Facades\Documents;
 use App\Models\Container;
+use App\Support\ContainerNumbers;
 use App\Models\ContainerGrade;
 use App\Models\Customer;
 use App\Models\EquipmentType;
@@ -188,7 +189,7 @@ class YardController extends Controller
                 // Gate-out of a container the yard doesn't have on record — flag it
                 // so the operator is warned before trying to release it.
                 if ($guardCapture->direction === 'gate_out' && $guardCapture->container_number) {
-                    $prefill['container_missing'] = ! Container::where('container_no', $guardCapture->container_number)->exists();
+                    $prefill['container_missing'] = ! ContainerNumbers::find($guardCapture->container_number);
                 }
             }
         }
@@ -293,7 +294,7 @@ class YardController extends Controller
 
         $jobType = YardJobType::findOrFail($validated['job_type_id']);
 
-        $existingContainer = Container::where('container_no', $validated['container_no'])->first();
+        $existingContainer = ContainerNumbers::find($validated['container_no']);
 
         // ── Hire / rental context ───────────────────────────────────────────
         // A container arriving while a letting is open is the renting customer
@@ -443,7 +444,7 @@ class YardController extends Controller
         $otReceipt = $otEval['receipt']; // App\Models\OtReceipt|null
 
         // Create or update container record — preserve existing master profile fields on update
-        $existing = Container::where('container_no', $validated['container_no'])->first();
+        $existing = ContainerNumbers::find($validated['container_no']);
         $containerData = [
             'equipment_type_id' => $eqt->id,
             'size'              => $eqt->size,
@@ -980,7 +981,7 @@ class YardController extends Controller
                 'required', 'string',
                 'exists:containers,container_no',
                 function ($attr, $val, $fail) {
-                    $c = Container::where('container_no', $val)->first();
+                    $c = ContainerNumbers::find($val);
                     // Releasable dispositions: in the yard (in_yard), sound stock
                     // (available) or booked (reserved). An 'in_repair' box must finish
                     // repair first; 'released' has already left.
@@ -1039,7 +1040,7 @@ class YardController extends Controller
         // union keeps submitted values. Mirrors the same guard in gateIn().
         $validated += ['release_order' => null, 'remarks' => null];
 
-        $container = Container::where('container_no', $validated['container_no'])->firstOrFail();
+        $container = ContainerNumbers::findOrFail($validated['container_no']);
 
         // ── Hire / rental context ───────────────────────────────────────────
         // What this container's agreements mean at the gate: whether the yard
@@ -2630,9 +2631,7 @@ class YardController extends Controller
 
         // The hire is loaded by HireGateService below, which also resolves the
         // lease and the job chain, so it is not eager-loaded here.
-        $container = Container::with(['customer', 'equipmentType', 'grade'])
-            ->where('container_no', $no)
-            ->first();
+        $container = ContainerNumbers::find($no)?->load(['customer', 'equipmentType', 'grade']);
 
         if (! $container) {
             return response()->json(['found' => false, 'message' => "Container {$no} not found."]);
@@ -3022,9 +3021,7 @@ class YardController extends Controller
             'to_date'      => ['nullable', 'date'],
         ]);
 
-        $container = Container::with('customer')
-            ->where('container_no', $validated['container_no'])
-            ->firstOrFail();
+        $container = ContainerNumbers::findOrFail($validated['container_no'])->load('customer');
 
         $storage = YardStorage::where('container_id', $container->id)
             ->whereNull('gate_out_date')
@@ -3080,9 +3077,7 @@ class YardController extends Controller
     // -------------------------------------------------------------------------
     public function lookup(string $containerNo)
     {
-        $container = Container::with('customer')
-            ->where('container_no', strtoupper($containerNo))
-            ->first();
+        $container = ContainerNumbers::find($containerNo)?->load('customer');
 
         if (!$container) {
             return response()->json(['found' => false]);

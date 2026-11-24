@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\AuditLog;
 use App\Models\CargoTransfer;
 use App\Models\Container;
+use App\Support\ContainerNumbers;
 use App\Models\GateMovement;
 use App\Support\VisitPairing;
 use Illuminate\Console\Command;
@@ -52,7 +53,7 @@ class CargoStatusMismatchCommand extends Command
         $containerIds = GateMovement::where('movement_type', 'out')
             ->whereNotNull('container_id')
             ->when($since, fn ($q) => $q->where('gate_out_time', '>=', $since))
-            ->when($only, fn ($q) => $q->where('container_no', strtoupper($only)))
+            ->when($only, fn ($q) => ContainerNumbers::whereBelongsTo($q, ContainerNumbers::find($only) ?? []))
             ->distinct()
             ->pluck('container_id');
 

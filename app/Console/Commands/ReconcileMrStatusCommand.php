@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Container;
+use App\Support\ContainerNumbers;
 use App\Models\GateMovement;
 use App\Services\ContainerMrStatusService;
 use Illuminate\Console\Command;
@@ -155,7 +156,7 @@ class ReconcileMrStatusCommand extends Command
         $drift = 0;
 
         GateMovement::where('movement_type', 'in')
-            ->when($no, fn ($q, $v) => $q->where('container_no', $v))
+            ->when($no, fn ($q, $v) => ContainerNumbers::whereBelongsTo($q, ContainerNumbers::findOrFail($v)))
             ->orderBy('id')
             ->chunkById(self::CHUNK, function ($chunk) use ($svc, $fix, &$rows, &$drift) {
                 $resolved = $svc->forGateIns($chunk);

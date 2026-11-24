@@ -46,7 +46,7 @@ before you start, push before you stop, one environment active at a time.**
 - **The first test in a file takes about 70 seconds.** That is
   `RefreshDatabase` migrating the schema and running the full `DatabaseSeeder`
   (`$seed = true` in `Tests\Support\FeatureTestCase`). It is not a hang.
-- **Full suite: about 6 minutes, 1,289 passing, 1 skipped.** Fewer passing
+- **Full suite: about 6 minutes, 1,295 passing, 1 skipped.** Fewer passing
   means a regression; do not report it as "mostly green". More skips usually
   means a missing dependency on this host (several export tests
   `markTestSkipped` when openspout is absent or cannot write a styled
@@ -190,6 +190,12 @@ dispatches on it.
   `movements:cargo-mismatch` reports departures that disagree with their
   arrival (report only). Condition, grade and location still come from the
   master until Phase 3 of `docs/architecture-gap-plan.md`.
+- **A box is its record, not its number.** Turn a typed number into a container
+  with `App\Support\ContainerNumbers::find()`, and find or group a box's rows
+  with `whereBelongsTo()` / `groupByContainer()` (by `container_id`). Never
+  match or group movements, surveys, estimates, work orders or invoice lines by
+  `container_no` text. "Contains" searches on list screens are the exception
+  until Phase 8d.
 - `docs/architecture-principles.md` holds the nine business rules; every gate,
   job, storage, hire or billing change states which invariant it serves.
 - Reefer storage tariffs need a row for each `reefer_mode` (operating /
