@@ -395,16 +395,18 @@
                     <div class="row g-3 mb-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Gate In Date &amp; Time
-                                @if(!auth()->user()->isAdmin())
+                                {{-- Same ability the save checks (yard.backdate): Administrator and
+                                     System Administrator hold it by role; other roles by grant. --}}
+                                @cannot('yard.backdate')
                                     <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">
-                                        <i class="bi bi-lock me-1"></i>Admin only
+                                        <i class="bi bi-lock me-1"></i>Backdate access only
                                     </span>
-                                @endif
+                                @endcannot
                             </label>
                             <input type="text" name="gate_in_time" id="editGateInTime"
                                    class="form-control" autocomplete="off"
                                    value="{{ old('gate_in_time', $movement->gate_in_time?->format('Y-m-d H:i')) }}"
-                                   {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
+                                   {{ auth()->user()->can('yard.backdate') ? '' : 'readonly' }}>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Remarks</label>
@@ -567,16 +569,18 @@
                     <div class="row g-3 mb-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Gate Out Date &amp; Time
-                                @if(!auth()->user()->isAdmin())
+                                {{-- Same ability the save checks (yard.backdate): Administrator and
+                                     System Administrator hold it by role; other roles by grant. --}}
+                                @cannot('yard.backdate')
                                     <span class="badge bg-secondary-subtle text-secondary fw-normal ms-1" style="font-size:.7rem;">
-                                        <i class="bi bi-lock me-1"></i>Admin only
+                                        <i class="bi bi-lock me-1"></i>Backdate access only
                                     </span>
-                                @endif
+                                @endcannot
                             </label>
                             <input type="text" name="gate_out_time" id="editGateOutTime"
                                    class="form-control" autocomplete="off"
                                    value="{{ old('gate_out_time', $movement->gate_out_time?->format('Y-m-d H:i')) }}"
-                                   {{ auth()->user()->isAdmin() ? '' : 'readonly' }}>
+                                   {{ auth()->user()->can('yard.backdate') ? '' : 'readonly' }}>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Remarks</label>

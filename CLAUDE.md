@@ -46,7 +46,7 @@ before you start, push before you stop, one environment active at a time.**
 - **The first test in a file takes about 70 seconds.** That is
   `RefreshDatabase` migrating the schema and running the full `DatabaseSeeder`
   (`$seed = true` in `Tests\Support\FeatureTestCase`). It is not a hang.
-- **Full suite: about 6 minutes, 1,286 passing, 1 skipped.** Fewer passing
+- **Full suite: about 6 minutes, 1,289 passing, 1 skipped.** Fewer passing
   means a regression; do not report it as "mostly green". More skips usually
   means a missing dependency on this host (several export tests
   `markTestSkipped` when openspout is absent or cannot write a styled
