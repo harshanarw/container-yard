@@ -6,6 +6,8 @@ use App\Models\Container;
 use App\Models\Customer;
 use App\Models\LessorOnHire;
 use App\Services\LessorOnHireService;
+use App\Services\Reporting\ContainerVisitDates;
+use App\Support\DaysInYard;
 use Illuminate\Http\Request;
 
 class LessorOnHireController extends Controller
@@ -26,15 +28,41 @@ class LessorOnHireController extends Controller
     {
         $this->authorize('yard.lessor-hire.create');
 
-        $containers = Container::whereIn('status', ['in_yard', 'available'])
+        // Every status the service accepts as "in the yard"; listing fewer hid
+        // boxes in repair or reserved that could be leased.
+        $containers = Container::with('equipmentType:id,eqt_code')
+            ->whereIn('status', Container::IN_YARD_STATUSES)
             ->orderBy('container_no')
             // Shown, not filtered — see ContainerHireController::create.
-            ->get(['id', 'container_no', 'size', 'type_code',
+            ->get(['id', 'container_no', 'size', 'type_code', 'equipment_type_id', 'customer_id',
                    'mr_status', 'mr_lane', 'export_ready', 'mr_status_expires_at']);
+
+        // Option badges as on the Gate Out search: visit customer and days in yard.
+        $visitCustomers = app(\App\Services\ContainerCustodyService::class)->visitCustomerIdsFor($containers);
+        $customerNames  = Customer::whereIn('id', array_filter(array_merge(array_values($visitCustomers), $containers->pluck('customer_id')->all())))
+            ->pluck('name', 'id');
+        $visits = ContainerVisitDates::forCollection($containers);
+        foreach ($containers as $c) {
+            $c->option_customer = $customerNames[$visitCustomers[$c->id] ?? $c->customer_id] ?? null;
+            $c->option_days     = DaysInYard::between($visits[$c->id]['gate_in'] ?? null, $visits[$c->id]['gate_out'] ?? null);
+        }
         // Lessors are AP contacts (the yard pays them for the hire).
         $lessors = Customer::apContacts()->get(['id', 'code', 'name']);
 
         return view('yard.lessor-hires.create', compact('containers', 'lessors'));
+    }
+
+    /**
+     * The visit, its main job and what would stop a lease, for the container
+     * just picked (JSON for the create form). The save repeats every check.
+     */
+    public function lookup(Request $request)
+    {
+        $this->authorize('yard.lessor-hire.create');
+
+        $container = Container::findOrFail($request->integer('container_id'));
+
+        return response()->json($this->service->inspect($container));
     }
 
     public function store(Request $request)
@@ -44,9 +72,11 @@ class LessorOnHireController extends Controller
         $validated = $request->validate([
             'container_id'   => ['required', 'exists:containers,id'],
             'lessor_id'      => ['required', 'exists:customers,id'],
-            'on_hire_date'   => ['required', 'date'],
+            // Backdating is allowed; the future is not (record it on the day).
+            'on_hire_date'   => ['required', 'date', 'before_or_equal:today'],
             'hire_reference' => ['nullable', 'string', 'max:100'],
             'per_diem_rate'  => ['nullable', 'numeric', 'min:0'],
+            'expected_off_hire_date' => ['nullable', 'date', 'after_or_equal:on_hire_date'],
             'notes'          => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -100,6 +130,10 @@ class LessorOnHireController extends Controller
             'hire'   => $lessorHire,
             'pnl'    => $pnl,
             'rollUp' => $rollUp,
+            // Already gone? The off-hire then defaults to, and cannot pass, the departure.
+            'departure' => $lessorHire->isActive() && $lessorHire->on_hire_mode === 'in_yard'
+                ? app(\App\Services\LessorOnHireService::class)->departureSinceOnHire($lessorHire)
+                : null,
         ]);
     }
 

@@ -46,7 +46,7 @@ before you start, push before you stop, one environment active at a time.**
 - **The first test in a file takes about 70 seconds.** That is
   `RefreshDatabase` migrating the schema and running the full `DatabaseSeeder`
   (`$seed = true` in `Tests\Support\FeatureTestCase`). It is not a hang.
-- **Full suite: about 6 minutes, 1,295 passing, 1 skipped.** Fewer passing
+- **Full suite: about 6 minutes, 1,321 passing, 1 skipped.** Fewer passing
   means a regression; do not report it as "mostly green". More skips usually
   means a missing dependency on this host (several export tests
   `markTestSkipped` when openspout is absent or cannot write a styled
@@ -190,6 +190,11 @@ dispatches on it.
   `movements:cargo-mismatch` reports departures that disagree with their
   arrival (report only). Condition, grade and location still come from the
   master until Phase 3 of `docs/architecture-gap-plan.md`.
+- **Job status is written only by `App\Services\JobLifecycleService`**
+  (complete, cancel, reopen, settle after the final gate-out). It refuses to
+  close a job over open sub jobs and to reopen a billed one. Never
+  `->update(['status' => ...])` a `YardJob` directly. Sub jobs get their number
+  from `YardJob::generateJobNo($type, $parent)` (`CCD-ER-00571/RL1`).
 - **A box is its record, not its number.** Turn a typed number into a container
   with `App\Support\ContainerNumbers::find()`, and find or group a box's rows
   with `whereBelongsTo()` / `groupByContainer()` (by `container_id`). Never
@@ -219,7 +224,7 @@ dispatches on it.
   (`.claude/settings.local.json`, permission allowlists) stay under `.claude/`,
   which `.gitignore` excludes. Keep `git commit`, `git push` and anything
   touching `.env` out of those allowlists.
-- Migrations are numbered `2024_01_01_000NNN_*`; the latest is 000322.
+- Migrations are numbered `2024_01_01_000NNN_*`; the latest is 000323.
   Laravel tracks migrations but not seeders, so which seeders a release needs
   comes from the release notes in `docs/deployment-seeders.md`.
 - `docs/*-plan.md` files are design records: findings, decisions, phases.

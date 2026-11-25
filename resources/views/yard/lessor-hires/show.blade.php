@@ -49,7 +49,9 @@
                     @csrf
                     <div class="col-md-5">
                         <label class="form-label fw-semibold small">Off-Hire Date <span class="text-danger">*</span></label>
-                        <input type="date" name="off_hire_date" class="form-control" value="{{ old('off_hire_date', now()->toDateString()) }}" required>
+                        <input type="date" name="off_hire_date" class="form-control"
+                               value="{{ old('off_hire_date', $departure ? $departure->gate_out_time->toDateString() : now()->toDateString()) }}"
+                               @if($departure) max="{{ $departure->gate_out_time->toDateString() }}" @endif required>
                     </div>
                     <div class="col-md-5">
                         <label class="form-label fw-semibold small">Notes</label>
@@ -60,6 +62,14 @@
                     </div>
                 </form>
                 <div class="form-text mt-2">Returns the box to the lessor and closes the job.</div>
+                @if($departure)
+                <div class="alert alert-warning small mt-2 mb-0" id="leaseDepartureNote">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    This box already left the yard on <strong>{{ $departure->gate_out_time->format('d M Y H:i') }}</strong>
+                    ({{ $departure->eir_no }}). The off-hire date must be on or before that day; the line's storage
+                    resumes from the off-hire date and ends at the departure.
+                </div>
+                @endif
             </div>
         </div>
         @endcan

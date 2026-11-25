@@ -23,6 +23,17 @@
             &nbsp;·&nbsp; Created by {{ $yardJob->createdBy?->name }}
             &nbsp;·&nbsp; {{ $yardJob->created_at->format('d M Y H:i') }}
         </p>
+        @if($yardJob->parentJob)
+        <p class="mb-0 small mt-1" id="partOfJob">
+            <span class="badge bg-secondary-subtle text-secondary border me-1">Sub job</span>
+            of <a href="{{ route('yard.jobs.show', $yardJob->parentJob) }}" class="font-monospace fw-semibold">{{ $yardJob->parentJob->job_no }}</a>
+            <span class="text-muted">· {{ $yardJob->parentJob->jobType?->job_type_name }}</span>
+            <span class="badge {{ \App\Models\YardJob::statusBadgeClass($yardJob->parentJob->status) }} ms-1" style="font-size:.65rem;">{{ \App\Models\YardJob::statusLabel($yardJob->parentJob->status) }}</span>
+        </p>
+        @elseif($jobTree)
+        <p class="mb-0 small mt-1"><span class="badge bg-primary-subtle text-primary border">Main job</span>
+            <span class="text-muted">· {{ count($jobTree) - 1 }} sub {{ count($jobTree) - 1 === 1 ? 'job' : 'jobs' }}</span></p>
+        @endif
     </div>
     <a href="{{ route('yard.jobs.index') }}" class="btn btn-sm btn-outline-secondary">
         <i class="bi bi-arrow-left me-1"></i>Back to Jobs
@@ -106,9 +117,89 @@
                         <div class="small">{{ $yardJob->closedBy->name }}</div>
                     </div>
                     @endif
+                    @if($yardJob->closed_reason)
+                    <div class="col-12">
+                        <div class="text-muted small">How it closed</div>
+                        <div class="small">{{ $yardJob->closed_reason }}</div>
+                    </div>
+                    @endif
+                    @if($yardJob->status === \App\Models\YardJob::STATUS_AWAITING)
+                    <div class="col-12">
+                        <div class="alert alert-info py-1 px-2 small mb-0">
+                            <i class="bi bi-hourglass-split me-1"></i>
+                            The container has left. This job completes when its open sub jobs are closed.
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
+
+        {{-- ── Job tree: the main job and its sub jobs ─────────────────────── --}}
+        @if($jobTree)
+        <div class="card content-card mb-3" id="jobTree">
+            <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <span class="fw-semibold"><i class="bi bi-diagram-3 me-1 text-primary"></i>Main Job &amp; Sub Jobs</span>
+                @php
+                    $openBelow = collect($jobTree)->filter(fn ($r) => $r['depth'] > 0 && $r['job']->isActive())->count();
+                @endphp
+                <span class="badge {{ $openBelow ? 'bg-warning text-dark' : 'bg-success-subtle text-success border' }}">
+                    {{ $openBelow ? $openBelow . ' open' : 'All sub jobs closed' }}
+                </span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Job</th>
+                            <th>Purpose</th>
+                            <th>Party</th>
+                            <th>Opened</th>
+                            <th class="pe-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach($jobTree as $row)
+                    @php
+                        $j = $row['job'];
+                    @endphp
+                    <tr class="{{ $j->id === $yardJob->id ? 'table-primary' : '' }}">
+                        <td class="ps-3 text-nowrap" style="padding-left: {{ 0.75 + $row['depth'] * 1.25 }}rem !important;">
+                            @if($row['depth'] > 0)<span class="text-muted me-1">&#8627;</span>@endif
+                            @if($j->id === $yardJob->id)
+                                <span class="font-monospace fw-semibold small">{{ $j->job_no }}</span>
+                                <span class="text-muted" style="font-size:.68rem;">(this job)</span>
+                            @else
+                                <a href="{{ route('yard.jobs.show', $j) }}" class="font-monospace fw-semibold small">{{ $j->job_no }}</a>
+                            @endif
+                            <div class="text-muted" style="font-size:.68rem;">{{ $row['depth'] === 0 ? 'Main job' : 'Sub job' }}</div>
+                        </td>
+                        <td class="small">
+                            {{ $j->jobType?->job_type_name ?? $j->job_type_code }}
+                            @if($row['depth'] > 0)
+                            <span class="badge bg-light text-secondary border ms-1" style="font-size:.62rem;">{{ $j->billing_direction === 'ap' ? 'Yard pays' : 'Yard bills' }}</span>
+                            @endif
+                        </td>
+                        <td class="small">
+                            {{ $j->customer?->name ?? '—' }}
+                            @if($j->heldBy && $j->held_by_customer_id !== $j->customer_id)
+                            <div class="text-muted" style="font-size:.68rem;">held by {{ $j->heldBy->name }}</div>
+                            @endif
+                        </td>
+                        <td class="small text-muted text-nowrap">{{ ($j->started_at ?? $j->created_at)?->format('d M Y') }}</td>
+                        <td class="pe-3">
+                            <span class="badge {{ \App\Models\YardJob::statusBadgeClass($j->status) }}" style="font-size:.68rem;">{{ \App\Models\YardJob::statusLabel($j->status) }}</span>
+                            @if(! $j->isActive() && $j->completed_at)
+                            <div class="text-muted" style="font-size:.68rem;">{{ $j->completed_at->format('d M Y') }}</div>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
 
         {{-- ── Linked Movements ─────────────────────────────────────────── --}}
         <div class="card content-card">
@@ -121,15 +212,23 @@
                     <thead class="table-light">
                         <tr>
                             <th class="ps-3">Container</th>
+                            <th>Movement</th>
                             <th>Equipment</th>
                             <th>Condition</th>
                             <th>Cargo</th>
-                            <th>Gate-In Time</th>
+                            <th>Date / Time</th>
                             <th class="pe-3">Officer</th>
                         </tr>
                     </thead>
                     <tbody>
-                    @forelse($yardJob->movements as $mv)
+                    @php
+                        // In time order: an arrival by its gate-in, a departure by its gate-out.
+                        $movementsInOrder = $yardJob->movements->sortBy(fn ($m) => [
+                            ($m->movement_type === 'out' ? $m->gate_out_time : $m->gate_in_time)?->timestamp ?? PHP_INT_MAX,
+                            $m->id,
+                        ]);
+                    @endphp
+                    @forelse($movementsInOrder as $mv)
                     <tr>
                         <td class="ps-3">
                             <span class="font-monospace fw-semibold small">{{ $mv->container_no }}</span>
@@ -137,6 +236,16 @@
                             <div class="text-muted" style="font-size:.7rem;">
                                 {{ $mv->container->location_zone }}-{{ $mv->container->location_row }}{{ $mv->container->location_bay }}-T{{ $mv->container->location_tier }}
                             </div>
+                            @endif
+                        </td>
+                        <td>
+                            @if($mv->movement_type === 'out')
+                            <span class="badge bg-warning-subtle text-warning-emphasis border" style="font-size:.68rem;"><i class="bi bi-box-arrow-right me-1"></i>Gate Out</span>
+                            @else
+                            <span class="badge bg-primary-subtle text-primary border" style="font-size:.68rem;"><i class="bi bi-box-arrow-in-left me-1"></i>Gate In</span>
+                            @endif
+                            @if($mv->eir_no)
+                            <div class="text-muted font-monospace" style="font-size:.7rem;">{{ $mv->eir_no }}</div>
                             @endif
                         </td>
                         <td>
@@ -154,11 +263,11 @@
                                 {{ ucfirst($mv->cargo_status) }}
                             </span>
                         </td>
-                        <td class="small text-muted">{{ $mv->gate_in_time?->format('d M Y H:i') }}</td>
+                        <td class="small text-muted">{{ ($mv->movement_type === 'out' ? $mv->gate_out_time : $mv->gate_in_time)?->format('d M Y H:i') ?? '—' }}</td>
                         <td class="small text-muted pe-3">{{ $mv->createdBy?->name }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" class="text-center text-muted py-4 ps-3">No movements linked to this job.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4 ps-3">No movements linked to this job.</td></tr>
                     @endforelse
                     </tbody>
                 </table>
@@ -206,10 +315,17 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Status</label>
                         <select name="status" class="form-select form-select-sm">
+                            @if($yardJob->status === \App\Models\YardJob::STATUS_AWAITING)
+                            {{-- Set by the system at the final gate-out; not a choice. --}}
+                            <option value="awaiting_sub_jobs" selected disabled>Awaiting Sub Jobs</option>
+                            @endif
                             @foreach(['open' => 'Open', 'in_progress' => 'In Progress', 'completed' => 'Completed', 'cancelled' => 'Cancelled'] as $val => $label)
                             <option value="{{ $val }}" {{ $yardJob->status === $val ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
+                        @error('status')
+                            <div class="alert alert-danger py-1 px-2 small mt-2 mb-0">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Remarks</label>

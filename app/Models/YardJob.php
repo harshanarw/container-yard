@@ -20,8 +20,21 @@ class YardJob extends Model
         'started_at', 'completed_at',
         'remarks',
         'return_reason',
-        'created_by', 'closed_by',
+        'created_by', 'closed_by', 'closed_reason',
     ];
+
+    // ── Status ────────────────────────────────────────────────────────────────
+    // Written only by App\Services\JobLifecycleService (Rule 5).
+
+    public const STATUS_OPEN        = 'open';
+    public const STATUS_IN_PROGRESS = 'in_progress';
+    /** The visit has ended (final gate-out) but a job beneath is still open. */
+    public const STATUS_AWAITING    = 'awaiting_sub_jobs';
+    public const STATUS_COMPLETED   = 'completed';
+    public const STATUS_CANCELLED   = 'cancelled';
+
+    /** Statuses of a job that is not finished. */
+    public const ACTIVE_STATUSES = [self::STATUS_OPEN, self::STATUS_IN_PROGRESS, self::STATUS_AWAITING];
 
     /** The yard bills the counterparty. Every ordinary job. */
     public const DIRECTION_RECEIVABLE = 'ar';
@@ -66,12 +79,37 @@ class YardJob extends Model
     // ── Job number generation ─────────────────────────────────────────────────
 
     /**
-     * Atomically claim the next sequence number for this job type and build
-     * the job number string.  Returns ['job_no' => '...', 'job_seq' => N].
+     * Claim the next sequence number for this job type and build the job
+     * number. Returns ['job_no' => '...', 'job_seq' => N].
+     *
+     * A main job: `<prefix>-<type code>-<seq>`, e.g. `CCD-ER-00571`.
+     *
+     * A sub job (D7 / D20): the main job's number, a `/`, the sub job's type
+     * code and its count of that type within the visit, e.g.
+     * `CCD-ER-00571/LH1`, `CCD-ER-00571/RL2`. The `/` says it is a sub job, the
+     * code says what for, and the prefix says which visit. A rental under a
+     * lease-in is still numbered from the main job; the nesting shows in the
+     * job tree, not in the number. `job_seq` keeps counting per type as
+     * before.
      */
-    public static function generateJobNo(YardJobType $type): array
+    public static function generateJobNo(YardJobType $type, ?self $parent = null): array
     {
-        $seq    = (static::where('job_type_id', $type->id)->max('job_seq') ?? 0) + 1;
+        $seq = (static::where('job_type_id', $type->id)->max('job_seq') ?? 0) + 1;
+
+        if ($parent) {
+            $root = $parent->rootJob();
+            $code = $type->type_short_code;
+            $n    = $root->descendants()->where('type_short_code', $code)->count() + 1;
+
+            // A sub job numbered before this scheme keeps its old number, so
+            // the count can sit behind; step past anything already taken.
+            while (static::where('job_no', "{$root->job_no}/{$code}{$n}")->exists()) {
+                $n++;
+            }
+
+            return ['job_no' => "{$root->job_no}/{$code}{$n}", 'job_seq' => $seq];
+        }
+
         $prefix = strtoupper(CompanySetting::current()->company_prefix ?? 'YD');
         $jobNo  = sprintf('%s-%s-%05d', $prefix, $type->type_short_code, $seq);
 
@@ -179,6 +217,41 @@ class YardJob extends Model
         return $job;
     }
 
+    /**
+     * Every job beneath this one, at any depth, nearest first.
+     *
+     * Bounded and cycle-guarded like {@see rootJob()}: `parent_job_id` is
+     * self-referential, and a mis-set parent must not spin.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int,self>
+     */
+    public function descendants(int $maxDepth = 5): \Illuminate\Database\Eloquent\Collection
+    {
+        $found    = new \Illuminate\Database\Eloquent\Collection();
+        $seen     = [$this->id => true];
+        $frontier = [$this->id];
+
+        for ($depth = 0; $depth < $maxDepth && $frontier; $depth++) {
+            $children = static::whereIn('parent_job_id', $frontier)->get()
+                ->reject(fn ($j) => isset($seen[$j->id]));
+
+            foreach ($children as $child) {
+                $seen[$child->id] = true;
+            }
+
+            $found    = $found->merge($children);
+            $frontier = $children->pluck('id')->all();
+        }
+
+        return $found->values();
+    }
+
+    /** True when the job is not finished (open, in progress or waiting). */
+    public function isActive(): bool
+    {
+        return in_array($this->status, self::ACTIVE_STATUSES, true);
+    }
+
     /** True when this job happens inside another. */
     public function isSubJob(): bool
     {
@@ -246,7 +319,7 @@ class YardJob extends Model
                 'movements' => fn ($q) => $q->where('movement_type', 'in')->orderBy('id')
                     ->with('container:id,container_no,size,type_code'),
             ])
-            ->whereIn('status', ['open', 'in_progress'])
+            ->whereIn('status', self::ACTIVE_STATUSES)
             ->orderByDesc('id')
             ->limit($limit)
             ->get()
@@ -296,6 +369,7 @@ class YardJob extends Model
         return match ($status) {
             'open'        => 'bg-primary',
             'in_progress' => 'bg-warning text-dark',
+            'awaiting_sub_jobs' => 'bg-info text-dark',
             'completed'   => 'bg-success',
             'cancelled'   => 'bg-secondary',
             default       => 'bg-light text-dark border',
@@ -307,6 +381,7 @@ class YardJob extends Model
         return match ($status) {
             'open'        => 'Open',
             'in_progress' => 'In Progress',
+            'awaiting_sub_jobs' => 'Awaiting Sub Jobs',
             'completed'   => 'Completed',
             'cancelled'   => 'Cancelled',
             default       => ucfirst($status),
@@ -315,6 +390,6 @@ class YardJob extends Model
 
     public function isCloseable(): bool
     {
-        return in_array($this->status, ['open', 'in_progress']);
+        return $this->isActive();
     }
 }

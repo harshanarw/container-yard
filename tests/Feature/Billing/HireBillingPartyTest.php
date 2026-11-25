@@ -183,11 +183,18 @@ class HireBillingPartyTest extends FeatureTestCase
     public function test_the_arrival_lift_is_charged_once_after_a_round_trip(): void
     {
         $lease = $this->lease('2026-03-05');
-        $this->reLet('2026-03-06');
+        $letting = $this->reLet('2026-03-06');
         $this->release();
 
         Carbon::setTestNow('2026-03-15 10:00:00');
         $this->returnBox();
+
+        // The letting closes before the lease above it (Rule 5.1).
+        if ($letting->fresh()->isActive()) {
+            app(ContainerHireService::class)->offHire(
+                $letting->fresh(), ['off_hire_date' => '2026-03-15'], auth()->id(),
+            );
+        }
 
         app(LessorOnHireService::class)->offHireInYard(
             $lease->fresh(), ['off_hire_date' => '2026-03-16'], auth()->id(),

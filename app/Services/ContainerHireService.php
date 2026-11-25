@@ -174,7 +174,7 @@ class ContainerHireService
             return null;
         }
 
-        ['job_no' => $jobNo, 'job_seq' => $jobSeq] = YardJob::generateJobNo($type);
+        ['job_no' => $jobNo, 'job_seq' => $jobSeq] = YardJob::generateJobNo($type, $parent);
 
         return YardJob::create([
             'parent_job_id'       => $parent?->id,
@@ -240,11 +240,9 @@ class ContainerHireService
                 // Nothing to unwind on the storage side. The box is back with
                 // the yard, which still holds it on hire from the line, so
                 // storage stays suspended until the lease itself ends.
-                $hire->yardJob?->update([
-                    'status'       => 'completed',
-                    'closed_by'    => $userId,
-                    'completed_at' => now(),
-                ]);
+                if ($hire->yardJob) {
+                    app(JobLifecycleService::class)->complete($hire->yardJob, $userId, 'Rental closed (off-hire ' . $offHireDate->format('d M Y') . ')');
+                }
 
                 $hire->update([
                     'off_hire_date'  => $offHireDate->toDateString(),
@@ -285,11 +283,9 @@ class ContainerHireService
             // 3. Close the re-let's job: this letting is over. The lease above
             //    it stays open -- the box can be re-let again tomorrow, and
             //    that will be a new sub-job under the same lease.
-            $hire->yardJob?->update([
-                'status'       => 'completed',
-                'closed_by'    => $userId,
-                'completed_at' => now(),
-            ]);
+            if ($hire->yardJob) {
+                app(JobLifecycleService::class)->complete($hire->yardJob, $userId, 'Rental closed (off-hire ' . $offHireDate->format('d M Y') . ')');
+            }
 
             // 4. Mark hire as completed
             $hire->update([
@@ -354,6 +350,12 @@ class ContainerHireService
                 'hire_yard_storage_id' => null,
                 'updated_by'           => $userId,
             ]);
+
+            // The rental's job goes with it. Left open, it would hold the stay's
+            // main job "awaiting sub jobs" for a rental that never happened.
+            if ($hire->yardJob && $hire->yardJob->isActive()) {
+                app(JobLifecycleService::class)->cancel($hire->yardJob, $userId, 'Rental cancelled');
+            }
 
             return $hire->fresh(['container', 'originalCustomer', 'hireCustomer']);
         });

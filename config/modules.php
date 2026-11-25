@@ -65,7 +65,10 @@ return [
     'yard.jobs' => [
         'label'   => 'Yard Jobs',
         'section' => 'Yard',
-        'actions' => ['view', 'edit'],
+        // 'complete' (complete or cancel) and 'reopen' are separate from
+        // 'edit' (Rule 5.3): closing a job ends its costing, and reopening a
+        // closed one is a supervisor's decision, so both are granted apart.
+        'actions' => ['view', 'edit', 'complete', 'reopen'],
     ],
 
     'yard.reefer' => [

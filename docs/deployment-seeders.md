@@ -704,3 +704,77 @@ through `container_id`, which every one of those rows carries (none is missing
 on live). Exact lookups at the gate, OCR and the Container Master go through one
 resolver, `App\Support\ContainerNumbers`, where renumbering (8c) will add
 former numbers.
+
+### Job life cycle, part 2a (migration 000323)
+
+Phase 2a of `docs/architecture-gap-plan.md`. One migration, one permission
+sync with a manual grant, and a backfill to run after reading its report. No
+seeder.
+
+```bash
+mysqldump --single-transaction -u <user> -p <database> > /root/before-000323-$(date +%F-%H%M).sql
+php artisan migrate:status | grep -i pending      # expect only 000323
+php artisan migrate --force                       # yard_jobs: awaiting_sub_jobs status, closed_reason
+php artisan permissions:sync --dry-run            # expect yard.jobs.complete, yard.jobs.reopen
+php artisan permissions:sync
+php artisan view:clear && php artisan route:clear && php artisan config:clear
+chown -R nginx:nginx storage bootstrap/cache
+systemctl restart php-fpm
+```
+
+**Grant the new permissions** under *Settings → Roles & Permissions →
+Yard Jobs*: **Complete** (complete or cancel a job) and **Reopen**. Give them
+to the roles that should close jobs by hand. Until granted, only Administrator
+and System Administrator can do it. Holding *Edit* alone no longer completes a
+job. Do **not** run `RolePermissionSeeder`.
+
+**What changes:**
+
+- **Gate-in** saves the container, the movement, its job and its stay together,
+  or nothing. Before, a failed job creation was only logged and left a movement
+  with no job. The stay now carries its job (`yard_storage.yard_job_id`).
+- **Final gate-out completes the main job**, dated at the departure, with
+  *How it closed: Final gate-out <EIR>* on the job. If a lease-in or rental
+  beneath it is still open, the job becomes **Awaiting Sub Jobs** instead, and
+  completes itself when the last one closes. The gate-out is never blocked.
+  The Gate Out form lists the open sub jobs before confirming.
+- A **rental departure** does not complete anything: the box is out on a round
+  trip.
+- **Deleting a final gate-out** reopens the job it completed.
+- **Completing or cancelling a job by hand is refused while any job beneath it
+  is open**, and **reopening is refused once anything is billed** against it.
+- **A lease cannot be off-hired while a letting under it is still open.** The
+  screen names the open rental; off-hire it first. Before, the lease closed and
+  the rental's job was left open forever.
+- **A lease on a box that has already left the yard** (the final gate-out
+  went ahead with the lease open) is off-hired **on or before the departure
+  date**; the screen defaults the date to it and says why. The line's storage
+  then resumes from the off-hire and **ends at the departure**. Before, the
+  off-hire opened a resumed storage row with no end date, billing a box that
+  was gone.
+- **On-Hire In (new lease)**: picking a container shows its visit (gate-in,
+  EIR, days, visit customer), its main job and sub jobs, the storage and how
+  far it is invoiced, and the job number the lease will get. The lessor
+  defaults to the visit customer (a different one is warned about). **Refused:**
+  already leased, rented out, not in the yard, a main job that is not Open / In
+  Progress, or any open sub job; an on-hire date in the future, before the
+  gate-in, or inside storage already invoiced (backdating otherwise allowed).
+  A laden box is warned about only. Boxes in repair or reserved are now listed.
+  A lease after a returned rental now sits under the main job, not the old
+  rental. *Expected Off-Hire* is on the form.
+- **Cancelling a rental** cancels its job.
+- **New sub jobs are numbered under their main job**: `CCD-ER-00571/LH1`,
+  `CCD-ER-00571/RL1`. Main jobs and the 11 existing sub jobs keep their
+  numbers.
+
+**Then the backfill** (on live, every main job is still open, including those
+for boxes that left months ago):
+
+```bash
+php artisan jobs:close-ended-visits           # report: what would be completed / marked waiting
+php artisan jobs:close-ended-visits --fix     # after reading it
+```
+
+On the reference copy of live (24 Nov 2026) the report showed 1,680 to
+complete, 1 to mark awaiting, 374 still in the yard, and 9 jobs with no gate-in
+(their gate-in movement was deleted; cancel them by hand on the job screen).

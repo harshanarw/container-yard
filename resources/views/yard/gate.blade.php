@@ -1279,6 +1279,12 @@
                 <p class="mb-1 text-muted small">Container:</p>
                 <p class="font-monospace fw-bold mb-3" style="font-size:1.4rem;" id="confirmOutContainerNo">-</p>
                 <p class="text-muted small mb-0">Please confirm this container is <strong>departing</strong> from the yard.</p>
+                {{-- Open sub jobs (D5): said again here, where the clerk commits. Filled from the lookup. --}}
+                <div id="confirmOutSubJobs" class="alert alert-warning text-start small mt-3 mb-0 d-none">
+                    <div class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Open sub jobs</div>
+                    <div>The container can leave, but its main job stays open (<strong>Awaiting Sub Jobs</strong>) until these are closed:</div>
+                    <ul class="mb-0 mt-1 ps-3" id="confirmOutSubJobsList"></ul>
+                </div>
             </div>
             <div class="modal-footer py-2 justify-content-center gap-3">
                 <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
@@ -2663,6 +2669,27 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                     // No plug-in recorded: releasing now forfeits the electricity
                     // charge, so it is said here rather than in a flash message
                     // after the release has already happened.
+                    // Open sub jobs under the visit's main job (D5). The
+                    // release still goes through; the clerk sees what stays
+                    // open and the main job waits for them.
+                    const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                    const subJobs = Array.isArray(data.open_sub_jobs) ? data.open_sub_jobs : [];
+                    const subJobWarn = subJobs.length
+                        ? '<div class="col-12 pt-1 mt-1" id="openSubJobsWarning" style="border-top:1px solid rgba(0,0,0,.08);">' +
+                              '<span class="badge bg-warning text-dark me-1">Open sub jobs</span>' +
+                              '<span class="small">This container can leave, but its main job stays open until these are closed:</span>' +
+                              '<ul class="small mb-0 mt-1 ps-3">' +
+                              subJobs.map(j =>
+                                  '<li><a href="' + esc(j.url) + '" target="_blank" class="font-monospace">' + esc(j.job_no) + '</a> · ' +
+                                  esc(j.purpose) + ' · ' + esc(j.status) +
+                                  (j.party ? ' · party <strong>' + esc(j.party) + '</strong>' : '') +
+                                  (j.holder ? ' · held by ' + esc(j.holder) : '') +
+                                  (j.opened_on ? ' · opened ' + esc(j.opened_on) : '') +
+                                  (j.last_movement ? ' · last ' + esc(j.last_movement) : '') +
+                                  '</li>').join('') +
+                              '</ul>' +
+                          '</div>'
+                        : '';
                     const plugWarn = data.plug_warning
                         ? '<div class="col-12 pt-1 mt-1" style="border-top:1px solid rgba(0,0,0,.08);">' +
                               '<span class="badge bg-warning text-dark me-1">No Plug-In</span>' +
@@ -2740,6 +2767,7 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
                             jobInfo +
                             onHireInfo +
                             plugWarn +
+                            subJobWarn +
                         '</div>'
                     );
                     if (gradeSelect) {
@@ -2804,6 +2832,10 @@ initPhotoUploader({ fileInput: document.getElementById('outPhotoInput'), cameraI
             }
             const no = ($(inp).val() || '').trim().toUpperCase();
             document.getElementById('confirmOutContainerNo').textContent = no;
+            // Repeat the open-sub-jobs warning from the lookup, if it showed one.
+            const subJobList = document.querySelector('#openSubJobsWarning ul');
+            document.getElementById('confirmOutSubJobsList').innerHTML = subJobList ? subJobList.innerHTML : '';
+            document.getElementById('confirmOutSubJobs').classList.toggle('d-none', !subJobList);
             bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmGateOutModal')).show();
         });
         document.getElementById('confirmGateOutBtn').addEventListener('click', function () {

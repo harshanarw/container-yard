@@ -478,58 +478,148 @@ class YardController extends Controller
                 $containerData[$profileField] = $validated[$profileField];
             }
         }
-        $container = Container::updateOrCreate(
-            ['container_no' => $validated['container_no']],
-            $containerData
-        );
+        // Resolve storage tariff for this customer + equipment type
+        $tariffHeader = StorageMasterHeader::where('customer_id', $validated['customer_id'])
+            ->where('is_active', true)
+            ->where('valid_from', '<=', today())
+            ->where(function ($q) {
+                $q->whereNull('valid_to')->orWhere('valid_to', '>=', today());
+            })
+            ->latest('valid_from')
+            ->first();
 
-        // Record gate movement
-        $movement = DB::transaction(function () use ($container, $jobType, $eqt, $validated, $gateInTime, $otEval, $otReceipt, $reeferMode) {
-            return GateMovement::create([
-                'container_id'     => $container->id,
-                'container_no'     => $container->container_no,
-                'job_type_id'      => $jobType->id,
-                'job_type_code'    => $jobType->job_type_code,
-                'customer_id'      => $validated['customer_id'],
-                'transporter_id'   => $validated['transporter_id'] ?? null,
-                'movement_type'    => 'in',
-                'eir_no'           => app(NumberSequenceService::class)->generate('gate_in'),
-                'size'             => $eqt->size,
-                'container_type'   => $eqt->type_code,
-                'ventilation_type' => $validated['ventilation_type'] ?? $container->effective_ventilation_type,
-                'vent_count'       => $validated['vent_count'] ?? $container->effective_vent_count,
-                'location_zone'   => $validated['location_zone'],
-                'location_row'    => $validated['location_row'],
-                'location_bay'    => $validated['location_bay'],
-                'location_tier'   => $validated['location_tier'],
-                'condition'       => $validated['condition'],
-                'grade_id'        => $validated['grade_id'] ?? null,
-                'cargo_status'    => $validated['cargo_status'],
-                'reefer_mode'     => $reeferMode,
-                'seal_no'         => $validated['seal_no'],
-                'no_seal_reason'  => $validated['no_seal_reason'] ?? null,
-                'vehicle_plate'   => $validated['vehicle_plate'],
-                'driver_name'     => $validated['driver_name'] ?? null,
-                'driver_ic'       => $validated['driver_ic'] ?? null,
-                'driver_phone'    => $validated['driver_phone'] ?? null,
-                'gate_in_time'    => $gateInTime,
-                'movement_status' => 'done',
-                'remarks'         => $validated['remarks'],
-                'created_by'      => auth()->id(),
-                // Import shipment information
-                'vessel_name'     => $validated['vessel_name'] ?? null,
-                'voyage_no'       => $validated['voyage_no'] ?? null,
-                'berthing_date'   => $validated['berthing_date'] ?? null,
-                'bl_number'       => $validated['bl_number'] ?? null,
-                'do_expiry_date'  => $validated['do_expiry_date'] ?? null,
-                'fcl_expiry_date' => $validated['fcl_expiry_date'] ?? null,
-                'consignee'       => $validated['consignee'] ?? null,
-                // Overtime receipt linkage
-                'ot_receipt_id'      => $otReceipt?->id,
-                'is_overtime'        => (bool) ($otEval['is_overtime'] ?? false),
-                'ot_override_reason' => ! empty($otEval['override']) ? ($validated['ot_override_reason'] ?? null) : null,
-            ]);
-        });
+        $freeDays  = $tariffHeader?->default_free_days ?? 0;
+        $dailyRate = $tariffHeader
+            ? ($tariffHeader->details()->where('equipment_type_id', $validated['equipment_type_id'])->value('storage_rate') ?? 0)
+            : 0;
+
+        // The box on a hire return has a job already: the rent job it left on.
+        // Opening a second one would split one round trip across two, leaving
+        // the departure and the return unpairable and the rental days on
+        // neither. A letting recorded before jobs existed has none, so the
+        // return then belongs to the stay it is part of.
+        $returnJob = $isHireReturn
+            ? ($hire->lettingJob ?? app(\App\Services\ContainerCustodyService::class)->visitJob($existingContainer))
+            : null;
+
+        // ── One arrival, one record ─────────────────────────────────────────
+        // The container, the movement, its job and its stay are saved together
+        // or not at all (Rule 2.1). The job used to be created afterwards, in a
+        // try/catch that only logged, so a failure left a movement with no job:
+        // a visit nothing could complete, cost or bill against.
+        try {
+            [$container, $movement, $yardJob] = DB::transaction(function () use (
+                $validated, $containerData, $jobType, $eqt, $gateInTime, $gateInDate, $otEval, $otReceipt,
+                $reeferMode, $isHireReturn, $returnJob, $freeDays, $dailyRate
+            ) {
+                $container = Container::updateOrCreate(
+                    ['container_no' => $validated['container_no']],
+                    $containerData
+                );
+
+                $movement = GateMovement::create([
+                    'container_id'     => $container->id,
+                    'container_no'     => $container->container_no,
+                    'job_type_id'      => $jobType->id,
+                    'job_type_code'    => $jobType->job_type_code,
+                    'customer_id'      => $validated['customer_id'],
+                    'transporter_id'   => $validated['transporter_id'] ?? null,
+                    'movement_type'    => 'in',
+                    'eir_no'           => app(NumberSequenceService::class)->generate('gate_in'),
+                    'size'             => $eqt->size,
+                    'container_type'   => $eqt->type_code,
+                    'ventilation_type' => $validated['ventilation_type'] ?? $container->effective_ventilation_type,
+                    'vent_count'       => $validated['vent_count'] ?? $container->effective_vent_count,
+                    'location_zone'   => $validated['location_zone'],
+                    'location_row'    => $validated['location_row'],
+                    'location_bay'    => $validated['location_bay'],
+                    'location_tier'   => $validated['location_tier'],
+                    'condition'       => $validated['condition'],
+                    'grade_id'        => $validated['grade_id'] ?? null,
+                    'cargo_status'    => $validated['cargo_status'],
+                    'reefer_mode'     => $reeferMode,
+                    'seal_no'         => $validated['seal_no'],
+                    'no_seal_reason'  => $validated['no_seal_reason'] ?? null,
+                    'vehicle_plate'   => $validated['vehicle_plate'],
+                    'driver_name'     => $validated['driver_name'] ?? null,
+                    'driver_ic'       => $validated['driver_ic'] ?? null,
+                    'driver_phone'    => $validated['driver_phone'] ?? null,
+                    'gate_in_time'    => $gateInTime,
+                    'movement_status' => 'done',
+                    'remarks'         => $validated['remarks'],
+                    'created_by'      => auth()->id(),
+                    // Import shipment information
+                    'vessel_name'     => $validated['vessel_name'] ?? null,
+                    'voyage_no'       => $validated['voyage_no'] ?? null,
+                    'berthing_date'   => $validated['berthing_date'] ?? null,
+                    'bl_number'       => $validated['bl_number'] ?? null,
+                    'do_expiry_date'  => $validated['do_expiry_date'] ?? null,
+                    'fcl_expiry_date' => $validated['fcl_expiry_date'] ?? null,
+                    'consignee'       => $validated['consignee'] ?? null,
+                    // Overtime receipt linkage
+                    'ot_receipt_id'      => $otReceipt?->id,
+                    'is_overtime'        => (bool) ($otEval['is_overtime'] ?? false),
+                    'ot_override_reason' => ! empty($otEval['override']) ? ($validated['ot_override_reason'] ?? null) : null,
+                ]);
+
+                if ($isHireReturn) {
+                    $yardJob = $returnJob
+                        ?? throw new \RuntimeException('this container is coming back from a rental, but neither the rental nor its stay has a job.');
+                } else {
+                    ['job_no' => $jobNo, 'job_seq' => $jobSeq] = YardJob::generateJobNo($jobType);
+
+                    $yardJob = YardJob::create([
+                        'job_no'          => $jobNo,
+                        'job_seq'         => $jobSeq,
+                        'job_type_id'     => $jobType->id,
+                        'job_type_code'   => $jobType->job_type_code,
+                        'type_short_code' => $jobType->type_short_code,
+                        'customer_id'     => $validated['customer_id'],
+                        'status'          => 'open',
+                        'started_at'      => $gateInTime,
+                        'return_reason'   => $jobType->job_type_code === 'EMPTY_RETURN'
+                                                ? ($validated['return_reason'] ?? null)
+                                                : null,
+                        'created_by'      => auth()->id(),
+                    ]);
+                }
+
+                $movement->update(['yard_job_id' => $yardJob->id]);
+
+                // The stay. Not on a hire return: storage for this container is
+                // already suspended -- by the lease, which left a zero-rated
+                // `lease_in` row, or by the letting itself, which left an
+                // `on_hire` one -- and opening a billable `normal` row here
+                // would start charging the shipping line again for a box the
+                // yard is still paying *them* rent on. The suspension ends when
+                // the hire does, and ContainerHireService::offHire() opens the
+                // resumed row then, carrying the original free-day anchor.
+                if (! $isHireReturn) {
+                    YardStorage::create([
+                        'container_id'     => $container->id,
+                        // Identifies THIS stay. gate_in_date alone cannot: a container gated out
+                        // and back in on one date produces two rows sharing the date.
+                        'gate_movement_id' => $movement->id,
+                        // The stay belongs to the visit's job (job costing, Rule 5.4).
+                        'yard_job_id'      => $yardJob->id,
+                        'customer_id'      => $validated['customer_id'],
+                        'gate_in_date'     => $gateInDate,
+                        'free_days'        => $freeDays,
+                        'daily_rate'       => $dailyRate,
+                    ]);
+                }
+
+                return [$container, $movement, $yardJob];
+            });
+        } catch (\Throwable $e) {
+            \Log::error('[GateIn] Not saved: ' . $e->getMessage());
+
+            return $this->validationResponse($request, ['container_no' => [
+                'The gate-in was not saved: ' . $e->getMessage(),
+            ]]);
+        }
+
+        $yardJobNo = $yardJob->job_no;
 
         // Consume one container off the OT receipt for this out-of-hours gate-in.
         if ($otReceipt) {
@@ -564,81 +654,6 @@ class YardController extends Controller
                 'status'          => 'occupied',
                 'last_updated_at' => now(),
             ]);
-        }
-
-        // Resolve storage tariff for this customer + equipment type
-        $tariffHeader = StorageMasterHeader::where('customer_id', $validated['customer_id'])
-            ->where('is_active', true)
-            ->where('valid_from', '<=', today())
-            ->where(function ($q) {
-                $q->whereNull('valid_to')->orWhere('valid_to', '>=', today());
-            })
-            ->latest('valid_from')
-            ->first();
-
-        $freeDays  = $tariffHeader?->default_free_days ?? 0;
-        $dailyRate = $tariffHeader
-            ? ($tariffHeader->details()->where('equipment_type_id', $validated['equipment_type_id'])->value('storage_rate') ?? 0)
-            : 0;
-
-        // Create storage record — use actual gate-in date so billing calculations are correct
-        //
-        // Not on a hire return. Storage for this container is already suspended
-        // — by the lease, which left a zero-rated `lease_in` row, or by the
-        // letting itself, which left an `on_hire` one — and opening a billable
-        // `normal` row here would start charging the shipping line again for a
-        // box the yard is still paying *them* rent on. The suspension ends when
-        // the hire does, and ContainerHireService::offHire() opens the resumed
-        // row then, carrying the original free-day anchor.
-        if (! $isHireReturn) {
-            YardStorage::create([
-                'container_id'     => $container->id,
-                // Identifies THIS stay. gate_in_date alone cannot: a container gated out
-                // and back in on one date produces two rows sharing the date.
-                'gate_movement_id' => $movement->id,
-                'customer_id'      => $validated['customer_id'],
-                'gate_in_date'     => $gateInDate,
-                'free_days'        => $freeDays,
-                'daily_rate'       => $dailyRate,
-            ]);
-        }
-
-        // Auto-create a Yard Job and link this movement to it
-        $yardJobNo = null;
-        $yardJob   = null;
-        try {
-            if ($isHireReturn) {
-                // The box is coming back off a letting, so it has a job
-                // already: the rent job it left on. Opening a second one would
-                // split one round trip across two, leaving the departure and
-                // the return unpairable and the rental days on neither.
-                $yardJob   = $hire->lettingJob;
-                $yardJobNo = $yardJob?->job_no;
-
-                $movement->update(['yard_job_id' => $yardJob?->id]);
-            } else {
-                ['job_no' => $jobNo, 'job_seq' => $jobSeq] = YardJob::generateJobNo($jobType);
-
-                $yardJob = YardJob::create([
-                    'job_no'          => $jobNo,
-                    'job_seq'         => $jobSeq,
-                    'job_type_id'     => $jobType->id,
-                    'job_type_code'   => $jobType->job_type_code,
-                    'type_short_code' => $jobType->type_short_code,
-                    'customer_id'     => $validated['customer_id'],
-                    'status'          => 'open',
-                    'started_at'      => $gateInTime,
-                    'return_reason'   => $jobType->job_type_code === 'EMPTY_RETURN'
-                                            ? ($validated['return_reason'] ?? null)
-                                            : null,
-                    'created_by'      => auth()->id(),
-                ]);
-
-                $movement->update(['yard_job_id' => $yardJob->id]);
-                $yardJobNo = $yardJob->job_no;
-            }
-        } catch (\Throwable $e) {
-            \Log::error('[GateIn] Yard job creation failed: ' . $e->getMessage());
         }
 
         // ── Close the letting ───────────────────────────────────────────────
@@ -1449,6 +1464,27 @@ class YardController extends Controller
             }
         });
 
+        // ── The visit's main job (Rule 5.2) ─────────────────────────────────
+        // A box leaving for good completes its main job, or leaves it waiting
+        // when a lease-in or rental beneath it is still open. A rental
+        // departure is not the end of the visit: the box is out on a round trip
+        // under the rental's own job. Never blocks the departure (D5); the
+        // movement is already recorded, and a failure here is reported, not
+        // thrown.
+        $jobNote = null;
+        if (! $hire->lettingJob) {
+            try {
+                [$jobOutcome, $jobNote] = app(\App\Services\JobLifecycleService::class)
+                    ->settleAfterFinalGateOut($movement, auth()->id());
+                if ($jobOutcome !== 'awaiting') {
+                    $jobNote = null;
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('[GateOut] Job settle failed: ' . $e->getMessage());
+                $jobNote = 'The gate-out was recorded, but its job could not be updated: ' . $e->getMessage();
+            }
+        }
+
         NotificationService::notifyAll(
             'Gate OUT - ' . $container->container_no,
             // $visitCustomer is what the movement recorded; naming the master
@@ -1464,6 +1500,9 @@ class YardController extends Controller
         $warnings = [];
         if ($photoError) {
             $warnings[] = $photoError;
+        }
+        if ($jobNote) {
+            $warnings[] = $jobNote;
         }
         if ($w = $this->noGuardCaptureWarning($request)) {
             $warnings[] = $w;
@@ -1544,6 +1583,13 @@ class YardController extends Controller
         // check the system has, so it survives until someone needs the box.
         $restored = DB::transaction(function () use ($movement) {
             $restored = $this->restoreVisitAfterGateOutDelete($movement);
+
+            // A final departure completed (or left waiting) its main job; the
+            // box is back in the yard, so the job is open again.
+            if ($movement->movement_type === 'out') {
+                app(\App\Services\JobLifecycleService::class)->undoFinalGateOut($movement, auth()->id());
+            }
+
             $movement->delete();
 
             return $restored;
@@ -1877,80 +1923,7 @@ class YardController extends Controller
      */
     private function cycleBilling(GateMovement $movement): array
     {
-        if (! $movement->container_id) {
-            return [];
-        }
-
-        $isIn      = $movement->movement_type === 'in';
-        $cycleDate = $isIn
-            ? $movement->gate_in_time?->toDateString()
-            : $movement->gate_out_time?->toDateString();
-        $dateField = $isIn ? 'gate_in_date' : 'gate_out_date';
-
-        $types = [];
-
-        // Storage & Handling lines carry both halves of that bill — the stay's
-        // days and the lifts. One model, one check.
-        if ($cycleDate && \App\Models\StorageHandlingInvoiceLine::where('container_id', $movement->container_id)
-                ->whereDate($dateField, $cycleDate)
-                ->whereHas('invoice', fn ($q) => $q->whereIn('status', ['draft', 'issued', 'paid']))
-                ->exists()) {
-            $types['storage_handling'] = 'Storage & Handling';
-        }
-
-        // Storage-only invoices are keyed on the gate-in date in both
-        // directions, so a gate-out has to find its arrival first.
-        $storageDate = $isIn
-            ? $cycleDate
-            : GateMovement::where('container_id', $movement->container_id)
-                ->where('movement_type', 'in')
-                ->where('gate_in_time', '<=', $movement->gate_out_time)
-                ->latest('gate_in_time')
-                ->value('gate_in_time')?->toDateString();
-
-        if ($storageDate && \App\Models\StorageInvoiceDetail::where('container_id', $movement->container_id)
-                ->whereDate('gate_in_date', $storageDate)
-                ->whereHas('invoice', fn ($q) => $q->whereIn('status', ['draft', 'issued', 'paid']))
-                ->exists()) {
-            $types['storage'] = 'Storage';
-        }
-
-        $cycleStart = $isIn ? $movement->gate_in_time : null;
-        $cycleEnd   = ! $isIn ? $movement->gate_out_time : now();
-
-        if ($cycleStart && \App\Models\ReeferElectricityInvoiceLine::where('container_id', $movement->container_id)
-                ->where('plug_in_at', '>=', $cycleStart)
-                ->when($cycleEnd, fn ($q) => $q->where('plug_in_at', '<=', $cycleEnd))
-                ->whereHas('invoice', fn ($q) => $q->whereIn('status', ['draft', 'issued', 'paid']))
-                ->exists()) {
-            $types['reefer'] = 'Reefer Electricity';
-        }
-
-        if ($movement->survey_id) {
-            $estimateIds = \App\Models\Estimate::where('inquiry_id', $movement->survey_id)->pluck('id');
-
-            if ($estimateIds->isNotEmpty()) {
-                if (\App\Models\RepairInvoice::where('container_id', $movement->container_id)
-                        ->whereIn('estimate_id', $estimateIds)
-                        ->whereIn('status', ['draft', 'issued', 'paid'])
-                        ->exists()) {
-                    $types['repair'] = 'Repair';
-                }
-
-                // Washing is not its own invoice — it is a line on an estimate,
-                // and `WashingTariff::resolve()` chose its rate by container
-                // size when that line was raised. So what to look for is the
-                // line, not an invoice: it was priced by size whether or not the
-                // estimate has been billed yet.
-                if (\App\Models\EstimateLineItem::whereIn('estimate_id', $estimateIds)
-                        ->whereNotNull('washing_tariff_id')
-                        ->exists()) {
-                    $types['washing'] = 'Washing (priced on a repair estimate)';
-                }
-            }
-        }
-
-        return $types;
+        return \App\Services\CycleBilling::for($movement);
     }
 
     /**
@@ -2789,6 +2762,11 @@ class YardController extends Controller
             'job_type'         => $gateInMovement?->yardJob?->job_type_code
                                     ?? $gateInMovement?->job_type_code,
             'job_status'       => $gateInMovement?->yardJob?->status,
+            // Open sub jobs under the visit's main job (D5). The gate-out is
+            // never blocked for them, but the clerk sees each one before
+            // confirming. Not on a rental departure: that is a round trip
+            // under the rental's own job, not the end of the visit.
+            'open_sub_jobs'    => $hire->lettingJob ? [] : $this->openSubJobsFor($gateInMovement?->yardJob),
             'grade_id'         => $container->grade_id,
             'grade_name'       => $container->grade?->name,
             'grade_code'       => $container->grade?->code,
@@ -2836,6 +2814,39 @@ class YardController extends Controller
                 'on_hire_date' => $hire->lease?->on_hire_date?->format('d M Y'),
             ] : null,
         ]);
+    }
+
+    /**
+     * The open sub jobs under a visit's main job, for the gate-out warning:
+     * number, purpose, party, holder, opened on, last movement, link.
+     */
+    private function openSubJobsFor(?YardJob $job): array
+    {
+        if (! $job) {
+            return [];
+        }
+
+        $open = app(\App\Services\JobLifecycleService::class)->openDescendants($job->rootJob());
+
+        return $open->load(['jobType', 'customer', 'heldBy'])->map(function (YardJob $sub) {
+            $last = GateMovement::where('yard_job_id', $sub->id)
+                ->orderByRaw('COALESCE(gate_out_time, gate_in_time) DESC')
+                ->first();
+
+            return [
+                'job_no'        => $sub->job_no,
+                'purpose'       => $sub->jobType?->job_type_name ?? $sub->job_type_code,
+                'status'        => YardJob::statusLabel($sub->status),
+                'party'         => $sub->customer?->name,
+                'holder'        => $sub->heldBy?->name,
+                'opened_on'     => $sub->started_at?->format('d M Y'),
+                'last_movement' => $last
+                    ? ($last->movement_type === 'out' ? 'Out ' : 'In ')
+                        . ($last->gate_out_time ?? $last->gate_in_time)?->format('d M Y H:i')
+                    : null,
+                'url'           => route('yard.jobs.show', $sub),
+            ];
+        })->values()->all();
     }
 
     /**

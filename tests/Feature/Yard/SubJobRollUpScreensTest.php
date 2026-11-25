@@ -145,10 +145,18 @@ class SubJobRollUpScreensTest extends FeatureTestCase
         $this->lease();
         $hire = $this->reLet();
 
-        $this->get(route('yard.hires.show', $hire))
+        $html = $this->get(route('yard.hires.show', $hire))
             ->assertOk()
             ->assertSee($hire->yardJob->job_no)
-            ->assertDontSee($this->stayJob()->job_no);
+            ->getContent();
+
+        // A sub job's number begins with its main job's (D20, e.g.
+        // CCD-ST-00012/RL1), so the stay's number appears as that prefix. It
+        // must not appear on its own, as if the stay's job were the hire's.
+        $stayNo = $this->stayJob()->job_no;
+        $this->assertStringStartsWith($stayNo . '/', $hire->yardJob->job_no);
+        $this->assertSame(0, preg_match_all('#' . preg_quote($stayNo, '#') . '(?!/)#', $html),
+            'The stay job number appears on its own on the hire screen.');
     }
 
     /** An internal letting has no job, and the screen must still render. */

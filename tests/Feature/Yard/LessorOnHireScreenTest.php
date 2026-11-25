@@ -35,7 +35,7 @@ class LessorOnHireScreenTest extends FeatureTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Carbon::setTestNow('2026-09-20 10:00:00');
+        Carbon::setTestNow('2026-09-30 10:00:00');
         $this->actingAsSystemAdmin();
 
         $this->line      = Customer::factory()->create(['name' => 'Maersk Line']);
@@ -191,6 +191,143 @@ class LessorOnHireScreenTest extends FeatureTestCase
         ])->assertSessionHas('error');
 
         $this->assertSame(1, LessorOnHire::count());
+    }
+
+    // ── Picking a container: the visit it would sit inside ──────────────────
+
+    public function test_the_lookup_shows_the_visit_and_the_job_the_lease_will_get(): void
+    {
+        $this->storage();
+        $stay = $this->stayJob();
+
+        $d = $this->getJson(route('yard.lessor-hires.lookup', ['container_id' => $this->container->id]))
+            ->assertOk()->json();
+
+        $this->assertSame($stay->job_no, $d['main_job']['job_no']);
+        $this->assertSame("{$stay->job_no}/LH1", $d['next_job_no']);
+        $this->assertSame($this->line->id, $d['visit_customer_id'], 'The lessor defaults to the visit customer.');
+        $this->assertSame('01 Sep 2026 08:00', $d['visit']['gate_in']);
+        $this->assertSame(750.0, (float) $d['storage']['daily_rate']);
+        $this->assertSame('2026-09-01', $d['earliest_on_hire']);
+        $this->assertSame([], $d['blockers']);
+    }
+
+    public function test_a_laden_box_is_warned_about_not_blocked(): void
+    {
+        GateMovement::where('container_id', $this->container->id)->update(['cargo_status' => 'laden']);
+
+        $d = $this->getJson(route('yard.lessor-hires.lookup', ['container_id' => $this->container->id]))->json();
+        $this->assertSame([], $d['blockers']);
+        $this->assertNotEmpty($d['warnings']);
+
+        $this->onHire()->assertSessionHasNoErrors()->assertSessionMissing('error');
+        $this->assertSame(1, LessorOnHire::count());
+    }
+
+    /** Nothing may be pending: a main job no longer open takes no new lease. */
+    public function test_a_main_job_that_is_not_open_blocks_the_lease(): void
+    {
+        app(\App\Services\JobLifecycleService::class)->complete($this->stayJob(), auth()->id(), 'test');
+
+        $d = $this->getJson(route('yard.lessor-hires.lookup', ['container_id' => $this->container->id]))->json();
+        $this->assertNotEmpty($d['blockers']);
+
+        $this->from(route('yard.lessor-hires.create'))->onHire()->assertSessionHas('error');
+        $this->assertSame(0, LessorOnHire::count());
+    }
+
+    public function test_an_open_sub_job_blocks_the_lease(): void
+    {
+        // A rental straight off the stay (no lease): a sub job still open.
+        $this->storage();
+        app(\App\Services\ContainerHireService::class)->onHire(
+            $this->container->fresh(),
+            ['on_hire_date' => '2026-09-10', 'hire_customer_id' => Customer::factory()->create()->id],
+            auth()->id(),
+        );
+
+        $d = $this->getJson(route('yard.lessor-hires.lookup', ['container_id' => $this->container->id]))->json();
+        $this->assertNotEmpty(collect($d['blockers'])->filter(fn ($b) => str_contains($b, 'sub jobs still open')));
+
+        $this->from(route('yard.lessor-hires.create'))->onHire()->assertSessionHas('error');
+        $this->assertSame(0, LessorOnHire::count());
+    }
+
+    // ── The on-hire date ────────────────────────────────────────────────────
+
+    public function test_a_backdated_on_hire_is_accepted(): void
+    {
+        $this->onHire('2026-09-05')->assertSessionHasNoErrors()->assertSessionMissing('error');
+        $this->assertSame('2026-09-05', LessorOnHire::firstOrFail()->on_hire_date->toDateString());
+    }
+
+    public function test_a_future_on_hire_is_refused(): void
+    {
+        $this->from(route('yard.lessor-hires.create'))->onHire('2026-10-01')->assertSessionHasErrors('on_hire_date');
+        $this->assertSame(0, LessorOnHire::count());
+    }
+
+    public function test_an_on_hire_before_the_arrival_is_refused(): void
+    {
+        $this->from(route('yard.lessor-hires.create'))->onHire('2026-08-31')->assertSessionHas('error');
+        $this->assertSame(0, LessorOnHire::count());
+    }
+
+    /** The line has been billed storage to the 15th: the lease cannot start before the 16th. */
+    public function test_an_on_hire_inside_invoiced_storage_is_refused(): void
+    {
+        $this->storage();
+        $invoiceId = \Illuminate\Support\Facades\DB::table('storage_invoices')->insertGetId([
+            'invoice_no' => 'SI-LEASE-1', 'customer_id' => $this->line->id, 'invoice_date' => '2026-09-16',
+            'billing_period_from' => '2026-09-01', 'billing_period_to' => '2026-09-15', 'status' => 'issued',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        \Illuminate\Support\Facades\DB::table('storage_invoice_details')->insert([
+            'storage_invoice_id' => $invoiceId, 'container_id' => $this->container->id,
+            'container_no' => $this->container->container_no, 'equipment_type' => '40HC',
+            'gate_in_date' => '2026-09-01', 'from_date' => '2026-09-01', 'to_date' => '2026-09-15',
+            'total_days' => 15, 'free_days' => 5, 'chargeable_days' => 10, 'daily_rate' => 750, 'subtotal' => 7500,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $d = $this->getJson(route('yard.lessor-hires.lookup', ['container_id' => $this->container->id]))->json();
+        $this->assertSame('15 Sep 2026', $d['invoiced_through']);
+        $this->assertSame('2026-09-16', $d['earliest_on_hire']);
+
+        $this->from(route('yard.lessor-hires.create'))->onHire('2026-09-15')->assertSessionHas('error');
+        $this->assertSame(0, LessorOnHire::count());
+
+        $this->onHire('2026-09-16')->assertSessionMissing('error');
+        $this->assertSame(1, LessorOnHire::count());
+    }
+
+    // ── Parent: the stay, not an old letting ────────────────────────────────
+
+    /**
+     * After a rental has come back, the latest gate-in is the hire return, and
+     * it carries the rental's job. The next lease belongs under the stay.
+     */
+    public function test_a_lease_after_a_returned_rental_is_parented_to_the_stay(): void
+    {
+        $stay   = $this->stayJob();
+        $rental = YardJob::create([
+            'parent_job_id' => $stay->id, 'job_no' => $stay->job_no . '/RL1', 'job_seq' => 0,
+            'job_type_id' => $stay->job_type_id, 'job_type_code' => $stay->job_type_code,
+            'type_short_code' => 'RL', 'customer_id' => $this->line->id,
+            'status' => 'completed', 'completed_at' => '2026-09-12 09:00:00', 'created_by' => auth()->id(),
+        ]);
+        GateMovement::create([
+            'container_id' => $this->container->id, 'container_no' => $this->container->container_no,
+            'customer_id' => $this->line->id, 'yard_job_id' => $rental->id, 'movement_type' => 'in',
+            'size' => '40', 'container_type' => 'HC', 'condition' => 'sound', 'cargo_status' => 'empty',
+            'gate_in_time' => '2026-09-12 09:00:00', 'movement_status' => 'done', 'created_by' => auth()->id(),
+        ]);
+        $this->assertSame($rental->id, app(\App\Services\ContainerCustodyService::class)
+            ->visitJob($this->container)->id, 'The premise: the latest gate-in carries the rental job.');
+
+        $this->onHire('2026-09-20')->assertSessionMissing('error');
+
+        $this->assertSame($stay->id, LessorOnHire::firstOrFail()->yardJob->parent_job_id);
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────

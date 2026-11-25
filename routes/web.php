@@ -266,6 +266,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/',                    [\App\Http\Controllers\LessorOnHireController::class, 'index'])->name('index');
         Route::get('/create',              [\App\Http\Controllers\LessorOnHireController::class, 'create'])->name('create');
         Route::post('/',                   [\App\Http\Controllers\LessorOnHireController::class, 'store'])->name('store');
+        Route::get('/lookup',              [\App\Http\Controllers\LessorOnHireController::class, 'lookup'])->name('lookup');
         Route::get('/{lessorHire}',        [\App\Http\Controllers\LessorOnHireController::class, 'show'])->name('show');
         Route::post('/{lessorHire}/off-hire', [\App\Http\Controllers\LessorOnHireController::class, 'offHire'])->name('off-hire');
     });

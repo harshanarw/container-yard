@@ -269,6 +269,30 @@ The live pain, fixable without waiting for the rest.
 
 ### Phase 2 — Job life cycle (Rules 2, 3.2, 5.1–5.3)
 
+Built in two parts. **2a (built 24 Nov 2026):**
+- gate-in and its job in one transaction, with the stay linked to the job;
+- `JobLifecycleService` as the only writer of job status, called by the job
+  screen and the hire services;
+- the final gate-out settles the main job, and the gate-out lookup and form
+  warn about open sub jobs;
+- deleting a final gate-out reopens the job it completed;
+- cancelling a rental cancels its job;
+- sub-job numbering;
+- the `jobs:close-ended-visits` backfill.
+
+Migration 000323 (`awaiting_sub_jobs`, `closed_reason`); permissions
+`yard.jobs.complete` and `yard.jobs.reopen`; billing check shared through
+`App\Services\CycleBilling`. Tests: `tests/Feature/Yard/JobLifecycleTest.php`.
+On the reference copy the backfill reports **1,680 to complete, 1 awaiting,
+374 still in the yard, 9 jobs with no gate-in** (their gate-in was deleted;
+cancel them by hand). A running cargo transfer keeps its job open until
+Phase 9.
+
+**2b (next):**
+- every rental has a sub job;
+- the open-sub-jobs dashboard.
+
+
 - **Gate-in and job in one transaction**; the gate-in fails rather than saving a
   movement without a job.
 - **`JobLifecycleService`** as the single writer of job status:
@@ -656,7 +680,7 @@ Main job CCD-CT-00012   Customer: ABC Traders                    (gate-in type C
 | --- | --- | --- | --- |
 | 1 | 1 — seal / gate-out from visit, seal-change reason (D9) | small–medium | live complaint, CODECO errors |
 | 2 | 8a — identity by id **(built 24 Nov)** | small–medium | no behaviour change; closes today's split from G7.1 |
-| 3 | 2 — job life cycle, gate-out sub-job warning (D5), open-sub-jobs dashboard (D3), sub-job numbering (D7/D20) | medium | every later phase needs a trustworthy job tree |
+| 3 | 2 — job life cycle, gate-out sub-job warning (D5), open-sub-jobs dashboard (D3), sub-job numbering (D7/D20) **(2a built 24 Nov)** | medium | every later phase needs a trustworthy job tree |
 | 4 | 8b — owner and custody | small–medium | renumbering needs a known owner (only 3 of 1,930 linked today); needs the prefix list entered (D18) |
 | 5 | 8c–8g — renumbering flow | medium | needs 8a, 8b and the sub-job life cycle; its charge is already job-costed (general invoice lines carry `yard_job_id`) |
 | 6 | 6 — job costing | medium | cheap once jobs close; makes Rule 5 visible |

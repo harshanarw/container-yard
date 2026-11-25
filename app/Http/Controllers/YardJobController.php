@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\YardJob;
+use App\Exceptions\JobLifecycleException;
+use App\Services\JobLifecycleService;
 use App\Models\YardJobType;
 use App\Services\JobPnlService;
 use App\Services\NotificationService;
@@ -87,39 +89,112 @@ class YardJobController extends Controller
             ? $pnl->computeWithSubJobs($yardJob)
             : null;
 
-        return view('yard.jobs.show', compact('yardJob', 'pnlData', 'rollUp'));
+        $jobTree = $this->jobTree($yardJob);
+
+        return view('yard.jobs.show', compact('yardJob', 'pnlData', 'rollUp', 'jobTree'));
     }
 
-    public function update(Request $request, YardJob $yardJob): RedirectResponse
+    /**
+     * The whole job tree this job belongs to, main job first, each sub job
+     * under its parent: [['job' => YardJob, 'depth' => int], ...]. Empty for a
+     * job that stands alone, so an ordinary job renders as before.
+     *
+     * Depth-first from the root over `descendants()`, which is already bounded
+     * and cycle-guarded; the walk here only visits what that returned.
+     *
+     * @return list<array{job: YardJob, depth: int}>
+     */
+    private function jobTree(YardJob $job): array
+    {
+        $root  = $job->rootJob();
+        $below = $root->descendants();
+
+        if ($below->isEmpty()) {
+            return [];
+        }
+
+        $all = $below->push($root);
+        $all->load(['jobType', 'customer', 'heldBy']);
+        $children = $all->groupBy(fn (YardJob $j) => (int) $j->parent_job_id);
+
+        $rows = [];
+        $seen = [];
+        $walk = function (YardJob $node, int $depth) use (&$walk, &$rows, &$seen, $children) {
+            if (isset($seen[$node->id]) || $depth > 5) {
+                return;
+            }
+            $seen[$node->id] = true;
+            $rows[] = ['job' => $node, 'depth' => $depth];
+
+            foreach ($children->get($node->id, collect())->sortBy('id') as $child) {
+                $walk($child, $depth + 1);
+            }
+        };
+        $walk($all->firstWhere('id', $root->id), 0);
+
+        return $rows;
+    }
+
+    /**
+     * Status and remarks, through the job life cycle (Rule 5).
+     *
+     * Completing or cancelling needs `yard.jobs.complete`; reopening a closed
+     * job needs `yard.jobs.reopen`. The rules themselves (no completing over
+     * open sub jobs, no reopening once billed) are in JobLifecycleService, so
+     * the screen and every other caller obey the same ones.
+     */
+    public function update(Request $request, YardJob $yardJob, JobLifecycleService $lifecycle): RedirectResponse
     {
         $data = $request->validate([
-            'status'  => ['required', 'in:open,in_progress,completed,cancelled'],
+            // Absent when the job is waiting on its sub jobs: that state is the
+            // system's, shown but not offered, so only the remarks change.
+            'status'  => ['nullable', 'in:open,in_progress,completed,cancelled'],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        if (in_array($data['status'], ['completed', 'cancelled']) && ! $yardJob->completed_at) {
-            $data['completed_at'] = now();
-            $data['closed_by']    = auth()->id();
+        $to     = $data['status'] ?? $yardJob->status;
+        $userId = auth()->id();
+
+        if ($yardJob->remarks !== ($data['remarks'] ?? null)) {
+            $yardJob->update(['remarks' => $data['remarks'] ?? null]);
         }
 
-        // Reopen — clear close fields
-        if (in_array($data['status'], ['open', 'in_progress'])) {
-            $data['completed_at'] = null;
-            $data['closed_by']    = null;
+        if ($to === $yardJob->status) {
+            return back()->with('success', "Job {$yardJob->job_no} updated.");
         }
 
-        $yardJob->update($data);
+        try {
+            if (in_array($to, ['completed', 'cancelled'], true)) {
+                abort_unless(auth()->user()->can('yard.jobs.complete'), 403,
+                    'You do not have permission to complete or cancel jobs.');
 
-        if (in_array($data['status'], ['completed', 'cancelled'])) {
-            $notifType = $data['status'] === 'completed' ? 'success' : 'warning';
+                $to === 'completed'
+                    ? $lifecycle->complete($yardJob, $userId, 'Completed by hand')
+                    : $lifecycle->cancel($yardJob, $userId, 'Cancelled by hand');
+            } elseif (! $yardJob->isActive()) {
+                abort_unless(auth()->user()->can('yard.jobs.reopen'), 403,
+                    'You do not have permission to reopen jobs.');
+
+                $lifecycle->reopen($yardJob, $userId, $to);
+            } else {
+                $lifecycle->setWorking($yardJob, $to, $userId);
+            }
+        } catch (JobLifecycleException $e) {
+            return back()->withInput()->withErrors(['status' => $e->getMessage()]);
+        }
+
+        $yardJob->refresh();
+
+        if (in_array($yardJob->status, ['completed', 'cancelled'], true)) {
+            $notifType = $yardJob->status === 'completed' ? 'success' : 'warning';
             NotificationService::notifyAll(
-                'Yard Job ' . ucfirst($data['status']) . ' - ' . $yardJob->job_no,
-                ($yardJob->customer->name ?? 'Unknown') . ' · ' . ($yardJob->jobType->name ?? 'Job'),
+                'Yard Job ' . YardJob::statusLabel($yardJob->status) . ' - ' . $yardJob->job_no,
+                ($yardJob->customer->name ?? 'Unknown') . ' · ' . ($yardJob->jobType->job_type_name ?? 'Job'),
                 $notifType,
                 route('yard.jobs.show', $yardJob)
             );
         }
 
-        return back()->with('success', "Job {$yardJob->job_no} updated to \"" . YardJob::statusLabel($data['status']) . "\".");
+        return back()->with('success', "Job {$yardJob->job_no} updated to \"" . YardJob::statusLabel($yardJob->status) . "\".");
     }
 }
